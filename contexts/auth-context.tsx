@@ -8,7 +8,7 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   isAdmin: boolean;
-  login: (email: string, password: string, isAdmin?: boolean) => Promise<{ success: boolean; error?: string }>;
+  login: (email: string, phoneNumber: string, countryCode: string, isAdmin?: boolean) => Promise<{ success: boolean; error?: string }>;
   register: (userData: any, isAdmin?: boolean) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   updateProfile: (data: any) => Promise<{ success: boolean; error?: string }>;
@@ -71,13 +71,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const login = async (email: string, password: string, isAdmin = false): Promise<{ success: boolean; error?: string }> => {
+  const login = async (email: string, phoneNumber: string, countryCode: string, isAdmin = false): Promise<{ success: boolean; error?: string }> => {
     try {
       let response;
       if (isAdmin) {
-        response = await apiClient.adminLogin({ email, password });
+        response = await apiClient.adminLogin({ email, phoneNumber, countryCode });
       } else {
-        response = await apiClient.userLogin({ email, password });
+        response = await apiClient.userLogin({ email, phoneNumber, countryCode });
       }
 
       if (response.success && response.data) {

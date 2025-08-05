@@ -123,7 +123,6 @@ class ApiClient {
   async adminRegister(data: {
     name: string;
     email: string;
-    password: string;
     phoneNumber: string;
     countryCode: string;
     adminCode: string;
@@ -136,7 +135,8 @@ class ApiClient {
 
   async adminLogin(data: {
     email: string;
-    password: string;
+    phoneNumber: string;
+    countryCode: string;
   }): Promise<ApiResponse<{ token: string; admin: Admin }>> {
     return this.request('/admin/login', {
       method: 'POST',
@@ -151,7 +151,6 @@ class ApiClient {
   async userRegister(data: {
     name: string;
     email: string;
-    password: string;
     phoneNumber: string;
     countryCode: string;
   }): Promise<ApiResponse<{ token: string; user: User }>> {
@@ -163,7 +162,8 @@ class ApiClient {
 
   async userLogin(data: {
     email: string;
-    password: string;
+    phoneNumber: string;
+    countryCode: string;
   }): Promise<ApiResponse<{ token: string; user: User }>> {
     return this.request('/users/login', {
       method: 'POST',
@@ -180,8 +180,6 @@ class ApiClient {
     email?: string;
     phoneNumber?: string;
     countryCode?: string;
-    currentPassword?: string;
-    newPassword?: string;
   }): Promise<ApiResponse<User>> {
     return this.request('/users/profile', {
       method: 'PUT',

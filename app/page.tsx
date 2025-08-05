@@ -18,23 +18,19 @@ export default function AuthPage() {
   const router = useRouter()
 
   // User form states
-  const [userLoginData, setUserLoginData] = useState({ email: "", password: "" })
+  const [userLoginData, setUserLoginData] = useState({ email: "", phoneNumber: "", countryCode: "+1" })
   const [userRegisterData, setUserRegisterData] = useState({
     name: "",
     email: "",
-    password: "",
-    confirmPassword: "",
     phoneNumber: "",
     countryCode: "+1"
   })
 
   // Admin form states
-  const [adminLoginData, setAdminLoginData] = useState({ email: "", password: "" })
+  const [adminLoginData, setAdminLoginData] = useState({ email: "", phoneNumber: "", countryCode: "+1" })
   const [adminRegisterData, setAdminRegisterData] = useState({
     name: "",
     email: "",
-    password: "",
-    confirmPassword: "",
     phoneNumber: "",
     countryCode: "+1",
     adminCode: ""
@@ -58,7 +54,7 @@ export default function AuthPage() {
     setIsLoading(true)
     
     try {
-      const result = await login(userLoginData.email, userLoginData.password, false)
+      const result = await login(userLoginData.email, userLoginData.phoneNumber, userLoginData.countryCode, false)
       if (result.success) {
         toast.success("Login successful!")
         router.push("/dashboard")
@@ -75,11 +71,6 @@ export default function AuthPage() {
 
   const handleUserRegister = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    if (userRegisterData.password !== userRegisterData.confirmPassword) {
-      toast.error("Passwords do not match")
-      return
-    }
 
     if (!userOtpSent) {
       toast.error("Please verify your phone number first")
@@ -97,7 +88,6 @@ export default function AuthPage() {
       const result = await register({
         name: userRegisterData.name,
         email: userRegisterData.email,
-        password: userRegisterData.password,
         phoneNumber: userRegisterData.phoneNumber,
         countryCode: userRegisterData.countryCode
       }, false)
@@ -121,7 +111,7 @@ export default function AuthPage() {
     setIsLoading(true)
     
     try {
-      const result = await login(adminLoginData.email, adminLoginData.password, true)
+      const result = await login(adminLoginData.email, adminLoginData.phoneNumber, adminLoginData.countryCode, true)
       console.log('Admin login result:', result)
       if (result.success) {
         toast.success("Admin login successful!")
@@ -174,11 +164,6 @@ export default function AuthPage() {
 
   const handleAdminRegister = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    if (adminRegisterData.password !== adminRegisterData.confirmPassword) {
-      toast.error("Passwords do not match")
-      return
-    }
 
     if (!adminOtpSent) {
       toast.error("Please verify your phone number first")
@@ -196,7 +181,6 @@ export default function AuthPage() {
       const result = await register({
         name: adminRegisterData.name,
         email: adminRegisterData.email,
-        password: adminRegisterData.password,
         phoneNumber: adminRegisterData.phoneNumber,
         countryCode: adminRegisterData.countryCode,
         adminCode: adminRegisterData.adminCode
@@ -249,17 +233,32 @@ export default function AuthPage() {
                   />
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="user-password">Password</Label>
-                <div className="flex items-center gap-2">
-                  <Lock className="w-4 h-4 text-muted-foreground" />
-                  <Input
-                    id="user-password"
-                    type="password"
-                    placeholder="Enter your password"
-                    value={userLoginData.password}
-                    onChange={(e) => setUserLoginData({ ...userLoginData, password: e.target.value })}
-                  />
+              <div className="grid grid-cols-3 gap-2">
+                <div className="space-y-2">
+                  <Label htmlFor="user-login-country-code">Country Code</Label>
+                  <div className="flex items-center gap-2">
+                    <Phone className="w-4 h-4 text-muted-foreground" />
+                    <Input
+                      id="user-login-country-code"
+                      type="text"
+                      placeholder="+1"
+                      value={userLoginData.countryCode}
+                      onChange={(e) => setUserLoginData({ ...userLoginData, countryCode: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="col-span-2 space-y-2">
+                  <Label htmlFor="user-login-phone">Phone Number</Label>
+                  <div className="flex items-center gap-2">
+                    <Phone className="w-4 h-4 text-muted-foreground" />
+                    <Input
+                      id="user-login-phone"
+                      type="tel"
+                      placeholder="Enter your phone number"
+                      value={userLoginData.phoneNumber}
+                      onChange={(e) => setUserLoginData({ ...userLoginData, phoneNumber: e.target.value })}
+                    />
+                  </div>
                 </div>
               </div>
               <Button onClick={handleUserLogin} className="w-full" disabled={isLoading}>
@@ -370,31 +369,7 @@ export default function AuthPage() {
                   </div>
                 </div>
               )}
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-2">
-                  <Label htmlFor="user-password">Password</Label>
-                  <div className="flex items-center gap-2">
-                    <Lock className="w-4 h-4 text-muted-foreground" />
-                    <Input
-                      id="user-password"
-                      type="password"
-                      placeholder="Password"
-                      value={userRegisterData.password}
-                      onChange={(e) => setUserRegisterData({ ...userRegisterData, password: e.target.value })}
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="user-confirm-password">Confirm Password</Label>
-                  <Input
-                    id="user-confirm-password"
-                    type="password"
-                    placeholder="Confirm password"
-                    value={userRegisterData.confirmPassword}
-                    onChange={(e) => setUserRegisterData({ ...userRegisterData, confirmPassword: e.target.value })}
-                  />
-                </div>
-              </div>
+
               <Button onClick={handleUserRegister} className="w-full" disabled={isLoading}>
                 {isLoading ? "Creating account..." : "Create Account"}
                 <UserPlus className="ml-2 w-4 h-4" />
@@ -423,17 +398,32 @@ export default function AuthPage() {
                   />
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="admin-password">Admin Password</Label>
-                <div className="flex items-center gap-2">
-                  <Lock className="w-4 h-4 text-muted-foreground" />
-                  <Input
-                    id="admin-password"
-                    type="password"
-                    placeholder="Enter admin password"
-                    value={adminLoginData.password}
-                    onChange={(e) => setAdminLoginData({ ...adminLoginData, password: e.target.value })}
-                  />
+              <div className="grid grid-cols-3 gap-2">
+                <div className="space-y-2">
+                  <Label htmlFor="admin-login-country-code">Country Code</Label>
+                  <div className="flex items-center gap-2">
+                    <Phone className="w-4 h-4 text-muted-foreground" />
+                    <Input
+                      id="admin-login-country-code"
+                      type="text"
+                      placeholder="+1"
+                      value={adminLoginData.countryCode}
+                      onChange={(e) => setAdminLoginData({ ...adminLoginData, countryCode: e.target.value })}
+                    />
+                  </div>
+                </div>
+                <div className="col-span-2 space-y-2">
+                  <Label htmlFor="admin-login-phone">Phone Number</Label>
+                  <div className="flex items-center gap-2">
+                    <Phone className="w-4 h-4 text-muted-foreground" />
+                    <Input
+                      id="admin-login-phone"
+                      type="tel"
+                      placeholder="Enter admin phone number"
+                      value={adminLoginData.phoneNumber}
+                      onChange={(e) => setAdminLoginData({ ...adminLoginData, phoneNumber: e.target.value })}
+                    />
+                  </div>
                 </div>
               </div>
               <Button onClick={handleAdminLogin} className="w-full" disabled={isLoading}>
@@ -557,31 +547,7 @@ export default function AuthPage() {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-2">
-                  <Label htmlFor="admin-password">Password</Label>
-                  <div className="flex items-center gap-2">
-                    <Lock className="w-4 h-4 text-muted-foreground" />
-                    <Input
-                      id="admin-password"
-                      type="password"
-                      placeholder="Password"
-                      value={adminRegisterData.password}
-                      onChange={(e) => setAdminRegisterData({ ...adminRegisterData, password: e.target.value })}
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="admin-confirm-password">Confirm Password</Label>
-                  <Input
-                    id="admin-confirm-password"
-                    type="password"
-                    placeholder="Confirm password"
-                    value={adminRegisterData.confirmPassword}
-                    onChange={(e) => setAdminRegisterData({ ...adminRegisterData, confirmPassword: e.target.value })}
-                  />
-                </div>
-              </div>
+
               <Button onClick={handleAdminRegister} className="w-full" disabled={isLoading}>
                 {isLoading ? "Creating admin account..." : "Create Admin Account"}
                 <Shield className="ml-2 w-4 h-4" />
