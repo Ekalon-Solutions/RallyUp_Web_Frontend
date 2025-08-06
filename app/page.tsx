@@ -58,6 +58,15 @@ export default function AuthPage() {
   const [systemOwnerOtp, setSystemOwnerOtp] = useState("")
   const [generatedOtp, setGeneratedOtp] = useState("")
 
+  // Login OTP states
+  const [userLoginOtpSent, setUserLoginOtpSent] = useState(false)
+  const [adminLoginOtpSent, setAdminLoginOtpSent] = useState(false)
+  const [systemOwnerLoginOtpSent, setSystemOwnerLoginOtpSent] = useState(false)
+  const [userLoginOtp, setUserLoginOtp] = useState("")
+  const [adminLoginOtp, setAdminLoginOtp] = useState("")
+  const [systemOwnerLoginOtp, setSystemOwnerLoginOtp] = useState("")
+  const [generatedLoginOtp, setGeneratedLoginOtp] = useState("")
+
   // Redirect if already authenticated
   if (isAuthenticated) {
     router.push("/dashboard")
@@ -66,6 +75,17 @@ export default function AuthPage() {
 
   const handleUserLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!userLoginOtpSent) {
+      toast.error("Please verify your phone number first")
+      return
+    }
+
+    if (userLoginOtp !== generatedLoginOtp) {
+      toast.error("Invalid OTP. Please check and try again")
+      return
+    }
+
     setIsLoading(true)
     
     try {
@@ -125,6 +145,17 @@ export default function AuthPage() {
 
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!adminLoginOtpSent) {
+      toast.error("Please verify your phone number first")
+      return
+    }
+
+    if (adminLoginOtp !== generatedLoginOtp) {
+      toast.error("Invalid OTP. Please check and try again")
+      return
+    }
+
     setIsLoading(true)
     
     try {
@@ -194,6 +225,52 @@ export default function AuthPage() {
     setSystemOwnerOtpSent(true)
   }
 
+  // Login OTP verification handlers
+  const handleUserLoginVerifyNumber = async () => {
+    if (!userLoginData.phoneNumber || !userLoginData.countryCode) {
+      toast.error("Please enter phone number and country code")
+      return
+    }
+    
+    // Generate OTP
+    const otp = generateOTP()
+    setGeneratedLoginOtp(otp)
+    
+    // Simulate OTP sending
+    toast.success(`OTP sent to ${userLoginData.countryCode}${userLoginData.phoneNumber}. Code: ${otp}`)
+    setUserLoginOtpSent(true)
+  }
+
+  const handleAdminLoginVerifyNumber = async () => {
+    if (!adminLoginData.phoneNumber || !adminLoginData.countryCode) {
+      toast.error("Please enter phone number and country code")
+      return
+    }
+    
+    // Generate OTP
+    const otp = generateOTP()
+    setGeneratedLoginOtp(otp)
+    
+    // Simulate OTP sending
+    toast.success(`OTP sent to ${adminLoginData.countryCode}${adminLoginData.phoneNumber}. Code: ${otp}`)
+    setAdminLoginOtpSent(true)
+  }
+
+  const handleSystemOwnerLoginVerifyNumber = async () => {
+    if (!systemOwnerLoginData.phoneNumber || !systemOwnerLoginData.countryCode) {
+      toast.error("Please enter phone number and country code")
+      return
+    }
+    
+    // Generate OTP
+    const otp = generateOTP()
+    setGeneratedLoginOtp(otp)
+    
+    // Simulate OTP sending
+    toast.success(`OTP sent to ${systemOwnerLoginData.countryCode}${systemOwnerLoginData.phoneNumber}. Code: ${otp}`)
+    setSystemOwnerLoginOtpSent(true)
+  }
+
   const handleAdminRegister = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -234,6 +311,17 @@ export default function AuthPage() {
 
   const handleSystemOwnerLogin = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!systemOwnerLoginOtpSent) {
+      toast.error("Please verify your phone number first")
+      return
+    }
+
+    if (systemOwnerLoginOtp !== generatedLoginOtp) {
+      toast.error("Invalid OTP. Please check and try again")
+      return
+    }
+
     setIsLoading(true)
     
     try {
@@ -294,7 +382,7 @@ export default function AuthPage() {
     <div className="relative h-screen">
       {/* Background Pattern */}
       <div className="absolute inset-0">
-        <div className="absolute top-0 z-[-2] h-screen w-screen bg-[#000000] bg-[radial-gradient(#ffffff33_1px,#00091d_1px)] bg-[size:20px_20px]"></div>
+        <div className="absolute top-0 z-[-2] h-screen w-screen bg-[#000000] bg-[radial-gradient(#ffffff33_1px,#000000_1px)] bg-[size:20px_20px]"></div>
       </div>
       
       {/* Hero Content */}
@@ -363,10 +451,30 @@ export default function AuthPage() {
                       </div>
                     </div>
                   </div>
-                  <Button onClick={handleUserLogin} className="w-full bg-sky-400 text-slate-900 hover:bg-sky-300" disabled={isLoading}>
-                    {isLoading ? "Signing in..." : "Sign In"}
-                    <LogIn className="ml-2 w-4 h-4" />
-                  </Button>
+                  {!userLoginOtpSent ? (
+                    <Button onClick={handleUserLoginVerifyNumber} className="w-full bg-sky-400 text-slate-900 hover:bg-sky-300">
+                      Send OTP
+                      <Phone className="ml-2 w-4 h-4" />
+                    </Button>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="user-login-otp" className="text-white">OTP Code</Label>
+                        <Input
+                          id="user-login-otp"
+                          type="text"
+                          placeholder="Enter 6-digit OTP"
+                          value={userLoginOtp}
+                          onChange={(e) => setUserLoginOtp(e.target.value)}
+                          className="bg-white/10 border-white/20 text-white placeholder:text-slate-400"
+                        />
+                      </div>
+                      <Button onClick={handleUserLogin} className="w-full bg-sky-400 text-slate-900 hover:bg-sky-300" disabled={isLoading}>
+                        {isLoading ? "Signing in..." : "Sign In"}
+                        <LogIn className="ml-2 w-4 h-4" />
+                      </Button>
+                    </div>
+                  )}
                   <Button 
                     variant="outline" 
                     onClick={() => setActiveTab("user-register")} 
@@ -544,10 +652,30 @@ export default function AuthPage() {
                       </div>
                     </div>
                   </div>
-                  <Button onClick={handleAdminLogin} className="w-full bg-sky-400 text-slate-900 hover:bg-sky-300" disabled={isLoading}>
-                    {isLoading ? "Signing in..." : "Admin Sign In"}
-                    <Shield className="ml-2 w-4 h-4" />
-                  </Button>
+                  {!adminLoginOtpSent ? (
+                    <Button onClick={handleAdminLoginVerifyNumber} className="w-full bg-sky-400 text-slate-900 hover:bg-sky-300">
+                      Send OTP
+                      <Phone className="ml-2 w-4 h-4" />
+                    </Button>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="admin-login-otp" className="text-white">OTP Code</Label>
+                        <Input
+                          id="admin-login-otp"
+                          type="text"
+                          placeholder="Enter 6-digit OTP"
+                          value={adminLoginOtp}
+                          onChange={(e) => setAdminLoginOtp(e.target.value)}
+                          className="bg-white/10 border-white/20 text-white placeholder:text-slate-400"
+                        />
+                      </div>
+                      <Button onClick={handleAdminLogin} className="w-full bg-sky-400 text-slate-900 hover:bg-sky-300" disabled={isLoading}>
+                        {isLoading ? "Signing in..." : "Admin Sign In"}
+                        <Shield className="ml-2 w-4 h-4" />
+                      </Button>
+                    </div>
+                  )}
                   <Button 
                     variant="outline" 
                     onClick={() => setActiveTab("admin-register")} 
@@ -731,10 +859,30 @@ export default function AuthPage() {
                       </div>
                     </div>
                   </div>
-                  <Button onClick={handleSystemOwnerLogin} className="w-full bg-sky-400 text-slate-900 hover:bg-sky-300" disabled={isLoading}>
-                    {isLoading ? "Signing in..." : "System Owner Sign In"}
-                    <Crown className="ml-2 w-4 h-4" />
-                  </Button>
+                  {!systemOwnerLoginOtpSent ? (
+                    <Button onClick={handleSystemOwnerLoginVerifyNumber} className="w-full bg-sky-400 text-slate-900 hover:bg-sky-300">
+                      Send OTP
+                      <Phone className="ml-2 w-4 h-4" />
+                    </Button>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="system-owner-login-otp" className="text-white">OTP Code</Label>
+                        <Input
+                          id="system-owner-login-otp"
+                          type="text"
+                          placeholder="Enter 6-digit OTP"
+                          value={systemOwnerLoginOtp}
+                          onChange={(e) => setSystemOwnerLoginOtp(e.target.value)}
+                          className="bg-white/10 border-white/20 text-white placeholder:text-slate-400"
+                        />
+                      </div>
+                      <Button onClick={handleSystemOwnerLogin} className="w-full bg-sky-400 text-slate-900 hover:bg-sky-300" disabled={isLoading}>
+                        {isLoading ? "Signing in..." : "System Owner Sign In"}
+                        <Crown className="ml-2 w-4 h-4" />
+                      </Button>
+                    </div>
+                  )}
                   <Button 
                     variant="outline" 
                     onClick={() => setActiveTab("system-owner-register")} 

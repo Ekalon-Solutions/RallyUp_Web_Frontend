@@ -658,6 +658,53 @@ class ApiClient {
   }>> {
     return this.request('/admin/club');
   }
+
+  // Member Directory APIs
+  async getMemberDirectory(params?: {
+    search?: string;
+    page?: number;
+    limit?: number;
+    status?: 'all' | 'active' | 'inactive';
+  }): Promise<ApiResponse<{
+    members: User[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      pages: number;
+    };
+  }>> {
+    const queryParams = new URLSearchParams();
+    if (params?.search) queryParams.append('search', params.search);
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.status) queryParams.append('status', params.status);
+
+    const endpoint = `/users/directory${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    return this.request(endpoint);
+  }
+
+  async getClubMemberDirectory(params?: {
+    search?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<ApiResponse<{
+    members: User[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      pages: number;
+    };
+  }>> {
+    const queryParams = new URLSearchParams();
+    if (params?.search) queryParams.append('search', params.search);
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+
+    const endpoint = `/users/club-directory${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    return this.request(endpoint);
+  }
 }
 
 export const apiClient = new ApiClient(API_BASE_URL); 

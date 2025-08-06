@@ -26,6 +26,7 @@ import {
   User,
   Building,
   CreditCard,
+  Building2,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -75,6 +76,8 @@ const superAdminNavigation = [
 
 const userNavigation = [
   { name: "Feed", href: "/dashboard/user", icon: LayoutDashboard },
+  { name: "Clubs", href: "/dashboard/user/clubs", icon: Building2 },
+  { name: "Members", href: "/dashboard/user/members", icon: Users },
   { name: "Events", href: "/dashboard/user/events", icon: Ticket },
   { name: "News", href: "/dashboard/user/news", icon: Newspaper },
   { name: "My Profile", href: "/dashboard/user/profile", icon: User },

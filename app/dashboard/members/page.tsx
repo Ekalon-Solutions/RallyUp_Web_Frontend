@@ -1,312 +1,236 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Users, Search, MoreHorizontal, Edit, Trash2, Eye, Plus, Filter } from "lucide-react"
-import { DashboardLayout } from "@/components/dashboard-layout"
-import { ProtectedRoute } from "@/components/protected-route"
-import { apiClient, User } from "@/lib/api"
-import { toast } from "sonner"
-import { useAuth } from "@/contexts/auth-context"
+import { useState, useEffect } from 'react'
+import { useAuth } from '@/contexts/auth-context'
+import { apiClient } from '@/lib/api'
+import { toast } from 'sonner'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination'
+import { DashboardLayout } from '@/components/dashboard-layout'
+import { ProtectedRoute } from '@/components/protected-route'
+import { 
+  Search, 
+  Users, 
+  Mail, 
+  Phone, 
+  Calendar, 
+  Building2, 
+  Shield,
+  Eye,
+  Edit,
+  Trash2,
+  Filter,
+  Download,
+  Plus
+} from 'lucide-react'
+
+interface Member {
+  _id: string
+  name: string
+  email: string
+  phoneNumber: string
+  countryCode: string
+  isPhoneVerified: boolean
+  role: string
+  club?: {
+    _id: string
+    name: string
+    description?: string
+    logo?: string
+  }
+  membershipPlan?: {
+    _id: string
+    name: string
+    description: string
+    price: number
+    currency: string
+    duration: number
+  }
+  membershipExpiry?: string
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
+}
 
 export default function MembersPage() {
-  const { isAdmin } = useAuth()
-  const [members, setMembers] = useState<User[]>([])
+  const { user } = useAuth()
+  const [members, setMembers] = useState<Member[]>([])
   const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [searchTerm, setSearchTerm] = useState('')
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
   const [currentPage, setCurrentPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(1)
-  const [stats, setStats] = useState({
-    totalMembers: 0,
-    activeMembers: 0,
-    verifiedMembers: 0,
-    newMembersThisMonth: 0,
-    inactiveMembers: 0,
-    unverifiedMembers: 0
-  })
-
-  // Form states for add/edit member
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
-  const [editingMember, setEditingMember] = useState<User | null>(null)
-  const [memberForm, setMemberForm] = useState({
-    name: "",
-    email: "",
-    phoneNumber: "",
-    countryCode: "+1",
-    role: "member",
-    isActive: true,
-    isPhoneVerified: false
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    pages: 0
   })
 
   useEffect(() => {
     fetchMembers()
-    fetchStats()
   }, [currentPage, searchTerm, statusFilter])
 
   const fetchMembers = async () => {
     try {
       setLoading(true)
-      console.log('Fetching members with params:', {
-        page: currentPage,
-        limit: 10,
+      const response = await apiClient.getMemberDirectory({
         search: searchTerm || undefined,
-        status: statusFilter === "all" ? undefined : (statusFilter as "active" | "inactive")
-      })
-      
-      const response = await apiClient.getMembers({
         page: currentPage,
-        limit: 10,
-        search: searchTerm || undefined,
-        status: statusFilter === "all" ? undefined : (statusFilter as "active" | "inactive")
+        limit: 20,
+        status: statusFilter
       })
-
-      console.log('Members response:', response)
 
       if (response.success && response.data) {
         setMembers(response.data.members)
-        setTotalPages(response.data.pagination.pages)
+        setPagination(response.data.pagination)
       } else {
-        console.error("Failed to fetch members:", response.error)
-        toast.error("Failed to fetch members")
+        toast.error(response.error || 'Failed to load members')
       }
     } catch (error) {
-      console.error("Error fetching members:", error)
-      toast.error("Error fetching members")
+      console.error('Error fetching members:', error)
+      toast.error('Error loading members')
     } finally {
       setLoading(false)
     }
   }
 
-  const fetchStats = async () => {
-    try {
-      const response = await apiClient.getMemberStats()
-      if (response.success && response.data) {
-        setStats(response.data)
-      }
-    } catch (error) {
-      console.error("Error fetching stats:", error)
-    }
+  const handleSearch = (value: string) => {
+    setSearchTerm(value)
+    setCurrentPage(1)
   }
 
-  const handleAddMember = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    try {
-      // For now, we'll use the user registration endpoint
-      // In a real app, you might have a separate admin endpoint for adding members
-      const response = await apiClient.userRegister({
-        name: memberForm.name,
-        email: memberForm.email,
-        password: "temporaryPassword123", // You might want to generate this
-        phoneNumber: memberForm.phoneNumber,
-        countryCode: memberForm.countryCode
-      })
-
-      if (response.success) {
-        toast.success("Member added successfully")
-        setIsAddDialogOpen(false)
-        resetForm()
-        fetchMembers()
-        fetchStats()
-      } else {
-        toast.error(response.error || "Failed to add member")
-      }
-    } catch (error) {
-      console.error("Error adding member:", error)
-      toast.error("Error adding member")
-    }
+  const handleStatusFilter = (value: string) => {
+    setStatusFilter(value as 'all' | 'active' | 'inactive')
+    setCurrentPage(1)
   }
 
-  const handleUpdateMember = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    if (!editingMember) return
-
-    try {
-      const response = await apiClient.updateMember(editingMember._id, {
-        name: memberForm.name,
-        email: memberForm.email,
-        phoneNumber: memberForm.phoneNumber,
-        countryCode: memberForm.countryCode,
-        role: memberForm.role,
-        isActive: memberForm.isActive,
-        isPhoneVerified: memberForm.isPhoneVerified
-      })
-
-      if (response.success) {
-        toast.success("Member updated successfully")
-        setEditingMember(null)
-        resetForm()
-        fetchMembers()
-        fetchStats()
-      } else {
-        toast.error(response.error || "Failed to update member")
-      }
-    } catch (error) {
-      console.error("Error updating member:", error)
-      toast.error("Error updating member")
-    }
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
   }
 
-  const handleDeleteMember = async (memberId: string) => {
-    if (!confirm("Are you sure you want to delete this member?")) return
-
-    try {
-      const response = await apiClient.deleteMember(memberId)
-      if (response.success) {
-        toast.success("Member deleted successfully")
-        fetchMembers()
-        fetchStats()
-      } else {
-        toast.error(response.error || "Failed to delete member")
-      }
-    } catch (error) {
-      console.error("Error deleting member:", error)
-      toast.error("Error deleting member")
-    }
-  }
-
-  const resetForm = () => {
-    setMemberForm({
-      name: "",
-      email: "",
-      phoneNumber: "",
-      countryCode: "+1",
-      role: "member",
-      isActive: true,
-      isPhoneVerified: false
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
     })
   }
 
-  const openEditDialog = (member: User) => {
-    setEditingMember(member)
-    setMemberForm({
-      name: member.name,
-      email: member.email,
-      phoneNumber: member.phoneNumber,
-      countryCode: member.countryCode,
-      role: member.role,
-      isActive: member.isActive || true,
-      isPhoneVerified: member.isPhoneVerified
-    })
+  const formatPhoneNumber = (phoneNumber: string, countryCode: string) => {
+    return `${countryCode} ${phoneNumber}`
   }
 
-  const statsCards = [
-    { title: "Total Members", value: stats.totalMembers, color: "text-blue-600" },
-    { title: "Active Members", value: stats.activeMembers, color: "text-green-600" },
-    { title: "Verified Members", value: stats.verifiedMembers, color: "text-purple-600" },
-    { title: "New This Month", value: stats.newMembersThisMonth, color: "text-orange-600" },
-  ]
+  const getStatusColor = (isActive: boolean) => {
+    return isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+  }
+
+  const getVerificationColor = (isVerified: boolean) => {
+    return isVerified ? 'bg-blue-100 text-blue-800' : 'bg-yellow-100 text-yellow-800'
+  }
+
+  const exportMembers = () => {
+    const csvContent = [
+      ['Name', 'Email', 'Phone', 'Club', 'Membership Plan', 'Status', 'Joined Date'].join(','),
+      ...members.map(member => [
+        member.name,
+        member.email,
+        formatPhoneNumber(member.phoneNumber, member.countryCode),
+        member.club?.name || 'N/A',
+        member.membershipPlan?.name || 'N/A',
+        member.isActive ? 'Active' : 'Inactive',
+        formatDate(member.createdAt)
+      ].join(','))
+    ].join('\n')
+
+    const blob = new Blob([csvContent], { type: 'text/csv' })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `members-${new Date().toISOString().split('T')[0]}.csv`
+    a.click()
+    window.URL.revokeObjectURL(url)
+    toast.success('Members exported successfully!')
+  }
 
   return (
     <ProtectedRoute requireAdmin={true}>
-    <DashboardLayout>
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
+      <DashboardLayout>
+        <div className="space-y-6">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h1 className="text-3xl font-bold">Members Management</h1>
-              <p className="text-muted-foreground">Manage your supporter group members</p>
+              <h1 className="text-3xl font-bold">Member Directory</h1>
+              <p className="text-muted-foreground">Manage and view all club members</p>
             </div>
-            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Member
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Add New Member</DialogTitle>
-                  <DialogDescription>Add a new member to your supporter group</DialogDescription>
-                </DialogHeader>
-                <form onSubmit={handleAddMember} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Full Name</Label>
-                    <Input
-                      id="name"
-                      value={memberForm.name}
-                      onChange={(e) => setMemberForm({ ...memberForm, name: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={memberForm.email}
-                      onChange={(e) => setMemberForm({ ...memberForm, email: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Phone Number</Label>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      value={memberForm.phoneNumber}
-                      onChange={(e) => setMemberForm({ ...memberForm, phoneNumber: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="role">Role</Label>
-                    <Select value={memberForm.role} onValueChange={(value) => setMemberForm({ ...memberForm, role: value })}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="member">Member</SelectItem>
-                        <SelectItem value="moderator">Moderator</SelectItem>
-                        <SelectItem value="admin">Admin</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="isActive"
-                      checked={memberForm.isActive}
-                      onChange={(e) => setMemberForm({ ...memberForm, isActive: e.target.checked })}
-                    />
-                    <Label htmlFor="isActive">Active Member</Label>
-                  </div>
-                  <div className="flex justify-end space-x-2">
-                    <Button type="button" variant="outline" onClick={() => setIsAddDialogOpen(false)}>
-                      Cancel
-                    </Button>
-                    <Button type="submit">Add Member</Button>
-                  </div>
-                </form>
-              </DialogContent>
-            </Dialog>
-        </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={exportMembers}>
+                <Download className="w-4 h-4 mr-2" />
+                Export
+              </Button>
+              <Button>
+                <Plus className="w-4 h-4 mr-2" />
+                Add Member
+              </Button>
+            </div>
+          </div>
 
-          {/* Stats Grid */}
+          {/* Stats Cards */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            {statsCards.map((stat) => (
-              <Card key={stat.title}>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-                  <Users className={`h-4 w-4 ${stat.color}`} />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stat.value}</div>
-                </CardContent>
-              </Card>
-          ))}
-        </div>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Members</CardTitle>
+                <Users className="h-4 w-4 text-blue-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{pagination.total}</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Active Members</CardTitle>
+                <Shield className="h-4 w-4 text-green-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-green-600">
+                  {members.filter(m => m.isActive).length}
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Verified Members</CardTitle>
+                <Mail className="h-4 w-4 text-blue-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-blue-600">
+                  {members.filter(m => m.isPhoneVerified).length}
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">This Month</CardTitle>
+                <Calendar className="h-4 w-4 text-purple-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-purple-600">
+                  {members.filter(m => {
+                    const memberDate = new Date(m.createdAt)
+                    const now = new Date()
+                    return memberDate.getMonth() === now.getMonth() && 
+                           memberDate.getFullYear() === now.getFullYear()
+                  }).length}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
-          {/* Filters and Search */}
+          {/* Filters */}
           <Card>
             <CardHeader>
               <CardTitle>Members</CardTitle>
@@ -316,209 +240,146 @@ export default function MembersPage() {
               <div className="flex flex-col sm:flex-row gap-4 mb-4">
                 <div className="flex-1">
                   <div className="relative">
-                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <Input
-                      placeholder="Search members..."
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                    <Input
+                      placeholder="Search members by name, email, or phone..."
                       value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
+                      onChange={(e) => handleSearch(e.target.value)}
+                      className="pl-10"
+                    />
                   </div>
                 </div>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-full sm:w-48">
-                    <Filter className="w-4 h-4 mr-2" />
-                    <SelectValue placeholder="Filter by status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Members</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="w-full sm:w-48">
+                  <Select value={statusFilter} onValueChange={handleStatusFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Filter by status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Members</SelectItem>
+                      <SelectItem value="active">Active Only</SelectItem>
+                      <SelectItem value="inactive">Inactive Only</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
-              <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Phone</TableHead>
-                      <TableHead>Role</TableHead>
-                    <TableHead>Status</TableHead>
-                      <TableHead>Verified</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                    {loading ? (
-                      <TableRow>
-                        <TableCell colSpan={7} className="text-center py-8">
-                          Loading members...
-                        </TableCell>
-                      </TableRow>
-                    ) : members.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={7} className="text-center py-8">
-                          No members found
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      members.map((member) => (
-                        <TableRow key={member._id}>
-                          <TableCell className="font-medium">{member.name}</TableCell>
-                          <TableCell>{member.email}</TableCell>
-                          <TableCell>{member.countryCode} {member.phoneNumber}</TableCell>
-                      <TableCell>
-                            <Badge variant={member.role === "admin" ? "destructive" : "secondary"}>
-                              {member.role}
+              {/* Members List */}
+              {loading ? (
+                <div className="space-y-4">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="flex items-center space-x-4 p-4 border rounded-lg animate-pulse">
+                      <div className="w-10 h-10 bg-muted rounded-full"></div>
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 bg-muted rounded w-1/4"></div>
+                        <div className="h-3 bg-muted rounded w-1/3"></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : members.length === 0 ? (
+                <div className="text-center py-12">
+                  <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-muted-foreground mb-2">No members found</h3>
+                  <p className="text-muted-foreground">Try adjusting your search or filters.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {members.map((member) => (
+                    <div key={member._id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                      <div className="flex items-center space-x-4">
+                        <Avatar>
+                          <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
+                            {member.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <div className="flex items-center space-x-2">
+                            <h3 className="font-semibold">{member.name}</h3>
+                            <Badge className={getStatusColor(member.isActive)}>
+                              {member.isActive ? 'Active' : 'Inactive'}
                             </Badge>
-                      </TableCell>
-                      <TableCell>
-                            <Badge variant={member.isActive ? "default" : "secondary"}>
-                              {member.isActive ? "Active" : "Inactive"}
+                            <Badge className={getVerificationColor(member.isPhoneVerified)}>
+                              {member.isPhoneVerified ? 'Verified' : 'Unverified'}
                             </Badge>
-                      </TableCell>
-                      <TableCell>
-                            <Badge variant={member.isPhoneVerified ? "default" : "outline"}>
-                              {member.isPhoneVerified ? "Verified" : "Unverified"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="h-8 w-8 p-0">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => openEditDialog(member)}>
-                                  <Edit className="w-4 h-4 mr-2" />
-                                  Edit
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleDeleteMember(member._id)}>
-                                  <Trash2 className="w-4 h-4 mr-2" />
-                                  Delete
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                      ))
-                    )}
-                </TableBody>
-              </Table>
-              </div>
+                          </div>
+                          <div className="flex items-center space-x-4 text-sm text-muted-foreground mt-1">
+                            <div className="flex items-center space-x-1">
+                              <Mail className="w-3 h-3" />
+                              <span>{member.email}</span>
+                            </div>
+                            <div className="flex items-center space-x-1">
+                              <Phone className="w-3 h-3" />
+                              <span>{formatPhoneNumber(member.phoneNumber, member.countryCode)}</span>
+                            </div>
+                            {member.club && (
+                              <div className="flex items-center space-x-1">
+                                <Building2 className="w-3 h-3" />
+                                <span>{member.club.name}</span>
+                              </div>
+                            )}
+                          </div>
+                          {member.membershipPlan && (
+                            <div className="text-xs text-muted-foreground mt-1">
+                              Plan: {member.membershipPlan.name} ({member.membershipPlan.price} {member.membershipPlan.currency})
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Button variant="ghost" size="sm">
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm">
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {/* Pagination */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between mt-4">
-                  <p className="text-sm text-muted-foreground">
-                    Page {currentPage} of {totalPages}
-                  </p>
-                  <div className="flex space-x-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                      disabled={currentPage === 1}
-                    >
-                      Previous
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                      disabled={currentPage === totalPages}
-                    >
-                      Next
-                    </Button>
-                  </div>
+              {pagination.pages > 1 && (
+                <div className="mt-6">
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious 
+                          onClick={() => handlePageChange(currentPage - 1)}
+                          className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                        />
+                      </PaginationItem>
+                      {[...Array(pagination.pages)].map((_, i) => {
+                        const page = i + 1
+                        return (
+                          <PaginationItem key={page}>
+                            <PaginationLink
+                              onClick={() => handlePageChange(page)}
+                              isActive={currentPage === page}
+                              className="cursor-pointer"
+                            >
+                              {page}
+                            </PaginationLink>
+                          </PaginationItem>
+                        )
+                      })}
+                      <PaginationItem>
+                        <PaginationNext 
+                          onClick={() => handlePageChange(currentPage + 1)}
+                          className={currentPage === pagination.pages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
                 </div>
               )}
             </CardContent>
           </Card>
-
-          {/* Edit Member Dialog */}
-          <Dialog open={!!editingMember} onOpenChange={() => setEditingMember(null)}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Edit Member</DialogTitle>
-                <DialogDescription>Update member information</DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleUpdateMember} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="edit-name">Full Name</Label>
-                  <Input
-                    id="edit-name"
-                    value={memberForm.name}
-                    onChange={(e) => setMemberForm({ ...memberForm, name: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="edit-email">Email</Label>
-                  <Input
-                    id="edit-email"
-                    type="email"
-                    value={memberForm.email}
-                    onChange={(e) => setMemberForm({ ...memberForm, email: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="edit-phone">Phone Number</Label>
-                  <Input
-                    id="edit-phone"
-                    type="tel"
-                    value={memberForm.phoneNumber}
-                    onChange={(e) => setMemberForm({ ...memberForm, phoneNumber: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="edit-role">Role</Label>
-                  <Select value={memberForm.role} onValueChange={(value) => setMemberForm({ ...memberForm, role: value })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="member">Member</SelectItem>
-                      <SelectItem value="moderator">Moderator</SelectItem>
-                      <SelectItem value="admin">Admin</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="edit-isActive"
-                    checked={memberForm.isActive}
-                    onChange={(e) => setMemberForm({ ...memberForm, isActive: e.target.checked })}
-                  />
-                  <Label htmlFor="edit-isActive">Active Member</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="edit-isPhoneVerified"
-                    checked={memberForm.isPhoneVerified}
-                    onChange={(e) => setMemberForm({ ...memberForm, isPhoneVerified: e.target.checked })}
-                  />
-                  <Label htmlFor="edit-isPhoneVerified">Phone Verified</Label>
-          </div>
-                <div className="flex justify-end space-x-2">
-                  <Button type="button" variant="outline" onClick={() => setEditingMember(null)}>
-                    Cancel
-                </Button>
-                  <Button type="submit">Update Member</Button>
-          </div>
-              </form>
-            </DialogContent>
-          </Dialog>
-      </div>
-    </DashboardLayout>
+        </div>
+      </DashboardLayout>
     </ProtectedRoute>
   )
 }

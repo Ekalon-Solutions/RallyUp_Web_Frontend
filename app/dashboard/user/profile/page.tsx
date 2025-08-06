@@ -11,24 +11,20 @@ import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
 import { useAuth } from "@/contexts/auth-context"
 import { toast } from "sonner"
-import { User, Mail, Phone, Shield, Save, Key, Calendar, CheckCircle, XCircle, Edit, Eye, EyeOff, Building2, MapPin, Globe, Users } from "lucide-react"
+import { User, Mail, Phone, Shield, Save, Calendar, CheckCircle, XCircle, Edit, Building2, MapPin, Globe, Users, Search, Plus, ArrowRight } from "lucide-react"
 import { MembershipRenewal } from "@/components/membership-renewal"
+import { useRouter } from "next/navigation"
 
 export default function UserProfilePage() {
   const { user, updateProfile } = useAuth()
+  const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
   const [profileForm, setProfileForm] = useState({
     name: "",
     email: "",
     phoneNumber: "",
     countryCode: "+1"
-  })
-  const [passwordForm, setPasswordForm] = useState({
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: ""
   })
 
   useEffect(() => {
@@ -68,51 +64,16 @@ export default function UserProfilePage() {
     }
   }
 
-  const handlePasswordUpdate = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      toast.error("New passwords do not match")
-      return
-    }
-
-    if (passwordForm.newPassword.length < 6) {
-      toast.error("Password must be at least 6 characters long")
-      return
-    }
-
-    setLoading(true)
-
-    try {
-      const result = await updateProfile({
-        currentPassword: passwordForm.currentPassword,
-        newPassword: passwordForm.newPassword
-      })
-
-      if (result.success) {
-        toast.success("Password updated successfully")
-        setPasswordForm({
-          currentPassword: "",
-          newPassword: "",
-          confirmPassword: ""
-        })
-      } else {
-        toast.error(result.error || "Failed to update password")
-      }
-    } catch (error) {
-      console.error("Error updating password:", error)
-      toast.error("Error updating password")
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
       day: 'numeric'
     })
+  }
+
+  const handleDiscoverClubs = () => {
+    router.push('/clubs')
   }
 
   if (!user) {
@@ -256,73 +217,34 @@ export default function UserProfilePage() {
                 </CardContent>
               </Card>
 
-              {/* Change Password */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Key className="w-5 h-5" />
-                    Change Password
-                  </CardTitle>
-                  <CardDescription>
-                    Update your password to keep your account secure
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <form onSubmit={handlePasswordUpdate} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="currentPassword">Current Password</Label>
-                      <div className="relative">
-                        <Input
-                          id="currentPassword"
-                          type={showPassword ? "text" : "password"}
-                          value={passwordForm.currentPassword}
-                          onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
-                          required
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                          onClick={() => setShowPassword(!showPassword)}
-                        >
-                          {showPassword ? (
-                            <EyeOff className="h-4 w-4" />
-                          ) : (
-                            <Eye className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </div>
+              {/* Club Discovery */}
+              {!user.club && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Building2 className="w-5 h-5" />
+                      Join a Club
+                    </CardTitle>
+                    <CardDescription>
+                      Discover and join supporter clubs to connect with fellow fans
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-center py-8">
+                      <Building2 className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">Not a member of any club yet?</h3>
+                      <p className="text-muted-foreground mb-6">
+                        Join a supporter club to access exclusive events, news, and connect with fellow fans.
+                      </p>
+                      <Button onClick={handleDiscoverClubs} className="w-full sm:w-auto">
+                        <Search className="w-4 h-4 mr-2" />
+                        Discover Clubs
+                        <ArrowRight className="w-4 h-4 ml-2" />
+                      </Button>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="newPassword">New Password</Label>
-                        <Input
-                          id="newPassword"
-                          type={showPassword ? "text" : "password"}
-                          value={passwordForm.newPassword}
-                          onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                        <Input
-                          id="confirmPassword"
-                          type={showPassword ? "text" : "password"}
-                          value={passwordForm.confirmPassword}
-                          onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
-                          required
-                        />
-                      </div>
-                    </div>
-                    <Button type="submit" disabled={loading}>
-                      {loading ? "Updating..." : "Change Password"}
-                      <Key className="w-4 h-4 ml-2" />
-                    </Button>
-                  </form>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              )}
             </div>
 
             {/* Club Information */}
@@ -348,67 +270,48 @@ export default function UserProfilePage() {
                   {user.club.website && (
                     <div className="space-y-2">
                       <Label className="text-sm font-medium text-muted-foreground">Website</Label>
-                      <div className="flex items-center gap-2">
-                        <Globe className="w-4 h-4 text-muted-foreground" />
-                        <a 
-                          href={user.club.website} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-sm text-blue-600 hover:underline"
-                        >
-                          {user.club.website}
-                        </a>
-                      </div>
+                      <a 
+                        href={user.club.website} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                      >
+                        <Globe className="w-3 h-3" />
+                        Visit Website
+                      </a>
                     </div>
                   )}
                   {user.club.address && (
                     <div className="space-y-2">
-                      <Label className="text-sm font-medium text-muted-foreground">Address</Label>
-                      <div className="flex items-start gap-2">
-                        <MapPin className="w-4 h-4 text-muted-foreground mt-0.5" />
-                        <p className="text-sm">
-                          {user.club.address.street}, {user.club.address.city}, {user.club.address.state} {user.club.address.zipCode}, {user.club.address.country}
-                        </p>
-                      </div>
+                      <Label className="text-sm font-medium text-muted-foreground">Location</Label>
+                      <p className="text-sm flex items-center gap-1">
+                        <MapPin className="w-3 h-3" />
+                        {user.club.address.city}, {user.club.address.state}
+                      </p>
                     </div>
                   )}
                   <div className="space-y-2">
                     <Label className="text-sm font-medium text-muted-foreground">Contact</Label>
                     <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <Mail className="w-4 h-4 text-muted-foreground" />
-                        <a href={`mailto:${user.club.contactEmail}`} className="text-sm text-blue-600 hover:underline">
-                          {user.club.contactEmail}
-                        </a>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Phone className="w-4 h-4 text-muted-foreground" />
-                        <a href={`tel:${user.club.contactPhone}`} className="text-sm text-blue-600 hover:underline">
-                          {user.club.contactPhone}
-                        </a>
-                      </div>
+                      <p className="text-sm flex items-center gap-1">
+                        <Mail className="w-3 h-3" />
+                        {user.club.contactEmail}
+                      </p>
+                      <p className="text-sm flex items-center gap-1">
+                        <Phone className="w-3 h-3" />
+                        {user.club.contactPhone}
+                      </p>
                     </div>
                   </div>
+                  <Separator />
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-muted-foreground">Club Status</Label>
-                    <Badge variant={user.club.status === 'active' ? "default" : "secondary"}>
-                      {user.club.status}
-                    </Badge>
+                    <Label className="text-sm font-medium text-muted-foreground">Member Since</Label>
+                    <p className="text-sm">{formatDate(user.createdAt || '')}</p>
                   </div>
-                  {user.membershipPlan && (
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-muted-foreground">Membership Plan</Label>
-                      <Badge variant="outline">
-                        {typeof user.membershipPlan === 'string' ? user.membershipPlan : user.membershipPlan.name}
-                      </Badge>
-                    </div>
-                  )}
                   {user.membershipExpiry && (
                     <div className="space-y-2">
                       <Label className="text-sm font-medium text-muted-foreground">Membership Expires</Label>
-                      <p className="text-sm">
-                        {formatDate(user.membershipExpiry)}
-                      </p>
+                      <p className="text-sm">{formatDate(user.membershipExpiry)}</p>
                     </div>
                   )}
                 </CardContent>
@@ -416,99 +319,45 @@ export default function UserProfilePage() {
             )}
 
             {/* Account Information */}
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Shield className="w-5 h-5" />
-                    Account Details
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-muted-foreground">Account Type</Label>
-                    <Badge variant="outline" className="capitalize">
-                      {user.role}
-                    </Badge>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-muted-foreground">Account Status</Label>
-                    <Badge variant={user.isActive ? "default" : "secondary"}>
-                      {user.isActive ? "Active" : "Inactive"}
-                    </Badge>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-muted-foreground">Member Since</Label>
-                    <p className="text-sm">
-                      {user.createdAt ? formatDate(user.createdAt) : "N/A"}
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-muted-foreground">Last Updated</Label>
-                    <p className="text-sm">
-                      {user.updatedAt ? formatDate(user.updatedAt) : "N/A"}
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Quick Stats */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Quick Stats</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Events Attended</span>
-                    <span className="font-medium">0</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">News Read</span>
-                    <span className="font-medium">0</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">Days Active</span>
-                    <span className="font-medium">
-                      {user.createdAt ? Math.floor((Date.now() - new Date(user.createdAt).getTime()) / (1000 * 60 * 60 * 24)) : 0}
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Membership Renewal */}
-              {user.club && (
-                <MembershipRenewal 
-                  user={user}
-                  membershipPlans={[]} // This would be fetched from the API
-                  onRenewal={async (planId) => {
-                    // This would call the membership plan assignment API
-                    toast.success("Membership renewed successfully!")
-                  }}
-                />
-              )}
-
-              {/* Account Actions */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Account Actions</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <Button variant="outline" className="w-full justify-start">
-                    <Mail className="w-4 h-4 mr-2" />
-                    Contact Support
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start">
-                    <Shield className="w-4 h-4 mr-2" />
-                    Privacy Settings
-                  </Button>
-                  <Button variant="outline" className="w-full justify-start">
-                    <Calendar className="w-4 h-4 mr-2" />
-                    View Activity
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Shield className="w-5 h-5" />
+                  Account Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-muted-foreground">Account Type</Label>
+                  <Badge variant="outline">
+                    {user.role === 'member' ? 'Member' : user.role}
+                  </Badge>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-muted-foreground">Account Status</Label>
+                  <Badge variant={user.isActive ? "default" : "secondary"}>
+                    {user.isActive ? "Active" : "Inactive"}
+                  </Badge>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-muted-foreground">Joined</Label>
+                  <p className="text-sm">{formatDate(user.createdAt || '')}</p>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-muted-foreground">Last Updated</Label>
+                  <p className="text-sm">{formatDate(user.updatedAt || '')}</p>
+                </div>
+              </CardContent>
+            </Card>
           </div>
+
+          {/* Membership Renewal Component */}
+          {user.club && user.membershipExpiry && (
+            <MembershipRenewal 
+              clubName={user.club.name}
+              expiryDate={user.membershipExpiry}
+            />
+          )}
         </div>
       </DashboardLayout>
     </ProtectedRoute>
