@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Users, Calendar, ShoppingBag, TrendingUp, MessageSquare, BadgeIcon as IdCard, Bus } from "lucide-react"
+import { Users, Calendar, ShoppingBag, TrendingUp, MessageSquare, BadgeIcon as IdCard, Bus, Building2 } from "lucide-react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
 import { useAuth } from "@/contexts/auth-context"
@@ -94,6 +95,57 @@ export default function DashboardPage() {
             </Card>
           ))}
         </div>
+
+        {/* Club Information for Admins */}
+        {user?.club && (user.role === 'admin' || user.role === 'super_admin' || user.role === 'system_owner') && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Building2 className="w-5 h-5" />
+                Club Management
+              </CardTitle>
+              <CardDescription>
+                Overview of your club's current status and key information
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-muted-foreground">Club Name</Label>
+                  <p className="text-sm font-medium">{user.club.name}</p>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-muted-foreground">Status</Label>
+                  <Badge variant={user.club.status === 'active' ? "default" : "secondary"}>
+                    {user.club.status}
+                  </Badge>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-muted-foreground">Your Role</Label>
+                  <Badge variant="outline" className="capitalize">
+                    {user.role}
+                  </Badge>
+                </div>
+                {user.club.settings && (
+                  <>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-muted-foreground">Max Members</Label>
+                      <p className="text-sm">{user.club.settings.maxMembers}</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-muted-foreground">Public Registration</Label>
+                      <p className="text-sm">{user.club.settings.allowPublicRegistration ? 'Enabled' : 'Disabled'}</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-muted-foreground">Approval Required</Label>
+                      <p className="text-sm">{user.club.settings.requireApproval ? 'Yes' : 'No'}</p>
+                    </div>
+                  </>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="grid gap-6 md:grid-cols-2">
           {/* Quick Actions */}

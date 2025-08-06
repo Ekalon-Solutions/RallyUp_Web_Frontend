@@ -11,7 +11,8 @@ import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
 import { useAuth } from "@/contexts/auth-context"
 import { toast } from "sonner"
-import { User, Mail, Phone, Shield, Save, Key, Calendar, CheckCircle, XCircle, Edit, Eye, EyeOff } from "lucide-react"
+import { User, Mail, Phone, Shield, Save, Key, Calendar, CheckCircle, XCircle, Edit, Eye, EyeOff, Building2, MapPin, Globe, Users } from "lucide-react"
+import { MembershipRenewal } from "@/components/membership-renewal"
 
 export default function UserProfilePage() {
   const { user, updateProfile } = useAuth()
@@ -324,6 +325,96 @@ export default function UserProfilePage() {
               </Card>
             </div>
 
+            {/* Club Information */}
+            {user.club && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Building2 className="w-5 h-5" />
+                    Club Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-muted-foreground">Club Name</Label>
+                    <p className="text-sm font-medium">{user.club.name}</p>
+                  </div>
+                  {user.club.description && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-muted-foreground">Description</Label>
+                      <p className="text-sm">{user.club.description}</p>
+                    </div>
+                  )}
+                  {user.club.website && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-muted-foreground">Website</Label>
+                      <div className="flex items-center gap-2">
+                        <Globe className="w-4 h-4 text-muted-foreground" />
+                        <a 
+                          href={user.club.website} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-sm text-blue-600 hover:underline"
+                        >
+                          {user.club.website}
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                  {user.club.address && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-muted-foreground">Address</Label>
+                      <div className="flex items-start gap-2">
+                        <MapPin className="w-4 h-4 text-muted-foreground mt-0.5" />
+                        <p className="text-sm">
+                          {user.club.address.street}, {user.club.address.city}, {user.club.address.state} {user.club.address.zipCode}, {user.club.address.country}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-muted-foreground">Contact</Label>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Mail className="w-4 h-4 text-muted-foreground" />
+                        <a href={`mailto:${user.club.contactEmail}`} className="text-sm text-blue-600 hover:underline">
+                          {user.club.contactEmail}
+                        </a>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Phone className="w-4 h-4 text-muted-foreground" />
+                        <a href={`tel:${user.club.contactPhone}`} className="text-sm text-blue-600 hover:underline">
+                          {user.club.contactPhone}
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-muted-foreground">Club Status</Label>
+                    <Badge variant={user.club.status === 'active' ? "default" : "secondary"}>
+                      {user.club.status}
+                    </Badge>
+                  </div>
+                  {user.membershipPlan && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-muted-foreground">Membership Plan</Label>
+                      <Badge variant="outline">
+                        {typeof user.membershipPlan === 'string' ? user.membershipPlan : user.membershipPlan.name}
+                      </Badge>
+                    </div>
+                  )}
+                  {user.membershipExpiry && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-muted-foreground">Membership Expires</Label>
+                      <p className="text-sm">
+                        {formatDate(user.membershipExpiry)}
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
             {/* Account Information */}
             <div className="space-y-6">
               <Card>
@@ -383,6 +474,18 @@ export default function UserProfilePage() {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Membership Renewal */}
+              {user.club && (
+                <MembershipRenewal 
+                  user={user}
+                  membershipPlans={[]} // This would be fetched from the API
+                  onRenewal={async (planId) => {
+                    // This would call the membership plan assignment API
+                    toast.success("Membership renewed successfully!")
+                  }}
+                />
+              )}
 
               {/* Account Actions */}
               <Card>

@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -10,7 +11,7 @@ import { ProtectedRoute } from "@/components/protected-route"
 import { apiClient, Event, News } from "@/lib/api"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
-import { Calendar, MapPin, Clock, Users, Newspaper, Tag, User, Eye } from "lucide-react"
+import { Calendar, MapPin, Clock, Users, Newspaper, Tag, User, Eye, Building2 } from "lucide-react"
 
 export default function UserDashboardPage() {
   const { user } = useAuth()
@@ -150,6 +151,47 @@ export default function UserDashboardPage() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Club Information */}
+          {user?.club && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Building2 className="w-5 h-5" />
+                  Your Club
+                </CardTitle>
+                <CardDescription>
+                  Information about your supporter group
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-muted-foreground">Club Name</Label>
+                    <p className="text-sm font-medium">{user.club.name}</p>
+                  </div>
+                  {user.club.description && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-muted-foreground">Description</Label>
+                      <p className="text-sm">{user.club.description}</p>
+                    </div>
+                  )}
+                  {user.membershipPlan && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-muted-foreground">Membership Plan</Label>
+                      <p className="text-sm">{user.membershipPlan}</p>
+                    </div>
+                  )}
+                  {user.membershipExpiry && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-muted-foreground">Membership Expires</Label>
+                      <p className="text-sm">{formatDate(user.membershipExpiry)}</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Events and News Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">

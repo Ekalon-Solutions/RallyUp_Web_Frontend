@@ -14,7 +14,10 @@ export interface User {
   phoneNumber: string;
   countryCode: string;
   isPhoneVerified: boolean;
-  role: 'user' | 'admin';
+  role: 'member';
+  club?: Club;
+  membershipPlan?: string;
+  membershipExpiry?: string;
   isActive?: boolean;
   createdAt?: string;
   updatedAt?: string;
@@ -27,11 +30,27 @@ export interface Admin {
   phoneNumber: string;
   countryCode: string;
   isPhoneVerified: boolean;
-  role: 'admin';
+  role: 'admin' | 'super_admin';
+  club?: Club;
   isActive?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
+
+export interface SystemOwner {
+  _id: string;
+  name: string;
+  email: string;
+  phoneNumber: string;
+  countryCode: string;
+  isPhoneVerified: boolean;
+  role: 'system_owner';
+  isActive?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+
 
 export interface News {
   _id: string;
@@ -57,6 +76,57 @@ export interface Event {
   maxAttendees: number;
   currentAttendees: number;
   isPublished: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Club {
+  _id: string;
+  name: string;
+  description?: string;
+  logo?: string;
+  website?: string;
+  contactEmail: string;
+  contactPhone: string;
+  address?: {
+    street: string;
+    city: string;
+    state: string;
+    country: string;
+    zipCode: string;
+  };
+  settings: {
+    allowPublicRegistration: boolean;
+    requireApproval: boolean;
+    maxMembers: number;
+    membershipPlans: string[];
+  };
+  status: 'active' | 'inactive' | 'suspended';
+  createdBy: string;
+  superAdmin: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MembershipPlan {
+  _id: string;
+  name: string;
+  description: string;
+  price: number;
+  currency: string;
+  duration: number;
+  features: {
+    maxEvents: number;
+    maxNews: number;
+    maxMembers: number;
+    customBranding: boolean;
+    advancedAnalytics: boolean;
+    prioritySupport: boolean;
+    apiAccess: boolean;
+    customIntegrations: boolean;
+  };
+  isActive: boolean;
+  club: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -153,6 +223,8 @@ class ApiClient {
     email: string;
     phoneNumber: string;
     countryCode: string;
+    clubId?: string;
+    membershipPlanId?: string;
   }): Promise<ApiResponse<{ token: string; user: User }>> {
     return this.request('/users/register', {
       method: 'POST',
@@ -362,6 +434,229 @@ class ApiClient {
       method: 'POST',
       body: JSON.stringify({ userId }),
     });
+  }
+
+  // Club Management APIs
+  async createClub(data: {
+    name: string;
+    description?: string;
+    logo?: string;
+    website?: string;
+    contactEmail: string;
+    contactPhone: string;
+    address?: any;
+    settings?: any;
+    superAdminEmail: string;
+    superAdminPhone: string;
+    superAdminCountryCode: string;
+  }): Promise<ApiResponse<{ message: string; club: Club }>> {
+    return this.request('/clubs', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getClubs(params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    status?: string;
+  }): Promise<ApiResponse<{
+    clubs: Club[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      pages: number;
+    };
+  }>> {
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.search) queryParams.append('search', params.search);
+    if (params?.status) queryParams.append('status', params.status);
+
+    const endpoint = `/clubs${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    return this.request(endpoint);
+  }
+
+  async getPublicClubs(): Promise<ApiResponse<{
+    clubs: Club[];
+  }>> {
+    return this.request('/clubs/public');
+  }
+
+  async getClubById(id: string): Promise<ApiResponse<Club>> {
+    return this.request(`/clubs/${id}`);
+  }
+
+  async updateClub(id: string, data: any): Promise<ApiResponse<{ message: string; club: Club }>> {
+    return this.request(`/clubs/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteClub(id: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request(`/clubs/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getClubStats(id: string): Promise<ApiResponse<any>> {
+    return this.request(`/clubs/${id}/stats`);
+  }
+
+  // Membership Plan APIs
+  async createMembershipPlan(data: {
+    name: string;
+    description: string;
+    price: number;
+    currency: string;
+    duration: number;
+    features: any;
+  }): Promise<ApiResponse<{ message: string; membershipPlan: MembershipPlan }>> {
+    return this.request('/membership-plans', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getMembershipPlans(clubId?: string): Promise<ApiResponse<MembershipPlan[]>> {
+    const endpoint = clubId ? `/membership-plans?clubId=${clubId}` : '/membership-plans';
+    return this.request(endpoint);
+  }
+
+  async getMembershipPlanById(id: string): Promise<ApiResponse<MembershipPlan>> {
+    return this.request(`/membership-plans/${id}`);
+  }
+
+  async updateMembershipPlan(id: string, data: any): Promise<ApiResponse<{ message: string; membershipPlan: MembershipPlan }>> {
+    return this.request(`/membership-plans/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteMembershipPlan(id: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request(`/membership-plans/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async assignMembershipPlan(planId: string, userId: string): Promise<ApiResponse<{ message: string; user: User }>> {
+    return this.request(`/membership-plans/${planId}/assign`, {
+      method: 'POST',
+      body: JSON.stringify({ userId }),
+    });
+  }
+
+  // Staff Management APIs
+  async createAdmin(data: {
+    name: string;
+    email: string;
+    phoneNumber: string;
+    countryCode: string;
+  }): Promise<ApiResponse<{ message: string; admin: User }>> {
+    return this.request('/staff/admins', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async createVolunteer(data: {
+    name: string;
+    email: string;
+    phoneNumber: string;
+    countryCode: string;
+  }): Promise<ApiResponse<{ message: string; volunteer: User }>> {
+    return this.request('/staff/volunteers', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getStaff(params?: {
+    role?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<ApiResponse<{
+    staff: User[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      pages: number;
+    };
+  }>> {
+    const queryParams = new URLSearchParams();
+    if (params?.role) queryParams.append('role', params.role);
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+
+    const endpoint = `/staff${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    return this.request(endpoint);
+  }
+
+  async updateStaff(id: string, data: any): Promise<ApiResponse<{ message: string; staffMember: User }>> {
+    return this.request(`/staff/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteStaff(id: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request(`/staff/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getStaffStats(): Promise<ApiResponse<any>> {
+    return this.request('/staff/stats');
+  }
+
+  // System Owner Management
+  async systemOwnerRegister(data: {
+    name: string;
+    email: string;
+    phoneNumber: string;
+    countryCode: string;
+    accessKey: string;
+  }): Promise<ApiResponse<{ token: string; systemOwner: SystemOwner }>> {
+    return this.request('/system-owner/create', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async systemOwnerLogin(data: {
+    email: string;
+    phoneNumber: string;
+    countryCode: string;
+  }): Promise<ApiResponse<{ token: string; systemOwner: SystemOwner }>> {
+    return this.request('/system-owner/login', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async systemOwnerProfile(): Promise<ApiResponse<SystemOwner>> {
+    return this.request('/system-owner/profile');
+  }
+
+  // Club-related APIs for users and admins
+  async getUserClub(): Promise<ApiResponse<{
+    club: Club;
+    membershipPlan?: string;
+    membershipExpiry?: string;
+  }>> {
+    return this.request('/users/club');
+  }
+
+  async getAdminClub(): Promise<ApiResponse<{
+    club: Club;
+  }>> {
+    return this.request('/admin/club');
   }
 }
 

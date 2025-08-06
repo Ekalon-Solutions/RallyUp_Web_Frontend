@@ -24,6 +24,8 @@ import {
   Bus,
   LayoutDashboard,
   User,
+  Building,
+  CreditCard,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -35,6 +37,30 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 const adminNavigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Members", href: "/dashboard/members", icon: Users },
+  { name: "News & Updates", href: "/dashboard/content", icon: Newspaper },
+  { name: "Merchandise Store", href: "/dashboard/store", icon: Shirt },
+  { name: "Events & Tickets", href: "/dashboard/events", icon: Ticket },
+  { name: "Match Center", href: "/dashboard/match-center", icon: Calendar },
+  { name: "Group Website", href: "/dashboard/website", icon: Globe },
+  { name: "Travel & Away Days", href: "/dashboard/travel", icon: Bus },
+  { name: "External Ticketing", href: "/dashboard/external-ticketing", icon: ExternalLink },
+  { name: "Inter Club Forum Mgmt", href: "/dashboard/forum", icon: MessageSquare },
+  { name: "Settings", href: "/dashboard/settings", icon: Settings },
+  { name: "Help", href: "/dashboard/help", icon: HelpCircle },
+]
+
+const systemOwnerNavigation = [
+  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Clubs Management", href: "/dashboard/clubs", icon: Building },
+  { name: "Settings", href: "/dashboard/settings", icon: Settings },
+  { name: "Help", href: "/dashboard/help", icon: HelpCircle },
+]
+
+const superAdminNavigation = [
+  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { name: "Members", href: "/dashboard/members", icon: Users },
+  { name: "Staff Management", href: "/dashboard/staff", icon: Shield },
+  { name: "Membership Plans", href: "/dashboard/membership-plans", icon: CreditCard },
   { name: "News & Updates", href: "/dashboard/content", icon: Newspaper },
   { name: "Merchandise Store", href: "/dashboard/store", icon: Shirt },
   { name: "Events & Tickets", href: "/dashboard/events", icon: Ticket },
@@ -86,6 +112,22 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { user, logout, isAdmin } = useAuth()
 
+  // Get navigation based on user role
+  const getNavigation = () => {
+    if (!user) return userNavigation
+    
+    switch (user.role) {
+      case 'system_owner':
+        return systemOwnerNavigation
+      case 'super_admin':
+        return superAdminNavigation
+      case 'admin':
+        return adminNavigation
+      default:
+        return userNavigation
+    }
+  }
+
   const Sidebar = ({ mobile = false }: { mobile?: boolean }) => (
     <div className={cn("flex flex-col h-full", mobile ? "w-full" : "w-64")}>
       <div className="flex items-center gap-2 p-6 border-b">
@@ -95,24 +137,24 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <span className="text-xl font-bold">RallyUp</span>
       </div>
 
-                  <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-              {(isAdmin ? adminNavigation : userNavigation).map((item) => (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
-                    pathname === item.href
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted",
-                  )}
-                  onClick={() => mobile && setSidebarOpen(false)}
-                >
-                  <item.icon className="w-4 h-4 flex-shrink-0" />
-                  <span className="truncate">{item.name}</span>
-                </Link>
-              ))}
-            </nav>
+      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+        {getNavigation().map((item) => (
+          <Link
+            key={item.name}
+            href={item.href}
+            className={cn(
+              "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+              pathname === item.href
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted",
+            )}
+            onClick={() => mobile && setSidebarOpen(false)}
+          >
+            <item.icon className="w-4 h-4 flex-shrink-0" />
+            <span className="truncate">{item.name}</span>
+          </Link>
+        ))}
+      </nav>
 
       <div className="p-4 border-t">
         <div className="space-y-2">

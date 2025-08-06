@@ -10,7 +10,7 @@ import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
 import { useAuth } from "@/contexts/auth-context"
 import { toast } from "sonner"
-import { User, Mail, Phone, Shield, Save, Key } from "lucide-react"
+import { User, Mail, Phone, Shield, Save, Key, Building2, MapPin, Globe, Users } from "lucide-react"
 
 export default function SettingsPage() {
   const { user, updateProfile } = useAuth()
@@ -237,6 +237,95 @@ export default function SettingsPage() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Club Information for Admins */}
+          {user.club && (user.role === 'admin' || user.role === 'super_admin' || user.role === 'system_owner') && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Building2 className="w-5 h-5" />
+                  Club Information
+                </CardTitle>
+                <CardDescription>
+                  View your club details and management information
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Club Name</Label>
+                    <p className="text-sm font-medium">{user.club.name}</p>
+                  </div>
+                  {user.club.description && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Description</Label>
+                      <p className="text-sm text-muted-foreground">{user.club.description}</p>
+                    </div>
+                  )}
+                  {user.club.website && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Website</Label>
+                      <div className="flex items-center gap-2">
+                        <Globe className="w-4 h-4 text-muted-foreground" />
+                        <a 
+                          href={user.club.website} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-sm text-blue-600 hover:underline"
+                        >
+                          {user.club.website}
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                  {user.club.address && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Address</Label>
+                      <div className="flex items-start gap-2">
+                        <MapPin className="w-4 h-4 text-muted-foreground mt-0.5" />
+                        <p className="text-sm text-muted-foreground">
+                          {user.club.address.street}, {user.club.address.city}, {user.club.address.state} {user.club.address.zipCode}, {user.club.address.country}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Contact Information</Label>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Mail className="w-4 h-4 text-muted-foreground" />
+                        <a href={`mailto:${user.club.contactEmail}`} className="text-sm text-blue-600 hover:underline">
+                          {user.club.contactEmail}
+                        </a>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Phone className="w-4 h-4 text-muted-foreground" />
+                        <a href={`tel:${user.club.contactPhone}`} className="text-sm text-blue-600 hover:underline">
+                          {user.club.contactPhone}
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Club Status</Label>
+                    <p className="text-sm text-muted-foreground capitalize">
+                      {user.club.status}
+                    </p>
+                  </div>
+                  {user.club.settings && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Club Settings</Label>
+                      <div className="grid gap-2 text-sm text-muted-foreground">
+                        <div>Max Members: {user.club.settings.maxMembers}</div>
+                        <div>Public Registration: {user.club.settings.allowPublicRegistration ? 'Enabled' : 'Disabled'}</div>
+                        <div>Approval Required: {user.club.settings.requireApproval ? 'Yes' : 'No'}</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Account Information */}
           <Card>
