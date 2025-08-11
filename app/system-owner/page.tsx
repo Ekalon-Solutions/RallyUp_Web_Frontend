@@ -29,7 +29,7 @@ export default function SystemOwnerCreationPage() {
     setIsLoading(true)
 
     try {
-      const response = await fetch('http://localhost:5000/api/system-owner/create', {
+      const response = await fetch('http://3.111.169.32:5050/api/system-owner/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

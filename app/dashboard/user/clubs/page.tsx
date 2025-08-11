@@ -117,7 +117,7 @@ export default function UserClubsPage() {
   const fetchClubs = async () => {
     try {
       setLoading(true)
-      const response = await fetch('http://localhost:5000/api/clubs/public')
+      const response = await fetch('http://3.111.169.32:5050/api/clubs/public')
       const data = await response.json()
       
       if (response.ok) {
@@ -183,7 +183,7 @@ export default function UserClubsPage() {
 
     setIsRegistering(true)
     try {
-      const response = await fetch('http://localhost:5000/api/users/register', {
+      const response = await fetch('http://3.111.169.32:5050/api/users/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

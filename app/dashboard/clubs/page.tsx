@@ -52,7 +52,7 @@ export default function ClubsPage() {
   const loadClubs = async () => {
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch('http://localhost:5000/api/clubs', {
+      const response = await fetch('http://3.111.169.32:5050/api/clubs', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -78,7 +78,7 @@ export default function ClubsPage() {
 
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch('http://localhost:5000/api/clubs', {
+      const response = await fetch('http://3.111.169.32:5050/api/clubs', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
