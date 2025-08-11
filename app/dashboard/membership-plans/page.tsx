@@ -61,7 +61,7 @@ export default function MembershipPlansPage() {
   const loadPlans = async () => {
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch('http://localhost:5000/api/membership-plans', {
+      const response = await fetch('http://3.111.169.32:5050/api/membership-plans', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -87,7 +87,7 @@ export default function MembershipPlansPage() {
 
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch('http://localhost:5000/api/membership-plans', {
+      const response = await fetch('http://3.111.169.32:5050/api/membership-plans', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

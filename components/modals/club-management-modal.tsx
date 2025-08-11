@@ -88,7 +88,7 @@ export default function ClubManagementModal({ isOpen, onClose, club, onClubUpdat
     try {
       setLoading(true)
       const token = localStorage.getItem('token')
-      const response = await fetch(`http://localhost:5000/api/clubs/${club._id}`, {
+      const response = await fetch(`http://3.111.169.32:5050/api/clubs/${club._id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -122,7 +122,7 @@ export default function ClubManagementModal({ isOpen, onClose, club, onClubUpdat
     try {
       setLoading(true)
       const token = localStorage.getItem('token')
-      const response = await fetch(`http://localhost:5000/api/clubs/${club._id}`, {
+      const response = await fetch(`http://3.111.169.32:5050/api/clubs/${club._id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
