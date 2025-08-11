@@ -23,6 +23,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    const token = localStorage.getItem('token');
+    const userType = localStorage.getItem('userType');
+    console.log('Initial auth check - Token:', token, 'UserType:', userType);
     checkAuth();
   }, []);
 
@@ -35,56 +38,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // Store the user type in localStorage during login to know which collection to check
-      const userType = localStorage.getItem('userType');
-      console.log('Checking auth for user type:', userType);
+      // Try admin profile first since we're having issues with admin auth
+      try {
+        console.log('Trying admin profile first...');
+        const adminResponse = await apiClient.adminProfile();
+        console.log('Admin profile response:', adminResponse);
+        if (adminResponse.success && adminResponse.data) {
+          console.log('Setting user from admin profile:', adminResponse.data);
+          setUser(adminResponse.data);
+          localStorage.setItem('userType', adminResponse.data.role);
+          setIsLoading(false);
+          return;
+        }
+      } catch (error) {
+        console.log('Admin profile check failed, trying other profiles:', error);
+      }
 
-      if (userType === 'system_owner') {
-        try {
-          const systemOwnerResponse = await apiClient.systemOwnerProfile();
-          console.log('System owner profile response:', systemOwnerResponse);
-          if (systemOwnerResponse.success && systemOwnerResponse.data) {
-            console.log('Setting user from system owner profile:', systemOwnerResponse.data);
-            setUser(systemOwnerResponse.data);
-            setIsLoading(false);
-            return;
-          } else {
-            console.log('System owner profile response failed:', systemOwnerResponse);
-          }
-        } catch (error) {
-          console.log('System owner profile check failed:', error);
+      // If admin fails, try system owner
+      try {
+        console.log('Trying system owner profile...');
+        const systemOwnerResponse = await apiClient.systemOwnerProfile();
+        console.log('System owner profile response:', systemOwnerResponse);
+        if (systemOwnerResponse.success && systemOwnerResponse.data) {
+          console.log('Setting user from system owner profile:', systemOwnerResponse.data);
+          setUser(systemOwnerResponse.data);
+          localStorage.setItem('userType', 'system_owner');
+          setIsLoading(false);
+          return;
         }
-      } else if (userType === 'admin' || userType === 'super_admin') {
-        try {
-          const adminResponse = await apiClient.adminProfile();
-          console.log('Admin profile response:', adminResponse);
-          if (adminResponse.success && adminResponse.data) {
-            console.log('Setting user from admin profile:', adminResponse.data);
-            setUser(adminResponse.data);
-            setIsLoading(false);
-            return;
-          } else {
-            console.log('Admin profile response failed:', adminResponse);
-          }
-        } catch (error) {
-          console.log('Admin profile check failed:', error);
+      } catch (error) {
+        console.log('System owner profile check failed:', error);
+      }
+
+      // If both admin and system owner fail, try regular user
+      try {
+        console.log('Trying user profile...');
+        const userResponse = await apiClient.userProfile();
+        console.log('User profile response:', userResponse);
+        if (userResponse.success && userResponse.data) {
+          console.log('Setting user from user profile:', userResponse.data);
+          setUser(userResponse.data);
+          localStorage.setItem('userType', 'member');
+          setIsLoading(false);
+          return;
         }
-      } else {
-        // Default to user profile for members or unknown types
-        try {
-          const userResponse = await apiClient.userProfile();
-          console.log('User profile response:', userResponse);
-          if (userResponse.success && userResponse.data) {
-            console.log('Setting user from user profile:', userResponse.data);
-            setUser(userResponse.data);
-            setIsLoading(false);
-            return;
-          } else {
-            console.log('User profile response failed:', userResponse);
-          }
-        } catch (error) {
-          console.log('User profile check failed:', error);
-        }
+      } catch (error) {
+        console.log('User profile check failed:', error);
       }
 
       // If all fail, clear token and user
@@ -116,26 +115,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (response.success && response.data) {
         localStorage.setItem('token', response.data.token);
         let userData: any;
-        let userType: string;
         
         if (isSystemOwner) {
           // For system owner login, the backend returns system owner data directly
           userData = (response.data as any).systemOwner || response.data;
-          userType = 'system_owner';
+          localStorage.setItem('userType', 'system_owner');
         } else if (isAdmin) {
           // For admin login, the backend returns admin data directly
           userData = (response.data as any).admin || response.data;
-          userType = userData.role; // 'admin' or 'super_admin'
+          localStorage.setItem('userType', userData.role); // 'admin' or 'super_admin'
         } else {
           // For user login, the backend returns user data directly
           userData = (response.data as any).user || response.data;
-          userType = 'member';
+          localStorage.setItem('userType', 'member');
         }
         
-        // Store user type in localStorage for auth checking
-        localStorage.setItem('userType', userType);
-        
         console.log('Setting user data after login:', userData);
+        console.log('User type:', localStorage.getItem('userType'));
         setUser(userData);
         return { success: true };
       } else {
@@ -196,9 +192,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => {
+    console.log('Logging out...');
     localStorage.removeItem('token');
     localStorage.removeItem('userType');
     setUser(null);
+    window.location.href = '/';
   };
 
   const updateProfile = async (data: any): Promise<{ success: boolean; error?: string }> => {

@@ -27,6 +27,7 @@ import {
   Building,
   CreditCard,
   Building2,
+  Heart,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -46,6 +47,7 @@ const adminNavigation = [
   { name: "Travel & Away Days", href: "/dashboard/travel", icon: Bus },
   { name: "External Ticketing", href: "/dashboard/external-ticketing", icon: ExternalLink },
   { name: "Inter Club Forum Mgmt", href: "/dashboard/forum", icon: MessageSquare },
+  { name: "Volunteer Management", href: "/dashboard/volunteer-management", icon: Heart },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
   { name: "Help", href: "/dashboard/help", icon: HelpCircle },
 ]
@@ -70,6 +72,7 @@ const superAdminNavigation = [
   { name: "Travel & Away Days", href: "/dashboard/travel", icon: Bus },
   { name: "External Ticketing", href: "/dashboard/external-ticketing", icon: ExternalLink },
   { name: "Inter Club Forum Mgmt", href: "/dashboard/forum", icon: MessageSquare },
+  { name: "Volunteer Management", href: "/dashboard/volunteer-management", icon: Heart },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
   { name: "Help", href: "/dashboard/help", icon: HelpCircle },
 ]
@@ -80,6 +83,7 @@ const userNavigation = [
   { name: "Members", href: "/dashboard/user/members", icon: Users },
   { name: "Events", href: "/dashboard/user/events", icon: Ticket },
   { name: "News", href: "/dashboard/user/news", icon: Newspaper },
+  { name: "Volunteer", href: "/dashboard/volunteer", icon: Heart },
   { name: "My Profile", href: "/dashboard/user/profile", icon: User },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
   { name: "Help", href: "/dashboard/help", icon: HelpCircle },
