@@ -177,43 +177,44 @@ export default function UserClubsPage() {
     setShowClubDetails(true)
   }
 
-  const handleRegistration = async (e: React.FormEvent) => {
+  const handleJoinRequest = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!selectedClub || !selectedPlan) return
+    if (!selectedClub || !selectedPlan || !user) return
 
     setIsRegistering(true)
     try {
-      const response = await fetch('http://localhost:5000/api/users/register', {
+      const response = await fetch('http://localhost:5000/api/clubs/join-request', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
         body: JSON.stringify({
-          ...registrationData,
           clubId: selectedClub._id,
-          membershipPlanId: selectedPlan._id
+          membershipPlanId: selectedPlan._id,
+          userId: user._id,
+          membership: {
+            type: 'free',
+            startDate: new Date().toISOString(),
+            endDate: new Date(Date.now() + selectedPlan.duration * 30 * 24 * 60 * 60 * 1000).toISOString(),
+            status: 'pending',
+            paymentStatus: 'free'
+          }
         }),
       })
 
       const data = await response.json()
 
       if (response.ok) {
-        toast.success("Registration successful! Welcome to the club!")
+        toast.success("Join request sent successfully! You'll be notified once approved.")
         setShowRegistrationDialog(false)
-        setRegistrationData({
-          name: "",
-          email: "",
-          phoneNumber: "",
-          countryCode: "+1"
-        })
-        // Redirect to dashboard after successful registration
-        router.push('/dashboard/user')
+        fetchClubs() // Refresh the clubs list
       } else {
-        toast.error(data.message || "Registration failed. Please try again.")
+        toast.error(data.message || "Failed to send join request. Please try again.")
       }
     } catch (error) {
-      console.error("Registration error:", error)
-      toast.error("An error occurred during registration.")
+      console.error("Join request error:", error)
+      toast.error("An error occurred while sending join request.")
     } finally {
       setIsRegistering(false)
     }
@@ -279,10 +280,19 @@ export default function UserClubsPage() {
               <h1 className="text-3xl font-bold">Discover Clubs</h1>
               <p className="text-muted-foreground">Find and join supporter clubs to connect with fellow fans</p>
             </div>
-            <Button variant="outline" onClick={() => router.push('/clubs')}>
-              <ExternalLink className="w-4 h-4 mr-2" />
-              View Public Page
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                onClick={() => {
+                  setSearchTerm("");
+                  setStatusFilter("active");
+                  setPriceFilter("all");
+                }}
+              >
+                <Search className="w-4 h-4 mr-2" />
+                Find Clubs to Join
+              </Button>
+            </div>
           </div>
 
           {/* Hero Section */}
@@ -300,13 +310,29 @@ export default function UserClubsPage() {
                 Find your perfect club and become part of something special.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button size="lg" className="bg-white text-blue-600 hover:bg-blue-50">
-                  <Users className="w-5 h-5 mr-2" />
-                  Browse Clubs
+                <Button 
+                  size="lg" 
+                  className="bg-white text-blue-600 hover:bg-blue-50"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setStatusFilter("active");
+                    setPriceFilter("all");
+                  }}
+                >
+                  <Search className="w-5 h-5 mr-2" />
+                  Find Clubs
                 </Button>
-                <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10">
-                  <Heart className="w-5 h-5 mr-2" />
-                  Learn More
+                <Button 
+                  size="lg" 
+                  variant="outline" 
+                  className="border-white text-white hover:bg-white/10"
+                  onClick={() => {
+                    setStatusFilter("all");
+                    setPriceFilter("all");
+                  }}
+                >
+                  <Users className="w-5 h-5 mr-2" />
+                  View All Clubs
                 </Button>
               </div>
             </div>
@@ -488,6 +514,20 @@ export default function UserClubsPage() {
                         <Eye className="w-4 h-4 mr-2" />
                         View Details
                       </Button>
+                      <Button
+                        className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                        size="sm"
+                        onClick={() => {
+                          if (club.membershipPlans?.length > 0) {
+                            handleJoinClub(club, club.membershipPlans[0]);
+                          } else {
+                            toast.error("No membership plans available for this club");
+                          }
+                        }}
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Join Club
+                      </Button>
                       {club.website && (
                         <Button
                           variant="outline"
@@ -623,61 +663,66 @@ export default function UserClubsPage() {
             </DialogContent>
           </Dialog>
 
-          {/* Registration Dialog */}
+          {/* Join Club Dialog */}
           <Dialog open={showRegistrationDialog} onOpenChange={setShowRegistrationDialog}>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Join {selectedClub?.name}</DialogTitle>
                 <DialogDescription>
-                  Complete your registration to join {selectedClub?.name} with the {selectedPlan?.name} plan.
+                  Send a request to join {selectedClub?.name} with the {selectedPlan?.name} plan.
                 </DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleRegistration} className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="reg-name">Full Name</Label>
-                    <Input
-                      id="reg-name"
-                      value={registrationData.name}
-                      onChange={(e) => setRegistrationData({ ...registrationData, name: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="reg-email">Email Address</Label>
-                    <Input
-                      id="reg-email"
-                      type="email"
-                      value={registrationData.email}
-                      onChange={(e) => setRegistrationData({ ...registrationData, email: e.target.value })}
-                      required
-                    />
+              <form onSubmit={handleJoinRequest} className="space-y-4">
+                {/* User Info */}
+                <div className="bg-muted rounded-lg p-4">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-primary-foreground">
+                      {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+                    </div>
+                    <div>
+                      <div className="font-medium">{user?.name}</div>
+                      <div className="text-sm text-muted-foreground">{user?.email}</div>
+                    </div>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="reg-phone">Phone Number</Label>
-                    <Input
-                      id="reg-phone"
-                      type="tel"
-                      value={registrationData.phoneNumber}
-                      onChange={(e) => setRegistrationData({ ...registrationData, phoneNumber: e.target.value })}
-                      required
-                    />
+
+                {/* Plan Info */}
+                {selectedPlan && (
+                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-100 rounded-lg p-4">
+                    <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
+                      <Award className="w-4 h-4 text-yellow-500" />
+                      Selected Plan
+                    </h4>
+                    <div className="space-y-1 text-sm">
+                      <div className="flex justify-between">
+                        <span>Plan:</span>
+                        <span className="font-medium">{selectedPlan.name}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Duration:</span>
+                        <span>{formatDuration(selectedPlan.duration)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Price:</span>
+                        <div>
+                          <span className="line-through text-muted-foreground mr-2">
+                            {formatPrice(selectedPlan.price, selectedPlan.currency)}
+                          </span>
+                          <span className="font-bold text-green-600">FREE</span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="reg-country">Country Code</Label>
-                    <Input
-                      id="reg-country"
-                      value={registrationData.countryCode}
-                      onChange={(e) => setRegistrationData({ ...registrationData, countryCode: e.target.value })}
-                      required
-                    />
-                  </div>
-                </div>
+                )}
+
+                {/* Actions */}
                 <div className="flex gap-2">
-                  <Button type="submit" disabled={isRegistering} className="flex-1">
-                    {isRegistering ? "Joining..." : "Join Club"}
+                  <Button 
+                    type="submit" 
+                    disabled={isRegistering} 
+                    className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                  >
+                    {isRegistering ? "Sending Request..." : "Send Join Request"}
                   </Button>
                   <Button 
                     type="button" 

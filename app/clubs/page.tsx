@@ -177,7 +177,8 @@ export default function ClubsPage() {
 
     setIsRegistering(true)
     try {
-      const response = await fetch('http://localhost:5000/api/users/register', {
+      // First, register the user
+      const registerResponse = await fetch('http://localhost:5000/api/users/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -185,14 +186,29 @@ export default function ClubsPage() {
         body: JSON.stringify({
           ...registrationData,
           clubId: selectedClub._id,
-          membershipPlanId: selectedPlan._id
+          membershipPlanId: selectedPlan._id,
+          // Add membership info
+          membership: {
+            type: 'free',
+            startDate: new Date().toISOString(),
+            endDate: new Date(Date.now() + selectedPlan.duration * 30 * 24 * 60 * 60 * 1000).toISOString(), // Convert months to milliseconds
+            status: 'active',
+            paymentStatus: 'free'
+          }
         }),
       })
 
-      const data = await response.json()
+      const registerData = await registerResponse.json()
 
-      if (response.ok) {
-        toast.success("Registration successful! Welcome to the club!")
+      if (registerResponse.ok) {
+        // Store the token
+        localStorage.setItem('token', registerData.token)
+        localStorage.setItem('userType', 'member')
+
+        // Show success message
+        toast.success("Welcome to the club! Your free membership is now active.")
+        
+        // Close dialog and reset form
         setShowRegistrationDialog(false)
         setRegistrationData({
           name: "",
@@ -200,9 +216,11 @@ export default function ClubsPage() {
           phoneNumber: "",
           countryCode: "+1"
         })
-        router.push("/")
+
+        // Redirect to dashboard
+        router.push("/dashboard/user")
       } else {
-        toast.error(data.message || "Registration failed")
+        toast.error(registerData.message || "Registration failed")
       }
     } catch (error) {
       console.error("Registration error:", error)
@@ -859,24 +877,57 @@ export default function ClubsPage() {
             </div>
 
             {selectedPlan && (
-              <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 p-4 rounded-lg">
-                <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
-                  <Award className="w-4 h-4 text-yellow-500" />
-                  Selected Plan: {selectedPlan.name}
-                </h4>
-                <div className="text-sm text-muted-foreground space-y-1">
-                  <div className="flex justify-between">
-                    <span>Price:</span>
-                    <span className="font-semibold">{formatPrice(selectedPlan.price, selectedPlan.currency)}</span>
+              <div className="space-y-4">
+                <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 p-4 rounded-lg">
+                  <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                    <Award className="w-4 h-4 text-yellow-500" />
+                    Selected Plan: {selectedPlan.name}
+                  </h4>
+                  <div className="text-sm text-muted-foreground space-y-1">
+                    <div className="flex justify-between">
+                      <span>Price:</span>
+                      <span className="font-semibold line-through text-gray-400">{formatPrice(selectedPlan.price, selectedPlan.currency)}</span>
+                      <span className="font-bold text-green-600">FREE</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Duration:</span>
+                      <span>{formatDuration(selectedPlan.duration)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Features:</span>
+                      <span>{selectedPlan.features.maxEvents} events, {selectedPlan.features.maxNews} news items</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Duration:</span>
-                    <span>{formatDuration(selectedPlan.duration)}</span>
+                </div>
+
+                {/* Payment infrastructure (disabled) */}
+                <div className="bg-gray-50 border border-gray-200 p-4 rounded-lg opacity-50 pointer-events-none">
+                  <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                    <DollarSign className="w-4 h-4 text-green-500" />
+                    Payment Details (Coming Soon)
+                  </h4>
+                  <div className="space-y-2">
+                    <Input
+                      disabled
+                      placeholder="Card Number"
+                      className="h-12 bg-white"
+                    />
+                    <div className="grid grid-cols-2 gap-2">
+                      <Input
+                        disabled
+                        placeholder="MM/YY"
+                        className="h-12 bg-white"
+                      />
+                      <Input
+                        disabled
+                        placeholder="CVC"
+                        className="h-12 bg-white"
+                      />
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Features:</span>
-                    <span>{selectedPlan.features.maxEvents} events, {selectedPlan.features.maxNews} news items</span>
-                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Payment processing will be enabled in a future update. Currently, all memberships are free.
+                  </p>
                 </div>
               </div>
             )}

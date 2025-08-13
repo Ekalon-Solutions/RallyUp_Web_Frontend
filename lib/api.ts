@@ -1071,6 +1071,21 @@ class ApiClient {
   }
 
   // Member Directory APIs
+  async searchUsers(query: string): Promise<ApiResponse<User[]>> {
+    return this.request(`/users/search?q=${encodeURIComponent(query)}`);
+  }
+
+  async addUserToClub(data: {
+    email: string;
+    name: string;
+    phoneNumber: string;
+  }): Promise<ApiResponse<{ message: string; user: User }>> {
+    return this.request('/users/join-club', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
   async getMemberDirectory(params?: {
     search?: string;
     page?: number;
