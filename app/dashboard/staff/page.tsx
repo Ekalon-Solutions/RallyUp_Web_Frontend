@@ -42,7 +42,7 @@ export default function StaffPage() {
   const loadStaff = async () => {
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch('http://localhost:5000/api/staff', {
+      const response = await fetch('http://3.111.169.32:5050/api/staff', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -70,7 +70,7 @@ export default function StaffPage() {
       const token = localStorage.getItem('token')
       const endpoint = createType === 'admin' ? '/api/staff/admins' : '/api/staff/volunteers'
       
-      const response = await fetch(`http://localhost:5000${endpoint}`, {
+      const response = await fetch(`http://3.111.169.32:5050${endpoint}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

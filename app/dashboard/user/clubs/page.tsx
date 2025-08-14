@@ -117,11 +117,10 @@ export default function UserClubsPage() {
   const fetchClubs = async () => {
     try {
       setLoading(true)
-      const response = await fetch('http://localhost:5000/api/clubs/public')
-      const data = await response.json()
+      const response = await apiClient.getPublicClubs()
       
-      if (response.ok) {
-        setClubs(data.clubs || [])
+      if (response.success) {
+        setClubs(response.data?.clubs || [])
       } else {
         toast.error("Failed to load clubs")
       }
@@ -183,7 +182,7 @@ export default function UserClubsPage() {
 
     setIsRegistering(true)
     try {
-      const response = await fetch('http://localhost:5000/api/clubs/join-request', {
+      const response = await fetch('http://localhost:5000/api/users/join-club-request', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -191,30 +190,22 @@ export default function UserClubsPage() {
         },
         body: JSON.stringify({
           clubId: selectedClub._id,
-          membershipPlanId: selectedPlan._id,
-          userId: user._id,
-          membership: {
-            type: 'free',
-            startDate: new Date().toISOString(),
-            endDate: new Date(Date.now() + selectedPlan.duration * 30 * 24 * 60 * 60 * 1000).toISOString(),
-            status: 'pending',
-            paymentStatus: 'free'
-          }
+          membershipPlanId: selectedPlan._id
         }),
       })
 
       const data = await response.json()
 
       if (response.ok) {
-        toast.success("Join request sent successfully! You'll be notified once approved.")
+        toast.success("Successfully joined the club!")
         setShowRegistrationDialog(false)
         fetchClubs() // Refresh the clubs list
       } else {
-        toast.error(data.message || "Failed to send join request. Please try again.")
+        toast.error(data.message || "Failed to join club. Please try again.")
       }
     } catch (error) {
       console.error("Join request error:", error)
-      toast.error("An error occurred while sending join request.")
+      toast.error("An error occurred while joining the club.")
     } finally {
       setIsRegistering(false)
     }

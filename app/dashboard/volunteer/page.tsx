@@ -17,10 +17,15 @@ export default function VolunteerDashboard() {
   const [userPreferences, setUserPreferences] = React.useState<VolunteerProfile | null>(null);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState('available');
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
   const { toast } = useToast();
 
   const fetchOpportunities = React.useCallback(async () => {
     console.log('🔍 Starting to fetch opportunities...');
+    setLoading(true);
+    setError(null);
+    
     try {
       // Get user's profile to get club info
       console.log('📱 Fetching user profile...');
@@ -30,11 +35,14 @@ export default function VolunteerDashboard() {
         hasData: !!userProfileResponse.data,
         hasClub: !!userProfileResponse.data?.club,
         userData: userProfileResponse.data,
+        clubId: userProfileResponse.data?.club?._id,
+        clubName: userProfileResponse.data?.club?.name
       });
       
       if (!userProfileResponse.success || !userProfileResponse.data?.club) {
         console.log('❌ No club found in user profile');
         setOpportunities([]);
+        setError('You need to be a member of a club to see volunteer opportunities');
         toast({
           title: 'No Club Access',
           description: 'You need to be a member of a club to see volunteer opportunities',
@@ -56,11 +64,14 @@ export default function VolunteerDashboard() {
         hasData: !!opportunitiesResponse.data,
         hasOpportunities: !!opportunitiesResponse.data?.opportunities,
         error: opportunitiesResponse.error,
-        rawResponse: opportunitiesResponse
+        rawResponse: opportunitiesResponse,
+        dataType: typeof opportunitiesResponse.data,
+        isArray: Array.isArray(opportunitiesResponse.data)
       });
       
       if (!opportunitiesResponse.success) {
         console.log('❌ Failed to fetch opportunities:', opportunitiesResponse.error);
+        setError(opportunitiesResponse.error || 'Failed to fetch volunteer opportunities');
         toast({
           title: 'Error',
           description: opportunitiesResponse.error || 'Failed to fetch volunteer opportunities',
@@ -69,7 +80,22 @@ export default function VolunteerDashboard() {
         return;
       }
       
-      const allOpportunities = opportunitiesResponse.data?.opportunities || [];
+      // Handle both response structures: direct array or wrapped in data.opportunities
+      let allOpportunities: VolunteerOpportunity[] = [];
+      if (Array.isArray(opportunitiesResponse.data)) {
+        // API returns array directly (fallback for backward compatibility)
+        allOpportunities = opportunitiesResponse.data as VolunteerOpportunity[];
+        console.log('📊 Using direct array response');
+      } else if (opportunitiesResponse.data?.opportunities && Array.isArray(opportunitiesResponse.data.opportunities)) {
+        // API returns wrapped in data.opportunities (expected structure)
+        allOpportunities = opportunitiesResponse.data.opportunities as VolunteerOpportunity[];
+        console.log('📊 Using wrapped opportunities response');
+      } else {
+        // Fallback to empty array
+        allOpportunities = [];
+        console.log('📊 Using fallback empty array');
+      }
+      
       console.log('✅ Processed opportunities:', {
         count: allOpportunities.length,
         opportunities: allOpportunities.map(o => ({
@@ -82,13 +108,18 @@ export default function VolunteerDashboard() {
       });
 
       setOpportunities(allOpportunities);
+      setError(null);
     } catch (error) {
       console.error('Error fetching opportunities:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch volunteer opportunities';
+      setError(errorMessage);
       toast({
         title: 'Error',
-        description: 'Failed to fetch volunteer opportunities',
+        description: errorMessage,
         variant: 'destructive',
       });
+    } finally {
+      setLoading(false);
     }
   }, [toast]);
 
@@ -111,12 +142,17 @@ export default function VolunteerDashboard() {
 
   const handleSignUp = async (opportunityId: string, timeSlotId: string) => {
     console.log('🎯 Attempting to sign up for opportunity:', { opportunityId, timeSlotId });
+    console.log('👤 Current user:', user);
+    console.log('🔑 User ID:', user?._id);
+    console.log('🏢 User club:', 'club' in (user || {}) ? (user as any).club : 'No club');
+    
     try {
       const response = await apiClient.signUpForVolunteerOpportunity(opportunityId, timeSlotId);
       console.log('📝 Sign up response:', {
         success: response.success,
         data: response.data,
-        error: response.error
+        error: response.error,
+        fullResponse: response
       });
       
       if (response.success) {
@@ -182,34 +218,85 @@ export default function VolunteerDashboard() {
   const handlePreferencesSubmit = async (preferences: VolunteerProfile) => {
     console.log('🔄 Updating volunteer preferences:', preferences);
     try {
-      const response = await apiClient.updateVolunteerProfile(preferences);
-      console.log('📝 Update preferences response:', {
-        success: response.success,
-        data: response.data,
-        error: response.error
-      });
+      // First check if volunteer profile exists
+      const profileResponse = await apiClient.getVolunteerProfile();
       
-      if (response.success) {
-        console.log('✅ Successfully updated preferences');
-        setUserPreferences(preferences);
-        setIsModalOpen(false);
-        toast({
-          title: 'Success',
-          description: 'Successfully updated volunteer preferences',
+      if (!profileResponse.success) {
+        // Profile doesn't exist, create one first
+        console.log('📝 Creating new volunteer profile...');
+        const createResponse = await apiClient.createVolunteerProfile({
+          club: user?.club?._id || '',
+          skills: preferences.skills || [],
+          interests: preferences.interests || [],
+          availability: {
+            weekdays: preferences.availability?.weekdays || false,
+            weekends: preferences.availability?.weekends || false,
+            evenings: preferences.availability?.evenings || false,
+            flexible: false
+          },
+          experience: {
+            level: 'beginner',
+            yearsOfExperience: 0,
+            previousRoles: []
+          },
+          preferences: {
+            preferredEventTypes: [],
+            maxHoursPerWeek: 10,
+            preferredTimeSlots: [],
+            locationPreference: 'on-site'
+          },
+          emergencyContact: {
+            name: '',
+            relationship: '',
+            phone: '',
+            email: ''
+          },
+          notes: preferences.notes || ''
         });
+        
+        if (createResponse.success) {
+          console.log('✅ Successfully created volunteer profile');
+          setUserPreferences(preferences);
+          setIsModalOpen(false);
+          toast({
+            title: 'Success',
+            description: 'Successfully created volunteer profile',
+          });
+        } else {
+          throw new Error(createResponse.error || 'Failed to create volunteer profile');
+        }
       } else {
-        console.log('❌ Failed to update preferences:', response.error);
-        toast({
-          title: 'Error',
-          description: response.error || 'Failed to update volunteer preferences',
-          variant: 'destructive',
+        // Profile exists, update it
+        console.log('📝 Updating existing volunteer profile...');
+        const updateResponse = await apiClient.updateVolunteerProfile({
+          skills: preferences.skills || [],
+          interests: preferences.interests || [],
+          availability: {
+            weekdays: preferences.availability?.weekdays || false,
+            weekends: preferences.availability?.weekends || false,
+            evenings: preferences.availability?.evenings || false,
+            flexible: false
+          },
+          notes: preferences.notes || ''
         });
+        
+        if (updateResponse.success) {
+          console.log('✅ Successfully updated volunteer profile');
+          setUserPreferences(preferences);
+          setIsModalOpen(false);
+          toast({
+            title: 'Success',
+            description: 'Successfully updated volunteer preferences',
+          });
+        } else {
+          throw new Error(updateResponse.error || 'Failed to update volunteer profile');
+        }
       }
     } catch (error) {
       console.error('❌ Error updating preferences:', error);
       toast({
         title: 'Error',
-        description: 'Failed to update volunteer preferences',
+        description: error instanceof Error ? error.message : 'Failed to update volunteer preferences',
         variant: 'destructive',
       });
     }
@@ -225,14 +312,34 @@ export default function VolunteerDashboard() {
     )
   );
 
+  // Debug logging
+  React.useEffect(() => {
+    console.log('🔍 Current opportunities state:', {
+      total: opportunities.length,
+      available: availableOpportunities.length,
+      myOpportunities: myOpportunities.length,
+      opportunities: opportunities.map(o => ({
+        id: o._id,
+        title: o.title,
+        status: o.status,
+        club: o.club
+      }))
+    });
+  }, [opportunities, availableOpportunities, myOpportunities]);
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-bold">Volunteer Dashboard</h1>
-          <Button onClick={() => setIsModalOpen(true)}>
-            {userPreferences?.isVolunteer ? 'Update Preferences' : 'Become a Volunteer'}
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={fetchOpportunities}>
+              Refresh Opportunities
+            </Button>
+            <Button onClick={() => setIsModalOpen(true)}>
+              {userPreferences?.isVolunteer ? 'Update Preferences' : 'Become a Volunteer'}
+            </Button>
+          </div>
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
@@ -241,11 +348,82 @@ export default function VolunteerDashboard() {
             <TabsTrigger value="my-opportunities">My Opportunities</TabsTrigger>
           </TabsList>
 
+          {/* Status Message */}
+          <div className="text-center py-4">
+            {loading ? (
+              <p className="text-sm text-muted-foreground">Loading volunteer opportunities...</p>
+            ) : error ? (
+              <p className="text-sm text-red-600">{error}</p>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-sm text-muted-foreground">
+                  {opportunities.length === 0 
+                    ? "No volunteer opportunities found" 
+                    : `Found ${opportunities.length} total opportunities, ${availableOpportunities.length} available`
+                  }
+                </p>
+                {user && 'volunteering' in user && !user.volunteering?.isVolunteer && (
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-sm text-blue-800">
+                      💡 You need to set up your volunteer preferences first. Click "Become a Volunteer" to get started!
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
           <TabsContent value="available" className="space-y-4">
-            {availableOpportunities.length === 0 ? (
-              <p className="text-center text-muted-foreground">
-                No volunteer opportunities available at the moment.
-              </p>
+            {loading ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground mb-2">
+                  Loading volunteer opportunities...
+                </p>
+              </div>
+            ) : error ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground mb-2">
+                  {error}
+                </p>
+              </div>
+            ) : availableOpportunities.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground mb-2">
+                  {opportunities.length === 0 
+                    ? "No volunteer opportunities available at the moment."
+                    : "No open volunteer opportunities at the moment."
+                  }
+                </p>
+                {opportunities.length > 0 && (
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      There are {opportunities.length} total opportunities:
+                    </p>
+                    <div className="space-y-4">
+                      {opportunities.map(opportunity => (
+                        <div key={opportunity._id} className="border rounded-lg p-4 text-left">
+                          <div className="flex items-center justify-between mb-2">
+                            <h3 className="font-medium">{opportunity.title}</h3>
+                            <span className={`px-2 py-1 text-xs rounded ${
+                              opportunity.status === 'open' ? 'bg-green-100 text-green-800' :
+                              opportunity.status === 'draft' ? 'bg-gray-100 text-gray-800' :
+                              opportunity.status === 'filled' ? 'bg-blue-100 text-blue-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {opportunity.status}
+                            </span>
+                          </div>
+                          <p className="text-sm text-muted-foreground mb-2">{opportunity.description}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Status: {opportunity.status} • 
+                            {opportunity.timeSlots?.length || 0} time slot{opportunity.timeSlots?.length !== 1 ? 's' : ''}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             ) : (
               availableOpportunities.map((opportunity: VolunteerOpportunity) => (
                 <VolunteerOpportunityCard

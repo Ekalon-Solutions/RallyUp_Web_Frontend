@@ -103,6 +103,58 @@ export interface VolunteerOpportunity {
   updatedAt: string;
 }
 
+export interface Volunteer {
+  _id: string;
+  user: {
+    _id: string;
+    name: string;
+    email: string;
+    phoneNumber: string;
+    countryCode: string;
+  };
+  club: {
+    _id: string;
+    name: string;
+  };
+  isActive: boolean;
+  skills: string[];
+  interests: string[];
+  availability: {
+    weekdays: boolean;
+    weekends: boolean;
+    evenings: boolean;
+    flexible: boolean;
+  };
+  experience: {
+    level: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+    yearsOfExperience: number;
+    previousRoles: string[];
+  };
+  preferences: {
+    preferredEventTypes: string[];
+    maxHoursPerWeek: number;
+    preferredTimeSlots: string[];
+    locationPreference: 'on-site' | 'remote' | 'both';
+  };
+  status: 'available' | 'busy' | 'unavailable' | 'on-assignment';
+  notes: string;
+  emergencyContact: {
+    name: string;
+    relationship: string;
+    phone: string;
+    email: string;
+  };
+  certifications: {
+    name: string;
+    issuingOrganization: string;
+    issueDate: string;
+    expiryDate?: string;
+    certificateNumber?: string;
+  }[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface VolunteerProfile {
   isVolunteer: boolean;
   interests: string[];
@@ -229,7 +281,9 @@ class ApiClient {
 
   private getToken(): string | null {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('token');
+      const token = localStorage.getItem('token');
+      console.log('🔑 Getting token from localStorage:', token ? 'exists' : 'missing');
+      return token;
     }
     return null;
   }
@@ -483,45 +537,16 @@ class ApiClient {
 
 
 
-  // Volunteer Management APIs
-  async createVolunteer(data: {
-    name: string;
-    email: string;
-    phoneNumber: string;
-    countryCode: string;
-    clubId?: string;
-    skills?: string[];
-    interests?: string[];
-    availability?: {
-      weekdays: boolean;
-      weekends: boolean;
-      evenings: boolean;
-    };
-    notes?: string;
-  }): Promise<ApiResponse<{ message: string; volunteer: User }>> {
-    return this.request('/volunteer/create', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  }
-
+  // Volunteer Management (Updated for new structure)
   async getVolunteers(params?: {
     club?: string;
     skills?: string[];
     availability?: string[];
-    status?: 'active' | 'inactive';
+    status?: 'available' | 'busy' | 'unavailable' | 'on-assignment';
     page?: number;
     limit?: number;
     search?: string;
-  }): Promise<ApiResponse<{
-    volunteers: User[];
-    pagination: {
-      page: number;
-      limit: number;
-      total: number;
-      pages: number;
-    };
-  }>> {
+  }): Promise<ApiResponse<Volunteer[]>> {
     const queryParams = new URLSearchParams();
     if (params?.club) queryParams.append('club', params.club);
     if (params?.skills) params.skills.forEach(skill => queryParams.append('skills', skill));
@@ -531,12 +556,92 @@ class ApiClient {
     if (params?.limit) queryParams.append('limit', params.limit.toString());
     if (params?.search) queryParams.append('search', params.search);
 
-         const endpoint = `/volunteer/volunteers${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-      return this.request(endpoint);
+    const endpoint = `/volunteer/volunteers${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    return this.request(endpoint);
   }
 
-  async getVolunteerById(id: string): Promise<ApiResponse<User>> {
-    return this.request(`/volunteer/${id}`);
+  async getVolunteerById(id: string): Promise<ApiResponse<Volunteer>> {
+    return this.request(`/volunteer/volunteers/${id}`);
+  }
+
+  async createVolunteerProfile(data: {
+    club: string;
+    skills: string[];
+    interests: string[];
+    availability: {
+      weekdays: boolean;
+      weekends: boolean;
+      evenings: boolean;
+      flexible: boolean;
+    };
+    experience: {
+      level: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+      yearsOfExperience: number;
+      previousRoles: string[];
+    };
+    preferences: {
+      preferredEventTypes: string[];
+      maxHoursPerWeek: number;
+      preferredTimeSlots: string[];
+      locationPreference: 'on-site' | 'remote' | 'both';
+    };
+    emergencyContact: {
+      name: string;
+      relationship: string;
+      phone: string;
+      email: string;
+    };
+    notes?: string;
+  }): Promise<ApiResponse<{ message: string; volunteer: Volunteer }>> {
+    return this.request('/volunteer/volunteer-profile', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateVolunteerProfile(data: Partial<{
+    skills: string[];
+    interests: string[];
+    availability: {
+      weekdays: boolean;
+      weekends: boolean;
+      evenings: boolean;
+      flexible: boolean;
+    };
+    experience: {
+      level: 'beginner' | 'intermediate' | 'advanced' | 'expert';
+      yearsOfExperience: number;
+      previousRoles: string[];
+    };
+    preferences: {
+      preferredEventTypes: string[];
+      maxHoursPerWeek: number;
+      preferredTimeSlots: string[];
+      locationPreference: 'on-site' | 'remote' | 'both';
+    };
+    emergencyContact: {
+      name: string;
+      relationship: string;
+      phone: string;
+      email: string;
+    };
+    notes: string;
+    status: 'available' | 'busy' | 'unavailable' | 'on-assignment';
+  }>): Promise<ApiResponse<{ message: string; volunteer: Volunteer }>> {
+    return this.request('/volunteer/volunteer-profile', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteVolunteerProfile(): Promise<ApiResponse<{ message: string }>> {
+    return this.request('/volunteer/volunteer-profile', {
+      method: 'DELETE',
+    });
+  }
+
+  async getVolunteerProfile(): Promise<ApiResponse<Volunteer>> {
+    return this.request('/volunteer/volunteer-profile');
   }
 
   async updateVolunteer(id: string, data: {
@@ -703,6 +808,58 @@ class ApiClient {
     return this.request(`/volunteer/opportunities/${opportunityId}/signups`);
   }
 
+  async getVolunteerSignupsForOpportunity(opportunityId: string): Promise<ApiResponse<{
+    opportunityId: string;
+    opportunityTitle: string;
+    timeSlotId: string;
+    startTime: string;
+    endTime: string;
+    date: string;
+    volunteer: User;
+    status: string;
+  }[]>> {
+    return this.request(`/volunteer/opportunities/${opportunityId}/signups`);
+  }
+
+  // Admin Volunteer Assignment APIs
+  async assignVolunteerToOpportunity(data: {
+    opportunityId: string;
+    timeSlotId: string;
+    volunteerId: string;
+    notes?: string;
+  }): Promise<ApiResponse<{ message: string; opportunity: VolunteerOpportunity }>> {
+    return this.request('/volunteer/opportunities/assign', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async unassignVolunteerFromOpportunity(data: {
+    opportunityId: string;
+    timeSlotId: string;
+    volunteerId: string;
+  }): Promise<ApiResponse<{ message: string; opportunity: VolunteerOpportunity }>> {
+    return this.request('/volunteer/opportunities/unassign', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getAvailableVolunteersForOpportunity(params: {
+    opportunityId: string;
+    timeSlotId: string;
+  }): Promise<ApiResponse<{
+    availableVolunteers: Volunteer[];
+    total: number;
+    requiredSkills: string[];
+  }>> {
+    const queryParams = new URLSearchParams();
+    queryParams.append('opportunityId', params.opportunityId);
+    queryParams.append('timeSlotId', params.timeSlotId);
+    
+    return this.request(`/volunteer/opportunities/available-volunteers?${queryParams.toString()}`);
+  }
+
   async updateVolunteerSignupStatus(opportunityId: string, signupId: string, status: 'confirmed' | 'pending' | 'cancelled'): Promise<ApiResponse<{ message: string }>> {
     return this.request(`/volunteer/opportunities/${opportunityId}/signups/${signupId}/status`, {
       method: 'PATCH',
@@ -710,17 +867,7 @@ class ApiClient {
     });
   }
 
-  // Volunteer Profile Management
-  async getVolunteerProfile(): Promise<ApiResponse<VolunteerProfile>> {
-    return this.request('/volunteer/profile');
-  }
-
-  async updateVolunteerProfile(data: Partial<VolunteerProfile>): Promise<ApiResponse<{ message: string; profile: VolunteerProfile }>> {
-    return this.request('/volunteer/profile', {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    });
-  }
+  // Volunteer Profile Management (Legacy - use new volunteer profile methods instead)
 
   async getVolunteerHistory(params?: {
     page?: number;
@@ -1072,7 +1219,20 @@ class ApiClient {
 
   // Member Directory APIs
   async searchUsers(query: string): Promise<ApiResponse<User[]>> {
-    return this.request(`/users/search?q=${encodeURIComponent(query)}`);
+    console.log('API searchUsers - Query:', query);
+    const endpoint = `/users/search?q=${encodeURIComponent(query)}`;
+    const response = await this.request<any>(endpoint);
+    console.log('API searchUsers - Raw response:', response);
+
+    // Handle the case where the data is directly in the response
+    const users = response.success ? (Array.isArray(response.data) ? response.data : []) : [];
+    console.log('API searchUsers - Processed users:', users);
+
+    return {
+      success: response.success,
+      data: users,
+      error: response.error
+    };
   }
 
   async addUserToClub(data: {
@@ -1083,6 +1243,22 @@ class ApiClient {
     return this.request('/users/join-club', {
       method: 'POST',
       body: JSON.stringify(data)
+    });
+  }
+
+  async joinClub(data: {
+    clubId: string;
+    membershipPlanId?: string;
+  }): Promise<ApiResponse<{ message: string; user: User }>> {
+    return this.request('/users/join-club-request', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async leaveClub(): Promise<ApiResponse<{ message: string; user: User }>> {
+    return this.request('/users/leave-club', {
+      method: 'POST'
     });
   }
 
@@ -1130,6 +1306,11 @@ class ApiClient {
 
     const endpoint = `/users/club-directory${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
     return this.request(endpoint);
+  }
+
+  // Debug method - remove after fixing
+  async debugVolunteers(): Promise<ApiResponse<any>> {
+    return this.request('/volunteer/debug-volunteers');
   }
 }
 

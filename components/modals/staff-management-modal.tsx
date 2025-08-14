@@ -65,7 +65,7 @@ export default function StaffManagementModal({ isOpen, onClose, club }: StaffMan
     try {
       setLoading(true)
       const token = localStorage.getItem('token')
-      const response = await fetch(`http://localhost:5000/api/staff/club/${club._id}`, {
+      const response = await fetch(`http://3.111.169.32:5050/api/staff/club/${club._id}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -91,7 +91,7 @@ export default function StaffManagementModal({ isOpen, onClose, club }: StaffMan
 
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch(`http://localhost:5000/api/staff/club/${club._id}/stats`, {
+      const response = await fetch(`http://3.111.169.32:5050/api/staff/club/${club._id}/stats`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -113,7 +113,7 @@ export default function StaffManagementModal({ isOpen, onClose, club }: StaffMan
 
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch(`http://localhost:5000/api/staff/club/${club._id}`, {
+      const response = await fetch(`http://3.111.169.32:5050/api/staff/club/${club._id}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -151,7 +151,7 @@ export default function StaffManagementModal({ isOpen, onClose, club }: StaffMan
 
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch(`http://localhost:5000/api/staff/club/${club._id}/${editingStaff._id}`, {
+      const response = await fetch(`http://3.111.169.32:5050/api/staff/club/${club._id}/${editingStaff._id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -190,7 +190,7 @@ export default function StaffManagementModal({ isOpen, onClose, club }: StaffMan
 
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch(`http://localhost:5000/api/staff/club/${club._id}/${staffId}`, {
+      const response = await fetch(`http://3.111.169.32:5050/api/staff/club/${club._id}/${staffId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,

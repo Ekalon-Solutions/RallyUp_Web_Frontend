@@ -153,58 +153,78 @@ export default function MembersPage() {
   }
 
   const handleUserSearch = async (query: string): Promise<void> => {
+    console.log('handleUserSearch - Starting search with query:', query);
+    
     // Only search if we have at least 2 characters
     if (query.trim().length < 2) {
-      setSearchResults([])
-      return
+      console.log('handleUserSearch - Query too short, clearing results');
+      setSearchResults([]);
+      return;
     }
 
-    console.log('Searching for:', query);
-
-    setIsSearching(true)
+    setIsSearching(true);
     try {
-      const response = await apiClient.searchUsers(query)
-      console.log('Search response:', response);
-      if (response.success && response.data) {
-        setSearchResults(response.data)
-        if (response.data.length === 0) {
-          toast.info('No users found matching your search')
+      console.log('handleUserSearch - Calling API...');
+      const response = await apiClient.searchUsers(query);
+      console.log('handleUserSearch - API Response:', response);
+
+      if (response.success) {
+        const users = response.data || [];
+        console.log('handleUserSearch - Setting search results:', users);
+        setSearchResults(users);
+
+        // Update UI based on results
+        if (users.length === 0) {
+          console.log('handleUserSearch - No users found');
+          toast.info('No users found matching your search');
+        } else {
+          console.log('handleUserSearch - Found', users.length, 'users');
+          toast.success(`Found ${users.length} user${users.length === 1 ? '' : 's'}`);
         }
       } else {
-        toast.error(response.error || 'Failed to search users')
+        console.error('handleUserSearch - Search failed:', response);
+        toast.error(response.error || 'Failed to search users');
+        setSearchResults([]);
       }
     } catch (error) {
-      console.error('Error searching users:', error)
-      toast.error('Failed to search users')
+      console.error('handleUserSearch - Error:', error);
+      toast.error('Failed to search users');
+      setSearchResults([]);
     } finally {
-      setIsSearching(false)
+      setIsSearching(false);
     }
   }
 
   const handleAddExistingUser = async (): Promise<void> => {
-    if (!selectedUser || !user?.club?._id) return
+    if (!selectedUser) {
+      toast.error('Please select a user to add');
+      return;
+    }
 
     try {
+      console.log('Adding user:', selectedUser);
       const response = await apiClient.addUserToClub({
         email: selectedUser.email,
         name: selectedUser.name,
         phoneNumber: selectedUser.phoneNumber
-      })
+      });
+      console.log('Add user response:', response);
+      
       if (response.success) {
-        toast.success('Member added successfully')
-        setIsAddDialogOpen(false)
-        fetchMembers()
+        toast.success('Member added successfully');
+        setIsAddDialogOpen(false);
+        fetchMembers();
         // Reset states
-        setSelectedUser(null)
-        setSearchQuery('')
-        setSearchResults([])
-        setAddMode('new')
+        setSelectedUser(null);
+        setSearchQuery('');
+        setSearchResults([]);
+        setAddMode('new');
       } else {
-        toast.error(response.error || 'Failed to add member')
+        toast.error(response.error || 'Failed to add member');
       }
     } catch (error) {
-      console.error('Error adding member:', error)
-      toast.error('Failed to add member')
+      console.error('Error adding member:', error);
+      toast.error('Failed to add member');
     }
   }
 
@@ -590,56 +610,90 @@ export default function MembersPage() {
                       </div>
                     </div>
 
-                    {isSearching ? (
-                      <div className="space-y-2">
-                        {[...Array(3)].map((_, i) => (
-                          <div key={i} className="flex items-center space-x-4 p-4 border rounded-lg animate-pulse">
-                            <div className="w-10 h-10 bg-muted rounded-full"></div>
-                            <div className="flex-1 space-y-2">
-                              <div className="h-4 bg-muted rounded w-1/4"></div>
-                              <div className="h-3 bg-muted rounded w-1/3"></div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : searchResults.length > 0 ? (
-                      <div className="space-y-2 max-h-[300px] overflow-y-auto">
-                        {searchResults.map((user: User) => (
-                          <div
-                            key={user._id}
-                            className={`flex items-center space-x-4 p-4 border rounded-lg cursor-pointer transition-colors ${
-                              selectedUser?._id === user._id ? 'bg-muted' : 'hover:bg-muted/50'
-                            }`}
-                            onClick={() => setSelectedUser(user)}
-                          >
-                            <Avatar>
-                              <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
-                                {user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <h3 className="font-semibold">{user.name}</h3>
-                              <div className="flex items-center space-x-4 text-sm text-muted-foreground">
-                                <div className="flex items-center space-x-1">
-                                  <Mail className="w-3 h-3" />
-                                  <span>{user.email}</span>
-                                </div>
-                                <div className="flex items-center space-x-1">
-                                  <Phone className="w-3 h-3" />
-                                  <span>{formatPhoneNumber(user.phoneNumber, user.countryCode)}</span>
+                    {(() => {
+                      console.log('Rendering search results section:', {
+                        isSearching,
+                        searchResults,
+                        searchResultsLength: searchResults?.length,
+                        searchQuery
+                      });
+
+                      if (isSearching) {
+                        return (
+                          <div className="space-y-2">
+                            {[...Array(3)].map((_, i) => (
+                              <div key={i} className="flex items-center space-x-4 p-4 border rounded-lg animate-pulse">
+                                <div className="w-10 h-10 bg-muted rounded-full"></div>
+                                <div className="flex-1 space-y-2">
+                                  <div className="h-4 bg-muted rounded w-1/4"></div>
+                                  <div className="h-3 bg-muted rounded w-1/3"></div>
                                 </div>
                               </div>
-                            </div>
+                            ))}
                           </div>
-                        ))}
-                      </div>
-                    ) : searchQuery && !isSearching ? (
-                      <div className="text-center py-8">
-                        <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                        <h3 className="text-lg font-semibold text-muted-foreground mb-2">No users found</h3>
-                        <p className="text-muted-foreground">Try a different search term.</p>
-                      </div>
-                    ) : null}
+                        );
+                      }
+
+                      if (searchResults && searchResults.length > 0) {
+                        console.log('Rendering user list with', searchResults.length, 'results');
+                        return (
+                          <div className="space-y-2 max-h-[300px] overflow-y-auto border rounded-lg p-2">
+                            {searchResults.map((user: User) => {
+                              console.log('Rendering user:', user);
+                              return (
+                                <div
+                                  key={user._id}
+                                  className={`flex items-center space-x-4 p-4 border rounded-lg cursor-pointer transition-colors ${
+                                    selectedUser?._id === user._id ? 'bg-primary/10' : 'hover:bg-muted/50'
+                                  }`}
+                                  onClick={() => {
+                                    console.log('Selecting user:', user);
+                                    setSelectedUser(user);
+                                    toast.success('User selected');
+                                  }}
+                                >
+                                  <Avatar>
+                                    <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
+                                      {user.name.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <div className="flex-1">
+                                    <h3 className="font-semibold">{user.name}</h3>
+                                    <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                                      <div className="flex items-center space-x-1">
+                                        <Mail className="w-3 h-3" />
+                                        <span>{user.email}</span>
+                                      </div>
+                                      <div className="flex items-center space-x-1">
+                                        <Phone className="w-3 h-3" />
+                                        <span>{formatPhoneNumber(user.phoneNumber, user.countryCode)}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  {selectedUser?._id === user._id && (
+                                    <div className="text-primary">
+                                      <Check className="w-5 h-5" />
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      }
+
+                      if (searchQuery && !isSearching) {
+                        return (
+                          <div className="text-center py-8 border rounded-lg">
+                            <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                            <h3 className="text-lg font-semibold text-muted-foreground mb-2">No users found</h3>
+                            <p className="text-muted-foreground">Try a different search term.</p>
+                          </div>
+                        );
+                      }
+
+                      return null;
+                    })()}
                   </div>
                 ) : (
                   <form onSubmit={(e: FormEvent<HTMLFormElement>) => {

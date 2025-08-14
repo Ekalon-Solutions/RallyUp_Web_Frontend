@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Badge } from "@/components/ui/badge"
 import { Plus, CreditCard, Users, Calendar, CheckCircle, DollarSign } from "lucide-react"
 import { toast } from "sonner"
+import { apiClient } from "@/lib/api"
 
 interface MembershipPlan {
   _id: string
@@ -41,7 +42,7 @@ export default function MembershipPlansPage() {
     description: "",
     price: 0,
     currency: "USD",
-    duration: 30,
+    duration: 1,
     features: {
       maxEvents: 10,
       maxNews: 5,
@@ -60,21 +61,53 @@ export default function MembershipPlansPage() {
 
   const loadPlans = async () => {
     try {
+      setIsLoading(true)
+      console.log('Loading membership plans...')
+      
+      // Check if user is authenticated
       const token = localStorage.getItem('token')
-      const response = await fetch('http://localhost:5000/api/membership-plans', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setPlans(data.data || [])
+      if (!token) {
+        console.error('No authentication token found')
+        toast.error('Please log in to view membership plans')
+        setIsLoading(false)
+        return
+      }
+      
+      // First, let's try to get the user's club context
+      let clubResponse
+      try {
+        clubResponse = await apiClient.getAdminClub()
+        console.log('Club response:', clubResponse)
+      } catch (error) {
+        console.log('Could not get admin club, proceeding without club context')
+      }
+      
+      const clubId = clubResponse?.success ? clubResponse.data?.club?._id : undefined
+      console.log('Using club ID:', clubId)
+      
+      if (!clubId) {
+        console.log('No club ID available, trying to load plans without club context')
+      }
+      
+      const response = await apiClient.getMembershipPlans(clubId)
+      console.log('Membership plans response:', response)
+      
+      if (response.success) {
+        // Handle both direct array response and nested data response
+        const plansData = Array.isArray(response.data) ? response.data : (response.data?.data || [])
+        console.log('Processed plans data:', plansData)
+        setPlans(plansData)
+        
+        if (plansData.length === 0) {
+          console.log('No membership plans found')
+          toast.info('No membership plans found. You can create your first plan.')
+        }
       } else {
-        toast.error("Failed to load membership plans")
+        console.error('Failed to load membership plans:', response.error)
+        toast.error(response.error || "Failed to load membership plans")
       }
     } catch (error) {
+      console.error('Error loading membership plans:', error)
       toast.error("Failed to load membership plans")
     } finally {
       setIsLoading(false)
@@ -86,19 +119,9 @@ export default function MembershipPlansPage() {
     setIsCreating(true)
 
     try {
-      const token = localStorage.getItem('token')
-      const response = await fetch('http://localhost:5000/api/membership-plans', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      })
+      const response = await apiClient.createMembershipPlan(formData)
 
-      const data = await response.json()
-
-      if (response.ok) {
+      if (response.success) {
         toast.success("Membership plan created successfully!")
         setShowCreateDialog(false)
         setFormData({
@@ -106,7 +129,7 @@ export default function MembershipPlansPage() {
           description: "",
           price: 0,
           currency: "USD",
-          duration: 30,
+          duration: 1,
           features: {
             maxEvents: 10,
             maxNews: 5,
@@ -120,10 +143,11 @@ export default function MembershipPlansPage() {
         })
         loadPlans()
       } else {
-        toast.error(data.message || "Failed to create membership plan")
+        toast.error(response.error || "Failed to create membership plan")
       }
     } catch (error) {
-      toast.error("An error occurred")
+      console.error('Error creating membership plan:', error)
+      toast.error("An error occurred while creating the plan")
     } finally {
       setIsCreating(false)
     }
@@ -136,16 +160,31 @@ export default function MembershipPlansPage() {
     }).format(price)
   }
 
-  const formatDuration = (days: number) => {
-    if (days === 30) return "1 Month"
-    if (days === 90) return "3 Months"
-    if (days === 180) return "6 Months"
-    if (days === 365) return "1 Year"
-    return `${days} Days`
+  const formatDuration = (months: number) => {
+    if (months === 1) return "1 Month"
+    if (months === 3) return "3 Months"
+    if (months === 6) return "6 Months"
+    if (months === 12) return "1 Year"
+    return `${months} Months`
   }
 
   if (isLoading) {
-    return <div className="p-6">Loading membership plans...</div>
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold">Membership Plans</h1>
+            <p className="text-muted-foreground">Create and manage membership plans for your club</p>
+          </div>
+        </div>
+        <div className="flex items-center justify-center py-12">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading membership plans...</p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -155,189 +194,207 @@ export default function MembershipPlansPage() {
           <h1 className="text-3xl font-bold">Membership Plans</h1>
           <p className="text-muted-foreground">Create and manage membership plans for your club</p>
         </div>
-        <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 w-4 h-4" />
-              Create Plan
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Create New Membership Plan</DialogTitle>
-              <DialogDescription>
-                Create a new membership plan with features and pricing
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleCreatePlan} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Plan Name</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="price">Price</Label>
-                  <Input
-                    id="price"
-                    type="number"
-                    value={formData.price}
-                    onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Input
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="currency">Currency</Label>
-                  <select
-                    id="currency"
-                    value={formData.currency}
-                    onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
-                    className="w-full px-3 py-2 border border-input rounded-md"
-                  >
-                    <option value="USD">USD</option>
-                    <option value="EUR">EUR</option>
-                    <option value="GBP">GBP</option>
-                  </select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="duration">Duration (Days)</Label>
-                  <Input
-                    id="duration"
-                    type="number"
-                    value={formData.duration}
-                    onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) || 30 })}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Duration Display</Label>
-                  <div className="px-3 py-2 text-sm text-muted-foreground">
-                    {formatDuration(formData.duration)}
-                  </div>
-                </div>
-              </div>
-
-              <div className="border-t pt-4">
-                <h3 className="font-semibold mb-4">Plan Features</h3>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={loadPlans}>
+            Refresh
+          </Button>
+          <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 w-4 h-4" />
+                Create Plan
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Create New Membership Plan</DialogTitle>
+                <DialogDescription>
+                  Create a new membership plan with features and pricing
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleCreatePlan} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="maxEvents">Max Events</Label>
+                    <Label htmlFor="name">Plan Name</Label>
                     <Input
-                      id="maxEvents"
-                      type="number"
-                      value={formData.features.maxEvents}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        features: { ...formData.features, maxEvents: parseInt(e.target.value) || 0 }
-                      })}
+                      id="name"
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      required
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="maxNews">Max News</Label>
+                    <Label htmlFor="price">Price</Label>
                     <Input
-                      id="maxNews"
+                      id="price"
                       type="number"
-                      value={formData.features.maxNews}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        features: { ...formData.features, maxNews: parseInt(e.target.value) || 0 }
-                      })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="maxMembers">Max Members</Label>
-                    <Input
-                      id="maxMembers"
-                      type="number"
-                      value={formData.features.maxMembers}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        features: { ...formData.features, maxMembers: parseInt(e.target.value) || 0 }
-                      })}
+                      value={formData.price}
+                      onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
+                      required
                     />
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 mt-4">
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="customBranding"
-                      checked={formData.features.customBranding}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        features: { ...formData.features, customBranding: e.target.checked }
-                      })}
-                    />
-                    <Label htmlFor="customBranding">Custom Branding</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description</Label>
+                  <Input
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="currency">Currency</Label>
+                    <select
+                      id="currency"
+                      value={formData.currency}
+                      onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+                      className="w-full px-3 py-2 border border-input rounded-md"
+                    >
+                      <option value="USD">USD</option>
+                      <option value="EUR">EUR</option>
+                      <option value="GBP">GBP</option>
+                    </select>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="advancedAnalytics"
-                      checked={formData.features.advancedAnalytics}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        features: { ...formData.features, advancedAnalytics: e.target.checked }
-                      })}
+                  <div className="space-y-2">
+                    <Label htmlFor="duration">Duration (Months)</Label>
+                    <Input
+                      id="duration"
+                      type="number"
+                      value={formData.duration}
+                      onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) || 1 })}
+                      min="1"
+                      max="120"
+                      required
                     />
-                    <Label htmlFor="advancedAnalytics">Advanced Analytics</Label>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="prioritySupport"
-                      checked={formData.features.prioritySupport}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        features: { ...formData.features, prioritySupport: e.target.checked }
-                      })}
-                    />
-                    <Label htmlFor="prioritySupport">Priority Support</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="apiAccess"
-                      checked={formData.features.apiAccess}
-                      onChange={(e) => setFormData({
-                        ...formData,
-                        features: { ...formData.features, apiAccess: e.target.checked }
-                      })}
-                    />
-                    <Label htmlFor="apiAccess">API Access</Label>
+                  <div className="space-y-2">
+                    <Label>Duration Display</Label>
+                    <div className="px-3 py-2 text-sm text-muted-foreground">
+                      {formatDuration(formData.duration)}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div className="flex gap-2">
-                <Button type="submit" disabled={isCreating} className="flex-1">
-                  {isCreating ? "Creating..." : "Create Plan"}
-                </Button>
-                <Button type="button" variant="outline" onClick={() => setShowCreateDialog(false)}>
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
+                <div className="border-t pt-4">
+                  <h3 className="font-semibold mb-4">Plan Features</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="maxEvents">Max Events</Label>
+                      <Input
+                        id="maxEvents"
+                        type="number"
+                        value={formData.features.maxEvents}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          features: { ...formData.features, maxEvents: parseInt(e.target.value) || 0 }
+                        })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="maxNews">Max News</Label>
+                      <Input
+                        id="maxNews"
+                        type="number"
+                        value={formData.features.maxNews}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          features: { ...formData.features, maxNews: parseInt(e.target.value) || 0 }
+                        })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="maxMembers">Max Members</Label>
+                      <Input
+                        id="maxMembers"
+                        type="number"
+                        value={formData.features.maxMembers}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          features: { ...formData.features, maxMembers: parseInt(e.target.value) || 0 }
+                        })}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 mt-4">
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id="customBranding"
+                        checked={formData.features.customBranding}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          features: { ...formData.features, customBranding: e.target.checked }
+                        })}
+                      />
+                      <Label htmlFor="customBranding">Custom Branding</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id="advancedAnalytics"
+                        checked={formData.features.advancedAnalytics}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          features: { ...formData.features, advancedAnalytics: e.target.checked }
+                        })}
+                      />
+                      <Label htmlFor="advancedAnalytics">Advanced Analytics</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id="prioritySupport"
+                        checked={formData.features.prioritySupport}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          features: { ...formData.features, prioritySupport: e.target.checked }
+                        })}
+                      />
+                      <Label htmlFor="prioritySupport">Priority Support</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id="apiAccess"
+                        checked={formData.features.apiAccess}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          features: { ...formData.features, apiAccess: e.target.checked }
+                        })}
+                      />
+                      <Label htmlFor="apiAccess">API Access</Label>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <Button type="submit" disabled={isCreating} className="flex-1">
+                    {isCreating ? "Creating..." : "Create Plan"}
+                  </Button>
+                  <Button type="button" variant="outline" onClick={() => setShowCreateDialog(false)}>
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </div>
+
+      {/* Debug Section - Remove this after fixing the issue */}
+      <div className="bg-gray-50 p-4 rounded-lg border">
+        <h3 className="font-semibold mb-2">Debug Info</h3>
+        <div className="text-sm space-y-1">
+          <div>Plans loaded: {plans.length}</div>
+          <div>Loading state: {isLoading ? 'Yes' : 'No'}</div>
+          <div>Token exists: {localStorage.getItem('token') ? 'Yes' : 'No'}</div>
+          <div>Last error: {plans.length === 0 && !isLoading ? 'No plans found or error occurred' : 'None'}</div>
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

@@ -39,6 +39,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 const adminNavigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Members", href: "/dashboard/members", icon: Users },
+  { name: "Browse Clubs", href: "/dashboard/clubs", icon: Building2 },
   { name: "News & Updates", href: "/dashboard/content", icon: Newspaper },
   { name: "Merchandise Store", href: "/dashboard/store", icon: Shirt },
   { name: "Events & Tickets", href: "/dashboard/events", icon: Ticket },
@@ -62,6 +63,7 @@ const systemOwnerNavigation = [
 const superAdminNavigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Members", href: "/dashboard/members", icon: Users },
+  { name: "Browse Clubs", href: "/dashboard/clubs", icon: Building2 },
   { name: "Staff Management", href: "/dashboard/staff", icon: Shield },
   { name: "Membership Plans", href: "/dashboard/membership-plans", icon: CreditCard },
   { name: "News & Updates", href: "/dashboard/content", icon: Newspaper },
