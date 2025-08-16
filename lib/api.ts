@@ -198,6 +198,118 @@ export interface Club {
   updatedAt: string;
 }
 
+// Membership Card Interfaces
+export interface MembershipCard {
+  _id: string;
+  cardNumber: string;
+  cardStyle: 'default' | 'premium' | 'vintage' | 'modern';
+  status: 'active' | 'expired' | 'pending' | 'suspended';
+  issueDate: string;
+  expiryDate: string;
+  accessLevel: 'basic' | 'premium' | 'vip';
+  features: {
+    maxEvents: number;
+    maxNews: number;
+    maxMembers: number;
+    customBranding: boolean;
+    advancedAnalytics: boolean;
+    prioritySupport: boolean;
+    apiAccess: boolean;
+    customIntegrations: boolean;
+  };
+  qrCode?: string;
+  barcode?: string;
+  isDigitalCard: boolean;
+  isPhysicalCard: boolean;
+  customization?: {
+    primaryColor: string;
+    secondaryColor: string;
+    fontFamily: string;
+    logoSize: 'small' | 'medium' | 'large';
+    showLogo: boolean;
+    customLogo?: string;
+  };
+}
+
+export interface PublicClubInfo {
+  _id: string;
+  name: string;
+  logo?: string;
+  location?: string;
+  description?: string;
+  website?: string;
+}
+
+export interface PublicMembershipPlanInfo {
+  _id: string;
+  name: string;
+  description: string;
+  price: number;
+  currency: string;
+  duration: number;
+  features: {
+    maxEvents: number;
+    maxNews: number;
+    maxMembers: number;
+    customBranding: boolean;
+    advancedAnalytics: boolean;
+    prioritySupport: boolean;
+    apiAccess: boolean;
+    customIntegrations: boolean;
+  };
+}
+
+export interface PublicMembershipCardDisplay {
+  card: MembershipCard;
+  club: PublicClubInfo;
+  membershipPlan: PublicMembershipPlanInfo;
+}
+
+export interface CreateMembershipCardRequest {
+  membershipPlanId: string;
+  clubId: string;
+  cardStyle?: 'default' | 'premium' | 'vintage' | 'modern';
+  expiryDate?: string;
+  accessLevel?: 'basic' | 'premium' | 'vip';
+  customization?: {
+    primaryColor?: string;
+    secondaryColor?: string;
+    fontFamily?: string;
+    logoSize?: 'small' | 'medium' | 'large';
+    showLogo?: boolean;
+    customLogo?: string;
+  };
+}
+
+export interface UpdateMembershipCardRequest {
+  cardStyle?: 'default' | 'premium' | 'vintage' | 'modern';
+  status?: 'active' | 'expired' | 'pending' | 'suspended';
+  expiryDate?: string;
+  accessLevel?: 'basic' | 'premium' | 'vip';
+  features?: Partial<{
+    maxEvents: number;
+    maxNews: number;
+    maxMembers: number;
+    customBranding: boolean;
+    advancedAnalytics: boolean;
+    prioritySupport: boolean;
+    apiAccess: boolean;
+    customIntegrations: boolean;
+  }>;
+  customization?: {
+    primaryColor?: string;
+    secondaryColor?: string;
+    fontFamily?: string;
+    logoSize?: 'small' | 'medium' | 'large';
+    showLogo?: boolean;
+    customLogo?: string;
+  };
+}
+
+export interface RenewMembershipCardRequest {
+  newExpiryDate: string;
+}
+
 export interface MembershipPlan {
   _id: string;
   name: string;
@@ -1314,6 +1426,102 @@ class ApiClient {
   // Debug method - remove after fixing
   async debugVolunteers(): Promise<ApiResponse<any>> {
     return this.request('/volunteer/debug-volunteers');
+  }
+
+  // Membership Card APIs
+  async getMyMembershipCards(): Promise<ApiResponse<PublicMembershipCardDisplay[]>> {
+    return this.request('/membership-cards/my-cards');
+  }
+
+  async getMyClubMembershipCards(): Promise<ApiResponse<PublicMembershipCardDisplay[]>> {
+    return this.request('/membership-cards/my-club-cards');
+  }
+
+  async getMembershipCard(cardId: string): Promise<ApiResponse<PublicMembershipCardDisplay>> {
+    return this.request(`/membership-cards/${cardId}`);
+  }
+
+  async createMembershipCard(data: CreateMembershipCardRequest): Promise<ApiResponse<PublicMembershipCardDisplay>> {
+    return this.request('/membership-cards', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getClubMembershipCards(clubId: string, params?: {
+    status?: string;
+    cardStyle?: string;
+    accessLevel?: string;
+    isExpired?: boolean;
+    isActive?: boolean;
+    page?: number;
+    limit?: number;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+  }): Promise<ApiResponse<{
+    data: PublicMembershipCardDisplay[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
+  }>> {
+    const queryParams = new URLSearchParams();
+    if (params?.status) queryParams.append('status', params.status);
+    if (params?.cardStyle) queryParams.append('cardStyle', params.cardStyle);
+    if (params?.accessLevel) queryParams.append('accessLevel', params.accessLevel);
+    if (params?.isExpired !== undefined) queryParams.append('isExpired', params.isExpired.toString());
+    if (params?.isActive !== undefined) queryParams.append('isActive', params.isActive.toString());
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.sortBy) queryParams.append('sortBy', params.sortBy);
+    if (params?.sortOrder) queryParams.append('sortOrder', params.sortOrder);
+
+    const endpoint = `/membership-cards/club/${clubId}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    return this.request(endpoint);
+  }
+
+  async updateMembershipCard(cardId: string, data: UpdateMembershipCardRequest): Promise<ApiResponse<PublicMembershipCardDisplay>> {
+    return this.request(`/membership-cards/${cardId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async renewMembershipCard(cardId: string, data: RenewMembershipCardRequest): Promise<ApiResponse<PublicMembershipCardDisplay>> {
+    return this.request(`/membership-cards/${cardId}/renew`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deactivateMembershipCard(cardId: string): Promise<ApiResponse<PublicMembershipCardDisplay>> {
+    return this.request(`/membership-cards/${cardId}/deactivate`, {
+      method: 'PATCH',
+    });
+  }
+
+  async deleteMembershipCard(cardId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request(`/membership-cards/${cardId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async regenerateQRCode(cardId: string): Promise<ApiResponse<{ qrCode: string }>> {
+    return this.request(`/membership-cards/${cardId}/regenerate-qr`, {
+      method: 'POST',
+    });
+  }
+
+  async regenerateBarcode(cardId: string): Promise<ApiResponse<{ barcode: string }>> {
+    return this.request(`/membership-cards/${cardId}/regenerate-barcode`, {
+      method: 'POST',
+    });
+  }
+
+  async getClubMembers(clubId: string): Promise<ApiResponse<any[]>> {
+    return this.request(`/clubs/${clubId}/members`);
   }
 }
 

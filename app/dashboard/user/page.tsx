@@ -11,7 +11,7 @@ import { ProtectedRoute } from "@/components/protected-route"
 import { apiClient, Event, News } from "@/lib/api"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
-import { Calendar, MapPin, Clock, Users, Newspaper, Tag, User, Eye, Building2 } from "lucide-react"
+import { Calendar, MapPin, Clock, Users, Newspaper, Tag, User, Eye, Building2, CreditCard } from "lucide-react"
 import { MembershipStatus } from "@/components/membership-status"
 
 export default function UserDashboardPage() {
@@ -334,6 +334,14 @@ export default function UserDashboardPage() {
                 <Button 
                   variant="outline" 
                   className="h-auto p-4 flex-col gap-2"
+                  onClick={() => window.location.href = "/dashboard/user/membership-card"}
+                >
+                  <CreditCard className="w-6 h-6" />
+                  <span>View Card</span>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="h-auto p-4 flex-col gap-2"
                   onClick={() => window.location.href = "/dashboard/user/events"}
                 >
                   <Calendar className="w-6 h-6" />
@@ -346,10 +354,6 @@ export default function UserDashboardPage() {
                 >
                   <Newspaper className="w-6 h-6" />
                   <span>Read News</span>
-                </Button>
-                <Button variant="outline" className="h-auto p-4 flex-col gap-2">
-                  <Users className="w-6 h-6" />
-                  <span>Contact Admin</span>
                 </Button>
               </div>
             </CardContent>

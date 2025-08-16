@@ -1,7 +1,7 @@
 // Environment Configuration
 export const ENV = {
   // Change this to switch between environments
-  CURRENT: 'production' as 'development' | 'production' | 'staging',
+  CURRENT: 'development' as 'development' | 'production' | 'staging',
   
   // Development environment (localhost)
   development: {
@@ -93,6 +93,23 @@ export const API_ENDPOINTS = {
     unassign: '/volunteer/opportunities/unassign',
     profile: '/volunteer/profile',
     update: '/volunteer/profile/update',
+  },
+  
+  // Onboarding endpoints
+  onboarding: {
+    flows: '/onboarding/flows',
+    userFlows: '/onboarding/user-flows',
+    completeStep: '/onboarding/complete-step',
+    progress: '/onboarding/progress',
+    analytics: '/onboarding/analytics',
+  },
+  
+  // Promotional content endpoints
+  promotions: {
+    content: '/promotions/content',
+    campaigns: '/promotions/campaigns',
+    analytics: '/promotions/analytics',
+    templates: '/promotions/templates',
   },
   
   // Event endpoints

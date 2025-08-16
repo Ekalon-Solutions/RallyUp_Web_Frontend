@@ -215,7 +215,7 @@ export default function ClubsPage() {
           name: "",
           email: "",
           phoneNumber: "",
-          countryCode: "+1"
+          countryCode: "+91"
         })
 
         // Redirect to dashboard

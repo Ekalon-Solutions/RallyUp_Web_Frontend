@@ -19,33 +19,33 @@ export default function AuthPage() {
   const router = useRouter()
 
   // User form states
-  const [userLoginData, setUserLoginData] = useState({ email: "", phoneNumber: "", countryCode: "+1" })
+  const [userLoginData, setUserLoginData] = useState({ email: "", phoneNumber: "", countryCode: "+91" })
   const [userRegisterData, setUserRegisterData] = useState({
     name: "",
     email: "",
     phoneNumber: "",
-    countryCode: "+1",
+    countryCode: "+91",
     clubId: "",
     membershipPlanId: ""
   })
 
   // Admin form states
-  const [adminLoginData, setAdminLoginData] = useState({ email: "", phoneNumber: "", countryCode: "+1" })
+  const [adminLoginData, setAdminLoginData] = useState({ email: "", phoneNumber: "", countryCode: "+91" })
   const [adminRegisterData, setAdminRegisterData] = useState({
     name: "",
     email: "",
     phoneNumber: "",
-    countryCode: "+1",
+    countryCode: "+91",
     adminCode: ""
   })
 
   // System Owner form states
-  const [systemOwnerLoginData, setSystemOwnerLoginData] = useState({ email: "", phoneNumber: "", countryCode: "+1" })
+  const [systemOwnerLoginData, setSystemOwnerLoginData] = useState({ email: "", phoneNumber: "", countryCode: "+91" })
   const [systemOwnerRegisterData, setSystemOwnerRegisterData] = useState({
     name: "",
     email: "",
     phoneNumber: "",
-    countryCode: "+1",
+    countryCode: "+91",
     accessKey: ""
   })
 
@@ -417,7 +417,7 @@ export default function AuthPage() {
                          placeholder="Enter your email"
                          value={userLoginData.email}
                          onChange={(e) => {
-                           setUserLoginData({ ...userLoginData, email: e.target.value, phoneNumber: "", countryCode: "+1" })
+                           setUserLoginData({ ...userLoginData, email: e.target.value, phoneNumber: "", countryCode: "+91" })
                          }}
                          className="bg-white/10 border-white/20 text-white placeholder:text-slate-400"
                        />
@@ -440,7 +440,7 @@ export default function AuthPage() {
                          <Input
                            id="user-login-country-code"
                            type="text"
-                           placeholder="+1"
+                           placeholder="+91"
                            value={userLoginData.countryCode}
                            onChange={(e) => setUserLoginData({ ...userLoginData, countryCode: e.target.value })}
                            disabled={!!userLoginData.email}
@@ -562,7 +562,7 @@ export default function AuthPage() {
                         <Input
                           id="user-country-code"
                           type="text"
-                          placeholder="+1"
+                          placeholder="+91"
                           value={userRegisterData.countryCode}
                           onChange={(e) => setUserRegisterData({ ...userRegisterData, countryCode: e.target.value })}
                           className="bg-white/10 border-white/20 text-white placeholder:text-slate-400"
@@ -650,7 +650,7 @@ export default function AuthPage() {
                          placeholder="Enter admin email"
                          value={adminLoginData.email}
                          onChange={(e) => {
-                           setAdminLoginData({ ...adminLoginData, email: e.target.value, phoneNumber: "", countryCode: "+1" })
+                           setAdminLoginData({ ...adminLoginData, email: e.target.value, phoneNumber: "", countryCode: "+91" })
                          }}
                          className="bg-white/10 border-white/20 text-white placeholder:text-slate-400"
                        />
@@ -671,7 +671,7 @@ export default function AuthPage() {
                          <Input
                            id="admin-login-country-code"
                            type="text"
-                           placeholder="+1"
+                           placeholder="+91"
                            value={adminLoginData.countryCode}
                            onChange={(e) => setAdminLoginData({ ...adminLoginData, countryCode: e.target.value })}
                            disabled={!!adminLoginData.email}
@@ -785,7 +785,7 @@ export default function AuthPage() {
                         <Input
                           id="admin-country-code"
                           type="text"
-                          placeholder="+1"
+                          placeholder="+91"
                           value={adminRegisterData.countryCode}
                           onChange={(e) => setAdminRegisterData({ ...adminRegisterData, countryCode: e.target.value })}
                           className="bg-white/10 border-white/20 text-white placeholder:text-slate-400"
@@ -887,7 +887,7 @@ export default function AuthPage() {
                          placeholder="Enter your email"
                          value={systemOwnerLoginData.email}
                          onChange={(e) => {
-                           setSystemOwnerLoginData({ ...systemOwnerLoginData, email: e.target.value, phoneNumber: "", countryCode: "+1" })
+                           setSystemOwnerLoginData({ ...systemOwnerLoginData, email: e.target.value, phoneNumber: "", countryCode: "+91" })
                          }}
                          className="bg-white/10 border-white/20 text-white placeholder:text-slate-400"
                        />
@@ -909,7 +909,7 @@ export default function AuthPage() {
                          <Input
                            id="system-owner-login-country-code"
                            type="text"
-                           placeholder="+1"
+                           placeholder="+91"
                            value={systemOwnerLoginData.countryCode}
                            onChange={(e) => setSystemOwnerLoginData({ ...systemOwnerLoginData, countryCode: e.target.value })}
                            disabled={!!systemOwnerLoginData.email}
@@ -1023,7 +1023,7 @@ export default function AuthPage() {
                         <Input
                           id="system-owner-country-code"
                           type="text"
-                          placeholder="+1"
+                          placeholder="+91"
                           value={systemOwnerRegisterData.countryCode}
                           onChange={(e) => setSystemOwnerRegisterData({ ...systemOwnerRegisterData, countryCode: e.target.value })}
                           className="bg-white/10 border-white/20 text-white placeholder:text-slate-400"
