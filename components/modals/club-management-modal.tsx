@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Building, Settings, Users, Mail, Phone, Globe, MapPin, Save, Edit, Trash2 } from "lucide-react"
 import { toast } from "sonner"
+import { getApiUrl, API_ENDPOINTS } from "@/lib/config"
 
 interface Club {
   _id: string
@@ -88,7 +89,7 @@ export default function ClubManagementModal({ isOpen, onClose, club, onClubUpdat
     try {
       setLoading(true)
       const token = localStorage.getItem('token')
-      const response = await fetch(`http://3.111.169.32:5050/api/clubs/${club._id}`, {
+      const response = await fetch(getApiUrl(API_ENDPOINTS.clubs.getById(club._id)), {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -122,7 +123,7 @@ export default function ClubManagementModal({ isOpen, onClose, club, onClubUpdat
     try {
       setLoading(true)
       const token = localStorage.getItem('token')
-      const response = await fetch(`http://3.111.169.32:5050/api/clubs/${club._id}`, {
+      const response = await fetch(getApiUrl(API_ENDPOINTS.clubs.getById(club._id)), {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,

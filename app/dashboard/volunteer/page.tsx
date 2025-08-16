@@ -303,7 +303,7 @@ export default function VolunteerDashboard() {
         // Profile doesn't exist, create one first
         console.log('📝 Creating new volunteer profile...');
         const createResponse = await apiClient.createVolunteerProfile({
-          club: user?.club?._id || '',
+          club: user?.club?._id || '', // TODO: Handle case where user is not a club member
           skills: preferences.skills || [],
           interests: preferences.interests || [],
           availability: {

@@ -1,4 +1,7 @@
-const API_BASE_URL = 'http://localhost:5000/api';
+import { getApiUrl, API_ENDPOINTS } from './config';
+
+// Legacy support - will be removed after migration
+const API_BASE_URL = getApiUrl('');
 
 export interface ApiResponse<T = any> {
   success: boolean;

@@ -39,6 +39,7 @@ import {
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
+import { getApiUrl, API_ENDPOINTS } from "@/lib/config"
 
 interface Club {
   _id: string
@@ -111,7 +112,7 @@ export default function ClubsPage() {
   const fetchClubs = async () => {
     try {
       setLoading(true)
-      const response = await fetch('http://3.111.169.32:5050/api/clubs/public')
+      const response = await fetch(getApiUrl(API_ENDPOINTS.clubs.public))
       const data = await response.json()
       
       if (response.ok) {
@@ -177,12 +178,8 @@ export default function ClubsPage() {
 
     setIsRegistering(true)
     try {
-<<<<<<< HEAD
       // First, register the user
-      const registerResponse = await fetch('http://localhost:5000/api/users/register', {
-=======
-      const response = await fetch('http://3.111.169.32:5050/api/users/register', {
->>>>>>> dffacbd5179a4886c67a3be97dc5a6529797d413
+              const registerResponse = await fetch(getApiUrl(API_ENDPOINTS.users.register), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
