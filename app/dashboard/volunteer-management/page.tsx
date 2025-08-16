@@ -663,19 +663,32 @@ export default function VolunteerManagementPage() {
                                 </div>
                               </div>
                               
-                              {/* Show volunteer IDs if any are signed up */}
+                              {/* Show volunteer details if any are signed up */}
                               {signupCount > 0 && (
                                 <div className="mt-2">
                                   <p className="text-xs text-muted-foreground mb-1">Volunteers:</p>
                                   <div className="flex flex-wrap gap-1">
-                                    {timeSlot.volunteersAssigned.map((volunteerId) => (
-                                      <span
-                                        key={volunteerId}
-                                        className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded"
-                                      >
-                                        {volunteerId.substring(0, 8)}...
-                                      </span>
-                                    ))}
+                                    {timeSlot.volunteersAssigned.map((volunteerId) => {
+                                      // Find the volunteer details from the volunteers list
+                                      const volunteer = volunteers.find(v => v._id === volunteerId);
+                                      return volunteer ? (
+                                        <span
+                                          key={volunteerId}
+                                          className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded flex items-center gap-1"
+                                          title={`${volunteer.user.name} - ${volunteer.user.email}`}
+                                        >
+                                          <span className="w-2 h-2 bg-blue-600 rounded-full"></span>
+                                          {volunteer.user.name}
+                                        </span>
+                                      ) : (
+                                        <span
+                                          key={volunteerId}
+                                          className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded"
+                                        >
+                                          Loading...
+                                        </span>
+                                      );
+                                    })}
                                   </div>
                                 </div>
                               )}
@@ -912,11 +925,28 @@ export default function VolunteerManagementPage() {
                            className="border rounded-lg p-4 shadow-sm">
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex-1">
-                            <h5 className="font-medium text-lg">{signup.volunteerId}</h5>
-                            <p className="text-sm text-muted-foreground">
-                              Volunteer ID: {signup.volunteerId}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
+                            {(() => {
+                              const volunteer = volunteers.find(v => v._id === signup.volunteerId);
+                              return volunteer ? (
+                                <>
+                                  <h5 className="font-medium text-lg">{volunteer.user.name}</h5>
+                                  <p className="text-sm text-muted-foreground">
+                                    {volunteer.user.email}
+                                  </p>
+                                  <p className="text-sm text-muted-foreground">
+                                    {volunteer.user.countryCode} {volunteer.user.phoneNumber}
+                                  </p>
+                                </>
+                              ) : (
+                                <>
+                                  <h5 className="font-medium text-lg">Volunteer ID: {signup.volunteerId.substring(0, 8)}...</h5>
+                                  <p className="text-sm text-muted-foreground">
+                                    Loading volunteer details...
+                                  </p>
+                                </>
+                              );
+                            })()}
+                            <p className="text-sm text-muted-foreground mt-2">
                               Status: {signup.status}
                             </p>
                           </div>
@@ -941,8 +971,28 @@ export default function VolunteerManagementPage() {
                           
                           <div>
                             <h6 className="text-sm font-medium mb-2">Volunteer Skills</h6>
-                            {/* The volunteer details are not fetched here, so we can't display skills */}
-                            <p className="text-xs text-muted-foreground">Skills not available</p>
+                            {(() => {
+                              const volunteer = volunteers.find(v => v._id === signup.volunteerId);
+                              return volunteer && volunteer.skills && volunteer.skills.length > 0 ? (
+                                <div className="flex flex-wrap gap-1">
+                                  {volunteer.skills.slice(0, 3).map((skill, index) => (
+                                    <span
+                                      key={index}
+                                      className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded"
+                                    >
+                                      {skill}
+                                    </span>
+                                  ))}
+                                  {volunteer.skills.length > 3 && (
+                                    <span className="text-xs text-muted-foreground">
+                                      +{volunteer.skills.length - 3} more
+                                    </span>
+                                  )}
+                                </div>
+                              ) : (
+                                <p className="text-xs text-muted-foreground">No skills listed</p>
+                              );
+                            })()}
                           </div>
                         </div>
                       </div>
