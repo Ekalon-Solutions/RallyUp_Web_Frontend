@@ -6,7 +6,10 @@
     "build": "next build",
     "dev": "next dev",
     "lint": "next lint",
-    "start": "next start"
+    "start": "next start",
+    "env:dev": "node switch-env.js dev",
+    "env:prod": "node switch-env.js prod",
+    "env:staging": "node switch-env.js staging"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
@@ -43,6 +46,7 @@
     "cmdk": "1.0.4",
     "date-fns": "4.1.0",
     "embla-carousel-react": "8.5.1",
+    "firebase": "^12.1.0",
     "geist": "^1.3.1",
     "input-otp": "1.4.1",
     "lucide-react": "^0.454.0",

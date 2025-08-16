@@ -14,12 +14,17 @@ import { toast } from "sonner"
 import { User, Mail, Phone, Shield, Save, Calendar, CheckCircle, XCircle, Edit, Building2, MapPin, Globe, Users, Search, Plus, ArrowRight } from "lucide-react"
 import { MembershipRenewal } from "@/components/membership-renewal"
 import { useRouter } from "next/navigation"
+import { VolunteerSignUpModal } from "@/components/volunteer/volunteer-signup-modal"
+import { VolunteerProfile } from "@/lib/api"
+import { apiClient } from "@/lib/api"
 
 export default function UserProfilePage() {
   const { user, updateProfile } = useAuth()
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
+  const [isVolunteerModalOpen, setIsVolunteerModalOpen] = useState(false)
+  const [volunteerProfile, setVolunteerProfile] = useState<VolunteerProfile | null>(null)
   const [profileForm, setProfileForm] = useState({
     name: "",
     email: "",
@@ -75,6 +80,78 @@ export default function UserProfilePage() {
   const handleDiscoverClubs = () => {
     router.push('/clubs')
   }
+
+  const handleVolunteerPreferencesSubmit = async (preferences: VolunteerProfile) => {
+    try {
+      // First check if volunteer profile exists
+      const profileResponse = await apiClient.getVolunteerProfile();
+      
+      if (!profileResponse.success) {
+        // Profile doesn't exist, create one first
+        const createResponse = await apiClient.createVolunteerProfile({
+          club: user?.club?._id || '',
+          skills: preferences.skills || [],
+          interests: preferences.interests || [],
+          availability: {
+            weekdays: preferences.availability?.weekdays || false,
+            weekends: preferences.availability?.weekends || false,
+            evenings: preferences.availability?.evenings || false,
+            flexible: false
+          },
+          experience: {
+            level: 'beginner',
+            yearsOfExperience: 0,
+            previousRoles: []
+          },
+          preferences: {
+            preferredEventTypes: [],
+            maxHoursPerWeek: 10,
+            preferredTimeSlots: [],
+            locationPreference: 'on-site'
+          },
+          emergencyContact: {
+            name: '',
+            relationship: '',
+            phone: '',
+            email: ''
+          },
+          notes: preferences.notes || ''
+        });
+        
+        if (createResponse.success) {
+          setVolunteerProfile(preferences);
+          setIsVolunteerModalOpen(false);
+          toast.success("Volunteer profile created successfully");
+        } else {
+          toast.error(createResponse.error || "Failed to create volunteer profile");
+        }
+      } else {
+        // Profile exists, update it
+        const updateResponse = await apiClient.updateVolunteerProfile({
+          skills: preferences.skills || [],
+          interests: preferences.interests || [],
+          availability: {
+            weekdays: preferences.availability?.weekdays || false,
+            weekends: preferences.availability?.weekends || false,
+            evenings: preferences.availability?.evenings || false,
+            flexible: false
+          },
+          notes: preferences.notes || ''
+        });
+        
+        if (updateResponse.success) {
+          setVolunteerProfile(preferences);
+          setIsVolunteerModalOpen(false);
+          toast.success("Volunteer preferences updated successfully");
+        } else {
+          toast.error(updateResponse.error || "Failed to update volunteer preferences");
+        }
+      }
+    } catch (error) {
+      console.error("Error updating volunteer preferences:", error);
+      toast.error("Error updating volunteer preferences");
+    }
+  };
 
   if (!user) {
     return (
@@ -318,6 +395,92 @@ export default function UserProfilePage() {
               </Card>
             )}
 
+            {/* Volunteer Preferences */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Users className="w-5 h-5" />
+                  Volunteer Preferences
+                </CardTitle>
+                <CardDescription>
+                  Manage your volunteering interests and availability
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {user.volunteering?.isVolunteer ? (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <Badge variant="default" className="bg-green-100 text-green-800">
+                        Available for Volunteering
+                      </Badge>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setIsVolunteerModalOpen(true)}
+                      >
+                        <Edit className="w-4 h-4 mr-2" />
+                        Update Preferences
+                      </Button>
+                    </div>
+                    
+                    {user.volunteering.skills && user.volunteering.skills.length > 0 && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-muted-foreground">Skills</Label>
+                        <div className="flex flex-wrap gap-2">
+                          {user.volunteering.skills.map((skill) => (
+                            <Badge key={skill} variant="secondary">
+                              {skill}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    {user.volunteering.interests && user.volunteering.interests.length > 0 && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-muted-foreground">Interests</Label>
+                        <div className="flex flex-wrap gap-2">
+                          {user.volunteering.interests.map((interest) => (
+                            <Badge key={interest} variant="outline">
+                              {interest}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-muted-foreground">Availability</Label>
+                      <div className="space-y-1 text-sm">
+                        {user.volunteering.availability.weekdays && <p>✓ Weekdays</p>}
+                        {user.volunteering.availability.weekends && <p>✓ Weekends</p>}
+                        {user.volunteering.availability.evenings && <p>✓ Evenings</p>}
+                      </div>
+                    </div>
+                    
+                    {user.volunteering.notes && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-muted-foreground">Notes</Label>
+                        <p className="text-sm">{user.volunteering.notes}</p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center py-6">
+                    <Users className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
+                    <h3 className="text-lg font-semibold mb-2">Not a volunteer yet?</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Join the volunteer team and help make a difference in your community.
+                    </p>
+                    <Button onClick={() => setIsVolunteerModalOpen(true)}>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Become a Volunteer
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             {/* Account Information */}
             <Card>
               <CardHeader>
@@ -360,6 +523,12 @@ export default function UserProfilePage() {
           )}
         </div>
       </DashboardLayout>
+      <VolunteerSignUpModal 
+        open={isVolunteerModalOpen} 
+        onClose={() => setIsVolunteerModalOpen(false)} 
+        onSubmit={handleVolunteerPreferencesSubmit} 
+        initialPreferences={volunteerProfile || undefined}
+      />
     </ProtectedRoute>
   )
 } 

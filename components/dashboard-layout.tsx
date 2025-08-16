@@ -28,6 +28,8 @@ import {
   CreditCard,
   Building2,
   Heart,
+  GraduationCap,
+  Megaphone,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -39,6 +41,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 const adminNavigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Members", href: "/dashboard/members", icon: Users },
+  { name: "Browse Clubs", href: "/dashboard/clubs", icon: Building2 },
+  { name: "Membership Plans", href: "/dashboard/membership-plans", icon: CreditCard },
+  { name: "Membership Cards", href: "/dashboard/membership-cards", icon: CreditCard },
   { name: "News & Updates", href: "/dashboard/content", icon: Newspaper },
   { name: "Merchandise Store", href: "/dashboard/store", icon: Shirt },
   { name: "Events & Tickets", href: "/dashboard/events", icon: Ticket },
@@ -48,6 +53,7 @@ const adminNavigation = [
   { name: "External Ticketing", href: "/dashboard/external-ticketing", icon: ExternalLink },
   { name: "Inter Club Forum Mgmt", href: "/dashboard/forum", icon: MessageSquare },
   { name: "Volunteer Management", href: "/dashboard/volunteer-management", icon: Heart },
+  { name: "Onboarding & Promotions", href: "/dashboard/onboarding", icon: GraduationCap },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
   { name: "Help", href: "/dashboard/help", icon: HelpCircle },
 ]
@@ -55,6 +61,7 @@ const adminNavigation = [
 const systemOwnerNavigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Clubs Management", href: "/dashboard/clubs", icon: Building },
+  { name: "Onboarding & Promotions", href: "/dashboard/onboarding", icon: GraduationCap },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
   { name: "Help", href: "/dashboard/help", icon: HelpCircle },
 ]
@@ -62,8 +69,10 @@ const systemOwnerNavigation = [
 const superAdminNavigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Members", href: "/dashboard/members", icon: Users },
+  { name: "Browse Clubs", href: "/dashboard/clubs", icon: Building2 },
   { name: "Staff Management", href: "/dashboard/staff", icon: Shield },
   { name: "Membership Plans", href: "/dashboard/membership-plans", icon: CreditCard },
+  { name: "Membership Cards", href: "/dashboard/membership-cards", icon: CreditCard },
   { name: "News & Updates", href: "/dashboard/content", icon: Newspaper },
   { name: "Merchandise Store", href: "/dashboard/store", icon: Shirt },
   { name: "Events & Tickets", href: "/dashboard/events", icon: Ticket },
@@ -73,6 +82,7 @@ const superAdminNavigation = [
   { name: "External Ticketing", href: "/dashboard/external-ticketing", icon: ExternalLink },
   { name: "Inter Club Forum Mgmt", href: "/dashboard/forum", icon: MessageSquare },
   { name: "Volunteer Management", href: "/dashboard/volunteer-management", icon: Heart },
+  { name: "Onboarding & Promotions", href: "/dashboard/onboarding", icon: GraduationCap },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
   { name: "Help", href: "/dashboard/help", icon: HelpCircle },
 ]
@@ -84,6 +94,8 @@ const userNavigation = [
   { name: "Events", href: "/dashboard/user/events", icon: Ticket },
   { name: "News", href: "/dashboard/user/news", icon: Newspaper },
   { name: "Volunteer", href: "/dashboard/volunteer", icon: Heart },
+  { name: "Member Onboarding", href: "/dashboard/member-onboarding", icon: GraduationCap },
+  { name: "Membership Card", href: "/dashboard/user/membership-card", icon: CreditCard },
   { name: "My Profile", href: "/dashboard/user/profile", icon: User },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
   { name: "Help", href: "/dashboard/help", icon: HelpCircle },

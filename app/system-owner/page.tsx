@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import Link from "next/link"
 import { useAuth } from "@/contexts/auth-context"
+import { getApiUrl, API_ENDPOINTS } from "@/lib/config"
 
 export default function SystemOwnerCreationPage() {
   const [isLoading, setIsLoading] = useState(false)
@@ -29,7 +30,7 @@ export default function SystemOwnerCreationPage() {
     setIsLoading(true)
 
     try {
-      const response = await fetch('http://3.111.169.32:5050/api/system-owner/create', {
+      const response = await fetch(getApiUrl(API_ENDPOINTS.systemOwner.create), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

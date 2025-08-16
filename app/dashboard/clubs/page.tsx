@@ -1,365 +1,277 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Badge } from "@/components/ui/badge"
-import { Plus, Building, Users, Calendar, Settings, Mail, Phone } from "lucide-react"
-import { toast } from "sonner"
-import StaffManagementModal from "@/components/modals/staff-management-modal"
-import ClubManagementModal from "@/components/modals/club-management-modal"
+import { useState, useEffect } from 'react'
+import { useAuth } from '@/contexts/auth-context'
+import { apiClient, Club, MembershipPlan } from '@/lib/api'
+import { toast } from 'sonner'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Building2, Users, MapPin, Globe, Mail, Phone, Calendar, Star } from 'lucide-react'
+import { DashboardLayout } from '@/components/dashboard-layout'
+import { ProtectedRoute } from '@/components/protected-route'
 
-interface Club {
-  _id: string
-  name: string
-  description?: string
-  contactEmail: string
-  contactPhone: string
-  status: 'active' | 'inactive' | 'suspended'
-  superAdmin?: {
-    _id: string
-    name: string
-    email: string
-  }
-  createdAt: string
+interface ClubWithPlans extends Club {
+  membershipPlans?: MembershipPlan[]
 }
 
 export default function ClubsPage() {
-  const [clubs, setClubs] = useState<Club[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [isCreating, setIsCreating] = useState(false)
-  const [showCreateDialog, setShowCreateDialog] = useState(false)
-  const [selectedClub, setSelectedClub] = useState<Club | null>(null)
-  const [showStaffModal, setShowStaffModal] = useState(false)
-  const [showClubModal, setShowClubModal] = useState(false)
-  const [formData, setFormData] = useState({
-    name: "",
-    description: "",
-    contactEmail: "",
-    contactPhone: "",
-    superAdminEmail: "",
-    superAdminPhone: "",
-    superAdminCountryCode: "+1"
-  })
+  const { user } = useAuth()
+  const [clubs, setClubs] = useState<ClubWithPlans[]>([])
+  const [loading, setLoading] = useState(true)
+  const [joiningClub, setJoiningClub] = useState<string | null>(null)
 
   useEffect(() => {
-    loadClubs()
+    fetchClubs()
   }, [])
 
-  const loadClubs = async () => {
+  const fetchClubs = async () => {
     try {
-      const token = localStorage.getItem('token')
-      const response = await fetch('http://3.111.169.32:5050/api/clubs', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      })
-
-      if (response.ok) {
-        const data = await response.json()
-        setClubs(data.clubs || [])
+      setLoading(true)
+      const response = await apiClient.getPublicClubs()
+      if (response.success && response.data) {
+        setClubs(response.data.clubs)
       } else {
-        toast.error("Failed to load clubs")
+        toast.error(response.error || 'Failed to load clubs')
       }
     } catch (error) {
-      toast.error("Failed to load clubs")
+      console.error('Error fetching clubs:', error)
+      toast.error('Failed to load clubs')
     } finally {
-      setIsLoading(false)
+      setLoading(false)
     }
   }
 
-  const handleCreateClub = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsCreating(true)
-
+  const handleJoinClub = async (clubId: string, membershipPlanId?: string) => {
     try {
-      const token = localStorage.getItem('token')
-      const response = await fetch('http://3.111.169.32:5050/api/clubs', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
+      setJoiningClub(clubId)
+      const response = await apiClient.joinClub({
+        clubId,
+        membershipPlanId
       })
 
-      const data = await response.json()
-
-      if (response.ok) {
-        toast.success("Club created successfully!")
-        setShowCreateDialog(false)
-        setFormData({
-          name: "",
-          description: "",
-          contactEmail: "",
-          contactPhone: "",
-          superAdminEmail: "",
-          superAdminPhone: "",
-          superAdminCountryCode: "+1"
-        })
-        loadClubs()
+      if (response.success) {
+        toast.success('Successfully joined club!')
+        // Refresh user data to update club association
+        window.location.reload()
       } else {
-        toast.error(data.message || "Failed to create club")
+        toast.error(response.error || 'Failed to join club')
       }
     } catch (error) {
-      toast.error("An error occurred")
+      console.error('Error joining club:', error)
+      toast.error('Failed to join club')
     } finally {
-      setIsCreating(false)
+      setJoiningClub(null)
     }
   }
 
-  const handleManageStaff = (club: Club) => {
-    setSelectedClub(club)
-    setShowStaffModal(true)
-  }
+  const handleLeaveClub = async () => {
+    if (!user?.club) return
 
-  const handleManageClub = (club: Club) => {
-    setSelectedClub(club)
-    setShowClubModal(true)
-  }
-
-  const handleClubUpdated = () => {
-    loadClubs()
-  }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active': return 'bg-green-100 text-green-800'
-      case 'inactive': return 'bg-gray-100 text-gray-800'
-      case 'suspended': return 'bg-red-100 text-red-800'
-      default: return 'bg-gray-100 text-gray-800'
+    try {
+      const response = await apiClient.leaveClub()
+      if (response.success) {
+        toast.success('Successfully left club')
+        window.location.reload()
+      } else {
+        toast.error(response.error || 'Failed to leave club')
+      }
+    } catch (error) {
+      console.error('Error leaving club:', error)
+      toast.error('Failed to leave club')
     }
   }
 
-  if (isLoading) {
-    return <div className="p-6">Loading clubs...</div>
+  const formatAddress = (address: any) => {
+    if (!address) return 'Address not available'
+    return `${address.street}, ${address.city}, ${address.state} ${address.zipCode}, ${address.country}`
+  }
+
+  const getMembershipPlanPrice = (plan: MembershipPlan) => {
+    return `${plan.currency} ${plan.price}`
+  }
+
+  if (loading) {
+    return (
+      <ProtectedRoute>
+        <DashboardLayout>
+          <div className="space-y-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <h1 className="text-3xl font-bold">Browse Clubs</h1>
+                <p className="text-muted-foreground">Find and join clubs that interest you</p>
+              </div>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {[...Array(6)].map((_, i) => (
+                <Card key={i} className="animate-pulse">
+                  <CardHeader>
+                    <div className="h-6 bg-muted rounded w-3/4"></div>
+                    <div className="h-4 bg-muted rounded w-1/2"></div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div className="h-4 bg-muted rounded w-full"></div>
+                      <div className="h-4 bg-muted rounded w-2/3"></div>
+                      <div className="h-4 bg-muted rounded w-1/2"></div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </DashboardLayout>
+      </ProtectedRoute>
+    )
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Clubs Management</h1>
-          <p className="text-muted-foreground">Manage all clubs and their super admins</p>
+    <ProtectedRoute>
+      <DashboardLayout>
+        <div className="space-y-6">
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h1 className="text-3xl font-bold">Browse Clubs</h1>
+              <p className="text-muted-foreground">Find and join clubs that interest you</p>
+            </div>
+            {user?.club && (
+              <Button variant="outline" onClick={handleLeaveClub}>
+                Leave Current Club
+              </Button>
+            )}
+          </div>
+
+          {/* Current Club Status */}
+          {user?.club && (
+            <Card className="border-primary/20 bg-primary/5">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Building2 className="w-5 h-5 text-primary" />
+                  Your Current Club
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-lg font-semibold">{user.club.name}</h3>
+                    <p className="text-muted-foreground">{user.club.description}</p>
+                  </div>
+                  <Badge variant="secondary">Active Member</Badge>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Clubs Grid */}
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {clubs.map((club) => {
+              const isCurrentClub = user?.club?._id === club._id
+              const isJoining = joiningClub === club._id
+
+              return (
+                <Card key={club._id} className="hover:shadow-lg transition-shadow">
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center space-x-3">
+                        <Avatar className="w-12 h-12">
+                          <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
+                            {club.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <CardTitle className="text-lg">{club.name}</CardTitle>
+                          <CardDescription className="text-sm">
+                            {club.status === 'active' ? 'Active' : 'Inactive'}
+                          </CardDescription>
+                        </div>
+                      </div>
+                      {isCurrentClub && (
+                        <Badge variant="secondary">Your Club</Badge>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <p className="text-sm text-muted-foreground line-clamp-2">
+                      {club.description || 'No description available'}
+                    </p>
+
+                    {/* Club Details */}
+                    <div className="space-y-2 text-sm">
+                      {club.website && (
+                        <div className="flex items-center space-x-2">
+                          <Globe className="w-4 h-4 text-muted-foreground" />
+                          <a 
+                            href={club.website} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-primary hover:underline"
+                          >
+                            Visit Website
+                          </a>
+                        </div>
+                      )}
+                      <div className="flex items-center space-x-2">
+                        <Mail className="w-4 h-4 text-muted-foreground" />
+                        <span>{club.contactEmail}</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Phone className="w-4 h-4 text-muted-foreground" />
+                        <span>{club.contactPhone}</span>
+                      </div>
+                      {club.address && (
+                        <div className="flex items-center space-x-2">
+                          <MapPin className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-xs">{formatAddress(club.address)}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Membership Plans */}
+                    {club.membershipPlans && club.membershipPlans.length > 0 && (
+                      <div className="space-y-2">
+                        <h4 className="font-medium text-sm">Membership Plans:</h4>
+                        <div className="space-y-1">
+                          {club.membershipPlans.map((plan) => (
+                            <div key={plan._id} className="flex items-center justify-between text-xs bg-muted p-2 rounded">
+                              <span>{plan.name}</span>
+                              <span className="font-medium">{getMembershipPlanPrice(plan)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Action Button */}
+                    {!isCurrentClub ? (
+                      <Button 
+                        onClick={() => handleJoinClub(club._id)}
+                        disabled={isJoining || club.status !== 'active'}
+                        className="w-full"
+                      >
+                        {isJoining ? 'Joining...' : 'Join Club'}
+                      </Button>
+                    ) : (
+                      <Button variant="outline" disabled className="w-full">
+                        Already a Member
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
+              )
+            })}
+          </div>
+
+          {clubs.length === 0 && (
+            <div className="text-center py-12">
+              <Building2 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold text-muted-foreground mb-2">No clubs available</h3>
+              <p className="text-muted-foreground">Check back later for new clubs to join.</p>
+            </div>
+          )}
         </div>
-        <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 w-4 h-4" />
-              Create Club
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Create New Club</DialogTitle>
-              <DialogDescription>
-                Create a new club and assign a super admin
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleCreateClub} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Club Name</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
-                <Input
-                  id="description"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="contactEmail">Contact Email</Label>
-                <Input
-                  id="contactEmail"
-                  type="email"
-                  value={formData.contactEmail}
-                  onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="contactPhone">Contact Phone</Label>
-                <Input
-                  id="contactPhone"
-                  value={formData.contactPhone}
-                  onChange={(e) => setFormData({ ...formData, contactPhone: e.target.value })}
-                  required
-                />
-              </div>
-
-              <div className="border-t pt-4">
-                <h3 className="font-semibold mb-2">Super Admin Details</h3>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="superAdminEmail">Super Admin Email</Label>
-                  <Input
-                    id="superAdminEmail"
-                    type="email"
-                    value={formData.superAdminEmail}
-                    onChange={(e) => setFormData({ ...formData, superAdminEmail: e.target.value })}
-                    required
-                  />
-                </div>
-
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="superAdminCountryCode">Country Code</Label>
-                    <Input
-                      id="superAdminCountryCode"
-                      value={formData.superAdminCountryCode}
-                      onChange={(e) => setFormData({ ...formData, superAdminCountryCode: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="col-span-2 space-y-2">
-                    <Label htmlFor="superAdminPhone">Phone Number</Label>
-                    <Input
-                      id="superAdminPhone"
-                      value={formData.superAdminPhone}
-                      onChange={(e) => setFormData({ ...formData, superAdminPhone: e.target.value })}
-                      required
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-2">
-                <Button type="submit" disabled={isCreating} className="flex-1">
-                  {isCreating ? "Creating..." : "Create Club"}
-                </Button>
-                <Button type="button" variant="outline" onClick={() => setShowCreateDialog(false)}>
-                  Cancel
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {clubs.map((club) => (
-          <Card key={club._id}>
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <Building className="w-5 h-5" />
-                    {club.name}
-                  </CardTitle>
-                  <CardDescription>{club.description}</CardDescription>
-                </div>
-                <Badge className={getStatusColor(club.status)}>
-                  {club.status}
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm">
-                  <Mail className="w-4 h-4" />
-                  <span>{club.contactEmail}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm">
-                  <Phone className="w-4 h-4" />
-                  <span>{club.contactPhone}</span>
-                </div>
-              </div>
-
-              <div className="border-t pt-4">
-                <h4 className="font-semibold text-sm mb-2">Super Admin</h4>
-                {club.superAdmin ? (
-                  <div className="space-y-1 text-sm">
-                    <div className="flex items-center gap-2">
-                      <Users className="w-4 h-4" />
-                      <span>{club.superAdmin.name}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Mail className="w-4 h-4" />
-                      <span>{club.superAdmin.email}</span>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="text-sm text-muted-foreground">
-                    No super admin assigned
-                  </div>
-                )}
-              </div>
-
-              <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="flex-1"
-                  onClick={() => handleManageClub(club)}
-                >
-                  <Settings className="w-4 h-4 mr-1" />
-                  Manage
-                </Button>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="flex-1"
-                  onClick={() => handleManageStaff(club)}
-                >
-                  <Users className="w-4 h-4 mr-1" />
-                  Staff
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {clubs.length === 0 && (
-        <Card>
-          <CardContent className="text-center py-12">
-            <Building className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No Clubs Yet</h3>
-            <p className="text-muted-foreground mb-4">
-              Create your first club to get started with RallyUp
-            </p>
-            <Button onClick={() => setShowCreateDialog(true)}>
-              <Plus className="mr-2 w-4 h-4" />
-              Create First Club
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Staff Management Modal */}
-      <StaffManagementModal
-        isOpen={showStaffModal}
-        onClose={() => {
-          setShowStaffModal(false)
-          setSelectedClub(null)
-        }}
-        club={selectedClub}
-      />
-
-      {/* Club Management Modal */}
-      <ClubManagementModal
-        isOpen={showClubModal}
-        onClose={() => {
-          setShowClubModal(false)
-          setSelectedClub(null)
-        }}
-        club={selectedClub}
-        onClubUpdated={handleClubUpdated}
-      />
-    </div>
+      </DashboardLayout>
+    </ProtectedRoute>
   )
 } 

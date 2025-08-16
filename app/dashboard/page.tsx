@@ -11,6 +11,8 @@ import { ProtectedRoute } from "@/components/protected-route"
 import { useAuth } from "@/contexts/auth-context"
 import { CreateNewsModal } from "@/components/modals/create-news-modal"
 import { CreateEventModal } from "@/components/modals/create-event-modal"
+import { VolunteerQuickSignup } from "@/components/volunteer/volunteer-quick-signup"
+import { VolunteerOpportunitiesWidget } from "@/components/volunteer/volunteer-opportunities-widget"
 
 export default function DashboardPage() {
   const { user, isAdmin } = useAuth()
@@ -95,6 +97,64 @@ export default function DashboardPage() {
             </Card>
           ))}
         </div>
+
+        {/* Volunteer Quick Signup */}
+        {user?.club && (
+          <div className="grid gap-4 md:grid-cols-2">
+            <VolunteerQuickSignup
+              onSignup={() => window.location.href = '/dashboard/volunteer'}
+              currentProfile={user.volunteering}
+              isSignedUp={user.volunteering?.isVolunteer || false}
+            />
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="w-5 h-5" />
+                  Quick Actions
+                </CardTitle>
+                <CardDescription>Common tasks and shortcuts</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start"
+                  onClick={() => window.location.href = '/dashboard/events'}
+                >
+                  <Calendar className="w-4 h-4 mr-2" />
+                  View Events
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start"
+                  onClick={() => window.location.href = '/dashboard/members'}
+                >
+                  <Users className="w-4 h-4 mr-2" />
+                  Manage Members
+                </Button>
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start"
+                  onClick={() => window.location.href = '/dashboard/news'}
+                >
+                  <MessageSquare className="w-4 h-4 mr-2" />
+                  Create News
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Volunteer Opportunities Widget */}
+        {user?.club && (
+          <VolunteerOpportunitiesWidget
+            opportunities={[]} // This would be populated with actual data
+            onViewAll={() => window.location.href = '/dashboard/volunteer'}
+            onSignUp={(opportunityId, timeSlotId) => {
+              // Handle signup - redirect to volunteer page
+              window.location.href = `/dashboard/volunteer?signup=${opportunityId}&slot=${timeSlotId}`;
+            }}
+          />
+        )}
 
         {/* Club Information for Admins */}
         {user?.club && (user.role === 'admin' || user.role === 'super_admin' || user.role === 'system_owner') && (
