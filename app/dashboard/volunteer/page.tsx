@@ -15,11 +15,28 @@ export default function VolunteerDashboard() {
   const { user } = useAuth();
   const [opportunities, setOpportunities] = React.useState<VolunteerOpportunity[]>([]);
   const [userPreferences, setUserPreferences] = React.useState<VolunteerProfile | null>(null);
+  const [volunteerProfile, setVolunteerProfile] = React.useState<any>(null);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState('available');
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const { toast } = useToast();
+
+  const fetchVolunteerProfile = React.useCallback(async () => {
+    try {
+      const profileResponse = await apiClient.getVolunteerProfile();
+      if (profileResponse.success) {
+        setVolunteerProfile(profileResponse.data);
+        console.log('✅ Volunteer profile fetched:', profileResponse.data);
+      } else {
+        console.log('⚠️ No volunteer profile found');
+        setVolunteerProfile(null);
+      }
+    } catch (error) {
+      console.error('❌ Error fetching volunteer profile:', error);
+      setVolunteerProfile(null);
+    }
+  }, []);
 
   const fetchOpportunities = React.useCallback(async () => {
     console.log('🔍 Starting to fetch opportunities...');
@@ -124,9 +141,19 @@ export default function VolunteerDashboard() {
   }, [toast]);
 
   React.useEffect(() => {
-    console.log('🔄 Effect triggered - fetching opportunities');
+    console.log('🔄 Effect triggered - fetching opportunities and volunteer profile');
     fetchOpportunities();
-  }, [fetchOpportunities]);
+    fetchVolunteerProfile();
+  }, [fetchOpportunities, fetchVolunteerProfile]);
+
+  // Debug volunteer profile changes
+  React.useEffect(() => {
+    console.log('🔍 Volunteer profile updated:', {
+      hasProfile: !!volunteerProfile,
+      profileId: volunteerProfile?._id,
+      profileData: volunteerProfile
+    });
+  }, [volunteerProfile]);
 
   // Log state changes
   React.useEffect(() => {
@@ -146,6 +173,30 @@ export default function VolunteerDashboard() {
     console.log('🔑 User ID:', user?._id);
     console.log('🏢 User club:', 'club' in (user || {}) ? (user as any).club : 'No club');
     
+    // Frontend validation to prevent duplicate signup attempts
+    if (!volunteerProfile) {
+      toast({
+        title: 'Error',
+        description: 'You need to create a volunteer profile first',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    // Check if already signed up for this time slot
+    const opportunity = opportunities.find(o => o._id === opportunityId);
+    if (opportunity) {
+      const timeSlot = opportunity.timeSlots.find(slot => slot._id === timeSlotId);
+      if (timeSlot && timeSlot.volunteersAssigned.includes(volunteerProfile._id)) {
+        toast({
+          title: 'Already Signed Up',
+          description: 'You are already signed up for this time slot',
+          variant: 'default',
+        });
+        return;
+      }
+    }
+    
     try {
       const response = await apiClient.signUpForVolunteerOpportunity(opportunityId, timeSlotId);
       console.log('📝 Sign up response:', {
@@ -162,6 +213,7 @@ export default function VolunteerDashboard() {
           description: 'Successfully signed up for the volunteer opportunity',
         });
         fetchOpportunities();
+        fetchVolunteerProfile(); // Refresh volunteer profile to update myOpportunities
       } else {
         console.log('❌ Failed to sign up:', response.error);
         toast({
@@ -182,6 +234,31 @@ export default function VolunteerDashboard() {
 
   const handleWithdraw = async (opportunityId: string, timeSlotId: string) => {
     console.log('🚫 Attempting to withdraw from opportunity:', { opportunityId, timeSlotId });
+    
+    // Frontend validation
+    if (!volunteerProfile) {
+      toast({
+        title: 'Error',
+        description: 'Volunteer profile not found',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    // Check if actually signed up for this time slot
+    const opportunity = opportunities.find(o => o._id === opportunityId);
+    if (opportunity) {
+      const timeSlot = opportunity.timeSlots.find(slot => slot._id === timeSlotId);
+      if (!timeSlot || !timeSlot.volunteersAssigned.includes(volunteerProfile._id)) {
+        toast({
+          title: 'Not Signed Up',
+          description: 'You are not signed up for this time slot',
+          variant: 'destructive',
+        });
+        return;
+      }
+    }
+    
     try {
       const response = await apiClient.withdrawFromVolunteerOpportunity(opportunityId, timeSlotId);
       console.log('📝 Withdraw response:', {
@@ -197,6 +274,7 @@ export default function VolunteerDashboard() {
           description: 'Successfully withdrawn from the volunteer opportunity',
         });
         fetchOpportunities();
+        fetchVolunteerProfile(); // Refresh volunteer profile to update myOpportunities
       } else {
         console.log('❌ Failed to withdraw:', response.error);
         toast({
@@ -306,11 +384,26 @@ export default function VolunteerDashboard() {
     (opportunity: VolunteerOpportunity) => opportunity.status === 'open'
   );
 
-  const myOpportunities = opportunities.filter((opportunity: VolunteerOpportunity) =>
-    opportunity.timeSlots.some((slot: { volunteersAssigned: string[] }) =>
-      slot.volunteersAssigned.includes(user?._id || '')
-    )
-  );
+  const myOpportunities = opportunities.filter((opportunity: VolunteerOpportunity) => {
+    const hasAssignment = opportunity.timeSlots.some((slot: any) => {
+      // Check if the current volunteer is assigned to this time slot
+      const isAssigned = volunteerProfile && slot.volunteersAssigned.includes(volunteerProfile._id);
+      if (volunteerProfile) {
+        console.log(`🔍 Checking slot ${slot._id}:`, {
+          volunteerProfileId: volunteerProfile._id,
+          volunteersAssigned: slot.volunteersAssigned,
+          isAssigned
+        });
+      }
+      return isAssigned;
+    });
+    
+    if (volunteerProfile && hasAssignment) {
+      console.log(`✅ Opportunity "${opportunity.title}" is in myOpportunities`);
+    }
+    
+    return hasAssignment;
+  });
 
   // Debug logging
   React.useEffect(() => {
@@ -318,14 +411,19 @@ export default function VolunteerDashboard() {
       total: opportunities.length,
       available: availableOpportunities.length,
       myOpportunities: myOpportunities.length,
+      volunteerProfile: volunteerProfile ? { id: volunteerProfile._id, name: volunteerProfile.user?.name } : null,
       opportunities: opportunities.map(o => ({
         id: o._id,
         title: o.title,
         status: o.status,
-        club: o.club
+        club: o.club,
+        timeSlots: o.timeSlots?.map(slot => ({
+          id: slot._id,
+          volunteersAssigned: slot.volunteersAssigned?.length || 0
+        }))
       }))
     });
-  }, [opportunities, availableOpportunities, myOpportunities]);
+  }, [opportunities, availableOpportunities, myOpportunities, volunteerProfile]);
 
   return (
     <DashboardLayout>
@@ -363,8 +461,8 @@ export default function VolunteerDashboard() {
                   }
                 </p>
                 {user && 'volunteering' in user && !user.volunteering?.isVolunteer && (
-                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <p className="text-sm text-blue-800">
+                  <div className="p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <p className="text-sm text-blue-800 dark:text-blue-200">
                       💡 You need to set up your volunteer preferences first. Click "Become a Volunteer" to get started!
                     </p>
                   </div>
@@ -430,6 +528,7 @@ export default function VolunteerDashboard() {
                   key={opportunity._id}
                   opportunity={opportunity}
                   onSignUp={handleSignUp}
+                  currentVolunteerId={volunteerProfile?._id}
                 />
               ))
             )}
@@ -446,6 +545,7 @@ export default function VolunteerDashboard() {
                   key={opportunity._id}
                   opportunity={opportunity}
                   onWithdraw={handleWithdraw}
+                  currentVolunteerId={volunteerProfile?._id}
                 />
               ))
             )}

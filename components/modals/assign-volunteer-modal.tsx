@@ -74,7 +74,7 @@ export function AssignVolunteerModal({
         
         // Filter out volunteers already assigned to this time slot
         const availableVolunteers = allVolunteers.filter(volunteer => 
-          !timeSlot?.volunteersAssigned.includes(volunteer.user._id)
+          !timeSlot?.volunteersAssigned.includes(volunteer._id)
         );
         
         console.log('🔍 Frontend: Available volunteers after filtering assigned:', availableVolunteers.length);
@@ -317,7 +317,7 @@ export function AssignVolunteerModal({
                 <div
                   key={volunteer._id}
                   className={`border rounded-lg p-4 cursor-pointer transition-colors ${
-                    selectedVolunteer === volunteer.user._id
+                    selectedVolunteer === volunteer._id
                       ? 'border-primary bg-primary/5'
                       : 'hover:border-primary/50'
                   }`}
@@ -373,13 +373,13 @@ export function AssignVolunteerModal({
                       </div>
                     </div>
                     
-                    <div className="flex items-center gap-2">
-                      {selectedVolunteer === volunteer.user._id ? (
-                        <CheckCircle className="w-5 h-5 text-primary" />
-                      ) : (
-                        <div className="w-5 h-5 border-2 border-muted-foreground rounded-full" />
-                      )}
-                    </div>
+                                      <div className="flex items-center gap-2">
+                    {selectedVolunteer === volunteer._id ? (
+                      <CheckCircle className="w-5 h-5 text-primary" />
+                    ) : (
+                      <div className="w-5 h-5 border-2 border-muted-foreground rounded-full" />
+                    )}
+                  </div>
                   </div>
                 </div>
               ))

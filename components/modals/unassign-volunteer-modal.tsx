@@ -43,7 +43,7 @@ export function UnassignVolunteerModal({
   const timeSlot = opportunity?.timeSlots.find(slot => slot._id === timeSlotId);
 
   // Fetch volunteer details for assigned volunteers
-  // Since volunteersAssigned contains user IDs, we need to find the volunteer documents that have those user IDs
+  // Since volunteersAssigned contains volunteer IDs, we need to find the volunteer documents that have those IDs
   const fetchAssignedVolunteers = React.useCallback(async () => {
     if (!timeSlot || timeSlot.volunteersAssigned.length === 0) {
       setAssignedVolunteers([]);
@@ -59,9 +59,9 @@ export function UnassignVolunteerModal({
       });
       
       if (response.success && response.data) {
-        // Find volunteers whose user._id matches the IDs in volunteersAssigned
+        // Find volunteers whose _id matches the IDs in volunteersAssigned
         const volunteers = response.data.filter(volunteer => 
-          timeSlot.volunteersAssigned.includes(volunteer.user._id)
+          timeSlot.volunteersAssigned.includes(volunteer._id)
         );
         
         console.log('🔍 Found assigned volunteers:', volunteers.length);

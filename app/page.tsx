@@ -406,57 +406,89 @@ export default function AuthPage() {
                   <TabsTrigger value="system-owner-login" className="text-white data-[state=active]:bg-sky-400 data-[state=active]:text-slate-900">System</TabsTrigger>
                 </TabsList>
                 
-                <TabsContent value="user-login" className="space-y-4 mt-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="user-email" className="text-white">Email</Label>
-                    <div className="flex items-center gap-2">
-                      <Mail className="w-4 h-4 text-slate-300" />
-                      <Input
-                        id="user-email"
-                        type="email"
-                        placeholder="Enter your email"
-                        value={userLoginData.email}
-                        onChange={(e) => setUserLoginData({ ...userLoginData, email: e.target.value })}
-                        className="bg-white/10 border-white/20 text-white placeholder:text-slate-400"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="user-login-country-code" className="text-white">Country Code</Label>
-                      <div className="flex items-center gap-2">
-                        <Phone className="w-4 h-4 text-slate-300" />
-                        <Input
-                          id="user-login-country-code"
-                          type="text"
-                          placeholder="+1"
-                          value={userLoginData.countryCode}
-                          onChange={(e) => setUserLoginData({ ...userLoginData, countryCode: e.target.value })}
-                          className="bg-white/10 border-white/20 text-white placeholder:text-slate-400"
-                        />
-                      </div>
-                    </div>
-                    <div className="col-span-2 space-y-2">
-                      <Label htmlFor="user-login-phone" className="text-white">Phone Number</Label>
-                      <div className="flex items-center gap-2">
-                        <Phone className="w-4 h-4 text-slate-300" />
-                        <Input
-                          id="user-login-phone"
-                          type="tel"
-                          placeholder="Enter your phone number"
-                          value={userLoginData.phoneNumber}
-                          onChange={(e) => setUserLoginData({ ...userLoginData, phoneNumber: e.target.value })}
-                          className="bg-white/10 border-white/20 text-white placeholder:text-slate-400"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  {!userLoginOtpSent ? (
-                    <Button onClick={handleUserLoginVerifyNumber} className="w-full bg-sky-400 text-slate-900 hover:bg-sky-300">
-                      Send OTP
-                      <Phone className="ml-2 w-4 h-4" />
-                    </Button>
-                  ) : (
+                                 <TabsContent value="user-login" className="space-y-4 mt-4">
+                   <div className="space-y-2">
+                     <Label htmlFor="user-email" className="text-white">Email</Label>
+                     <div className="flex items-center gap-2">
+                       <Mail className="w-4 h-4 text-slate-300" />
+                       <Input
+                         id="user-email"
+                         type="email"
+                         placeholder="Enter your email"
+                         value={userLoginData.email}
+                         onChange={(e) => {
+                           setUserLoginData({ ...userLoginData, email: e.target.value, phoneNumber: "", countryCode: "+1" })
+                         }}
+                         className="bg-white/10 border-white/20 text-white placeholder:text-slate-400"
+                       />
+                     </div>
+                   </div>
+                   
+                   <div className="flex items-center justify-center">
+                     <div className="flex items-center gap-3 w-full">
+                       <div className="flex-1 h-px bg-white/30"></div>
+                       <div className="text-white text-sm font-medium px-3">OR</div>
+                       <div className="flex-1 h-px bg-white/30"></div>
+                     </div>
+                   </div>
+                   
+                   <div className="grid grid-cols-3 gap-2">
+                     <div className="space-y-2">
+                       <Label htmlFor="user-login-country-code" className="text-white">Country Code</Label>
+                       <div className="flex items-center gap-2">
+                         <Phone className="w-4 h-4 text-slate-300" />
+                         <Input
+                           id="user-login-country-code"
+                           type="text"
+                           placeholder="+1"
+                           value={userLoginData.countryCode}
+                           onChange={(e) => setUserLoginData({ ...userLoginData, countryCode: e.target.value })}
+                           disabled={!!userLoginData.email}
+                           className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                         />
+                       </div>
+                     </div>
+                     <div className="col-span-2 space-y-2">
+                       <Label htmlFor="user-login-phone" className="text-white">Phone Number</Label>
+                       <div className="flex items-center gap-2">
+                         <Phone className="w-4 h-4 text-slate-300" />
+                         <Input
+                           id="user-login-phone"
+                           type="tel"
+                           placeholder="Enter your phone number"
+                           value={userLoginData.phoneNumber}
+                           onChange={(e) => {
+                             setUserLoginData({ ...userLoginData, phoneNumber: e.target.value, email: "" })
+                           }}
+                           disabled={!!userLoginData.email}
+                           className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                         />
+                       </div>
+                     </div>
+                   </div>
+                                     {!userLoginOtpSent ? (
+                     <Button 
+                       onClick={() => {
+                         if (userLoginData.email) {
+                           // Send OTP to email
+                           const otp = generateOTP()
+                           setGeneratedLoginOtp(otp)
+                           toast.success(`OTP sent to ${userLoginData.email}. Code: ${otp}`)
+                           setUserLoginOtpSent(true)
+                         } else if (userLoginData.phoneNumber && userLoginData.countryCode) {
+                           // Send OTP to phone
+                           handleUserLoginVerifyNumber()
+                         } else {
+                           toast.error("Please enter either email or phone number")
+                         }
+                       }}
+                       disabled={!userLoginData.email && (!userLoginData.phoneNumber || !userLoginData.countryCode)}
+                       className="w-full bg-sky-400 text-slate-900 hover:bg-sky-300"
+                     >
+                       Send OTP
+                       <Phone className="ml-2 w-4 h-4" />
+                     </Button>
+                   ) : (
                     <div className="space-y-4">
                       <div className="space-y-2">
                         <Label htmlFor="user-login-otp" className="text-white">OTP Code</Label>
@@ -607,57 +639,87 @@ export default function AuthPage() {
                   </Button>
                 </TabsContent>
 
-                <TabsContent value="admin-login" className="space-y-4 mt-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="admin-email" className="text-white">Admin Email</Label>
-                    <div className="flex items-center gap-2">
-                      <Mail className="w-4 h-4 text-slate-300" />
-                      <Input
-                        id="admin-email"
-                        type="email"
-                        placeholder="Enter admin email"
-                        value={adminLoginData.email}
-                        onChange={(e) => setAdminLoginData({ ...adminLoginData, email: e.target.value })}
-                        className="bg-white/10 border-white/20 text-white placeholder:text-slate-400"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="admin-login-country-code" className="text-white">Country Code</Label>
-                      <div className="flex items-center gap-2">
-                        <Phone className="w-4 h-4 text-slate-300" />
-                        <Input
-                          id="admin-login-country-code"
-                          type="text"
-                          placeholder="+1"
-                          value={adminLoginData.countryCode}
-                          onChange={(e) => setAdminLoginData({ ...adminLoginData, countryCode: e.target.value })}
-                          className="bg-white/10 border-white/20 text-white placeholder:text-slate-400"
-                        />
-                      </div>
-                    </div>
-                    <div className="col-span-2 space-y-2">
-                      <Label htmlFor="admin-login-phone" className="text-white">Phone Number</Label>
-                      <div className="flex items-center gap-2">
-                        <Phone className="w-4 h-4 text-slate-300" />
-                        <Input
-                          id="admin-login-phone"
-                          type="tel"
-                          placeholder="Enter admin phone number"
-                          value={adminLoginData.phoneNumber}
-                          onChange={(e) => setAdminLoginData({ ...adminLoginData, phoneNumber: e.target.value })}
-                          className="bg-white/10 border-white/20 text-white placeholder:text-slate-400"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  {!adminLoginOtpSent ? (
-                    <Button onClick={handleAdminLoginVerifyNumber} className="w-full bg-sky-400 text-slate-900 hover:bg-sky-300">
-                      Send OTP
-                      <Phone className="ml-2 w-4 h-4" />
-                    </Button>
-                  ) : (
+                                 <TabsContent value="admin-login" className="space-y-4 mt-4">
+                   <div className="space-y-2">
+                     <Label htmlFor="admin-email" className="text-white">Admin Email</Label>
+                     <div className="flex items-center gap-2">
+                       <Mail className="w-4 h-4 text-slate-300" />
+                       <Input
+                         id="admin-email"
+                         type="email"
+                         placeholder="Enter admin email"
+                         value={adminLoginData.email}
+                         onChange={(e) => {
+                           setAdminLoginData({ ...adminLoginData, email: e.target.value, phoneNumber: "", countryCode: "+1" })
+                         }}
+                         className="bg-white/10 border-white/20 text-white placeholder:text-slate-400"
+                       />
+                     </div>
+                   </div>
+                   <div className="flex items-center justify-center">
+                     <div className="flex items-center gap-3 w-full">
+                       <div className="flex-1 h-px bg-white/30"></div>
+                       <div className="text-white text-sm font-medium px-3">OR</div>
+                       <div className="flex-1 h-px bg-white/30"></div>
+                     </div>
+                   </div>
+                   <div className="grid grid-cols-3 gap-2">
+                     <div className="space-y-2">
+                       <Label htmlFor="admin-login-country-code" className="text-white">Country Code</Label>
+                       <div className="flex items-center gap-2">
+                         <Phone className="w-4 h-4 text-slate-300" />
+                         <Input
+                           id="admin-login-country-code"
+                           type="text"
+                           placeholder="+1"
+                           value={adminLoginData.countryCode}
+                           onChange={(e) => setAdminLoginData({ ...adminLoginData, countryCode: e.target.value })}
+                           disabled={!!adminLoginData.email}
+                           className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                         />
+                       </div>
+                     </div>
+                     <div className="col-span-2 space-y-2">
+                       <Label htmlFor="admin-login-phone" className="text-white">Phone Number</Label>
+                       <div className="flex items-center gap-2">
+                         <Phone className="w-4 h-4 text-slate-300" />
+                         <Input
+                           id="admin-login-phone"
+                           type="tel"
+                           placeholder="Enter admin phone number"
+                           value={adminLoginData.phoneNumber}
+                           onChange={(e) => {
+                             setAdminLoginData({ ...adminLoginData, phoneNumber: e.target.value, email: "" })
+                           }}
+                           disabled={!!adminLoginData.email}
+                           className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                         />
+                       </div>
+                     </div>
+                   </div>
+                                     {!adminLoginOtpSent ? (
+                     <Button 
+                       onClick={() => {
+                         if (adminLoginData.email) {
+                           // Send OTP to email
+                           const otp = generateOTP()
+                           setGeneratedLoginOtp(otp)
+                           toast.success(`OTP sent to ${adminLoginData.email}. Code: ${otp}`)
+                           setAdminLoginOtpSent(true)
+                         } else if (adminLoginData.phoneNumber && adminLoginData.countryCode) {
+                           // Send OTP to phone
+                           handleAdminLoginVerifyNumber()
+                         } else {
+                           toast.error("Please enter either email or phone number")
+                         }
+                       }}
+                       disabled={!adminLoginData.email && (!adminLoginData.phoneNumber || !adminLoginData.countryCode)}
+                       className="w-full bg-sky-400 text-slate-900 hover:bg-sky-300"
+                     >
+                       Send OTP
+                       <Phone className="ml-2 w-4 h-4" />
+                     </Button>
+                   ) : (
                     <div className="space-y-4">
                       <div className="space-y-2">
                         <Label htmlFor="admin-login-otp" className="text-white">OTP Code</Label>
@@ -814,57 +876,88 @@ export default function AuthPage() {
                   </Button>
                 </TabsContent>
 
-                <TabsContent value="system-owner-login" className="space-y-4 mt-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="system-owner-email" className="text-white">Email</Label>
-                    <div className="flex items-center gap-2">
-                      <Mail className="w-4 h-4 text-slate-300" />
-                      <Input
-                        id="system-owner-email"
-                        type="email"
-                        placeholder="Enter your email"
-                        value={systemOwnerLoginData.email}
-                        onChange={(e) => setSystemOwnerLoginData({ ...systemOwnerLoginData, email: e.target.value })}
-                        className="bg-white/10 border-white/20 text-white placeholder:text-slate-400"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-2">
-                    <div className="space-y-2">
-                      <Label htmlFor="system-owner-login-country-code" className="text-white">Country Code</Label>
-                      <div className="flex items-center gap-2">
-                        <Phone className="w-4 h-4 text-slate-300" />
-                        <Input
-                          id="system-owner-login-country-code"
-                          type="text"
-                          placeholder="+1"
-                          value={systemOwnerLoginData.countryCode}
-                          onChange={(e) => setSystemOwnerLoginData({ ...systemOwnerLoginData, countryCode: e.target.value })}
-                          className="bg-white/10 border-white/20 text-white placeholder:text-slate-400"
-                        />
-                      </div>
-                    </div>
-                    <div className="col-span-2 space-y-2">
-                      <Label htmlFor="system-owner-login-phone" className="text-white">Phone Number</Label>
-                      <div className="flex items-center gap-2">
-                        <Phone className="w-4 h-4 text-slate-300" />
-                        <Input
-                          id="system-owner-login-phone"
-                          type="tel"
-                          placeholder="Enter your phone number"
-                          value={systemOwnerLoginData.phoneNumber}
-                          onChange={(e) => setSystemOwnerLoginData({ ...systemOwnerLoginData, phoneNumber: e.target.value })}
-                          className="bg-white/10 border-white/20 text-white placeholder:text-slate-400"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  {!systemOwnerLoginOtpSent ? (
-                    <Button onClick={handleSystemOwnerLoginVerifyNumber} className="w-full bg-sky-400 text-slate-900 hover:bg-sky-300">
-                      Send OTP
-                      <Phone className="ml-2 w-4 h-4" />
-                    </Button>
-                  ) : (
+                                 <TabsContent value="system-owner-login" className="space-y-4 mt-4">
+                   <div className="space-y-2">
+                     <Label htmlFor="system-owner-email" className="text-white">Email</Label>
+                     <div className="flex items-center gap-2">
+                       <Mail className="w-4 h-4 text-slate-300" />
+                       <Input
+                         id="system-owner-email"
+                         type="email"
+                         placeholder="Enter your email"
+                         value={systemOwnerLoginData.email}
+                         onChange={(e) => {
+                           setSystemOwnerLoginData({ ...systemOwnerLoginData, email: e.target.value, phoneNumber: "", countryCode: "+1" })
+                         }}
+                         className="bg-white/10 border-white/20 text-white placeholder:text-slate-400"
+                       />
+                     </div>
+                   </div>
+                   
+                   <div className="flex items-center justify-center">
+                     <div className="flex items-center gap-3 w-full">
+                       <div className="flex-1 h-px bg-white/30"></div>
+                       <div className="text-white text-sm font-medium px-3">OR</div>
+                       <div className="flex-1 h-px bg-white/30"></div>
+                     </div>
+                   </div>
+                   <div className="grid grid-cols-3 gap-2">
+                     <div className="space-y-2">
+                       <Label htmlFor="system-owner-login-country-code" className="text-white">Country Code</Label>
+                       <div className="flex items-center gap-2">
+                         <Phone className="w-4 h-4 text-slate-300" />
+                         <Input
+                           id="system-owner-login-country-code"
+                           type="text"
+                           placeholder="+1"
+                           value={systemOwnerLoginData.countryCode}
+                           onChange={(e) => setSystemOwnerLoginData({ ...systemOwnerLoginData, countryCode: e.target.value })}
+                           disabled={!!systemOwnerLoginData.email}
+                           className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                         />
+                       </div>
+                     </div>
+                     <div className="col-span-2 space-y-2">
+                       <Label htmlFor="system-owner-login-phone" className="text-white">Phone Number</Label>
+                       <div className="flex items-center gap-2">
+                         <Phone className="w-4 h-4 text-slate-300" />
+                         <Input
+                           id="system-owner-login-phone"
+                           type="tel"
+                           placeholder="Enter your phone number"
+                           value={systemOwnerLoginData.phoneNumber}
+                           onChange={(e) => {
+                             setSystemOwnerLoginData({ ...systemOwnerLoginData, phoneNumber: e.target.value, email: "" })
+                           }}
+                           disabled={!!systemOwnerLoginData.email}
+                           className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                         />
+                       </div>
+                     </div>
+                   </div>
+                                     {!systemOwnerLoginOtpSent ? (
+                     <Button 
+                       onClick={() => {
+                         if (systemOwnerLoginData.email) {
+                           // Send OTP to email
+                           const otp = generateOTP()
+                           setGeneratedLoginOtp(otp)
+                           toast.success(`OTP sent to ${systemOwnerLoginData.email}. Code: ${otp}`)
+                           setSystemOwnerLoginOtpSent(true)
+                         } else if (systemOwnerLoginData.phoneNumber && systemOwnerLoginData.countryCode) {
+                           // Send OTP to phone
+                           handleSystemOwnerLoginVerifyNumber()
+                         } else {
+                           toast.error("Please enter either email or phone number")
+                         }
+                       }}
+                       disabled={!systemOwnerLoginData.email && (!systemOwnerLoginData.phoneNumber || !systemOwnerLoginData.countryCode)}
+                       className="w-full bg-sky-400 text-slate-900 hover:bg-sky-300"
+                     >
+                       Send OTP
+                       <Phone className="ml-2 w-4 h-4" />
+                     </Button>
+                   ) : (
                     <div className="space-y-4">
                       <div className="space-y-2">
                         <Label htmlFor="system-owner-login-otp" className="text-white">OTP Code</Label>
