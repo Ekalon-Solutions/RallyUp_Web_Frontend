@@ -11,48 +11,64 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { 
-  Gift, 
   Megaphone, 
-  Calendar, 
   Target, 
-  Users, 
-  Star, 
   TrendingUp, 
   BarChart3,
-  Plus,
   Edit,
   Trash2,
   Eye,
   Send,
-  Clock,
-  CheckCircle,
-  AlertCircle,
-  Tag
+  Mail,
+  MessageSquare,
+  Bell,
+  Sidebar,
+  Calendar,
+  Star,
+  Gift
 } from "lucide-react"
 import { toast } from "sonner"
 import { getApiUrl, API_ENDPOINTS } from "@/lib/config"
+import { useAuth } from "@/contexts/auth-context"
 
 interface PromotionalContent {
   _id: string
   title: string
-  description: string
-  content: string
-  type: 'announcement' | 'event' | 'offer' | 'newsletter' | 'challenge'
-  targetAudience: 'new_members' | 'existing_members' | 'all' | 'specific_groups'
-  specificGroups?: string[]
-  status: 'draft' | 'scheduled' | 'active' | 'paused' | 'completed'
-  priority: 'low' | 'medium' | 'high' | 'urgent'
-  startDate?: string
-  endDate?: string
-  scheduledDate?: string
-  engagementMetrics: {
-    views: number
-    clicks: number
-    shares: number
-    responses: number
+  description?: string
+  type: 'banner' | 'popup' | 'email' | 'sms' | 'notification' | 'sidebar'
+  content: {
+    text?: string
+    image?: string
+    video?: string
+    link?: string
+    buttonText?: string
+    buttonAction?: string
   }
-  tags: string[]
-  isFeatured: boolean
+  targeting: {
+    audience: 'all' | 'members' | 'non-members' | 'specific-clubs' | 'specific-users'
+    clubs?: string[]
+    users?: string[]
+    userRoles?: string[]
+    userInterests?: string[]
+  }
+  scheduling: {
+    startDate: string
+    endDate: string
+    timezone: string
+  }
+  display: {
+    priority: number
+    frequency: 'once' | 'daily' | 'weekly' | 'always'
+    position?: 'top' | 'bottom' | 'left' | 'right' | 'center'
+  }
+  tracking: {
+    impressions: number
+    clicks: number
+    conversions: number
+  }
+  status: 'active' | 'inactive' | 'draft' | 'scheduled' | 'expired'
+  club?: string
+  createdBy: string
   createdAt: string
   updatedAt: string
 }
@@ -61,28 +77,31 @@ interface PromotionalContentModalProps {
   isOpen: boolean
   onClose: () => void
   onContentCreated?: () => void
+  editingPromotion?: PromotionalContent | null
 }
 
-export default function PromotionalContentModal({ isOpen, onClose, onContentCreated }: PromotionalContentModalProps) {
+export default function PromotionalContentModal({ isOpen, onClose, onContentCreated, editingPromotion }: PromotionalContentModalProps) {
+  const { user } = useAuth()
   const [activeTab, setActiveTab] = useState("create")
   const [loading, setLoading] = useState(false)
   const [contents, setContents] = useState<PromotionalContent[]>([])
   const [selectedContent, setSelectedContent] = useState<PromotionalContent | null>(null)
+  const [internalEditingPromotion, setInternalEditingPromotion] = useState<PromotionalContent | null>(null)
+  
+  // Use external editingPromotion if provided, otherwise use internal state
+  const currentEditingPromotion = editingPromotion || internalEditingPromotion
   
   // Form states
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
-  const [content, setContent] = useState("")
-  const [type, setType] = useState<'announcement' | 'event' | 'offer' | 'newsletter' | 'challenge'>('announcement')
-  const [targetAudience, setTargetAudience] = useState<'new_members' | 'existing_members' | 'all' | 'specific_groups'>('all')
-  const [specificGroups, setSpecificGroups] = useState<string[]>([])
-  const [priority, setPriority] = useState<'low' | 'medium' | 'high' | 'urgent'>('medium')
+  const [contentText, setContentText] = useState("")
+  const [type, setType] = useState<'banner' | 'popup' | 'email' | 'sms' | 'notification' | 'sidebar'>('banner')
+  const [targetAudience, setTargetAudience] = useState<'all' | 'members' | 'non-members' | 'specific-clubs' | 'specific-users'>('all')
+  const [priority, setPriority] = useState(1)
+  const [frequency, setFrequency] = useState<'once' | 'daily' | 'weekly' | 'always'>('once')
   const [startDate, setStartDate] = useState("")
   const [endDate, setEndDate] = useState("")
-  const [scheduledDate, setScheduledDate] = useState("")
-  const [tags, setTags] = useState<string[]>([])
-  const [isFeatured, setIsFeatured] = useState(false)
-  const [newTag, setNewTag] = useState("")
+  const [timezone, setTimezone] = useState("UTC")
 
   useEffect(() => {
     if (isOpen) {
@@ -90,34 +109,48 @@ export default function PromotionalContentModal({ isOpen, onClose, onContentCrea
     }
   }, [isOpen])
 
+  // Populate form when editing promotion
+  useEffect(() => {
+    if (currentEditingPromotion) {
+      setTitle(currentEditingPromotion.title)
+      setDescription(currentEditingPromotion.description || "")
+      setContentText(currentEditingPromotion.content?.text || "")
+      setType(currentEditingPromotion.type)
+      setTargetAudience(currentEditingPromotion.targeting?.audience || 'all')
+      setPriority(currentEditingPromotion.display?.priority || 1)
+      setFrequency(currentEditingPromotion.display?.frequency || 'once')
+      setStartDate(currentEditingPromotion.scheduling?.startDate ? new Date(currentEditingPromotion.scheduling.startDate).toISOString().slice(0, 16) : "")
+      setEndDate(currentEditingPromotion.scheduling?.endDate ? new Date(currentEditingPromotion.scheduling.endDate).toISOString().slice(0, 16) : "")
+      setTimezone(currentEditingPromotion.scheduling?.timezone || "UTC")
+      setActiveTab("create") // Switch to create tab when editing
+    } else {
+      resetForm()
+    }
+  }, [currentEditingPromotion])
+
   const fetchPromotionalContent = async () => {
     try {
-      const token = localStorage.getItem('token')
-      const response = await fetch(getApiUrl(API_ENDPOINTS.promotions.content), {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      })
+      console.log('Fetching promotions from:', getApiUrl(API_ENDPOINTS.promotions.getAll))
+      
+      const response = await fetch(getApiUrl(API_ENDPOINTS.promotions.getAll))
+      
+      console.log('Response status:', response.status)
       
       if (response.ok) {
         const data = await response.json()
-        setContents(data.content || [])
+        console.log('Promotions data:', data)
+        setContents(data.data || data.promotions || [])
+      } else {
+        console.error('Failed to fetch promotions:', response.status, response.statusText)
+        const errorData = await response.json().catch(() => ({}))
+        console.error('Error data:', errorData)
       }
     } catch (error) {
       console.error('Error fetching promotional content:', error)
     }
   }
 
-  const addTag = () => {
-    if (newTag.trim() && !tags.includes(newTag.trim())) {
-      setTags([...tags, newTag.trim()])
-      setNewTag("")
-    }
-  }
 
-  const removeTag = (tagToRemove: string) => {
-    setTags(tags.filter(tag => tag !== tagToRemove))
-  }
 
   const handleCreateContent = async () => {
     if (!title.trim()) {
@@ -125,48 +158,68 @@ export default function PromotionalContentModal({ isOpen, onClose, onContentCrea
       return
     }
 
-    if (!content.trim()) {
-      toast.error("Content is required")
+    if (!contentText.trim()) {
+      toast.error("Content text is required")
       return
     }
 
     setLoading(true)
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch(getApiUrl(API_ENDPOINTS.promotions.content), {
-        method: 'POST',
+      const isEditing = !!currentEditingPromotion
+      
+      const payload = {
+        title,
+        description,
+        type,
+        content: {
+          text: contentText
+        },
+        targeting: {
+          audience: targetAudience
+        },
+        scheduling: {
+          startDate: startDate || new Date().toISOString(),
+          endDate: endDate || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          timezone
+        },
+        display: {
+          priority,
+          frequency
+        },
+        club: user?.club?._id
+      }
+
+      const url = isEditing 
+        ? getApiUrl(API_ENDPOINTS.promotions.update(currentEditingPromotion!._id))
+        : getApiUrl(API_ENDPOINTS.promotions.create)
+      
+      const method = isEditing ? 'PUT' : 'POST'
+
+      const response = await fetch(url, {
+        method,
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          title,
-          description,
-          content,
-          type,
-          targetAudience,
-          specificGroups: targetAudience === 'specific_groups' ? specificGroups : undefined,
-          priority,
-          startDate: startDate || undefined,
-          endDate: endDate || undefined,
-          scheduledDate: scheduledDate || undefined,
-          tags,
-          isFeatured
-        }),
+        body: JSON.stringify(payload),
       })
 
       if (response.ok) {
-        toast.success("Promotional content created successfully!")
+        const successMessage = isEditing ? "Promotional content updated successfully!" : "Promotional content created successfully!"
+        toast.success(successMessage)
         resetForm()
         onContentCreated?.()
         setActiveTab("manage")
       } else {
         const data = await response.json()
-        toast.error(data.message || "Failed to create promotional content")
+        const errorMessage = isEditing ? "Failed to update promotional content" : "Failed to create promotional content"
+        toast.error(data.message || errorMessage)
       }
     } catch (error) {
-      console.error('Error creating promotional content:', error)
-      toast.error("An error occurred while creating the content")
+      console.error('Error saving promotional content:', error)
+              const errorMessage = currentEditingPromotion ? "updating" : "creating"
+      toast.error(`An error occurred while ${errorMessage} the content`)
     } finally {
       setLoading(false)
     }
@@ -175,22 +228,21 @@ export default function PromotionalContentModal({ isOpen, onClose, onContentCrea
   const resetForm = () => {
     setTitle("")
     setDescription("")
-    setContent("")
-    setType('announcement')
+    setContentText("")
+    setType('banner')
     setTargetAudience('all')
-    setSpecificGroups([])
-    setPriority('medium')
+    setPriority(1)
+    setFrequency('once')
     setStartDate("")
     setEndDate("")
-    setScheduledDate("")
-    setTags([])
-    setIsFeatured(false)
+    setTimezone("UTC")
+    setInternalEditingPromotion(null)
   }
 
   const updateContentStatus = async (contentId: string, status: PromotionalContent['status']) => {
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch(getApiUrl(API_ENDPOINTS.promotions.content) + `/${contentId}/status`, {
+      const response = await fetch(getApiUrl(API_ENDPOINTS.promotions.status(contentId)), {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -216,7 +268,7 @@ export default function PromotionalContentModal({ isOpen, onClose, onContentCrea
 
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch(getApiUrl(API_ENDPOINTS.promotions.content) + `/${contentId}`, {
+      const response = await fetch(getApiUrl(API_ENDPOINTS.promotions.delete(contentId)), {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -244,23 +296,16 @@ export default function PromotionalContentModal({ isOpen, onClose, onContentCrea
     }
   }
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'low': return 'bg-gray-100 text-gray-800'
-      case 'medium': return 'bg-blue-100 text-blue-800'
-      case 'high': return 'bg-orange-100 text-orange-800'
-      case 'urgent': return 'bg-red-100 text-red-800'
-      default: return 'bg-gray-100 text-gray-800'
-    }
-  }
+
 
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'announcement': return <Megaphone className="w-4 h-4" />
-      case 'event': return <Calendar className="w-4 h-4" />
-      case 'offer': return <Gift className="w-4 h-4" />
-      case 'newsletter': return <Mail className="w-4 h-4" />
-      case 'challenge': return <Target className="w-4 h-4" />
+      case 'banner': return <Megaphone className="w-4 h-4" />
+      case 'popup': return <Target className="w-4 h-4" />
+      case 'email': return <Mail className="w-4 h-4" />
+      case 'sms': return <MessageSquare className="w-4 h-4" />
+      case 'notification': return <Bell className="w-4 h-4" />
+      case 'sidebar': return <Sidebar className="w-4 h-4" />
       default: return <Megaphone className="w-4 h-4" />
     }
   }
@@ -270,7 +315,7 @@ export default function PromotionalContentModal({ isOpen, onClose, onContentCrea
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <Gift className="w-5 h-5" />
+            <Megaphone className="w-5 h-5" />
             Promotional Content Management
           </DialogTitle>
           <DialogDescription>
@@ -320,34 +365,32 @@ export default function PromotionalContentModal({ isOpen, onClose, onContentCrea
 
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
-                      <Label htmlFor="type">Content Type</Label>
+                      <Label htmlFor="type">Promotion Type</Label>
                       <Select value={type} onValueChange={(value: any) => setType(value)}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="announcement">Announcement</SelectItem>
-                          <SelectItem value="event">Event</SelectItem>
-                          <SelectItem value="offer">Special Offer</SelectItem>
-                          <SelectItem value="newsletter">Newsletter</SelectItem>
-                          <SelectItem value="challenge">Challenge</SelectItem>
+                          <SelectItem value="banner">Banner</SelectItem>
+                          <SelectItem value="popup">Popup</SelectItem>
+                          <SelectItem value="email">Email</SelectItem>
+                          <SelectItem value="sms">SMS</SelectItem>
+                          <SelectItem value="notification">Notification</SelectItem>
+                          <SelectItem value="sidebar">Sidebar</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="priority">Priority</Label>
-                      <Select value={priority} onValueChange={(value: any) => setPriority(value)}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="low">Low</SelectItem>
-                          <SelectItem value="medium">Medium</SelectItem>
-                          <SelectItem value="high">High</SelectItem>
-                          <SelectItem value="urgent">Urgent</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <Label htmlFor="priority">Priority (1-10)</Label>
+                      <Input
+                        id="priority"
+                        type="number"
+                        min="1"
+                        max="10"
+                        value={priority}
+                        onChange={(e) => setPriority(parseInt(e.target.value) || 1)}
+                      />
                     </div>
                   </div>
 
@@ -358,51 +401,16 @@ export default function PromotionalContentModal({ isOpen, onClose, onContentCrea
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="new_members">New Members</SelectItem>
-                        <SelectItem value="existing_members">Existing Members</SelectItem>
-                        <SelectItem value="all">All Members</SelectItem>
-                        <SelectItem value="specific_groups">Specific Groups</SelectItem>
+                        <SelectItem value="all">All Users</SelectItem>
+                        <SelectItem value="members">Club Members Only</SelectItem>
+                        <SelectItem value="non-members">Non-Members</SelectItem>
+                        <SelectItem value="specific-clubs">Specific Clubs</SelectItem>
+                        <SelectItem value="specific-users">Specific Users</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
-                  {targetAudience === 'specific_groups' && (
-                    <div className="space-y-2">
-                      <Label>Specific Groups</Label>
-                      <div className="space-y-2">
-                        {specificGroups.map((group, index) => (
-                          <div key={index} className="flex items-center gap-2">
-                            <Input
-                              value={group}
-                              onChange={(e) => {
-                                const updated = [...specificGroups]
-                                updated[index] = e.target.value
-                                setSpecificGroups(updated)
-                              }}
-                              placeholder="Group name"
-                            />
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setSpecificGroups(specificGroups.filter((_, i) => i !== index))}
-                              className="h-8 w-8 p-0 text-red-500"
-                            >
-                              ×
-                            </Button>
-                          </div>
-                        ))}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setSpecificGroups([...specificGroups, ""])}
-                          className="w-full"
-                        >
-                          <Plus className="w-4 h-4 mr-2" />
-                          Add Group
-                        </Button>
-                      </div>
-                    </div>
-                  )}
+
                 </CardContent>
               </Card>
 
@@ -416,12 +424,12 @@ export default function PromotionalContentModal({ isOpen, onClose, onContentCrea
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="content">Content *</Label>
+                    <Label htmlFor="content">Content Text *</Label>
                     <Textarea
                       id="content"
                       placeholder="Write your promotional content here..."
-                      value={content}
-                      onChange={(e) => setContent(e.target.value)}
+                      value={contentText}
+                      onChange={(e) => setContentText(e.target.value)}
                       rows={8}
                     />
                   </div>
@@ -448,60 +456,52 @@ export default function PromotionalContentModal({ isOpen, onClose, onContentCrea
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label htmlFor="scheduled-date">Schedule For (Optional)</Label>
-                    <Input
-                      id="scheduled-date"
-                      type="datetime-local"
-                      value={scheduledDate}
-                      onChange={(e) => setScheduledDate(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>Tags</Label>
+                  <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
-                      <div className="flex gap-2">
-                        <Input
-                          placeholder="Add tag"
-                          value={newTag}
-                          onChange={(e) => setNewTag(e.target.value)}
-                          onKeyPress={(e) => e.key === 'Enter' && addTag()}
-                        />
-                        <Button variant="outline" onClick={addTag}>
-                          <Plus className="w-4 h-4" />
-                        </Button>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {tags.map((tag, index) => (
-                          <Badge key={index} variant="secondary" className="cursor-pointer hover:bg-red-100" onClick={() => removeTag(tag)}>
-                            {tag} ×
-                          </Badge>
-                        ))}
-                      </div>
+                      <Label htmlFor="frequency">Display Frequency</Label>
+                      <Select value={frequency} onValueChange={(value: any) => setFrequency(value)}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="once">Once</SelectItem>
+                          <SelectItem value="daily">Daily</SelectItem>
+                          <SelectItem value="weekly">Weekly</SelectItem>
+                          <SelectItem value="always">Always</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="timezone">Timezone</Label>
+                      <Input
+                        id="timezone"
+                        value={timezone}
+                        onChange={(e) => setTimezone(e.target.value)}
+                        placeholder="UTC"
+                      />
                     </div>
                   </div>
 
-                  <div className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      id="featured"
-                      checked={isFeatured}
-                      onChange={(e) => setIsFeatured(e.target.checked)}
-                      className="rounded"
-                    />
-                    <Label htmlFor="featured">Feature this content prominently</Label>
-                  </div>
+
+
+
                 </CardContent>
               </Card>
             </div>
 
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={resetForm}>
-                Reset
-              </Button>
+              {currentEditingPromotion ? (
+                <Button variant="outline" onClick={resetForm}>
+                  Cancel Edit
+                </Button>
+              ) : (
+                <Button variant="outline" onClick={resetForm}>
+                  Reset
+                </Button>
+              )}
               <Button onClick={handleCreateContent} disabled={loading}>
-                {loading ? "Creating..." : "Create Promotional Content"}
+                {loading ? (currentEditingPromotion ? "Updating..." : "Creating...") : (currentEditingPromotion ? "Update Promotional Content" : "Create Promotional Content")}
                 <Send className="w-4 h-4 ml-2" />
               </Button>
             </div>
@@ -520,46 +520,36 @@ export default function PromotionalContentModal({ isOpen, onClose, onContentCrea
                           <Badge variant="outline" className={getStatusColor(content.status)}>
                             {content.status}
                           </Badge>
-                          <Badge variant="outline" className={getPriorityColor(content.priority)}>
-                            {content.priority}
-                          </Badge>
-                          {content.isFeatured && (
-                            <Badge variant="default" className="bg-yellow-100 text-yellow-800">
-                              <Star className="w-3 h-3 mr-1" />
-                              Featured
-                            </Badge>
-                          )}
+                                                     <Badge variant="outline" className="bg-blue-100 text-blue-800">
+                             Priority: {content.display?.priority || 1}
+                           </Badge>
+                          
                         </div>
                         
-                        <p className="text-sm text-muted-foreground mb-2">
-                          {content.description}
-                        </p>
+                                                 {content.description && (
+                           <p className="text-sm text-muted-foreground mb-2">
+                             {content.description}
+                           </p>
+                         )}
                         
                         <div className="flex items-center gap-4 text-sm text-muted-foreground mb-2">
-                          <span className="flex items-center gap-1">
-                            <Target className="w-4 h-4" />
-                            {content.targetAudience.replace('_', ' ')}
-                          </span>
-                          {content.startDate && (
-                            <span className="flex items-center gap-1">
-                              <Calendar className="w-4 h-4" />
-                              {new Date(content.startDate).toLocaleDateString()}
-                            </span>
-                          )}
-                          {content.tags.length > 0 && (
-                            <span className="flex items-center gap-1">
-                              <Tag className="w-4 h-4" />
-                              {content.tags.slice(0, 3).join(', ')}
-                              {content.tags.length > 3 && ` +${content.tags.length - 3}`}
-                            </span>
-                          )}
+                                                   <span className="flex items-center gap-1">
+                           <Target className="w-4 h-4" />
+                           {content.targeting?.audience?.replace('-', ' ') || 'all'}
+                         </span>
+                                                     {content.scheduling?.startDate && (
+                             <span className="flex items-center gap-1">
+                               <Calendar className="w-4 h-4" />
+                               {new Date(content.scheduling.startDate).toLocaleDateString()}
+                             </span>
+                           )}
+
                         </div>
 
                         <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                          <span>👁️ {content.engagementMetrics.views} views</span>
-                          <span>🖱️ {content.engagementMetrics.clicks} clicks</span>
-                          <span>📤 {content.engagementMetrics.shares} shares</span>
-                          <span>💬 {content.engagementMetrics.responses} responses</span>
+                          <span>👁️ {content.tracking?.impressions || 0} views</span>
+                          <span>🖱️ {content.tracking?.clicks || 0} clicks</span>
+                          <span>🎯 {content.tracking?.conversions || 0} conversions</span>
                         </div>
                       </div>
                       
@@ -575,7 +565,10 @@ export default function PromotionalContentModal({ isOpen, onClose, onContentCrea
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setSelectedContent(content)}
+                          onClick={() => {
+                            setInternalEditingPromotion(content)
+                            setActiveTab("create")
+                          }}
                         >
                           <Edit className="w-4 h-4 mr-1" />
                           Edit
@@ -595,13 +588,13 @@ export default function PromotionalContentModal({ isOpen, onClose, onContentCrea
               
               {contents.length === 0 && (
                 <div className="text-center py-8">
-                  <Gift className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                  <Megaphone className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
                   <h3 className="text-lg font-semibold mb-2">No Promotional Content</h3>
                   <p className="text-muted-foreground mb-4">
                     Create your first promotional campaign to engage your community
                   </p>
                   <Button onClick={() => setActiveTab("create")}>
-                    <Gift className="w-4 h-4 mr-2" />
+                    <Megaphone className="w-4 h-4 mr-2" />
                     Create First Campaign
                   </Button>
                 </div>
@@ -642,9 +635,9 @@ export default function PromotionalContentModal({ isOpen, onClose, onContentCrea
                   <CardTitle className="text-sm font-medium">Total Views</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">
-                    {contents.reduce((sum, c) => sum + c.engagementMetrics.views, 0)}
-                  </div>
+                                     <div className="text-2xl font-bold">
+                     {contents.reduce((sum, c) => sum + (c.tracking?.impressions || 0), 0)}
+                   </div>
                   <p className="text-xs text-muted-foreground">
                     Combined views
                   </p>
@@ -656,12 +649,12 @@ export default function PromotionalContentModal({ isOpen, onClose, onContentCrea
                   <CardTitle className="text-sm font-medium">Avg Engagement</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">
-                    {contents.length > 0 
-                      ? Math.round(contents.reduce((sum, c) => sum + c.engagementMetrics.clicks + c.engagementMetrics.shares + c.engagementMetrics.responses, 0) / contents.length)
-                      : 0
-                    }
-                  </div>
+                                     <div className="text-2xl font-bold">
+                     {contents.length > 0 
+                       ? Math.round(contents.reduce((sum, c) => sum + (c.tracking?.clicks || 0) + (c.tracking?.conversions || 0), 0) / contents.length)
+                       : 0
+                     }
+                   </div>
                   <p className="text-xs text-muted-foreground">
                     Per content piece
                   </p>
@@ -675,25 +668,25 @@ export default function PromotionalContentModal({ isOpen, onClose, onContentCrea
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {contents
-                    .sort((a, b) => (b.engagementMetrics.views + b.engagementMetrics.clicks) - (a.engagementMetrics.views + a.engagementMetrics.clicks))
-                    .slice(0, 5)
-                    .map((content) => (
-                      <div key={content._id} className="flex items-center justify-between p-3 border rounded-lg">
-                        <div className="flex items-center gap-3">
-                          {getTypeIcon(content.type)}
-                          <div>
-                            <h4 className="font-medium">{content.title}</h4>
-                            <p className="text-sm text-muted-foreground">
-                              {content.engagementMetrics.views} views • {content.engagementMetrics.clicks} clicks
-                            </p>
-                          </div>
-                        </div>
-                        <Badge variant={content.status === 'active' ? 'default' : 'secondary'}>
-                          {content.status}
-                        </Badge>
-                      </div>
-                    ))}
+                                     {contents
+                     .sort((a, b) => ((b.tracking?.impressions || 0) + (b.tracking?.clicks || 0)) - ((a.tracking?.impressions || 0) + (a.tracking?.clicks || 0)))
+                     .slice(0, 5)
+                     .map((content) => (
+                       <div key={content._id} className="flex items-center justify-between p-3 border rounded-lg">
+                         <div className="flex items-center gap-3">
+                           {getTypeIcon(content.type)}
+                           <div>
+                             <h4 className="font-medium">{content.title}</h4>
+                             <p className="text-sm text-muted-foreground">
+                               {content.tracking?.impressions || 0} views • {content.tracking?.clicks || 0} clicks
+                             </p>
+                           </div>
+                         </div>
+                         <Badge variant={content.status === 'active' ? 'default' : 'secondary'}>
+                           {content.status}
+                         </Badge>
+                       </div>
+                     ))}
                 </div>
               </CardContent>
             </Card>

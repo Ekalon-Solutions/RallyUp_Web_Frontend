@@ -20,13 +20,13 @@ import {
   MessageSquare,
   BookOpen,
   MapPin,
-  Settings
+  Settings,
+  RefreshCw
 } from "lucide-react"
 import { toast } from "sonner"
 import { getApiUrl, API_ENDPOINTS } from "@/lib/config"
 
 interface OnboardingStep {
-  _id: string
   title: string
   description: string
   isCompleted: boolean
@@ -44,6 +44,7 @@ interface OnboardingFlow {
   estimatedDuration: number
   progress: number
   currentStep: number
+  isActive: boolean
 }
 
 interface MemberOnboardingDashboardProps {
@@ -57,15 +58,21 @@ export default function MemberOnboardingDashboard({ userId, userRole }: MemberOn
   const [currentStepIndex, setCurrentStepIndex] = useState(0)
   const [loading, setLoading] = useState(false)
   const [showWelcome, setShowWelcome] = useState(true)
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false)
 
   useEffect(() => {
+    // Check if user has completed onboarding before
+    const completed = localStorage.getItem(`onboarding_completed_${userId}`)
+    if (completed) {
+      setHasCompletedOnboarding(true)
+    }
     fetchOnboardingFlows()
   }, [userId])
 
   const fetchOnboardingFlows = async () => {
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch(getApiUrl(API_ENDPOINTS.onboarding.userFlows) + `?userId=${userId}`, {
+      const response = await fetch(getApiUrl(API_ENDPOINTS.onboarding.flows), {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -73,16 +80,31 @@ export default function MemberOnboardingDashboard({ userId, userRole }: MemberOn
       
       if (response.ok) {
         const data = await response.json()
-        setOnboardingFlows(data.flows || [])
+        // Filter to only show active flows and initialize step completion state
+        const activeFlows = (data.flows || [])
+          .filter((flow: any) => flow.isActive)
+          .map((flow: any) => ({
+            ...flow,
+            steps: flow.steps.map((step: any, index: number) => ({
+              ...step,
+              isCompleted: false, // Initialize all steps as not completed
+              estimatedTime: step.estimatedTime || 5 // Default estimated time
+            })),
+            progress: 0, // Initialize progress as 0
+            currentStep: 0 // Start at first step
+          }))
+        
+        setOnboardingFlows(activeFlows)
         
         // Set active flow if there's only one or if user has progress
-        if (data.flows && data.flows.length > 0) {
-          const flowWithProgress = data.flows.find((f: OnboardingFlow) => f.progress > 0)
+        if (activeFlows && activeFlows.length > 0) {
+          const flowWithProgress = activeFlows.find((f: OnboardingFlow) => f.progress > 0)
           if (flowWithProgress) {
             setActiveFlow(flowWithProgress)
             setCurrentStepIndex(flowWithProgress.currentStep)
           } else {
-            setActiveFlow(data.flows[0])
+            setActiveFlow(activeFlows[0])
+            setCurrentStepIndex(0)
           }
         }
       }
@@ -91,44 +113,43 @@ export default function MemberOnboardingDashboard({ userId, userRole }: MemberOn
     }
   }
 
-  const completeStep = async (stepId: string) => {
+  const completeStep = async (stepIndex: number) => {
     if (!activeFlow) return
 
     setLoading(true)
     try {
-      const token = localStorage.getItem('token')
-      const response = await fetch(getApiUrl(API_ENDPOINTS.onboarding.completeStep), {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          flowId: activeFlow._id,
-          stepId,
-          userId
-        }),
-      })
-
-      if (response.ok) {
-        toast.success("Step completed successfully!")
+      // Update local state
+      const updatedFlow = { ...activeFlow }
+      if (stepIndex >= 0 && stepIndex < updatedFlow.steps.length) {
+        updatedFlow.steps[stepIndex].isCompleted = true
         
-        // Update local state
-        const updatedFlow = { ...activeFlow }
-        const stepIndex = updatedFlow.steps.findIndex(s => s._id === stepId)
-        if (stepIndex !== -1) {
-          updatedFlow.steps[stepIndex].isCompleted = true
-          updatedFlow.progress = (updatedFlow.steps.filter(s => s.isCompleted).length / updatedFlow.steps.length) * 100
-          updatedFlow.currentStep = Math.min(stepIndex + 1, updatedFlow.steps.length - 1)
-          setActiveFlow(updatedFlow)
-          setCurrentStepIndex(updatedFlow.currentStep)
+        // Recalculate progress
+        const completedSteps = updatedFlow.steps.filter(s => s.isCompleted).length
+        updatedFlow.progress = (completedSteps / updatedFlow.steps.length) * 100
+        
+        // Check if onboarding is complete
+        if (updatedFlow.progress === 100) {
+          // Mark onboarding as completed for this user
+          localStorage.setItem(`onboarding_completed_${userId}`, 'true')
+          setHasCompletedOnboarding(true)
         }
         
-        // Refresh flows
-        fetchOnboardingFlows()
-      } else {
-        const data = await response.json()
-        toast.error(data.message || "Failed to complete step")
+        // Move to next step if available
+        if (stepIndex < updatedFlow.steps.length - 1) {
+          updatedFlow.currentStep = stepIndex + 1
+          setCurrentStepIndex(stepIndex + 1)
+        }
+        
+        setActiveFlow(updatedFlow)
+        
+        // Also update the flows array to keep it in sync
+        setOnboardingFlows(prevFlows => 
+          prevFlows.map(flow => 
+            flow._id === updatedFlow._id ? updatedFlow : flow
+          )
+        )
+        
+        toast.success("Step completed successfully!")
       }
     } catch (error) {
       console.error('Error completing step:', error)
@@ -136,6 +157,26 @@ export default function MemberOnboardingDashboard({ userId, userRole }: MemberOn
     } finally {
       setLoading(false)
     }
+  }
+
+  const repeatOnboarding = () => {
+    // Reset completion state
+    localStorage.removeItem(`onboarding_completed_${userId}`)
+    setHasCompletedOnboarding(false)
+    
+    // Reset flow state
+    if (activeFlow) {
+      const resetFlow = {
+        ...activeFlow,
+        steps: activeFlow.steps.map(step => ({ ...step, isCompleted: false })),
+        progress: 0,
+        currentStep: 0
+      }
+      setActiveFlow(resetFlow)
+      setCurrentStepIndex(0)
+    }
+    
+    toast.success("Onboarding reset! You can start over.")
   }
 
   const nextStep = () => {
@@ -269,42 +310,92 @@ export default function MemberOnboardingDashboard({ userId, userRole }: MemberOn
             </div>
             <CardTitle className="text-3xl font-bold">Welcome to the Community!</CardTitle>
             <p className="text-muted-foreground text-lg">
-              We're setting up your personalized onboarding experience. This will help you get the most out of our community.
+              {onboardingFlows.length === 0 
+                ? "No active onboarding flows are currently available. Please check back later or contact an administrator."
+                : hasCompletedOnboarding
+                ? "Welcome back! You've already completed onboarding, but you can repeat it if you'd like to refresh your knowledge."
+                : "We're setting up your personalized onboarding experience. This will help you get the most out of our community."
+              }
             </p>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="grid gap-4 md:grid-cols-3">
-              <div className="text-center">
-                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                  <Users className="w-6 h-6 text-blue-600" />
-                </div>
-                <h4 className="font-medium">Connect</h4>
-                <p className="text-sm text-muted-foreground">Meet other members</p>
+            {onboardingFlows.length === 0 ? (
+              <div className="text-center space-y-4">
+                <p className="text-muted-foreground">
+                  Onboarding flows help new members get familiar with the community. 
+                  Administrators can create and activate flows from the main onboarding dashboard.
+                </p>
+                <Button 
+                  onClick={() => setShowWelcome(false)} 
+                  variant="outline"
+                  className="px-8"
+                  size="lg"
+                >
+                  Continue to Dashboard
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
               </div>
-              <div className="text-center">
-                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                  <BookOpen className="w-6 h-6 text-green-600" />
+            ) : hasCompletedOnboarding ? (
+              <div className="text-center space-y-4">
+                <p className="text-muted-foreground">
+                  You're already familiar with our community! You can skip onboarding or repeat it to refresh your knowledge.
+                </p>
+                <div className="flex gap-3 justify-center">
+                  <Button 
+                    onClick={() => setShowWelcome(false)} 
+                    variant="outline"
+                    className="px-8"
+                    size="lg"
+                  >
+                    Skip Onboarding
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                  <Button 
+                    onClick={repeatOnboarding}
+                    className="px-8"
+                    size="lg"
+                  >
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Repeat Onboarding
+                  </Button>
                 </div>
-                <h4 className="font-medium">Learn</h4>
-                <p className="text-sm text-muted-foreground">Discover resources</p>
               </div>
-              <div className="text-center">
-                <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                  <Trophy className="w-6 h-6 text-purple-600" />
+            ) : (
+              <>
+                <div className="grid gap-4 md:grid-cols-3">
+                  <div className="text-center">
+                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                      <Users className="w-6 h-6 text-blue-600" />
+                    </div>
+                    <h4 className="font-medium">Connect</h4>
+                    <p className="text-sm text-muted-foreground">Meet other members</p>
+                  </div>
+                  <div className="text-center">
+                    <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                      <BookOpen className="w-6 h-6 text-green-600" />
+                    </div>
+                    <h4 className="font-medium">Learn</h4>
+                    <p className="text-sm text-muted-foreground">Discover resources</p>
+                  </div>
+                  <div className="text-center">
+                    <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                      <Trophy className="w-6 h-6 text-purple-600" />
+                    </div>
+                    <h4 className="font-medium">Grow</h4>
+                    <p className="text-sm text-muted-foreground">Develop skills</p>
+                  </div>
                 </div>
-                <h4 className="font-medium">Grow</h4>
-                <p className="text-sm text-muted-foreground">Develop skills</p>
-              </div>
-            </div>
-            
-            <Button 
-              onClick={() => setShowWelcome(false)} 
-              className="px-8"
-              size="lg"
-            >
-              Get Started
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
+                
+                <Button 
+                  onClick={() => setShowWelcome(false)} 
+                  className="px-8"
+                  size="lg"
+                >
+                  Get Started
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -330,10 +421,41 @@ export default function MemberOnboardingDashboard({ userId, userRole }: MemberOn
   }
 
   const currentStep = activeFlow.steps[currentStepIndex]
-  const progress = (activeFlow.steps.filter(s => s.isCompleted).length / activeFlow.steps.length) * 100
+  // Use the flow's progress property which is updated when steps are completed
+  const progress = activeFlow.progress || 0
 
   return (
     <div className="max-w-4xl mx-auto p-6">
+      {/* Completion Banner */}
+      {hasCompletedOnboarding && (
+        <Card className="mb-6 border-green-200 bg-green-50">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                  <CheckCircle className="w-6 h-6 text-green-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-green-800">Onboarding Completed!</h3>
+                  <p className="text-sm text-green-700">
+                    You've successfully completed the onboarding process. Welcome to the community!
+                  </p>
+                </div>
+              </div>
+              <Button
+                onClick={repeatOnboarding}
+                variant="outline"
+                size="sm"
+                className="border-green-300 text-green-700 hover:bg-green-100"
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Repeat Onboarding
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Progress Header */}
       <Card className="mb-6">
         <CardHeader>
@@ -385,7 +507,7 @@ export default function MemberOnboardingDashboard({ userId, userRole }: MemberOn
           {!currentStep.isCompleted && (
             <div className="mt-6 pt-6 border-t">
               <Button 
-                onClick={() => completeStep(currentStep._id)}
+                onClick={() => completeStep(currentStepIndex)}
                 disabled={loading}
                 className="w-full"
                 size="lg"
@@ -412,7 +534,7 @@ export default function MemberOnboardingDashboard({ userId, userRole }: MemberOn
         <div className="flex items-center gap-2">
           {activeFlow.steps.map((step, index) => (
             <div
-              key={step._id}
+              key={index}
               className={`w-3 h-3 rounded-full cursor-pointer transition-colors ${
                 index === currentStepIndex
                   ? 'bg-primary'
