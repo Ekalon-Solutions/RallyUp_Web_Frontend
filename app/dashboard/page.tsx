@@ -13,6 +13,7 @@ import { CreateNewsModal } from "@/components/modals/create-news-modal"
 import { CreateEventModal } from "@/components/modals/create-event-modal"
 import { VolunteerQuickSignup } from "@/components/volunteer/volunteer-quick-signup"
 import { VolunteerOpportunitiesWidget } from "@/components/volunteer/volunteer-opportunities-widget"
+import { PromotionFeed } from "@/components/promotion-feed"
 
 export default function DashboardPage() {
   const { user, isAdmin } = useAuth()
@@ -97,6 +98,15 @@ export default function DashboardPage() {
             </Card>
           ))}
         </div>
+
+        {/* Promotion Feed */}
+        {user?.club && (
+          <PromotionFeed 
+            clubId={user.club._id} 
+            limit={3} 
+            showStats={true} 
+          />
+        )}
 
         {/* Volunteer Quick Signup */}
         {user?.club && (

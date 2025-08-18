@@ -13,6 +13,7 @@ import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
 import { Calendar, MapPin, Clock, Users, Newspaper, Tag, User, Eye, Building2, CreditCard } from "lucide-react"
 import { MembershipStatus } from "@/components/membership-status"
+import { PromotionFeed } from "@/components/promotion-feed"
 
 export default function UserDashboardPage() {
   const { user } = useAuth()
@@ -314,6 +315,15 @@ export default function UserDashboardPage() {
               )}
             </TabsContent>
           </Tabs>
+
+          {/* Promotion Feed */}
+          {user?.club && (
+            <PromotionFeed 
+              clubId={user.club._id} 
+              limit={2} 
+              showStats={false} 
+            />
+          )}
 
           {/* Quick Actions */}
           <Card>

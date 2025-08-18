@@ -106,10 +106,17 @@ export const API_ENDPOINTS = {
   
   // Promotional content endpoints
   promotions: {
-    content: '/promotions/content',
-    campaigns: '/promotions/campaigns',
-    analytics: '/promotions/analytics',
-    templates: '/promotions/templates',
+    getAll: '/promotions',
+    active: '/promotions/active',
+    getById: (id: string) => `/promotions/${id}`,
+    club: '/promotions/club',
+    create: '/promotions',
+    update: (id: string) => `/promotions/${id}`,
+    delete: (id: string) => `/promotions/${id}`,
+    status: (id: string) => `/promotions/${id}/status`,
+    view: (id: string) => `/promotions/${id}/view`,
+    click: (id: string) => `/promotions/${id}/click`,
+    conversion: (id: string) => `/promotions/${id}/conversion`,
   },
   
   // Event endpoints
