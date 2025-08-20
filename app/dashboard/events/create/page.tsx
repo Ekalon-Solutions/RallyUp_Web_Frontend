@@ -9,37 +9,62 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
+import { TimeInput } from "@/components/ui/time-input"
+import { TimePickerCompact } from "@/components/ui/time-picker-compact"
 import { ArrowLeft, Save, Upload } from "lucide-react"
 import Link from "next/link"
 
 export default function CreateEventPage() {
   const [eventData, setEventData] = useState({
     title: "",
-    category: "Match Screening", // Changed default category
-    startTime: "",
-    endTime: "",
-    bookingStart: "",
-    bookingEnd: "",
-    eventCode: "",
-    timezone: "Asia/Kolkata", // Default to Asia/Kolkata
-    hostMobile: "",
-    countryCode: "+91", // Default to +91
-    country: "India", // Default to India
+    category: "general",
+    date: "",
+    time: "12:00 PM",
+    location: "",
     description: "",
-    venue: "",
-    entryCharges: "",
+    maxAttendees: 100,
+    isPublished: false,
+    organizer: "",
     notes: "",
-    enableExpressForm: false,
-    collectUserLocation: false,
-    membershipEvent: false,
-    cashlessEvent: false,
-    emailOptional: false,
-    singleDayTicket: false,
-    enableNophoneCheckin: false,
   })
 
-  const handleInputChange = (field: string, value: string | boolean) => {
+  const [useCompactTimePicker, setUseCompactTimePicker] = useState(false)
+
+  const handleInputChange = (field: string, value: string | boolean | number) => {
     setEventData((prev) => ({ ...prev, [field]: value }))
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    // Basic validation
+    if (!eventData.title || !eventData.date || !eventData.time || !eventData.location) {
+      alert('Please fill in all required fields')
+      return
+    }
+
+    try {
+      // Here you would typically call your API to create the event
+      console.log('Event data to submit:', eventData)
+      alert('Event created successfully! (This is a demo - implement API call)')
+      
+      // Reset form
+      setEventData({
+        title: "",
+        category: "general",
+        date: "",
+        time: "12:00 PM",
+        location: "",
+        description: "",
+        maxAttendees: 100,
+        isPublished: false,
+        organizer: "",
+        notes: "",
+      })
+    } catch (error) {
+      console.error('Error creating event:', error)
+      alert('Error creating event')
+    }
   }
 
   return (
@@ -55,7 +80,7 @@ export default function CreateEventPage() {
           <h1 className="text-3xl font-bold">Create Event</h1>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-2">
+        <form onSubmit={handleSubmit} className="grid gap-6 lg:grid-cols-2">
           {/* Basic Details */}
           <Card>
             <CardHeader>
@@ -79,82 +104,74 @@ export default function CreateEventPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Match Screening">Match Screening</SelectItem>
-                    <SelectItem value="Away Day Travel">Away Day Travel</SelectItem>
-                    <SelectItem value="Social Gathering">Social Gathering</SelectItem>
-                    <SelectItem value="Fundraising Drive">Fundraising Drive</SelectItem>
-                    <SelectItem value="Club Meeting">Club Meeting</SelectItem>
+                    <SelectItem value="general">General</SelectItem>
+                    <SelectItem value="sports">Sports</SelectItem>
+                    <SelectItem value="music">Music</SelectItem>
+                    <SelectItem value="business">Business</SelectItem>
+                    <SelectItem value="education">Education</SelectItem>
+                    <SelectItem value="community">Community</SelectItem>
+                    <SelectItem value="charity">Charity</SelectItem>
+                    <SelectItem value="technology">Technology</SelectItem>
+                    <SelectItem value="health">Health</SelectItem>
+                    <SelectItem value="entertainment">Entertainment</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="startTime">Start Time *</Label>
+                  <Label htmlFor="date">Event Date *</Label>
                   <Input
-                    id="startTime"
-                    type="datetime-local"
-                    value={eventData.startTime}
-                    onChange={(e) => handleInputChange("startTime", e.target.value)}
+                    id="date"
+                    type="date"
+                    value={eventData.date}
+                    onChange={(e) => handleInputChange("date", e.target.value)}
+                    required
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="endTime">End Time *</Label>
-                  <Input
-                    id="endTime"
-                    type="datetime-local"
-                    value={eventData.endTime}
-                    onChange={(e) => handleInputChange("endTime", e.target.value)}
-                  />
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-muted-foreground">Time Input Style:</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">
+                        {useCompactTimePicker ? 'Dropdown' : 'Manual'}
+                      </span>
+                      <Switch
+                        checked={useCompactTimePicker}
+                        onCheckedChange={setUseCompactTimePicker}
+                      />
+                    </div>
+                  </div>
+                  
+                  {useCompactTimePicker ? (
+                    <TimePickerCompact
+                      value={eventData.time}
+                      onChange={(value) => handleInputChange("time", value)}
+                      label="Event Time *"
+                      required
+                    />
+                  ) : (
+                    <TimeInput
+                      value={eventData.time}
+                      onChange={(value) => handleInputChange("time", value)}
+                      label="Event Time *"
+                      required
+                    />
+                  )}
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="bookingStart">Booking Start</Label>
-                  <Input
-                    id="bookingStart"
-                    type="datetime-local"
-                    value={eventData.bookingStart}
-                    onChange={(e) => handleInputChange("bookingStart", e.target.value)}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="bookingEnd">Booking End</Label>
-                  <Input
-                    id="bookingEnd"
-                    type="datetime-local"
-                    value={eventData.bookingEnd}
-                    onChange={(e) => handleInputChange("bookingEnd", e.target.value)}
-                  />
-                </div>
-              </div>
+              
 
               <div className="grid gap-2">
-                <Label htmlFor="hostMobile">Event Host Mobile Number</Label>
-                <div className="flex">
-                  <Select
-                    value={eventData.countryCode}
-                    onValueChange={(value) => handleInputChange("countryCode", value)}
-                  >
-                    <SelectTrigger className="w-20">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="+91">+91</SelectItem>
-                      <SelectItem value="+1">+1</SelectItem>
-                      <SelectItem value="+44">+44</SelectItem>
-                      <SelectItem value="+61">+61</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Input
-                    id="hostMobile"
-                    placeholder="Enter phone number"
-                    value={eventData.hostMobile}
-                    onChange={(e) => handleInputChange("hostMobile", e.target.value)}
-                    className="rounded-l-none"
-                  />
-                </div>
+                <Label htmlFor="location">Event Location *</Label>
+                <Input
+                  id="location"
+                  placeholder="Enter event location"
+                  value={eventData.location}
+                  onChange={(e) => handleInputChange("location", e.target.value)}
+                  required
+                />
               </div>
             </CardContent>
           </Card>
@@ -177,109 +194,48 @@ export default function CreateEventPage() {
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="venue">Venue</Label>
-                <Textarea
-                  id="venue"
-                  placeholder="Enter venue details (e.g., 'The Fan Zone, Mumbai' or 'Online via Zoom')"
-                  value={eventData.venue}
-                  onChange={(e) => handleInputChange("venue", e.target.value)}
-                  rows={3}
+                <Label htmlFor="maxAttendees">Maximum Attendees</Label>
+                <Input
+                  id="maxAttendees"
+                  type="number"
+                  placeholder="Enter maximum number of attendees"
+                  value={eventData.maxAttendees}
+                  onChange={(e) => handleInputChange("maxAttendees", parseInt(e.target.value))}
+                  min="1"
+                  required
                 />
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="entryCharges">Entry Charges</Label>
-                <Textarea
-                  id="entryCharges"
-                  placeholder="Enter entry charges details (e.g., '₹500 per person', 'Free for members')"
-                  value={eventData.entryCharges}
-                  onChange={(e) => handleInputChange("entryCharges", e.target.value)}
-                  rows={3}
-                />
-              </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="notes">Notes</Label>
+                <Label htmlFor="notes">Additional Notes</Label>
                 <Textarea
                   id="notes"
-                  placeholder="Additional notes"
+                  placeholder="Any additional information about the event"
                   value={eventData.notes}
                   onChange={(e) => handleInputChange("notes", e.target.value)}
                   rows={3}
                 />
               </div>
-
-              <div className="grid gap-2">
-                <Label>Event Image</Label>
-                <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
-                  <Upload className="w-8 h-8 mx-auto mb-2 text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">Click to upload event image</p>
-                </div>
-              </div>
             </CardContent>
           </Card>
 
-          {/* Settings */}
+          {/* Event Settings */}
           <Card className="lg:col-span-2">
             <CardHeader>
               <CardTitle>Event Settings</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="enableExpressForm">Enable Express Form</Label>
-                  <Switch
-                    id="enableExpressForm"
-                    checked={eventData.enableExpressForm}
-                    onCheckedChange={(checked) => handleInputChange("enableExpressForm", checked)}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="collectUserLocation">Collect User Location</Label>
-                  <Switch
-                    id="collectUserLocation"
-                    checked={eventData.collectUserLocation}
-                    onCheckedChange={(checked) => handleInputChange("collectUserLocation", checked)}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="membershipEvent">Make this a membership event</Label>
-                  <Switch
-                    id="membershipEvent"
-                    checked={eventData.membershipEvent}
-                    onCheckedChange={(checked) => handleInputChange("membershipEvent", checked)}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="cashlessEvent">Cashless Event</Label>
-                  <Switch
-                    id="cashlessEvent"
-                    checked={eventData.cashlessEvent}
-                    onCheckedChange={(checked) => handleInputChange("cashlessEvent", checked)}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="emailOptional">Email Optional</Label>
-                  <Switch
-                    id="emailOptional"
-                    checked={eventData.emailOptional}
-                    onCheckedChange={(checked) => handleInputChange("emailOptional", checked)}
-                  />
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="singleDayTicket">Single Day & Single Ticket</Label>
-                  <Switch
-                    id="singleDayTicket"
-                    checked={eventData.singleDayTicket}
-                    onCheckedChange={(checked) => handleInputChange("singleDayTicket", checked)}
-                  />
-                </div>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="isPublished">Publish Event Immediately</Label>
+                <Switch
+                  id="isPublished"
+                  checked={eventData.isPublished}
+                  onCheckedChange={(checked) => handleInputChange("isPublished", checked)}
+                />
               </div>
+              <p className="text-sm text-muted-foreground mt-2">
+                Published events will be visible to all members. Unpublished events are saved as drafts.
+              </p>
             </CardContent>
           </Card>
 
@@ -288,12 +244,12 @@ export default function CreateEventPage() {
             <Link href="/dashboard/events">
               <Button variant="outline">Cancel</Button>
             </Link>
-            <Button>
+            <Button type="submit">
               <Save className="w-4 h-4 mr-2" />
               Create Event
             </Button>
           </div>
-        </div>
+        </form>
       </div>
     </DashboardLayout>
   )

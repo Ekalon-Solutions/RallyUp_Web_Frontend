@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
+import NewsReadMoreModal from "@/components/modals/news-readmore-modal"
 import { apiClient, Event, News } from "@/lib/api"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
@@ -21,27 +22,51 @@ export default function UserDashboardPage() {
   const [news, setNews] = useState<News[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("events")
+  const [showReadMoreModal, setShowReadMoreModal] = useState(false)
+  const [selectedNewsForReadMore, setSelectedNewsForReadMore] = useState<News | null>(null)
 
   useEffect(() => {
+    console.log('User dashboard - User object:', user)
     fetchData()
-  }, [])
+  }, [user])
 
   const fetchData = async () => {
     try {
       setLoading(true)
       
-      // Fetch public events and news
+      // Check if user has a club
+      console.log('Full user object:', user)
+      console.log('User club field:', user?.club)
+      console.log('User club type:', typeof user?.club)
+      
+      if (!user?.club) {
+        console.log('User has no club association:', user)
+        toast.error("You need to be associated with a club to view news")
+        setLoading(false)
+        return
+      }
+      
+      console.log('User club:', user.club)
+      console.log('User club ID:', user.club._id || user.club)
+      
+      // Fetch public events and club-specific news
       const [eventsResponse, newsResponse] = await Promise.all([
         apiClient.getPublicEvents(),
-        apiClient.getPublicNews()
+        apiClient.getNewsByUserClub()
       ])
 
       if (eventsResponse.success && eventsResponse.data) {
-        setEvents(eventsResponse.data)
+        setEvents(eventsResponse.data.events || eventsResponse.data)
       }
 
       if (newsResponse.success && newsResponse.data) {
-        setNews(newsResponse.data)
+        console.log('News response:', newsResponse)
+        console.log('News data:', newsResponse.data)
+        console.log('News array:', newsResponse.data.news || newsResponse.data)
+        setNews(newsResponse.data.news || newsResponse.data)
+      } else {
+        console.error('News response failed:', newsResponse)
+        console.error('News error details:', newsResponse.error)
       }
     } catch (error) {
       console.error("Error fetching data:", error)
@@ -53,7 +78,7 @@ export default function UserDashboardPage() {
 
   const handleEventRegistration = async (eventId: string) => {
     if (!user) {
-      toast.error("Please log in to register for events")
+      toast.error("Please log in to register for event")
       return
     }
 
@@ -69,6 +94,11 @@ export default function UserDashboardPage() {
       console.error("Error registering for event:", error)
       toast.error("Error registering for event")
     }
+  }
+
+  const handleReadMore = (newsItem: News) => {
+    setSelectedNewsForReadMore(newsItem)
+    setShowReadMoreModal(true)
   }
 
   const formatDate = (dateString: string) => {
@@ -119,7 +149,7 @@ export default function UserDashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {events.filter(e => !isEventPast(e)).length}
+                  {(events || []).filter(e => !isEventPast(e)).length}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Events you can attend
@@ -132,7 +162,7 @@ export default function UserDashboardPage() {
                 <Newspaper className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{news.length}</div>
+                <div className="text-2xl font-bold">{(news || []).length}</div>
                 <p className="text-xs text-muted-foreground">
                   Published articles
                 </p>
@@ -172,7 +202,7 @@ export default function UserDashboardPage() {
                     <p className="mt-4 text-muted-foreground">Loading events...</p>
                   </div>
                 </div>
-              ) : events.length === 0 ? (
+              ) : (events || []).length === 0 ? (
                 <Card>
                   <CardContent className="flex items-center justify-center h-64">
                     <div className="text-center">
@@ -184,7 +214,7 @@ export default function UserDashboardPage() {
                 </Card>
               ) : (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {events
+                  {(events || [])
                     .filter(event => !isEventPast(event))
                     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
                     .map((event) => (
@@ -254,22 +284,40 @@ export default function UserDashboardPage() {
                     <p className="mt-4 text-muted-foreground">Loading news...</p>
                   </div>
                 </div>
-              ) : news.length === 0 ? (
+              ) : (news || []).length === 0 ? (
                 <Card>
                   <CardContent className="flex items-center justify-center h-64">
                     <div className="text-center">
                       <Newspaper className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                       <h3 className="text-lg font-semibold">No news available</h3>
-                      <p className="text-muted-foreground">Check back later for updates</p>
+                      <p className="text-muted-foreground">
+                        {user?.club ? 
+                          "No news articles have been published for your club yet. Check back later for updates." :
+                          "You need to be associated with a club to view news articles."
+                        }
+                      </p>
                     </div>
                   </CardContent>
                 </Card>
               ) : (
                 <div className="space-y-4">
-                  {news
-                    .filter(article => article.isPublished)
-                    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-                    .map((article) => (
+                  {(() => {
+                    console.log('Raw news array:', news)
+                    console.log('News array type:', typeof news)
+                    console.log('News array length:', news?.length || 0)
+                    
+                    const publishedNews = (news || []).filter(article => {
+                      console.log('Checking article:', article)
+                      console.log('Article isPublished:', article.isPublished)
+                      return article.isPublished
+                    })
+                    
+                    console.log('Published news count:', publishedNews.length)
+                    console.log('Published news:', publishedNews)
+                    
+                    return publishedNews
+                      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                      .map((article) => (
                     <Card key={article._id}>
                       <CardHeader>
                         <div className="flex items-start justify-between">
@@ -302,7 +350,11 @@ export default function UserDashboardPage() {
                           )}
                           
                           <div className="pt-2">
-                            <Button variant="outline" className="w-full">
+                            <Button 
+                              variant="outline" 
+                              className="w-full"
+                              onClick={() => handleReadMore(article)}
+                            >
                               <Eye className="w-4 h-4 mr-2" />
                               Read Full Article
                             </Button>
@@ -310,7 +362,8 @@ export default function UserDashboardPage() {
                         </div>
                       </CardContent>
                     </Card>
-                  ))}
+                      ))
+                  })()}
                 </div>
               )}
             </TabsContent>
@@ -369,6 +422,16 @@ export default function UserDashboardPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Read More News Modal */}
+        <NewsReadMoreModal
+          news={selectedNewsForReadMore}
+          isOpen={showReadMoreModal}
+          onClose={() => {
+            setShowReadMoreModal(false)
+            setSelectedNewsForReadMore(null)
+          }}
+        />
       </DashboardLayout>
     </ProtectedRoute>
   )
