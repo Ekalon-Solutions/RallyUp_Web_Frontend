@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -82,11 +82,65 @@ export default function AuthPage() {
   const [systemOwnerLoginOtp, setSystemOwnerLoginOtp] = useState("")
   const [generatedLoginOtp, setGeneratedLoginOtp] = useState("")
 
+  // Resend OTP countdown states
+  const [userLoginResendCountdown, setUserLoginResendCountdown] = useState(0)
+  const [adminLoginResendCountdown, setAdminLoginResendCountdown] = useState(0)
+  const [systemOwnerLoginResendCountdown, setSystemOwnerLoginResendCountdown] = useState(0)
+  const [userRegisterResendCountdown, setUserRegisterResendCountdown] = useState(0)
+  const [adminRegisterResendCountdown, setAdminRegisterResendCountdown] = useState(0)
+  const [systemOwnerRegisterResendCountdown, setSystemOwnerRegisterResendCountdown] = useState(0)
+
+
+
+  // Countdown effect for resend OTP
+  useEffect(() => {
+    if (userLoginResendCountdown > 0) {
+      const timer = setTimeout(() => setUserLoginResendCountdown(userLoginResendCountdown - 1), 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [userLoginResendCountdown])
+
+  useEffect(() => {
+    if (adminLoginResendCountdown > 0) {
+      const timer = setTimeout(() => setAdminLoginResendCountdown(adminLoginResendCountdown - 1), 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [adminLoginResendCountdown])
+
+  useEffect(() => {
+    if (systemOwnerLoginResendCountdown > 0) {
+      const timer = setTimeout(() => setSystemOwnerLoginResendCountdown(systemOwnerLoginResendCountdown - 1), 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [systemOwnerLoginResendCountdown])
+
+  useEffect(() => {
+    if (userRegisterResendCountdown > 0) {
+      const timer = setTimeout(() => setUserRegisterResendCountdown(userRegisterResendCountdown - 1), 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [userRegisterResendCountdown])
+
+  useEffect(() => {
+    if (adminRegisterResendCountdown > 0) {
+      const timer = setTimeout(() => setAdminRegisterResendCountdown(adminRegisterResendCountdown - 1), 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [adminRegisterResendCountdown])
+
+  useEffect(() => {
+    if (systemOwnerRegisterResendCountdown > 0) {
+      const timer = setTimeout(() => setSystemOwnerRegisterResendCountdown(systemOwnerRegisterResendCountdown - 1), 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [systemOwnerRegisterResendCountdown])
+
   // Redirect if already authenticated
-  if (isAuthenticated) {
-    router.push("/dashboard")
-    return null
-  }
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.push("/dashboard")
+    }
+  }, [isAuthenticated, router])
 
   const handleUserLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -319,6 +373,7 @@ export default function AuthPage() {
     // Simulate OTP sending
     toast.success(`OTP sent to ${userRegisterData.countryCode}${userRegisterData.phone_number}. Code: ${otp}`)
     setUserOtpSent(true)
+    setUserRegisterResendCountdown(10)
   }
 
   const handleAdminVerifyNumber = async () => {
@@ -334,6 +389,7 @@ export default function AuthPage() {
     // Simulate OTP sending
     toast.success(`OTP sent to ${adminRegisterData.countryCode}${adminRegisterData.phone_number}. Code: ${otp}`)
     setAdminOtpSent(true)
+    setAdminRegisterResendCountdown(10)
   }
 
   const handleSystemOwnerVerifyNumber = async () => {
@@ -349,6 +405,7 @@ export default function AuthPage() {
     // Simulate OTP sending
     toast.success(`OTP sent to ${systemOwnerRegisterData.countryCode}${systemOwnerRegisterData.phone_number}. Code: ${otp}`)
     setSystemOwnerOtpSent(true)
+    setSystemOwnerRegisterResendCountdown(10)
   }
 
   // Login OTP verification handlers
@@ -365,6 +422,7 @@ export default function AuthPage() {
     // Simulate OTP sending
     toast.success(`OTP sent to ${userLoginData.countryCode}${userLoginData.phoneNumber}. Code: ${otp}`)
     setUserLoginOtpSent(true)
+    setUserLoginResendCountdown(10)
   }
 
   const handleAdminLoginVerifyNumber = async () => {
@@ -380,6 +438,7 @@ export default function AuthPage() {
     // Simulate OTP sending
     toast.success(`OTP sent to ${adminLoginData.countryCode}${adminLoginData.phoneNumber}. Code: ${otp}`)
     setAdminLoginOtpSent(true)
+    setAdminLoginResendCountdown(10)
   }
 
   const handleSystemOwnerLoginVerifyNumber = async () => {
@@ -395,6 +454,53 @@ export default function AuthPage() {
     // Simulate OTP sending
     toast.success(`OTP sent to ${systemOwnerLoginData.countryCode}${systemOwnerLoginData.phoneNumber}. Code: ${otp}`)
     setSystemOwnerLoginOtpSent(true)
+    setSystemOwnerLoginResendCountdown(10)
+  }
+
+  // Resend OTP functions
+  const handleUserLoginResendOTP = () => {
+    if (userLoginData.email) {
+      toast.success(`OTP resent to ${userLoginData.email}. Code: ${generatedLoginOtp}`)
+      setUserLoginResendCountdown(10)
+    } else if (userLoginData.phoneNumber && userLoginData.countryCode) {
+      toast.success(`OTP resent to ${userLoginData.countryCode}${userLoginData.phoneNumber}. Code: ${generatedLoginOtp}`)
+      setUserLoginResendCountdown(10)
+    }
+  }
+
+  const handleAdminLoginResendOTP = () => {
+    if (adminLoginData.email) {
+      toast.success(`OTP resent to ${adminLoginData.email}. Code: ${generatedLoginOtp}`)
+      setAdminLoginResendCountdown(10)
+    } else if (adminLoginData.phoneNumber && adminLoginData.countryCode) {
+      toast.success(`OTP resent to ${adminLoginData.countryCode}${adminLoginData.phoneNumber}. Code: ${generatedLoginOtp}`)
+      setAdminLoginResendCountdown(10)
+    }
+  }
+
+  const handleSystemOwnerLoginResendOTP = () => {
+    if (systemOwnerLoginData.email) {
+      toast.success(`OTP resent to ${systemOwnerLoginData.email}. Code: ${generatedLoginOtp}`)
+      setSystemOwnerLoginResendCountdown(10)
+    } else if (systemOwnerLoginData.phoneNumber && systemOwnerLoginData.countryCode) {
+      toast.success(`OTP resent to ${systemOwnerLoginData.countryCode}${systemOwnerLoginData.phoneNumber}. Code: ${generatedLoginOtp}`)
+      setSystemOwnerLoginResendCountdown(10)
+    }
+  }
+
+  const handleUserRegisterResendOTP = () => {
+    toast.success(`OTP resent to ${userRegisterData.countryCode}${userRegisterData.phone_number}. Code: ${generatedOtp}`)
+    setUserRegisterResendCountdown(10)
+  }
+
+  const handleAdminRegisterResendOTP = () => {
+    toast.success(`OTP resent to ${adminRegisterData.countryCode}${adminRegisterData.phone_number}. Code: ${generatedOtp}`)
+    setAdminRegisterResendCountdown(10)
+  }
+
+  const handleSystemOwnerRegisterResendOTP = () => {
+    toast.success(`OTP resent to ${systemOwnerRegisterData.countryCode}${systemOwnerRegisterData.phone_number}. Code: ${generatedOtp}`)
+    setSystemOwnerRegisterResendCountdown(10)
   }
 
   const handleAdminRegister = async (e: React.FormEvent) => {
@@ -605,6 +711,7 @@ export default function AuthPage() {
                             setGeneratedLoginOtp(otp)
                             toast.success(`OTP sent to ${userLoginData.email}. Code: ${otp}`)
                             setUserLoginOtpSent(true)
+                            setUserLoginResendCountdown(10)
                           } else if (userLoginData.phoneNumber && userLoginData.countryCode) {
                             // Send OTP to phone
                             handleUserLoginVerifyNumber()
@@ -632,10 +739,21 @@ export default function AuthPage() {
                             maxLength={6}
                           />
                         </div>
-                        <Button onClick={handleUserLogin} className="w-full bg-sky-400 text-slate-900 hover:bg-sky-300 h-12 text-lg font-medium" disabled={isLoading}>
-                          {isLoading ? "Signing in..." : "Sign In"}
-                          <LogIn className="ml-2 w-4 h-4" />
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Button onClick={handleUserLogin} className="flex-1 bg-sky-400 text-slate-900 hover:bg-sky-300 h-12 text-lg font-medium" disabled={isLoading}>
+                            {isLoading ? "Signing in..." : "Sign In"}
+                            <LogIn className="ml-2 w-4 h-4" />
+                          </Button>
+                          <Button 
+                            type="button"
+                            variant="outline"
+                            onClick={handleUserLoginResendOTP}
+                            disabled={userLoginResendCountdown > 0}
+                            className="border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-12 px-4"
+                          >
+                            {userLoginResendCountdown > 0 ? `Resend (${userLoginResendCountdown}s)` : "Resend"}
+                          </Button>
+                        </div>
                       </div>
                     )}
                     
@@ -1007,15 +1125,12 @@ export default function AuthPage() {
                             <Button 
                               type="button" 
                               variant="outline" 
-                              onClick={() => {
-                                setUserOtpSent(false)
-                                setUserOtp("")
-                                setGeneratedOtp("")
-                              }}
+                              onClick={handleUserRegisterResendOTP}
+                              disabled={userRegisterResendCountdown > 0}
                               size="sm"
                               className="border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-12 px-4"
                             >
-                              Resend
+                              {userRegisterResendCountdown > 0 ? `Resend (${userRegisterResendCountdown}s)` : "Resend"}
                             </Button>
                           </div>
                         </div>
@@ -1107,6 +1222,7 @@ export default function AuthPage() {
                             setGeneratedLoginOtp(otp)
                             toast.success(`OTP sent to ${adminLoginData.email}. Code: ${otp}`)
                             setAdminLoginOtpSent(true)
+                            setAdminLoginResendCountdown(10)
                           } else if (adminLoginData.phoneNumber && adminLoginData.countryCode) {
                             // Send OTP to phone
                             handleAdminLoginVerifyNumber()
@@ -1134,10 +1250,21 @@ export default function AuthPage() {
                             maxLength={6}
                           />
                         </div>
-                        <Button onClick={handleAdminLogin} className="w-full bg-sky-400 text-slate-900 hover:bg-sky-300 h-12 text-lg font-medium" disabled={isLoading}>
-                          {isLoading ? "Signing in..." : "Admin Sign In"}
-                          <Shield className="ml-2 w-4 h-4" />
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Button onClick={handleAdminLogin} className="flex-1 bg-sky-400 text-slate-900 hover:bg-sky-300 h-12 text-lg font-medium" disabled={isLoading}>
+                            {isLoading ? "Signing in..." : "Admin Sign In"}
+                            <Shield className="ml-2 h-4 w-4" />
+                          </Button>
+                          <Button 
+                            type="button"
+                            variant="outline"
+                            onClick={handleAdminLoginResendOTP}
+                            disabled={adminLoginResendCountdown > 0}
+                            className="border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-12 px-4"
+                          >
+                            {adminLoginResendCountdown > 0 ? `Resend (${adminLoginResendCountdown}s)` : "Resend"}
+                          </Button>
+                        </div>
                       </div>
                     )}
                     
@@ -1251,15 +1378,12 @@ export default function AuthPage() {
                           <Button 
                             type="button" 
                             variant="outline" 
-                            onClick={() => {
-                              setAdminOtpSent(false)
-                              setAdminOtp("")
-                              setGeneratedOtp("")
-                            }}
+                            onClick={handleAdminRegisterResendOTP}
+                            disabled={adminRegisterResendCountdown > 0}
                             size="sm"
                             className="border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-12 px-4"
                           >
-                            Resend
+                            {adminRegisterResendCountdown > 0 ? `Resend (${adminRegisterResendCountdown}s)` : "Resend"}
                           </Button>
                         </div>
                       </div>
@@ -1365,6 +1489,7 @@ export default function AuthPage() {
                             setGeneratedLoginOtp(otp)
                             toast.success(`OTP sent to ${systemOwnerLoginData.email}. Code: ${otp}`)
                             setSystemOwnerLoginOtpSent(true)
+                            setSystemOwnerLoginResendCountdown(10)
                           } else if (systemOwnerLoginData.phoneNumber && systemOwnerLoginData.countryCode) {
                             // Send OTP to phone
                             handleSystemOwnerLoginVerifyNumber()
@@ -1392,10 +1517,21 @@ export default function AuthPage() {
                             maxLength={6}
                           />
                         </div>
-                        <Button onClick={handleSystemOwnerLogin} className="w-full bg-sky-400 text-slate-900 hover:bg-sky-300 h-12 text-lg font-medium" disabled={isLoading}>
-                          {isLoading ? "Signing in..." : "System Owner Sign In"}
-                          <Crown className="ml-2 w-4 h-4" />
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Button onClick={handleSystemOwnerLogin} className="flex-1 bg-sky-400 text-slate-900 hover:bg-sky-300 h-12 text-lg font-medium" disabled={isLoading}>
+                            {isLoading ? "Signing in..." : "System Owner Sign In"}
+                            <Crown className="ml-2 w-4 h-4" />
+                          </Button>
+                          <Button 
+                            type="button"
+                            variant="outline"
+                            onClick={handleSystemOwnerLoginResendOTP}
+                            disabled={systemOwnerLoginResendCountdown > 0}
+                            className="border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-12 px-4"
+                          >
+                            {systemOwnerLoginResendCountdown > 0 ? `Resend (${systemOwnerLoginResendCountdown}s)` : "Resend"}
+                          </Button>
+                        </div>
                       </div>
                     )}
                     
@@ -1509,15 +1645,12 @@ export default function AuthPage() {
                           <Button 
                             type="button" 
                             variant="outline" 
-                            onClick={() => {
-                              setSystemOwnerOtpSent(false)
-                              setSystemOwnerOtp("")
-                              setGeneratedOtp("")
-                            }}
+                            onClick={handleSystemOwnerRegisterResendOTP}
+                            disabled={systemOwnerRegisterResendCountdown > 0}
                             size="sm"
                             className="border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-12 px-4"
                           >
-                            Resend
+                            {systemOwnerRegisterResendCountdown > 0 ? `Resend (${systemOwnerRegisterResendCountdown}s)` : "Resend"}
                           </Button>
                         </div>
                       </div>

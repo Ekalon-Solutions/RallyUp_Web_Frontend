@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -16,6 +16,7 @@ export default function SystemOwnerLoginPage() {
   const [otpSent, setOtpSent] = useState(false)
   const [otp, setOtp] = useState("")
   const [generatedOtp, setGeneratedOtp] = useState("")
+  const [resendCountdown, setResendCountdown] = useState(0)
   const [formData, setFormData] = useState({
     email: "",
     phoneNumber: "",
@@ -25,13 +26,21 @@ export default function SystemOwnerLoginPage() {
   const router = useRouter()
   const { login } = useAuth()
 
+  // Countdown effect for resend OTP
+  useEffect(() => {
+    if (resendCountdown > 0) {
+      const timer = setTimeout(() => setResendCountdown(resendCountdown - 1), 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [resendCountdown])
+
   const generateOTP = () => {
     return Math.floor(100000 + Math.random() * 900000).toString()
   }
 
   const handleSendOTP = () => {
-    if (!formData.phoneNumber || !formData.countryCode) {
-      toast.error("Please enter phone number and country code")
+    if (!formData.email && (!formData.phoneNumber || !formData.countryCode)) {
+      toast.error("Please enter either email or phone number with country code")
       return
     }
     
@@ -40,8 +49,23 @@ export default function SystemOwnerLoginPage() {
     setGeneratedOtp(otp)
     
     // Simulate OTP sending
-    toast.success(`OTP sent to ${formData.countryCode}${formData.phoneNumber}. Code: ${otp}`)
+    if (formData.email) {
+      toast.success(`OTP sent to ${formData.email}. Code: ${otp}`)
+    } else {
+      toast.success(`OTP sent to ${formData.countryCode}${formData.phoneNumber}. Code: ${otp}`)
+    }
     setOtpSent(true)
+    setResendCountdown(10)
+  }
+
+  const handleResendOTP = () => {
+    if (formData.phoneNumber && formData.countryCode) {
+      toast.success(`OTP resent to ${formData.countryCode}${formData.phoneNumber}. Code: ${generatedOtp}`)
+      setResendCountdown(10)
+    } else if (formData.email) {
+      toast.success(`OTP resent to ${formData.email}. Code: ${generatedOtp}`)
+      setResendCountdown(10)
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -148,7 +172,12 @@ export default function SystemOwnerLoginPage() {
                 </div>
 
                 {!otpSent ? (
-                  <Button type="button" onClick={handleSendOTP} className="w-full bg-sky-400 text-slate-900 hover:bg-sky-300">
+                  <Button 
+                    type="button" 
+                    onClick={handleSendOTP} 
+                    disabled={!formData.email && (!formData.phoneNumber || !formData.countryCode)}
+                    className="w-full bg-sky-400 text-slate-900 hover:bg-sky-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
                     Send OTP
                     <Phone className="ml-2 w-4 h-4" />
                   </Button>
@@ -163,12 +192,24 @@ export default function SystemOwnerLoginPage() {
                         value={otp}
                         onChange={(e) => setOtp(e.target.value)}
                         className="bg-white/10 border-white/20 text-white placeholder:text-slate-400"
+                        maxLength={6}
                       />
                     </div>
-                    <Button type="submit" className="w-full bg-sky-400 text-slate-900 hover:bg-sky-300" disabled={isLoading}>
-                      {isLoading ? "Signing in..." : "Sign In as System Owner"}
-                      <Crown className="ml-2 w-4 h-4" />
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button type="submit" className="flex-1 bg-sky-400 text-slate-900 hover:bg-sky-300" disabled={isLoading}>
+                        {isLoading ? "Signing in..." : "Sign In as System Owner"}
+                        <Crown className="ml-2 w-4 h-4" />
+                      </Button>
+                      <Button 
+                        type="button"
+                        variant="outline"
+                        onClick={handleResendOTP}
+                        disabled={resendCountdown > 0}
+                        className="border-slate-700 bg-slate-800 text-white hover:bg-slate-700 px-4"
+                      >
+                        {resendCountdown > 0 ? `Resend (${resendCountdown}s)` : "Resend"}
+                      </Button>
+                    </div>
                   </div>
                 )}
 

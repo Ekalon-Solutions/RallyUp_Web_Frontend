@@ -38,6 +38,7 @@ export function UnassignVolunteerModal({
   const [unassigning, setUnassigning] = React.useState(false);
   const [assignedVolunteers, setAssignedVolunteers] = React.useState<Volunteer[]>([]);
   const [loading, setLoading] = React.useState(false);
+  const [volunteersWithoutUserData, setVolunteersWithoutUserData] = React.useState<number>(0);
   const { toast } = useToast();
 
   const timeSlot = opportunity?.timeSlots.find(slot => slot._id === timeSlotId);
@@ -64,8 +65,21 @@ export function UnassignVolunteerModal({
           timeSlot.volunteersAssigned.includes(volunteer._id)
         );
         
+        // Filter out volunteers without user data to prevent display errors
+        const validVolunteers = volunteers.filter(volunteer => volunteer.user);
+        const invalidVolunteers = volunteers.filter(volunteer => !volunteer.user);
+        
         console.log('🔍 Found assigned volunteers:', volunteers.length);
-        setAssignedVolunteers(volunteers);
+        console.log('🔍 Valid volunteers with user data:', validVolunteers.length);
+        console.log('🔍 Volunteers without user data:', invalidVolunteers.length);
+        console.log('🔍 Volunteer data structure:', volunteers.map(v => ({
+          id: v._id,
+          hasUser: !!v.user,
+          userFields: v.user ? Object.keys(v.user) : 'No user object',
+          userData: v.user
+        })));
+        setAssignedVolunteers(validVolunteers);
+        setVolunteersWithoutUserData(invalidVolunteers.length);
       } else {
         console.error('Failed to fetch volunteers:', response.error);
         setAssignedVolunteers([]);
@@ -158,6 +172,18 @@ export function UnassignVolunteerModal({
           <div className="space-y-3">
             <h3 className="font-semibold">Currently Assigned Volunteers</h3>
             
+            {/* Warning for volunteers without user data */}
+            {volunteersWithoutUserData > 0 && (
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-orange-600" />
+                  <span className="text-sm text-orange-800">
+                    Warning: {volunteersWithoutUserData} volunteer{volunteersWithoutUserData !== 1 ? 's' : ''} have incomplete data and cannot be displayed.
+                  </span>
+                </div>
+              </div>
+            )}
+            
             {loading ? (
               <div className="text-center py-6">
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-3"></div>
@@ -179,15 +205,17 @@ export function UnassignVolunteerModal({
                             <Users className="w-5 h-5 text-primary" />
                           </div>
                           <div>
-                            <h4 className="font-medium">{volunteer.user.name}</h4>
+                            <h4 className="font-medium">
+                              {volunteer.user ? `${volunteer.user.first_name} ${volunteer.user.last_name}` : 'Unknown User'}
+                            </h4>
                             <div className="flex items-center gap-4 text-sm text-muted-foreground">
                               <span className="flex items-center gap-1">
                                 <Mail className="w-3 h-3" />
-                                {volunteer.user.email}
+                                {volunteer.user?.email || 'No email'}
                               </span>
                               <span className="flex items-center gap-1">
                                 <Phone className="w-3 h-3" />
-                                {volunteer.user.countryCode} {volunteer.user.phoneNumber}
+                                {volunteer.user ? `${volunteer.user.phone_country_code} ${volunteer.user.phone_number}` : 'No phone'}
                               </span>
                             </div>
                           </div>
@@ -221,7 +249,7 @@ export function UnassignVolunteerModal({
                       <Button
                         variant="destructive"
                         size="sm"
-                        onClick={() => handleUnassignVolunteer(volunteer.user._id)}
+                        onClick={() => handleUnassignVolunteer(volunteer._id)}
                         disabled={unassigning}
                         className="ml-4"
                       >

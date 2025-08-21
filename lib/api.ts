@@ -172,10 +172,11 @@ export interface Volunteer {
   _id: string;
   user: {
     _id: string;
-    name: string;
+    first_name: string;
+    last_name: string;
     email: string;
-    phoneNumber: string;
-    countryCode: string;
+    phone_number: string;
+    phone_country_code: string;
   };
   club: {
     _id: string;
@@ -813,6 +814,28 @@ class ApiClient {
     return this.request(endpoint);
   }
 
+  async createVolunteerOpportunity(opportunity: any): Promise<ApiResponse<VolunteerOpportunity>> {
+    return this.request('/volunteer/opportunities', {
+      method: 'POST',
+      body: JSON.stringify(opportunity)
+    });
+  }
+
+  async updateVolunteerOpportunity(id: string, opportunity: any): Promise<ApiResponse<VolunteerOpportunity>> {
+    return this.request(`/volunteer/opportunities/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(opportunity)
+    });
+  }
+
+  async deleteVolunteerOpportunity(id: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request(`/volunteer/opportunities/${id}`, {
+      method: 'DELETE'
+    });
+  }
+
+
+
   async registerForVolunteerOpportunity(opportunityId: string, timeSlotId: string, volunteerData?: {
     notes?: string;
     emergencyContact?: string;
@@ -840,23 +863,7 @@ class ApiClient {
     });
   }
 
-  async getVolunteerSignups(opportunityId: string): Promise<ApiResponse<{
-    signups: {
-      _id: string;
-      volunteer: User;
-      timeSlot: {
-        _id: string;
-        startTime: string;
-        endTime: string;
-        date?: string;
-      };
-      status: 'confirmed' | 'pending' | 'cancelled';
-      signupDate: string;
-      notes?: string;
-    }[];
-  }>> {
-    return this.request(`/volunteer/opportunities/${opportunityId}/signups`);
-  }
+
 
   async getVolunteerSignupsForOpportunity(opportunityId: string): Promise<ApiResponse<{
     opportunityId: string;
