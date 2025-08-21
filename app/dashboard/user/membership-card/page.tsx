@@ -14,7 +14,7 @@ import {
   RefreshCw
 } from "lucide-react"
 import { MembershipCard } from "@/components/membership-card"
-import { apiClient, PublicMembershipCardDisplay } from "@/lib/api"
+import { apiClient, PublicMembershipCardDisplay, User, Admin } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
@@ -26,68 +26,137 @@ export default function UserMembershipCardPage() {
   const [error, setError] = useState<string | null>(null)
   const [selectedCard, setSelectedCard] = useState<PublicMembershipCardDisplay | null>(null)
   const [responseInfo, setResponseInfo] = useState<any>(null)
+  const [membershipId, setMembershipId] = useState<string | null>(null)
+  const [membershipIdLoading, setMembershipIdLoading] = useState(false)
+  const [membershipIdError, setMembershipIdError] = useState<string | null>(null)
   const { user } = useAuth() // Get user from auth context
   const { toast } = useToast()
 
-  // Get user's name from auth context
-  const userName = user?.name || 'Member'
+  // Get user's name from auth context - try multiple sources
+  const getUserName = () => {
+    // Try to get name from different possible sources
+    if (user?.name) {
+      return user.name
+    }
+    
+    // Check if we have first_name and last_name
+    if (user && typeof user === 'object') {
+      const userAny = user as any
+      if (userAny.first_name && userAny.last_name) {
+        return `${userAny.first_name} ${userAny.last_name}`
+      }
+      if (userAny.first_name) {
+        return userAny.first_name
+      }
+      if (userAny.last_name) {
+        return userAny.last_name
+      }
+    }
+    
+    return 'Member'
+  }
+  
+  const userName = getUserName()
 
   // Filter cards to show only those matching user's current plan
-  const userPlanCards = cards.filter(card => 
-    user?.membershipPlan && card.membershipPlan._id === user.membershipPlan
-  );
+  const userPlanCards = cards.filter(card => {
+    if (user?.role === 'member' && 'membershipPlan' in user) {
+      return user.membershipPlan && card.membershipPlan._id === user.membershipPlan
+    }
+    return false
+  });
 
   // Use filtered cards if available, otherwise fall back to all cards
   const displayCards = userPlanCards.length > 0 ? userPlanCards : cards;
   const displaySelectedCard = userPlanCards.length > 0 ? userPlanCards[0] : selectedCard;
+
+  // Fetch membership ID for the user
+  const fetchMembershipId = async () => {
+    if (!user?._id) return;
+    
+    try {
+      setMembershipIdLoading(true)
+      setMembershipIdError(null)
+      // Get the user's active club membership
+      // Only User and Admin have memberships, SystemOwner doesn't
+      if (user.role === 'system_owner') return;
+      
+      const userMemberships = (user as User | Admin).memberships || [];
+      const activeMembership = userMemberships.find((m: any) => m.status === 'active');
+      
+      if (activeMembership?.club_id?._id) {
+        const response = await apiClient.getUserMembershipId(user._id, activeMembership.club_id._id);
+        
+        if (response.success && response.data) {
+          // Handle double-wrapped response: API client wraps backend response
+          // Backend: { success: true, data: { membershipId: "..." } }
+          // API Client: { success: true, data: { success: true, data: { membershipId: "..." } } }
+          let membershipData: any = response.data;
+          
+          // Extract the actual data from the double-wrapped response
+          if (membershipData.success && membershipData.data) {
+            membershipData = membershipData.data;
+          }
+          
+          // Try to find membershipId in various possible locations
+          let finalMembershipId = membershipData.membershipId;
+          if (!finalMembershipId && membershipData.data && membershipData.data.membershipId) {
+            finalMembershipId = membershipData.data.membershipId;
+          }
+          
+          if (finalMembershipId) {
+            setMembershipId(finalMembershipId);
+          } else {
+            throw new Error('Membership ID not found in response');
+          }
+        } else {
+          throw new Error(response.error || 'Failed to fetch membership ID');
+        }
+      } else {
+        throw new Error('No active club membership found for the user.');
+      }
+    } catch (error) {
+      console.error('Error fetching membership ID:', error);
+      setMembershipIdError(error instanceof Error ? error.message : String(error));
+    } finally {
+      setMembershipIdLoading(false);
+    }
+  };
 
   // Fetch user's membership cards - MUST be before any conditional returns
   useEffect(() => {
     const fetchCards = async () => {
       try {
         setLoading(true)
-        console.log('🔄 Frontend: Starting to fetch membership cards...')
         
         // Use the new API method to get cards for the user's club
         const response = await apiClient.getMyClubMembershipCards()
-        console.log('📡 Frontend: API Response received:', response)
         
         if (response.success && response.data) {
-          console.log('✅ Frontend: Setting cards data:', response.data)
-          console.log('✅ Frontend: Cards array length:', response.data.length)
-          console.log('✅ Frontend: First card structure:', response.data[0])
-          
           // Check if data is nested (backend sends { success: true, data: result.data })
-          const cardsData = Array.isArray(response.data) ? response.data : response.data.data
-          console.log('🔍 Frontend: Extracted cards data:', cardsData)
+          const cardsData = Array.isArray(response.data) ? response.data : (response.data as any)?.data
           
           if (cardsData && Array.isArray(cardsData)) {
             setCards(cardsData)
             setResponseInfo(response)
             if (cardsData.length > 0) {
-              console.log('🎯 Frontend: Setting selected card:', cardsData[0])
               setSelectedCard(cardsData[0])
             }
           } else {
-            console.log('❌ Frontend: Invalid cards data structure:', cardsData)
             setError('Invalid data structure received from server')
           }
         } else {
-          console.log('❌ Frontend: API returned error:', response.error)
-          console.log('❌ Frontend: Full response:', response)
           setError(response.error || 'Failed to fetch membership cards')
         }
         
         // Handle helpful messages from backend
         if (response.message) {
-          console.log('💬 Frontend: Displaying message:', response.message)
           toast({
             title: "Info",
             description: response.message,
           })
         }
       } catch (err) {
-        console.error('💥 Frontend: Error caught:', err)
         setError('Failed to fetch membership cards')
         toast({
           title: "Error",
@@ -96,12 +165,18 @@ export default function UserMembershipCardPage() {
         })
       } finally {
         setLoading(false)
-        console.log('🏁 Frontend: Fetch completed, loading set to false')
       }
     }
 
     fetchCards()
   }, [toast])
+
+  // Fetch membership ID when user data is available
+  useEffect(() => {
+    if (user?._id) {
+      fetchMembershipId();
+    }
+  }, [user]);
 
   // Show loading state if user data is not yet loaded
   if (!user && loading) {
@@ -138,8 +213,8 @@ export default function UserMembershipCardPage() {
     try {
       if (navigator.share && selectedCard) {
         await navigator.share({
-          title: `${selectedCard.club.name} Membership Card`,
-          text: `My membership card for ${selectedCard.club.name}`,
+          title: `${selectedCard.club?.name || 'Unknown Club'} Membership Card`,
+          text: `My membership card for ${selectedCard.club?.name || 'Unknown Club'}`,
           url: window.location.href,
         })
       } else {
@@ -205,22 +280,12 @@ export default function UserMembershipCardPage() {
     }
   }
 
-  console.log('🎭 Frontend: Current state values:', {
-    cards: cards,
-    cardsLength: cards.length,
-    selectedCard: selectedCard,
-    loading: loading,
-    error: error
-  })
-
   // Debug: Show raw data for troubleshooting
   if (cards.length > 0) {
-    console.log('🎉 Frontend: Cards found, first card:', cards[0])
   }
 
   // Show loading state while fetching
   if (loading) {
-    console.log('🔄 Frontend: Still loading, showing spinner')
     return (
       <ProtectedRoute>
         <DashboardLayout>
@@ -236,7 +301,6 @@ export default function UserMembershipCardPage() {
 
   // Show error state if there's an error
   if (error) {
-    console.log('❌ Frontend: Error state, showing error message')
     return (
       <ProtectedRoute>
         <DashboardLayout>
@@ -254,9 +318,72 @@ export default function UserMembershipCardPage() {
     )
   }
 
+  // Handler functions
+  const handleCreateMyCard = async () => {
+    try {
+      setLoading(true)
+      
+      const response = await apiClient.createMyMembershipCard()
+      
+      if (response.success && response.data) {
+        setCards([response.data])
+        setSelectedCard(response.data)
+        toast({
+          title: "Success",
+          description: response.message || "Membership card created successfully!",
+        })
+      } else {
+        toast({
+          title: "Error",
+          description: response.error || "Failed to create membership card",
+          variant: "destructive",
+        })
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to create membership card",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleFixMyCard = async () => {
+    try {
+      setLoading(true)
+      
+      const response = await apiClient.fixMyMembershipCard()
+      
+      if (response.success && response.data) {
+        setCards([response.data])
+        setSelectedCard(response.data)
+        toast({
+          title: "Success",
+          description: response.message || "Membership card fixed successfully!",
+        })
+      } else {
+        toast({
+          title: "Error",
+          description: response.error || "Failed to fix membership card",
+          variant: "destructive",
+        })
+      }
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to fix membership card",
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
+    }
+  }
+
   // Show empty state if no cards found
   if (cards.length === 0 && !loading) {
-    console.log('😞 Frontend: No cards found, showing empty state')
+    
     return (
       <ProtectedRoute>
         <DashboardLayout>
@@ -264,9 +391,18 @@ export default function UserMembershipCardPage() {
             <div className="text-center text-muted-foreground py-8">
               <CreditCard className="w-12 h-12 mx-auto mb-4 opacity-50" />
               <p className="text-lg font-medium">No Membership Cards Found</p>
-              <p className="text-sm mt-2">
-                You don't have any active membership cards at the moment.
+              <p className="text-sm mt-2 mb-4">
+                You don't have any membership cards yet, but you can create one now!
               </p>
+              
+              <Button onClick={handleCreateMyCard} className="mb-6">
+                <CreditCard className="w-4 h-4 mr-2" />
+                Create My Membership Card
+              </Button>
+              <Button onClick={handleFixMyCard} variant="outline" className="mb-6 ml-2">
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Fix My Membership Card
+              </Button>
               
               {/* Debug info */}
               <div className="mt-4 p-4 bg-muted rounded-lg text-left text-xs">
@@ -287,8 +423,6 @@ export default function UserMembershipCardPage() {
     )
   }
 
-  console.log('🎯 Frontend: Rendering main membership card display with', cards.length, 'cards')
-  
   return (
     <ProtectedRoute>
       <DashboardLayout>
@@ -299,6 +433,10 @@ export default function UserMembershipCardPage() {
               <p className="text-muted-foreground">View and manage your digital membership card</p>
             </div>
             <div className="flex gap-2">
+              <Button variant="outline" onClick={handleFixMyCard}>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Fix Card
+              </Button>
               <Button variant="outline" onClick={handleShowQR}>
                 <QrCode className="w-4 h-4 mr-2" />
                 Show QR
@@ -321,7 +459,7 @@ export default function UserMembershipCardPage() {
                   </CardTitle>
                   <CardDescription>
                     {displaySelectedCard ? 
-                      `Your digital membership card for ${displaySelectedCard.club.name}` : 
+                      `Your digital membership card for ${displaySelectedCard.club?.name || 'Unknown Club'}` : 
                       'Select a membership card to view'
                     }
                   </CardDescription>
@@ -335,6 +473,7 @@ export default function UserMembershipCardPage() {
                           cardStyle={displaySelectedCard.card.cardStyle}
                           showLogo={displaySelectedCard.card.customization?.showLogo ?? true}
                           userName={userName}
+                          membershipId={membershipId} // Pass the fetched membership ID
                         />
                       </div>
                     </div>
@@ -401,14 +540,14 @@ export default function UserMembershipCardPage() {
                       <div className="flex items-center gap-2 text-sm">
                         <MapPin className="w-4 h-4 text-muted-foreground" />
                         <span className="text-muted-foreground">Club:</span>
-                        <span>{displaySelectedCard.club.name}</span>
+                        <span>{displaySelectedCard.club?.name || 'Unknown Club'}</span>
                       </div>
 
-                      {displaySelectedCard.club.address?.city && (
+                      {displaySelectedCard.club?.location && (
                         <div className="flex items-center gap-2 text-sm">
                           <MapPin className="w-4 h-4 text-muted-foreground" />
                           <span className="text-muted-foreground">Location:</span>
-                          <span>{displaySelectedCard.club.address.city}</span>
+                          <span>{displaySelectedCard.club.location}</span>
                         </div>
                       )}
                     </div>
@@ -536,7 +675,7 @@ export default function UserMembershipCardPage() {
                   </p>
                   <p className="text-sm mb-4">
                     {userPlanCards.length === 0 && cards.length > 0 
-                      ? `You have the "${user?.membershipPlan?.name || 'Unknown'}" plan, but no cards are available for it. Contact your club administrator to create cards for your plan.`
+                      ? `You have the "${user?.role === 'member' && 'membershipPlan' in user ? (user as any).membershipPlan?.name || 'Unknown' : 'Unknown'}" plan, but no cards are available for it. Contact your club administrator to create cards for your plan.`
                       : "Contact your club administrator to create membership cards for your plans"
                     }
                   </p>

@@ -5,12 +5,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
 import { useAuth } from "@/contexts/auth-context"
 import { toast } from "sonner"
-import { User, Mail, Phone, Shield, Save, Key, Building2, MapPin, Globe, Users } from "lucide-react"
+import { User, Mail, Phone, Shield, Save, Building2, MapPin, Globe } from "lucide-react"
 
 export default function SettingsPage() {
   const { user, updateProfile } = useAuth()
@@ -20,11 +19,6 @@ export default function SettingsPage() {
     email: "",
     phoneNumber: "",
     countryCode: "+1"
-  })
-  const [passwordForm, setPasswordForm] = useState({
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: ""
   })
 
   useEffect(() => {
@@ -58,45 +52,6 @@ export default function SettingsPage() {
     } catch (error) {
       console.error("Error updating profile:", error)
       toast.error("Error updating profile")
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handlePasswordUpdate = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      toast.error("New passwords do not match")
-      return
-    }
-
-    if (passwordForm.newPassword.length < 6) {
-      toast.error("Password must be at least 6 characters long")
-      return
-    }
-
-    setLoading(true)
-
-    try {
-      const result = await updateProfile({
-        currentPassword: passwordForm.currentPassword,
-        newPassword: passwordForm.newPassword
-      })
-
-      if (result.success) {
-        toast.success("Password updated successfully")
-        setPasswordForm({
-          currentPassword: "",
-          newPassword: "",
-          confirmPassword: ""
-        })
-      } else {
-        toast.error(result.error || "Failed to update password")
-      }
-    } catch (error) {
-      console.error("Error updating password:", error)
-      toast.error("Error updating password")
     } finally {
       setLoading(false)
     }
@@ -186,54 +141,44 @@ export default function SettingsPage() {
               </CardContent>
             </Card>
 
-            {/* Password Change */}
+            {/* Account Information */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Key className="w-5 h-5" />
-                  Change Password
+                  <Shield className="w-5 h-5" />
+                  Account Information
                 </CardTitle>
                 <CardDescription>
-                  Update your password to keep your account secure
+                  View your account details and status
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <form onSubmit={handlePasswordUpdate} className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="currentPassword">Current Password</Label>
-                    <Input
-                      id="currentPassword"
-                      type="password"
-                      value={passwordForm.currentPassword}
-                      onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
-                      required
-                    />
+                    <Label className="text-sm font-medium">Account Type</Label>
+                    <p className="text-sm text-muted-foreground capitalize">
+                      {user.role}
+                    </p>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="newPassword">New Password</Label>
-                    <Input
-                      id="newPassword"
-                      type="password"
-                      value={passwordForm.newPassword}
-                      onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
-                      required
-                    />
+                    <Label className="text-sm font-medium">Account Status</Label>
+                    <p className="text-sm text-muted-foreground">
+                      {user.isActive ? "Active" : "Inactive"}
+                    </p>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                    <Input
-                      id="confirmPassword"
-                      type="password"
-                      value={passwordForm.confirmPassword}
-                      onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
-                      required
-                    />
+                    <Label className="text-sm font-medium">Phone Verification</Label>
+                    <p className="text-sm text-muted-foreground">
+                      {user.isPhoneVerified ? "Verified" : "Not Verified"}
+                    </p>
                   </div>
-                  <Button type="submit" disabled={loading} className="w-full">
-                    {loading ? "Updating..." : "Change Password"}
-                    <Key className="w-4 h-4 ml-2" />
-                  </Button>
-                </form>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Member Since</Label>
+                    <p className="text-sm text-muted-foreground">
+                      {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "N/A"}
+                    </p>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -326,72 +271,6 @@ export default function SettingsPage() {
               </CardContent>
             </Card>
           )}
-
-          {/* Account Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Shield className="w-5 h-5" />
-                Account Information
-              </CardTitle>
-              <CardDescription>
-                View your account details and status
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Account Type</Label>
-                  <p className="text-sm text-muted-foreground capitalize">
-                    {user.role}
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Account Status</Label>
-                  <p className="text-sm text-muted-foreground">
-                    {user.isActive ? "Active" : "Inactive"}
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Phone Verification</Label>
-                  <p className="text-sm text-muted-foreground">
-                    {user.isPhoneVerified ? "Verified" : "Not Verified"}
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <Label className="text-sm font-medium">Member Since</Label>
-                  <p className="text-sm text-muted-foreground">
-                    {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "N/A"}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Danger Zone */}
-          <Card className="border-destructive">
-            <CardHeader>
-              <CardTitle className="text-destructive">Danger Zone</CardTitle>
-              <CardDescription>
-                Irreversible and destructive actions
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div>
-                    <h4 className="font-medium">Delete Account</h4>
-                    <p className="text-sm text-muted-foreground">
-                      Permanently delete your account and all associated data
-                    </p>
-                  </div>
-                  <Button variant="destructive" disabled>
-                    Delete Account
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </DashboardLayout>
     </ProtectedRoute>

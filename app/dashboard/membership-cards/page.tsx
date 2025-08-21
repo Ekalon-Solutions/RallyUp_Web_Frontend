@@ -71,11 +71,19 @@ export default function MembershipCardsPage() {
             setMembershipPlans(plansData)
           }
           
-          // Fetch existing membership cards
-          const cardsResponse = await apiClient.getClubMembershipCards(clubResponse.data.club._id)
-          if (cardsResponse.success && cardsResponse.data) {
-            setCards(cardsResponse.data.data || [])
-          }
+                      // Fetch existing membership cards
+            const cardsResponse = await apiClient.getClubMembershipCards(clubResponse.data.club._id)
+            
+            if (cardsResponse.success && cardsResponse.data) {
+              // Handle both array and nested data structure
+              let cardsData = []
+              if (Array.isArray(cardsResponse.data)) {
+                cardsData = cardsResponse.data
+              } else if (cardsResponse.data.data && Array.isArray(cardsResponse.data.data)) {
+                cardsData = cardsResponse.data.data
+              }
+              setCards(cardsData)
+            }
         } else {
           setError('No club found for this user')
         }
@@ -177,9 +185,16 @@ export default function MembershipCardsPage() {
         setPreviewUrl(null)
         setSelectedFile(null)
       } else {
-        throw new Error(response.error || 'Failed to create card')
+        // Show the specific error from the backend
+        toast({
+          title: "Error",
+          description: response.error || 'Failed to create membership card',
+          variant: "destructive",
+        })
+        return
       }
     } catch (error) {
+      console.error('Error creating membership card:', error)
       toast({
         title: "Error",
         description: "Failed to create membership card",
@@ -226,12 +241,15 @@ export default function MembershipCardsPage() {
         
         // Fetch existing membership cards
         const cardsResponse = await apiClient.getClubMembershipCards(clubId)
-        console.log('Cards response:', cardsResponse);
         
         if (cardsResponse.success && cardsResponse.data) {
-          console.log('Cards data structure:', cardsResponse.data);
-          const cardsData = cardsResponse.data.data || [];
-          console.log('Extracted cards array:', cardsData);
+          // Handle both array and nested data structure
+          let cardsData = []
+          if (Array.isArray(cardsResponse.data)) {
+            cardsData = cardsResponse.data
+          } else if (cardsResponse.data.data && Array.isArray(cardsResponse.data.data)) {
+            cardsData = cardsResponse.data.data
+          }
           setCards(cardsData)
         }
       } catch (err) {
@@ -533,8 +551,8 @@ export default function MembershipCardsPage() {
                               <div className="flex justify-center">
                                 <MembershipCard
                                   cardData={card}
-                                  cardStyle={card.card.cardStyle}
-                                  showLogo={card.card.customization?.showLogo ?? true}
+                                  cardStyle={card.cardStyle}
+                                  showLogo={card.customization?.showLogo ?? true}
                                 />
                               </div>
                             </div>
@@ -547,6 +565,16 @@ export default function MembershipCardsPage() {
                       <CreditCard className="w-12 h-12 mx-auto mb-4 opacity-50" />
                       <p>No membership cards found</p>
                       <p className="text-sm">Create your first membership card to see a preview</p>
+                      {membershipPlans.length > 0 && (
+                        <div className="mt-4">
+                          <p className="text-sm text-blue-600 dark:text-blue-400">
+                            Available plans: {membershipPlans.map(p => p.name).join(', ')}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Go to the "Create Card" tab to create a membership card for one of these plans
+                          </p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </CardContent>
@@ -604,7 +632,15 @@ export default function MembershipCardsPage() {
                       <p className="text-sm">Create membership plans first</p>
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <>
+                      <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                        <p className="text-sm text-blue-800 dark:text-blue-200">
+                          <strong>Note:</strong> Each membership plan can only have one template card. 
+                          If you get an error saying "A template card already exists for this membership plan", 
+                          it means a card has already been created for that plan.
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="planId">Membership Plan</Label>
                         <Select
@@ -642,6 +678,7 @@ export default function MembershipCardsPage() {
                         </Select>
                       </div>
                     </div>
+                    </>
                   )}
 
                   {membershipPlans.length > 0 && (
@@ -866,9 +903,9 @@ export default function MembershipCardsPage() {
 
       {/* Edit Card Modal */}
       {editingCard && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-background border rounded-lg p-6 w-full max-w-md mx-4">
-            <div className="flex justify-between items-center mb-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-background border rounded-lg w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="flex justify-between items-center mb-4 p-6 pb-4">
               <h3 className="text-lg font-semibold text-foreground">Edit Membership Card</h3>
               <Button
                 variant="ghost"
@@ -881,7 +918,7 @@ export default function MembershipCardsPage() {
               </Button>
             </div>
             
-            <div className="space-y-4">
+            <div className="space-y-4 p-6 pt-0 overflow-y-auto flex-1">
               <div>
                 <Label htmlFor="cardStyle">Card Style</Label>
                 <Select
@@ -1016,7 +1053,7 @@ export default function MembershipCardsPage() {
               </div>
             </div>
 
-            <div className="flex justify-end space-x-2 mt-6">
+            <div className="flex justify-end space-x-2 mt-6 p-6 pt-4 border-t bg-muted/20">
               <Button variant="outline" onClick={handleCancelEdit}>
                 Cancel
               </Button>

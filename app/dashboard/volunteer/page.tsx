@@ -14,7 +14,7 @@ import { useAuth } from '@/contexts/auth-context';
 export default function VolunteerDashboard() {
   const { user } = useAuth();
   const [opportunities, setOpportunities] = React.useState<VolunteerOpportunity[]>([]);
-  const [userPreferences, setUserPreferences] = React.useState<VolunteerProfile | null>(null);
+
   const [volunteerProfile, setVolunteerProfile] = React.useState<any>(null);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState('available');
@@ -50,14 +50,14 @@ export default function VolunteerDashboard() {
       console.log('👤 User profile response:', {
         success: userProfileResponse.success,
         hasData: !!userProfileResponse.data,
-        hasClub: !!userProfileResponse.data?.club,
+        hasMemberships: !!userProfileResponse.data?.memberships,
         userData: userProfileResponse.data,
-        clubId: userProfileResponse.data?.club?._id,
-        clubName: userProfileResponse.data?.club?.name
+        memberships: userProfileResponse.data?.memberships
       });
       
-      if (!userProfileResponse.success || !userProfileResponse.data?.club) {
-        console.log('❌ No club found in user profile');
+      // Check if user has active club memberships
+      if (!userProfileResponse.success || !userProfileResponse.data?.memberships || userProfileResponse.data.memberships.length === 0) {
+        console.log('❌ No club memberships found in user profile');
         setOpportunities([]);
         setError('You need to be a member of a club to see volunteer opportunities');
         toast({
@@ -68,9 +68,26 @@ export default function VolunteerDashboard() {
         return;
       }
 
-      const clubId = userProfileResponse.data.club._id;
+      // Get the first active membership (assuming user can only be in one club at a time)
+      const activeMembership = userProfileResponse.data.memberships.find(membership =>
+        membership.status === 'active'
+      );
+
+      if (!activeMembership?.club_id?._id) {
+        console.log('❌ No active club membership found');
+        setOpportunities([]);
+        setError('You need to have an active club membership to see volunteer opportunities');
+        toast({
+          title: 'No Active Membership',
+          description: 'You need to have an active club membership to see volunteer opportunities',
+          variant: 'default',
+        });
+        return;
+      }
+
+      const clubId = activeMembership.club_id._id;
       console.log('🏢 Found club ID:', clubId);
-      console.log('🏢 Club details:', userProfileResponse.data.club);
+      console.log('🏢 Club details:', activeMembership.club_id);
       
       // Fetch opportunities for the user's club
       console.log('🔍 Fetching opportunities for club:', clubId);
@@ -79,7 +96,6 @@ export default function VolunteerDashboard() {
       console.log('📋 Opportunities API response:', {
         success: opportunitiesResponse.success,
         hasData: !!opportunitiesResponse.data,
-        hasOpportunities: !!opportunitiesResponse.data?.opportunities,
         error: opportunitiesResponse.error,
         rawResponse: opportunitiesResponse,
         dataType: typeof opportunitiesResponse.data,
@@ -97,16 +113,15 @@ export default function VolunteerDashboard() {
         return;
       }
       
-      // Handle both response structures: direct array or wrapped in data.opportunities
+      // The API returns { opportunities: VolunteerOpportunity[], pagination: {...} }
       let allOpportunities: VolunteerOpportunity[] = [];
-      if (Array.isArray(opportunitiesResponse.data)) {
-        // API returns array directly (fallback for backward compatibility)
+      if ((opportunitiesResponse.data as any)?.opportunities && Array.isArray((opportunitiesResponse.data as any).opportunities)) {
+        allOpportunities = (opportunitiesResponse.data as any).opportunities as VolunteerOpportunity[];
+        console.log('📊 Using opportunities array from response');
+      } else if (Array.isArray(opportunitiesResponse.data)) {
+        // Fallback for direct array response
         allOpportunities = opportunitiesResponse.data as VolunteerOpportunity[];
-        console.log('📊 Using direct array response');
-      } else if (opportunitiesResponse.data?.opportunities && Array.isArray(opportunitiesResponse.data.opportunities)) {
-        // API returns wrapped in data.opportunities (expected structure)
-        allOpportunities = opportunitiesResponse.data.opportunities as VolunteerOpportunity[];
-        console.log('📊 Using wrapped opportunities response');
+        console.log('📊 Using direct array response (fallback)');
       } else {
         // Fallback to empty array
         allOpportunities = [];
@@ -171,7 +186,10 @@ export default function VolunteerDashboard() {
     console.log('🎯 Attempting to sign up for opportunity:', { opportunityId, timeSlotId });
     console.log('👤 Current user:', user);
     console.log('🔑 User ID:', user?._id);
-    console.log('🏢 User club:', 'club' in (user || {}) ? (user as any).club : 'No club');
+    // Get club info from user's active membership
+    const activeMembership = (user as any)?.memberships?.find((membership: any) => membership.status === 'active');
+    const userClub = activeMembership?.club_id?.name || 'No active club membership';
+    console.log('🏢 User club:', userClub);
     
     // Frontend validation to prevent duplicate signup attempts
     if (!volunteerProfile) {
@@ -302,39 +320,29 @@ export default function VolunteerDashboard() {
       if (!profileResponse.success) {
         // Profile doesn't exist, create one first
         console.log('📝 Creating new volunteer profile...');
+        // Get club ID from user's active membership
+        const activeMembership = (user as any)?.memberships?.find((membership: any) => membership.status === 'active');
+        const clubId = activeMembership?.club_id?._id || '';
+        
+        if (!clubId) {
+          throw new Error('You need to be a member of a club to create a volunteer profile');
+        }
+
         const createResponse = await apiClient.createVolunteerProfile({
-          club: user?.club?._id || '', // TODO: Handle case where user is not a club member
           skills: preferences.skills || [],
           interests: preferences.interests || [],
           availability: {
             weekdays: preferences.availability?.weekdays || false,
             weekends: preferences.availability?.weekends || false,
-            evenings: preferences.availability?.evenings || false,
-            flexible: false
-          },
-          experience: {
-            level: 'beginner',
-            yearsOfExperience: 0,
-            previousRoles: []
-          },
-          preferences: {
-            preferredEventTypes: [],
-            maxHoursPerWeek: 10,
-            preferredTimeSlots: [],
-            locationPreference: 'on-site'
-          },
-          emergencyContact: {
-            name: '',
-            relationship: '',
-            phone: '',
-            email: ''
+            evenings: preferences.availability?.evenings || false
           },
           notes: preferences.notes || ''
         });
         
         if (createResponse.success) {
           console.log('✅ Successfully created volunteer profile');
-          setUserPreferences(preferences);
+          // Refresh volunteer profile from API
+          fetchVolunteerProfile();
           setIsModalOpen(false);
           toast({
             title: 'Success',
@@ -352,15 +360,15 @@ export default function VolunteerDashboard() {
           availability: {
             weekdays: preferences.availability?.weekdays || false,
             weekends: preferences.availability?.weekends || false,
-            evenings: preferences.availability?.evenings || false,
-            flexible: false
+            evenings: preferences.availability?.evenings || false
           },
           notes: preferences.notes || ''
         });
         
         if (updateResponse.success) {
           console.log('✅ Successfully updated volunteer profile');
-          setUserPreferences(preferences);
+          // Refresh volunteer profile from API
+          fetchVolunteerProfile();
           setIsModalOpen(false);
           toast({
             title: 'Success',
@@ -416,7 +424,7 @@ export default function VolunteerDashboard() {
         id: o._id,
         title: o.title,
         status: o.status,
-        club: o.club,
+        club: o.club || 'Unknown Club',
         timeSlots: o.timeSlots?.map(slot => ({
           id: slot._id,
           volunteersAssigned: slot.volunteersAssigned?.length || 0
@@ -435,7 +443,7 @@ export default function VolunteerDashboard() {
               Refresh Opportunities
             </Button>
             <Button onClick={() => setIsModalOpen(true)}>
-              {userPreferences?.isVolunteer ? 'Update Preferences' : 'Become a Volunteer'}
+              {volunteerProfile ? 'Update Preferences' : 'Become a Volunteer'}
             </Button>
           </div>
         </div>
@@ -460,7 +468,7 @@ export default function VolunteerDashboard() {
                     : `Found ${opportunities.length} total opportunities, ${availableOpportunities.length} available`
                   }
                 </p>
-                {user && 'volunteering' in user && !user.volunteering?.isVolunteer && (
+                {user && !volunteerProfile && (
                   <div className="p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
                     <p className="text-sm text-blue-800 dark:text-blue-200">
                       💡 You need to set up your volunteer preferences first. Click "Become a Volunteer" to get started!
@@ -556,7 +564,7 @@ export default function VolunteerDashboard() {
           open={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           onSubmit={handlePreferencesSubmit}
-          initialPreferences={userPreferences || undefined}
+          initialPreferences={volunteerProfile || undefined}
         />
       </div>
     </DashboardLayout>
