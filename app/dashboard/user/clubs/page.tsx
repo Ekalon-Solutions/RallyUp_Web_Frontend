@@ -182,26 +182,17 @@ export default function UserClubsPage() {
 
     setIsRegistering(true)
     try {
-      const response = await fetch('http://localhost:5000/api/users/join-club-request', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify({
-          clubId: selectedClub._id,
-          membershipPlanId: selectedPlan._id
-        }),
+      const response = await apiClient.joinClub({
+        clubId: selectedClub._id,
+        membershipPlanId: selectedPlan._id
       })
 
-      const data = await response.json()
-
-      if (response.ok) {
+      if (response.success) {
         toast.success("Successfully joined the club!")
         setShowRegistrationDialog(false)
         fetchClubs() // Refresh the clubs list
       } else {
-        toast.error(data.message || "Failed to join club. Please try again.")
+        toast.error(response.error || "Failed to join club. Please try again.")
       }
     } catch (error) {
       console.error("Join request error:", error)
@@ -316,7 +307,7 @@ export default function UserClubsPage() {
                 <Button 
                   size="lg" 
                   variant="outline" 
-                  className="border-white text-white hover:bg-white/10"
+                  className="border-gray-600 text-gray-900 hover:bg-gray-100 dark:border-white dark:text-white dark:hover:bg-white/10"
                   onClick={() => {
                     setStatusFilter("all");
                     setPriceFilter("all");

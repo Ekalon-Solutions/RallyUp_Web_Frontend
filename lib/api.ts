@@ -23,6 +23,27 @@ export interface User {
   membershipExpiry?: string;
   isActive?: boolean;
   volunteering?: VolunteerProfile;
+  memberships?: Array<{
+    _id: string;
+    club_id: {
+      _id: string;
+      name: string;
+      description?: string;
+      logo?: string;
+      status: string;
+    };
+    membership_level_id: {
+      _id: string;
+      name: string;
+      description: string;
+      price: number;
+      currency: string;
+      features: any;
+    };
+    status: 'active' | 'pending' | 'expired' | 'cancelled';
+    start_date: string;
+    end_date?: string;
+  }>;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -38,6 +59,27 @@ export interface Admin {
   club?: Club;
   isActive?: boolean;
   volunteering?: VolunteerProfile;
+  memberships?: Array<{
+    _id: string;
+    club_id: {
+      _id: string;
+      name: string;
+      description?: string;
+      logo?: string;
+      status: string;
+    };
+    membership_level_id: {
+      _id: string;
+      name: string;
+      description: string;
+      price: number;
+      currency: string;
+      features: any;
+    };
+    status: 'active' | 'pending' | 'expired' | 'cancelled';
+    start_date: string;
+    end_date?: string;
+  }>;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -61,10 +103,19 @@ export interface News {
   _id: string;
   title: string;
   content: string;
+  summary?: string;
   author: string;
+  authorId: string;
+  authorModel: 'Admin' | 'User';
+  club: Club;
   tags: string[];
+  category: 'general' | 'event' | 'announcement' | 'update' | 'achievement';
+  priority: 'low' | 'medium' | 'high';
   isPublished: boolean;
   publishedAt?: string;
+  images: string[];
+  featuredImage?: string;
+  viewCount: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -72,15 +123,26 @@ export interface News {
 export interface Event {
   _id: string;
   title: string;
-  description: string;
-  date: string;
-  time: string;
-  location: string;
-  organizer: string;
   category: string;
-  maxAttendees: number;
+  startTime: string; // ISO date string from backend
+  endTime?: string; // ISO date string from backend (optional)
+  venue: string;
+  description: string;
+  maxAttendees?: number;
+  ticketPrice: number;
+  requiresTicket: boolean;
+  memberOnly: boolean;
+  awayDayEvent: boolean;
+  isActive: boolean;
+  registrations?: Array<{
+    userId: string;
+    userName: string;
+    userEmail: string;
+    registrationDate: string;
+    status: 'confirmed' | 'pending' | 'cancelled';
+    notes?: string;
+  }>;
   currentAttendees: number;
-  isPublished: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -110,10 +172,11 @@ export interface Volunteer {
   _id: string;
   user: {
     _id: string;
-    name: string;
+    first_name: string;
+    last_name: string;
     email: string;
-    phoneNumber: string;
-    countryCode: string;
+    phone_number: string;
+    phone_country_code: string;
   };
   club: {
     _id: string;
@@ -221,6 +284,7 @@ export interface MembershipCard {
   barcode?: string;
   isDigitalCard: boolean;
   isPhysicalCard: boolean;
+  membershipId?: string | null; // User's membership ID (e.g., UM-2024-123456ABC)
   customization?: {
     primaryColor: string;
     secondaryColor: string;
@@ -358,11 +422,15 @@ class ApiClient {
     const token = this.getToken();
     console.log(`API request to ${endpoint} with token:`, token ? 'exists' : 'missing');
 
+    // Determine if we should set Content-Type header
+    const isFormData = options.body instanceof FormData;
+    
     const config: RequestInit = {
       headers: {
-        'Content-Type': 'application/json',
         'Accept': 'application/json',
         ...(token && { Authorization: `Bearer ${token}` }),
+        // Only set Content-Type for non-FormData requests
+        ...(!isFormData && { 'Content-Type': 'application/json' }),
         ...options.headers,
       },
       credentials: 'include',
@@ -544,31 +612,25 @@ class ApiClient {
     return this.request('/news/public');
   }
 
+  async getNewsByUserClub(): Promise<ApiResponse<News[]>> {
+    return this.request('/news/my-club');
+  }
+
   async getNewsById(id: string): Promise<ApiResponse<News>> {
     return this.request(`/news/${id}`);
   }
 
-  async createNews(data: {
-    title: string;
-    content: string;
-    tags: string[];
-    isPublished: boolean;
-  }): Promise<ApiResponse<{ message: string; news: News }>> {
+  async createNews(data: FormData): Promise<ApiResponse<{ message: string; news: News }>> {
     return this.request('/news', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: data,
     });
   }
 
-  async updateNews(id: string, data: {
-    title?: string;
-    content?: string;
-    tags?: string[];
-    isPublished?: boolean;
-  }): Promise<ApiResponse<{ message: string; news: News }>> {
+  async updateNews(id: string, data: FormData): Promise<ApiResponse<{ message: string; news: News }>> {
     return this.request(`/news/${id}`, {
       method: 'PUT',
-      body: JSON.stringify(data),
+      body: data,
     });
   }
 
@@ -583,6 +645,19 @@ class ApiClient {
       method: 'PATCH',
       body: JSON.stringify({ isPublished }),
     });
+  }
+
+  async getNewsStats(): Promise<ApiResponse<{
+    stats: {
+      total: number;
+      published: number;
+      drafts: number;
+      totalViews: number;
+    };
+    categoryStats: { _id: string; count: number }[];
+    priorityStats: { _id: string; count: number }[];
+  }>> {
+    return this.request('/news/stats');
   }
 
   // Events APIs
@@ -600,13 +675,16 @@ class ApiClient {
 
   async createEvent(data: {
     title: string;
-    description: string;
-    date: string;
-    time: string;
-    location: string;
     category: string;
-    maxAttendees: number;
-    isPublished: boolean;
+    startTime: string; // ISO date string
+    endTime?: string; // ISO date string (optional)
+    venue: string;
+    description: string;
+    maxAttendees?: number;
+    ticketPrice: number;
+    requiresTicket: boolean;
+    memberOnly: boolean;
+    awayDayEvent: boolean;
   }): Promise<ApiResponse<{ message: string; event: Event }>> {
     return this.request('/events', {
       method: 'POST',
@@ -616,13 +694,16 @@ class ApiClient {
 
   async updateEvent(id: string, data: {
     title?: string;
-    description?: string;
-    date?: string;
-    time?: string;
-    location?: string;
     category?: string;
+    startTime?: string; // ISO date string
+    endTime?: string; // ISO date string (optional)
+    venue?: string;
+    description?: string;
     maxAttendees?: number;
-    isPublished?: boolean;
+    ticketPrice?: number;
+    requiresTicket?: boolean;
+    memberOnly?: boolean;
+    awayDayEvent?: boolean;
   }): Promise<ApiResponse<{ message: string; event: Event }>> {
     return this.request(`/events/${id}`, {
       method: 'PUT',
@@ -636,21 +717,59 @@ class ApiClient {
     });
   }
 
-  async toggleEventPublish(id: string, isPublished: boolean): Promise<ApiResponse<{ message: string; event: Event }>> {
-    return this.request(`/events/${id}/toggle-publish`, {
+  async toggleEventStatus(id: string, isActive: boolean): Promise<ApiResponse<{ message: string; event: Event }>> {
+    return this.request(`/events/${id}/toggle-status`, {
       method: 'PATCH',
-      body: JSON.stringify({ isPublished }),
+      body: JSON.stringify({ isActive }),
     });
   }
 
-  async registerForEvent(id: string, userId: string): Promise<ApiResponse<{ message: string; event: Event }>> {
-    return this.request(`/events/public/${id}/register`, {
+  // Event Registration APIs
+  async registerForEvent(eventId: string, notes?: string): Promise<ApiResponse<{ message: string; event: Event }>> {
+    return this.request(`/events/${eventId}/register`, {
       method: 'POST',
-      body: JSON.stringify({ userId }),
+      body: JSON.stringify({ notes }),
     });
   }
 
+  async cancelEventRegistration(eventId: string): Promise<ApiResponse<{ message: string; event: Event }>> {
+    return this.request(`/events/${eventId}/register`, {
+      method: 'DELETE',
+    });
+  }
 
+  async getEventRegistrations(eventId: string): Promise<ApiResponse<{
+    registrations: Array<{
+      userId: string;
+      userName: string;
+      userEmail: string;
+      registrationDate: string;
+      status: 'confirmed' | 'pending' | 'cancelled';
+      notes?: string;
+    }>;
+    currentAttendees: number;
+    maxAttendees?: number;
+  }>> {
+    return this.request(`/events/${eventId}/registrations`);
+  }
+
+  async getUserEventRegistrations(): Promise<ApiResponse<Array<{
+    eventId: string;
+    eventTitle: string;
+    eventStartTime: string;
+    eventVenue: string;
+    eventCategory: string;
+    registration: {
+      userId: string;
+      userName: string;
+      userEmail: string;
+      registrationDate: string;
+      status: 'confirmed' | 'pending' | 'cancelled';
+      notes?: string;
+    };
+  }>>> {
+    return this.request('/events/my-registrations');
+  }
 
   // Volunteer Management (Updated for new structure)
   async getVolunteers(params?: {
@@ -675,219 +794,49 @@ class ApiClient {
     return this.request(endpoint);
   }
 
-  async getVolunteerById(id: string): Promise<ApiResponse<Volunteer>> {
-    return this.request(`/volunteer/volunteers/${id}`);
-  }
-
-  async createVolunteerProfile(data: {
-    club: string;
-    skills: string[];
-    interests: string[];
-    availability: {
-      weekdays: boolean;
-      weekends: boolean;
-      evenings: boolean;
-      flexible: boolean;
-    };
-    experience: {
-      level: 'beginner' | 'intermediate' | 'advanced' | 'expert';
-      yearsOfExperience: number;
-      previousRoles: string[];
-    };
-    preferences: {
-      preferredEventTypes: string[];
-      maxHoursPerWeek: number;
-      preferredTimeSlots: string[];
-      locationPreference: 'on-site' | 'remote' | 'both';
-    };
-    emergencyContact: {
-      name: string;
-      relationship: string;
-      phone: string;
-      email: string;
-    };
-    notes?: string;
-  }): Promise<ApiResponse<{ message: string; volunteer: Volunteer }>> {
-    return this.request('/volunteer/volunteer-profile', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  }
-
-  async updateVolunteerProfile(data: Partial<{
-    skills: string[];
-    interests: string[];
-    availability: {
-      weekdays: boolean;
-      weekends: boolean;
-      evenings: boolean;
-      flexible: boolean;
-    };
-    experience: {
-      level: 'beginner' | 'intermediate' | 'advanced' | 'expert';
-      yearsOfExperience: number;
-      previousRoles: string[];
-    };
-    preferences: {
-      preferredEventTypes: string[];
-      maxHoursPerWeek: number;
-      preferredTimeSlots: string[];
-      locationPreference: 'on-site' | 'remote' | 'both';
-    };
-    emergencyContact: {
-      name: string;
-      relationship: string;
-      phone: string;
-      email: string;
-    };
-    notes: string;
-    status: 'available' | 'busy' | 'unavailable' | 'on-assignment';
-  }>): Promise<ApiResponse<{ message: string; volunteer: Volunteer }>> {
-    return this.request('/volunteer/volunteer-profile', {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    });
-  }
-
-  async deleteVolunteerProfile(): Promise<ApiResponse<{ message: string }>> {
-    return this.request('/volunteer/volunteer-profile', {
-      method: 'DELETE',
-    });
-  }
-
-  async getVolunteerProfile(): Promise<ApiResponse<Volunteer>> {
-    return this.request('/volunteer/volunteer-profile');
-  }
-
-  async updateVolunteer(id: string, data: {
-    name?: string;
-    email?: string;
-    phoneNumber?: string;
-    countryCode?: string;
-    skills?: string[];
-    interests?: string[];
-    availability?: {
-      weekdays: boolean;
-      weekends: boolean;
-      evenings: boolean;
-    };
-    notes?: string;
-    isActive?: boolean;
-  }): Promise<ApiResponse<{ message: string; volunteer: User }>> {
-    return this.request(`/volunteer/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    });
-  }
-
-  async deleteVolunteer(id: string): Promise<ApiResponse<{ message: string }>> {
-    return this.request(`/volunteer/${id}`, {
-      method: 'DELETE',
-    });
-  }
-
-  async getVolunteerStats(clubId?: string): Promise<ApiResponse<{
-    totalVolunteers: number;
-    activeVolunteers: number;
-    volunteersBySkill: { skill: string; count: number }[];
-    volunteersByAvailability: { availability: string; count: number }[];
-    newVolunteersThisMonth: number;
-  }>> {
-    const endpoint = clubId ? `/volunteer/stats?clubId=${clubId}` : '/volunteer/stats';
-    return this.request(endpoint);
-  }
-
-  // Volunteer Opportunity Management (Enhanced)
-  async createVolunteerOpportunity(data: {
-    title: string;
-    description: string;
-    club: string;
-    event?: string;
-    requiredSkills: string[];
-    timeSlots: {
-      startTime: string;
-      endTime: string;
-      volunteersNeeded: number;
-      date?: string;
-    }[];
-    status: 'draft' | 'open' | 'filled' | 'completed' | 'cancelled';
-    notes?: string;
-    location?: string;
-    contactPerson?: string;
-    contactPhone?: string;
-    contactEmail?: string;
-  }): Promise<ApiResponse<{ message: string; opportunity: VolunteerOpportunity }>> {
-    return this.request('/volunteer/opportunities', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  }
-
-  async updateVolunteerOpportunity(id: string, data: Partial<{
-    title: string;
-    description: string;
-    requiredSkills: string[];
-    timeSlots: {
-      startTime: string;
-      endTime: string;
-      volunteersNeeded: number;
-      date?: string;
-    }[];
-    status: 'draft' | 'open' | 'filled' | 'completed' | 'cancelled';
-    notes: string;
-    location: string;
-    contactPerson: string;
-    contactPhone: string;
-    contactEmail: string;
-  }>): Promise<ApiResponse<{ message: string; opportunity: VolunteerOpportunity }>> {
-    return this.request(`/volunteer/opportunities/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    });
-  }
-
   async getVolunteerOpportunities(params?: {
     club?: string;
-    status?: string;
-    event?: string;
-    skills?: string[];
-    date?: string;
+    category?: string;
+    status?: 'active' | 'inactive' | 'completed';
     page?: number;
     limit?: number;
-  }): Promise<ApiResponse<{
-    opportunities: VolunteerOpportunity[];
-    pagination: {
-      page: number;
-      limit: number;
-      total: number;
-      pages: number;
-    };
-  }>> {
+    search?: string;
+  }): Promise<ApiResponse<VolunteerOpportunity[]>> {
     const queryParams = new URLSearchParams();
     if (params?.club) queryParams.append('club', params.club);
+    if (params?.category) queryParams.append('category', params.category);
     if (params?.status) queryParams.append('status', params.status);
-    if (params?.event) queryParams.append('event', params.event);
-    if (params?.skills) params.skills.forEach(skill => queryParams.append('skills', skill));
-    if (params?.date) queryParams.append('date', params.date);
     if (params?.page) queryParams.append('page', params.page.toString());
     if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.search) queryParams.append('search', params.search);
 
     const endpoint = `/volunteer/opportunities${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
     return this.request(endpoint);
   }
 
-  async getVolunteerOpportunityById(id: string): Promise<ApiResponse<VolunteerOpportunity>> {
-    return this.request(`/volunteer/opportunities/${id}`);
+  async createVolunteerOpportunity(opportunity: any): Promise<ApiResponse<VolunteerOpportunity>> {
+    return this.request('/volunteer/opportunities', {
+      method: 'POST',
+      body: JSON.stringify(opportunity)
+    });
+  }
+
+  async updateVolunteerOpportunity(id: string, opportunity: any): Promise<ApiResponse<VolunteerOpportunity>> {
+    return this.request(`/volunteer/opportunities/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(opportunity)
+    });
   }
 
   async deleteVolunteerOpportunity(id: string): Promise<ApiResponse<{ message: string }>> {
     return this.request(`/volunteer/opportunities/${id}`, {
-      method: 'DELETE',
+      method: 'DELETE'
     });
   }
 
-  // Volunteer Signup Management
-  async signUpForVolunteerOpportunity(opportunityId: string, timeSlotId: string, volunteerData?: {
+
+
+  async registerForVolunteerOpportunity(opportunityId: string, timeSlotId: string, volunteerData?: {
     notes?: string;
     emergencyContact?: string;
     emergencyPhone?: string;
@@ -898,6 +847,15 @@ class ApiClient {
     });
   }
 
+  // Alias for registerForVolunteerOpportunity (for backward compatibility)
+  async signUpForVolunteerOpportunity(opportunityId: string, timeSlotId: string, volunteerData?: {
+    notes?: string;
+    emergencyContact?: string;
+    emergencyPhone?: string;
+  }): Promise<ApiResponse<{ message: string; opportunity: VolunteerOpportunity }>> {
+    return this.registerForVolunteerOpportunity(opportunityId, timeSlotId, volunteerData);
+  }
+
   async withdrawFromVolunteerOpportunity(opportunityId: string, timeSlotId: string): Promise<ApiResponse<{ message: string; opportunity: VolunteerOpportunity }>> {
     return this.request(`/volunteer/opportunities/${opportunityId}/withdraw`, {
       method: 'POST',
@@ -905,23 +863,7 @@ class ApiClient {
     });
   }
 
-  async getVolunteerSignups(opportunityId: string): Promise<ApiResponse<{
-    signups: {
-      _id: string;
-      volunteer: User;
-      timeSlot: {
-        _id: string;
-        startTime: string;
-        endTime: string;
-        date?: string;
-      };
-      status: 'confirmed' | 'pending' | 'cancelled';
-      signupDate: string;
-      notes?: string;
-    }[];
-  }>> {
-    return this.request(`/volunteer/opportunities/${opportunityId}/signups`);
-  }
+
 
   async getVolunteerSignupsForOpportunity(opportunityId: string): Promise<ApiResponse<{
     opportunityId: string;
@@ -1036,6 +978,45 @@ class ApiClient {
   }>> {
     const endpoint = clubId ? `/volunteer/training?clubId=${clubId}` : '/volunteer/training';
     return this.request(endpoint);
+  }
+
+  // Get volunteer profile for the current user
+  async getVolunteerProfile(): Promise<ApiResponse<VolunteerProfile>> {
+    return this.request('/volunteer/profile');
+  }
+
+  // Create volunteer profile for the current user
+  async createVolunteerProfile(data: {
+    interests: string[];
+    availability: {
+      weekdays: boolean;
+      weekends: boolean;
+      evenings: boolean;
+    };
+    skills: string[];
+    notes?: string;
+  }): Promise<ApiResponse<VolunteerProfile>> {
+    return this.request('/volunteer/volunteer-profile', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  // Update volunteer profile for the current user
+  async updateVolunteerProfile(data: {
+    interests?: string[];
+    availability?: {
+      weekdays?: boolean;
+      weekends?: boolean;
+      evenings?: boolean;
+    };
+    skills?: string[];
+    notes?: string;
+  }): Promise<ApiResponse<VolunteerProfile>> {
+    return this.request('/volunteer/volunteer-profile', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
   }
 
   async markTrainingCompleted(trainingId: string): Promise<ApiResponse<{ message: string }>> {
@@ -1401,10 +1382,11 @@ class ApiClient {
     return this.request(endpoint);
   }
 
-  async getClubMemberDirectory(params?: {
+  async getClubMemberDirectory(params: {
     search?: string;
     page?: number;
     limit?: number;
+    clubId: string;
   }): Promise<ApiResponse<{
     members: User[];
     pagination: {
@@ -1418,9 +1400,21 @@ class ApiClient {
     if (params?.search) queryParams.append('search', params.search);
     if (params?.page) queryParams.append('page', params.page.toString());
     if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.clubId) queryParams.append('clubId', params.clubId);
 
     const endpoint = `/users/club-directory${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
     return this.request(endpoint);
+  }
+
+  // Get membership ID for a user in a specific club
+  async getUserMembershipId(userId: string, clubId: string): Promise<ApiResponse<{
+    membershipId: string;
+    status: string;
+    startDate: string;
+    endDate?: string;
+    membershipLevel: string;
+  }>> {
+    return this.request(`/users/membership-id/${userId}/${clubId}`);
   }
 
   // Debug method - remove after fixing
@@ -1435,6 +1429,18 @@ class ApiClient {
 
   async getMyClubMembershipCards(): Promise<ApiResponse<PublicMembershipCardDisplay[]>> {
     return this.request('/membership-cards/my-club-cards');
+  }
+
+  async createMyMembershipCard(): Promise<ApiResponse<PublicMembershipCardDisplay>> {
+    return this.request('/membership-cards/create-my-card', {
+      method: 'POST',
+    });
+  }
+
+  async fixMyMembershipCard(): Promise<ApiResponse<PublicMembershipCardDisplay>> {
+    return this.request('/membership-cards/fix-my-card', {
+      method: 'POST',
+    });
   }
 
   async getMembershipCard(cardId: string): Promise<ApiResponse<PublicMembershipCardDisplay>> {

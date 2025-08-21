@@ -24,23 +24,17 @@ interface MembershipCardProps {
   cardStyle?: 'default' | 'premium' | 'vintage' | 'modern';
   showLogo?: boolean;
   userName?: string; // User's name to display on the card (replaces card number)
+  membershipId?: string | null; // User's membership ID from API
 }
 
 export function MembershipCard({ 
   cardData, 
   cardStyle = 'default', 
   showLogo = true,
-  userName = 'Member Name' // Default value
+  userName = 'Member Name', // Default value
+  membershipId = null // Default value
 }: MembershipCardProps) {
   const { card, club, membershipPlan } = cardData;
-
-  // Debug logging to see what data we're receiving
-  console.log('🎨 MembershipCard Debug:', {
-    cardStyle,
-    cardCustomization: card.customization,
-    membershipPlan: membershipPlan,
-    club: club
-  });
 
   // Style configurations with customization override
   const getStyleConfig = () => {
@@ -96,14 +90,6 @@ export function MembershipCard({
   };
 
   const style = getStyleConfig();
-
-  // Debug logging for style configuration
-  console.log('🎨 Style Config Applied:', {
-    style,
-    hasCustomColors: !!style.customColors,
-    primaryColor: style.customColors?.primary,
-    secondaryColor: style.customColors?.secondary
-  });
 
   // Get font family from customization or use default
   const getFontFamily = () => {
@@ -195,46 +181,39 @@ export function MembershipCard({
               <p className="text-xs opacity-80 truncate">{club.address?.city || club.address?.state || 'Location'}</p>
             </div>
           </div>
-          <Badge variant={getStatusVariant(card.status)} className="text-xs">
-            {card.status}
-          </Badge>
         </div>
 
-        {/* User Name - Main Display */}
-        <div className="text-center mb-3">
-          <div className="flex items-center justify-center gap-2 mb-1">
-            <CreditCard className="w-4 h-4" />
-            <span className="text-xs opacity-80">Member</span>
-          </div>
-          <p className="font-bold text-xl tracking-wide">
+        {/* User Name - Main Display (Debit Card Style) */}
+        <div className="text-center mb-4">
+          <p className="font-bold text-2xl tracking-wide mb-2">
             {userName || 'Member'}
           </p>
+                     {/* Display Membership ID prominently like a card number */}
+           <div className="mb-2">
+             <p className="text-xs opacity-80 mb-1">Membership ID</p>
+             <p className="text-lg font-mono tracking-widest font-semibold opacity-90">
+               {membershipId || 'UM-2024-123456ABC'}
+             </p>
+           </div>
         </div>
 
-        {/* Plan Info */}
-        <div className="text-center mb-3">
-          <div className="flex items-center justify-center gap-1 mb-1">
-            <Crown className="w-3 h-3" />
-            <span className="text-xs opacity-80">Plan</span>
-          </div>
-          <p className="font-semibold text-sm truncate">{membershipPlan.name}</p>
-          {/* Debug: Show if custom colors are being used */}
-          {style.customColors && (
-            <p className="text-xs opacity-60 mt-1">Custom Colors Applied</p>
-          )}
+        {/* Plan Info - Less prominent for debit card style */}
+        <div className="text-center mb-2">
+          <p className="text-xs opacity-70 mb-1">Plan</p>
+          <p className="text-sm font-medium truncate">{membershipPlan.name}</p>
         </div>
 
-        {/* Footer */}
+        {/* Footer - Debit Card Style */}
         <div className="flex justify-between items-end">
-          <div className="flex items-center gap-2">
-            <Calendar className="w-3 h-3" />
-            <span className="text-xs opacity-80">
-              Expires: {formatDate(card.expiryDate)}
-            </span>
+          <div>
+            <p className="text-xs opacity-70 mb-1">Valid Thru</p>
+            <p className="text-sm font-medium">{formatDate(card.expiryDate)}</p>
           </div>
-          <div className="flex items-center gap-1">
-            <QrCode className="w-3 h-3" />
-            <BarChart3 className="w-3 h-3" />
+          <div className="text-right">
+            <p className="text-xs opacity-70 mb-1">Status</p>
+            <Badge variant={getStatusVariant(card.status)} className="text-xs">
+              {card.status}
+            </Badge>
           </div>
         </div>
       </CardContent>
@@ -344,6 +323,7 @@ export function MembershipCardPreview() {
                 cardData={cards[0]}
                 cardStyle={style as any}
                 showLogo={true}
+                membershipId={cards[0]?.card?.membershipId || null}
               />
             </div>
           </div>

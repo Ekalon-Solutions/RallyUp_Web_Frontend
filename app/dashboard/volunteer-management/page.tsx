@@ -259,63 +259,119 @@ export default function VolunteerManagementPage() {
   const { toast } = useToast();
 
   const clubId = React.useMemo(() => {
-    if (user && 'club' in user && user.club && typeof user.club === 'object' && '_id' in user.club) {
-      return user.club._id;
+    if (!user || user.role === 'system_owner') return null;
+    
+    // First try to get club from memberships (new structure)
+    const userMemberships = (user as any).memberships || [];
+    const activeMembership = userMemberships.find((m: any) => m.status === 'active');
+    if (activeMembership?.club_id?._id) {
+      console.log('🔍 Found club ID from active membership:', activeMembership.club_id._id);
+      return activeMembership.club_id._id;
     }
+    
+    // Fallback: try to get club from old club field (for backward compatibility)
+    if ((user as any).club?._id) {
+      console.log('🔍 Found club ID from old club field:', (user as any).club._id);
+      return (user as any).club._id;
+    }
+    
+    // If still no club, try to find any membership (even if not active)
+    if (userMemberships.length > 0 && userMemberships[0]?.club_id?._id) {
+      console.log('🔍 Found club ID from first membership:', userMemberships[0].club_id._id);
+      return userMemberships[0].club_id._id;
+    }
+    
+    console.log('❌ No club ID found for user:', {
+      role: user.role,
+      hasMemberships: !!userMemberships.length,
+      memberships: userMemberships,
+      oldClub: (user as any).club
+    });
     return null;
   }, [user]);
 
+  // Debug effect to log when clubId changes
+  React.useEffect(() => {
+    console.log('🔍 Club ID changed:', clubId);
+    if (clubId) {
+      console.log('✅ Club ID found, will fetch data');
+    } else {
+      console.log('❌ No club ID, cannot fetch data');
+    }
+  }, [clubId]);
+
   const fetchOpportunities = React.useCallback(async () => {
-    if (!user || !('club' in user) || !user.club) return;
+    if (!clubId) {
+      console.log('❌ Cannot fetch opportunities: no club ID');
+      return;
+    }
     
+    console.log('🔍 Fetching opportunities for club:', clubId);
     try {
-      const clubId = user.club._id;
       const response = await apiClient.getVolunteerOpportunities({ club: clubId });
+      console.log('📋 Opportunities API response:', response);
       
       if (response.success) {
-        const opportunities = response.data?.opportunities || [];
+        // Handle both array and object with opportunities property
+        const opportunities = Array.isArray(response.data) ? response.data : ((response.data as any)?.opportunities || []);
+        console.log('✅ Processed opportunities:', opportunities);
         setOpportunities(opportunities);
       } else {
-        console.error('Failed to fetch opportunities:', response.error);
+        console.error('❌ Failed to fetch opportunities:', response.error);
         setOpportunities([]);
       }
     } catch (error) {
-      console.error('Error fetching opportunities:', error);
+      console.error('❌ Error fetching opportunities:', error);
       setOpportunities([]);
     }
-  }, [user]);
+  }, [clubId]);
 
   const fetchVolunteers = React.useCallback(async () => {
-    if (!user || !('club' in user) || !user.club) return;
+    if (!clubId) {
+      console.log('❌ Cannot fetch volunteers: no club ID');
+      return;
+    }
     
+    console.log('🔍 Fetching volunteers for club:', clubId);
     try {
-      const clubId = user.club._id;
       const response = await apiClient.getVolunteers({ club: clubId });
+      console.log('👥 Volunteers API response:', response);
       
       if (response.success) {
+        console.log('✅ Processed volunteers:', response.data);
+        // Log the structure of the first volunteer to understand the data format
+        if (response.data && response.data.length > 0) {
+          console.log('🔍 First volunteer structure:', {
+            id: response.data[0]._id,
+            hasUser: !!response.data[0].user,
+            userFields: response.data[0].user ? Object.keys(response.data[0].user) : 'No user object',
+            userData: response.data[0].user
+          });
+        }
         setVolunteers(response.data || []);
       } else {
-        console.error('Failed to fetch volunteers:', response.error);
+        console.error('❌ Failed to fetch volunteers:', response.error);
         setVolunteers([]);
       }
     } catch (error) {
-      console.error('Error fetching volunteers:', error);
+      console.error('❌ Error fetching volunteers:', error);
       setVolunteers([]);
     }
-  }, [user]);
+  }, [clubId]);
 
   const fetchVolunteerSignups = React.useCallback(async () => {
-    if (!user || !('club' in user) || !user.club) return;
+    if (!clubId) return;
     
     try {
       setLoading(true);
-      const clubId = user.club._id;
       
       // Fetch all opportunities for the club
       const opportunitiesResponse = await apiClient.getVolunteerOpportunities({ club: clubId });
       if (!opportunitiesResponse.success) return;
       
-      const clubOpportunities = opportunitiesResponse.data?.opportunities || [];
+      // Handle both array and object with opportunities property
+      const clubOpportunities = Array.isArray(opportunitiesResponse.data) ? 
+        opportunitiesResponse.data : ((opportunitiesResponse.data as any)?.opportunities || []);
       
       // Collect all signups from all opportunities
       const allSignups: any[] = [];
@@ -349,7 +405,7 @@ export default function VolunteerManagementPage() {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [clubId]);
 
   const fetchOpportunitySignups = React.useCallback(async (opportunityId: string) => {
     try {
@@ -380,13 +436,13 @@ export default function VolunteerManagementPage() {
 
   // Separate useEffect for volunteer signups
   React.useEffect(() => {
-    if (user && 'club' in user && user.club) {
+    if (clubId) {
       fetchVolunteerSignups();
     }
-  }, [user, fetchVolunteerSignups]); // Only depend on user changes
+  }, [clubId, fetchVolunteerSignups]);
 
   const handleCreateOpportunity = React.useCallback(async (opportunity: any) => {
-    if (!user || !('club' in user) || !user.club) return;
+    if (!clubId) return;
     
     try {
       const response = await apiClient.createVolunteerOpportunity(opportunity);
@@ -412,7 +468,7 @@ export default function VolunteerManagementPage() {
         variant: 'destructive',
       });
     }
-  }, [user, toast, fetchOpportunities]);
+  }, [clubId, toast, fetchOpportunities]);
 
   const handleEditOpportunity = React.useCallback(async (opportunity: any) => {
     if (!editingOpportunity) return;
@@ -479,10 +535,28 @@ export default function VolunteerManagementPage() {
     return matchesSearch && matchesStatus;
   }), [opportunities, searchTerm, statusFilter]);
 
-  const filteredVolunteers = React.useMemo(() => volunteers.filter((volunteer) =>
-    volunteer.user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    volunteer.user.email.toLowerCase().includes(searchTerm.toLowerCase())
-  ), [volunteers, searchTerm]);
+  const filteredVolunteers = React.useMemo(() => volunteers.filter((volunteer) => {
+    // Safely access user properties with fallbacks
+    const userName = volunteer.user?.first_name && volunteer.user?.last_name ? 
+                    `${volunteer.user.first_name} ${volunteer.user.last_name}` : 
+                    'Unknown User';
+    const userEmail = volunteer.user?.email || 'No Email';
+    
+    return userName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+           userEmail.toLowerCase().includes(searchTerm.toLowerCase());
+  }), [volunteers, searchTerm]);
+
+  // Helper function to safely get volunteer display name
+  const getVolunteerDisplayName = (volunteer: Volunteer | undefined) => {
+    if (!volunteer || !volunteer.user) return 'Unknown User';
+    return `${volunteer.user.first_name || ''} ${volunteer.user.last_name || ''}`.trim() || 'Unknown User';
+  };
+
+  // Helper function to safely get volunteer contact info
+  const getVolunteerContactInfo = (volunteer: Volunteer | undefined) => {
+    if (!volunteer || !volunteer.user) return 'No contact info';
+    return `${volunteer.user.phone_country_code || ''} ${volunteer.user.phone_number || ''}`.trim() || 'No contact info';
+  };
 
   return (
     <DashboardLayout>
@@ -516,6 +590,27 @@ export default function VolunteerManagementPage() {
               <SelectItem value="cancelled">Cancelled</SelectItem>
             </SelectContent>
           </Select>
+          <Button 
+            onClick={() => {
+              console.log('🔄 Manual refresh triggered');
+              if (clubId) {
+                fetchOpportunities();
+                fetchVolunteers();
+                fetchVolunteerSignups();
+              } else {
+                console.log('❌ Cannot refresh: no club ID');
+              }
+            }}
+            variant="outline"
+            disabled={!clubId}
+          >
+            🔄 Refresh Data
+          </Button>
+          {!clubId && (
+            <div className="text-red-600 text-sm flex items-center">
+              ⚠️ No club ID found - cannot fetch data
+            </div>
+          )}
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
@@ -524,6 +619,14 @@ export default function VolunteerManagementPage() {
             <TabsTrigger value="volunteers">Volunteers</TabsTrigger>
             <TabsTrigger value="signups">Volunteer Signups</TabsTrigger>
           </TabsList>
+
+          {/* Status Indicators */}
+          <div className="flex gap-4 text-sm text-muted-foreground">
+            <div>📋 Opportunities: {opportunities.length}</div>
+            <div>👥 Volunteers: {volunteers.length}</div>
+            <div>✅ Signups: {volunteerSignups.length}</div>
+            {loading && <div className="text-blue-600">⏳ Loading...</div>}
+          </div>
 
           <TabsContent value="opportunities">
             <div className="space-y-4">
@@ -671,21 +774,21 @@ export default function VolunteerManagementPage() {
                                     {timeSlot.volunteersAssigned.map((volunteerId) => {
                                       // Find the volunteer details from the volunteers list
                                       const volunteer = volunteers.find(v => v._id === volunteerId);
-                                      return volunteer ? (
+                                      return volunteer && volunteer.user ? (
                                         <span
                                           key={volunteerId}
                                           className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded flex items-center gap-1"
-                                          title={`${volunteer.user.name} - ${volunteer.user.email}`}
+                                          title={`${getVolunteerDisplayName(volunteer)} - ${volunteer.user.email || 'No email'}`}
                                         >
                                           <span className="w-2 h-2 bg-blue-600 rounded-full"></span>
-                                          {volunteer.user.name}
+                                          {getVolunteerDisplayName(volunteer)}
                                         </span>
                                       ) : (
                                         <span
                                           key={volunteerId}
                                           className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded"
                                         >
-                                          Loading...
+                                          {volunteer ? 'User data missing' : 'Loading...'}
                                         </span>
                                       );
                                     })}
@@ -793,9 +896,9 @@ export default function VolunteerManagementPage() {
                       >
                         <div className="flex items-start justify-between mb-3">
                           <div>
-                            <h3 className="text-lg font-medium">{volunteer.user.name}</h3>
-                            <p className="text-sm text-muted-foreground">{volunteer.user.email}</p>
-                            <p className="text-sm text-muted-foreground">{volunteer.user.countryCode} {volunteer.user.phoneNumber}</p>
+                            <h3 className="text-lg font-medium">{getVolunteerDisplayName(volunteer)}</h3>
+                            <p className="text-sm text-muted-foreground">{volunteer.user?.email || 'No email'}</p>
+                            <p className="text-sm text-muted-foreground">{getVolunteerContactInfo(volunteer)}</p>
                           </div>
                           <Badge variant={volunteer.isActive ? "default" : "secondary"}>
                             {volunteer.isActive ? "Active" : "Inactive"}
@@ -929,12 +1032,12 @@ export default function VolunteerManagementPage() {
                               const volunteer = volunteers.find(v => v._id === signup.volunteerId);
                               return volunteer ? (
                                 <>
-                                  <h5 className="font-medium text-lg">{volunteer.user.name}</h5>
+                                  <h5 className="font-medium text-lg">{getVolunteerDisplayName(volunteer)}</h5>
                                   <p className="text-sm text-muted-foreground">
-                                    {volunteer.user.email}
+                                    {volunteer.user?.email || 'No email'}
                                   </p>
                                   <p className="text-sm text-muted-foreground">
-                                    {volunteer.user.countryCode} {volunteer.user.phoneNumber}
+                                    {getVolunteerContactInfo(volunteer)}
                                   </p>
                                 </>
                               ) : (
@@ -1102,11 +1205,22 @@ export default function VolunteerManagementPage() {
                              className="border rounded-lg p-4">
                           <div className="flex items-start justify-between mb-3">
                             <div className="flex-1">
-                              <h5 className="font-medium text-lg">{signup.volunteer.name}</h5>
-                              <p className="text-sm text-muted-foreground">{signup.volunteer.email}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {signup.volunteer.countryCode} {signup.volunteer.phoneNumber}
-                              </p>
+                              {(() => {
+                                const volunteer = volunteers.find(v => v._id === signup.volunteer._id);
+                                return volunteer ? (
+                                  <>
+                                    <h5 className="font-medium text-lg">{getVolunteerDisplayName(volunteer)}</h5>
+                                    <p className="text-sm text-muted-foreground">
+                                      {volunteer.user?.email || 'No email'}
+                                    </p>
+                                    <p className="text-sm text-muted-foreground">
+                                      {getVolunteerContactInfo(volunteer)}
+                                    </p>
+                                  </>
+                                ) : (
+                                  <span className="text-muted-foreground">Volunteer not found</span>
+                                );
+                              })()}
                             </div>
                             <div className="text-right">
                               <Badge variant="default" className="mb-2">

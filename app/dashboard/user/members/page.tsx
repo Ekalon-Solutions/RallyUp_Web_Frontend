@@ -55,22 +55,59 @@ export default function ClubMembersPage() {
   })
 
   useEffect(() => {
-    fetchClubMembers()
-  }, [currentPage, searchTerm])
+    console.log('User data in ClubMembersPage:', user)
+    console.log('User memberships:', user?.memberships)
+    console.log('User memberships length:', user?.memberships?.length)
+    if (user) {
+      fetchClubMembers()
+    }
+  }, [currentPage, searchTerm, user])
 
   const fetchClubMembers = async () => {
     try {
       setLoading(true)
+      
+      // Check if user has club memberships
+      console.log('Checking user memberships in fetchClubMembers:')
+      console.log('User object keys:', Object.keys(user || {}))
+      console.log('User memberships:', user?.memberships)
+      console.log('User memberships length:', user?.memberships?.length)
+      
+      if (!user?.memberships || user.memberships.length === 0) {
+        console.log('No memberships found - showing error')
+        toast.error('No club memberships found. Please join a club first.')
+        setLoading(false)
+        return
+      }
+
+      // Get the first active membership (assuming user can only be in one club at a time)
+      const activeMembership = user.memberships.find(membership => 
+        membership.status === 'active'
+      )
+
+      if (!activeMembership?.club_id?._id) {
+        console.log('No active club membership found')
+        toast.error('No active club membership found. Please join a club first.')
+        setLoading(false)
+        return
+      }
+
+      console.log('Fetching club members for club ID:', activeMembership.club_id._id)
       const response = await apiClient.getClubMemberDirectory({
         search: searchTerm || undefined,
         page: currentPage,
-        limit: 20
+        limit: 20,
+        clubId: activeMembership.club_id._id
       })
 
+      console.log('API response:', response)
       if (response.success && response.data) {
+        console.log('Members data:', response.data.members)
+        console.log('Pagination data:', response.data.pagination)
         setMembers(response.data.members)
         setPagination(response.data.pagination)
       } else {
+        console.error('API error:', response.error)
         toast.error(response.error || 'Failed to load club members')
       }
     } catch (error) {

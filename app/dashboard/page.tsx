@@ -17,6 +17,7 @@ import { PromotionFeed } from "@/components/promotion-feed"
 
 export default function DashboardPage() {
   const { user, isAdmin } = useAuth()
+  const [showCreateEventModal, setShowCreateEventModal] = useState(false)
   
   // Redirect users to their appropriate dashboard
   useEffect(() => {
@@ -229,13 +230,21 @@ export default function DashboardPage() {
                 <MessageSquare className="w-4 h-4 mr-2" />
                 Send Group Message
               </Button>
+              <Button 
+                variant="outline" 
+                className="w-full justify-start bg-transparent"
+                onClick={() => setShowCreateEventModal(true)}
+              >
+                <Calendar className="w-4 h-4 mr-2" />
+                Create Match Event
+              </Button>
               <CreateEventModal
-                trigger={
-                  <Button variant="outline" className="w-full justify-start bg-transparent">
-                    <Calendar className="w-4 h-4 mr-2" />
-                    Create Match Event
-                  </Button>
-                }
+                isOpen={showCreateEventModal}
+                onClose={() => setShowCreateEventModal(false)}
+                onSuccess={() => {
+                  setShowCreateEventModal(false)
+                  // You can add any success logic here, like refreshing data
+                }}
               />
               <Button variant="outline" className="w-full justify-start bg-transparent">
                 <IdCard className="w-4 h-4 mr-2" />

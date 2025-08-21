@@ -13,8 +13,19 @@ export function MembershipStatus() {
   const { user, refreshUser } = useAuth()
   const [leaving, setLeaving] = useState(false)
 
+  // Get user's active club membership
+  const getActiveMembership = () => {
+    if (!user || user.role === 'system_owner') return null;
+    
+    const userMemberships = (user as any).memberships || [];
+    return userMemberships.find((m: any) => m.status === 'active');
+  }
+
+  const activeMembership = getActiveMembership();
+  const userClub = activeMembership?.club_id;
+
   const handleLeaveClub = async () => {
-    if (!user?.club) return
+    if (!userClub?._id) return
 
     try {
       setLeaving(true)
@@ -53,7 +64,7 @@ export function MembershipStatus() {
     return "secondary"
   }
 
-  if (!user?.club) {
+  if (!activeMembership || !userClub) {
     return (
       <Card className="border-dashed border-2 border-muted-foreground/25 bg-muted/5">
         <CardHeader>
@@ -88,19 +99,19 @@ export function MembershipStatus() {
         {/* Club Info Header */}
         <div className="flex items-start justify-between">
           <div className="space-y-2">
-            <h3 className="text-xl font-semibold text-foreground">{user.club.name}</h3>
+            <h3 className="text-xl font-semibold text-foreground">{userClub.name}</h3>
             <p className="text-muted-foreground text-sm max-w-md">
-              {user.club.description || 'No description available'}
+              {userClub.description || 'No description available'}
             </p>
           </div>
           <div className="flex flex-col items-end gap-2">
             <Badge variant="default" className="bg-green-100 text-green-800 hover:bg-green-200">
               Active Member
             </Badge>
-            {user.membershipPlan && (
-              <Badge variant={getPlanBadgeVariant(user.membershipPlan.name)} className="text-xs">
-                {getPlanIcon(user.membershipPlan.name)}
-                <span className="ml-1">{user.membershipPlan.name}</span>
+            {activeMembership.membership_level_id && (
+              <Badge variant={getPlanBadgeVariant(activeMembership.membership_level_id.name)} className="text-xs">
+                {getPlanIcon(activeMembership.membership_level_id.name)}
+                <span className="ml-1">{activeMembership.membership_level_id.name}</span>
               </Badge>
             )}
           </div>
@@ -118,22 +129,26 @@ export function MembershipStatus() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Member since:</span>
-                  <span className="font-medium">{new Date(user.createdAt).toLocaleDateString('en-US', { 
+                  <span className="font-medium">{new Date(activeMembership.start_date).toLocaleDateString('en-US', { 
                     year: 'numeric', 
                     month: 'long', 
                     day: 'numeric' 
                   })}</span>
                 </div>
-                {user.membershipPlan && (
+                {activeMembership.membership_level_id && (
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Plan duration:</span>
-                    <span className="font-medium">{user.membershipPlan.duration || 'N/A'} months</span>
+                    <span className="text-muted-foreground">Plan price:</span>
+                    <span className="font-medium">{activeMembership.membership_level_id.currency} {activeMembership.membership_level_id.price}</span>
                   </div>
                 )}
-                {user.club.contactEmail && (
+                {activeMembership.end_date && (
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Contact:</span>
-                    <span className="font-medium text-primary">{user.club.contactEmail}</span>
+                    <span className="text-muted-foreground">Expires:</span>
+                    <span className="font-medium">{new Date(activeMembership.end_date).toLocaleDateString('en-US', { 
+                      year: 'numeric', 
+                      month: 'long', 
+                      day: 'numeric' 
+                    })}</span>
                   </div>
                 )}
               </div>
@@ -145,32 +160,22 @@ export function MembershipStatus() {
             <div className="bg-background/50 rounded-lg p-4 border border-border/50">
               <h4 className="font-medium text-sm text-muted-foreground mb-3 flex items-center gap-2">
                 <MapPin className="w-4 h-4" />
-                Club Location
+                Club Status
               </h4>
               <div className="space-y-3">
-                {user.club.address ? (
-                  <>
-                    {user.club.address.city && (
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">City:</span>
-                        <span className="font-medium">{user.club.address.city}</span>
-                      </div>
-                    )}
-                    {user.club.address.state && (
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">State:</span>
-                        <span className="font-medium">{user.club.address.state}</span>
-                      </div>
-                    )}
-                    {user.club.address.country && (
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Country:</span>
-                        <span className="font-medium">{user.club.address.country}</span>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <p className="text-sm text-muted-foreground">Location not specified</p>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Club status:</span>
+                  <Badge variant={userClub.status === 'active' ? 'default' : 'secondary'}>
+                    {userClub.status}
+                  </Badge>
+                </div>
+                {activeMembership.membership_level_id && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Plan features:</span>
+                    <span className="font-medium text-xs text-muted-foreground max-w-32 text-right">
+                      {activeMembership.membership_level_id.description}
+                    </span>
+                  </div>
                 )}
               </div>
             </div>

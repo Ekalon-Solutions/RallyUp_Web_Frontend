@@ -8,10 +8,11 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
-import { apiClient, Event, News } from "@/lib/api"
+import NewsReadMoreModal from "@/components/modals/news-readmore-modal"
+import { apiClient, Event, News, User, Admin } from "@/lib/api"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
-import { Calendar, MapPin, Clock, Users, Newspaper, Tag, User, Eye, Building2, CreditCard } from "lucide-react"
+import { Calendar, MapPin, Clock, Users, Newspaper, Tag, User as UserIcon, Eye, Building2, CreditCard, Crown, Star, Shield } from "lucide-react"
 import { MembershipStatus } from "@/components/membership-status"
 import { PromotionFeed } from "@/components/promotion-feed"
 
@@ -21,27 +22,86 @@ export default function UserDashboardPage() {
   const [news, setNews] = useState<News[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("events")
+  const [showReadMoreModal, setShowReadMoreModal] = useState(false)
+  const [selectedNewsForReadMore, setSelectedNewsForReadMore] = useState<News | null>(null)
+
+  // Get user's active club membership
+  const getActiveMembership = () => {
+    if (!user || user.role === 'system_owner') return null;
+    
+    const userMemberships = (user as User | Admin).memberships || [];
+    return userMemberships.find(m => m.status === 'active');
+  }
+
+  const activeMembership = getActiveMembership();
+  const userClub = activeMembership?.club_id;
+
+  // Get user's display name
+  const getUserDisplayName = () => {
+    if (!user) return 'Member';
+    
+    // Try to get name from different possible sources
+    if (user.name) {
+      return user.name;
+    }
+    
+    // Check if we have first_name and last_name
+    if (user && typeof user === 'object') {
+      const userAny = user as any;
+      if (userAny.first_name && userAny.last_name) {
+        return `${userAny.first_name} ${userAny.last_name}`;
+      }
+      if (userAny.first_name) {
+        return userAny.first_name;
+      }
+      if (userAny.last_name) {
+        return userAny.last_name;
+      }
+    }
+    
+    return 'Member';
+  }
 
   useEffect(() => {
+    console.log('User dashboard - User object:', user)
+    console.log('Active membership:', activeMembership)
+    console.log('User club:', userClub)
     fetchData()
-  }, [])
+  }, [user, activeMembership, userClub])
 
   const fetchData = async () => {
     try {
       setLoading(true)
       
-      // Fetch public events and news
+      // Check if user has an active club membership
+      if (!activeMembership || !userClub) {
+        console.log('User has no active club membership:', { activeMembership, userClub })
+        toast.error("You need to have an active club membership to view news and events")
+        setLoading(false)
+        return
+      }
+      
+      console.log('User club:', userClub)
+      console.log('User club ID:', userClub._id)
+      
+      // Fetch public events and club-specific news
       const [eventsResponse, newsResponse] = await Promise.all([
         apiClient.getPublicEvents(),
-        apiClient.getPublicNews()
+        apiClient.getNewsByUserClub()
       ])
 
       if (eventsResponse.success && eventsResponse.data) {
-        setEvents(eventsResponse.data)
+        setEvents(eventsResponse.data.events || eventsResponse.data)
       }
 
       if (newsResponse.success && newsResponse.data) {
-        setNews(newsResponse.data)
+        console.log('News response:', newsResponse)
+        console.log('News data:', newsResponse.data)
+        console.log('News array:', newsResponse.data.news || newsResponse.data)
+        setNews(newsResponse.data.news || newsResponse.data)
+      } else {
+        console.error('News response failed:', newsResponse)
+        console.error('News error details:', newsResponse.error)
       }
     } catch (error) {
       console.error("Error fetching data:", error)
@@ -53,7 +113,7 @@ export default function UserDashboardPage() {
 
   const handleEventRegistration = async (eventId: string) => {
     if (!user) {
-      toast.error("Please log in to register for events")
+      toast.error("Please log in to register for event")
       return
     }
 
@@ -69,6 +129,11 @@ export default function UserDashboardPage() {
       console.error("Error registering for event:", error)
       toast.error("Error registering for event")
     }
+  }
+
+  const handleReadMore = (newsItem: News) => {
+    setSelectedNewsForReadMore(newsItem)
+    setShowReadMoreModal(true)
   }
 
   const formatDate = (dateString: string) => {
@@ -101,12 +166,23 @@ export default function UserDashboardPage() {
     return eventDate < new Date()
   }
 
+  // Get membership plan icon
+  const getPlanIcon = (planName?: string) => {
+    if (!planName) return <Calendar className="w-4 h-4" />
+    
+    const lowerPlan = planName.toLowerCase()
+    if (lowerPlan.includes('premium') || lowerPlan.includes('gold')) return <Crown className="w-4 h-4" />
+    if (lowerPlan.includes('basic') || lowerPlan.includes('standard')) return <Shield className="w-4 h-4" />
+    if (lowerPlan.includes('advanced') || lowerPlan.includes('pro')) return <Star className="w-4 h-4" />
+    return <Calendar className="w-4 h-4" />
+  }
+
   return (
     <ProtectedRoute>
       <DashboardLayout>
         <div className="space-y-6">
           <div>
-            <h1 className="text-3xl font-bold">Welcome, {user?.name}!</h1>
+            <h1 className="text-3xl font-bold">Welcome, {getUserDisplayName()}!</h1>
             <p className="text-muted-foreground">Stay updated with the latest events and news from your supporter group</p>
           </div>
 
@@ -119,7 +195,7 @@ export default function UserDashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {events.filter(e => !isEventPast(e)).length}
+                  {(events || []).filter(e => !isEventPast(e)).length}
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Events you can attend
@@ -132,7 +208,7 @@ export default function UserDashboardPage() {
                 <Newspaper className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{news.length}</div>
+                <div className="text-2xl font-bold">{(news || []).length}</div>
                 <p className="text-xs text-muted-foreground">
                   Published articles
                 </p>
@@ -140,15 +216,22 @@ export default function UserDashboardPage() {
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Your Profile</CardTitle>
-                <User className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium">Membership Status</CardTitle>
+                <UserIcon className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {user?.isPhoneVerified ? "Verified" : "Unverified"}
+                  {activeMembership ? (
+                    <div className="flex items-center gap-2">
+                      {getPlanIcon(activeMembership.membership_level_id.name)}
+                      <span className="text-lg">{activeMembership.membership_level_id.name}</span>
+                    </div>
+                  ) : (
+                    "No Active"
+                  )}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Phone verification status
+                  {activeMembership ? 'Active Membership' : 'No active membership'}
                 </p>
               </CardContent>
             </Card>
@@ -160,8 +243,8 @@ export default function UserDashboardPage() {
           {/* Events and News Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="events">Events</TabsTrigger>
-              <TabsTrigger value="news">News & Updates</TabsTrigger>
+              <TabsTrigger value="events">Events ({events.filter(e => !isEventPast(e)).length})</TabsTrigger>
+              <TabsTrigger value="news">News & Updates ({news.filter(article => article.isPublished).length})</TabsTrigger>
             </TabsList>
 
             <TabsContent value="events" className="space-y-4">
@@ -172,76 +255,135 @@ export default function UserDashboardPage() {
                     <p className="mt-4 text-muted-foreground">Loading events...</p>
                   </div>
                 </div>
-              ) : events.length === 0 ? (
+              ) : (events || []).length === 0 ? (
                 <Card>
                   <CardContent className="flex items-center justify-center h-64">
                     <div className="text-center">
                       <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                       <h3 className="text-lg font-semibold">No events available</h3>
-                      <p className="text-muted-foreground">Check back later for upcoming events</p>
+                      <p className="text-muted-foreground">
+                        {userClub ? 
+                          "No events have been published for your club yet. Check back later for upcoming events." :
+                          "You need to have an active club membership to view events."
+                        }
+                      </p>
                     </div>
                   </CardContent>
                 </Card>
               ) : (
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {events
-                    .filter(event => !isEventPast(event))
-                    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-                    .map((event) => (
-                    <Card key={event._id} className="overflow-hidden">
-                      <CardHeader className="pb-3">
-                        <div className="flex items-start justify-between">
-                          <div className="space-y-1">
-                            <CardTitle className="text-lg">{event.title}</CardTitle>
-                            <CardDescription className="line-clamp-2">
-                              {event.description}
-                            </CardDescription>
-                          </div>
-                          <Badge variant={event.isPublished ? "default" : "secondary"}>
-                            {event.category}
-                          </Badge>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        <div className="space-y-2 text-sm">
-                          <div className="flex items-center gap-2">
-                            <Calendar className="w-4 h-4 text-muted-foreground" />
-                            <span>{formatDate(event.date)}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Clock className="w-4 h-4 text-muted-foreground" />
-                            <span>{formatTime(event.time)}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <MapPin className="w-4 h-4 text-muted-foreground" />
-                            <span className="truncate">{event.location}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Users className="w-4 h-4 text-muted-foreground" />
-                            <span>
-                              {event.currentAttendees}/{event.maxAttendees} attendees
-                              ({getAttendancePercentage(event.currentAttendees, event.maxAttendees)}% full)
-                            </span>
-                          </div>
-                        </div>
-                        
-                        <div className="pt-2">
-                          {isEventFull(event) ? (
-                            <Button disabled className="w-full" variant="secondary">
-                              Event Full
-                            </Button>
-                          ) : (
-                            <Button 
-                              onClick={() => handleEventRegistration(event._id)}
-                              className="w-full"
+                <div className="space-y-4">
+                  {/* Events Summary */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-semibold">Upcoming Events</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {events.filter(e => !isEventPast(e)).length} events available
+                      </p>
+                    </div>
+                    <Badge variant="outline" className="text-xs">
+                      {userClub?.name || 'Your Club'}
+                    </Badge>
+                  </div>
+
+                  {/* Events Grid */}
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                    {(events || [])
+                      .filter(event => !isEventPast(event))
+                      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                      .map((event) => (
+                      <Card key={event._id} className="overflow-hidden hover:shadow-md transition-shadow">
+                        <CardHeader className="pb-3">
+                          <div className="flex items-start justify-between">
+                            <div className="space-y-1 flex-1">
+                              <CardTitle className="text-lg line-clamp-2">{event.title}</CardTitle>
+                              <CardDescription className="line-clamp-2">
+                                {event.description}
+                              </CardDescription>
+                            </div>
+                            <Badge 
+                              variant={event.isPublished ? "default" : "secondary"}
+                              className="ml-2 flex-shrink-0"
                             >
-                              Register for Event
-                            </Button>
-                          )}
+                              {event.category}
+                            </Badge>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          <div className="space-y-2 text-sm">
+                            <div className="flex items-center gap-2">
+                              <Calendar className="w-4 h-4 text-muted-foreground" />
+                              <span className="font-medium">{formatDate(event.date)}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Clock className="w-4 h-4 text-muted-foreground" />
+                              <span>{formatTime(event.time)}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <MapPin className="w-4 h-4 text-muted-foreground" />
+                              <span className="truncate">{event.location}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Users className="w-4 h-4 text-muted-foreground" />
+                              <span className="text-xs">
+                                {event.currentAttendees}/{event.maxAttendees} attendees
+                              </span>
+                            </div>
+                          </div>
+                          
+                          {/* Attendance Progress Bar */}
+                          <div className="space-y-1">
+                            <div className="flex justify-between text-xs text-muted-foreground">
+                              <span>Capacity</span>
+                              <span>{getAttendancePercentage(event.currentAttendees, event.maxAttendees)}%</span>
+                            </div>
+                            <div className="w-full bg-gray-200 rounded-full h-2">
+                              <div 
+                                className={`h-2 rounded-full transition-all ${
+                                  getAttendancePercentage(event.currentAttendees, event.maxAttendees) >= 90 
+                                    ? 'bg-red-500' 
+                                    : getAttendancePercentage(event.currentAttendees, event.maxAttendees) >= 75 
+                                    ? 'bg-yellow-500' 
+                                    : 'bg-green-500'
+                                }`}
+                                style={{ 
+                                  width: `${Math.min(getAttendancePercentage(event.currentAttendees, event.maxAttendees), 100)}%` 
+                                }}
+                              ></div>
+                            </div>
+                          </div>
+                          
+                          <div className="pt-2">
+                            {isEventFull(event) ? (
+                              <Button disabled className="w-full" variant="secondary">
+                                Event Full
+                              </Button>
+                            ) : (
+                              <Button 
+                                onClick={() => handleEventRegistration(event._id)}
+                                className="w-full"
+                              >
+                                Register for Event
+                              </Button>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+
+                  {/* Past Events Notice */}
+                  {events.filter(e => isEventPast(e)).length > 0 && (
+                    <Card className="border-dashed">
+                      <CardContent className="flex items-center justify-center py-4">
+                        <div className="text-center text-muted-foreground">
+                          <Calendar className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                          <p className="text-sm">
+                            {events.filter(e => isEventPast(e)).length} past events are hidden
+                          </p>
                         </div>
                       </CardContent>
                     </Card>
-                  ))}
+                  )}
                 </div>
               )}
             </TabsContent>
@@ -254,72 +396,126 @@ export default function UserDashboardPage() {
                     <p className="mt-4 text-muted-foreground">Loading news...</p>
                   </div>
                 </div>
-              ) : news.length === 0 ? (
+              ) : (news || []).length === 0 ? (
                 <Card>
                   <CardContent className="flex items-center justify-center h-64">
                     <div className="text-center">
                       <Newspaper className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                       <h3 className="text-lg font-semibold">No news available</h3>
-                      <p className="text-muted-foreground">Check back later for updates</p>
+                      <p className="text-muted-foreground">
+                        {userClub ? 
+                          "No news articles have been published for your club yet. Check back later for updates." :
+                          "You need to have an active club membership to view news articles."
+                        }
+                      </p>
                     </div>
                   </CardContent>
                 </Card>
               ) : (
                 <div className="space-y-4">
-                  {news
-                    .filter(article => article.isPublished)
-                    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-                    .map((article) => (
-                    <Card key={article._id}>
-                      <CardHeader>
-                        <div className="flex items-start justify-between">
-                          <div className="space-y-1">
-                            <CardTitle className="text-xl">{article.title}</CardTitle>
-                            <CardDescription>
-                              By {article.author} • {formatDate(article.createdAt)}
-                            </CardDescription>
-                          </div>
-                          <Badge variant="outline">
-                            {article.isPublished ? "Published" : "Draft"}
-                          </Badge>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-3">
-                          <p className="text-muted-foreground">
-                            {truncateText(article.content, 200)}
-                          </p>
-                          
-                          {article.tags.length > 0 && (
-                            <div className="flex flex-wrap gap-2">
-                              {article.tags.map((tag, index) => (
-                                <Badge key={index} variant="secondary" className="text-xs">
-                                  <Tag className="w-3 h-3 mr-1" />
-                                  {tag}
-                                </Badge>
-                              ))}
+                  {/* News Summary */}
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-lg font-semibold">Latest News & Updates</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {news.filter(article => article.isPublished).length} published articles
+                      </p>
+                    </div>
+                    <Badge variant="outline" className="text-xs">
+                      {userClub?.name || 'Your Club'}
+                    </Badge>
+                  </div>
+
+                  {/* News Articles */}
+                  <div className="space-y-4">
+                    {(() => {
+                      const publishedNews = (news || []).filter(article => article.isPublished)
+                        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                        .slice(0, 6); // Show only latest 6 articles
+                      
+                      return publishedNews.map((article) => (
+                        <Card key={article._id} className="hover:shadow-md transition-shadow">
+                          <CardHeader>
+                            <div className="flex items-start justify-between">
+                              <div className="space-y-1 flex-1">
+                                <CardTitle className="text-xl line-clamp-2">{article.title}</CardTitle>
+                                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                  <span className="flex items-center gap-1">
+                                    <UserIcon className="w-3 h-3" />
+                                    {article.author}
+                                  </span>
+                                  <span className="flex items-center gap-1">
+                                    <Calendar className="w-3 h-3" />
+                                    {formatDate(article.createdAt)}
+                                  </span>
+                                  {article.category && (
+                                    <Badge variant="secondary" className="text-xs">
+                                      {article.category}
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+                              <Badge variant="outline" className="ml-2 flex-shrink-0">
+                                {article.isPublished ? "Published" : "Draft"}
+                              </Badge>
                             </div>
-                          )}
-                          
-                          <div className="pt-2">
-                            <Button variant="outline" className="w-full">
-                              <Eye className="w-4 h-4 mr-2" />
-                              Read Full Article
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                          </CardHeader>
+                          <CardContent>
+                            <div className="space-y-4">
+                              <p className="text-muted-foreground leading-relaxed">
+                                {truncateText(article.content, 250)}
+                              </p>
+                              
+                              {article.tags && article.tags.length > 0 && (
+                                <div className="flex flex-wrap gap-2">
+                                  {article.tags.map((tag, index) => (
+                                    <Badge key={index} variant="secondary" className="text-xs">
+                                      <Tag className="w-3 h-3 mr-1" />
+                                      {tag}
+                                    </Badge>
+                                  ))}
+                                </div>
+                              )}
+                              
+                              <div className="pt-2 border-t">
+                                <Button 
+                                  variant="outline" 
+                                  className="w-full"
+                                  onClick={() => handleReadMore(article)}
+                                >
+                                  <Eye className="w-4 h-4 mr-2" />
+                                  Read Full Article
+                                </Button>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))
+                    })()}
+                  </div>
+
+                  {/* Show More News Button */}
+                  {news.filter(article => article.isPublished).length > 6 && (
+                    <div className="text-center">
+                      <Button 
+                        variant="outline" 
+                        onClick={() => window.location.href = "/dashboard/user/news"}
+                        className="px-8"
+                      >
+                        <Newspaper className="w-4 h-4 mr-2" />
+                        View All News Articles
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
             </TabsContent>
           </Tabs>
 
           {/* Promotion Feed */}
-          {user?.club && (
+          {userClub && (
             <PromotionFeed 
-              clubId={user.club._id} 
+              clubId={userClub._id} 
               limit={2} 
               showStats={false} 
             />
@@ -336,9 +532,9 @@ export default function UserDashboardPage() {
                 <Button 
                   variant="outline" 
                   className="h-auto p-4 flex-col gap-2"
-                  onClick={() => window.location.href = "/dashboard/user/profile"}
+                  onClick={() => window.location.href = "/dashboard/settings"}
                 >
-                  <User className="w-6 h-6" />
+                  <UserIcon className="w-6 h-6" />
                   <span>Update Profile</span>
                 </Button>
                 <Button 
@@ -369,6 +565,16 @@ export default function UserDashboardPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Read More News Modal */}
+        <NewsReadMoreModal
+          news={selectedNewsForReadMore}
+          isOpen={showReadMoreModal}
+          onClose={() => {
+            setShowReadMoreModal(false)
+            setSelectedNewsForReadMore(null)
+          }}
+        />
       </DashboardLayout>
     </ProtectedRoute>
   )
