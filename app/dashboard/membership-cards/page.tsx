@@ -82,7 +82,19 @@ export default function MembershipCardsPage() {
               } else if (cardsResponse.data.data && Array.isArray(cardsResponse.data.data)) {
                 cardsData = cardsResponse.data.data
               }
-              setCards(cardsData)
+              
+              console.log('Fetched membership cards:', cardsData)
+              
+              // Filter out any invalid cards
+              const validCards = cardsData.filter(card => 
+                card && 
+                card.card && 
+                card.card._id && 
+                typeof card.card._id === 'string'
+              )
+              
+              console.log('Valid cards after filtering:', validCards)
+              setCards(validCards)
             }
         } else {
           setError('No club found for this user')
@@ -544,20 +556,28 @@ export default function MembershipCardsPage() {
                       {/* All Created Cards */}
                       <div>
                         <h4 className="font-medium mb-3 text-foreground">All Your Cards</h4>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {cards.map((card, index) => (
-                            <div key={card.card._id} className="text-center">
-                              <p className="text-sm text-muted-foreground mb-2">{card.membershipPlan?.name || 'Unknown Plan'}</p>
-                              <div className="flex justify-center">
-                                <MembershipCard
-                                  cardData={card}
-                                  cardStyle={card.cardStyle}
-                                  showLogo={card.customization?.showLogo ?? true}
-                                />
+                        {cards.length === 0 ? (
+                          <div className="text-center text-muted-foreground py-8">
+                            <CreditCard className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                            <p>No valid membership cards found</p>
+                            <p className="text-sm">Create your first membership card to see a preview</p>
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {cards.map((card, index) => (
+                              <div key={card.card._id} className="text-center">
+                                <p className="text-sm text-muted-foreground mb-2">{card.membershipPlan?.name || 'Unknown Plan'}</p>
+                                <div className="flex justify-center">
+                                  <MembershipCard
+                                    cardData={card}
+                                    cardStyle={card.card.cardStyle || 'default'}
+                                    showLogo={card.card.customization?.showLogo ?? true}
+                                  />
+                                </div>
                               </div>
-                            </div>
-                          ))}
-                        </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   ) : (
@@ -581,7 +601,7 @@ export default function MembershipCardsPage() {
               </Card>
 
               {/* Preset Catalog */}
-              <Card>
+              {/* <Card>
                 <CardHeader>
                   <CardTitle>Preset Card Styles</CardTitle>
                   <CardDescription>
@@ -598,7 +618,7 @@ export default function MembershipCardsPage() {
                             <MembershipCard
                               cardData={cards[0]}
                               cardStyle={style}
-                              showLogo={customization.showLogo}
+                              showLogo={cards[0]?.card?.customization?.showLogo ?? customization.showLogo}
                             />
                           </div>
                         </div>
@@ -610,7 +630,7 @@ export default function MembershipCardsPage() {
                     </div>
                   )}
                 </CardContent>
-              </Card>
+              </Card> */}
             </TabsContent>
 
             <TabsContent value="create" className="space-y-6">

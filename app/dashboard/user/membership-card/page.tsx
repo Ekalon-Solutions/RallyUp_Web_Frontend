@@ -600,7 +600,7 @@ export default function UserMembershipCardPage() {
           </div>
 
           {/* Multiple Cards (if user has more than one) */}
-          {displayCards.length > 1 && (
+          {/* {displayCards.length > 1 && (
             <Card>
               <CardHeader>
                 <CardTitle>All Available Membership Cards</CardTitle>
@@ -650,7 +650,7 @@ export default function UserMembershipCardPage() {
                 </div>
               </CardContent>
             </Card>
-          )}
+          )} */}
 
           {/* No Cards Message */}
           {displayCards.length === 0 && !loading && (
