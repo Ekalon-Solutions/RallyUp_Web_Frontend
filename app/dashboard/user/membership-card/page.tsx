@@ -20,6 +20,7 @@ import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
 import { useAuth } from "@/contexts/auth-context"
 
+
 export default function UserMembershipCardPage() {
   const [cards, setCards] = useState<PublicMembershipCardDisplay[]>([])
   const [loading, setLoading] = useState(true)
@@ -29,6 +30,7 @@ export default function UserMembershipCardPage() {
   const [membershipId, setMembershipId] = useState<string | null>(null)
   const [membershipIdLoading, setMembershipIdLoading] = useState(false)
   const [membershipIdError, setMembershipIdError] = useState<string | null>(null)
+  const [isDownloading, setIsDownloading] = useState(false)
   const { user } = useAuth() // Get user from auth context
   const { toast } = useToast()
 
@@ -194,18 +196,84 @@ export default function UserMembershipCardPage() {
   }
 
   const handleDownload = async () => {
-    try {
-      // Download functionality would be implemented here
-      toast({
-        title: "Success",
-        description: "Membership card downloaded successfully",
-      })
-    } catch (error) {
+    if (!displaySelectedCard) {
       toast({
         title: "Error",
-        description: "Failed to download membership card",
+        description: "No card selected for download",
         variant: "destructive",
       })
+      return
+    }
+
+    try {
+      setIsDownloading(true)
+      
+      // Show loading toast
+      toast({
+        title: "Processing",
+        description: "Preparing your membership card for download...",
+      })
+
+      // Dynamically import html2canvas
+      const html2canvas = (await import('html2canvas')).default
+      
+      // Find the MembershipCard component div
+      const cardElement = document.querySelector('.w-full.max-w-sm')
+      
+      if (!cardElement) {
+        throw new Error('Card element not found. Please refresh the page and try again.')
+      }
+
+      // Small delay to ensure content is fully rendered
+      await new Promise(resolve => setTimeout(resolve, 100))
+
+      // Convert the card to canvas with proper settings
+      const canvas = await html2canvas(cardElement as HTMLElement, {
+        backgroundColor: null,
+        scale: 3, // Higher resolution for better quality
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+        // Remove any size constraints to capture full content
+        width: 400,
+        height: 350
+      })
+
+      // Convert canvas to blob
+      canvas.toBlob((blob: Blob | null) => {
+        if (!blob) {
+          throw new Error('Failed to create image blob')
+        }
+
+        // Create download link
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = `${userName}_membership_card_${displaySelectedCard.club?.name || 'club'}.png`
+        
+        // Trigger download
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        
+        // Clean up
+        URL.revokeObjectURL(url)
+        
+        toast({
+          title: "Success",
+          description: "Membership card downloaded successfully!",
+        })
+      }, 'image/png', 1.0)
+
+    } catch (error) {
+      console.error('Download error:', error)
+      toast({
+        title: "Error",
+        description: "Failed to download membership card. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsDownloading(false)
     }
   }
 
@@ -467,7 +535,7 @@ export default function UserMembershipCardPage() {
                 <CardContent>
                   {displaySelectedCard ? (
                     <div className="flex justify-center">
-                      <div className="w-full max-w-sm">
+                      <div className="w-full max-w-sm membership-card">
                         <MembershipCard
                           cardData={displaySelectedCard}
                           cardStyle={displaySelectedCard.card.cardStyle}
@@ -492,21 +560,25 @@ export default function UserMembershipCardPage() {
             {displaySelectedCard && (
               <div className="space-y-6">
                 {/* Quick Actions */}
-                <Card>
+                {/* <Card>
                   <CardHeader>
                     <CardTitle>Quick Actions</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    <Button onClick={handleDownload} className="w-full">
+                    <Button 
+                      onClick={handleDownload} 
+                      disabled={isDownloading}
+                      className="w-full"
+                    >
                       <Download className="w-4 h-4 mr-2" />
-                      Download Card
+                      {isDownloading ? "Processing..." : "Download Card"}
                     </Button>
                     <Button variant="outline" onClick={handleShare} className="w-full">
                       <Share2 className="w-4 h-4 mr-2" />
                       Share Card
                     </Button>
                   </CardContent>
-                </Card>
+                </Card> */}
 
                 {/* Card Details */}
                 <Card>
