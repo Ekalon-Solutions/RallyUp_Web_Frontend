@@ -1,6 +1,6 @@
 "use client"
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -12,7 +12,8 @@ import {
   QrCode,
   BarChart3
 } from 'lucide-react';
-import { PublicMembershipCardDisplay } from '@/lib/api';
+import { PublicMembershipCardDisplay, apiClient } from '@/lib/api';
+import { useToast } from '@/hooks/use-toast';
 
 // Add Google Fonts for customization
 const fontImports = `
@@ -165,9 +166,12 @@ export function MembershipCard({
         {/* Header */}
         <div className="flex justify-between items-start mb-3">
           <div className="flex items-center gap-2">
-            {showLogo && club.logo && (
+            {showLogo && (card.customization?.customLogo || club.logo) && (
               <Avatar className={getLogoSize()}>
-                <AvatarImage src={club.logo} alt={club.name} />
+                <AvatarImage 
+                  src={card.customization?.customLogo || club.logo} 
+                  alt={club.name} 
+                />
                 <AvatarFallback 
                   className={style.accent}
                   style={style.customColors ? { backgroundColor: style.customColors.primary } : {}}
@@ -178,7 +182,7 @@ export function MembershipCard({
             )}
             <div>
               <h3 className="font-bold text-sm truncate">{club.name}</h3>
-              <p className="text-xs opacity-80 truncate">{club.address?.city || club.address?.state || 'Location'}</p>
+              <p className="text-xs opacity-80 truncate">{club.location || 'Location'}</p>
             </div>
           </div>
         </div>

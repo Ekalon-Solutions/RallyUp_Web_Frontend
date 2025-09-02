@@ -103,13 +103,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, phoneNumber: string, countryCode: string, isAdmin = false, isSystemOwner = false): Promise<{ success: boolean; error?: string }> => {
     try {
+      // Prepare login data - only send the non-empty field
+      const loginData: any = {};
+      if (email && email.trim()) {
+        loginData.email = email.trim();
+      } else if (phoneNumber && phoneNumber.trim()) {
+        loginData.phone_number = phoneNumber.trim();
+      } else {
+        return { success: false, error: 'Please provide either email or phone number' };
+      }
+
       let response;
       if (isSystemOwner) {
-        response = await apiClient.systemOwnerLogin({ email, phoneNumber, countryCode });
+        response = await apiClient.systemOwnerLogin(loginData);
       } else if (isAdmin) {
-        response = await apiClient.adminLogin({ email, phoneNumber, countryCode });
+        response = await apiClient.adminLogin(loginData);
       } else {
-        response = await apiClient.userLogin({ email, phoneNumber, countryCode });
+        response = await apiClient.userLogin(loginData);
       }
 
       if (response.success && response.data) {

@@ -19,7 +19,7 @@ export default function AuthPage() {
   const router = useRouter()
 
   // User form states
-  const [userLoginData, setUserLoginData] = useState({ email: "", phoneNumber: "", countryCode: "+91" })
+  const [userLoginData, setUserLoginData] = useState({ email: "", phone_number: "", countryCode: "+91" })
   const [userRegisterData, setUserRegisterData] = useState({
     username: "",
     email: "",
@@ -158,7 +158,7 @@ export default function AuthPage() {
     setIsLoading(true)
     
     try {
-      const result = await login(userLoginData.email, userLoginData.phoneNumber, userLoginData.countryCode, false)
+      const result = await login(userLoginData.email, userLoginData.phone_number, userLoginData.countryCode, false)
       if (result.success) {
         toast.success("Login successful!")
         router.push("/dashboard")
@@ -410,7 +410,7 @@ export default function AuthPage() {
 
   // Login OTP verification handlers
   const handleUserLoginVerifyNumber = async () => {
-    if (!userLoginData.phoneNumber || !userLoginData.countryCode) {
+    if (!userLoginData.phone_number || !userLoginData.countryCode) {
       toast.error("Please enter phone number and country code")
       return
     }
@@ -420,7 +420,7 @@ export default function AuthPage() {
     setGeneratedLoginOtp(otp)
     
     // Simulate OTP sending
-    toast.success(`OTP sent to ${userLoginData.countryCode}${userLoginData.phoneNumber}. Code: ${otp}`)
+    toast.success(`OTP sent to ${userLoginData.countryCode}${userLoginData.phone_number}. Code: ${otp}`)
     setUserLoginOtpSent(true)
     setUserLoginResendCountdown(10)
   }
@@ -462,8 +462,8 @@ export default function AuthPage() {
     if (userLoginData.email) {
       toast.success(`OTP resent to ${userLoginData.email}. Code: ${generatedLoginOtp}`)
       setUserLoginResendCountdown(10)
-    } else if (userLoginData.phoneNumber && userLoginData.countryCode) {
-      toast.success(`OTP resent to ${userLoginData.countryCode}${userLoginData.phoneNumber}. Code: ${generatedLoginOtp}`)
+    } else if (userLoginData.phone_number && userLoginData.countryCode) {
+      toast.success(`OTP resent to ${userLoginData.countryCode}${userLoginData.phone_number}. Code: ${generatedLoginOtp}`)
       setUserLoginResendCountdown(10)
     }
   }
@@ -652,7 +652,7 @@ export default function AuthPage() {
                           placeholder="Enter your email"
                           value={userLoginData.email}
                           onChange={(e) => {
-                            setUserLoginData({ ...userLoginData, email: e.target.value, phoneNumber: "", countryCode: "+91" })
+                            setUserLoginData({ ...userLoginData, email: e.target.value, phone_number: "", countryCode: "+91" })
                           }}
                           className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400"
                         />
@@ -691,9 +691,9 @@ export default function AuthPage() {
                             id="user-login-phone"
                             type="tel"
                             placeholder="Enter your phone number"
-                            value={userLoginData.phoneNumber}
+                            value={userLoginData.phone_number}
                             onChange={(e) => {
-                              setUserLoginData({ ...userLoginData, phoneNumber: e.target.value, email: "" })
+                              setUserLoginData({ ...userLoginData, phone_number: e.target.value, email: "" })
                             }}
                             disabled={!!userLoginData.email}
                             className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 disabled:opacity-50 disabled:cursor-not-allowed focus:ring-2 focus:ring-sky-400"
@@ -712,14 +712,14 @@ export default function AuthPage() {
                             toast.success(`OTP sent to ${userLoginData.email}. Code: ${otp}`)
                             setUserLoginOtpSent(true)
                             setUserLoginResendCountdown(10)
-                          } else if (userLoginData.phoneNumber && userLoginData.countryCode) {
+                          } else if (userLoginData.phone_number && userLoginData.countryCode) {
                             // Send OTP to phone
                             handleUserLoginVerifyNumber()
                           } else {
                             toast.error("Please enter either email or phone number")
                           }
                         }}
-                        disabled={!userLoginData.email && (!userLoginData.phoneNumber || !userLoginData.countryCode)}
+                        disabled={!userLoginData.email && (!userLoginData.phone_number || !userLoginData.countryCode)}
                         className="w-full bg-sky-400 text-slate-900 hover:bg-sky-300 h-12 text-lg font-medium"
                       >
                         Send OTP

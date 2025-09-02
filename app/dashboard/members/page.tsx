@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination'
 import { DashboardLayout } from '@/components/dashboard-layout'
 import { ProtectedRoute } from '@/components/protected-route'
+import { AddMemberModal } from '@/components/modals/add-member-modal'
 import { 
   Search, 
   Users, 
@@ -342,10 +343,18 @@ export default function MembersPage() {
                 <Download className="w-4 h-4 mr-2" />
                 Export
               </Button>
-              <Button onClick={() => setIsAddDialogOpen(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add Member
-              </Button>
+              <AddMemberModal 
+                trigger={
+                  <Button>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Member
+                  </Button>
+                }
+                onMemberAdded={() => {
+                  fetchMembers()
+                  toast.success("Member added successfully!")
+                }}
+              />
             </div>
           </div>
 

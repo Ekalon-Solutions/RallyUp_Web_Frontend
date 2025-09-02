@@ -45,6 +45,8 @@ export default function MembershipCardsPage() {
   const [error, setError] = useState<string | null>(null)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [customLogoPreview, setCustomLogoPreview] = useState<string | null>(null)
+  const [customLogoFile, setCustomLogoFile] = useState<File | null>(null)
   const [clubId, setClubId] = useState<string | null>(null)
   const [membershipPlans, setMembershipPlans] = useState<any[]>([])
   const [selectedPlanId, setSelectedPlanId] = useState<string>("")
@@ -52,6 +54,22 @@ export default function MembershipCardsPage() {
   const [editingCard, setEditingCard] = useState<PublicMembershipCardDisplay | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const { toast } = useToast()
+
+  // Utility function to convert file to base64
+  const convertFileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          resolve(reader.result);
+        } else {
+          reject(new Error('Failed to convert file to base64'));
+        }
+      };
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.readAsDataURL(file);
+    });
+  };
 
   // Fetch user's club and membership plans
   useEffect(() => {
@@ -82,7 +100,19 @@ export default function MembershipCardsPage() {
               } else if (cardsResponse.data.data && Array.isArray(cardsResponse.data.data)) {
                 cardsData = cardsResponse.data.data
               }
-              setCards(cardsData)
+              
+              console.log('Fetched membership cards:', cardsData)
+              
+              // Filter out any invalid cards
+              const validCards = cardsData.filter(card => 
+                card && 
+                card.card && 
+                card.card._id && 
+                typeof card.card._id === 'string'
+              )
+              
+              console.log('Valid cards after filtering:', validCards)
+              setCards(validCards)
             }
         } else {
           setError('No club found for this user')
@@ -108,6 +138,35 @@ export default function MembershipCardsPage() {
       setSelectedFile(file)
       const url = URL.createObjectURL(file)
       setPreviewUrl(url)
+    }
+  }
+
+  const handleCustomLogoChange = (file: File | null) => {
+    if (file) {
+      setCustomLogoFile(file)
+      const url = URL.createObjectURL(file)
+      setCustomLogoPreview(url)
+    } else {
+      setCustomLogoFile(null)
+      setCustomLogoPreview(null)
+    }
+  }
+
+  const handleRemoveCustomLogo = () => {
+    setCustomLogoFile(null)
+    setCustomLogoPreview(null)
+    // Update the editing card to remove custom logo
+    if (editingCard) {
+      setEditingCard(prev => prev ? {
+        ...prev,
+        card: {
+          ...prev.card,
+          customization: {
+            ...prev.card.customization,
+            customLogo: undefined
+          }
+        }
+      } : null)
     }
   }
 
@@ -301,11 +360,45 @@ export default function MembershipCardsPage() {
     try {
       setIsEditing(true);
       
+      // Handle custom logo upload if there's a new logo file
+      let customLogoUrl = editingCard.card.customization?.customLogo;
+      
+      if (customLogoFile) {
+        try {
+          // Convert file to base64 for local storage
+          const base64 = await convertFileToBase64(customLogoFile);
+          customLogoUrl = base64;
+          
+          // Update the editing card with the new logo
+          setEditingCard(prev => prev ? {
+            ...prev,
+            card: {
+              ...prev.card,
+              customization: {
+                ...prev.card.customization,
+                customLogo: customLogoUrl
+              }
+            }
+          } : null);
+        } catch (error) {
+          console.error('Error converting logo to base64:', error);
+          toast({
+            title: "Error",
+            description: "Failed to process logo file",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+      
       const updateData = {
         cardStyle: editingCard.card.cardStyle,
         status: editingCard.card.status,
         accessLevel: editingCard.card.accessLevel,
-        customization: editingCard.card.customization
+        customization: {
+          ...editingCard.card.customization,
+          customLogo: customLogoUrl
+        }
       };
 
       const response = await apiClient.updateMembershipCard(editingCard.card._id, updateData);
@@ -357,6 +450,8 @@ export default function MembershipCardsPage() {
 
   const handleCancelEdit = () => {
     setEditingCard(null);
+    setCustomLogoFile(null);
+    setCustomLogoPreview(null);
   };
 
   // Memoized handlers to prevent infinite loops
@@ -544,20 +639,28 @@ export default function MembershipCardsPage() {
                       {/* All Created Cards */}
                       <div>
                         <h4 className="font-medium mb-3 text-foreground">All Your Cards</h4>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {cards.map((card, index) => (
-                            <div key={card.card._id} className="text-center">
-                              <p className="text-sm text-muted-foreground mb-2">{card.membershipPlan?.name || 'Unknown Plan'}</p>
-                              <div className="flex justify-center">
-                                <MembershipCard
-                                  cardData={card}
-                                  cardStyle={card.cardStyle}
-                                  showLogo={card.customization?.showLogo ?? true}
-                                />
+                        {cards.length === 0 ? (
+                          <div className="text-center text-muted-foreground py-8">
+                            <CreditCard className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                            <p>No valid membership cards found</p>
+                            <p className="text-sm">Create your first membership card to see a preview</p>
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {cards.map((card, index) => (
+                              <div key={card.card._id} className="text-center">
+                                <p className="text-sm text-muted-foreground mb-2">{card.membershipPlan?.name || 'Unknown Plan'}</p>
+                                <div className="flex justify-center">
+                                  <MembershipCard
+                                    cardData={card}
+                                    cardStyle={card.card.cardStyle || 'default'}
+                                    showLogo={card.card.customization?.showLogo ?? true}
+                                  />
+                                </div>
                               </div>
-                            </div>
-                          ))}
-                        </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                   ) : (
@@ -581,7 +684,7 @@ export default function MembershipCardsPage() {
               </Card>
 
               {/* Preset Catalog */}
-              <Card>
+              {/* <Card>
                 <CardHeader>
                   <CardTitle>Preset Card Styles</CardTitle>
                   <CardDescription>
@@ -598,7 +701,7 @@ export default function MembershipCardsPage() {
                             <MembershipCard
                               cardData={cards[0]}
                               cardStyle={style}
-                              showLogo={customization.showLogo}
+                              showLogo={cards[0]?.card?.customization?.showLogo ?? customization.showLogo}
                             />
                           </div>
                         </div>
@@ -610,7 +713,7 @@ export default function MembershipCardsPage() {
                     </div>
                   )}
                 </CardContent>
-              </Card>
+              </Card> */}
             </TabsContent>
 
             <TabsContent value="create" className="space-y-6">
@@ -1036,6 +1139,56 @@ export default function MembershipCardsPage() {
                   onCheckedChange={handleShowLogoChange}
                 />
                 <Label htmlFor="showLogo">Show Club Logo</Label>
+              </div>
+
+              {/* Custom Logo Upload */}
+              <div>
+                <Label htmlFor="customLogo">Custom Logo</Label>
+                <div className="mt-2 space-y-3">
+                  <Input
+                    id="customLogo"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleCustomLogoChange(e.target.files?.[0])}
+                    className="mt-2"
+                  />
+                  
+                  {/* Current Logo Display */}
+                  {editingCard.card.customization?.customLogo && (
+                    <div className="mt-3">
+                      <Label className="text-sm text-muted-foreground">Current Logo</Label>
+                      <div className="mt-2 flex items-center space-x-3">
+                        <img
+                          src={editingCard.card.customization.customLogo}
+                          alt="Current custom logo"
+                          className="w-16 h-16 object-cover rounded border"
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleRemoveCustomLogo}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          Remove
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Logo Preview */}
+                  {customLogoPreview && (
+                    <div className="mt-3">
+                      <Label className="text-sm text-muted-foreground">New Logo Preview</Label>
+                      <div className="mt-2">
+                        <img
+                          src={customLogoPreview}
+                          alt="New logo preview"
+                          className="w-16 h-16 object-cover rounded border"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Live Preview in Edit Modal */}
