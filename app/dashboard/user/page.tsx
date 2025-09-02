@@ -15,6 +15,7 @@ import { useAuth } from "@/contexts/auth-context"
 import { Calendar, MapPin, Clock, Users, Newspaper, Tag, User as UserIcon, Eye, Building2, CreditCard, Crown, Star, Shield } from "lucide-react"
 import { MembershipStatus } from "@/components/membership-status"
 import { PromotionFeed } from "@/components/promotion-feed"
+import { PollsWidget } from "@/components/polls-widget"
 
 export default function UserDashboardPage() {
   const { user } = useAuth()
@@ -519,6 +520,11 @@ export default function UserDashboardPage() {
               limit={2} 
               showStats={false} 
             />
+          )}
+
+          {/* Polls Widget */}
+          {userClub && (
+            <PollsWidget limit={3} showCreateButton={false} />
           )}
 
           {/* Quick Actions */}

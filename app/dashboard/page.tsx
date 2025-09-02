@@ -14,6 +14,7 @@ import { CreateEventModal } from "@/components/modals/create-event-modal"
 import { VolunteerQuickSignup } from "@/components/volunteer/volunteer-quick-signup"
 import { VolunteerOpportunitiesWidget } from "@/components/volunteer/volunteer-opportunities-widget"
 import { PromotionFeed } from "@/components/promotion-feed"
+import { PollsWidget } from "@/components/polls-widget"
 
 export default function DashboardPage() {
   const { user, isAdmin } = useAuth()
@@ -165,6 +166,11 @@ export default function DashboardPage() {
               window.location.href = `/dashboard/volunteer?signup=${opportunityId}&slot=${timeSlotId}`;
             }}
           />
+        )}
+
+        {/* Polls Widget */}
+        {user?.club && (
+          <PollsWidget limit={3} showCreateButton={true} />
         )}
 
         {/* Club Information for Admins */}

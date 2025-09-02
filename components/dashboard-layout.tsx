@@ -30,6 +30,7 @@ import {
   Heart,
   GraduationCap,
   Megaphone,
+  Vote,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -45,6 +46,7 @@ const adminNavigation = [
   { name: "Membership Plans", href: "/dashboard/membership-plans", icon: CreditCard },
   { name: "Membership Cards", href: "/dashboard/membership-cards", icon: CreditCard },
   { name: "News & Updates", href: "/dashboard/content", icon: Newspaper },
+  { name: "Polls", href: "/dashboard/polls", icon: Vote },
   { name: "Merchandise Store", href: "/dashboard/store", icon: Shirt },
   { name: "Events & Tickets", href: "/dashboard/events", icon: Ticket },
   { name: "Match Center", href: "/dashboard/match-center", icon: Calendar },
@@ -75,6 +77,7 @@ const superAdminNavigation = [
   { name: "Membership Plans", href: "/dashboard/membership-plans", icon: CreditCard },
   { name: "Membership Cards", href: "/dashboard/membership-cards", icon: CreditCard },
   { name: "News & Updates", href: "/dashboard/content", icon: Newspaper },
+  { name: "Polls", href: "/dashboard/polls", icon: Vote },
   { name: "Merchandise Store", href: "/dashboard/store", icon: Shirt },
   { name: "Events & Tickets", href: "/dashboard/events", icon: Ticket },
   { name: "Match Center", href: "/dashboard/match-center", icon: Calendar },
@@ -94,6 +97,7 @@ const userNavigation = [
   { name: "Members", href: "/dashboard/user/members", icon: Users },
   { name: "Events", href: "/dashboard/user/events", icon: Ticket },
   { name: "News", href: "/dashboard/user/news", icon: Newspaper },
+  { name: "Polls", href: "/dashboard/user/polls", icon: Vote },
   { name: "Volunteer", href: "/dashboard/volunteer", icon: Heart },
   { name: "Member Onboarding", href: "/dashboard/member-onboarding", icon: GraduationCap },
   { name: "Membership Card", href: "/dashboard/user/membership-card", icon: CreditCard },

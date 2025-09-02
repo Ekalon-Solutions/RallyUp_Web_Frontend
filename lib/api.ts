@@ -406,6 +406,38 @@ export interface MembershipPlan {
   updatedAt: string;
 }
 
+export interface PollOption {
+  _id: string;
+  text: string;
+  votes: number;
+  voters: string[];
+}
+
+export interface Poll {
+  _id: string;
+  question: string;
+  description?: string;
+  options: PollOption[];
+  club: Club;
+  createdBy: string;
+  createdByModel: 'Admin' | 'User';
+  createdByName: string;
+  status: 'draft' | 'active' | 'closed' | 'archived';
+  allowMultipleVotes: boolean;
+  allowAnonymousVotes: boolean;
+  startDate?: string;
+  endDate?: string;
+  totalVotes: number;
+  totalVoters: number;
+  isPublic: boolean;
+  tags: string[];
+  category: 'general' | 'event' | 'feedback' | 'decision' | 'survey';
+  priority: 'low' | 'medium' | 'high';
+  createdAt: string;
+  updatedAt: string;
+  userVotes?: string[]; // User's votes (added by API)
+}
+
 class ApiClient {
   get(arg0: string, arg1: { params: { club?: string; status?: string; event?: string; } | undefined; }) {
     throw new Error('Method not implemented.');
@@ -1644,6 +1676,175 @@ class ApiClient {
 
   async getClubMembers(clubId: string): Promise<ApiResponse<any[]>> {
     return this.request(`/clubs/${clubId}/members`);
+  }
+
+  // Poll APIs
+  async getPolls(params?: {
+    page?: number;
+    limit?: number;
+    status?: 'draft' | 'active' | 'closed' | 'archived';
+    category?: 'general' | 'event' | 'feedback' | 'decision' | 'survey';
+    search?: string;
+  }): Promise<ApiResponse<{
+    polls: Poll[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      pages: number;
+    };
+  }>> {
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.status) queryParams.append('status', params.status);
+    if (params?.category) queryParams.append('category', params.category);
+    if (params?.search) queryParams.append('search', params.search);
+
+    const endpoint = `/polls${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    return this.request(endpoint);
+  }
+
+  async getActivePolls(params?: {
+    page?: number;
+    limit?: number;
+    category?: 'general' | 'event' | 'feedback' | 'decision' | 'survey';
+    search?: string;
+  }): Promise<ApiResponse<{
+    polls: Poll[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      pages: number;
+    };
+  }>> {
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.category) queryParams.append('category', params.category);
+    if (params?.search) queryParams.append('search', params.search);
+
+    const endpoint = `/polls/active${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    return this.request(endpoint);
+  }
+
+  async getPollById(id: string): Promise<ApiResponse<Poll>> {
+    return this.request(`/polls/${id}`);
+  }
+
+  async createPoll(data: {
+    question: string;
+    description?: string;
+    options: string[];
+    allowMultipleVotes?: boolean;
+    allowAnonymousVotes?: boolean;
+    startDate?: string;
+    endDate?: string;
+    isPublic?: boolean;
+    tags?: string;
+    category?: 'general' | 'event' | 'feedback' | 'decision' | 'survey';
+    priority?: 'low' | 'medium' | 'high';
+  }): Promise<ApiResponse<{ message: string; poll: Poll }>> {
+    return this.request('/polls', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updatePoll(id: string, data: {
+    question?: string;
+    description?: string;
+    options?: string[];
+    allowMultipleVotes?: boolean;
+    allowAnonymousVotes?: boolean;
+    startDate?: string;
+    endDate?: string;
+    isPublic?: boolean;
+    tags?: string;
+    category?: 'general' | 'event' | 'feedback' | 'decision' | 'survey';
+    priority?: 'low' | 'medium' | 'high';
+  }): Promise<ApiResponse<{ message: string; poll: Poll }>> {
+    return this.request(`/polls/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deletePoll(id: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request(`/polls/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async voteOnPoll(pollId: string, optionId: string): Promise<ApiResponse<{ message: string; poll: Poll }>> {
+    return this.request(`/polls/${pollId}/vote`, {
+      method: 'POST',
+      body: JSON.stringify({ optionId }),
+    });
+  }
+
+  async removeVoteFromPoll(pollId: string, optionId: string): Promise<ApiResponse<{ message: string; poll: Poll }>> {
+    return this.request(`/polls/${pollId}/vote`, {
+      method: 'DELETE',
+      body: JSON.stringify({ optionId }),
+    });
+  }
+
+  async changeVoteInPoll(pollId: string, oldOptionId: string, newOptionId: string): Promise<ApiResponse<{ message: string; poll: Poll }>> {
+    return this.request(`/polls/${pollId}/vote`, {
+      method: 'PUT',
+      body: JSON.stringify({ oldOptionId, newOptionId }),
+    });
+  }
+
+  async updatePollStatus(id: string, status: 'draft' | 'active' | 'closed' | 'archived'): Promise<ApiResponse<{ message: string; poll: Poll }>> {
+    return this.request(`/polls/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    });
+  }
+
+  async getPollResults(id: string): Promise<ApiResponse<{
+    poll: {
+      _id: string;
+      question: string;
+      description?: string;
+      status: string;
+      totalVotes: number;
+      totalVoters: number;
+      allowMultipleVotes: boolean;
+      allowAnonymousVotes: boolean;
+      startDate?: string;
+      endDate?: string;
+      createdAt: string;
+    };
+    results: Array<{
+      _id: string;
+      text: string;
+      votes: number;
+      percentage: number;
+      voters: string[];
+    }>;
+  }>> {
+    return this.request(`/polls/${id}/results`);
+  }
+
+  async getPollStats(clubId?: string): Promise<ApiResponse<{
+    stats: {
+      total: number;
+      active: number;
+      closed: number;
+      draft: number;
+      archived: number;
+      totalVotes: number;
+      totalVoters: number;
+    };
+    categoryStats: { _id: string; count: number }[];
+    priorityStats: { _id: string; count: number }[];
+  }>> {
+    const endpoint = clubId ? `/polls/stats?clubId=${clubId}` : '/polls/stats';
+    return this.request(endpoint);
   }
 }
 
