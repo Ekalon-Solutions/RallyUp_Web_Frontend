@@ -486,9 +486,9 @@ class ApiClient {
   }
 
   async adminLogin(data: {
-    email: string;
-    phoneNumber: string;
-    countryCode: string;
+    email?: string;
+    phone_number?: string;
+    username?: string;
   }): Promise<ApiResponse<{ token: string; admin: Admin }>> {
     return this.request('/admin/login', {
       method: 'POST',
@@ -515,9 +515,9 @@ class ApiClient {
   }
 
   async userLogin(data: {
-    email: string;
-    phoneNumber: string;
-    countryCode: string;
+    email?: string;
+    phone_number?: string;
+    username?: string;
   }): Promise<ApiResponse<{ token: string; user: User }>> {
     return this.request('/users/login', {
       method: 'POST',
@@ -1284,9 +1284,9 @@ class ApiClient {
   }
 
   async systemOwnerLogin(data: {
-    email: string;
-    phoneNumber: string;
-    countryCode: string;
+    email?: string;
+    phone_number?: string;
+    username?: string;
   }): Promise<ApiResponse<{ token: string; systemOwner: SystemOwner }>> {
     return this.request('/system-owner/login', {
       method: 'POST',

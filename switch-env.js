@@ -28,7 +28,7 @@ try {
   // Update the CURRENT environment
   const newEnv = environments[targetEnv];
   configContent = configContent.replace(
-    /CURRENT: 'development' as 'development' \| 'production' \| 'staging'/,
+    /CURRENT: '(development|production|staging)' as 'development' \| 'production' \| 'staging'/,
     `CURRENT: '${newEnv}' as 'development' | 'production' | 'staging'`
   );
   
