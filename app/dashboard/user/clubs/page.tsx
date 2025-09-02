@@ -670,7 +670,7 @@ export default function UserClubsPage() {
 
                 {/* Plan Info */}
                 {selectedPlan && (
-                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-100 rounded-lg p-4">
+                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/50 dark:to-purple-950/50 border border-blue-100 dark:border-blue-800 rounded-lg p-4">
                     <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
                       <Award className="w-4 h-4 text-yellow-500" />
                       Selected Plan
@@ -690,7 +690,7 @@ export default function UserClubsPage() {
                           <span className="line-through text-muted-foreground mr-2">
                             {formatPrice(selectedPlan.price, selectedPlan.currency)}
                           </span>
-                          <span className="font-bold text-green-600">FREE</span>
+                          <span className="font-bold text-green-600 dark:text-green-400">FREE</span>
                         </div>
                       </div>
                     </div>

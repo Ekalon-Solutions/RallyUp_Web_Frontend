@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { X, Upload, Image as ImageIcon, Plus, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { apiClient, News } from "@/lib/api"
+import { useAuth } from "@/contexts/auth-context"
 
 interface CreateNewsModalProps {
   isOpen: boolean
@@ -20,6 +21,7 @@ interface CreateNewsModalProps {
 }
 
 export function CreateNewsModal({ isOpen, onClose, onSuccess, editNews }: CreateNewsModalProps) {
+  const { user } = useAuth()
   const [title, setTitle] = useState(editNews?.title || "")
   const [content, setContent] = useState(editNews?.content || "")
   const [summary, setSummary] = useState(editNews?.summary || "")
@@ -29,7 +31,7 @@ export function CreateNewsModal({ isOpen, onClose, onSuccess, editNews }: Create
   const [priority, setPriority] = useState(editNews?.priority || "medium")
   const [isPublished, setIsPublished] = useState(editNews?.isPublished || false)
   const [images, setImages] = useState<File[]>([])
-  const [featuredImage, setFeaturedImage] = useState<string>(editNews?.featuredImage || "")
+  const [featuredImage, setFeaturedImage] = useState<number>(0) // Index of featured image
   const [loading, setLoading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -58,8 +60,9 @@ export function CreateNewsModal({ isOpen, onClose, onSuccess, editNews }: Create
         formData.append("images", image)
       })
       
-      if (featuredImage) {
-        formData.append("featuredImage", featuredImage)
+      // Set featured image (first image by default, or selected one)
+      if (images.length > 0) {
+        formData.append("featuredImage", images[featuredImage]?.name || images[0].name)
       }
 
       let response
@@ -94,7 +97,7 @@ export function CreateNewsModal({ isOpen, onClose, onSuccess, editNews }: Create
     setPriority("medium")
     setIsPublished(false)
     setImages([])
-    setFeaturedImage("")
+    setFeaturedImage(0)
   }
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -109,8 +112,8 @@ export function CreateNewsModal({ isOpen, onClose, onSuccess, editNews }: Create
     setImages(prev => [...prev, ...imageFiles])
     
     // Set first image as featured if none selected
-    if (!featuredImage && imageFiles.length > 0) {
-      setFeaturedImage(imageFiles[0].name)
+    if (images.length === 0 && imageFiles.length > 0) {
+      setFeaturedImage(0)
     }
   }
 
@@ -119,8 +122,10 @@ export function CreateNewsModal({ isOpen, onClose, onSuccess, editNews }: Create
     setImages(newImages)
     
     // Update featured image if removed
-    if (featuredImage === images[index]?.name) {
-      setFeaturedImage(newImages[0]?.name || "")
+    if (featuredImage === index) {
+      setFeaturedImage(0) // Set to first remaining image
+    } else if (featuredImage > index) {
+      setFeaturedImage(featuredImage - 1) // Adjust index for remaining images
     }
   }
 
@@ -149,6 +154,11 @@ export function CreateNewsModal({ isOpen, onClose, onSuccess, editNews }: Create
           <DialogTitle>
             {editNews ? "Edit News Article" : "Create News Article"}
           </DialogTitle>
+          {user && (
+            <div className="text-sm text-muted-foreground">
+              Author: {user.name} ({user.role === 'admin' || user.role === 'super_admin' ? 'Admin' : 'User'})
+            </div>
+          )}
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -311,9 +321,9 @@ export function CreateNewsModal({ isOpen, onClose, onSuccess, editNews }: Create
                         <input
                           type="radio"
                           name="featuredImage"
-                          value={image.name}
-                          checked={featuredImage === image.name}
-                          onChange={(e) => setFeaturedImage(e.target.value)}
+                          value={index}
+                          checked={featuredImage === index}
+                          onChange={() => setFeaturedImage(index)}
                           className="mr-2"
                         />
                         <span className="text-xs text-white bg-black/70 px-2 py-1 rounded">

@@ -8,6 +8,15 @@ export interface ApiResponse<T = any> {
   data?: T;
   message?: string;
   error?: string;
+  errorDetails?: {
+    status?: number;
+    statusText?: string;
+    endpoint?: string;
+    url?: string;
+    details?: any;
+    type?: string;
+  };
+  status?: number;
 }
 
 export interface User {
@@ -439,13 +448,42 @@ class ApiClient {
 
     try {
       const response = await fetch(url, config);
-      const data = await response.json();
-      console.log(`API ${endpoint} response:`, { status: response.status, data });
+      
+      // Handle non-JSON responses (like HTML error pages)
+      let data;
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        data = { message: text || `HTTP ${response.status} error` };
+      }
+      
+      console.log(`API ${endpoint} response:`, { 
+        status: response.status, 
+        statusText: response.statusText,
+        data,
+        url: response.url 
+      });
 
       if (!response.ok) {
+        // Enhanced error handling with more details
+        const errorMessage = data.message || data.error || `HTTP error! status: ${response.status}`;
+        const errorDetails = {
+          status: response.status,
+          statusText: response.statusText,
+          endpoint,
+          url: response.url,
+          ...(data.details && { details: data.details })
+        };
+        
+        console.error(`API Error for ${endpoint}:`, errorDetails);
+        
         return {
           success: false,
-          error: data.message || `HTTP error! status: ${response.status}`,
+          error: errorMessage,
+          errorDetails,
+          status: response.status
         };
       }
 
@@ -458,6 +496,11 @@ class ApiClient {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Network error',
+        errorDetails: {
+          endpoint,
+          url,
+          type: 'network_error'
+        }
       };
     }
   }
@@ -647,7 +690,7 @@ class ApiClient {
     });
   }
 
-  async getNewsStats(): Promise<ApiResponse<{
+  async getNewsStats(clubId?: string): Promise<ApiResponse<{
     stats: {
       total: number;
       published: number;
@@ -657,7 +700,8 @@ class ApiClient {
     categoryStats: { _id: string; count: number }[];
     priorityStats: { _id: string; count: number }[];
   }>> {
-    return this.request('/news/stats');
+    const endpoint = clubId ? `/news/stats?clubId=${clubId}` : '/news/stats';
+    return this.request(endpoint);
   }
 
   // Events APIs

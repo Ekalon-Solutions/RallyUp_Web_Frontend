@@ -148,7 +148,23 @@ export default function UserMembershipCardPage() {
             setError('Invalid data structure received from server')
           }
         } else {
-          setError(response.error || 'Failed to fetch membership cards')
+          // Enhanced error handling with detailed information
+          const errorMessage = response.error || 'Failed to fetch membership cards';
+          const errorDetails = response.errorDetails;
+          
+          setError(errorMessage);
+          
+          // Show detailed error information in toast
+          toast({
+            title: "Error",
+            description: errorMessage,
+            variant: "destructive",
+          });
+          
+          // Log detailed error information for debugging
+          if (errorDetails) {
+            console.error('Membership cards API error details:', errorDetails);
+          }
         }
         
         // Handle helpful messages from backend
@@ -159,12 +175,14 @@ export default function UserMembershipCardPage() {
           })
         }
       } catch (err) {
-        setError('Failed to fetch membership cards')
+        const errorMessage = err instanceof Error ? err.message : 'Failed to fetch membership cards';
+        setError(errorMessage);
         toast({
           title: "Error",
-          description: "Failed to fetch membership cards",
+          description: errorMessage,
           variant: "destructive",
-        })
+        });
+        console.error('Membership cards fetch error:', err);
       } finally {
         setLoading(false)
       }
