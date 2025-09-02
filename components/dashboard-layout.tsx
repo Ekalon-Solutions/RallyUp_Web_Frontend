@@ -101,6 +101,7 @@ const userNavigation = [
   { name: "Events", href: "/dashboard/user/events", icon: Ticket },
   { name: "News", href: "/dashboard/user/news", icon: Newspaper },
   { name: "Polls", href: "/dashboard/user/polls", icon: Vote },
+  { name: "Our Chants", href: "/dashboard/user/chants", icon: Music },
   { name: "Volunteer", href: "/dashboard/volunteer", icon: Heart },
   { name: "Member Onboarding", href: "/dashboard/member-onboarding", icon: GraduationCap },
   { name: "Membership Card", href: "/dashboard/user/membership-card", icon: CreditCard },
