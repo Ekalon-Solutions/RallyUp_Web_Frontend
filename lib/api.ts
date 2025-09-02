@@ -982,7 +982,7 @@ class ApiClient {
 
   // Get volunteer profile for the current user
   async getVolunteerProfile(): Promise<ApiResponse<VolunteerProfile>> {
-    return this.request('/volunteer/profile');
+    return this.request('/volunteer/volunteer-profile');
   }
 
   // Create volunteer profile for the current user
@@ -1269,6 +1269,59 @@ class ApiClient {
     return this.request('/staff/stats');
   }
 
+  // System Owner Staff Management
+  async getStaffByClub(clubId: string, params?: {
+    role?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<ApiResponse<{
+    staff: User[];
+    club: {
+      _id: string;
+      name: string;
+    };
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      pages: number;
+    };
+  }>> {
+    const queryParams = new URLSearchParams();
+    if (params?.role) queryParams.append('role', params.role);
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+
+    const endpoint = `/staff/club/${clubId}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    return this.request(endpoint);
+  }
+
+  async createStaffForClub(clubId: string, data: {
+    name: string;
+    email: string;
+    phoneNumber: string;
+    countryCode: string;
+    role: 'admin' | 'volunteer';
+  }): Promise<ApiResponse<{ message: string; staffMember: User }>> {
+    return this.request(`/staff/club/${clubId}`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateStaffForClub(clubId: string, staffId: string, data: any): Promise<ApiResponse<{ message: string; staffMember: User }>> {
+    return this.request(`/staff/club/${clubId}/${staffId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteStaffForClub(clubId: string, staffId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request(`/staff/club/${clubId}/${staffId}`, {
+      method: 'DELETE',
+    });
+  }
+
   // System Owner Management
   async systemOwnerRegister(data: {
     name: string;
@@ -1328,6 +1381,25 @@ class ApiClient {
       success: response.success,
       data: users,
       error: response.error
+    };
+  }
+
+  // Admin Search API (System Owner only)
+  async searchAdmins(query: string): Promise<ApiResponse<Admin[]>> {
+    console.log('API searchAdmins - Query:', query);
+    const endpoint = `/admin/search?q=${encodeURIComponent(query)}`;
+    const response = await this.request<any>(endpoint);
+    console.log('API searchAdmins - Raw response:', response);
+
+    // Handle the nested response structure
+    const responseData = response.data || response;
+    const admins = responseData.success ? (Array.isArray(responseData.data) ? responseData.data : []) : [];
+    console.log('API searchAdmins - Processed admins:', admins);
+
+    return {
+      success: responseData.success,
+      data: admins,
+      error: responseData.error
     };
   }
 

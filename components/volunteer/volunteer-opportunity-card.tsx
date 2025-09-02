@@ -13,6 +13,7 @@ interface VolunteerOpportunityCardProps {
   onEdit?: (opportunity: VolunteerOpportunity) => void;
   isAdmin?: boolean;
   currentVolunteerId?: string; // Add this to check if user is already signed up
+  signingUp?: string | null; // Track which opportunity is being signed up for
 }
 
 const statusColors = {
@@ -30,6 +31,7 @@ export function VolunteerOpportunityCard({
   onEdit,
   isAdmin = false,
   currentVolunteerId,
+  signingUp,
 }: VolunteerOpportunityCardProps) {
   const totalVolunteersNeeded = opportunity.timeSlots.reduce(
     (sum, slot) => sum + slot.volunteersNeeded,
@@ -95,26 +97,38 @@ export function VolunteerOpportunityCard({
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => onSignUp(opportunity._id, slot._id)}
-                    disabled={slot.volunteersAssigned.length >= slot.volunteersNeeded}
-                    className={slot.volunteersAssigned.length >= slot.volunteersNeeded ? 'opacity-50 cursor-not-allowed' : ''}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      console.log('Sign up button clicked for opportunity:', opportunity._id, 'timeSlot:', slot._id);
+                      onSignUp(opportunity._id, slot._id);
+                    }}
+                    disabled={slot.volunteersAssigned.length >= slot.volunteersNeeded || signingUp === `${opportunity._id}-${slot._id}`}
+                    className={`${slot.volunteersAssigned.length >= slot.volunteersNeeded ? 'opacity-50 cursor-not-allowed' : 'hover:bg-primary hover:text-primary-foreground'} transition-colors`}
                   >
-                    {slot.volunteersAssigned.length >= slot.volunteersNeeded ? 'Full' : 'Sign Up'}
+                    {signingUp === `${opportunity._id}-${slot._id}` ? 'Signing Up...' : 
+                     slot.volunteersAssigned.length >= slot.volunteersNeeded ? 'Full' : 'Sign Up'}
                   </Button>
                 )}
                 
                 {isSignedUpForTimeSlot(slot) && (
                   <div className="flex items-center gap-2">
                     <Badge variant="secondary" className="text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                      Already Signed Up
+                      Signed Up
                     </Badge>
                     {onWithdraw && (
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => onWithdraw(opportunity._id, slot._id)}
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          console.log('Sign out button clicked for opportunity:', opportunity._id, 'timeSlot:', slot._id);
+                          onWithdraw(opportunity._id, slot._id);
+                        }}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-950 transition-colors"
                       >
-                        Withdraw
+                        Sign Out
                       </Button>
                     )}
                   </div>

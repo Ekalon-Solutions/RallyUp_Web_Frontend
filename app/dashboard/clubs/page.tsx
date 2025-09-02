@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Building2, Users, MapPin, Globe, Mail, Phone, Calendar, Star } from 'lucide-react'
 import { DashboardLayout } from '@/components/dashboard-layout'
 import { ProtectedRoute } from '@/components/protected-route'
+import Link from 'next/link'
 
 interface ClubWithPlans extends Club {
   membershipPlans?: MembershipPlan[]
@@ -67,7 +68,7 @@ export default function ClubsPage() {
   }
 
   const handleLeaveClub = async () => {
-    if (!user?.club) return
+    if (!user || user.role !== 'member' || !('club' in user) || !user.club) return
 
     try {
       const response = await apiClient.leaveClub()
@@ -134,17 +135,31 @@ export default function ClubsPage() {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               <h1 className="text-3xl font-bold">Browse Clubs</h1>
-              <p className="text-muted-foreground">Find and join clubs that interest you</p>
+              <p className="text-muted-foreground">
+                {user?.role === 'system_owner' 
+                  ? 'Manage all clubs in the system' 
+                  : 'Find and join clubs that interest you'}
+              </p>
             </div>
-            {user?.club && (
-              <Button variant="outline" onClick={handleLeaveClub}>
-                Leave Current Club
-              </Button>
-            )}
+            <div className="flex gap-2">
+              {user?.role === 'system_owner' && (
+                <Button asChild>
+                  <Link href="/dashboard/club-management">
+                    <Building2 className="w-4 h-4 mr-2" />
+                    Manage Clubs
+                  </Link>
+                </Button>
+              )}
+              {user && user.role === 'member' && 'club' in user && user.club && (
+                <Button variant="outline" onClick={handleLeaveClub}>
+                  Leave Current Club
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* Current Club Status */}
-          {user?.club && (
+          {user && user.role === 'member' && 'club' in user && user.club && (
             <Card className="border-primary/20 bg-primary/5">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -167,7 +182,7 @@ export default function ClubsPage() {
           {/* Clubs Grid */}
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {clubs.map((club) => {
-              const isCurrentClub = user?.club?._id === club._id
+              const isCurrentClub = user && user.role === 'member' && 'club' in user && (user as any).club?._id === club._id
               const isJoining = joiningClub === club._id
 
               return (

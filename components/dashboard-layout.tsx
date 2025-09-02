@@ -60,7 +60,8 @@ const adminNavigation = [
 
 const systemOwnerNavigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Clubs Management", href: "/dashboard/clubs", icon: Building },
+  { name: "Club Management", href: "/dashboard/club-management", icon: Building },
+  { name: "Browse Clubs", href: "/dashboard/clubs", icon: Building2 },
   { name: "Onboarding & Promotions", href: "/dashboard/onboarding", icon: GraduationCap },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
   { name: "Help", href: "/dashboard/help", icon: HelpCircle },
