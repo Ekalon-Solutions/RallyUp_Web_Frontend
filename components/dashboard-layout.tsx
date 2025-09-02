@@ -31,6 +31,7 @@ import {
   GraduationCap,
   Megaphone,
   Vote,
+  Music,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -47,6 +48,7 @@ const adminNavigation = [
   { name: "Membership Cards", href: "/dashboard/membership-cards", icon: CreditCard },
   { name: "News & Updates", href: "/dashboard/content", icon: Newspaper },
   { name: "Polls", href: "/dashboard/polls", icon: Vote },
+  { name: "Our Chants", href: "/dashboard/chants", icon: Music },
   { name: "Merchandise Store", href: "/dashboard/store", icon: Shirt },
   { name: "Events & Tickets", href: "/dashboard/events", icon: Ticket },
   { name: "Match Center", href: "/dashboard/match-center", icon: Calendar },
@@ -78,6 +80,7 @@ const superAdminNavigation = [
   { name: "Membership Cards", href: "/dashboard/membership-cards", icon: CreditCard },
   { name: "News & Updates", href: "/dashboard/content", icon: Newspaper },
   { name: "Polls", href: "/dashboard/polls", icon: Vote },
+  { name: "Our Chants", href: "/dashboard/chants", icon: Music },
   { name: "Merchandise Store", href: "/dashboard/store", icon: Shirt },
   { name: "Events & Tickets", href: "/dashboard/events", icon: Ticket },
   { name: "Match Center", href: "/dashboard/match-center", icon: Calendar },

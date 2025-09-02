@@ -129,6 +129,27 @@ export interface News {
   updatedAt: string;
 }
 
+export interface Chant {
+  _id: string;
+  title: string;
+  description?: string;
+  content?: string;
+  fileType: 'text' | 'image' | 'audio';
+  fileName?: string;
+  fileUrl?: string;
+  fileKey?: string;
+  fileSize?: number;
+  mimeType?: string;
+  club: Club;
+  createdBy: User;
+  isActive: boolean;
+  tags?: string[];
+  fileTypeDisplay?: string;
+  formattedFileSize?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Event {
   _id: string;
   title: string;
@@ -466,17 +487,34 @@ class ApiClient {
     // Determine if we should set Content-Type header
     const isFormData = options.body instanceof FormData;
     
+    const headers: Record<string, string> = {
+      'Accept': 'application/json',
+    };
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
+    // Only set Content-Type for non-FormData requests
+    if (!isFormData) {
+      headers['Content-Type'] = 'application/json';
+    }
+    
+    // Merge with any existing headers from options
+    if (options.headers) {
+      Object.assign(headers, options.headers);
+    }
+    
     const config: RequestInit = {
-      headers: {
-        'Accept': 'application/json',
-        ...(token && { Authorization: `Bearer ${token}` }),
-        // Only set Content-Type for non-FormData requests
-        ...(!isFormData && { 'Content-Type': 'application/json' }),
-        ...options.headers,
-      },
+      headers,
       credentials: 'include',
       ...options,
     };
+
+    // Debug headers
+    console.log('🔍 Request headers:', config.headers);
+    console.log('🔍 Token exists:', !!token);
+    console.log('🔍 Authorization header:', headers['Authorization']);
 
     try {
       const response = await fetch(url, config);
@@ -1845,6 +1883,97 @@ class ApiClient {
   }>> {
     const endpoint = clubId ? `/polls/stats?clubId=${clubId}` : '/polls/stats';
     return this.request(endpoint);
+  }
+
+  // Chants API methods
+  async getChants(clubId: string, params?: {
+    fileType?: 'text' | 'image' | 'audio';
+    page?: number;
+    limit?: number;
+    search?: string;
+  }): Promise<ApiResponse<{
+    chants: Chant[];
+    pagination: {
+      current: number;
+      pages: number;
+      total: number;
+    };
+  }>> {
+    const queryParams = new URLSearchParams();
+    if (params?.fileType) queryParams.append('fileType', params.fileType);
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.search) queryParams.append('search', params.search);
+    
+    const query = queryParams.toString();
+    return this.request(`/chants/club/${clubId}${query ? `?${query}` : ''}`);
+  }
+
+  async getChantById(id: string): Promise<ApiResponse<Chant>> {
+    return this.request(`/chants/${id}`);
+  }
+
+  async createChant(clubId: string, data: {
+    title: string;
+    description?: string;
+    content?: string;
+    fileType: 'text' | 'image' | 'audio';
+    tags?: string[];
+    file?: File;
+  }): Promise<ApiResponse<Chant>> {
+    const formData = new FormData();
+    formData.append('title', data.title);
+    if (data.description) formData.append('description', data.description);
+    if (data.content) formData.append('content', data.content);
+    formData.append('fileType', data.fileType);
+    if (data.tags) formData.append('tags', data.tags.join(','));
+    if (data.file) formData.append('file', data.file);
+
+    return this.request(`/chants/club/${clubId}`, {
+      method: 'POST',
+      body: formData,
+      // Don't set headers - let the request method handle Authorization and Content-Type
+    });
+  }
+
+  async updateChant(id: string, data: {
+    title?: string;
+    description?: string;
+    content?: string;
+    tags?: string[];
+    file?: File;
+  }): Promise<ApiResponse<Chant>> {
+    const formData = new FormData();
+    if (data.title) formData.append('title', data.title);
+    if (data.description !== undefined) formData.append('description', data.description);
+    if (data.content !== undefined) formData.append('content', data.content);
+    if (data.tags) formData.append('tags', data.tags.join(','));
+    if (data.file) formData.append('file', data.file);
+
+    return this.request(`/chants/${id}`, {
+      method: 'PUT',
+      body: formData,
+      // Don't set headers - let the request method handle Authorization and Content-Type
+    });
+  }
+
+  async deleteChant(id: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request(`/chants/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getChantStats(clubId: string): Promise<ApiResponse<{
+    totalChants: number;
+    totalSize: number;
+    byType: {
+      [key: string]: {
+        count: number;
+        totalSize: number;
+      };
+    };
+  }>> {
+    return this.request(`/chants/club/${clubId}/stats`);
   }
 }
 
