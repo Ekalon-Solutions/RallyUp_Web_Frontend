@@ -151,6 +151,9 @@ export interface Chant {
 }
 
 export interface Event {
+  eventDate: string;
+  eventTime: string;
+  isPublished: any;
   _id: string;
   title: string;
   category: string;
@@ -460,17 +463,7 @@ export interface Poll {
 }
 
 class ApiClient {
-  get(arg0: string, arg1: { params: { club?: string; status?: string; event?: string; } | undefined; }) {
-    throw new Error('Method not implemented.');
-  }
-  post(arg0: string, arg1: { timeSlotId: string; }) {
-    throw new Error('Method not implemented.');
-  }
-  delete(arg0: string) {
-    throw new Error('Method not implemented.');
-  }
   private baseURL: string;
-  put: any;
 
   constructor(baseURL: string) {
     this.baseURL = baseURL;
@@ -582,6 +575,90 @@ class ApiClient {
       return token;
     }
     return null;
+  }
+
+  // Generic HTTP methods
+  async get<T = any>(endpoint: string, options?: { params?: Record<string, any> }): Promise<ApiResponse<T>> {
+    let url = endpoint;
+    if (options?.params) {
+      const queryParams = new URLSearchParams();
+      Object.entries(options.params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          queryParams.append(key, value.toString());
+        }
+      });
+      const queryString = queryParams.toString();
+      if (queryString) {
+        url += `?${queryString}`;
+      }
+    }
+    return this.request<T>(url);
+  }
+
+  async post<T = any>(endpoint: string, data?: any, options?: { headers?: Record<string, string> }): Promise<ApiResponse<T>> {
+    const requestOptions: RequestInit = {
+      method: 'POST',
+    };
+
+    if (data instanceof FormData) {
+      requestOptions.body = data;
+    } else if (data) {
+      requestOptions.body = JSON.stringify(data);
+    }
+
+    if (options?.headers) {
+      requestOptions.headers = options.headers;
+    }
+
+    return this.request<T>(endpoint, requestOptions);
+  }
+
+  async put<T = any>(endpoint: string, data?: any, options?: { headers?: Record<string, string> }): Promise<ApiResponse<T>> {
+    const requestOptions: RequestInit = {
+      method: 'PUT',
+    };
+
+    if (data instanceof FormData) {
+      requestOptions.body = data;
+    } else if (data) {
+      requestOptions.body = JSON.stringify(data);
+    }
+
+    if (options?.headers) {
+      requestOptions.headers = options.headers;
+    }
+
+    return this.request<T>(endpoint, requestOptions);
+  }
+
+  async patch<T = any>(endpoint: string, data?: any, options?: { headers?: Record<string, string> }): Promise<ApiResponse<T>> {
+    const requestOptions: RequestInit = {
+      method: 'PATCH',
+    };
+
+    if (data instanceof FormData) {
+      requestOptions.body = data;
+    } else if (data) {
+      requestOptions.body = JSON.stringify(data);
+    }
+
+    if (options?.headers) {
+      requestOptions.headers = options.headers;
+    }
+
+    return this.request<T>(endpoint, requestOptions);
+  }
+
+  async delete<T = any>(endpoint: string, options?: { headers?: Record<string, string> }): Promise<ApiResponse<T>> {
+    const requestOptions: RequestInit = {
+      method: 'DELETE',
+    };
+
+    if (options?.headers) {
+      requestOptions.headers = options.headers;
+    }
+
+    return this.request<T>(endpoint, requestOptions);
   }
 
   // Authentication APIs
@@ -1974,6 +2051,83 @@ class ApiClient {
     };
   }>> {
     return this.request(`/chants/club/${clubId}/stats`);
+  }
+
+  // Merchandise APIs
+  async getMerchandise(params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    category?: string;
+    isAvailable?: boolean;
+    clubId?: string;
+  }): Promise<ApiResponse<{
+    merchandise: any[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      pages: number;
+    };
+  }>> {
+    return this.get('/merchandise/admin', { params });
+  }
+
+  async getMerchandiseById(id: string): Promise<ApiResponse<any>> {
+    return this.get(`/merchandise/admin/${id}`);
+  }
+
+  async createMerchandise(data: FormData): Promise<ApiResponse<{ message: string; data: any }>> {
+    return this.post('/merchandise/admin', data);
+  }
+
+  async updateMerchandise(id: string, data: FormData): Promise<ApiResponse<{ message: string; data: any }>> {
+    return this.put(`/merchandise/admin/${id}`, data);
+  }
+
+  async deleteMerchandise(id: string): Promise<ApiResponse<{ message: string }>> {
+    return this.delete(`/merchandise/admin/${id}`);
+  }
+
+  async toggleMerchandiseAvailability(id: string): Promise<ApiResponse<{ message: string; data: any }>> {
+    return this.patch(`/merchandise/admin/${id}/toggle-availability`);
+  }
+
+  async getMerchandiseStats(): Promise<ApiResponse<{
+    totalMerchandise: number;
+    availableMerchandise: number;
+    featuredMerchandise: number;
+    lowStockMerchandise: number;
+    outOfStockMerchandise: number;
+    categoryStats: Array<{
+      _id: string;
+      count: number;
+    }>;
+  }>> {
+    return this.get('/merchandise/admin/stats');
+  }
+
+  async getPublicMerchandise(params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    category?: string;
+    clubId?: string;
+    featured?: boolean;
+  }): Promise<ApiResponse<{
+    merchandise: any[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      pages: number;
+    };
+  }>> {
+    return this.get('/merchandise/public', { params });
+  }
+
+  async getPublicMerchandiseById(id: string): Promise<ApiResponse<any>> {
+    return this.get(`/merchandise/public/${id}`);
   }
 }
 

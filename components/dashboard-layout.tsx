@@ -32,6 +32,7 @@ import {
   Megaphone,
   Vote,
   Music,
+  ShoppingCart,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -49,7 +50,8 @@ const adminNavigation = [
   { name: "News & Updates", href: "/dashboard/content", icon: Newspaper },
   { name: "Polls", href: "/dashboard/polls", icon: Vote },
   { name: "Our Chants", href: "/dashboard/chants", icon: Music },
-  { name: "Merchandise Store", href: "/dashboard/store", icon: Shirt },
+  { name: "Merchandise Store", href: "/dashboard/merchandise", icon: Shirt },
+  { name: "Order Management", href: "/dashboard/orders", icon: ShoppingCart },
   { name: "Events & Tickets", href: "/dashboard/events", icon: Ticket },
   { name: "Match Center", href: "/dashboard/match-center", icon: Calendar },
   { name: "Group Website", href: "/dashboard/website", icon: Globe },
@@ -81,7 +83,8 @@ const superAdminNavigation = [
   { name: "News & Updates", href: "/dashboard/content", icon: Newspaper },
   { name: "Polls", href: "/dashboard/polls", icon: Vote },
   { name: "Our Chants", href: "/dashboard/chants", icon: Music },
-  { name: "Merchandise Store", href: "/dashboard/store", icon: Shirt },
+  { name: "Merchandise Store", href: "/dashboard/merchandise", icon: Shirt },
+  { name: "Order Management", href: "/dashboard/orders", icon: ShoppingCart },
   { name: "Events & Tickets", href: "/dashboard/events", icon: Ticket },
   { name: "Match Center", href: "/dashboard/match-center", icon: Calendar },
   { name: "Group Website", href: "/dashboard/website", icon: Globe },
@@ -102,6 +105,8 @@ const userNavigation = [
   { name: "News", href: "/dashboard/user/news", icon: Newspaper },
   { name: "Polls", href: "/dashboard/user/polls", icon: Vote },
   { name: "Our Chants", href: "/dashboard/user/chants", icon: Music },
+  { name: "Merchandise", href: "/merchandise", icon: Shirt },
+  { name: "My Orders", href: "/dashboard/user/orders", icon: ShoppingCart },
   { name: "Volunteer", href: "/dashboard/volunteer", icon: Heart },
   { name: "Member Onboarding", href: "/dashboard/member-onboarding", icon: GraduationCap },
   { name: "Membership Card", href: "/dashboard/user/membership-card", icon: CreditCard },

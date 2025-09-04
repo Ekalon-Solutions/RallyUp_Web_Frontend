@@ -12,7 +12,7 @@ import NewsReadMoreModal from "@/components/modals/news-readmore-modal"
 import { apiClient, Event, News, User, Admin } from "@/lib/api"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
-import { Calendar, MapPin, Clock, Users, Newspaper, Tag, User as UserIcon, Eye, Building2, CreditCard, Crown, Star, Shield } from "lucide-react"
+import { Calendar, MapPin, Clock, Users, Newspaper, Tag, User as UserIcon, Eye, Building2, CreditCard, Crown, Star, Shield, InfinityIcon } from "lucide-react"
 import { MembershipStatus } from "@/components/membership-status"
 import { PromotionFeed } from "@/components/promotion-feed"
 import { PollsWidget } from "@/components/polls-widget"
@@ -157,13 +157,12 @@ export default function UserDashboardPage() {
     if (text.length <= maxLength) return text
     return text.substring(0, maxLength) + "..."
   }
-
   const isEventFull = (event: Event) => {
-    return event.currentAttendees >= event.maxAttendees
+    return (event.currentAttendees ?? 0) >= (event.maxAttendees ?? 0)
   }
 
   const isEventPast = (event: Event) => {
-    const eventDate = new Date(event.date + 'T' + event.time)
+    const eventDate = new Date(event.eventDate + 'T' + event.eventTime)
     return eventDate < new Date()
   }
 
@@ -290,7 +289,7 @@ export default function UserDashboardPage() {
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                     {(events || [])
                       .filter(event => !isEventPast(event))
-                      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                      .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
                       .map((event) => (
                       <Card key={event._id} className="overflow-hidden hover:shadow-md transition-shadow">
                         <CardHeader className="pb-3">
@@ -313,20 +312,22 @@ export default function UserDashboardPage() {
                           <div className="space-y-2 text-sm">
                             <div className="flex items-center gap-2">
                               <Calendar className="w-4 h-4 text-muted-foreground" />
-                              <span className="font-medium">{formatDate(event.date)}</span>
+                              <span className="font-medium">
+                                {formatDate(event.startTime)}
+                              </span>
                             </div>
                             <div className="flex items-center gap-2">
                               <Clock className="w-4 h-4 text-muted-foreground" />
-                              <span>{formatTime(event.time)}</span>
+                              <span>{new Date(event.startTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
                             </div>
                             <div className="flex items-center gap-2">
                               <MapPin className="w-4 h-4 text-muted-foreground" />
-                              <span className="truncate">{event.location}</span>
+                              <span className="truncate">{event.venue}</span>
                             </div>
                             <div className="flex items-center gap-2">
                               <Users className="w-4 h-4 text-muted-foreground" />
                               <span className="text-xs">
-                                {event.currentAttendees}/{event.maxAttendees} attendees
+                                {event.currentAttendees}{event.maxAttendees ? `/${event.maxAttendees}` : ''} attendees
                               </span>
                             </div>
                           </div>
@@ -335,26 +336,35 @@ export default function UserDashboardPage() {
                           <div className="space-y-1">
                             <div className="flex justify-between text-xs text-muted-foreground">
                               <span>Capacity</span>
-                              <span>{getAttendancePercentage(event.currentAttendees, event.maxAttendees)}%</span>
+                              {event.maxAttendees && (
+                                <span>{getAttendancePercentage(event.currentAttendees || 0, event.maxAttendees)}%</span>
+                              )}
                             </div>
-                            <div className="w-full bg-gray-200 rounded-full h-2">
-                              <div 
-                                className={`h-2 rounded-full transition-all ${
-                                  getAttendancePercentage(event.currentAttendees, event.maxAttendees) >= 90 
-                                    ? 'bg-red-500' 
-                                    : getAttendancePercentage(event.currentAttendees, event.maxAttendees) >= 75 
-                                    ? 'bg-yellow-500' 
-                                    : 'bg-green-500'
-                                }`}
-                                style={{ 
-                                  width: `${Math.min(getAttendancePercentage(event.currentAttendees, event.maxAttendees), 100)}%` 
-                                }}
-                              ></div>
-                            </div>
+                            {event.maxAttendees ? (
+                              <div className="w-full bg-gray-200 rounded-full h-2">
+                                <div 
+                                  className={`h-2 rounded-full transition-all ${
+                                    getAttendancePercentage(event.currentAttendees || 0, event.maxAttendees) >= 90 
+                                      ? 'bg-red-500' 
+                                      : getAttendancePercentage(event.currentAttendees || 0, event.maxAttendees) >= 75 
+                                      ? 'bg-yellow-500' 
+                                      : 'bg-green-500'
+                                  }`}
+                                  style={{ 
+                                    width: `${Math.min(getAttendancePercentage(event.currentAttendees || 0, event.maxAttendees), 100)}%` 
+                                  }}
+                                ></div>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                <InfinityIcon className="h-3 w-3" />
+                                <span>Unlimited capacity</span>
+                              </div>
+                            )}
                           </div>
                           
                           <div className="pt-2">
-                            {isEventFull(event) ? (
+                            {event.maxAttendees && isEventFull(event) ? (
                               <Button disabled className="w-full" variant="secondary">
                                 Event Full
                               </Button>
