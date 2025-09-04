@@ -398,6 +398,10 @@ export default function ContentManagementPage() {
                           src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/uploads/news/${article.featuredImage}`}
                           alt={article.title}
                           className="w-full h-full object-cover"
+                          onError={(e) => {
+                            console.error('Failed to load featured image:', article.featuredImage);
+                            e.currentTarget.style.display = 'none';
+                          }}
                         />
                         <div className="absolute top-4 right-4 flex gap-2">
                           <Badge variant={getPriorityColor(article.priority)}>
@@ -463,6 +467,10 @@ export default function ContentManagementPage() {
                                 src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/uploads/news/${image}`}
                                 alt={`${article.title} - Image ${index + 1}`}
                                 className="w-full h-20 object-cover rounded-lg"
+                                onError={(e) => {
+                                  console.error('Failed to load image:', image);
+                                  e.currentTarget.style.display = 'none';
+                                }}
                               />
                             ))}
                             {article.images.length > 4 && (

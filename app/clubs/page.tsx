@@ -879,7 +879,7 @@ export default function ClubsPage() {
 
             {selectedPlan && (
               <div className="space-y-4">
-                <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 p-4 rounded-lg">
+                <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/50 dark:to-purple-950/50 border border-blue-200 dark:border-blue-800 p-4 rounded-lg">
                   <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
                     <Award className="w-4 h-4 text-yellow-500" />
                     Selected Plan: {selectedPlan.name}
@@ -887,8 +887,8 @@ export default function ClubsPage() {
                   <div className="text-sm text-muted-foreground space-y-1">
                     <div className="flex justify-between">
                       <span>Price:</span>
-                      <span className="font-semibold line-through text-gray-400">{formatPrice(selectedPlan.price, selectedPlan.currency)}</span>
-                      <span className="font-bold text-green-600">FREE</span>
+                      <span className="font-semibold line-through text-gray-400 dark:text-gray-500">{formatPrice(selectedPlan.price, selectedPlan.currency)}</span>
+                      <span className="font-bold text-green-600 dark:text-green-400">FREE</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Duration:</span>
@@ -902,7 +902,7 @@ export default function ClubsPage() {
                 </div>
 
                 {/* Payment infrastructure (disabled) */}
-                <div className="bg-gray-50 border border-gray-200 p-4 rounded-lg opacity-50 pointer-events-none">
+                <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4 rounded-lg opacity-50 pointer-events-none">
                   <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
                     <DollarSign className="w-4 h-4 text-green-500" />
                     Payment Details (Coming Soon)
@@ -911,18 +911,18 @@ export default function ClubsPage() {
                     <Input
                       disabled
                       placeholder="Card Number"
-                      className="h-12 bg-white"
+                      className="h-12 bg-white dark:bg-gray-700"
                     />
                     <div className="grid grid-cols-2 gap-2">
                       <Input
                         disabled
                         placeholder="MM/YY"
-                        className="h-12 bg-white"
+                        className="h-12 bg-white dark:bg-gray-700"
                       />
                       <Input
                         disabled
                         placeholder="CVC"
-                        className="h-12 bg-white"
+                        className="h-12 bg-white dark:bg-gray-700"
                       />
                     </div>
                   </div>

@@ -404,3 +404,4 @@ export function CreateClubModal({ isOpen, onClose, onSuccess }: CreateClubModalP
     </Dialog>
   )
 }
+

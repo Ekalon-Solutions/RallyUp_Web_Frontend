@@ -59,6 +59,7 @@ export default function MemberOnboardingDashboard({ userId, userRole }: MemberOn
   const [loading, setLoading] = useState(false)
   const [showWelcome, setShowWelcome] = useState(true)
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false)
+  const [showFlowSelection, setShowFlowSelection] = useState(false)
 
   useEffect(() => {
     // Check if user has completed onboarding before
@@ -96,15 +97,24 @@ export default function MemberOnboardingDashboard({ userId, userRole }: MemberOn
         
         setOnboardingFlows(activeFlows)
         
-        // Set active flow if there's only one or if user has progress
+        // Handle flow selection logic
         if (activeFlows && activeFlows.length > 0) {
           const flowWithProgress = activeFlows.find((f: OnboardingFlow) => f.progress > 0)
+          
           if (flowWithProgress) {
+            // User has progress in a specific flow, continue with that one
             setActiveFlow(flowWithProgress)
             setCurrentStepIndex(flowWithProgress.currentStep)
-          } else {
+            setShowFlowSelection(false)
+          } else if (activeFlows.length === 1) {
+            // Only one flow available, start it automatically
             setActiveFlow(activeFlows[0])
             setCurrentStepIndex(0)
+            setShowFlowSelection(false)
+          } else {
+            // Multiple flows available, show selection interface
+            setShowFlowSelection(true)
+            setActiveFlow(null)
           }
         }
       }
@@ -159,21 +169,34 @@ export default function MemberOnboardingDashboard({ userId, userRole }: MemberOn
     }
   }
 
+  const selectFlow = (flow: OnboardingFlow) => {
+    setActiveFlow(flow)
+    setCurrentStepIndex(0)
+    setShowFlowSelection(false)
+    toast.success(`Starting "${flow.name}" onboarding`)
+  }
+
   const repeatOnboarding = () => {
     // Reset completion state
     localStorage.removeItem(`onboarding_completed_${userId}`)
     setHasCompletedOnboarding(false)
     
-    // Reset flow state
-    if (activeFlow) {
-      const resetFlow = {
-        ...activeFlow,
-        steps: activeFlow.steps.map(step => ({ ...step, isCompleted: false })),
-        progress: 0,
-        currentStep: 0
+    // If there are multiple flows, show selection screen
+    if (onboardingFlows.length > 1) {
+      setShowFlowSelection(true)
+      setActiveFlow(null)
+    } else {
+      // Reset flow state for single flow
+      if (activeFlow) {
+        const resetFlow = {
+          ...activeFlow,
+          steps: activeFlow.steps.map(step => ({ ...step, isCompleted: false })),
+          progress: 0,
+          currentStep: 0
+        }
+        setActiveFlow(resetFlow)
+        setCurrentStepIndex(0)
       }
-      setActiveFlow(resetFlow)
-      setCurrentStepIndex(0)
     }
     
     toast.success("Onboarding reset! You can start over.")
@@ -387,7 +410,13 @@ export default function MemberOnboardingDashboard({ userId, userRole }: MemberOn
                 </div>
                 
                 <Button 
-                  onClick={() => setShowWelcome(false)} 
+                  onClick={() => {
+                    if (onboardingFlows.length > 1) {
+                      setShowFlowSelection(true)
+                    } else {
+                      setShowWelcome(false)
+                    }
+                  }} 
                   className="px-8"
                   size="lg"
                 >
@@ -398,6 +427,90 @@ export default function MemberOnboardingDashboard({ userId, userRole }: MemberOn
             )}
           </CardContent>
         </Card>
+      </div>
+    )
+  }
+
+  // Flow Selection Screen
+  if (showFlowSelection && onboardingFlows.length > 1) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <Card className="text-center mb-6">
+          <CardHeader>
+            <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Target className="w-10 h-10 text-primary" />
+            </div>
+            <CardTitle className="text-3xl font-bold">Choose Your Onboarding Path</CardTitle>
+            <p className="text-muted-foreground text-lg">
+              We have multiple onboarding experiences available. Select the one that best fits your needs.
+            </p>
+          </CardHeader>
+        </Card>
+
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {onboardingFlows.map((flow) => (
+            <Card key={flow._id} className="cursor-pointer hover:shadow-lg transition-shadow border-2 hover:border-primary/20">
+              <CardHeader>
+                <div className="flex items-center justify-between mb-2">
+                  <CardTitle className="text-lg">{flow.name}</CardTitle>
+                  <div className="flex gap-1">
+                    {flow.progress > 0 && (
+                      <Badge variant="default" className="text-xs bg-green-100 text-green-800">
+                        {Math.round(flow.progress)}% done
+                      </Badge>
+                    )}
+                    <Badge variant="outline" className="text-xs">
+                      {flow.estimatedDuration} min
+                    </Badge>
+                  </div>
+                </div>
+                <p className="text-sm text-muted-foreground">{flow.description}</p>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Target className="w-4 h-4" />
+                    <span>{flow.steps.length} steps</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Users className="w-4 h-4" />
+                    <span>For {flow.targetAudience.replace('_', ' ')}</span>
+                  </div>
+                  {flow.progress > 0 && (
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-primary h-2 rounded-full transition-all duration-300" 
+                        style={{ width: `${flow.progress}%` }}
+                      />
+                    </div>
+                  )}
+                  <Button 
+                    onClick={() => selectFlow(flow)}
+                    className="w-full"
+                    size="sm"
+                    variant={flow.progress > 0 ? "outline" : "default"}
+                  >
+                    {flow.progress > 0 ? "Continue This Onboarding" : "Start This Onboarding"}
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        <div className="text-center mt-6">
+          <Button 
+            variant="outline" 
+            onClick={() => {
+              setShowFlowSelection(false)
+              setShowWelcome(true)
+            }}
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Welcome
+          </Button>
+        </div>
       </div>
     )
   }
@@ -464,9 +577,22 @@ export default function MemberOnboardingDashboard({ userId, userRole }: MemberOn
               <CardTitle className="text-xl">{activeFlow.name}</CardTitle>
               <p className="text-muted-foreground">{activeFlow.description}</p>
             </div>
-            <Badge variant="outline" className="text-sm">
-              {Math.round(progress)}% Complete
-            </Badge>
+            <div className="flex items-center gap-2">
+              {onboardingFlows.length > 1 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowFlowSelection(true)}
+                  className="text-xs"
+                >
+                  <Settings className="w-3 h-3 mr-1" />
+                  Switch Flow
+                </Button>
+              )}
+              <Badge variant="outline" className="text-sm">
+                {Math.round(progress)}% Complete
+              </Badge>
+            </div>
           </div>
           <Progress value={progress} className="w-full" />
           <div className="flex items-center justify-between text-sm text-muted-foreground">

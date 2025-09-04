@@ -20,6 +20,7 @@ export default function VolunteerDashboard() {
   const [activeTab, setActiveTab] = React.useState('available');
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [signingUp, setSigningUp] = React.useState<string | null>(null); // Track which opportunity is being signed up for
   const { toast } = useToast();
 
   const fetchVolunteerProfile = React.useCallback(async () => {
@@ -186,6 +187,8 @@ export default function VolunteerDashboard() {
     console.log('🎯 Attempting to sign up for opportunity:', { opportunityId, timeSlotId });
     console.log('👤 Current user:', user);
     console.log('🔑 User ID:', user?._id);
+    console.log('👥 Volunteer profile:', volunteerProfile);
+    
     // Get club info from user's active membership
     const activeMembership = (user as any)?.memberships?.find((membership: any) => membership.status === 'active');
     const userClub = activeMembership?.club_id?.name || 'No active club membership';
@@ -193,6 +196,7 @@ export default function VolunteerDashboard() {
     
     // Frontend validation to prevent duplicate signup attempts
     if (!volunteerProfile) {
+      console.log('❌ No volunteer profile found');
       toast({
         title: 'Error',
         description: 'You need to create a volunteer profile first',
@@ -200,6 +204,8 @@ export default function VolunteerDashboard() {
       });
       return;
     }
+    
+    console.log('✅ Volunteer profile found:', volunteerProfile._id);
     
     // Check if already signed up for this time slot
     const opportunity = opportunities.find(o => o._id === opportunityId);
@@ -216,6 +222,7 @@ export default function VolunteerDashboard() {
     }
     
     try {
+      setSigningUp(`${opportunityId}-${timeSlotId}`);
       const response = await apiClient.signUpForVolunteerOpportunity(opportunityId, timeSlotId);
       console.log('📝 Sign up response:', {
         success: response.success,
@@ -247,14 +254,18 @@ export default function VolunteerDashboard() {
         description: 'Failed to sign up for the volunteer opportunity',
         variant: 'destructive',
       });
+    } finally {
+      setSigningUp(null);
     }
   };
 
   const handleWithdraw = async (opportunityId: string, timeSlotId: string) => {
     console.log('🚫 Attempting to withdraw from opportunity:', { opportunityId, timeSlotId });
+    console.log('👥 Volunteer profile:', volunteerProfile);
     
     // Frontend validation
     if (!volunteerProfile) {
+      console.log('❌ No volunteer profile found for withdrawal');
       toast({
         title: 'Error',
         description: 'Volunteer profile not found',
@@ -262,6 +273,8 @@ export default function VolunteerDashboard() {
       });
       return;
     }
+    
+    console.log('✅ Volunteer profile found for withdrawal:', volunteerProfile._id);
     
     // Check if actually signed up for this time slot
     const opportunity = opportunities.find(o => o._id === opportunityId);
@@ -315,7 +328,13 @@ export default function VolunteerDashboard() {
     console.log('🔄 Updating volunteer preferences:', preferences);
     try {
       // First check if volunteer profile exists
+      console.log('🔍 Checking if volunteer profile exists...');
       const profileResponse = await apiClient.getVolunteerProfile();
+      console.log('📋 Profile check response:', {
+        success: profileResponse.success,
+        data: profileResponse.data,
+        error: profileResponse.error
+      });
       
       if (!profileResponse.success) {
         // Profile doesn't exist, create one first
@@ -323,12 +342,13 @@ export default function VolunteerDashboard() {
         // Get club ID from user's active membership
         const activeMembership = (user as any)?.memberships?.find((membership: any) => membership.status === 'active');
         const clubId = activeMembership?.club_id?._id || '';
+        console.log('🏢 Club ID for volunteer profile:', clubId);
         
         if (!clubId) {
           throw new Error('You need to be a member of a club to create a volunteer profile');
         }
 
-        const createResponse = await apiClient.createVolunteerProfile({
+        const profileData = {
           skills: preferences.skills || [],
           interests: preferences.interests || [],
           availability: {
@@ -337,6 +357,14 @@ export default function VolunteerDashboard() {
             evenings: preferences.availability?.evenings || false
           },
           notes: preferences.notes || ''
+        };
+        console.log('📤 Sending volunteer profile data:', profileData);
+
+        const createResponse = await apiClient.createVolunteerProfile(profileData);
+        console.log('📥 Create volunteer profile response:', {
+          success: createResponse.success,
+          data: createResponse.data,
+          error: createResponse.error
         });
         
         if (createResponse.success) {
@@ -442,8 +470,11 @@ export default function VolunteerDashboard() {
             <Button variant="outline" onClick={fetchOpportunities}>
               Refresh Opportunities
             </Button>
-            <Button onClick={() => setIsModalOpen(true)}>
-              {volunteerProfile ? 'Update Preferences' : 'Become a Volunteer'}
+            <Button 
+              onClick={() => setIsModalOpen(true)}
+              className={!volunteerProfile ? 'bg-blue-600 hover:bg-blue-700 text-white' : ''}
+            >
+              {volunteerProfile ? 'Update Preferences' : '🎯 Become a Volunteer'}
             </Button>
           </div>
         </div>
@@ -469,10 +500,16 @@ export default function VolunteerDashboard() {
                   }
                 </p>
                 {user && !volunteerProfile && (
-                  <div className="p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
-                    <p className="text-sm text-blue-800 dark:text-blue-200">
-                      💡 You need to set up your volunteer preferences first. Click "Become a Volunteer" to get started!
-                    </p>
+                  <div className="p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className="text-2xl">🎯</div>
+                      <div>
+                        <h3 className="font-semibold text-blue-900 dark:text-blue-100">Ready to Volunteer?</h3>
+                        <p className="text-sm text-blue-800 dark:text-blue-200 mt-1">
+                          You need to set up your volunteer profile first to sign up for opportunities. Click "Become a Volunteer" to get started!
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -537,6 +574,7 @@ export default function VolunteerDashboard() {
                   opportunity={opportunity}
                   onSignUp={handleSignUp}
                   currentVolunteerId={volunteerProfile?._id}
+                  signingUp={signingUp}
                 />
               ))
             )}

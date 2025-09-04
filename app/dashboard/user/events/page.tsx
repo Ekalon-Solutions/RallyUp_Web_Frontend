@@ -11,7 +11,7 @@ import { ProtectedRoute } from "@/components/protected-route"
 import { apiClient, Event } from "@/lib/api"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
-import { Calendar, MapPin, Clock, Users, Search, Filter, Eye } from "lucide-react"
+import { Calendar, MapPin, Clock, Users, Search, Filter, Eye, Infinity as InfinityIcon } from "lucide-react"
 
 const eventCategories = [
   "all",
@@ -85,21 +85,16 @@ export default function UserEventsPage() {
     })
   }
 
-  const formatTime = (timeString: string) => {
-    return timeString
-  }
-
   const getAttendancePercentage = (current: number, max: number) => {
     return Math.round((current / max) * 100)
   }
 
   const isEventFull = (event: Event) => {
-    return event.currentAttendees >= event.maxAttendees
+    return event.maxAttendees ? event.currentAttendees >= event.maxAttendees : false
   }
 
   const isEventPast = (event: Event) => {
-    const eventDate = new Date(event.date + 'T' + event.time)
-    return eventDate < new Date()
+    return new Date(event.startTime) < new Date()
   }
 
   const filteredEvents = events.filter(event => {
@@ -107,7 +102,7 @@ export default function UserEventsPage() {
     const searchMatch = !searchTerm || 
       event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       event.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      event.location.toLowerCase().includes(searchTerm.toLowerCase())
+      event.venue.toLowerCase().includes(searchTerm.toLowerCase())
 
     // Apply category filter
     const categoryMatch = categoryFilter === "all" || event.category === categoryFilter
@@ -186,18 +181,21 @@ export default function UserEventsPage() {
             ) : (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {upcomingEvents
-                  .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                  .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
                   .map((event) => (
-                  <Card key={event._id} className="overflow-hidden">
+                  <Card key={event._id} className="overflow-hidden hover:shadow-md transition-shadow">
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between">
-                        <div className="space-y-1">
-                          <CardTitle className="text-lg">{event.title}</CardTitle>
+                        <div className="space-y-1 flex-1">
+                          <CardTitle className="text-lg line-clamp-2">{event.title}</CardTitle>
                           <CardDescription className="line-clamp-2">
                             {event.description}
                           </CardDescription>
                         </div>
-                        <Badge variant={event.isPublished ? "default" : "secondary"}>
+                        <Badge 
+                          variant={event.isActive ? "default" : "secondary"}
+                          className="ml-2 flex-shrink-0"
+                        >
                           {event.category}
                         </Badge>
                       </div>
@@ -206,27 +204,59 @@ export default function UserEventsPage() {
                       <div className="space-y-2 text-sm">
                         <div className="flex items-center gap-2">
                           <Calendar className="w-4 h-4 text-muted-foreground" />
-                          <span>{formatDate(event.date)}</span>
+                          <span className="font-medium">
+                            {formatDate(event.startTime)}
+                          </span>
                         </div>
                         <div className="flex items-center gap-2">
                           <Clock className="w-4 h-4 text-muted-foreground" />
-                          <span>{formatTime(event.time)}</span>
+                          <span>{new Date(event.startTime).toLocaleTimeString('en-US')}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <MapPin className="w-4 h-4 text-muted-foreground" />
-                          <span className="truncate">{event.location}</span>
+                          <span className="truncate">{event.venue}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <Users className="w-4 h-4 text-muted-foreground" />
-                          <span>
-                            {event.currentAttendees}/{event.maxAttendees} attendees
-                            ({getAttendancePercentage(event.currentAttendees, event.maxAttendees)}% full)
+                          <span className="text-xs">
+                            {event.currentAttendees}{event.maxAttendees ? `/${event.maxAttendees}` : ''} attendees
                           </span>
                         </div>
                       </div>
                       
-                      <div className="pt-2 space-y-2">
-                        {isEventFull(event) ? (
+                      {/* Attendance Progress Bar */}
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span>Capacity</span>
+                          {event.maxAttendees && (
+                            <span>{getAttendancePercentage(event.currentAttendees || 0, event.maxAttendees)}%</span>
+                          )}
+                        </div>
+                        {event.maxAttendees ? (
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div 
+                              className={`h-2 rounded-full transition-all ${
+                                getAttendancePercentage(event.currentAttendees || 0, event.maxAttendees) >= 90 
+                                  ? 'bg-red-500' 
+                                  : getAttendancePercentage(event.currentAttendees || 0, event.maxAttendees) >= 75 
+                                  ? 'bg-yellow-500' 
+                                  : 'bg-green-500'
+                              }`}
+                              style={{ 
+                                width: `${Math.min(getAttendancePercentage(event.currentAttendees || 0, event.maxAttendees), 100)}%` 
+                              }}
+                            ></div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <InfinityIcon className="h-3 w-3" />
+                            <span>Unlimited capacity</span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="pt-2">
+                        {event.maxAttendees && isEventFull(event) ? (
                           <Button disabled className="w-full" variant="secondary">
                             Event Full
                           </Button>
@@ -238,10 +268,6 @@ export default function UserEventsPage() {
                             Register for Event
                           </Button>
                         )}
-                        <Button variant="outline" className="w-full">
-                          <Eye className="w-4 h-4 mr-2" />
-                          View Details
-                        </Button>
                       </div>
                     </CardContent>
                   </Card>
@@ -259,18 +285,18 @@ export default function UserEventsPage() {
               </div>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {pastEvents
-                  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                  .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())
                   .map((event) => (
-                  <Card key={event._id} className="overflow-hidden opacity-75">
+                  <Card key={event._id} className="overflow-hidden opacity-75 hover:shadow-md transition-shadow">
                     <CardHeader className="pb-3">
                       <div className="flex items-start justify-between">
-                        <div className="space-y-1">
-                          <CardTitle className="text-lg">{event.title}</CardTitle>
+                        <div className="space-y-1 flex-1">
+                          <CardTitle className="text-lg line-clamp-2">{event.title}</CardTitle>
                           <CardDescription className="line-clamp-2">
                             {event.description}
                           </CardDescription>
                         </div>
-                        <Badge variant="secondary">
+                        <Badge variant="secondary" className="ml-2 flex-shrink-0">
                           {event.category}
                         </Badge>
                       </div>
@@ -279,22 +305,55 @@ export default function UserEventsPage() {
                       <div className="space-y-2 text-sm">
                         <div className="flex items-center gap-2">
                           <Calendar className="w-4 h-4 text-muted-foreground" />
-                          <span>{formatDate(event.date)}</span>
+                          <span className="font-medium">
+                            {formatDate(event.startTime)}
+                          </span>
                         </div>
                         <div className="flex items-center gap-2">
                           <Clock className="w-4 h-4 text-muted-foreground" />
-                          <span>{formatTime(event.time)}</span>
+                          <span>{new Date(event.startTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <MapPin className="w-4 h-4 text-muted-foreground" />
-                          <span className="truncate">{event.location}</span>
+                          <span className="truncate">{event.venue}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <Users className="w-4 h-4 text-muted-foreground" />
-                          <span>
-                            {event.currentAttendees}/{event.maxAttendees} attendees
+                          <span className="text-xs">
+                            {event.currentAttendees}{event.maxAttendees ? `/${event.maxAttendees}` : ''} attendees
                           </span>
                         </div>
+                      </div>
+                      
+                      {/* Attendance Progress Bar */}
+                      <div className="space-y-1">
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span>Capacity</span>
+                          {event.maxAttendees && (
+                            <span>{getAttendancePercentage(event.currentAttendees || 0, event.maxAttendees)}%</span>
+                          )}
+                        </div>
+                        {event.maxAttendees ? (
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div 
+                              className={`h-2 rounded-full transition-all ${
+                                getAttendancePercentage(event.currentAttendees || 0, event.maxAttendees) >= 90 
+                                  ? 'bg-red-500' 
+                                  : getAttendancePercentage(event.currentAttendees || 0, event.maxAttendees) >= 75 
+                                  ? 'bg-yellow-500' 
+                                  : 'bg-green-500'
+                              }`}
+                              style={{ 
+                                width: `${Math.min(getAttendancePercentage(event.currentAttendees || 0, event.maxAttendees), 100)}%` 
+                              }}
+                            ></div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <InfinityIcon className="h-3 w-3" />
+                            <span>Unlimited capacity</span>
+                          </div>
+                        )}
                       </div>
                       
                       <div className="pt-2">

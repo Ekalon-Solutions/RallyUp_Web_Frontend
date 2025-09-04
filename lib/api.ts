@@ -8,6 +8,15 @@ export interface ApiResponse<T = any> {
   data?: T;
   message?: string;
   error?: string;
+  errorDetails?: {
+    status?: number;
+    statusText?: string;
+    endpoint?: string;
+    url?: string;
+    details?: any;
+    type?: string;
+  };
+  status?: number;
 }
 
 export interface User {
@@ -120,7 +129,31 @@ export interface News {
   updatedAt: string;
 }
 
+export interface Chant {
+  _id: string;
+  title: string;
+  description?: string;
+  content?: string;
+  fileType: 'text' | 'image' | 'audio';
+  fileName?: string;
+  fileUrl?: string;
+  fileKey?: string;
+  fileSize?: number;
+  mimeType?: string;
+  club: Club;
+  createdBy: User;
+  isActive: boolean;
+  tags?: string[];
+  fileTypeDisplay?: string;
+  formattedFileSize?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Event {
+  eventDate: string;
+  eventTime: string;
+  isPublished: any;
   _id: string;
   title: string;
   category: string;
@@ -397,18 +430,40 @@ export interface MembershipPlan {
   updatedAt: string;
 }
 
+export interface PollOption {
+  _id: string;
+  text: string;
+  votes: number;
+  voters: string[];
+}
+
+export interface Poll {
+  _id: string;
+  question: string;
+  description?: string;
+  options: PollOption[];
+  club: Club;
+  createdBy: string;
+  createdByModel: 'Admin' | 'User';
+  createdByName: string;
+  status: 'draft' | 'active' | 'closed' | 'archived';
+  allowMultipleVotes: boolean;
+  allowAnonymousVotes: boolean;
+  startDate?: string;
+  endDate?: string;
+  totalVotes: number;
+  totalVoters: number;
+  isPublic: boolean;
+  tags: string[];
+  category: 'general' | 'event' | 'feedback' | 'decision' | 'survey';
+  priority: 'low' | 'medium' | 'high';
+  createdAt: string;
+  updatedAt: string;
+  userVotes?: string[]; // User's votes (added by API)
+}
+
 class ApiClient {
-  get(arg0: string, arg1: { params: { club?: string; status?: string; event?: string; } | undefined; }) {
-    throw new Error('Method not implemented.');
-  }
-  post(arg0: string, arg1: { timeSlotId: string; }) {
-    throw new Error('Method not implemented.');
-  }
-  delete(arg0: string) {
-    throw new Error('Method not implemented.');
-  }
   private baseURL: string;
-  put: any;
 
   constructor(baseURL: string) {
     this.baseURL = baseURL;
@@ -425,27 +480,73 @@ class ApiClient {
     // Determine if we should set Content-Type header
     const isFormData = options.body instanceof FormData;
     
+    const headers: Record<string, string> = {
+      'Accept': 'application/json',
+    };
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    
+    // Only set Content-Type for non-FormData requests
+    if (!isFormData) {
+      headers['Content-Type'] = 'application/json';
+    }
+    
+    // Merge with any existing headers from options
+    if (options.headers) {
+      Object.assign(headers, options.headers);
+    }
+    
     const config: RequestInit = {
-      headers: {
-        'Accept': 'application/json',
-        ...(token && { Authorization: `Bearer ${token}` }),
-        // Only set Content-Type for non-FormData requests
-        ...(!isFormData && { 'Content-Type': 'application/json' }),
-        ...options.headers,
-      },
+      headers,
       credentials: 'include',
       ...options,
     };
 
+    // Debug headers
+    console.log('🔍 Request headers:', config.headers);
+    console.log('🔍 Token exists:', !!token);
+    console.log('🔍 Authorization header:', headers['Authorization']);
+
     try {
       const response = await fetch(url, config);
-      const data = await response.json();
-      console.log(`API ${endpoint} response:`, { status: response.status, data });
+      
+      // Handle non-JSON responses (like HTML error pages)
+      let data;
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
+      } else {
+        const text = await response.text();
+        data = { message: text || `HTTP ${response.status} error` };
+      }
+      
+      console.log(`API ${endpoint} response:`, { 
+        status: response.status, 
+        statusText: response.statusText,
+        data,
+        url: response.url 
+      });
 
       if (!response.ok) {
+        // Enhanced error handling with more details
+        const errorMessage = data.message || data.error || `HTTP error! status: ${response.status}`;
+        const errorDetails = {
+          status: response.status,
+          statusText: response.statusText,
+          endpoint,
+          url: response.url,
+          ...(data.details && { details: data.details })
+        };
+        
+        console.error(`API Error for ${endpoint}:`, errorDetails);
+        
         return {
           success: false,
-          error: data.message || `HTTP error! status: ${response.status}`,
+          error: errorMessage,
+          errorDetails,
+          status: response.status
         };
       }
 
@@ -458,6 +559,11 @@ class ApiClient {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Network error',
+        errorDetails: {
+          endpoint,
+          url,
+          type: 'network_error'
+        }
       };
     }
   }
@@ -469,6 +575,90 @@ class ApiClient {
       return token;
     }
     return null;
+  }
+
+  // Generic HTTP methods
+  async get<T = any>(endpoint: string, options?: { params?: Record<string, any> }): Promise<ApiResponse<T>> {
+    let url = endpoint;
+    if (options?.params) {
+      const queryParams = new URLSearchParams();
+      Object.entries(options.params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          queryParams.append(key, value.toString());
+        }
+      });
+      const queryString = queryParams.toString();
+      if (queryString) {
+        url += `?${queryString}`;
+      }
+    }
+    return this.request<T>(url);
+  }
+
+  async post<T = any>(endpoint: string, data?: any, options?: { headers?: Record<string, string> }): Promise<ApiResponse<T>> {
+    const requestOptions: RequestInit = {
+      method: 'POST',
+    };
+
+    if (data instanceof FormData) {
+      requestOptions.body = data;
+    } else if (data) {
+      requestOptions.body = JSON.stringify(data);
+    }
+
+    if (options?.headers) {
+      requestOptions.headers = options.headers;
+    }
+
+    return this.request<T>(endpoint, requestOptions);
+  }
+
+  async put<T = any>(endpoint: string, data?: any, options?: { headers?: Record<string, string> }): Promise<ApiResponse<T>> {
+    const requestOptions: RequestInit = {
+      method: 'PUT',
+    };
+
+    if (data instanceof FormData) {
+      requestOptions.body = data;
+    } else if (data) {
+      requestOptions.body = JSON.stringify(data);
+    }
+
+    if (options?.headers) {
+      requestOptions.headers = options.headers;
+    }
+
+    return this.request<T>(endpoint, requestOptions);
+  }
+
+  async patch<T = any>(endpoint: string, data?: any, options?: { headers?: Record<string, string> }): Promise<ApiResponse<T>> {
+    const requestOptions: RequestInit = {
+      method: 'PATCH',
+    };
+
+    if (data instanceof FormData) {
+      requestOptions.body = data;
+    } else if (data) {
+      requestOptions.body = JSON.stringify(data);
+    }
+
+    if (options?.headers) {
+      requestOptions.headers = options.headers;
+    }
+
+    return this.request<T>(endpoint, requestOptions);
+  }
+
+  async delete<T = any>(endpoint: string, options?: { headers?: Record<string, string> }): Promise<ApiResponse<T>> {
+    const requestOptions: RequestInit = {
+      method: 'DELETE',
+    };
+
+    if (options?.headers) {
+      requestOptions.headers = options.headers;
+    }
+
+    return this.request<T>(endpoint, requestOptions);
   }
 
   // Authentication APIs
@@ -647,7 +837,7 @@ class ApiClient {
     });
   }
 
-  async getNewsStats(): Promise<ApiResponse<{
+  async getNewsStats(clubId?: string): Promise<ApiResponse<{
     stats: {
       total: number;
       published: number;
@@ -657,7 +847,8 @@ class ApiClient {
     categoryStats: { _id: string; count: number }[];
     priorityStats: { _id: string; count: number }[];
   }>> {
-    return this.request('/news/stats');
+    const endpoint = clubId ? `/news/stats?clubId=${clubId}` : '/news/stats';
+    return this.request(endpoint);
   }
 
   // Events APIs
@@ -982,7 +1173,7 @@ class ApiClient {
 
   // Get volunteer profile for the current user
   async getVolunteerProfile(): Promise<ApiResponse<VolunteerProfile>> {
-    return this.request('/volunteer/profile');
+    return this.request('/volunteer/volunteer-profile');
   }
 
   // Create volunteer profile for the current user
@@ -1269,6 +1460,59 @@ class ApiClient {
     return this.request('/staff/stats');
   }
 
+  // System Owner Staff Management
+  async getStaffByClub(clubId: string, params?: {
+    role?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<ApiResponse<{
+    staff: User[];
+    club: {
+      _id: string;
+      name: string;
+    };
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      pages: number;
+    };
+  }>> {
+    const queryParams = new URLSearchParams();
+    if (params?.role) queryParams.append('role', params.role);
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+
+    const endpoint = `/staff/club/${clubId}${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    return this.request(endpoint);
+  }
+
+  async createStaffForClub(clubId: string, data: {
+    name: string;
+    email: string;
+    phoneNumber: string;
+    countryCode: string;
+    role: 'admin' | 'volunteer';
+  }): Promise<ApiResponse<{ message: string; staffMember: User }>> {
+    return this.request(`/staff/club/${clubId}`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateStaffForClub(clubId: string, staffId: string, data: any): Promise<ApiResponse<{ message: string; staffMember: User }>> {
+    return this.request(`/staff/club/${clubId}/${staffId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteStaffForClub(clubId: string, staffId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request(`/staff/club/${clubId}/${staffId}`, {
+      method: 'DELETE',
+    });
+  }
+
   // System Owner Management
   async systemOwnerRegister(data: {
     name: string;
@@ -1328,6 +1572,25 @@ class ApiClient {
       success: response.success,
       data: users,
       error: response.error
+    };
+  }
+
+  // Admin Search API (System Owner only)
+  async searchAdmins(query: string): Promise<ApiResponse<Admin[]>> {
+    console.log('API searchAdmins - Query:', query);
+    const endpoint = `/admin/search?q=${encodeURIComponent(query)}`;
+    const response = await this.request<any>(endpoint);
+    console.log('API searchAdmins - Raw response:', response);
+
+    // Handle the nested response structure
+    const responseData = response.data || response;
+    const admins = responseData.success ? (Array.isArray(responseData.data) ? responseData.data : []) : [];
+    console.log('API searchAdmins - Processed admins:', admins);
+
+    return {
+      success: responseData.success,
+      data: admins,
+      error: responseData.error
     };
   }
 
@@ -1528,6 +1791,343 @@ class ApiClient {
 
   async getClubMembers(clubId: string): Promise<ApiResponse<any[]>> {
     return this.request(`/clubs/${clubId}/members`);
+  }
+
+  // Poll APIs
+  async getPolls(params?: {
+    page?: number;
+    limit?: number;
+    status?: 'draft' | 'active' | 'closed' | 'archived';
+    category?: 'general' | 'event' | 'feedback' | 'decision' | 'survey';
+    search?: string;
+  }): Promise<ApiResponse<{
+    polls: Poll[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      pages: number;
+    };
+  }>> {
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.status) queryParams.append('status', params.status);
+    if (params?.category) queryParams.append('category', params.category);
+    if (params?.search) queryParams.append('search', params.search);
+
+    const endpoint = `/polls${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    return this.request(endpoint);
+  }
+
+  async getActivePolls(params?: {
+    page?: number;
+    limit?: number;
+    category?: 'general' | 'event' | 'feedback' | 'decision' | 'survey';
+    search?: string;
+  }): Promise<ApiResponse<{
+    polls: Poll[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      pages: number;
+    };
+  }>> {
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.category) queryParams.append('category', params.category);
+    if (params?.search) queryParams.append('search', params.search);
+
+    const endpoint = `/polls/active${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    return this.request(endpoint);
+  }
+
+  async getPollById(id: string): Promise<ApiResponse<Poll>> {
+    return this.request(`/polls/${id}`);
+  }
+
+  async createPoll(data: {
+    question: string;
+    description?: string;
+    options: string[];
+    allowMultipleVotes?: boolean;
+    allowAnonymousVotes?: boolean;
+    startDate?: string;
+    endDate?: string;
+    isPublic?: boolean;
+    tags?: string;
+    category?: 'general' | 'event' | 'feedback' | 'decision' | 'survey';
+    priority?: 'low' | 'medium' | 'high';
+  }): Promise<ApiResponse<{ message: string; poll: Poll }>> {
+    return this.request('/polls', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updatePoll(id: string, data: {
+    question?: string;
+    description?: string;
+    options?: string[];
+    allowMultipleVotes?: boolean;
+    allowAnonymousVotes?: boolean;
+    startDate?: string;
+    endDate?: string;
+    isPublic?: boolean;
+    tags?: string;
+    category?: 'general' | 'event' | 'feedback' | 'decision' | 'survey';
+    priority?: 'low' | 'medium' | 'high';
+  }): Promise<ApiResponse<{ message: string; poll: Poll }>> {
+    return this.request(`/polls/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deletePoll(id: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request(`/polls/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async voteOnPoll(pollId: string, optionId: string): Promise<ApiResponse<{ message: string; poll: Poll }>> {
+    return this.request(`/polls/${pollId}/vote`, {
+      method: 'POST',
+      body: JSON.stringify({ optionId }),
+    });
+  }
+
+  async removeVoteFromPoll(pollId: string, optionId: string): Promise<ApiResponse<{ message: string; poll: Poll }>> {
+    return this.request(`/polls/${pollId}/vote`, {
+      method: 'DELETE',
+      body: JSON.stringify({ optionId }),
+    });
+  }
+
+  async changeVoteInPoll(pollId: string, oldOptionId: string, newOptionId: string): Promise<ApiResponse<{ message: string; poll: Poll }>> {
+    return this.request(`/polls/${pollId}/vote`, {
+      method: 'PUT',
+      body: JSON.stringify({ oldOptionId, newOptionId }),
+    });
+  }
+
+  async updatePollStatus(id: string, status: 'draft' | 'active' | 'closed' | 'archived'): Promise<ApiResponse<{ message: string; poll: Poll }>> {
+    return this.request(`/polls/${id}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    });
+  }
+
+  async getPollResults(id: string): Promise<ApiResponse<{
+    poll: {
+      _id: string;
+      question: string;
+      description?: string;
+      status: string;
+      totalVotes: number;
+      totalVoters: number;
+      allowMultipleVotes: boolean;
+      allowAnonymousVotes: boolean;
+      startDate?: string;
+      endDate?: string;
+      createdAt: string;
+    };
+    results: Array<{
+      _id: string;
+      text: string;
+      votes: number;
+      percentage: number;
+      voters: string[];
+    }>;
+  }>> {
+    return this.request(`/polls/${id}/results`);
+  }
+
+  async getPollStats(clubId?: string): Promise<ApiResponse<{
+    stats: {
+      total: number;
+      active: number;
+      closed: number;
+      draft: number;
+      archived: number;
+      totalVotes: number;
+      totalVoters: number;
+    };
+    categoryStats: { _id: string; count: number }[];
+    priorityStats: { _id: string; count: number }[];
+  }>> {
+    const endpoint = clubId ? `/polls/stats?clubId=${clubId}` : '/polls/stats';
+    return this.request(endpoint);
+  }
+
+  // Chants API methods
+  async getChants(clubId: string, params?: {
+    fileType?: 'text' | 'image' | 'audio';
+    page?: number;
+    limit?: number;
+    search?: string;
+  }): Promise<ApiResponse<{
+    chants: Chant[];
+    pagination: {
+      current: number;
+      pages: number;
+      total: number;
+    };
+  }>> {
+    const queryParams = new URLSearchParams();
+    if (params?.fileType) queryParams.append('fileType', params.fileType);
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.search) queryParams.append('search', params.search);
+    
+    const query = queryParams.toString();
+    return this.request(`/chants/club/${clubId}${query ? `?${query}` : ''}`);
+  }
+
+  async getChantById(id: string): Promise<ApiResponse<Chant>> {
+    return this.request(`/chants/${id}`);
+  }
+
+  async createChant(clubId: string, data: {
+    title: string;
+    description?: string;
+    content?: string;
+    fileType: 'text' | 'image' | 'audio';
+    tags?: string[];
+    file?: File;
+  }): Promise<ApiResponse<Chant>> {
+    const formData = new FormData();
+    formData.append('title', data.title);
+    if (data.description) formData.append('description', data.description);
+    if (data.content) formData.append('content', data.content);
+    formData.append('fileType', data.fileType);
+    if (data.tags) formData.append('tags', data.tags.join(','));
+    if (data.file) formData.append('file', data.file);
+
+    return this.request(`/chants/club/${clubId}`, {
+      method: 'POST',
+      body: formData,
+      // Don't set headers - let the request method handle Authorization and Content-Type
+    });
+  }
+
+  async updateChant(id: string, data: {
+    title?: string;
+    description?: string;
+    content?: string;
+    tags?: string[];
+    file?: File;
+  }): Promise<ApiResponse<Chant>> {
+    const formData = new FormData();
+    if (data.title) formData.append('title', data.title);
+    if (data.description !== undefined) formData.append('description', data.description);
+    if (data.content !== undefined) formData.append('content', data.content);
+    if (data.tags) formData.append('tags', data.tags.join(','));
+    if (data.file) formData.append('file', data.file);
+
+    return this.request(`/chants/${id}`, {
+      method: 'PUT',
+      body: formData,
+      // Don't set headers - let the request method handle Authorization and Content-Type
+    });
+  }
+
+  async deleteChant(id: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request(`/chants/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getChantStats(clubId: string): Promise<ApiResponse<{
+    totalChants: number;
+    totalSize: number;
+    byType: {
+      [key: string]: {
+        count: number;
+        totalSize: number;
+      };
+    };
+  }>> {
+    return this.request(`/chants/club/${clubId}/stats`);
+  }
+
+  // Merchandise APIs
+  async getMerchandise(params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    category?: string;
+    isAvailable?: boolean;
+    clubId?: string;
+  }): Promise<ApiResponse<{
+    merchandise: any[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      pages: number;
+    };
+  }>> {
+    return this.get('/merchandise/admin', { params });
+  }
+
+  async getMerchandiseById(id: string): Promise<ApiResponse<any>> {
+    return this.get(`/merchandise/admin/${id}`);
+  }
+
+  async createMerchandise(data: FormData): Promise<ApiResponse<{ message: string; data: any }>> {
+    return this.post('/merchandise/admin', data);
+  }
+
+  async updateMerchandise(id: string, data: FormData): Promise<ApiResponse<{ message: string; data: any }>> {
+    return this.put(`/merchandise/admin/${id}`, data);
+  }
+
+  async deleteMerchandise(id: string): Promise<ApiResponse<{ message: string }>> {
+    return this.delete(`/merchandise/admin/${id}`);
+  }
+
+  async toggleMerchandiseAvailability(id: string): Promise<ApiResponse<{ message: string; data: any }>> {
+    return this.patch(`/merchandise/admin/${id}/toggle-availability`);
+  }
+
+  async getMerchandiseStats(): Promise<ApiResponse<{
+    totalMerchandise: number;
+    availableMerchandise: number;
+    featuredMerchandise: number;
+    lowStockMerchandise: number;
+    outOfStockMerchandise: number;
+    categoryStats: Array<{
+      _id: string;
+      count: number;
+    }>;
+  }>> {
+    return this.get('/merchandise/admin/stats');
+  }
+
+  async getPublicMerchandise(params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    category?: string;
+    clubId?: string;
+    featured?: boolean;
+  }): Promise<ApiResponse<{
+    merchandise: any[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      pages: number;
+    };
+  }>> {
+    return this.get('/merchandise/public', { params });
+  }
+
+  async getPublicMerchandiseById(id: string): Promise<ApiResponse<any>> {
+    return this.get(`/merchandise/public/${id}`);
   }
 }
 

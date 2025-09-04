@@ -94,7 +94,7 @@ export default function MembershipCardsPage() {
             
             if (cardsResponse.success && cardsResponse.data) {
               // Handle both array and nested data structure
-              let cardsData = []
+              let cardsData: any[] = []
               if (Array.isArray(cardsResponse.data)) {
                 cardsData = cardsResponse.data
               } else if (cardsResponse.data.data && Array.isArray(cardsResponse.data.data)) {
@@ -103,27 +103,58 @@ export default function MembershipCardsPage() {
               
               console.log('Fetched membership cards:', cardsData)
               
-              // Filter out any invalid cards
-              const validCards = cardsData.filter(card => 
-                card && 
-                card.card && 
-                card.card._id && 
-                typeof card.card._id === 'string'
-              )
+              // Filter out any invalid cards - ensure card structure is valid
+              const validCards = cardsData.filter(card => {
+                const isValid = card && 
+                  card.card && 
+                  card.card._id && 
+                  typeof card.card._id === 'string' &&
+                  card.card.cardStyle && // Ensure cardStyle exists
+                  card.club && // Ensure club exists
+                  card.membershipPlan; // Ensure membershipPlan exists
+                
+                if (!isValid) {
+                  console.warn('Invalid card structure found:', card);
+                }
+                
+                return isValid;
+              })
               
               console.log('Valid cards after filtering:', validCards)
+              console.log(`Filtered out ${cardsData.length - validCards.length} invalid cards`)
+              
+              if (validCards.length === 0 && cardsData.length > 0) {
+                console.error('All cards were filtered out due to invalid structure. Raw data:', cardsData);
+                toast({
+                  title: "Warning",
+                  description: "No valid membership cards found. Some cards may have invalid data structure.",
+                  variant: "destructive",
+                });
+              }
+              
               setCards(validCards)
+            } else {
+              // Handle API error response
+              const errorMessage = cardsResponse.error || 'Failed to fetch membership cards';
+              console.error('Membership cards API error:', cardsResponse);
+              toast({
+                title: "Error",
+                description: errorMessage,
+                variant: "destructive",
+              });
             }
         } else {
           setError('No club found for this user')
         }
       } catch (err) {
-        setError('Failed to fetch initial data')
+        const errorMessage = err instanceof Error ? err.message : 'Failed to fetch initial data';
+        setError(errorMessage);
         toast({
           title: "Error",
-          description: "Failed to fetch club and membership data",
+          description: errorMessage,
           variant: "destructive",
-        })
+        });
+        console.error('Initial data fetch error:', err);
       } finally {
         setLoading(false)
       }
@@ -219,7 +250,7 @@ export default function MembershipCardsPage() {
       const cardData: CreateMembershipCardRequest = {
         membershipPlanId: selectedPlanId,
         clubId: clubId,
-        cardStyle: customization.cardStyle,
+        cardStyle: 'default', // Always use default style for new cards
         accessLevel: 'basic',
         customization: {
           primaryColor: customization.primaryColor,
@@ -303,13 +334,25 @@ export default function MembershipCardsPage() {
         
         if (cardsResponse.success && cardsResponse.data) {
           // Handle both array and nested data structure
-          let cardsData = []
+          let cardsData: any[] = []
           if (Array.isArray(cardsResponse.data)) {
             cardsData = cardsResponse.data
           } else if (cardsResponse.data.data && Array.isArray(cardsResponse.data.data)) {
             cardsData = cardsResponse.data.data
           }
-          setCards(cardsData)
+          
+          // Filter out any invalid cards - ensure card structure is valid
+          const validCards = cardsData.filter(card => 
+            card && 
+            card.card && 
+            card.card._id && 
+            typeof card.card._id === 'string' &&
+            card.card.cardStyle && // Ensure cardStyle exists
+            card.club && // Ensure club exists
+            card.membershipPlan // Ensure membershipPlan exists
+          )
+          
+          setCards(validCards)
         }
       } catch (err) {
         toast({
@@ -366,7 +409,7 @@ export default function MembershipCardsPage() {
       if (customLogoFile) {
         try {
           // Convert file to base64 for local storage
-          const base64 = await convertFileToBase64(customLogoFile);
+          const base64 = await convertFileToBase64(customLogoFile!);
           customLogoUrl = base64;
           
           // Update the editing card with the new logo
@@ -392,7 +435,6 @@ export default function MembershipCardsPage() {
       }
       
       const updateData = {
-        cardStyle: editingCard.card.cardStyle,
         status: editingCard.card.status,
         accessLevel: editingCard.card.accessLevel,
         customization: {
@@ -487,15 +529,7 @@ export default function MembershipCardsPage() {
     });
   }, []);
 
-  const handleCardStyleChange = useCallback((value: string) => {
-    setEditingCard(prev => {
-      if (!prev) return null;
-      return {
-        ...prev,
-        card: { ...prev.card, cardStyle: value }
-      };
-    });
-  }, []);
+
 
   const handleStatusChange = useCallback((value: string) => {
     setEditingCard(prev => {
@@ -600,7 +634,7 @@ export default function MembershipCardsPage() {
               <TabsTrigger value="create">Create Card</TabsTrigger>
               <TabsTrigger value="customize">Customize</TabsTrigger>
               <TabsTrigger value="manage">Manage Cards</TabsTrigger>
-              <TabsTrigger value="settings">Settings</TabsTrigger>
+              {/* <TabsTrigger value="settings">Settings</TabsTrigger> */}
             </TabsList>
 
             <TabsContent value="preview" className="space-y-6">
@@ -648,13 +682,13 @@ export default function MembershipCardsPage() {
                         ) : (
                           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                             {cards.map((card, index) => (
-                              <div key={card.card._id} className="text-center">
-                                <p className="text-sm text-muted-foreground mb-2">{card.membershipPlan?.name || 'Unknown Plan'}</p>
+                              <div key={card?.card?._id || index} className="text-center">
+                                <p className="text-sm text-muted-foreground mb-2">{card?.membershipPlan?.name || 'Unknown Plan'}</p>
                                 <div className="flex justify-center">
                                   <MembershipCard
                                     cardData={card}
-                                    cardStyle={card.card.cardStyle || 'default'}
-                                    showLogo={card.card.customization?.showLogo ?? true}
+                                    cardStyle={card?.card?.cardStyle || 'default'}
+                                    showLogo={card?.card?.customization?.showLogo ?? true}
                                   />
                                 </div>
                               </div>
@@ -763,23 +797,7 @@ export default function MembershipCardsPage() {
                         </Select>
                       </div>
 
-                      <div>
-                        <Label htmlFor="cardStyle">Card Style</Label>
-                        <Select
-                          value={customization.cardStyle}
-                          onValueChange={(value: any) => setCustomization(prev => ({ ...prev, cardStyle: value }))}
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="default">Default</SelectItem>
-                            <SelectItem value="premium">Premium</SelectItem>
-                            <SelectItem value="vintage">Vintage</SelectItem>
-                            <SelectItem value="modern">Modern</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
+
                     </div>
                     </>
                   )}
@@ -804,31 +822,13 @@ export default function MembershipCardsPage() {
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Palette className="w-5 h-5" />
-                      Card Style
+                      Card Customization
                     </CardTitle>
                     <CardDescription>
-                      Choose the visual style for your membership cards
+                      Customize the appearance of your membership cards
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    <div>
-                      <Label htmlFor="cardStyle">Card Style</Label>
-                      <Select
-                        value={customization.cardStyle}
-                        onValueChange={(value: any) => setCustomization(prev => ({ ...prev, cardStyle: value }))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="default">Default</SelectItem>
-                          <SelectItem value="premium">Premium</SelectItem>
-                          <SelectItem value="vintage">Vintage</SelectItem>
-                          <SelectItem value="modern">Modern</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
                     <div className="flex items-center space-x-2">
                       <Switch
                         id="showLogo"
@@ -978,7 +978,7 @@ export default function MembershipCardsPage() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="settings" className="space-y-6">
+            {/* <TabsContent value="settings" className="space-y-6">
               <Card>
                 <CardHeader>
                   <CardTitle>Export & Share</CardTitle>
@@ -999,7 +999,7 @@ export default function MembershipCardsPage() {
                   </div>
                 </CardContent>
               </Card>
-            </TabsContent>
+            </TabsContent> */}
           </Tabs>
         </div>
       </DashboardLayout>
@@ -1022,23 +1022,7 @@ export default function MembershipCardsPage() {
             </div>
             
             <div className="space-y-4 p-6 pt-0 overflow-y-auto flex-1">
-              <div>
-                <Label htmlFor="cardStyle">Card Style</Label>
-                <Select
-                  value={editingCard.card.cardStyle}
-                  onValueChange={handleCardStyleChange}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="default">Default</SelectItem>
-                    <SelectItem value="premium">Premium</SelectItem>
-                    <SelectItem value="vintage">Vintage</SelectItem>
-                    <SelectItem value="modern">Modern</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+
 
               <div>
                 <Label htmlFor="status">Status</Label>
