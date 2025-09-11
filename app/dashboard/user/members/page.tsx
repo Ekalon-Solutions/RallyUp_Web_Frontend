@@ -7,10 +7,14 @@ import { toast } from 'sonner'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination'
 import { DashboardLayout } from '@/components/dashboard-layout'
 import { ProtectedRoute } from '@/components/protected-route'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import MemberConnections from '@/components/member-connections'
+import config from '@/lib/config'
 import { 
   Search, 
   Users, 
@@ -19,7 +23,10 @@ import {
   Calendar, 
   Shield,
   UserCheck,
-  Clock
+  Clock,
+  UserPlus,
+  MessageCircle,
+  Network
 } from 'lucide-react'
 
 interface ClubMember {
@@ -47,6 +54,10 @@ export default function ClubMembersPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
+  const [activeClubId, setActiveClubId] = useState<string | null>(null)
+  const [connectionRequests, setConnectionRequests] = useState<any[]>([])
+  const [myConnections, setMyConnections] = useState<any[]>([])
+  const [connectLoading, setConnectLoading] = useState<string | null>(null)
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 20,
@@ -56,12 +67,123 @@ export default function ClubMembersPage() {
 
   useEffect(() => {
     console.log('User data in ClubMembersPage:', user)
-    console.log('User memberships:', user?.memberships)
-    console.log('User memberships length:', user?.memberships?.length)
-    if (user) {
+    if (user && 'memberships' in user) {
+      console.log('User memberships:', user.memberships)
+      console.log('User memberships length:', user.memberships?.length)
       fetchClubMembers()
+      fetchConnectionData()
     }
   }, [currentPage, searchTerm, user])
+
+  const getAuthHeaders = () => ({
+    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+    'Content-Type': 'application/json',
+  })
+
+  const fetchConnectionData = async () => {
+    const token = localStorage.getItem('token')
+    if (!token) return
+
+    try {
+      // Fetch connection requests
+      const requestsResponse = await fetch(`${config.apiBaseUrl}/member-connections/requests`, {
+        headers: getAuthHeaders(),
+      })
+      if (requestsResponse.ok) {
+        const requestsData = await requestsResponse.json()
+        console.log('Connection requests response:', requestsData)
+        // Backend returns { requests: [...], counts: {...} }
+        const requests = requestsData.requests || []
+        setConnectionRequests(Array.isArray(requests) ? requests : [])
+      } else {
+        console.error('Failed to fetch connection requests:', requestsResponse.status)
+        setConnectionRequests([])
+      }
+
+      // Fetch my connections
+      const connectionsResponse = await fetch(`${config.apiBaseUrl}/member-connections/my-connections`, {
+        headers: getAuthHeaders(),
+      })
+      if (connectionsResponse.ok) {
+        const connectionsData = await connectionsResponse.json()
+        console.log('My connections response:', connectionsData)
+        // Backend returns { connections: [...], total: number }
+        const connections = connectionsData.connections || connectionsData
+        setMyConnections(Array.isArray(connections) ? connections : [])
+      } else {
+        console.error('Failed to fetch connections:', connectionsResponse.status)
+        setMyConnections([])
+      }
+    } catch (error) {
+      console.error('Error fetching connection data:', error)
+      setConnectionRequests([])
+      setMyConnections([])
+    }
+  }
+
+  const sendConnectionRequest = async (recipientId: string) => {
+    const token = localStorage.getItem('token')
+    if (!token || !activeClubId) return
+
+    setConnectLoading(recipientId)
+    try {
+      const response = await fetch(`${config.apiBaseUrl}/member-connections/send-request`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          recipientId,
+          clubId: activeClubId
+        }),
+      })
+
+      if (response.ok) {
+        toast.success('Connection request sent successfully!')
+        fetchConnectionData() // Refresh connection data
+      } else {
+        const error = await response.json()
+        toast.error(error.message || 'Failed to send connection request')
+      }
+    } catch (error) {
+      console.error('Error sending connection request:', error)
+      toast.error('Failed to send connection request')
+    } finally {
+      setConnectLoading(null)
+    }
+  }
+
+  const getConnectionStatus = (memberId: string) => {
+    // Ensure connectionRequests and myConnections are arrays
+    const requests = Array.isArray(connectionRequests) ? connectionRequests : [];
+    const connections = Array.isArray(myConnections) ? myConnections : [];
+    
+    const currentUserId = user?._id?.toString();
+    const memberIdStr = memberId?.toString();
+    
+    // Check if there's a pending request from me
+    const sentRequest = requests.find((req: any) => 
+      req.requester?._id?.toString() === currentUserId && 
+      req.recipient?._id?.toString() === memberIdStr && 
+      req.status === 'pending'
+    )
+    
+    // Check if there's a pending request to me
+    const receivedRequest = requests.find((req: any) => 
+      req.requester?._id?.toString() === memberIdStr && 
+      req.recipient?._id?.toString() === currentUserId && 
+      req.status === 'pending'
+    )
+    
+    // Check if already connected
+    const connection = connections.find((conn: any) => 
+      ((conn.requester?._id?.toString() === memberIdStr || conn.recipient?._id?.toString() === memberIdStr) && 
+       conn.status === 'accepted')
+    )
+
+    if (connection) return { status: 'connected', connection }
+    if (sentRequest) return { status: 'sent' }
+    if (receivedRequest) return { status: 'received', request: receivedRequest }
+    return { status: 'none' }
+  }
 
   const fetchClubMembers = async () => {
     try {
@@ -70,10 +192,8 @@ export default function ClubMembersPage() {
       // Check if user has club memberships
       console.log('Checking user memberships in fetchClubMembers:')
       console.log('User object keys:', Object.keys(user || {}))
-      console.log('User memberships:', user?.memberships)
-      console.log('User memberships length:', user?.memberships?.length)
       
-      if (!user?.memberships || user.memberships.length === 0) {
+      if (!user || !('memberships' in user) || !user.memberships || user.memberships.length === 0) {
         console.log('No memberships found - showing error')
         toast.error('No club memberships found. Please join a club first.')
         setLoading(false)
@@ -81,7 +201,7 @@ export default function ClubMembersPage() {
       }
 
       // Get the first active membership (assuming user can only be in one club at a time)
-      const activeMembership = user.memberships.find(membership => 
+      const activeMembership = user.memberships.find((membership: any) => 
         membership.status === 'active'
       )
 
@@ -91,6 +211,8 @@ export default function ClubMembersPage() {
         setLoading(false)
         return
       }
+
+      setActiveClubId(activeMembership.club_id._id)
 
       console.log('Fetching club members for club ID:', activeMembership.club_id._id)
       const response = await apiClient.getClubMemberDirectory({
@@ -104,7 +226,7 @@ export default function ClubMembersPage() {
       if (response.success && response.data) {
         console.log('Members data:', response.data.members)
         console.log('Pagination data:', response.data.pagination)
-        setMembers(response.data.members)
+        setMembers(response.data.members as ClubMember[] || [])
         setPagination(response.data.pagination)
       } else {
         console.error('API error:', response.error)
@@ -165,8 +287,8 @@ export default function ClubMembersPage() {
           {/* Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h1 className="text-3xl font-bold">Club Members</h1>
-              <p className="text-muted-foreground">Connect with fellow club members</p>
+              <h1 className="text-3xl font-bold">Club Members & Connections</h1>
+              <p className="text-muted-foreground">Browse members and build connections within your club</p>
             </div>
             <div className="flex items-center space-x-2 text-sm text-muted-foreground">
               <Users className="w-4 h-4" />
@@ -174,171 +296,233 @@ export default function ClubMembersPage() {
             </div>
           </div>
 
-          {/* Stats Cards */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Members</CardTitle>
-                <Users className="h-4 w-4 text-blue-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{pagination.total}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Verified Members</CardTitle>
-                <UserCheck className="h-4 w-4 text-green-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-green-600">
-                  {members.filter(m => m.isPhoneVerified).length}
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Active Plans</CardTitle>
-                <Clock className="h-4 w-4 text-purple-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-purple-600">
-                  {members.filter(m => {
-                    if (!m.membershipExpiry) return false
-                    return new Date(m.membershipExpiry) > new Date()
-                  }).length}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+          {/* Tabs for Members Directory and Connections */}
+          <Tabs defaultValue="directory" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="directory" className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                Member Directory
+              </TabsTrigger>
+              <TabsTrigger value="connections" className="flex items-center gap-2">
+                <Network className="h-4 w-4" />
+                My Connections
+              </TabsTrigger>
+            </TabsList>
 
-          {/* Search */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Club Members</CardTitle>
-              <CardDescription>Search and connect with fellow members</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="relative mb-4">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                <Input
-                  placeholder="Search members by name or email..."
-                  value={searchTerm}
-                  onChange={(e) => handleSearch(e.target.value)}
-                  className="pl-10"
-                />
+            {/* Member Directory Tab */}
+            <TabsContent value="directory" className="mt-6">
+              {/* Stats Cards */}
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-6">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Total Members</CardTitle>
+                    <Users className="h-4 w-4 text-blue-600" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold">{pagination.total}</div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Verified Members</CardTitle>
+                    <UserCheck className="h-4 w-4 text-green-600" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-green-600">
+                      {members.filter(m => m.isPhoneVerified).length}
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Active Plans</CardTitle>
+                    <Clock className="h-4 w-4 text-purple-600" />
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-purple-600">
+                      {members.filter(m => {
+                        if (!m.membershipExpiry) return false
+                        return new Date(m.membershipExpiry) > new Date()
+                      }).length}
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
 
-              {/* Members List */}
-              {loading ? (
-                <div className="space-y-4">
-                  {[...Array(5)].map((_, i) => (
-                    <div key={i} className="flex items-center space-x-4 p-4 border rounded-lg animate-pulse">
-                      <div className="w-10 h-10 bg-muted rounded-full"></div>
-                      <div className="flex-1 space-y-2">
-                        <div className="h-4 bg-muted rounded w-1/4"></div>
-                        <div className="h-3 bg-muted rounded w-1/3"></div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : members.length === 0 ? (
-                <div className="text-center py-12">
-                  <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-muted-foreground mb-2">No members found</h3>
-                  <p className="text-muted-foreground">Try adjusting your search.</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {members.map((member) => {
-                    const membershipStatus = getMembershipStatus(member.membershipExpiry)
-                    return (
-                      <div key={member._id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                        <div className="flex items-center space-x-4">
-                          <Avatar>
-                            <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
-                              {member.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <div className="flex items-center space-x-2">
-                              <h3 className="font-semibold">{member.name}</h3>
-                              <Badge className={getVerificationColor(member.isPhoneVerified)}>
-                                {member.isPhoneVerified ? 'Verified' : 'Unverified'}
-                              </Badge>
-                              <Badge className={membershipStatus.color}>
-                                {membershipStatus.status}
-                              </Badge>
-                            </div>
-                            <div className="flex items-center space-x-4 text-sm text-muted-foreground mt-1">
-                              <div className="flex items-center space-x-1">
-                                <Mail className="w-3 h-3" />
-                                <span>{member.email}</span>
-                              </div>
-                              <div className="flex items-center space-x-1">
-                                <Phone className="w-3 h-3" />
-                                <span>{formatPhoneNumber(member.phoneNumber, member.countryCode)}</span>
-                              </div>
-                              <div className="flex items-center space-x-1">
-                                <Calendar className="w-3 h-3" />
-                                <span>Joined {formatDate(member.createdAt)}</span>
-                              </div>
-                            </div>
-                            {member.membershipPlan && (
-                              <div className="text-xs text-muted-foreground mt-1">
-                                Plan: {member.membershipPlan.name} ({member.membershipPlan.price} {member.membershipPlan.currency})
-                                {member.membershipExpiry && (
-                                  <span className="ml-2">
-                                    • Expires {formatDate(member.membershipExpiry)}
-                                  </span>
-                                )}
-                              </div>
-                            )}
+              {/* Search and Members List */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Club Members</CardTitle>
+                  <CardDescription>Browse and view information about fellow members</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="relative mb-4">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                    <Input
+                      placeholder="Search members by name or email..."
+                      value={searchTerm}
+                      onChange={(e) => handleSearch(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+
+                  {/* Members List */}
+                  {loading ? (
+                    <div className="space-y-4">
+                      {[...Array(5)].map((_, i) => (
+                        <div key={i} className="flex items-center space-x-4 p-4 border rounded-lg animate-pulse">
+                          <div className="w-10 h-10 bg-muted rounded-full"></div>
+                          <div className="flex-1 space-y-2">
+                            <div className="h-4 bg-muted rounded w-1/4"></div>
+                            <div className="h-3 bg-muted rounded w-1/3"></div>
                           </div>
                         </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-
-              {/* Pagination */}
-              {pagination.pages > 1 && (
-                <div className="mt-6">
-                  <Pagination>
-                    <PaginationContent>
-                      <PaginationItem>
-                        <PaginationPrevious 
-                          onClick={() => handlePageChange(currentPage - 1)}
-                          className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                        />
-                      </PaginationItem>
-                      {[...Array(pagination.pages)].map((_, i) => {
-                        const page = i + 1
+                      ))}
+                    </div>
+                  ) : members.length === 0 ? (
+                    <div className="text-center py-12">
+                      <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-muted-foreground mb-2">No members found</h3>
+                      <p className="text-muted-foreground">Try adjusting your search.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {members.map((member) => {
+                        const membershipStatus = getMembershipStatus(member.membershipExpiry)
+                        const connectionStatus = getConnectionStatus(member._id)
+                        
                         return (
-                          <PaginationItem key={page}>
-                            <PaginationLink
-                              onClick={() => handlePageChange(page)}
-                              isActive={currentPage === page}
-                              className="cursor-pointer"
-                            >
-                              {page}
-                            </PaginationLink>
-                          </PaginationItem>
+                          <div key={member._id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                            <div className="flex items-center space-x-4">
+                              <Avatar>
+                                <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
+                                  {member.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div>
+                                <div className="flex items-center space-x-2">
+                                  <h3 className="font-semibold">{member.name}</h3>
+                                  <Badge className={getVerificationColor(member.isPhoneVerified)}>
+                                    {member.isPhoneVerified ? 'Verified' : 'Unverified'}
+                                  </Badge>
+                                  <Badge className={membershipStatus.color}>
+                                    {membershipStatus.status}
+                                  </Badge>
+                                </div>
+                                <div className="flex items-center space-x-4 text-sm text-muted-foreground mt-1">
+                                  <div className="flex items-center space-x-1">
+                                    <Mail className="w-3 h-3" />
+                                    <span>{member.email}</span>
+                                  </div>
+                                  <div className="flex items-center space-x-1">
+                                    <Phone className="w-3 h-3" />
+                                    <span>{formatPhoneNumber(member.phoneNumber, member.countryCode)}</span>
+                                  </div>
+                                  <div className="flex items-center space-x-1">
+                                    <Calendar className="w-3 h-3" />
+                                    <span>Joined {formatDate(member.createdAt)}</span>
+                                  </div>
+                                </div>
+                                {member.membershipPlan && typeof member.membershipPlan === 'object' && (
+                                  <div className="text-xs text-muted-foreground mt-1">
+                                    Plan: {member.membershipPlan.name} ({member.membershipPlan.price} {member.membershipPlan.currency})
+                                    {member.membershipExpiry && (
+                                      <span className="ml-2">
+                                        • Expires {formatDate(member.membershipExpiry)}
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {connectionStatus.status === 'none' && (
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => sendConnectionRequest(member._id)}
+                                  disabled={connectLoading === member._id}
+                                >
+                                  <UserPlus className="h-4 w-4 mr-1" />
+                                  {connectLoading === member._id ? 'Sending...' : 'Connect'}
+                                </Button>
+                              )}
+                              {connectionStatus.status === 'sent' && (
+                                <Badge variant="secondary">Request Sent</Badge>
+                              )}
+                              {connectionStatus.status === 'received' && (
+                                <Badge variant="outline">Request Received</Badge>
+                              )}
+                              {connectionStatus.status === 'connected' && (
+                                <Badge variant="default">Connected</Badge>
+                              )}
+                            </div>
+                          </div>
                         )
                       })}
-                      <PaginationItem>
-                        <PaginationNext 
-                          onClick={() => handlePageChange(currentPage + 1)}
-                          className={currentPage === pagination.pages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                        />
-                      </PaginationItem>
-                    </PaginationContent>
-                  </Pagination>
-                </div>
+                    </div>
+                  )}
+
+                  {/* Pagination */}
+                  {pagination.pages > 1 && (
+                    <div className="mt-6">
+                      <Pagination>
+                        <PaginationContent>
+                          <PaginationItem>
+                            <PaginationPrevious 
+                              onClick={() => handlePageChange(currentPage - 1)}
+                              className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                            />
+                          </PaginationItem>
+                          {[...Array(pagination.pages)].map((_, i) => {
+                            const page = i + 1
+                            return (
+                              <PaginationItem key={page}>
+                                <PaginationLink
+                                  onClick={() => handlePageChange(page)}
+                                  isActive={currentPage === page}
+                                  className="cursor-pointer"
+                                >
+                                  {page}
+                                </PaginationLink>
+                              </PaginationItem>
+                            )
+                          })}
+                          <PaginationItem>
+                            <PaginationNext 
+                              onClick={() => handlePageChange(currentPage + 1)}
+                              className={currentPage === pagination.pages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                            />
+                          </PaginationItem>
+                        </PaginationContent>
+                      </Pagination>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Member Connections Tab */}
+            <TabsContent value="connections" className="mt-6">
+              {activeClubId && user ? (
+                <MemberConnections 
+                  currentUser={{
+                    ...user,
+                    token: localStorage.getItem('token')
+                  }} 
+                  clubId={activeClubId} 
+                />
+              ) : (
+                <Card>
+                  <CardContent className="p-12 text-center">
+                    <Network className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-muted-foreground mb-2">No Club Found</h3>
+                    <p className="text-muted-foreground">You need to be a member of a club to connect with other members.</p>
+                  </CardContent>
+                </Card>
               )}
-            </CardContent>
-          </Card>
+            </TabsContent>
+          </Tabs>
         </div>
       </DashboardLayout>
     </ProtectedRoute>
