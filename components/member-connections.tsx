@@ -1,29 +1,27 @@
-"use client";
+'use client';
 
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
-  UserPlus, 
   Users, 
+  UserPlus, 
   MessageCircle, 
   Send, 
-  Check, 
-  X, 
-  Shield,
   Search,
-  MoreVertical
+  Check,
+  X
 } from 'lucide-react';
-import config from '@/lib/config';
 import { useToast } from '@/hooks/use-toast';
+import config from '@/lib/config';
 
+// Interfaces
 interface Member {
   _id: string;
   first_name: string;
@@ -43,9 +41,13 @@ interface ConnectionRequest {
   _id: string;
   requester: Member;
   recipient: Member;
+  club: {
+    _id: string;
+    clubName: string;
+  };
   status: 'pending' | 'accepted' | 'declined' | 'blocked';
-  requestedAt: string;
-  respondedAt?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface Message {
@@ -59,10 +61,12 @@ interface Message {
   isRead: boolean;
 }
 
-interface Conversation {
-  connection: ConnectionRequest;
-  messages: Message[];
-  unreadCount: number;
+interface ClubMember {
+  _id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  profilePicture?: string;
 }
 
 export default function MemberConnections({ currentUser, clubId }: { currentUser: any, clubId: string }) {
@@ -87,19 +91,26 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
   }, [currentUser, clubId]);
 
   const getAuthHeaders = () => ({
-    'Authorization': `Bearer ${currentUser?.token}`,
     'Content-Type': 'application/json',
+    'Authorization': `Bearer ${currentUser?.token || localStorage.getItem('token')}`
   });
 
   const fetchMembers = async () => {
     try {
-      const response = await fetch(`${config.apiBaseUrl}/users/club/${clubId}/members`, {
+      const response = await fetch(`${config.apiBaseUrl}/clubs/${clubId}/members`, {
         headers: getAuthHeaders(),
       });
       
       if (response.ok) {
         const data = await response.json();
-        setMembers(data.filter((member: Member) => member._id !== currentUser?._id));
+        const clubMembers = data.memberships?.map((membership: any) => ({
+          _id: membership.user._id,
+          first_name: membership.user.first_name,
+          last_name: membership.user.last_name,
+          email: membership.user.email,
+          profilePicture: membership.user.profilePicture
+        })) || [];
+        setMembers(clubMembers);
       }
     } catch (error) {
       console.error('Error fetching members:', error);
@@ -133,10 +144,7 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
       
       if (response.ok) {
         const data = await response.json();
-        console.log('My connections response:', data);
-        // Backend returns { connections: [...], total: number }
-        const connections = data.connections || [];
-        setMyConnections(connections);
+        setMyConnections(data.connections || []);
       }
     } catch (error) {
       console.error('Error fetching connections:', error);
@@ -177,27 +185,26 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
 
       if (response.ok) {
         toast({
-          title: "Connection Request Sent",
-          description: "Your connection request has been sent successfully.",
+          title: "Success",
+          description: "Connection request sent successfully",
         });
         fetchConnectionRequests();
       } else {
         const error = await response.json();
         toast({
           title: "Error",
-          description: error.message || "Failed to send connection request.",
+          description: error.message || "Failed to send connection request",
           variant: "destructive",
         });
       }
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to send connection request.",
+        description: "Network error occurred",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   };
 
   const respondToRequest = async (requestId: string, action: 'accept' | 'decline') => {
@@ -214,8 +221,8 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
 
       if (response.ok) {
         toast({
-          title: action === 'accept' ? "Request Accepted" : "Request Declined",
-          description: `Connection request ${action}ed successfully.`,
+          title: "Success",
+          description: `Connection request ${action}ed successfully`,
         });
         fetchConnectionRequests();
         fetchMyConnections();
@@ -223,76 +230,74 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
         const error = await response.json();
         toast({
           title: "Error",
-          description: error.message || `Failed to ${action} request.`,
+          description: error.message || `Failed to ${action} request`,
           variant: "destructive",
         });
       }
     } catch (error) {
       toast({
         title: "Error",
-        description: `Failed to ${action} request.`,
+        description: "Network error occurred",
         variant: "destructive",
       });
-    } finally {
-      setLoading(false);
     }
+    setLoading(false);
   };
 
-  const sendMessage = async (connectionId: string) => {
-    if (!newMessage.trim()) return;
+  const sendMessage = async () => {
+    if (!newMessage.trim() || !selectedConversation) return;
 
     try {
       const response = await fetch(`${config.apiBaseUrl}/member-connections/send-message`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({
-          connectionId,
-          content: newMessage,
-          messageType: 'text'
+          connectionId: selectedConversation,
+          content: newMessage.trim()
         }),
       });
 
       if (response.ok) {
         setNewMessage('');
-        fetchConversation(connectionId);
+        fetchConversation(selectedConversation);
       } else {
         toast({
           title: "Error",
-          description: "Failed to send message.",
+          description: "Failed to send message",
           variant: "destructive",
         });
       }
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to send message.",
+        description: "Network error occurred",
         variant: "destructive",
       });
     }
   };
 
+  // Helper functions
   const getConnectionStatus = (memberId: string) => {
-    // Check if there's a pending request from me
     const sentRequest = connectionRequests.find(req => 
-      req.requester._id === currentUser?._id && req.recipient._id === memberId && req.status === 'pending'
+      req.requester._id === currentUser?._id && req.recipient._id === memberId
     );
     
-    // Check if there's a pending request to me
     const receivedRequest = connectionRequests.find(req => 
-      req.requester._id === memberId && req.recipient._id === currentUser?._id && req.status === 'pending'
+      req.recipient._id === currentUser?._id && req.requester._id === memberId
     );
     
-    // Check if already connected
     const connection = myConnections.find(conn => 
-      (conn.requester._id === memberId || conn.recipient._id === memberId) && conn.status === 'accepted'
+      (conn.requester._id === currentUser?._id && conn.recipient._id === memberId) ||
+      (conn.recipient._id === currentUser?._id && conn.requester._id === memberId)
     );
 
-    if (connection) return { status: 'connected', connection };
-    if (sentRequest) return { status: 'sent' };
-    if (receivedRequest) return { status: 'received', request: receivedRequest };
-    return { status: 'none' };
+    if (connection && connection.status === 'accepted') return 'connected';
+    if (sentRequest && sentRequest.status === 'pending') return 'sent';
+    if (receivedRequest && receivedRequest.status === 'pending') return 'received';
+    return 'none';
   };
 
+  // Filter data based on current user
   const filteredMembers = members.filter(member =>
     member.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     member.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -305,7 +310,6 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
     return recipientId === currentUserId && req.status === 'pending';
   });
 
-
   return (
     <div className="container mx-auto p-6">
       <div className="mb-6">
@@ -316,11 +320,11 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="members" className="flex items-center gap-2">
-            <Users className="h-4 w-4" />
+            <Users className="w-4 h-4" />
             Members
           </TabsTrigger>
           <TabsTrigger value="requests" className="flex items-center gap-2">
-            <UserPlus className="h-4 w-4" />
+            <UserPlus className="w-4 h-4" />
             Requests
             {pendingRequests.length > 0 && (
               <Badge variant="destructive" className="ml-1 text-xs">
@@ -329,37 +333,38 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
             )}
           </TabsTrigger>
           <TabsTrigger value="connections" className="flex items-center gap-2">
-            <Users className="h-4 w-4" />
+            <Users className="w-4 h-4" />
             My Connections
           </TabsTrigger>
           <TabsTrigger value="messages" className="flex items-center gap-2">
-            <MessageCircle className="h-4 w-4" />
+            <MessageCircle className="w-4 h-4" />
             Messages
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="members" className="mt-6">
+        {/* Members Tab */}
+        <TabsContent value="members">
           <Card>
             <CardHeader>
               <CardTitle>Club Members</CardTitle>
               <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                 <Input
                   placeholder="Search members..."
+                  className="pl-10"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
                 />
               </div>
             </CardHeader>
             <CardContent>
               <div className="grid gap-4">
-                {filteredMembers.map((member) => {
-                  const connectionInfo = getConnectionStatus(member._id);
+                {filteredMembers.filter(member => member._id !== currentUser?._id).map((member) => {
+                  const status = getConnectionStatus(member._id);
                   
                   return (
                     <div key={member._id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center space-x-3">
                         <Avatar>
                           <AvatarImage src={member.profilePicture} />
                           <AvatarFallback>
@@ -371,44 +376,24 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
                           <p className="text-sm text-gray-500">{member.email}</p>
                         </div>
                       </div>
-                      
-                      <div className="flex items-center gap-2">
-                        {connectionInfo.status === 'none' && (
+                      <div className="flex items-center space-x-2">
+                        {status === 'none' && (
                           <Button
                             onClick={() => sendConnectionRequest(member._id)}
                             disabled={loading}
                             size="sm"
                           >
-                            <UserPlus className="h-4 w-4 mr-1" />
+                            <UserPlus className="w-4 h-4 mr-1" />
                             Connect
                           </Button>
                         )}
-                        
-                        {connectionInfo.status === 'sent' && (
-                          <Badge variant="secondary">Request Sent</Badge>
+                        {status === 'sent' && (
+                          <Badge variant="outline">Request Sent</Badge>
                         )}
-                        
-                        {connectionInfo.status === 'received' && (
-                          <div className="flex gap-1">
-                            <Button
-                              size="sm"
-                              onClick={() => respondToRequest(connectionInfo.request!._id, 'accept')}
-                              disabled={loading}
-                            >
-                              <Check className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => respondToRequest(connectionInfo.request!._id, 'decline')}
-                              disabled={loading}
-                            >
-                              <X className="h-4 w-4" />
-                            </Button>
-                          </div>
+                        {status === 'received' && (
+                          <Badge variant="secondary">Request Received</Badge>
                         )}
-                        
-                        {connectionInfo.status === 'connected' && (
+                        {status === 'connected' && (
                           <Badge variant="default">Connected</Badge>
                         )}
                       </div>
@@ -420,51 +405,57 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
           </Card>
         </TabsContent>
 
-        <TabsContent value="requests" className="mt-6">
+        {/* Requests Tab */}
+        <TabsContent value="requests">
           <Card>
             <CardHeader>
               <CardTitle>Connection Requests</CardTitle>
             </CardHeader>
             <CardContent>
               {pendingRequests.length === 0 ? (
-                <p className="text-center text-gray-500 py-8">No pending connection requests</p>
+                <div className="text-center py-8">
+                  <UserPlus className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-600 mb-2">No pending requests</h3>
+                  <p className="text-gray-500">When someone sends you a connection request, it will appear here.</p>
+                </div>
               ) : (
                 <div className="grid gap-4">
                   {pendingRequests.map((request) => (
                     <div key={request._id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center space-x-3">
                         <Avatar>
                           <AvatarImage src={request.requester.profilePicture} />
-                          <AvatarFallback>
+                          <AvatarFallback className="bg-blue-100">
                             {request.requester.first_name.charAt(0)}{request.requester.last_name.charAt(0)}
                           </AvatarFallback>
                         </Avatar>
-                        <div>
-                          <h3 className="font-medium">
+                        <div className="flex-1">
+                          <h4 className="font-medium text-sm">
                             {request.requester.first_name} {request.requester.last_name}
-                          </h3>
-                          <p className="text-sm text-gray-500">
-                            Sent {new Date(request.requestedAt).toLocaleDateString()}
+                          </h4>
+                          <p className="text-xs text-gray-500">{request.requester.email}</p>
+                          <p className="text-xs text-gray-400 mt-1">
+                            {new Date(request.createdAt).toLocaleDateString()}
                           </p>
                         </div>
                       </div>
-                      
-                      <div className="flex gap-2">
+                      <div className="flex space-x-2">
                         <Button
                           onClick={() => respondToRequest(request._id, 'accept')}
                           disabled={loading}
                           size="sm"
+                          variant="default"
                         >
-                          <Check className="h-4 w-4 mr-1" />
+                          <Check className="w-4 h-4 mr-1" />
                           Accept
                         </Button>
                         <Button
                           onClick={() => respondToRequest(request._id, 'decline')}
                           disabled={loading}
-                          variant="outline"
                           size="sm"
+                          variant="outline"
                         >
-                          <X className="h-4 w-4 mr-1" />
+                          <X className="w-4 h-4 mr-1" />
                           Decline
                         </Button>
                       </div>
@@ -476,14 +467,19 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
           </Card>
         </TabsContent>
 
-        <TabsContent value="connections" className="mt-6">
+        {/* My Connections Tab */}
+        <TabsContent value="connections">
           <Card>
             <CardHeader>
               <CardTitle>My Connections</CardTitle>
             </CardHeader>
             <CardContent>
               {myConnections.length === 0 ? (
-                <p className="text-center text-gray-500 py-8">No connections yet</p>
+                <div className="text-center py-8">
+                  <Users className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-600 mb-2">No connections yet</h3>
+                  <p className="text-gray-500">Start connecting with other club members!</p>
+                </div>
               ) : (
                 <div className="grid gap-4">
                   {myConnections.map((connection) => {
@@ -496,10 +492,10 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
                     const otherUser = connection.requester._id === currentUser?._id 
                       ? connection.recipient 
                       : connection.requester;
-                    
+
                     return (
                       <div key={connection._id} className="flex items-center justify-between p-4 border rounded-lg">
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center space-x-3">
                           <Avatar>
                             <AvatarImage src={otherUser.profilePicture} />
                             <AvatarFallback>
@@ -510,12 +506,12 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
                             <h3 className="font-medium">
                               {otherUser.first_name} {otherUser.last_name}
                             </h3>
-                            <p className="text-sm text-gray-500">
-                              Connected {new Date(connection.respondedAt || connection.requestedAt).toLocaleDateString()}
+                            <p className="text-sm text-gray-500">{otherUser.email}</p>
+                            <p className="text-xs text-gray-400">
+                              Connected on {new Date(connection.updatedAt).toLocaleDateString()}
                             </p>
                           </div>
                         </div>
-                        
                         <Button
                           onClick={() => {
                             setSelectedConversation(connection._id);
@@ -523,8 +519,9 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
                             fetchConversation(connection._id);
                           }}
                           size="sm"
+                          variant="outline"
                         >
-                          <MessageCircle className="h-4 w-4 mr-1" />
+                          <MessageCircle className="w-4 h-4 mr-1" />
                           Message
                         </Button>
                       </div>
@@ -536,63 +533,70 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
           </Card>
         </TabsContent>
 
-        <TabsContent value="messages" className="mt-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Messages Tab */}
+        <TabsContent value="messages">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[600px]">
             {/* Conversations List */}
-            <Card className="lg:col-span-1">
+            <Card className="md:col-span-1">
               <CardHeader>
-                <CardTitle>Conversations</CardTitle>
+                <CardTitle className="text-lg">Conversations</CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 <ScrollArea className="h-[500px]">
-                  {myConnections.map((connection) => {
-                    // Safety check for populated fields
-                    if (!connection.requester || !connection.recipient) {
-                      return null;
-                    }
-                    
-                    const otherUser = connection.requester._id === currentUser?._id 
-                      ? connection.recipient 
-                      : connection.requester;
-                    
-                    return (
-                      <div
-                        key={connection._id}
-                        onClick={() => {
-                          setSelectedConversation(connection._id);
-                          fetchConversation(connection._id);
-                        }}
-                        className={`p-4 cursor-pointer border-b hover:bg-gray-50 ${
-                          selectedConversation === connection._id ? 'bg-blue-50 border-blue-200' : ''
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <Avatar>
-                            <AvatarImage src={otherUser.profilePicture} />
-                            <AvatarFallback>
-                              {otherUser.first_name.charAt(0)}{otherUser.last_name.charAt(0)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-medium truncate">
-                              {otherUser.first_name} {otherUser.last_name}
-                            </h4>
-                            <p className="text-sm text-gray-500 truncate">
-                              Click to start messaging
-                            </p>
+                  {myConnections.length === 0 ? (
+                    <div className="p-4 text-center text-gray-500">
+                      <MessageCircle className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                      <p className="text-sm">No connections yet</p>
+                      <p className="text-xs">Click to start messaging</p>
+                    </div>
+                  ) : (
+                    myConnections.map((connection) => {
+                      // Safety check for populated fields
+                      if (!connection.requester || !connection.recipient) {
+                        return null;
+                      }
+                      
+                      const otherUser = connection.requester._id === currentUser?._id 
+                        ? connection.recipient 
+                        : connection.requester;
+
+                      return (
+                        <div
+                          key={connection._id}
+                          className={`p-4 border-b cursor-pointer hover:bg-gray-50 ${
+                            selectedConversation === connection._id ? 'bg-blue-50 border-blue-200' : ''
+                          }`}
+                          onClick={() => {
+                            setSelectedConversation(connection._id);
+                            fetchConversation(connection._id);
+                          }}
+                        >
+                          <div className="flex items-center space-x-3">
+                            <Avatar className="w-10 h-10">
+                              <AvatarImage src={otherUser.profilePicture} />
+                              <AvatarFallback>
+                                {otherUser.first_name.charAt(0)}{otherUser.last_name.charAt(0)}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-medium truncate">
+                                {otherUser.first_name} {otherUser.last_name}
+                              </h4>
+                              <p className="text-sm text-gray-500 truncate">{otherUser.email}</p>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })
+                  )}
                 </ScrollArea>
               </CardContent>
             </Card>
 
-            {/* Chat Window */}
-            <Card className="lg:col-span-2">
-              <CardHeader>
-                <CardTitle>
+            {/* Chat Area */}
+            <Card className="md:col-span-2">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg">
                   {selectedConversation ? (
                     (() => {
                       const connection = myConnections.find(c => c._id === selectedConversation);
@@ -605,14 +609,13 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
                       return `${otherUser.first_name} ${otherUser.last_name}`;
                     })()
                   ) : (
-                    'Select a conversation to start messaging'
+                    'Select a conversation'
                   )}
                 </CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-0 flex flex-col h-[500px]">
                 {selectedConversation ? (
-                  <div className="flex flex-col h-[400px]">
-                    {/* Messages */}
+                  <>
                     <ScrollArea className="flex-1 mb-4">
                       <div className="space-y-4">
                         {Array.isArray(conversations[selectedConversation]) && conversations[selectedConversation].length > 0 ? (
@@ -654,35 +657,34 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
                         )}
                       </div>
                     </ScrollArea>
-
-                    {/* Message Input */}
-                    <div className="flex gap-2">
-                      <Textarea
-                        placeholder="Type your message..."
-                        value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
-                        className="flex-1"
-                        rows={3}
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter' && !e.shiftKey) {
-                            e.preventDefault();
-                            sendMessage(selectedConversation);
-                          }
-                        }}
-                      />
-                      <Button
-                        onClick={() => sendMessage(selectedConversation)}
-                        disabled={!newMessage.trim()}
-                      >
-                        <Send className="h-4 w-4" />
-                      </Button>
+                    
+                    <div className="p-4 border-t">
+                      <div className="flex space-x-2">
+                        <Textarea
+                          placeholder="Type your message..."
+                          value={newMessage}
+                          onChange={(e) => setNewMessage(e.target.value)}
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault();
+                              sendMessage();
+                            }
+                          }}
+                          className="flex-1 resize-none"
+                          rows={2}
+                        />
+                        <Button onClick={sendMessage} disabled={!newMessage.trim()}>
+                          <Send className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
-                  </div>
+                  </>
                 ) : (
-                  <div className="flex items-center justify-center h-[400px] text-gray-500">
+                  <div className="flex-1 flex items-center justify-center text-gray-500">
                     <div className="text-center">
-                      <MessageCircle className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-                      <p>Select a conversation to start messaging</p>
+                      <MessageCircle className="w-16 h-16 mx-auto mb-4 opacity-30" />
+                      <h3 className="text-lg font-medium mb-2">Select a conversation</h3>
+                      <p>Choose a connection from the left to start messaging</p>
                     </div>
                   </div>
                 )}
