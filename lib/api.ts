@@ -1680,6 +1680,31 @@ class ApiClient {
     return this.request(`/users/membership-id/${userId}/${clubId}`);
   }
 
+  // Get all memberships for the current user
+  async getUserMemberships(): Promise<ApiResponse<Array<{
+    _id: string;
+    club_id: {
+      _id: string;
+      name: string;
+      description: string;
+      status: string;
+    };
+    membership_level_id: {
+      _id: string;
+      name: string;
+      description: string;
+      price: number;
+      currency: string;
+    };
+    level_name: string;
+    status: string;
+    start_date: string;
+    end_date?: string;
+    user_membership_id: string;
+  }>>> {
+    return this.request('/users/memberships');
+  }
+
   // Debug method - remove after fixing
   async debugVolunteers(): Promise<ApiResponse<any>> {
     return this.request('/volunteer/debug-volunteers');

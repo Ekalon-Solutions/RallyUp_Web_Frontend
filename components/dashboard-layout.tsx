@@ -33,6 +33,7 @@ import {
   Vote,
   Music,
   ShoppingCart,
+  UserCheck,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -100,6 +101,7 @@ const superAdminNavigation = [
 const userNavigation = [
   { name: "Feed", href: "/dashboard/user", icon: LayoutDashboard },
   { name: "Clubs", href: "/dashboard/user/clubs", icon: Building2 },
+  { name: "My Clubs", href: "/dashboard/user/my-clubs", icon: UserCheck },
   { name: "Members", href: "/dashboard/user/members", icon: Users },
   { name: "Events", href: "/dashboard/user/events", icon: Ticket },
   { name: "News", href: "/dashboard/user/news", icon: Newspaper },
@@ -109,6 +111,7 @@ const userNavigation = [
   { name: "My Orders", href: "/dashboard/user/orders", icon: ShoppingCart },
   { name: "Volunteer", href: "/dashboard/volunteer", icon: Heart },
   { name: "Member Onboarding", href: "/dashboard/member-onboarding", icon: GraduationCap },
+  { name: "Browse Plans", href: "/dashboard/user/browse-plans", icon: CreditCard },
   { name: "Membership Card", href: "/dashboard/user/membership-card", icon: CreditCard },
   { name: "My Profile", href: "/dashboard/user/profile", icon: User },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
