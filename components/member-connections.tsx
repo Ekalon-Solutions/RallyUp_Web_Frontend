@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -9,6 +9,13 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Skeleton } from '@/components/ui/skeleton';
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { 
   Users, 
   UserPlus, 
@@ -16,9 +23,19 @@ import {
   Send, 
   Search,
   Check,
-  X
+  X,
+  Clock,
+  Loader2,
+  Smile,
+  MoreVertical,
+  FileText,
+  Image as ImageIcon,
+  Phone,
+  Video,
+  Settings
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useMessaging, useConnectionNotifications } from '@/hooks/use-messaging';
 import config from '@/lib/config';
 
 // Interfaces
@@ -26,7 +43,7 @@ interface Member {
   _id: string;
   first_name: string;
   last_name: string;
-  email: string;
+  email?: string;
   profilePicture?: string;
   memberships?: Array<{
     club: {
@@ -52,6 +69,7 @@ interface ConnectionRequest {
 
 interface Message {
   _id: string;
+  connection?: string;
   sender: Member;
   recipient: Member;
   message: string;
@@ -59,6 +77,8 @@ interface Message {
   createdAt: string;
   readAt?: string;
   isRead: boolean;
+  isEdited?: boolean;
+  editedAt?: string;
 }
 
 interface ClubMember {
@@ -79,8 +99,82 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
   const [newMessage, setNewMessage] = useState('');
   const [activeTab, setActiveTab] = useState('members');
   const [loading, setLoading] = useState(false);
+  const [loadingStates, setLoadingStates] = useState<{ [key: string]: boolean }>({});
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+  const [messageSearch, setMessageSearch] = useState('');
+  
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   const { toast } = useToast();
+
+  // Helper function to safely get user initials
+  const getUserInitials = (user: any) => {
+    if (!user) return 'U';
+    const firstName = user.first_name || user.firstName || '';
+    const lastName = user.last_name || user.lastName || '';
+    return `${firstName.charAt(0) || 'U'}${lastName.charAt(0) || ''}`;
+  };
+
+  // Helper function to safely get user full name
+  const getUserFullName = (user: any) => {
+    if (!user) return 'Unknown User';
+    const firstName = user.first_name || user.firstName || '';
+    const lastName = user.last_name || user.lastName || '';
+    return `${firstName} ${lastName}`.trim() || 'Unknown User';
+  };
+
+  // Helper function to safely check user name includes search term
+  const userNameIncludes = (user: any, searchTerm: string) => {
+    if (!user || !searchTerm) return true;
+    const searchLower = searchTerm.toLowerCase();
+    const firstName = user.first_name || user.firstName || '';
+    const lastName = user.last_name || user.lastName || '';
+    const email = user.email || '';
+    return (
+      firstName.toLowerCase().includes(searchLower) ||
+      lastName.toLowerCase().includes(searchLower) ||
+      email.toLowerCase().includes(searchLower)
+    );
+  };
+
+  // Real-time messaging hooks
+  const { 
+    isConnected, 
+    typingUsers, 
+    startTyping, 
+    stopTyping, 
+    markMessagesAsRead,
+    isTyping 
+  } = useMessaging({
+    connectionId: selectedConversation,
+    currentUserId: currentUser?._id,
+    onNewMessage: (message: Message) => {
+      if (selectedConversation && message.connection === selectedConversation) {
+        setConversations(prev => ({
+          ...prev,
+          [selectedConversation]: [...(prev[selectedConversation] || []), message]
+        }));
+        scrollToBottom();
+        markMessagesAsRead();
+      }
+    },
+    onMessagesRead: (data) => {
+      // Update read status in UI if needed
+      console.log('Messages marked as read:', data);
+    }
+  });
+
+  const { notifications } = useConnectionNotifications(currentUser?._id);
+
+  // Auto-scroll to bottom of messages
+  const scrollToBottom = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, []);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [conversations, selectedConversation, scrollToBottom]);
 
   useEffect(() => {
     if (currentUser?.token) {
@@ -97,23 +191,46 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
 
   const fetchMembers = async () => {
     try {
+      setLoading(true);
+      console.log('Fetching members for club:', clubId);
+      console.log('Auth headers:', getAuthHeaders());
+      
       const response = await fetch(`${config.apiBaseUrl}/clubs/${clubId}/members`, {
         headers: getAuthHeaders(),
       });
       
+      console.log('Response status:', response.status, response.statusText);
+      
       if (response.ok) {
         const data = await response.json();
-        const clubMembers = data.memberships?.map((membership: any) => ({
-          _id: membership.user._id,
-          first_name: membership.user.first_name,
-          last_name: membership.user.last_name,
-          email: membership.user.email,
-          profilePicture: membership.user.profilePicture
-        })) || [];
+        console.log('Club memberships response:', data); // Debug log
+        const clubMembers = data.memberships?.map((member: any) => ({
+          _id: member._id || '',
+          first_name: member.first_name || '',
+          last_name: member.last_name || '',
+          email: member.email || '',
+          profilePicture: member.profilePicture || ''
+        })).filter((member: any) => member._id) || [];
+        console.log('Processed members:', clubMembers);
         setMembers(clubMembers);
+      } else {
+        const errorText = await response.text();
+        console.error('Failed to fetch members:', response.status, response.statusText, errorText);
+        toast({ 
+          title: "Error", 
+          description: `Failed to load club members: ${response.statusText}`,
+          variant: "destructive" 
+        });
       }
     } catch (error) {
       console.error('Error fetching members:', error);
+      toast({ 
+        title: "Error", 
+        description: "Network error while loading members",
+        variant: "destructive" 
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -126,28 +243,60 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
       if (response.ok) {
         const data = await response.json();
         // Backend returns { requests: [...], counts: {...} }
-        const requests = data.requests || [];
+        const requests = (data.requests || []).filter((request: any) => 
+          request?.requester?._id && request?.recipient?._id
+        );
         setConnectionRequests(requests);
       } else {
         console.error('Failed to fetch connection requests:', response.status, await response.text());
+        toast({ 
+          title: "Error", 
+          description: "Failed to load connection requests",
+          variant: "destructive" 
+        });
       }
     } catch (error) {
       console.error('Error fetching connection requests:', error);
+      toast({ 
+        title: "Error", 
+        description: "Network error while loading connection requests",
+        variant: "destructive" 
+      });
     }
   };
 
   const fetchMyConnections = async () => {
     try {
+      console.log('Fetching my connections...');
       const response = await fetch(`${config.apiBaseUrl}/member-connections/my-connections`, {
         headers: getAuthHeaders(),
       });
       
+      console.log('My connections response status:', response.status);
+      
       if (response.ok) {
         const data = await response.json();
-        setMyConnections(data.connections || []);
+        console.log('My connections raw data:', data);
+        const connections = (data.connections || []).filter((connection: any) => 
+          connection?.requester?._id && connection?.recipient?._id
+        );
+        console.log('Filtered connections:', connections);
+        setMyConnections(connections);
+      } else {
+        console.error('Failed to fetch connections:', response.statusText);
+        toast({ 
+          title: "Error", 
+          description: "Failed to load your connections",
+          variant: "destructive" 
+        });
       }
     } catch (error) {
       console.error('Error fetching connections:', error);
+      toast({ 
+        title: "Error", 
+        description: "Network error while loading connections",
+        variant: "destructive" 
+      });
     }
   };
 
@@ -173,6 +322,8 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
 
   const sendConnectionRequest = async (recipientId: string) => {
     setLoading(true);
+    console.log('Sending connection request to:', recipientId, 'for club:', clubId);
+    
     try {
       const response = await fetch(`${config.apiBaseUrl}/member-connections/send-request`, {
         method: 'POST',
@@ -183,7 +334,11 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
         }),
       });
 
+      console.log('Connection request response:', response.status, response.statusText);
+
       if (response.ok) {
+        const data = await response.json();
+        console.log('Connection request successful:', data);
         toast({
           title: "Success",
           description: "Connection request sent successfully",
@@ -191,6 +346,7 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
         fetchConnectionRequests();
       } else {
         const error = await response.json();
+        console.error('Connection request failed:', error);
         toast({
           title: "Error",
           description: error.message || "Failed to send connection request",
@@ -198,6 +354,7 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
         });
       }
     } catch (error) {
+      console.error('Network error sending connection request:', error);
       toast({
         title: "Error",
         description: "Network error occurred",
@@ -247,6 +404,8 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
   const sendMessage = async () => {
     if (!newMessage.trim() || !selectedConversation) return;
 
+    setLoadingStates(prev => ({ ...prev, sendingMessage: true }));
+    
     try {
       const response = await fetch(`${config.apiBaseUrl}/member-connections/send-message`, {
         method: 'POST',
@@ -259,7 +418,8 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
 
       if (response.ok) {
         setNewMessage('');
-        fetchConversation(selectedConversation);
+        stopTyping();
+        // Message will be added via socket event
       } else {
         toast({
           title: "Error",
@@ -273,6 +433,35 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
         description: "Network error occurred",
         variant: "destructive",
       });
+    } finally {
+      setLoadingStates(prev => ({ ...prev, sendingMessage: false }));
+    }
+  };
+
+  // Handle typing indicators
+  const handleMessageChange = (value: string) => {
+    setNewMessage(value);
+    
+    if (value.trim() && !isTyping) {
+      const userName = `${currentUser?.first_name} ${currentUser?.last_name}`;
+      startTyping(userName);
+    }
+    
+    // Clear existing timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    
+    // Stop typing after 3 seconds of inactivity
+    typingTimeoutRef.current = setTimeout(() => {
+      stopTyping();
+    }, 3000);
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
     }
   };
 
@@ -301,7 +490,7 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
   const filteredMembers = members.filter(member =>
     member.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     member.last_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    member.email.toLowerCase().includes(searchTerm.toLowerCase())
+    (member.email && member.email.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const pendingRequests = connectionRequests.filter(req => {
@@ -368,11 +557,11 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
                         <Avatar>
                           <AvatarImage src={member.profilePicture} />
                           <AvatarFallback>
-                            {member.first_name.charAt(0)}{member.last_name.charAt(0)}
+                            {getUserInitials(member)}
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <h3 className="font-medium">{member.first_name} {member.last_name}</h3>
+                          <h3 className="font-medium">{getUserFullName(member)}</h3>
                           <p className="text-sm text-gray-500">{member.email}</p>
                         </div>
                       </div>
@@ -426,12 +615,12 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
                         <Avatar>
                           <AvatarImage src={request.requester.profilePicture} />
                           <AvatarFallback className="bg-blue-100">
-                            {request.requester.first_name.charAt(0)}{request.requester.last_name.charAt(0)}
+                            {getUserInitials(request.requester)}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1">
                           <h4 className="font-medium text-sm">
-                            {request.requester.first_name} {request.requester.last_name}
+                            {getUserFullName(request.requester)}
                           </h4>
                           <p className="text-xs text-gray-500">{request.requester.email}</p>
                           <p className="text-xs text-gray-400 mt-1">
@@ -499,12 +688,12 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
                           <Avatar>
                             <AvatarImage src={otherUser.profilePicture} />
                             <AvatarFallback>
-                              {otherUser.first_name.charAt(0)}{otherUser.last_name.charAt(0)}
+                              {getUserInitials(otherUser)}
                             </AvatarFallback>
                           </Avatar>
                           <div>
                             <h3 className="font-medium">
-                              {otherUser.first_name} {otherUser.last_name}
+                              {getUserFullName(otherUser)}
                             </h3>
                             <p className="text-sm text-gray-500">{otherUser.email}</p>
                             <p className="text-xs text-gray-400">
@@ -540,6 +729,15 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
             <Card className="md:col-span-1">
               <CardHeader>
                 <CardTitle className="text-lg">Conversations</CardTitle>
+                <div className="relative">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Search conversations..."
+                    value={messageSearch}
+                    onChange={(e) => setMessageSearch(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
               </CardHeader>
               <CardContent className="p-0">
                 <ScrollArea className="h-[500px]">
@@ -550,7 +748,15 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
                       <p className="text-xs">Click to start messaging</p>
                     </div>
                   ) : (
-                    myConnections.map((connection) => {
+                    myConnections
+                      .filter((connection) => {
+                        if (!messageSearch) return true;
+                        const otherUser = connection.requester._id === currentUser?._id 
+                          ? connection.recipient 
+                          : connection.requester;
+                        return userNameIncludes(otherUser, messageSearch);
+                      })
+                      .map((connection) => {
                       // Safety check for populated fields
                       if (!connection.requester || !connection.recipient) {
                         return null;
@@ -572,17 +778,28 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
                           }}
                         >
                           <div className="flex items-center space-x-3">
-                            <Avatar className="w-10 h-10">
-                              <AvatarImage src={otherUser.profilePicture} />
-                              <AvatarFallback>
-                                {otherUser.first_name.charAt(0)}{otherUser.last_name.charAt(0)}
-                              </AvatarFallback>
-                            </Avatar>
+                            <div className="relative">
+                              <Avatar className="w-10 h-10">
+                                <AvatarImage src={otherUser.profilePicture} />
+                                <AvatarFallback>
+                                  {getUserInitials(otherUser)}
+                                </AvatarFallback>
+                              </Avatar>
+                              {/* Online status indicator */}
+                              <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-400 border-2 border-white rounded-full" />
+                            </div>
                             <div className="flex-1 min-w-0">
-                              <h4 className="font-medium truncate">
-                                {otherUser.first_name} {otherUser.last_name}
-                              </h4>
-                              <p className="text-sm text-gray-500 truncate">{otherUser.email}</p>
+                              <div className="flex items-center justify-between">
+                                <h4 className="font-medium truncate">
+                                  {getUserFullName(otherUser)}
+                                </h4>
+                                <span className="text-xs text-gray-400">
+                                  2m ago
+                                </span>
+                              </div>
+                              <p className="text-sm text-gray-500 truncate">
+                                Last message preview...
+                              </p>
                             </div>
                           </div>
                         </div>
@@ -595,60 +812,171 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
 
             {/* Chat Area */}
             <Card className="md:col-span-2">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">
-                  {selectedConversation ? (
-                    (() => {
-                      const connection = myConnections.find(c => c._id === selectedConversation);
-                      if (!connection || !connection.requester || !connection.recipient) {
-                        return 'Select a conversation';
-                      }
-                      const otherUser = connection.requester._id === currentUser?._id 
-                        ? connection.recipient 
-                        : connection.requester;
-                      return `${otherUser.first_name} ${otherUser.last_name}`;
-                    })()
-                  ) : (
-                    'Select a conversation'
+              <CardHeader className="pb-3 border-b">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    {selectedConversation ? (
+                      (() => {
+                        const connection = myConnections.find(c => c._id === selectedConversation);
+                        if (!connection || !connection.requester || !connection.recipient) {
+                          return <CardTitle className="text-lg">Select a conversation</CardTitle>;
+                        }
+                        const otherUser = connection.requester._id === currentUser?._id 
+                          ? connection.recipient 
+                          : connection.requester;
+                        return (
+                          <>
+                            <div className="relative">
+                              <Avatar className="w-10 h-10">
+                                <AvatarImage src={otherUser.profilePicture} />
+                                <AvatarFallback>
+                                  {getUserInitials(otherUser)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-400 border-2 border-white rounded-full" />
+                            </div>
+                            <div>
+                              <CardTitle className="text-lg">
+                                {getUserFullName(otherUser)}
+                              </CardTitle>
+                              <p className="text-sm text-green-600 flex items-center">
+                                <div className="w-2 h-2 bg-green-400 rounded-full mr-2" />
+                                {isConnected ? 'Online' : 'Offline'}
+                              </p>
+                            </div>
+                          </>
+                        );
+                      })()
+                    ) : (
+                      <CardTitle className="text-lg">Select a conversation</CardTitle>
+                    )}
+                  </div>
+                  {selectedConversation && (
+                    <div className="flex items-center space-x-2">
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                        <Phone className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                        <Video className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                        <MoreVertical className="w-4 h-4" />
+                      </Button>
+                    </div>
                   )}
-                </CardTitle>
+                </div>
               </CardHeader>
               <CardContent className="p-0 flex flex-col h-[500px]">
                 {selectedConversation ? (
                   <>
                     <ScrollArea className="flex-1 mb-4">
-                      <div className="space-y-4">
-                        {Array.isArray(conversations[selectedConversation]) && conversations[selectedConversation].length > 0 ? (
-                          conversations[selectedConversation].map((message) => (
-                            <div
-                              key={message._id}
-                              className={`flex ${
-                                message.sender._id === currentUser?._id ? 'justify-end' : 'justify-start'
-                              }`}
-                            >
-                              <div
-                                className={`max-w-[70%] p-3 rounded-lg ${
-                                  message.sender._id === currentUser?._id
-                                    ? 'bg-blue-500 text-white'
-                                    : 'bg-gray-100'
-                                }`}
-                              >
-                                <p>{message.message}</p>
-                                <p
-                                  className={`text-xs mt-1 ${
-                                    message.sender._id === currentUser?._id
-                                      ? 'text-blue-100'
-                                      : 'text-gray-500'
+                      <div className="space-y-4 p-4">
+                        {isLoadingMessages ? (
+                          <div className="space-y-4">
+                            {[...Array(3)].map((_, i) => (
+                              <div key={i} className="flex space-x-2">
+                                <Skeleton className="w-8 h-8 rounded-full" />
+                                <div className="space-y-2">
+                                  <Skeleton className="h-4 w-[200px]" />
+                                  <Skeleton className="h-4 w-[150px]" />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : Array.isArray(conversations[selectedConversation]) && conversations[selectedConversation].length > 0 ? (
+                          <>
+                            {conversations[selectedConversation].map((message, index) => {
+                              const isCurrentUser = message.sender._id === currentUser?._id;
+                              const showAvatar = index === 0 || 
+                                conversations[selectedConversation][index - 1].sender._id !== message.sender._id;
+                              
+                              return (
+                                <div
+                                  key={message._id}
+                                  className={`flex items-end space-x-2 ${
+                                    isCurrentUser ? 'justify-end' : 'justify-start'
                                   }`}
                                 >
-                                  {new Date(message.createdAt).toLocaleTimeString([], {
-                                    hour: '2-digit',
-                                    minute: '2-digit'
-                                  })}
-                                </p>
+                                  {!isCurrentUser && showAvatar && (
+                                    <Avatar className="w-8 h-8">
+                                      <AvatarFallback className="text-xs">
+                                        {message.sender.first_name.charAt(0)}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                  )}
+                                  {!isCurrentUser && !showAvatar && (
+                                    <div className="w-8 h-8" />
+                                  )}
+                                  
+                                  <div
+                                    className={`max-w-[70%] group relative ${
+                                      isCurrentUser ? 'ml-auto' : ''
+                                    }`}
+                                  >
+                                    <div
+                                      className={`p-3 rounded-2xl shadow-sm ${
+                                        isCurrentUser
+                                          ? 'bg-blue-500 text-white rounded-br-md'
+                                          : 'bg-white border rounded-bl-md'
+                                      }`}
+                                    >
+                                      <p className="text-sm">{message.message}</p>
+                                      {message.isEdited && (
+                                        <p className={`text-xs italic mt-1 ${
+                                          isCurrentUser ? 'text-blue-100' : 'text-gray-400'
+                                        }`}>
+                                          edited
+                                        </p>
+                                      )}
+                                    </div>
+                                    
+                                    <div className={`flex items-center space-x-1 mt-1 ${
+                                      isCurrentUser ? 'justify-end' : 'justify-start'
+                                    }`}>
+                                      <span className="text-xs text-gray-500">
+                                        {new Date(message.createdAt).toLocaleTimeString([], {
+                                          hour: '2-digit',
+                                          minute: '2-digit'
+                                        })}
+                                      </span>
+                                      {isCurrentUser && (
+                                        <div className="flex items-center space-x-1">
+                                          {message.isRead ? (
+                                            <Check className="w-3 h-3 text-blue-500" />
+                                          ) : (
+                                            <Clock className="w-3 h-3 text-gray-400" />
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                            
+                            {/* Typing indicators */}
+                            {typingUsers.length > 0 && (
+                              <div className="flex items-center space-x-2 ml-2">
+                                <Avatar className="w-8 h-8">
+                                  <AvatarFallback className="text-xs">
+                                    {typingUsers[0].userName.charAt(0)}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className="bg-gray-100 rounded-2xl px-4 py-2">
+                                  <div className="flex space-x-1">
+                                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
+                                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }} />
+                                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }} />
+                                  </div>
+                                </div>
+                                <span className="text-xs text-gray-500">
+                                  {typingUsers[0].userName} is typing...
+                                </span>
                               </div>
-                            </div>
-                          ))
+                            )}
+                            
+                            <div ref={messagesEndRef} />
+                          </>
                         ) : (
                           <div className="text-center text-gray-500 py-8">
                             <MessageCircle className="w-12 h-12 mx-auto mb-2 opacity-50" />
@@ -658,24 +986,65 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
                       </div>
                     </ScrollArea>
                     
-                    <div className="p-4 border-t">
-                      <div className="flex space-x-2">
-                        <Textarea
-                          placeholder="Type your message..."
-                          value={newMessage}
-                          onChange={(e) => setNewMessage(e.target.value)}
-                          onKeyPress={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                              e.preventDefault();
-                              sendMessage();
-                            }
-                          }}
-                          className="flex-1 resize-none"
-                          rows={2}
-                        />
-                        <Button onClick={sendMessage} disabled={!newMessage.trim()}>
-                          <Send className="w-4 h-4" />
-                        </Button>
+                    <div className="p-4 border-t bg-gray-50">
+                      <div className="flex items-end space-x-2">
+                        <div className="flex-1">
+                          <Textarea
+                            placeholder="Type your message... (Enter to send, Shift+Enter for new line)"
+                            value={newMessage}
+                            onChange={(e) => handleMessageChange(e.target.value)}
+                            onKeyPress={handleKeyPress}
+                            className="resize-none border-0 bg-white shadow-sm min-h-[40px] max-h-[120px]"
+                            rows={1}
+                          />
+                          {!isConnected && (
+                            <p className="text-xs text-amber-600 mt-1 flex items-center">
+                              <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                              Reconnecting...
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex items-center space-x-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-10 w-10 p-0"
+                            onClick={() => {
+                              // Add emoji picker functionality later
+                              toast({
+                                title: "Coming Soon",
+                                description: "Emoji picker will be available in next update",
+                              });
+                            }}
+                          >
+                            <Smile className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-10 w-10 p-0"
+                            onClick={() => {
+                              // Add file attachment functionality later
+                              toast({
+                                title: "Coming Soon",
+                                description: "File sharing will be available in next update",
+                              });
+                            }}
+                          >
+                            <FileText className="w-4 h-4" />
+                          </Button>
+                          <Button 
+                            onClick={sendMessage} 
+                            disabled={!newMessage.trim() || loadingStates.sendingMessage}
+                            className="h-10 w-10 p-0"
+                          >
+                            {loadingStates.sendingMessage ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Send className="w-4 h-4" />
+                            )}
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </>
