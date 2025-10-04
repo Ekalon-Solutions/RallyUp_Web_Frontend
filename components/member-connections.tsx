@@ -138,6 +138,45 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
     );
   };
 
+  // Helper function to get last message preview
+  const getLastMessagePreview = (connectionId: string) => {
+    const messages = conversations[connectionId];
+    if (!messages || messages.length === 0) {
+      return 'Start a conversation...';
+    }
+    const lastMessage = messages[messages.length - 1];
+    const isCurrentUser = lastMessage.sender._id === currentUser?._id;
+    const prefix = isCurrentUser ? 'You: ' : '';
+    const messageText = lastMessage.message.length > 30 
+      ? lastMessage.message.substring(0, 30) + '...' 
+      : lastMessage.message;
+    return prefix + messageText;
+  };
+
+  // Helper function to get last message time
+  const getLastMessageTime = (connectionId: string) => {
+    const messages = conversations[connectionId];
+    if (!messages || messages.length === 0) {
+      return '';
+    }
+    const lastMessage = messages[messages.length - 1];
+    const messageDate = new Date(lastMessage.createdAt);
+    const now = new Date();
+    const diffMs = now.getTime() - messageDate.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    
+    const diffHours = Math.floor(diffMins / 60);
+    if (diffHours < 24) return `${diffHours}h ago`;
+    
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 7) return `${diffDays}d ago`;
+    
+    return messageDate.toLocaleDateString();
+  };
+
   // Real-time messaging hooks
   const { 
     isConnected, 
@@ -150,13 +189,19 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
     connectionId: selectedConversation,
     currentUserId: currentUser?._id,
     onNewMessage: (message: Message) => {
-      if (selectedConversation && message.connection === selectedConversation) {
+      // Update conversations for any connection, not just selected one
+      const connId = message.connection || selectedConversation;
+      if (connId) {
         setConversations(prev => ({
           ...prev,
-          [selectedConversation]: [...(prev[selectedConversation] || []), message]
+          [connId]: [...(prev[connId] || []), message]
         }));
-        scrollToBottom();
-        markMessagesAsRead();
+        
+        // If it's the selected conversation, scroll to bottom and mark as read
+        if (selectedConversation && connId === selectedConversation) {
+          scrollToBottom();
+          markMessagesAsRead();
+        }
       }
     },
     onMessagesRead: (data) => {
@@ -183,6 +228,16 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
       fetchMyConnections();
     }
   }, [currentUser, clubId]);
+
+  // Debug log when data changes
+  useEffect(() => {
+    console.log('=== Member Connections Data ===');
+    console.log('Current User ID:', currentUser?._id);
+    console.log('Members count:', members.length);
+    console.log('Connection Requests:', connectionRequests.length, connectionRequests);
+    console.log('My Connections:', myConnections.length, myConnections);
+    console.log('==============================');
+  }, [members, connectionRequests, myConnections, currentUser]);
 
   const getAuthHeaders = () => ({
     'Content-Type': 'application/json',
@@ -236,19 +291,36 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
 
   const fetchConnectionRequests = async () => {
     try {
+      console.log('Fetching connection requests...');
       const response = await fetch(`${config.apiBaseUrl}/member-connections/requests`, {
         headers: getAuthHeaders(),
       });
       
+      console.log('Connection requests response status:', response.status);
+      
       if (response.ok) {
         const data = await response.json();
+        console.log('Connection requests raw data:', data);
         // Backend returns { requests: [...], counts: {...} }
         const requests = (data.requests || []).filter((request: any) => 
           request?.requester?._id && request?.recipient?._id
         );
+        console.log('Filtered connection requests:', requests.length);
+        
+        // Log each request to see structure
+        requests.forEach((req: any, idx: number) => {
+          console.log(`Request ${idx}:`, {
+            _id: req._id,
+            requester: req.requester?._id || req.requester,
+            recipient: req.recipient?._id || req.recipient,
+            status: req.status
+          });
+        });
+        
         setConnectionRequests(requests);
       } else {
-        console.error('Failed to fetch connection requests:', response.status, await response.text());
+        const errorText = await response.text();
+        console.error('Failed to fetch connection requests:', response.status, errorText);
         toast({ 
           title: "Error", 
           description: "Failed to load connection requests",
@@ -277,11 +349,27 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
       if (response.ok) {
         const data = await response.json();
         console.log('My connections raw data:', data);
+        console.log('Connections array:', data.connections);
+        
+        // Log first connection to see structure
+        if (data.connections && data.connections.length > 0) {
+          console.log('First connection structure:', data.connections[0]);
+        }
+        
+        // Filter out any malformed connections
         const connections = (data.connections || []).filter((connection: any) => 
-          connection?.requester?._id && connection?.recipient?._id
+          connection?._id && connection?.requester && connection?.recipient
         );
-        console.log('Filtered connections:', connections);
+        
+        console.log('Filtered connections count:', connections.length);
         setMyConnections(connections);
+        
+        // Load last message for each connection for preview
+        connections.forEach((connection: any) => {
+          if (connection._id && !conversations[connection._id]) {
+            fetchConversation(connection._id);
+          }
+        });
       } else {
         console.error('Failed to fetch connections:', response.statusText);
         toast({ 
@@ -321,8 +409,10 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
   };
 
   const sendConnectionRequest = async (recipientId: string) => {
-    setLoading(true);
+    setLoadingStates(prev => ({ ...prev, [`connect_${recipientId}`]: true }));
     console.log('Sending connection request to:', recipientId, 'for club:', clubId);
+    console.log('Auth headers:', getAuthHeaders());
+    console.log('API URL:', `${config.apiBaseUrl}/member-connections/send-request`);
     
     try {
       const response = await fetch(`${config.apiBaseUrl}/member-connections/send-request`, {
@@ -344,28 +434,60 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
           description: "Connection request sent successfully",
         });
         fetchConnectionRequests();
+        fetchMyConnections();
       } else {
-        const error = await response.json();
-        console.error('Connection request failed:', error);
+        const errorText = await response.text();
+        console.error('Connection request failed:', response.status, errorText);
+        let errorMessage = "Failed to send connection request";
+        let shouldRefreshData = false;
+        
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.message || errorMessage;
+          
+          // If connection already exists, refresh the data to update UI
+          if (errorMessage.toLowerCase().includes('already exists') || 
+              errorMessage.toLowerCase().includes('already connected')) {
+            shouldRefreshData = true;
+            errorMessage = "You are already connected to this member";
+          }
+        } catch (e) {
+          errorMessage = errorText || errorMessage;
+        }
+        
         toast({
-          title: "Error",
-          description: error.message || "Failed to send connection request",
-          variant: "destructive",
+          title: shouldRefreshData ? "Info" : "Error",
+          description: errorMessage,
+          variant: shouldRefreshData ? "default" : "destructive",
         });
+        
+        // Refresh data if connection already exists to update the UI
+        if (shouldRefreshData) {
+          fetchConnectionRequests();
+          fetchMyConnections();
+        }
       }
     } catch (error) {
       console.error('Network error sending connection request:', error);
+      console.error('Error details:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
       toast({
         title: "Error",
-        description: "Network error occurred",
+        description: error instanceof Error ? error.message : "Network error occurred",
         variant: "destructive",
       });
+    } finally {
+      setLoadingStates(prev => ({ ...prev, [`connect_${recipientId}`]: false }));
     }
-    setLoading(false);
   };
 
   const respondToRequest = async (requestId: string, action: 'accept' | 'decline') => {
-    setLoading(true);
+    setLoadingStates(prev => ({ ...prev, [`request_${requestId}_${action}`]: true }));
+    console.log(`Responding to request ${requestId} with action: ${action}`);
+    console.log('Current user:', currentUser);
+    console.log('Current user ID:', currentUser?._id);
+    console.log('Auth headers:', getAuthHeaders());
+    console.log('Request body:', JSON.stringify({ requestId, action }));
+    
     try {
       const response = await fetch(`${config.apiBaseUrl}/member-connections/respond-request`, {
         method: 'POST',
@@ -376,33 +498,70 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
         }),
       });
 
+      console.log(`Response status for ${action}:`, response.status, response.statusText);
+
       if (response.ok) {
+        const data = await response.json();
+        console.log(`${action} request successful:`, data);
         toast({
           title: "Success",
           description: `Connection request ${action}ed successfully`,
         });
-        fetchConnectionRequests();
-        fetchMyConnections();
+        
+        // Refresh data after a small delay to ensure backend has updated
+        setTimeout(() => {
+          console.log('Refreshing connection data after accept/decline...');
+          fetchConnectionRequests();
+          fetchMyConnections();
+        }, 300);
       } else {
-        const error = await response.json();
+        const errorText = await response.text();
+        console.error(`Failed to ${action} request:`, response.status, errorText);
+        let errorMessage = `Failed to ${action} request`;
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.message || errorMessage;
+        } catch (e) {
+          errorMessage = errorText || errorMessage;
+        }
         toast({
           title: "Error",
-          description: error.message || `Failed to ${action} request`,
+          description: errorMessage,
           variant: "destructive",
         });
       }
     } catch (error) {
+      console.error(`Network error ${action}ing request:`, error);
+      console.error('Error details:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
       toast({
         title: "Error",
-        description: "Network error occurred",
+        description: error instanceof Error ? error.message : "Network error occurred",
         variant: "destructive",
       });
+    } finally {
+      setLoadingStates(prev => ({ ...prev, [`request_${requestId}_${action}`]: false }));
     }
-    setLoading(false);
   };
 
   const sendMessage = async () => {
-    if (!newMessage.trim() || !selectedConversation) return;
+    if (!newMessage.trim() || !selectedConversation) {
+      console.log('Cannot send message:', { 
+        hasMessage: !!newMessage.trim(), 
+        hasConversation: !!selectedConversation 
+      });
+      return;
+    }
+
+    console.log('=== Sending Message ===');
+    console.log('Selected conversation ID:', selectedConversation);
+    console.log('Current user:', currentUser);
+    console.log('Current user ID:', currentUser?._id);
+    console.log('Message content:', newMessage.trim());
+    console.log('Auth headers:', getAuthHeaders());
+    
+    // Find the connection details for debugging
+    const connection = myConnections.find(c => c._id === selectedConversation);
+    console.log('Connection details:', connection);
 
     setLoadingStates(prev => ({ ...prev, sendingMessage: true }));
     
@@ -416,11 +575,18 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
         }),
       });
 
+      console.log('Send message response:', response.status, response.statusText);
+
       if (response.ok) {
+        const data = await response.json();
+        console.log('Message sent successfully:', data);
         setNewMessage('');
         stopTyping();
-        // Message will be added via socket event
+        // Refresh conversation to show the new message
+        fetchConversation(selectedConversation);
       } else {
+        const errorText = await response.text();
+        console.error('Failed to send message:', response.status, errorText);
         toast({
           title: "Error",
           description: "Failed to send message",
@@ -428,6 +594,7 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
         });
       }
     } catch (error) {
+      console.error('Network error sending message:', error);
       toast({
         title: "Error",
         description: "Network error occurred",
@@ -467,20 +634,35 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
 
   // Helper functions
   const getConnectionStatus = (memberId: string) => {
+    const currentUserId = currentUser?._id;
+    
+    // Check sent requests
     const sentRequest = connectionRequests.find(req => 
-      req.requester._id === currentUser?._id && req.recipient._id === memberId
+      req.requester?._id === currentUserId && req.recipient?._id === memberId
     );
     
+    // Check received requests
     const receivedRequest = connectionRequests.find(req => 
-      req.recipient._id === currentUser?._id && req.requester._id === memberId
+      req.recipient?._id === currentUserId && req.requester?._id === memberId
     );
     
-    const connection = myConnections.find(conn => 
-      (conn.requester._id === currentUser?._id && conn.recipient._id === memberId) ||
-      (conn.recipient._id === currentUser?._id && conn.requester._id === memberId)
-    );
+    // Check existing connections (including accepted status)
+    const connection = myConnections.find(conn => {
+      const isRequester = conn.requester?._id === currentUserId && conn.recipient?._id === memberId;
+      const isRecipient = conn.recipient?._id === currentUserId && conn.requester?._id === memberId;
+      return (isRequester || isRecipient) && conn.status === 'accepted';
+    });
 
-    if (connection && connection.status === 'accepted') return 'connected';
+    // Debug logging for troubleshooting
+    if (memberId && (connection || sentRequest || receivedRequest)) {
+      console.log('Connection status for member:', memberId, {
+        connection: connection ? 'connected' : null,
+        sentRequest: sentRequest ? 'sent' : null,
+        receivedRequest: receivedRequest ? 'received' : null,
+      });
+    }
+
+    if (connection) return 'connected';
     if (sentRequest && sentRequest.status === 'pending') return 'sent';
     if (receivedRequest && receivedRequest.status === 'pending') return 'received';
     return 'none';
@@ -496,8 +678,23 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
   const pendingRequests = connectionRequests.filter(req => {
     const currentUserId = currentUser?._id?.toString();
     const recipientId = req.recipient?._id?.toString();
+    const requesterId = req.requester?._id?.toString();
+    
+    // Debug log
+    console.log('Checking request:', {
+      requestId: req._id,
+      currentUserId,
+      recipientId,
+      requesterId,
+      isRecipient: recipientId === currentUserId,
+      status: req.status
+    });
+    
+    // Only show requests where current user is the RECIPIENT and status is pending
     return recipientId === currentUserId && req.status === 'pending';
   });
+
+  console.log('Pending requests to display:', pendingRequests.length);
 
   return (
     <div className="container mx-auto p-6">
@@ -569,10 +766,14 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
                         {status === 'none' && (
                           <Button
                             onClick={() => sendConnectionRequest(member._id)}
-                            disabled={loading}
+                            disabled={loadingStates[`connect_${member._id}`]}
                             size="sm"
                           >
-                            <UserPlus className="w-4 h-4 mr-1" />
+                            {loadingStates[`connect_${member._id}`] ? (
+                              <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                            ) : (
+                              <UserPlus className="w-4 h-4 mr-1" />
+                            )}
                             Connect
                           </Button>
                         )}
@@ -631,20 +832,28 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
                       <div className="flex space-x-2">
                         <Button
                           onClick={() => respondToRequest(request._id, 'accept')}
-                          disabled={loading}
+                          disabled={loadingStates[`request_${request._id}_accept`] || loadingStates[`request_${request._id}_decline`]}
                           size="sm"
                           variant="default"
                         >
-                          <Check className="w-4 h-4 mr-1" />
+                          {loadingStates[`request_${request._id}_accept`] ? (
+                            <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                          ) : (
+                            <Check className="w-4 h-4 mr-1" />
+                          )}
                           Accept
                         </Button>
                         <Button
                           onClick={() => respondToRequest(request._id, 'decline')}
-                          disabled={loading}
+                          disabled={loadingStates[`request_${request._id}_accept`] || loadingStates[`request_${request._id}_decline`]}
                           size="sm"
                           variant="outline"
                         >
-                          <X className="w-4 h-4 mr-1" />
+                          {loadingStates[`request_${request._id}_decline`] ? (
+                            <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                          ) : (
+                            <X className="w-4 h-4 mr-1" />
+                          )}
                           Decline
                         </Button>
                       </div>
@@ -769,36 +978,42 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
                       return (
                         <div
                           key={connection._id}
-                          className={`p-4 border-b cursor-pointer hover:bg-gray-50 ${
-                            selectedConversation === connection._id ? 'bg-blue-50 border-blue-200' : ''
+                          className={`p-4 border-b cursor-pointer transition-all duration-200 ${
+                            selectedConversation === connection._id 
+                              ? 'bg-blue-500/10 border-blue-400 shadow-sm' 
+                              : 'bg-gray-800/30 hover:bg-gray-700/50 border-gray-700'
                           }`}
                           onClick={() => {
                             setSelectedConversation(connection._id);
                             fetchConversation(connection._id);
                           }}
                         >
-                          <div className="flex items-center space-x-3">
-                            <div className="relative">
-                              <Avatar className="w-10 h-10">
+                          <div className="flex items-start space-x-3">
+                            <div className="relative flex-shrink-0">
+                              <Avatar className="w-12 h-12 border-2 border-gray-600">
                                 <AvatarImage src={otherUser.profilePicture} />
-                                <AvatarFallback>
+                                <AvatarFallback className="bg-gradient-to-br from-blue-500 to-blue-600 text-white font-semibold text-base">
                                   {getUserInitials(otherUser)}
                                 </AvatarFallback>
                               </Avatar>
                               {/* Online status indicator */}
-                              <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-400 border-2 border-white rounded-full" />
+                              <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-gray-900 rounded-full shadow-lg" />
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between">
-                                <h4 className="font-medium truncate">
+                            <div className="flex-1 min-w-0 overflow-hidden">
+                              <div className="flex items-center justify-between gap-2 mb-1.5">
+                                <h4 className="font-semibold text-white truncate text-base">
                                   {getUserFullName(otherUser)}
                                 </h4>
-                                <span className="text-xs text-gray-400">
-                                  2m ago
+                                <span className="text-xs text-gray-400 flex-shrink-0 font-medium">
+                                  {getLastMessageTime(connection._id)}
                                 </span>
                               </div>
-                              <p className="text-sm text-gray-500 truncate">
-                                Last message preview...
+                              <p className={`text-sm truncate leading-relaxed ${
+                                selectedConversation === connection._id 
+                                  ? 'text-blue-200' 
+                                  : 'text-gray-400'
+                              }`}>
+                                {getLastMessagePreview(connection._id)}
                               </p>
                             </div>
                           </div>
@@ -840,7 +1055,7 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
                                 {getUserFullName(otherUser)}
                               </CardTitle>
                               <p className="text-sm text-green-600 flex items-center">
-                                <div className="w-2 h-2 bg-green-400 rounded-full mr-2" />
+                                <span className="w-2 h-2 bg-green-400 rounded-full mr-2 inline-block" />
                                 {isConnected ? 'Online' : 'Offline'}
                               </p>
                             </div>
@@ -917,10 +1132,12 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
                                       className={`p-3 rounded-2xl shadow-sm ${
                                         isCurrentUser
                                           ? 'bg-blue-500 text-white rounded-br-md'
-                                          : 'bg-white border rounded-bl-md'
+                                          : 'bg-gray-100 border border-gray-200 rounded-bl-md text-gray-900'
                                       }`}
                                     >
-                                      <p className="text-sm">{message.message}</p>
+                                      <p className={`text-sm break-words ${
+                                        isCurrentUser ? 'text-white' : 'text-gray-900'
+                                      }`}>{message.message}</p>
                                       {message.isEdited && (
                                         <p className={`text-xs italic mt-1 ${
                                           isCurrentUser ? 'text-blue-100' : 'text-gray-400'
@@ -986,7 +1203,7 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
                       </div>
                     </ScrollArea>
                     
-                    <div className="p-4 border-t bg-gray-50">
+                    <div className="p-4 border-t bg-white">
                       <div className="flex items-end space-x-2">
                         <div className="flex-1">
                           <Textarea
@@ -994,7 +1211,7 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
                             value={newMessage}
                             onChange={(e) => handleMessageChange(e.target.value)}
                             onKeyPress={handleKeyPress}
-                            className="resize-none border-0 bg-white shadow-sm min-h-[40px] max-h-[120px]"
+                            className="resize-none border border-gray-300 bg-white text-gray-900 placeholder:text-gray-500 shadow-sm min-h-[40px] max-h-[120px] focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             rows={1}
                           />
                           {!isConnected && (
@@ -1008,7 +1225,7 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-10 w-10 p-0"
+                            className="h-10 w-10 p-0 hover:bg-gray-100"
                             onClick={() => {
                               // Add emoji picker functionality later
                               toast({
@@ -1017,12 +1234,12 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
                               });
                             }}
                           >
-                            <Smile className="w-4 h-4" />
+                            <Smile className="w-4 h-4 text-gray-600" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-10 w-10 p-0"
+                            className="h-10 w-10 p-0 hover:bg-gray-100"
                             onClick={() => {
                               // Add file attachment functionality later
                               toast({
@@ -1031,12 +1248,12 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
                               });
                             }}
                           >
-                            <FileText className="w-4 h-4" />
+                            <FileText className="w-4 h-4 text-gray-600" />
                           </Button>
                           <Button 
                             onClick={sendMessage} 
                             disabled={!newMessage.trim() || loadingStates.sendingMessage}
-                            className="h-10 w-10 p-0"
+                            className="h-10 w-10 p-0 bg-blue-500 hover:bg-blue-600 text-white disabled:bg-gray-300"
                           >
                             {loadingStates.sendingMessage ? (
                               <Loader2 className="w-4 h-4 animate-spin" />
