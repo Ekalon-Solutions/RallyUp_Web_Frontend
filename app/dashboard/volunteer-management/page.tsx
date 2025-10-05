@@ -408,9 +408,13 @@ export default function VolunteerManagementPage() {
   }, [clubId]);
 
   const fetchOpportunitySignups = React.useCallback(async (opportunityId: string) => {
+    console.log('🔍 Frontend: fetchOpportunitySignups called with ID:', opportunityId);
     try {
+      console.log('🔍 Frontend: Calling API getVolunteerSignupsForOpportunity...');
       const response = await apiClient.getVolunteerSignupsForOpportunity(opportunityId);
+      console.log('🔍 Frontend: API response:', response);
       if (response.success) {
+        console.log('🔍 Frontend: Setting signups:', response.data);
         setOpportunitySignups(response.data || []);
       } else {
         console.error('Failed to fetch opportunity signups:', response.error);
@@ -423,6 +427,7 @@ export default function VolunteerManagementPage() {
   }, []);
 
   const handleViewSignups = React.useCallback((opportunity: VolunteerOpportunity) => {
+    console.log('🔍 Frontend: handleViewSignups called for opportunity:', opportunity._id);
     setSelectedOpportunity(opportunity);
     fetchOpportunitySignups(opportunity._id);
     setShowSignupsModal(true);
@@ -668,10 +673,7 @@ export default function VolunteerManagementPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => {
-                              setSelectedOpportunity(opportunity);
-                              setShowSignupsModal(true);
-                            }}
+                            onClick={() => handleViewSignups(opportunity)}
                           >
                             <Users className="w-4 h-4 mr-2" />
                             View Signups

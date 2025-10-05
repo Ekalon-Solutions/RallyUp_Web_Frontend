@@ -16,6 +16,7 @@ export default function VolunteerDashboard() {
   const [opportunities, setOpportunities] = React.useState<VolunteerOpportunity[]>([]);
 
   const [volunteerProfile, setVolunteerProfile] = React.useState<any>(null);
+  const [allVolunteerProfileIds, setAllVolunteerProfileIds] = React.useState<string[]>([]); // Track all volunteer profile IDs across all clubs
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState('available');
   const [loading, setLoading] = React.useState(false);
@@ -41,6 +42,13 @@ export default function VolunteerDashboard() {
 
   const fetchOpportunities = React.useCallback(async () => {
     console.log('🔍 Starting to fetch opportunities...');
+    console.log('🔍 User object from auth:', user);
+    
+    if (!user?._id) {
+      console.log('⚠️ User not loaded yet, skipping fetch');
+      return;
+    }
+    
     setLoading(true);
     setError(null);
     
@@ -69,13 +77,13 @@ export default function VolunteerDashboard() {
         return;
       }
 
-      // Get the first active membership (assuming user can only be in one club at a time)
-      const activeMembership = userProfileResponse.data.memberships.find(membership =>
+      // Get ALL active memberships (user can be in multiple clubs)
+      const activeMemberships = userProfileResponse.data.memberships.filter(membership =>
         membership.status === 'active'
       );
 
-      if (!activeMembership?.club_id?._id) {
-        console.log('❌ No active club membership found');
+      if (activeMemberships.length === 0) {
+        console.log('❌ No active club memberships found');
         setOpportunities([]);
         setError('You need to have an active club membership to see volunteer opportunities');
         toast({
@@ -86,52 +94,57 @@ export default function VolunteerDashboard() {
         return;
       }
 
-      const clubId = activeMembership.club_id._id;
-      console.log('🏢 Found club ID:', clubId);
-      console.log('🏢 Club details:', activeMembership.club_id);
+      // Get all club IDs from active memberships
+      const clubIds = activeMemberships.map(membership => membership.club_id._id);
+      console.log('🏢 Found club IDs:', clubIds);
+      console.log('🏢 Club details:', activeMemberships.map(m => ({
+        id: m.club_id._id,
+        name: m.club_id.name
+      })));
       
-      // Fetch opportunities for the user's club
-      console.log('🔍 Fetching opportunities for club:', clubId);
-      const opportunitiesResponse = await apiClient.getVolunteerOpportunities({ club: clubId });
+      // Fetch opportunities for ALL user's clubs
+      console.log('🔍 Fetching opportunities for all clubs:', clubIds);
+      
+      // Fetch opportunities for each club and combine them
+      const allOpportunitiesPromises = clubIds.map(clubId => 
+        apiClient.getVolunteerOpportunities({ club: clubId })
+      );
+      
+      const allResponses = await Promise.all(allOpportunitiesPromises);
+      console.log('📋 All Opportunities API responses:', allResponses);
 
-      console.log('📋 Opportunities API response:', {
-        success: opportunitiesResponse.success,
-        hasData: !!opportunitiesResponse.data,
-        error: opportunitiesResponse.error,
-        rawResponse: opportunitiesResponse,
-        dataType: typeof opportunitiesResponse.data,
-        isArray: Array.isArray(opportunitiesResponse.data)
+      // Combine all opportunities from all clubs
+      let combinedOpportunities: VolunteerOpportunity[] = [];
+      
+      allResponses.forEach((opportunitiesResponse, index) => {
+        console.log(`📋 Response ${index + 1} for club ${clubIds[index]}:`, {
+          success: opportunitiesResponse.success,
+          hasData: !!opportunitiesResponse.data,
+          error: opportunitiesResponse.error,
+          clubId: clubIds[index]
+        });
+        
+        if (!opportunitiesResponse.success) {
+          console.log(`❌ Failed to fetch opportunities for club ${clubIds[index]}:`, opportunitiesResponse.error);
+          return; // Skip this club but continue with others
+        }
+        
+        // The API returns { opportunities: VolunteerOpportunity[], pagination: {...} }
+        let clubOpportunities: VolunteerOpportunity[] = [];
+        if ((opportunitiesResponse.data as any)?.opportunities && Array.isArray((opportunitiesResponse.data as any).opportunities)) {
+          clubOpportunities = (opportunitiesResponse.data as any).opportunities as VolunteerOpportunity[];
+        } else if (Array.isArray(opportunitiesResponse.data)) {
+          clubOpportunities = opportunitiesResponse.data as VolunteerOpportunity[];
+        }
+        
+        combinedOpportunities = [...combinedOpportunities, ...clubOpportunities];
       });
       
-      if (!opportunitiesResponse.success) {
-        console.log('❌ Failed to fetch opportunities:', opportunitiesResponse.error);
-        setError(opportunitiesResponse.error || 'Failed to fetch volunteer opportunities');
-        toast({
-          title: 'Error',
-          description: opportunitiesResponse.error || 'Failed to fetch volunteer opportunities',
-          variant: 'destructive',
-        });
-        return;
-      }
-      
-      // The API returns { opportunities: VolunteerOpportunity[], pagination: {...} }
-      let allOpportunities: VolunteerOpportunity[] = [];
-      if ((opportunitiesResponse.data as any)?.opportunities && Array.isArray((opportunitiesResponse.data as any).opportunities)) {
-        allOpportunities = (opportunitiesResponse.data as any).opportunities as VolunteerOpportunity[];
-        console.log('📊 Using opportunities array from response');
-      } else if (Array.isArray(opportunitiesResponse.data)) {
-        // Fallback for direct array response
-        allOpportunities = opportunitiesResponse.data as VolunteerOpportunity[];
-        console.log('📊 Using direct array response (fallback)');
-      } else {
-        // Fallback to empty array
-        allOpportunities = [];
-        console.log('📊 Using fallback empty array');
-      }
-      
-      console.log('✅ Processed opportunities:', {
-        count: allOpportunities.length,
-        opportunities: allOpportunities.map(o => ({
+      console.log('✅ Combined opportunities from all clubs:', {
+        totalCount: combinedOpportunities.length,
+        clubsCount: clubIds.length,
+        clubIds: clubIds,
+        opportunities: combinedOpportunities.map(o => ({
           id: o._id,
           title: o.title,
           club: o.club,
@@ -140,8 +153,41 @@ export default function VolunteerDashboard() {
         }))
       });
 
-      setOpportunities(allOpportunities);
+      setOpportunities(combinedOpportunities);
       setError(null);
+      
+      // Fetch volunteer profiles for all clubs to get all profile IDs
+      console.log('🔍 Fetching all volunteer profiles for current user...');
+      
+      // Use fetch directly with auth header
+      const token = localStorage.getItem('token');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/volunteer/my-volunteer-profiles`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      const myProfilesData = await response.json();
+      console.log('🔍 My volunteer profiles response:', {
+        status: response.status,
+        dataLength: myProfilesData?.length,
+        data: myProfilesData
+      });
+      
+      const allProfileIds: string[] = [];
+      
+      if (response.ok && Array.isArray(myProfilesData)) {
+        myProfilesData.forEach((profile: any) => {
+          if (profile._id) {
+            allProfileIds.push(profile._id);
+            console.log(`✅ Added profile ID: ${profile._id} for club: ${profile.club?.name || 'Unknown'}`);
+          }
+        });
+      }
+      
+      console.log('✅ Found volunteer profile IDs across all clubs:', allProfileIds);
+      setAllVolunteerProfileIds(allProfileIds);
+      
     } catch (error) {
       console.error('Error fetching opportunities:', error);
       const errorMessage = error instanceof Error ? error.message : 'Failed to fetch volunteer opportunities';
@@ -154,7 +200,7 @@ export default function VolunteerDashboard() {
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [toast, user]); // Add user as dependency
 
   React.useEffect(() => {
     console.log('🔄 Effect triggered - fetching opportunities and volunteer profile');
@@ -417,16 +463,32 @@ export default function VolunteerDashboard() {
   };
 
   const availableOpportunities = opportunities.filter(
-    (opportunity: VolunteerOpportunity) => opportunity.status === 'open'
+    (opportunity: VolunteerOpportunity) => {
+      // Show opportunities that are 'open', 'active', 'draft', or 'filled'
+      // 'filled' opportunities can still be shown if they have your signup
+      const validStatuses = ['open', 'active', 'draft', 'filled'];
+      const isValidStatus = validStatuses.includes(opportunity.status?.toLowerCase() || '');
+      
+      console.log(`🔍 Filtering opportunity "${opportunity.title}":`, {
+        status: opportunity.status,
+        isValidStatus,
+        validStatuses
+      });
+      
+      return isValidStatus;
+    }
   );
 
   const myOpportunities = opportunities.filter((opportunity: VolunteerOpportunity) => {
     const hasAssignment = opportunity.timeSlots.some((slot: any) => {
-      // Check if the current volunteer is assigned to this time slot
-      const isAssigned = volunteerProfile && slot.volunteersAssigned.includes(volunteerProfile._id);
-      if (volunteerProfile) {
+      // Check if ANY of the user's volunteer profiles is assigned to this time slot
+      const isAssigned = allVolunteerProfileIds.some(profileId => 
+        slot.volunteersAssigned.includes(profileId)
+      );
+      
+      if (isAssigned) {
         console.log(`🔍 Checking slot ${slot._id}:`, {
-          volunteerProfileId: volunteerProfile._id,
+          allVolunteerProfileIds,
           volunteersAssigned: slot.volunteersAssigned,
           isAssigned
         });
@@ -434,7 +496,7 @@ export default function VolunteerDashboard() {
       return isAssigned;
     });
     
-    if (volunteerProfile && hasAssignment) {
+    if (hasAssignment) {
       console.log(`✅ Opportunity "${opportunity.title}" is in myOpportunities`);
     }
     
@@ -447,6 +509,7 @@ export default function VolunteerDashboard() {
       total: opportunities.length,
       available: availableOpportunities.length,
       myOpportunities: myOpportunities.length,
+      allVolunteerProfileIds,
       volunteerProfile: volunteerProfile ? { id: volunteerProfile._id, name: volunteerProfile.user?.name } : null,
       opportunities: opportunities.map(o => ({
         id: o._id,
@@ -531,11 +594,30 @@ export default function VolunteerDashboard() {
               </div>
             ) : availableOpportunities.length === 0 ? (
               <div className="text-center py-8">
-                <p className="text-muted-foreground mb-2">
-                  {opportunities.length === 0 
-                    ? "No volunteer opportunities available at the moment."
-                    : "No open volunteer opportunities at the moment."
+                <div className="bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 p-4 rounded-lg mb-4">
+                  <p className="text-yellow-800 dark:text-yellow-200 mb-2">
+                    {opportunities.length === 0 
+                      ? "No volunteer opportunities found for your club."
+                      : `Found ${opportunities.length} opportunity(ies), but none are available for signup.`
                   }
+                  </p>
+                  {opportunities.length > 0 && (
+                    <div className="text-sm text-left mt-3">
+                      <p className="font-semibold mb-2">Opportunity Details:</p>
+                      {opportunities.map(opp => (
+                        <div key={opp._id} className="bg-white dark:bg-gray-900 p-2 mb-2 rounded">
+                          <p><strong>Title:</strong> {opp.title}</p>
+                          <p><strong>Status:</strong> {opp.status}</p>
+                          <p><strong>Time Slots:</strong> {opp.timeSlots?.length || 0}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <p className="text-muted-foreground">
+                  {opportunities.length === 0 
+                    ? "Check with your club admin about upcoming volunteer opportunities."
+                    : "Check back later or contact your club admin."}
                 </p>
                 {opportunities.length > 0 && (
                   <div className="space-y-4">
@@ -573,7 +655,11 @@ export default function VolunteerDashboard() {
                   key={opportunity._id}
                   opportunity={opportunity}
                   onSignUp={handleSignUp}
-                  currentVolunteerId={volunteerProfile?._id}
+                  currentVolunteerId={allVolunteerProfileIds.find(profileId => 
+                    opportunity.timeSlots.some((slot: any) => 
+                      slot.volunteersAssigned.includes(profileId)
+                    )
+                  )}
                   signingUp={signingUp}
                 />
               ))
@@ -591,7 +677,11 @@ export default function VolunteerDashboard() {
                   key={opportunity._id}
                   opportunity={opportunity}
                   onWithdraw={handleWithdraw}
-                  currentVolunteerId={volunteerProfile?._id}
+                  currentVolunteerId={allVolunteerProfileIds.find(profileId => 
+                    opportunity.timeSlots.some((slot: any) => 
+                      slot.volunteersAssigned.includes(profileId)
+                    )
+                  )}
                 />
               ))
             )}
