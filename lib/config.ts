@@ -104,6 +104,16 @@ export const API_ENDPOINTS = {
     analytics: '/onboarding/analytics',
   },
   
+  // User Onboarding Progress endpoints
+  onboardingProgress: {
+    myProgress: '/onboarding-progress/my-progress',
+    myProgressForFlow: (flowId: string) => `/onboarding-progress/my-progress/${flowId}`,
+    updateProgress: (flowId: string) => `/onboarding-progress/my-progress/${flowId}`,
+    resetProgress: (flowId: string) => `/onboarding-progress/my-progress/${flowId}/reset`,
+    allProgress: '/onboarding-progress/all-progress',
+    flowStats: (flowId: string) => `/onboarding-progress/flow/${flowId}/stats`,
+  },
+  
   // Promotional content endpoints
   promotions: {
     getAll: '/promotions',

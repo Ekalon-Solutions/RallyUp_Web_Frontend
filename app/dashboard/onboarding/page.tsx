@@ -28,6 +28,7 @@ import { ProtectedRoute } from "@/components/protected-route"
 import { getApiUrl, API_ENDPOINTS } from "@/lib/config"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
+import UserOnboardingProgressAdmin from "@/components/admin/user-onboarding-progress-admin"
 
 interface OnboardingFlow {
   _id: string
@@ -478,6 +479,9 @@ export default function OnboardingDashboard() {
               )}
             </CardContent>
           </Card>
+
+          {/* User Progress Tracking */}
+          <UserOnboardingProgressAdmin />
         </TabsContent>
 
                  <TabsContent value="promotions" className="space-y-6">

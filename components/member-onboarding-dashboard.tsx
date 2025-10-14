@@ -137,6 +137,34 @@ export default function MemberOnboardingDashboard({ userId, userRole }: MemberOn
         const completedSteps = updatedFlow.steps.filter(s => s.isCompleted).length
         updatedFlow.progress = (completedSteps / updatedFlow.steps.length) * 100
         
+        // Prepare completed step indices
+        const completedStepIndices = updatedFlow.steps
+          .map((step, idx) => step.isCompleted ? idx : -1)
+          .filter(idx => idx !== -1)
+        
+        // Update backend
+        const token = localStorage.getItem('token')
+        const response = await fetch(
+          getApiUrl(API_ENDPOINTS.onboardingProgress.updateProgress(activeFlow._id)), 
+          {
+            method: 'PUT',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              currentStepIndex: stepIndex < updatedFlow.steps.length - 1 ? stepIndex + 1 : stepIndex,
+              completedSteps: completedStepIndices,
+              progress: updatedFlow.progress,
+              status: updatedFlow.progress === 100 ? 'completed' : 'in_progress'
+            })
+          }
+        )
+        
+        if (!response.ok) {
+          throw new Error('Failed to save progress to server')
+        }
+        
         // Check if onboarding is complete
         if (updatedFlow.progress === 100) {
           // Mark onboarding as completed for this user
@@ -176,10 +204,28 @@ export default function MemberOnboardingDashboard({ userId, userRole }: MemberOn
     toast.success(`Starting "${flow.name}" onboarding`)
   }
 
-  const repeatOnboarding = () => {
+  const repeatOnboarding = async () => {
     // Reset completion state
     localStorage.removeItem(`onboarding_completed_${userId}`)
     setHasCompletedOnboarding(false)
+    
+    // Reset backend progress if activeFlow exists
+    if (activeFlow) {
+      try {
+        const token = localStorage.getItem('token')
+        await fetch(
+          getApiUrl(API_ENDPOINTS.onboardingProgress.resetProgress(activeFlow._id)),
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          }
+        )
+      } catch (error) {
+        console.error('Error resetting progress on backend:', error)
+      }
+    }
     
     // If there are multiple flows, show selection screen
     if (onboardingFlows.length > 1) {
