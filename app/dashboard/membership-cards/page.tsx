@@ -25,6 +25,7 @@ import {
   Image
 } from "lucide-react"
 import { MembershipCard } from "@/components/membership-card"
+import { MembershipCardCustomizer } from "@/components/admin/membership-card-customizer"
 import { apiClient, PublicMembershipCardDisplay, CreateMembershipCardRequest } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
 import { DashboardLayout } from "@/components/dashboard-layout"
@@ -817,82 +818,10 @@ export default function MembershipCardsPage() {
             </TabsContent>
 
             <TabsContent value="customize" className="space-y-6">
-              <div className="grid gap-6 md:grid-cols-2">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Palette className="w-5 h-5" />
-                      Card Customization
-                    </CardTitle>
-                    <CardDescription>
-                      Customize the appearance of your membership cards
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        id="showLogo"
-                        checked={customization.showLogo}
-                        onCheckedChange={(checked) => setCustomization(prev => ({ ...prev, showLogo: checked }))}
-                      />
-                      <Label htmlFor="showLogo">Show Club Logo</Label>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Image className="w-5 h-5" />
-                      Logo Upload
-                    </CardTitle>
-                    <CardDescription>
-                      Upload your club logo for membership cards
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <Label htmlFor="logo">Club Logo</Label>
-                      <Input
-                        id="logo"
-                        type="file"
-                        accept="image/*"
-                        onChange={handleFileSelect}
-                        className="mt-2"
-                      />
-                    </div>
-
-                    {previewUrl && (
-                      <div className="mt-4">
-                        <Label>Preview</Label>
-                        <div className="mt-2">
-                          <img
-                            src={previewUrl}
-                            alt="Logo preview"
-                            className="w-20 h-20 object-cover rounded border"
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-
-              <div className="flex justify-end space-x-2">
-                <Button variant="outline" onClick={() => setCustomization({
-                  cardStyle: 'default',
-                  showLogo: true,
-                  primaryColor: '#3b82f6',
-                  secondaryColor: '#1e40af',
-                  fontFamily: 'Inter',
-                  logoSize: 'medium'
-                })}>
-                  Reset
-                </Button>
-                <Button onClick={handleSaveCustomization}>
-                  Save Changes
-                </Button>
-              </div>
+              <MembershipCardCustomizer onSave={() => {
+                // Refresh cards after saving customization  
+                window.location.reload();
+              }} />
             </TabsContent>
 
             <TabsContent value="manage" className="space-y-6">

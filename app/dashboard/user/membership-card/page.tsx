@@ -60,17 +60,9 @@ export default function UserMembershipCardPage() {
   
   const userName = getUserName()
 
-  // Filter cards to show only those matching user's current plan
-  const userPlanCards = cards.filter(card => {
-    if (user?.role === 'member' && 'membershipPlan' in user) {
-      return user.membershipPlan && card.membershipPlan._id === user.membershipPlan
-    }
-    return false
-  });
-
-  // Use filtered cards if available, otherwise fall back to all cards
-  const displayCards = userPlanCards.length > 0 ? userPlanCards : cards;
-  const displaySelectedCard = userPlanCards.length > 0 ? userPlanCards[0] : selectedCard;
+  // Show all cards from all clubs the user is a member of
+  const displayCards = cards;
+  const displaySelectedCard = selectedCard;
 
   // Fetch membership ID for the user
   const fetchMembershipId = async () => {
@@ -131,8 +123,8 @@ export default function UserMembershipCardPage() {
       try {
         setLoading(true)
         
-        // Use the new API method to get cards for the user's club
-        const response = await apiClient.getMyClubMembershipCards()
+        // Use getMyMembershipCards to get cards from ALL clubs the user is a member of
+        const response = await apiClient.getMyMembershipCards()
         
         if (response.success && response.data) {
           // Check if data is nested (backend sends { success: true, data: result.data })
@@ -551,7 +543,7 @@ export default function UserMembershipCardPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {displaySelectedCard ? (
+                  {displaySelectedCard && displaySelectedCard.card ? (
                     <div className="flex justify-center">
                       <div className="w-full max-w-sm membership-card">
                         <MembershipCard
@@ -566,8 +558,7 @@ export default function UserMembershipCardPage() {
                   ) : (
                     <div className="text-center text-muted-foreground py-8">
                       <CreditCard className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                      <p>No membership cards available</p>
-                      <p className="text-sm">Contact your club admin to create membership cards</p>
+                      <p>No card selected or card data is incomplete</p>
                     </div>
                   )}
                 </CardContent>
@@ -575,7 +566,7 @@ export default function UserMembershipCardPage() {
             </div>
 
             {/* Card Actions & Info */}
-            {displaySelectedCard && (
+            {displaySelectedCard && displaySelectedCard.card && (
               <div className="space-y-6">
                 {/* Quick Actions */}
                 {/* <Card>
@@ -746,28 +737,19 @@ export default function UserMembershipCardPage() {
           {displayCards.length === 0 && !loading && (
             <Card>
               <CardHeader>
-                <CardTitle>No Matching Membership Cards</CardTitle>
+                <CardTitle>No Membership Cards</CardTitle>
                 <CardDescription>
-                  {userPlanCards.length === 0 && cards.length > 0 
-                    ? "No membership cards match your current plan"
-                    : "Your club hasn't created any membership cards yet"
-                  }
+                  Your club hasn't created any membership cards yet
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="text-center text-muted-foreground py-8">
                   <CreditCard className="w-16 h-16 mx-auto mb-4 opacity-50" />
                   <p className="mb-2">
-                    {userPlanCards.length === 0 && cards.length > 0 
-                      ? "Plan Mismatch Detected"
-                      : "No membership cards found"
-                    }
+                    No membership cards found
                   </p>
                   <p className="text-sm mb-4">
-                    {userPlanCards.length === 0 && cards.length > 0 
-                      ? `You have the "${user?.role === 'member' && 'membershipPlan' in user ? (user as any).membershipPlan?.name || 'Unknown' : 'Unknown'}" plan, but no cards are available for it. Contact your club administrator to create cards for your plan.`
-                      : "Contact your club administrator to create membership cards for your plans"
-                    }
+                    Contact your club administrator to create membership cards for your plans
                   </p>
                   
                   {/* Show user's current plan info if available */}
@@ -778,21 +760,6 @@ export default function UserMembershipCardPage() {
                         <p><span className="font-medium">Club:</span> {responseInfo.userInfo.club}</p>
                         <p><span className="font-medium">Plan:</span> {responseInfo.userInfo.membershipPlan.name || responseInfo.userInfo.membershipPlan}</p>
                       </div>
-                    </div>
-                  )}
-
-                  {/* Show available plans if there's a mismatch */}
-                  {userPlanCards.length === 0 && cards.length > 0 && (
-                    <div className="bg-blue-50 p-4 rounded-lg text-left mt-4">
-                      <h4 className="font-medium mb-2 text-blue-800">Available Card Plans:</h4>
-                      <div className="space-y-1 text-sm text-blue-700">
-                        {cards.map((card, index) => (
-                          <p key={index}>• {card.membershipPlan.name}</p>
-                        ))}
-                      </div>
-                      <p className="text-xs text-blue-600 mt-2">
-                        These plans have cards but don't match your current membership.
-                      </p>
                     </div>
                   )}
                 </div>

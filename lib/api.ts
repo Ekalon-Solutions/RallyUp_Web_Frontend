@@ -1783,6 +1783,13 @@ class ApiClient {
     });
   }
 
+  async updateTemplateCardCustomization(membershipPlanId: string, customization: any): Promise<ApiResponse<PublicMembershipCardDisplay>> {
+    return this.request(`/membership-cards/template/customize`, {
+      method: 'PATCH',
+      body: JSON.stringify({ membershipPlanId, customization }),
+    });
+  }
+
   async renewMembershipCard(cardId: string, data: RenewMembershipCardRequest): Promise<ApiResponse<PublicMembershipCardDisplay>> {
     return this.request(`/membership-cards/${cardId}/renew`, {
       method: 'PATCH',

@@ -29,7 +29,12 @@ interface PollResult {
   text: string
   votes: number
   percentage: number
-  voters: string[]
+  voters: {
+    _id: string
+    name: string
+    email: string
+    profile_picture?: string
+  }[]
 }
 
 interface PollData {
@@ -284,6 +289,34 @@ export function PollResultsModal({ pollId, isOpen, onClose, refreshTrigger }: Po
                         </div>
                       </div>
                       <Progress value={result.percentage} className="h-3" />
+                      
+                      {/* Show voter details if not anonymous */}
+                      {!poll.allowAnonymousVotes && result.voters.length > 0 && (
+                        <div className="mt-2 pl-6 space-y-1">
+                          <p className="text-xs font-medium text-muted-foreground">
+                            Voted by:
+                          </p>
+                          <div className="space-y-1">
+                            {result.voters.map((voter) => (
+                              <div key={voter._id} className="flex items-center gap-2 text-sm">
+                                {voter.profile_picture ? (
+                                  <img 
+                                    src={voter.profile_picture} 
+                                    alt={voter.name}
+                                    className="w-6 h-6 rounded-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium">
+                                    {voter.name.charAt(0).toUpperCase()}
+                                  </div>
+                                )}
+                                <span className="text-muted-foreground">{voter.name}</span>
+                                <span className="text-xs text-muted-foreground">({voter.email})</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
               </div>
