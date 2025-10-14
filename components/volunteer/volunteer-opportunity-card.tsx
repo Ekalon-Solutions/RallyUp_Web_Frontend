@@ -93,7 +93,7 @@ export function VolunteerOpportunityCard({
                     )}
                   </div>
                 </div>
-                {onSignUp && opportunity.status === 'open' && !isSignedUpForTimeSlot(slot) && (
+                {onSignUp && ['open', 'draft', 'active'].includes(opportunity.status) && !isSignedUpForTimeSlot(slot) && (
                   <Button
                     variant="outline"
                     size="sm"
