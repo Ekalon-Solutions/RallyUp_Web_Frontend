@@ -15,7 +15,6 @@ import {
   Users, 
   Monitor, 
   Smartphone, 
-  Desktop, 
   Tablet, 
   AlertTriangle,
   LogOut,
@@ -186,7 +185,7 @@ export default function SessionsPage() {
       case 'tablet':
         return <Tablet className="h-4 w-4" />;
       case 'desktop':
-        return <Desktop className="h-4 w-4" />;
+        return <Monitor className="h-4 w-4" />;
       default:
         return <Monitor className="h-4 w-4" />;
     }
