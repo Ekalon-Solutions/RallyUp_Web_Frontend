@@ -13,16 +13,16 @@ export const ENV = {
   
   // Production environment (deployment)
   production: {
-    apiBaseUrl: 'http://3.111.169.32:5050/api',
-    wsBaseUrl: 'ws://3.111.169.32:5050',
+    apiBaseUrl: 'https://teplworkspace.com/rallyApi/api',
+    wsBaseUrl: 'wss://teplworkspace.com/rallyApi',
     environment: 'production',
     debug: false,
   },
   
   // Staging environment (if needed)
   staging: {
-    apiBaseUrl: 'http://3.111.169.32:5050/api',
-    wsBaseUrl: 'ws://3.111.169.32:5050',
+    apiBaseUrl: 'https://teplworkspace.com/rallyApi/api',
+    wsBaseUrl: 'wss://teplworkspace.com/rallyApi',
     environment: 'staging',
     debug: true,
   }
