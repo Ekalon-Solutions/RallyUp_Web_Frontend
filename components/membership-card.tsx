@@ -22,7 +22,7 @@ const fontImports = `
 
 interface MembershipCardProps {
   cardData: PublicMembershipCardDisplay;
-  cardStyle?: 'default' | 'premium' | 'vintage' | 'modern';
+  cardStyle?: 'default' | 'premium' | 'vintage' | 'modern' | 'elite' | 'emerald';
   showLogo?: boolean;
   userName?: string; // User's name to display on the card (replaces card number)
   membershipId?: string | null; // User's membership ID from API
@@ -77,6 +77,22 @@ export function MembershipCard({
           text: 'text-white',
           border: 'border-purple-500',
           accent: 'bg-purple-600',
+          customColors: null
+        };
+      case 'elite':
+        return {
+          bg: 'bg-gradient-to-br from-gray-900 via-gray-800 to-black',
+          text: 'text-white',
+          border: 'border-gray-600',
+          accent: 'bg-gray-700',
+          customColors: null
+        };
+      case 'emerald':
+        return {
+          bg: 'bg-gradient-to-br from-emerald-500 via-teal-600 to-cyan-700',
+          text: 'text-white',
+          border: 'border-emerald-400',
+          accent: 'bg-emerald-600',
           customColors: null
         };
       default:

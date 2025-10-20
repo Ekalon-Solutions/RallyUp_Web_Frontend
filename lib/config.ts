@@ -1,7 +1,7 @@
 // Environment Configuration
 export const ENV = {
   // Change this to switch between environments
-  CURRENT: 'production' as 'development' | 'production' | 'staging',
+  CURRENT: 'development' as 'development' | 'production' | 'staging',
   
   // Development environment (localhost)
   development: {

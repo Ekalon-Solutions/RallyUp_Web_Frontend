@@ -680,29 +680,39 @@ export default function UserMembershipCardPage() {
             )}
           </div>
 
-          {/* Multiple Cards (if user has more than one) */}
-          {/* {displayCards.length > 1 && (
+          {/* Multiple Cards - Show all cards from all clubs */}
+          {displayCards.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle>All Available Membership Cards</CardTitle>
+                <CardTitle>All Your Membership Cards</CardTitle>
                 <CardDescription>
-                  Your club has {displayCards.length} membership card designs available
+                  You have {displayCards.length} membership card{displayCards.length > 1 ? 's' : ''} from your clubs
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {displayCards.map((card) => (
-                    <div key={card.card._id} className="border rounded-lg p-4 hover:border-primary transition-colors">
+                    <div 
+                      key={card.card._id} 
+                      className={`border rounded-lg p-4 hover:border-primary transition-colors cursor-pointer ${
+                        selectedCard?.card._id === card.card._id ? 'border-primary bg-primary/5' : ''
+                      }`}
+                      onClick={() => setSelectedCard(card)}
+                    >
                       <div className="flex items-center gap-3 mb-3">
                         <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
                           <CreditCard className="w-4 h-4 text-primary-foreground" />
                         </div>
-                        <div>
-                          <p className="font-medium text-sm">{card.membershipPlan.name}</p>
+                        <div className="flex-1">
+                          <p className="font-medium text-sm">{card.club?.name || 'Unknown Club'}</p>
                           <p className="text-xs text-muted-foreground capitalize">{card.card.cardStyle} style</p>
                         </div>
                       </div>
                       <div className="space-y-2 text-xs">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Plan:</span>
+                          <span className="font-medium">{card.membershipPlan.name}</span>
+                        </div>
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Status:</span>
                           <Badge variant={card.card.status === 'active' ? 'default' : 'secondary'} className="text-xs">
@@ -720,18 +730,18 @@ export default function UserMembershipCardPage() {
                       </div>
                       <Button
                         size="sm"
-                        variant="outline"
+                        variant={selectedCard?.card._id === card.card._id ? 'default' : 'outline'}
                         className="w-full mt-3"
                         onClick={() => setSelectedCard(card)}
                       >
-                        View Card
+                        {selectedCard?.card._id === card.card._id ? 'Viewing' : 'View Card'}
                       </Button>
                     </div>
                   ))}
                 </div>
               </CardContent>
             </Card>
-          )} */}
+          )}
 
           {/* No Cards Message */}
           {displayCards.length === 0 && !loading && (

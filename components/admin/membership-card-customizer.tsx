@@ -14,10 +14,12 @@ import { Upload, Save, Eye, Palette, Type, Image as ImageIcon } from 'lucide-rea
 
 // Card style presets
 const CARD_STYLES = [
-  { value: 'default', label: 'Default Blue', colors: { primary: '#2563eb', secondary: '#1e40af' } },
+  { value: 'default', label: 'Classic Blue', colors: { primary: '#2563eb', secondary: '#1e40af' } },
   { value: 'premium', label: 'Premium Gold', colors: { primary: '#fbbf24', secondary: '#dc2626' } },
   { value: 'vintage', label: 'Vintage Amber', colors: { primary: '#b45309', secondary: '#7c2d12' } },
   { value: 'modern', label: 'Modern Purple', colors: { primary: '#1e293b', secondary: '#581c87' } },
+  { value: 'elite', label: 'Elite Black', colors: { primary: '#111827', secondary: '#000000' } },
+  { value: 'emerald', label: 'Emerald Green', colors: { primary: '#10b981', secondary: '#0d9488' } },
   { value: 'custom', label: 'Custom Colors', colors: null }
 ];
 
@@ -36,10 +38,11 @@ const LOGO_SIZES = [
 
 interface MembershipCardCustomizerProps {
   cardId?: string;
+  clubId?: string; // Add clubId prop
   onSave?: () => void;
 }
 
-export function MembershipCardCustomizer({ cardId, onSave }: MembershipCardCustomizerProps) {
+export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipCardCustomizerProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -59,44 +62,165 @@ export function MembershipCardCustomizer({ cardId, onSave }: MembershipCardCusto
     const fetchCardData = async () => {
       try {
         setLoading(true);
-        // For now, fetch user's cards as sample data
-        const response = await apiClient.getMyMembershipCards();
         
-        if (response.success && response.data && response.data.length > 0) {
-          const card = response.data[0];
-          setCardData(card);
-          
-          // Load existing customization if any
-          if (card.card.customization) {
-            const custom = card.card.customization;
-            if (custom.primaryColor) setPrimaryColor(custom.primaryColor);
-            if (custom.secondaryColor) setSecondaryColor(custom.secondaryColor);
-            if (custom.fontFamily) setFontFamily(custom.fontFamily);
-            if (custom.logoSize) setLogoSize(custom.logoSize);
-            if (custom.customLogo) setCustomLogo(custom.customLogo);
-            
-            // Check if using preset or custom colors
-            const preset = CARD_STYLES.find(s => 
-              s.colors?.primary === custom.primaryColor && 
-              s.colors?.secondary === custom.secondaryColor
-            );
-            setSelectedStyle(preset ? preset.value : 'custom');
+        // If clubId is provided (admin mode), fetch club cards
+        // Otherwise try to fetch user's cards (member mode)
+        const response = clubId 
+          ? await apiClient.getClubMembershipCards(clubId)
+          : await apiClient.getMyMembershipCards();
+        
+        if (response.success && response.data) {
+          // Handle club cards response structure
+          let cards: any[] = [];
+          if (clubId) {
+            // Club cards API returns { data: [...], pagination: {...} }
+            if (Array.isArray(response.data)) {
+              cards = response.data;
+            } else if ((response.data as any).data) {
+              cards = (response.data as any).data;
+            }
+          } else if (Array.isArray(response.data)) {
+            // User cards API returns array directly
+            cards = response.data;
           }
+          
+          if (cards.length > 0) {
+            const card = cards[0];
+            setCardData(card);
+            
+            // Load existing customization if any
+            if (card.card.customization) {
+              const custom = card.card.customization;
+              if (custom.primaryColor) setPrimaryColor(custom.primaryColor);
+              if (custom.secondaryColor) setSecondaryColor(custom.secondaryColor);
+              if (custom.fontFamily) setFontFamily(custom.fontFamily);
+              if (custom.logoSize) setLogoSize(custom.logoSize);
+              if (custom.customLogo) setCustomLogo(custom.customLogo);
+              
+              // Check if using preset or custom colors
+              const preset = CARD_STYLES.find(s => 
+                s.colors?.primary === custom.primaryColor && 
+                s.colors?.secondary === custom.secondaryColor
+              );
+              setSelectedStyle(preset ? preset.value : 'custom');
+            }
+          } else {
+            // If no cards found, create a mock card for preview purposes
+            console.log('No membership cards found. Creating mock card for preview.');
+            
+            // Create a minimal mock card structure for preview
+            const mockCard = {
+              card: {
+                _id: 'preview-card',
+                membershipId: 'PREVIEW-123',
+                cardStyle: 'default',
+                status: 'active',
+                expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+                qrCode: 'PREVIEW-QR-CODE',
+                accessLevel: 'basic',
+                customization: {
+                  primaryColor: primaryColor,
+                  secondaryColor: secondaryColor,
+                  fontFamily: fontFamily,
+                  logoSize: logoSize,
+                  showLogo: true
+                }
+              },
+              club: {
+                _id: 'preview-club',
+                name: 'Your Club Name',
+                logo: '/placeholder-logo.png'
+              },
+              membershipPlan: {
+                _id: 'preview-plan',
+                name: 'Preview Plan',
+                description: 'This is a preview card for customization',
+                duration: 12,
+                price: 0
+              }
+            };
+            
+            setCardData(mockCard);
+          }
+        } else {
+          // API returned error or no data
+          console.warn('API returned no data, creating preview card');
+          const mockCard = {
+            card: {
+              _id: 'preview-card',
+              membershipId: 'PREVIEW-123',
+              cardStyle: 'default',
+              status: 'active',
+              expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+              qrCode: 'PREVIEW-QR-CODE',
+              accessLevel: 'basic',
+              customization: {
+                primaryColor: primaryColor,
+                secondaryColor: secondaryColor,
+                fontFamily: fontFamily,
+                logoSize: logoSize,
+                showLogo: true
+              }
+            },
+            club: {
+              _id: 'preview-club',
+              name: 'Your Club Name',
+              logo: '/placeholder-logo.png'
+            },
+            membershipPlan: {
+              _id: 'preview-plan',
+              name: 'Preview Plan',
+              description: 'This is a preview card for customization',
+              duration: 12,
+              price: 0
+            }
+          };
+          
+          setCardData(mockCard);
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error fetching card data:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load membership card",
-          variant: "destructive",
-        });
+        
+        // Always create a mock card for preview on error
+        const mockCard = {
+          card: {
+            _id: 'preview-card',
+            membershipId: 'PREVIEW-123',
+            cardStyle: 'default',
+            status: 'active',
+            expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+            qrCode: 'PREVIEW-QR-CODE',
+            accessLevel: 'basic',
+            customization: {
+              primaryColor: primaryColor,
+              secondaryColor: secondaryColor,
+              fontFamily: fontFamily,
+              logoSize: logoSize,
+              showLogo: true
+            }
+          },
+          club: {
+            _id: 'preview-club',
+            name: 'Your Club Name',
+            logo: '/placeholder-logo.png'
+          },
+          membershipPlan: {
+            _id: 'preview-plan',
+            name: 'Preview Plan',
+            description: 'This is a preview card for customization',
+            duration: 12,
+            price: 0
+          }
+        };
+        
+        setCardData(mockCard);
       } finally {
         setLoading(false);
       }
     };
 
     fetchCardData();
-  }, [cardId, toast]);
+  }, [clubId, cardId, toast]);
 
   // Handle style preset change
   const handleStyleChange = (style: string) => {
@@ -174,6 +298,16 @@ export function MembershipCardCustomizer({ cardId, onSave }: MembershipCardCusto
   const handleSave = async () => {
     if (!cardData) return;
 
+    // Check if this is a preview/mock card
+    if (cardData.membershipPlan._id === 'preview-plan' || cardData.card._id === 'preview-card') {
+      toast({
+        title: "Cannot Save Preview Card",
+        description: "You're viewing a preview card. Please create a membership card first or ensure the backend server has your user account.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       setSaving(true);
       
@@ -223,20 +357,16 @@ export function MembershipCardCustomizer({ cardId, onSave }: MembershipCardCusto
     );
   }
 
+  // Always show the customizer - we either have real data or mock data
+  // Create preview data with current customization only if cardData exists
   if (!cardData) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>No Membership Card</CardTitle>
-          <CardDescription>
-            No membership card found to customize
-          </CardDescription>
-        </CardHeader>
-      </Card>
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
     );
   }
 
-  // Create preview data with current customization
   const previewData = {
     ...cardData,
     card: {
@@ -251,8 +381,24 @@ export function MembershipCardCustomizer({ cardId, onSave }: MembershipCardCusto
     }
   };
 
+  // Check if this is a preview/mock card
+  const isPreviewCard = cardData.membershipPlan._id === 'preview-plan' || cardData.card._id === 'preview-card';
+
   return (
     <div className="space-y-6">
+      {isPreviewCard && (
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+          <div className="flex items-center gap-2 text-amber-800">
+            <Eye className="w-5 h-5" />
+            <div>
+              <p className="font-semibold">Preview Mode</p>
+              <p className="text-sm">
+                You're viewing a preview card. Changes won't be saved. To customize real cards, ensure the backend has your user account or create a membership card first.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -448,7 +594,7 @@ export function MembershipCardCustomizer({ cardId, onSave }: MembershipCardCusto
                 <div className="flex justify-center py-8 bg-muted/30 rounded-lg">
                   <MembershipCard
                     cardData={previewData}
-                    cardStyle="default"
+                    cardStyle={selectedStyle === 'custom' ? 'default' : selectedStyle as 'default' | 'premium' | 'vintage' | 'modern' | 'elite' | 'emerald'}
                     showLogo={true}
                     userName="John Doe"
                     membershipId={previewData.card.membershipId}

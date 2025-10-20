@@ -106,6 +106,12 @@ export default function MembershipCardsPage() {
               
               // Filter out any invalid cards - ensure card structure is valid
               const validCards = cardsData.filter(card => {
+                // Skip API response wrappers that might have slipped through
+                if (card && card.success && card.data) {
+                  console.warn('Found API response wrapper instead of card data:', card);
+                  return false;
+                }
+                
                 const isValid = card && 
                   card.card && 
                   card.card._id && 
@@ -266,15 +272,29 @@ export default function MembershipCardsPage() {
       const response = await apiClient.createMembershipCard(cardData)
       
       if (response.success && response.data) {
-        setCards(prev => [response.data!, ...prev])
-        toast({
-          title: "Success",
-          description: "Membership card created successfully",
-        })
-        // Reset form
-        setSelectedPlanId("")
-        setPreviewUrl(null)
-        setSelectedFile(null)
+        // The API returns { success, data: { card, club, membershipPlan } }
+        // So response.data is already the correct structure
+        const newCard = response.data;
+        
+        // Validate the card structure before adding
+        if (newCard && newCard.card && newCard.club && newCard.membershipPlan) {
+          setCards(prev => [newCard, ...prev])
+          toast({
+            title: "Success",
+            description: "Membership card created successfully",
+          })
+          // Reset form
+          setSelectedPlanId("")
+          setPreviewUrl(null)
+          setSelectedFile(null)
+        } else {
+          console.error('Invalid card structure received:', newCard);
+          toast({
+            title: "Error",
+            description: "Received invalid card structure from server",
+            variant: "destructive",
+          })
+        }
       } else {
         // Show the specific error from the backend
         toast({
@@ -818,10 +838,13 @@ export default function MembershipCardsPage() {
             </TabsContent>
 
             <TabsContent value="customize" className="space-y-6">
-              <MembershipCardCustomizer onSave={() => {
-                // Refresh cards after saving customization  
-                window.location.reload();
-              }} />
+              <MembershipCardCustomizer 
+                clubId={clubId || undefined}
+                onSave={() => {
+                  // Refresh cards after saving customization  
+                  window.location.reload();
+                }} 
+              />
             </TabsContent>
 
             <TabsContent value="manage" className="space-y-6">
