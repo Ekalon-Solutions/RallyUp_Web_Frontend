@@ -1995,6 +1995,30 @@ class ApiClient {
   }
 
   // Chants API methods
+  // Get all chants from all user's clubs
+  async getAllUserChants(params?: {
+    fileType?: 'text' | 'image' | 'audio';
+    page?: number;
+    limit?: number;
+    search?: string;
+  }): Promise<ApiResponse<{
+    chants: Chant[];
+    pagination: {
+      current: number;
+      pages: number;
+      total: number;
+    };
+  }>> {
+    const queryParams = new URLSearchParams();
+    if (params?.fileType) queryParams.append('fileType', params.fileType);
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.search) queryParams.append('search', params.search);
+    
+    const query = queryParams.toString();
+    return this.request(`/chants/user/all${query ? `?${query}` : ''}`);
+  }
+
   async getChants(clubId: string, params?: {
     fileType?: 'text' | 'image' | 'audio';
     page?: number;

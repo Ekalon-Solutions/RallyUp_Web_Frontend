@@ -42,71 +42,85 @@ export default function MemberChantsPage() {
   const [audioVolume, setAudioVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
 
-  const clubId = React.useMemo(() => {
-    if (!user) return null;
-    
-    // Get club from user's active membership
-    const userMemberships = (user as any).memberships || [];
-    const activeMembership = userMemberships.find((m: any) => m.status === 'active');
-    if (activeMembership?.club_id?._id) {
-      return activeMembership.club_id._id;
-    }
-    
-    // Fallback: try to get club from old club field (for backward compatibility)
-    if ((user as any).club?._id) {
-      return (user as any).club._id;
-    }
-    
-    // If still no club, try to find any membership (even if not active)
-    if (userMemberships.length > 0 && userMemberships[0]?.club_id?._id) {
-      return userMemberships[0].club_id._id;
-    }
-    
-    return null;
-  }, [user]);
-
   useEffect(() => {
-    if (clubId) {
+    if (user) {
       fetchChants();
     }
-  }, [clubId, currentPage, selectedFileType, searchTerm, showFavoritesOnly]);
+  }, [user, currentPage, selectedFileType, searchTerm, showFavoritesOnly]);
 
   const fetchChants = async () => {
-    if (!clubId) return;
-    
     try {
       setLoading(true);
-      const params: any = {
-        page: currentPage,
-        limit: 12
-      };
       
-      if (selectedFileType !== 'all') {
-        params.fileType = selectedFileType;
+      // Get all club IDs the user is a member of
+      const clubIds: string[] = [];
+      
+      // For admin users, use their assigned club
+      if ((user as any).club?._id) {
+        clubIds.push((user as any).club._id);
       }
       
-      if (searchTerm) {
-        params.search = searchTerm;
+      // For users with memberships, get all clubs they're a member of
+      const userMemberships = (user as any).memberships || [];
+      userMemberships.forEach((membership: any) => {
+        const clubId = membership.club_id?._id || membership.club_id;
+        if (clubId && !clubIds.includes(clubId)) {
+          clubIds.push(clubId);
+        }
+      });
+      
+      if (clubIds.length === 0) {
+        setChants([]);
+        setTotalPages(0);
+        setLoading(false);
+        return;
       }
       
-      const response = await apiClient.getChants(clubId, params);
-      if (response.success) {
-        let filteredChants = response.data.chants;
+      // Fetch chants from all clubs
+      const allChantsPromises = clubIds.map(clubId => {
+        const params: any = {
+          page: 1, // Get all pages for now, we'll handle pagination later
+          limit: 100 // Increase limit to get more chants per club
+        };
         
-        // Filter favorites if enabled
-        if (showFavoritesOnly) {
-          filteredChants = filteredChants.filter(chant => favorites.has(chant._id));
+        if (selectedFileType !== 'all') {
+          params.fileType = selectedFileType;
         }
         
-        setChants(filteredChants);
-        setTotalPages(response.data.pagination.pages);
-      } else {
-        toast({
-          title: "Error",
-          description: response.error || "Failed to fetch chants",
-          variant: "destructive",
-        });
+        if (searchTerm) {
+          params.search = searchTerm;
+        }
+        
+        return apiClient.getChants(clubId, params);
+      });
+      
+      const responses = await Promise.all(allChantsPromises);
+      
+      // Combine all chants from all clubs
+      let allChants: Chant[] = [];
+      responses.forEach(response => {
+        if (response.success && response.data) {
+          allChants = [...allChants, ...response.data.chants];
+        }
+      });
+      
+      // Sort by creation date (newest first)
+      allChants.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      
+      // Filter favorites if enabled
+      if (showFavoritesOnly) {
+        allChants = allChants.filter(chant => favorites.has(chant._id));
       }
+      
+      // Handle pagination on the frontend
+      const itemsPerPage = 12;
+      const startIndex = (currentPage - 1) * itemsPerPage;
+      const endIndex = startIndex + itemsPerPage;
+      const paginatedChants = allChants.slice(startIndex, endIndex);
+      
+      setChants(paginatedChants);
+      setTotalPages(Math.ceil(allChants.length / itemsPerPage));
+      
     } catch (error) {
       console.error('Error fetching chants:', error);
       toast({
@@ -177,7 +191,14 @@ export default function MemberChantsPage() {
     setIsMuted(!isMuted);
   };
 
-  if (!clubId) {
+  // Check if user has any club memberships
+  const hasClubMembership = React.useMemo(() => {
+    if (!user) return false;
+    const userMemberships = (user as any).memberships || [];
+    return userMemberships.length > 0 || !!(user as any).club;
+  }, [user]);
+
+  if (!hasClubMembership) {
     return (
       <ProtectedRoute>
         <DashboardLayout>
@@ -202,7 +223,7 @@ export default function MemberChantsPage() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold">Our Chants</h1>
-              <p className="text-muted-foreground">Learn and participate in our club traditions</p>
+              <p className="text-muted-foreground">Learn and participate in traditions from all your clubs</p>
             </div>
           </div>
 
@@ -275,6 +296,14 @@ export default function MemberChantsPage() {
                         {getFileTypeIcon(chant.fileType)}
                         <div className="flex-1 min-w-0">
                           <CardTitle className="text-lg leading-tight">{chant.title}</CardTitle>
+                          {/* Display club name prominently */}
+                          {chant.club && (
+                            <div className="mt-1">
+                              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
+                                {(chant.club as any).name || 'Unknown Club'}
+                              </Badge>
+                            </div>
+                          )}
                           {chant.description && (
                             <CardDescription className="mt-1 line-clamp-2">
                               {chant.description}
@@ -370,7 +399,6 @@ export default function MemberChantsPage() {
                               className="w-full"
                               autoPlay
                               muted={isMuted}
-                              volume={audioVolume}
                               onEnded={() => setPlayingAudio(null)}
                             >
                               <source src={chant.fileUrl} type={chant.mimeType} />
