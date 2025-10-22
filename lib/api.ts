@@ -1,4 +1,5 @@
 import { getApiUrl, API_ENDPOINTS } from './config';
+import { triggerBlobDownload } from './utils';
 
 // Legacy support - will be removed after migration
 const API_BASE_URL = getApiUrl('');
@@ -1289,6 +1290,90 @@ class ApiClient {
 
     const endpoint = `/volunteer/export?${queryParams.toString()}`;
     return this.request(endpoint);
+  }
+
+  // Generic binary/file download helper that reuses token and headers
+  async downloadFile(endpoint: string, options?: { params?: Record<string, any> }): Promise<{ success: boolean; blob?: Blob; filename?: string; error?: string }> {
+    try {
+      let url = endpoint;
+      if (options?.params) {
+        const queryParams = new URLSearchParams();
+        Object.entries(options.params).forEach(([k, v]) => {
+          if (v !== undefined && v !== null) queryParams.append(k, v.toString());
+        });
+        const qs = queryParams.toString();
+        if (qs) url += `?${qs}`;
+      }
+
+      const fullUrl = `${this.baseURL}${url}`;
+      const token = this.getToken();
+
+      const headers: Record<string, string> = {
+        Accept: '*/*',
+      };
+
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const response = await fetch(fullUrl, {
+        method: 'GET',
+        headers,
+        credentials: 'include'
+      });
+
+      if (!response.ok) {
+        const text = await response.text();
+        return { success: false, error: `HTTP ${response.status}: ${text}` };
+      }
+
+      const contentDisposition = response.headers.get('content-disposition') || '';
+      let filename = '';
+      const match = contentDisposition.match(/filename\*=UTF-8''(.+)|filename="?([^";]+)"?/);
+      if (match) {
+        filename = decodeURIComponent((match[1] || match[2] || '').replace(/\"/g, ''));
+      }
+
+      const blob = await response.blob();
+      return { success: true, blob, filename: filename || undefined };
+    } catch (error: any) {
+      console.error('downloadFile error', error);
+      return { success: false, error: error?.message || 'Download failed' };
+    }
+  }
+
+  // High-level helper for downloading the orders report and triggering browser download
+  async downloadOrdersReport(params?: Record<string, any>): Promise<{ success: boolean; error?: string }> {
+    try {
+      const result = await this.downloadFile('/orders/admin/report', { params });
+      if (!result.success) {
+        return { success: false, error: result.error };
+      }
+      const blob = result.blob as Blob;
+      const filename = result.filename || `orders_report_${Date.now()}.xlsx`;
+      triggerBlobDownload(blob, filename);
+
+      return { success: true };
+    } catch (error: any) {
+      console.error('downloadOrdersReport error', error);
+      return { success: false, error: error?.message || 'Failed to download orders report' };
+    }
+  }
+
+  // Download the authenticated user's orders report
+  async downloadMyOrdersReport(params?: Record<string, any>): Promise<{ success: boolean; error?: string }> {
+    try {
+      const result = await this.downloadFile('/orders/my-orders/report', { params });
+      if (!result.success) {
+        return { success: false, error: result.error };
+      }
+      const blob = result.blob as Blob;
+      const filename = result.filename || `my_orders_report_${Date.now()}.xlsx`;
+      triggerBlobDownload(blob, filename);
+
+      return { success: true };
+    } catch (error: any) {
+      console.error('downloadMyOrdersReport error', error);
+      return { success: false, error: error?.message || 'Failed to download my orders report' };
+    }
   }
 
   // Club Management APIs

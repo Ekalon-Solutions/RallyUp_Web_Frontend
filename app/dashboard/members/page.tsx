@@ -4,6 +4,7 @@ import { useState, useEffect, ChangeEvent, FormEvent } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { apiClient, User } from '@/lib/api'
 import { toast } from 'sonner'
+import { triggerBlobDownload } from '@/lib/utils'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
@@ -30,7 +31,8 @@ import {
   Trash2,
   Filter,
   Download,
-  Plus
+  Plus,
+  Check
 } from 'lucide-react'
 
 interface Member {
@@ -318,14 +320,10 @@ export default function MembersPage() {
       ].join(','))
     ].join('\n')
 
-    const blob = new Blob([csvContent], { type: 'text/csv' })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `members-${new Date().toISOString().split('T')[0]}.csv`
-    a.click()
-    window.URL.revokeObjectURL(url)
-    toast.success('Members exported successfully!')
+  const blob = new Blob([csvContent], { type: 'text/csv' })
+  const filename = `members-${new Date().toISOString().split('T')[0]}.csv`
+  triggerBlobDownload(blob, filename)
+  toast.success('Members exported successfully!')
   }
 
   return (

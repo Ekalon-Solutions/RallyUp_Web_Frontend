@@ -1,12 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Select,
   SelectContent,
@@ -22,7 +21,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   Dialog,
   DialogContent,
@@ -32,23 +30,20 @@ import {
 } from '@/components/ui/dialog';
 import {
   Users,
-  Search,
-  Filter,
-  Download,
+  Search, Download,
   Mail,
   Phone,
   Calendar,
   Clock,
-  Award,
-  MapPin,
-  Loader2,
+  Award, Loader2,
   CheckCircle,
   XCircle,
   UserCheck,
-  Eye,
+  Eye
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import config from '@/lib/config';
+import { triggerBlobDownload } from '@/lib/utils';
 import { Volunteer } from '@/lib/api';
 
 interface AdminVolunteerListProps {
@@ -189,11 +184,8 @@ export default function AdminVolunteerList({ clubId, currentUser }: AdminVolunte
 
     const csvContent = [headers, ...rows].map((row) => row.join(',')).join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `volunteers-${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
+    const filename = `volunteers-${new Date().toISOString().split('T')[0]}.csv`;
+    triggerBlobDownload(blob, filename);
 
     toast({
       title: 'Export Successful',

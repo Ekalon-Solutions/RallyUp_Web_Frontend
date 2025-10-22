@@ -16,6 +16,7 @@ import {
 } from "lucide-react"
 import { getApiUrl, API_ENDPOINTS } from "@/lib/config"
 import { toast } from "sonner"
+import { triggerBlobDownload } from '@/lib/utils'
 
 interface UserProgress {
   _id: string
@@ -159,13 +160,10 @@ export default function OnboardingAnalytics({ flowId }: OnboardingAnalyticsProps
     ])
     
     const csv = [headers, ...rows].map(row => row.join(',')).join('\n')
-    const blob = new Blob([csv], { type: 'text/csv' })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `onboarding-analytics-${new Date().toISOString().split('T')[0]}.csv`
-    a.click()
-    toast.success('Analytics exported successfully!')
+  const blob = new Blob([csv], { type: 'text/csv' })
+  const filename = `onboarding-analytics-${new Date().toISOString().split('T')[0]}.csv`
+  triggerBlobDownload(blob, filename)
+  toast.success('Analytics exported successfully!')
   }
 
   if (loading) {

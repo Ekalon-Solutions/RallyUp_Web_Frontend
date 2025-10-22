@@ -29,7 +29,8 @@ import {
   MapPin,
   Calendar,
   MoreHorizontal,
-  Edit
+  Edit,
+  Download
 } from 'lucide-react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 
@@ -201,6 +202,25 @@ export default function OrdersPage() {
     setRefreshing(false)
   }
 
+  const handleDownloadReport = async () => {
+    const params = {
+      ...(searchTerm ? { search: searchTerm } : {}),
+      ...(statusFilter && statusFilter !== 'all' ? { status: statusFilter } : {}),
+    };
+
+    try {
+      const res = await apiClient.downloadOrdersReport(params);
+      if (!res.success) {
+        toast({ title: 'Error', description: res.error || 'Failed to download report', variant: 'destructive' });
+      } else {
+        toast({ title: 'Report downloaded', description: 'Orders report downloaded successfully.' });
+      }
+    } catch (error) {
+      console.error('Error downloading report:', error);
+      toast({ title: 'Error', description: 'Failed to download report', variant: 'destructive' });
+    }
+  }
+
   const handleStatusUpdate = async () => {
     if (!selectedOrder || !newStatus) return
 
@@ -335,10 +355,16 @@ export default function OrdersPage() {
             <h1 className="text-3xl font-bold">Order Management</h1>
             <p className="text-muted-foreground">Manage customer orders and fulfillment</p>
           </div>
-          <Button onClick={refreshOrders} disabled={refreshing}>
-            <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
+          <div className="flex items-center space-x-2">
+            <Button variant="secondary" onClick={handleDownloadReport}>
+              <Download className="w-4 h-4 mr-2" />
+              Download Report
+            </Button>
+            <Button onClick={refreshOrders} disabled={refreshing}>
+              <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </div>
         </div>
 
         {/* Stats Cards */}

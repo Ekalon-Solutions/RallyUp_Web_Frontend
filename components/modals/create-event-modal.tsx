@@ -78,7 +78,7 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
         const now = new Date()
         const defaultStartTime = new Date(now.getTime() + 24 * 60 * 60 * 1000) // Tomorrow
         const defaultEndTime = new Date(defaultStartTime.getTime() + 2 * 60 * 60 * 1000) // +2 hours
-        
+
         setFormData({
           title: "",
           category: "match-screening",
@@ -158,10 +158,10 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     // Clear previous errors
     setErrors({})
-    
+
     // Validate form before submission
     if (!validateForm()) {
       toast.error("Please fix the errors in the form")
@@ -207,10 +207,10 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
       }
     } catch (error) {
       console.error("Error saving event:", error)
-      
+
       // Provide user-friendly error messages
       let errorMessage = "An error occurred while saving the event"
-      
+
       if (error instanceof Error) {
         if (error.message.includes('network') || error.message.includes('fetch')) {
           errorMessage = "Network error. Please check your internet connection and try again."
@@ -224,7 +224,7 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
           errorMessage = error.message
         }
       }
-      
+
       toast.error(errorMessage)
     } finally {
       setLoading(false)
@@ -312,8 +312,13 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
                   placeholder="Enter event title (e.g., 'Match Screening vs. XYZ FC')"
                   value={formData.title}
                   onChange={(e) => {
-                    setFormData({ ...formData, title: e.target.value })
-                    if (errors.title) setErrors({ ...errors, title: "" })
+                    setFormData({ ...formData, title: e.target.value });
+                    if (errors.title) {
+                      setErrors((errors) => {
+                        const { title, ...rest } = errors;
+                        return rest;
+                      });
+                    }
                   }}
                   className={errors.title ? "border-red-500" : ""}
                   required
@@ -325,8 +330,8 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
 
               <div className="space-y-2">
                 <Label htmlFor="category">Category</Label>
-                <Select 
-                  value={formData.category} 
+                <Select
+                  value={formData.category}
                   onValueChange={(value) => setFormData({ ...formData, category: value })}
                 >
                   <SelectTrigger>
@@ -352,8 +357,13 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
                   placeholder="Enter venue location (e.g., 'The Fan Zone, Mumbai' or 'Online via Zoom')"
                   value={formData.venue}
                   onChange={(e) => {
-                    setFormData({ ...formData, venue: e.target.value })
-                    if (errors.venue) setErrors({ ...errors, venue: "" })
+                    setFormData({ ...formData, venue: e.target.value });
+                    if (errors.venue) {
+                      setErrors((errors) => {
+                        const { venue, ...rest } = errors;
+                        return rest;
+                      });
+                    }
                   }}
                   className={errors.venue ? "border-red-500" : ""}
                 />
@@ -373,8 +383,13 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
                   type="datetime-local"
                   value={formData.startTime}
                   onChange={(e) => {
-                    setFormData({ ...formData, startTime: e.target.value })
-                    if (errors.startTime) setErrors({ ...errors, startTime: "" })
+                    setFormData({ ...formData, startTime: e.target.value });
+                    if (errors.startTime) {
+                      setErrors((errors) => {
+                        const { startTime, ...rest } = errors;
+                        return rest;
+                      });
+                    }
                   }}
                   className={errors.startTime ? "border-red-500" : ""}
                   required
@@ -391,8 +406,13 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
                   type="datetime-local"
                   value={formData.endTime}
                   onChange={(e) => {
-                    setFormData({ ...formData, endTime: e.target.value })
-                    if (errors.endTime) setErrors({ ...errors, endTime: "" })
+                    setFormData({ ...formData, endTime: e.target.value });
+                    if (errors.endTime) {
+                      setErrors((errors) => {
+                        const { endTime, ...rest } = errors;
+                        return rest;
+                      });
+                    }
                   }}
                   className={errors.endTime ? "border-red-500" : ""}
                 />
@@ -410,8 +430,13 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
                   placeholder="Event description (e.g., 'Join us for a thrilling match screening...')"
                   value={formData.description}
                   onChange={(e) => {
-                    setFormData({ ...formData, description: e.target.value })
-                    if (errors.description) setErrors({ ...errors, description: "" })
+                    setFormData({ ...formData, description: e.target.value });
+                    if (errors.description) {
+                      setErrors((errors) => {
+                        const { description, ...rest } = errors;
+                        return rest;
+                      });
+                    }
                   }}
                   className={errors.description ? "border-red-500" : ""}
                   rows={3}
@@ -437,8 +462,13 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
                   placeholder="Leave empty for unlimited"
                   value={formData.maxAttendees}
                   onChange={(e) => {
-                    setFormData({ ...formData, maxAttendees: e.target.value })
-                    if (errors.maxAttendees) setErrors({ ...errors, maxAttendees: "" })
+                    setFormData({ ...formData, maxAttendees: e.target.value });
+                    if (errors.maxAttendees) {
+                      setErrors((errors) => {
+                        const { maxAttendees, ...rest } = errors;
+                        return rest;
+                      });
+                    }
                   }}
                   className={errors.maxAttendees ? "border-red-500" : ""}
                   min="1"
@@ -456,8 +486,13 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
                   placeholder="0 for free (e.g., 250)"
                   value={formData.ticketPrice}
                   onChange={(e) => {
-                    setFormData({ ...formData, ticketPrice: e.target.value })
-                    if (errors.ticketPrice) setErrors({ ...errors, ticketPrice: "" })
+                    setFormData({ ...formData, ticketPrice: e.target.value });
+                    if (errors.ticketPrice) {
+                      setErrors((errors) => {
+                        const { ticketPrice, ...rest } = errors;
+                        return rest;
+                      });
+                    }
                   }}
                   className={errors.ticketPrice ? "border-red-500" : ""}
                   min="0"
