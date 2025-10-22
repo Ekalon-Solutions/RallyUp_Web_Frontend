@@ -8,27 +8,20 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useToast } from '@/hooks/use-toast'
-import { 
-  Search, 
-  RefreshCw, 
-  Eye, 
-  Package, 
-  Truck, 
-  CheckCircle, 
-  XCircle, 
+import {
+  Search,
+  RefreshCw,
+  Eye,
+  Package,
+  Truck,
+  CheckCircle,
+  XCircle,
   Clock,
-  DollarSign,
-  Calendar,
-  MapPin,
-  Phone,
-  Mail,
-  MoreHorizontal
+  Download
 } from 'lucide-react'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 
 interface OrderItem {
   productId: string
@@ -169,6 +162,25 @@ export default function UserOrdersPage() {
     setRefreshing(false)
   }
 
+  const handleDownloadReport = async () => {
+    const params = {
+      ...(searchTerm ? { search: searchTerm } : {}),
+      ...(statusFilter && statusFilter !== 'all' ? { status: statusFilter } : {}),
+    };
+
+    try {
+      const res = await apiClient.downloadMyOrdersReport(params);
+      if (!res.success) {
+        toast({ title: 'Error', description: res.error || 'Failed to download report', variant: 'destructive' });
+      } else {
+        toast({ title: 'Report downloaded', description: 'Your orders report downloaded successfully.' });
+      }
+    } catch (error) {
+      console.error('Error downloading my orders report:', error);
+      toast({ title: 'Error', description: 'Failed to download report', variant: 'destructive' });
+    }
+  }
+
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -221,10 +233,16 @@ export default function UserOrdersPage() {
             <h1 className="text-3xl font-bold">My Orders</h1>
             <p className="text-muted-foreground">Track your purchase history and order status</p>
           </div>
-          <Button onClick={refreshOrders} disabled={refreshing}>
-            <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
+          <div className="flex items-center space-x-2">
+            <Button variant="secondary" onClick={handleDownloadReport}>
+              <Download className="w-4 h-4 mr-2" />
+              Download Report
+            </Button>
+            <Button onClick={refreshOrders} disabled={refreshing}>
+              <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </div>
         </div>
 
         {/* Filters */}

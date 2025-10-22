@@ -16,6 +16,7 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api"
+import { triggerBlobDownload } from '@/lib/utils'
 
 interface PollResultsModalProps {
   pollId: string
@@ -144,15 +145,9 @@ export function PollResultsModal({ pollId, isOpen, onClose, refreshTrigger }: Po
       ])
     ].map(row => row.join(',')).join('\n')
 
-    const blob = new Blob([csvContent], { type: 'text/csv' })
-    const url = window.URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `poll-results-${poll._id}.csv`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    window.URL.revokeObjectURL(url)
+  const blob = new Blob([csvContent], { type: 'text/csv' })
+  const filename = `poll-results-${poll._id}.csv`
+  triggerBlobDownload(blob, filename)
     
     toast.success("Results exported successfully")
   }
