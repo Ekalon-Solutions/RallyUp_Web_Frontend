@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/auth-context"
 import { CartProvider } from "@/contexts/cart-context"
 import { SocketWrapper } from "@/components/socket-wrapper"
 import { Toaster } from "sonner"
+import Analytics from "@/components/Analytics"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -23,7 +24,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-SRLNL9FQ0G"></script>
+     <body className={inter.className}>
+        <Analytics/>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <AuthProvider>
             <SocketWrapper>
