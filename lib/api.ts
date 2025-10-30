@@ -1484,10 +1484,24 @@ class ApiClient {
     });
   }
 
+  // Admin-only: Assign membership plan to a user
   async assignMembershipPlan(planId: string, userId: string): Promise<ApiResponse<{ message: string; user: User }>> {
     return this.request(`/membership-plans/${planId}/assign`, {
       method: 'POST',
       body: JSON.stringify({ userId }),
+    });
+  }
+
+  // User-facing: Subscribe to a membership plan (with auto-upgrade)
+  async subscribeMembershipPlan(planId: string): Promise<ApiResponse<{ 
+    message: string; 
+    data: { 
+      userMembership: any; 
+      isUpgrade: boolean;
+    } 
+  }>> {
+    return this.request(`/membership-plans/${planId}/subscribe`, {
+      method: 'POST',
     });
   }
 

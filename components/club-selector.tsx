@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Building2, Users, Calendar, DollarSign, Crown, Plus } from "lucide-react"
 import { apiClient } from "@/lib/api"
 import { toast } from "sonner"
+import { useAuth } from "@/contexts/auth-context"
 
 interface UserMembership {
   _id: string
@@ -39,33 +40,78 @@ interface ClubSelectorProps {
 export const ClubSelector: React.FC<ClubSelectorProps> = ({ onClubSelect, selectedClubId }) => {
   const [memberships, setMemberships] = useState<UserMembership[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const { user } = useAuth()
 
   useEffect(() => {
     loadUserMemberships()
-  }, [])
+  }, [user?.memberships]) // Watch user.memberships specifically
 
   const loadUserMemberships = async () => {
     try {
       setIsLoading(true)
-      // You'll need to create this API endpoint
-      const response = await apiClient.getUserMemberships()
       
-      if (response.success) {
-        const membershipData = Array.isArray(response.data) ? response.data : []
-        const activeMemberships = membershipData.filter((m: UserMembership) => m.status === 'active')
-        setMemberships(activeMemberships)
+      console.log('ClubSelector: Loading memberships, user:', user)
+      
+      // Get memberships from user object (already in auth context)
+      if (user && (user as any).memberships) {
+        const userMemberships = (user as any).memberships || []
+        console.log('ClubSelector: Found memberships from user object:', userMemberships)
+        
+        // Filter only active memberships and ensure unique by club_id
+        const activeMemberships = userMemberships.filter((m: any) => m.status === 'active')
+        
+        // Remove duplicates by club_id (keep the most recent one)
+        const uniqueMemberships = activeMemberships.reduce((acc: any[], current: any) => {
+          const existing = acc.find(m => m.club_id._id === current.club_id._id)
+          if (!existing) {
+            acc.push(current)
+          } else {
+            // Keep the one with the later start_date
+            const existingIndex = acc.indexOf(existing)
+            if (new Date(current.start_date) > new Date(existing.start_date)) {
+              acc[existingIndex] = current
+            }
+          }
+          return acc
+        }, [])
+        
+        console.log('ClubSelector: Active memberships:', activeMemberships)
+        console.log('ClubSelector: Unique memberships:', uniqueMemberships)
+        setMemberships(uniqueMemberships)
         
         // Auto-select first club if none selected
-        if (!selectedClubId && activeMemberships.length > 0) {
-          onClubSelect(activeMemberships[0].club_id._id)
+        if (!selectedClubId && uniqueMemberships.length > 0) {
+          console.log('ClubSelector: Auto-selecting first club:', uniqueMemberships[0].club_id._id)
+          onClubSelect(uniqueMemberships[0].club_id._id)
+        } else if (uniqueMemberships.length === 0) {
+          console.log('ClubSelector: No active memberships found')
         }
       } else {
-        toast.error("Failed to load your club memberships")
+        console.log('ClubSelector: User object has no memberships, trying API')
+        // Fallback: try API endpoint (might not exist yet)
+        try {
+          const response = await apiClient.getUserMemberships()
+          console.log('ClubSelector: API response:', response)
+          
+          if (response.success) {
+            const membershipData = Array.isArray(response.data) ? response.data : []
+            const activeMemberships = membershipData.filter((m: UserMembership) => m.status === 'active')
+            setMemberships(activeMemberships)
+            
+            // Auto-select first club if none selected
+            if (!selectedClubId && activeMemberships.length > 0) {
+              onClubSelect(activeMemberships[0].club_id._id)
+            }
+          }
+        } catch (apiError) {
+          console.warn('ClubSelector: API endpoint /users/memberships not available, using user object data')
+        }
       }
     } catch (error) {
-      console.error('Error loading memberships:', error)
+      console.error('ClubSelector: Error loading memberships:', error)
       toast.error("Failed to load your club memberships")
     } finally {
+      console.log('ClubSelector: Finished loading, isLoading = false')
       setIsLoading(false)
     }
   }
@@ -156,7 +202,7 @@ export const ClubSelector: React.FC<ClubSelectorProps> = ({ onClubSelect, select
         <div className="space-y-3">
           {memberships.map((membership) => (
             <div 
-              key={membership._id} 
+              key={`${membership.club_id._id}-${membership._id}`}
               className={`p-3 rounded-lg border transition-colors ${
                 selectedClubId === membership.club_id._id 
                   ? 'border-primary bg-primary/5' 

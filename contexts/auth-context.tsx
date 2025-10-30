@@ -14,6 +14,7 @@ interface AuthContextType {
   register: (userData: any, isAdmin?: boolean, isSystemOwner?: boolean) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   updateProfile: (data: any) => Promise<{ success: boolean; error?: string }>;
+  checkAuth: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,49 +33,66 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const checkAuth = async () => {
     try {
       const token = localStorage.getItem('token');
-      console.log('Checking auth with token:', token ? 'exists' : 'missing');
+      const userType = localStorage.getItem('userType');
+      console.log('Checking auth with token:', token ? 'exists' : 'missing', 'UserType:', userType);
+      
       if (!token) {
         setIsLoading(false);
         return;
       }
 
-      // Try admin profile first since we're having issues with admin auth
-      try {
-        console.log('Trying admin profile first...');
-        const adminResponse = await apiClient.adminProfile();
-        console.log('Admin profile response:', adminResponse);
-        if (adminResponse.success && adminResponse.data) {
-          console.log('Setting user from admin profile:', adminResponse.data);
-          setUser(adminResponse.data);
-          localStorage.setItem('userType', adminResponse.data.role);
-          setIsLoading(false);
-          return;
+      // Check userType from localStorage to determine which endpoint to try first
+      let profileResponse = null;
+      
+      if (userType === 'admin') {
+        // Try admin profile first
+        try {
+          console.log('Trying admin profile (from userType)...');
+          const adminResponse = await apiClient.adminProfile();
+          if (adminResponse.success && adminResponse.data) {
+            console.log('Setting user from admin profile:', adminResponse.data);
+            setUser(adminResponse.data);
+            setIsLoading(false);
+            return;
+          }
+        } catch (error) {
+          console.log('Admin profile failed, falling back to discovery');
         }
-      } catch (error) {
-        console.log('Admin profile check failed, trying other profiles:', error);
+      } else if (userType === 'system_owner') {
+        // Try system owner profile first
+        try {
+          console.log('Trying system owner profile (from userType)...');
+          const systemOwnerResponse = await apiClient.systemOwnerProfile();
+          if (systemOwnerResponse.success && systemOwnerResponse.data) {
+            console.log('Setting user from system owner profile:', systemOwnerResponse.data);
+            setUser(systemOwnerResponse.data);
+            setIsLoading(false);
+            return;
+          }
+        } catch (error) {
+          console.log('System owner profile failed, falling back to discovery');
+        }
+      } else if (userType === 'member' || userType === 'user') {
+        // Try user profile first
+        try {
+          console.log('Trying user profile (from userType)...');
+          const userResponse = await apiClient.userProfile();
+          if (userResponse.success && userResponse.data) {
+            console.log('Setting user from user profile:', userResponse.data);
+            setUser(userResponse.data);
+            setIsLoading(false);
+            return;
+          }
+        } catch (error) {
+          console.log('User profile failed, falling back to discovery');
+        }
       }
 
-      // If admin fails, try system owner
+      // If userType wasn't set or the primary check failed, try discovery in order: user -> admin -> system owner
+      // Start with user profile since most users are regular users
       try {
-        console.log('Trying system owner profile...');
-        const systemOwnerResponse = await apiClient.systemOwnerProfile();
-        console.log('System owner profile response:', systemOwnerResponse);
-        if (systemOwnerResponse.success && systemOwnerResponse.data) {
-          console.log('Setting user from system owner profile:', systemOwnerResponse.data);
-          setUser(systemOwnerResponse.data);
-          localStorage.setItem('userType', 'system_owner');
-          setIsLoading(false);
-          return;
-        }
-      } catch (error) {
-        console.log('System owner profile check failed:', error);
-      }
-
-      // If both admin and system owner fail, try regular user
-      try {
-        console.log('Trying user profile...');
+        console.log('Trying user profile (discovery)...');
         const userResponse = await apiClient.userProfile();
-        console.log('User profile response:', userResponse);
         if (userResponse.success && userResponse.data) {
           console.log('Setting user from user profile:', userResponse.data);
           setUser(userResponse.data);
@@ -83,7 +101,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return;
         }
       } catch (error) {
-        console.log('User profile check failed:', error);
+        // Silently continue to next check
+      }
+
+      // Try admin profile
+      try {
+        console.log('Trying admin profile (discovery)...');
+        const adminResponse = await apiClient.adminProfile();
+        if (adminResponse.success && adminResponse.data) {
+          console.log('Setting user from admin profile:', adminResponse.data);
+          setUser(adminResponse.data);
+          localStorage.setItem('userType', adminResponse.data.role);
+          setIsLoading(false);
+          return;
+        }
+      } catch (error) {
+        // Silently continue to next check
+      }
+
+      // Try system owner profile
+      try {
+        console.log('Trying system owner profile (discovery)...');
+        const systemOwnerResponse = await apiClient.systemOwnerProfile();
+        if (systemOwnerResponse.success && systemOwnerResponse.data) {
+          console.log('Setting user from system owner profile:', systemOwnerResponse.data);
+          setUser(systemOwnerResponse.data);
+          localStorage.setItem('userType', 'system_owner');
+          setIsLoading(false);
+          return;
+        }
+      } catch (error) {
+        // Silently continue
       }
 
       // If all fail, clear token and user
@@ -236,6 +284,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     register,
     logout,
     updateProfile,
+    checkAuth,
   };
 
   console.log('Auth context value:', { user, isAdmin: user?.role === 'admin', userRole: user?.role });
