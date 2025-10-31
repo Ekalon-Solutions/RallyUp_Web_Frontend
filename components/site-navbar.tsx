@@ -29,8 +29,6 @@ export function SiteNavbar({ brandName = "Wingman Pro" }: SiteNavbarProps) {
           <Link href="/affiliations" className="hover:text-slate-900 dark:hover:text-white transition-colors">Affiliations</Link>
           <Link href="/faqs" className="hover:text-slate-900 dark:hover:text-white transition-colors">FAQs</Link>
           <Link href="/about" className="hover:text-slate-900 dark:hover:text-white transition-colors">About Us</Link>
-          <Link href="/login" className="hover:text-slate-900 dark:hover:text-white transition-colors">Log In</Link>
-          <Link href="/contact" className="hover:text-slate-900 dark:hover:text-white transition-colors">Contact Us</Link>
         </nav>
 
         <div className="flex items-center gap-2">
@@ -56,8 +54,8 @@ export function SiteNavbar({ brandName = "Wingman Pro" }: SiteNavbarProps) {
           <Link href="/login">
             <Button variant="outline" className="border-slate-300 dark:border-white/20 bg-white text-slate-900 hover:bg-slate-100 dark:bg-white/5 dark:text-white dark:hover:bg-white/10">Log in</Button>
           </Link>
-          <Link href="/clubs">
-            <Button className="bg-sky-500 text-white hover:bg-sky-400 dark:bg-sky-400 dark:text-slate-900 dark:hover:bg-sky-300">Explore Clubs</Button>
+          <Link href="/contact">
+            <Button className="bg-sky-500 text-white hover:bg-sky-400 dark:bg-sky-400 dark:text-slate-900 dark:hover:bg-sky-300">Contact Us</Button>
           </Link>
         </div>
       </div>
