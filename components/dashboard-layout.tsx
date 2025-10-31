@@ -29,7 +29,6 @@ import {
   Building2,
   Heart,
   GraduationCap,
-  Megaphone,
   Vote,
   Music,
   ShoppingCart,
@@ -170,7 +169,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
           <Shield className="w-5 h-5 text-primary-foreground" />
         </div>
-        <span className="text-xl font-bold">RallyUp</span>
+        <span className="text-xl font-bold">Wingman Pro</span>
       </div>
 
       <nav className="flex-1 p-4 space-y-2 overflow-y-auto">

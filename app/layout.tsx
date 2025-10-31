@@ -12,7 +12,7 @@ import Analytics from "@/components/Analytics"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "RallyUp - Supporter Group Management",
+  title: "Wingman Pro - Supporter Group Management",
   description: "Manage your supporter group with ease",
     generator: 'v0.dev'
 }

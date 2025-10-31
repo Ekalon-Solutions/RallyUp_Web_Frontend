@@ -106,7 +106,7 @@ export default function WebsitePage() {
               <CardHeader>
                 <CardTitle>Website Information</CardTitle>
                 <CardDescription>
-                  RallyUp offers a hosted, single-page website for your supporters group with news, events, tickets,
+                  Wingman Pro offers a hosted, single-page website for your supporters group with news, events, tickets,
                   gallery, store, member registration, leader bios and more. Use of the website solution is ₹499/month
                   (paid annually).
                 </CardDescription>
