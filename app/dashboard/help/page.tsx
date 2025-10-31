@@ -18,7 +18,7 @@ const faqData = [
   {
     question: "How do I set up payment processing?",
     answer:
-      "Go to Settings > Payment Settings to configure your payment gateway. We support Razorpay with a processing fee of 2.5% + RallyUp fee of 3%.",
+      "Go to Settings > Payment Settings to configure your payment gateway. We support Razorpay with a processing fee of 2.5% + Wingman Pro fee of 3%.",
   },
   {
     question: "Can I customize my club website?",
@@ -97,7 +97,7 @@ export default function HelpPage() {
               <CardContent className="space-y-3">
                 <Button variant="outline" className="w-full justify-start bg-transparent">
                   <Mail className="w-4 h-4 mr-2" />
-                  support@rallyup.com
+                  support@wingman.tech
                 </Button>
                 <Button variant="outline" className="w-full justify-start bg-transparent">
                   <Phone className="w-4 h-4 mr-2" />
