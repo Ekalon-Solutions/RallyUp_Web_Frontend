@@ -1,21 +1,28 @@
 // components/Analytics.tsx
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 
-export default function Analytics() {
+// Extend Window interface for GA
+declare global {
+  interface Window {
+    GA_INITIALIZED?: boolean;
+    dataLayer?: any[];
+  }
+}
+
+function AnalyticsContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
   useEffect(() => {
     // Initialize GA if not already initialized
-    function gtag() {}
-    if (!window.GA_INITIALIZED) {
+    if (typeof window !== 'undefined' && !window.GA_INITIALIZED) {
       // Add GA script and initialize dataLayer
       window.dataLayer = window.dataLayer || [];
       function gtag(...args: any[]) {
-        window.dataLayer.push(args);
+        window.dataLayer?.push(args);
       }
       gtag("js", new Date());
       gtag("config", "G-SRLNL9FQ0G");
@@ -23,14 +30,21 @@ export default function Analytics() {
     }
 
     // Track page view on route change
-    const handleRouteChange = () => {
-      gtag("event", "page_view", {
+    if (typeof window !== 'undefined' && window.dataLayer) {
+      window.dataLayer.push({
+        event: "page_view",
         page_path: pathname + searchParams.toString(),
       });
-    };
-
-    handleRouteChange(); // Initial page view
+    }
   }, [pathname, searchParams]);
 
   return null;
+}
+
+export default function Analytics() {
+  return (
+    <Suspense fallback={null}>
+      <AnalyticsContent />
+    </Suspense>
+  );
 }
