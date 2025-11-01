@@ -209,13 +209,13 @@ export default function PrivacyPage(): React.JSX.Element {
           <p className="mt-2">
             <strong>Grievance Officer/Data Protection Officer (DPO):</strong>
           </p>
-          <ul className="list-disc pl-5 space-y-2">
-            <li>Dr. Sunil Acharya</li>
-            <li>RallyUp Solutions Private Limited</li>
-            <li>Email: <a className="underline" href="mailto:response@wingmanpro.tech">response@wingmanpro.tech</a></li>
-            <li>Phone: +91 9819 889 882</li>
-            <li>Address: A 602, DLH Orchid, Apna, Ghar Unit No. 13 CHS L, Andheri, Mumbai, Maharashtra, India, 400053</li>
-          </ul>
+          <p className="mt-2">
+            Dr. Sunil Acharya<br />
+            RallyUp Solutions Private Limited<br />
+            Email: <a className="underline" href="mailto:response@wingmanpro.tech">response@wingmanpro.tech</a><br />
+            Phone: +91 9819 889 882<br />
+            Address: A 602, DLH Orchid, Apna, Ghar Unit No. 13 CHS L, Andheri, Mumbai, Maharashtra, India, 400053
+          </p>
         </section>
 
         <div className="mt-10">

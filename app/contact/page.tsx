@@ -59,10 +59,10 @@ export default function ContactPage(): React.JSX.Element {
             <h2 className="text-xl font-semibold mb-4">Reach us directly</h2>
             <div className="space-y-3 text-sm text-slate-700 dark:text-slate-300">
               <p>
-                Email: <a className="underline" href="mailto:support@wingman.tech">support@wingman.tech</a>
+                Email: <a className="underline" href="mailto:response@wingmanpro.tech">response@wingmanpro.tech</a>
               </p>
-              <p>Hours: Mon–Fri, 9:00–18:00 (IST)</p>
-              <p>For urgent issues during matchdays, include your group name and club in the subject.</p>
+              <p>Timings: 10:00 to 19:00</p>
+              <p>For urgent issues, please reach out to your Sales POC.</p>
             </div>
             <div className="mt-6 grid gap-2 text-xs">
               <span className="px-2 py-1 rounded border border-slate-200 bg-white text-slate-700 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 w-max">Response within 1 business day</span>

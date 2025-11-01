@@ -28,7 +28,7 @@ export function SiteFooter({ brandName = "Wingman Pro" }: SiteFooterProps) {
           <Link href="/privacy" className="hover:text-white">Privacy</Link>
         </nav>
       </div>
-      <div className="px-4 py-4 text-center text-xs text-slate-400">© {new Date().getFullYear()} {brandName}. All rights reserved.</div>
+      <div className="px-4 py-4 text-center text-xs text-slate-400">©️ 2025 RallyUp Solutions Private Limited. All rights reserved. Wingman Pro is a proprietary service of RallyUp Solutions Pvt. Ltd.</div>
     </footer>
   )
 }
