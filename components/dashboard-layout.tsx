@@ -111,6 +111,7 @@ const userNavigation = [
   { name: "My Orders", href: "/dashboard/user/orders", icon: ShoppingCart },
   { name: "Volunteer", href: "/dashboard/volunteer", icon: Heart },
   { name: "Member Onboarding", href: "/dashboard/member-onboarding", icon: GraduationCap },
+  { name: "External Ticketing", href: "/dashboard/user/external-ticketing", icon: ExternalLink },
   { name: "Browse Plans", href: "/dashboard/user/browse-plans", icon: CreditCard },
   { name: "Membership Card", href: "/dashboard/user/membership-card", icon: CreditCard },
   { name: "My Profile", href: "/dashboard/user/profile", icon: User },
