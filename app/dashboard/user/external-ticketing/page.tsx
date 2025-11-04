@@ -368,7 +368,6 @@ export default function ExternalTicketingPage() {
                   }
                   setIsSubmittingRequest(true)
                   try {
-                    // Example payload — replace with real API call if available
                     const payload = {
                       clubId: requestingFor.club_id._id,
                       userName: requestForm.name,
@@ -377,9 +376,14 @@ export default function ExternalTicketingPage() {
                       preferredDate: requestForm.preferredDate,
                       comments: requestForm.comments,
                     }
-                    console.log('Submitting ticket request:', payload)
-                    toast.success('Request submitted — the club will contact you shortly')
-                    setShowRequestDialog(false)
+                    const resp = await apiClient.createExternalTicketRequest(payload)
+                    if (resp.success) {
+                      toast.success('Request submitted — the club will contact you shortly')
+                      setShowRequestDialog(false)
+                    } else {
+                      const message = resp.error || (resp.data as any)?.message || 'Failed to submit request'
+                      toast.error(message)
+                    }
                   } catch (err) {
                     console.error('Ticket request error:', err)
                     toast.error('Failed to submit request')

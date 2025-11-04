@@ -463,6 +463,20 @@ export interface Poll {
   userVotes?: string[]; // User's votes (added by API)
 }
 
+export interface ExternalTicketRequest {
+  _id: string;
+  club_id: Club;
+  user_id?: User;
+  user_name: string;
+  phone: string;
+  tickets: number;
+  preferred_date: string;
+  comments?: string;
+  status: 'unfulfilled' | 'fulfilled';
+  createdAt: string;
+  updatedAt: string;
+}
+
 class ApiClient {
   private baseURL: string;
 
@@ -802,6 +816,17 @@ class ApiClient {
   async getPublicNews(): Promise<ApiResponse<News[]>> {
     return this.request('/news/public');
   }
+  
+  // Clubs (admin)
+  async getAllClubs(params?: { page?: number; limit?: number; search?: string; status?: string }) {
+    const query: Record<string, any> = {};
+    if (params?.page) query.page = params.page;
+    if (params?.limit) query.limit = params.limit;
+    if (params?.search) query.search = params.search;
+    if (params?.status) query.status = params.status;
+    const qs = Object.keys(query).length ? `?${new URLSearchParams(query as any).toString()}` : '';
+    return this.request(`/clubs${qs}`);
+  }
 
   async getNewsByUserClub(): Promise<ApiResponse<News[]>> {
     return this.request('/news/my-club');
@@ -863,6 +888,40 @@ class ApiClient {
 
   async getEventById(id: string): Promise<ApiResponse<Event>> {
     return this.request(`/events/${id}`);
+  }
+
+  // External ticketing APIs
+  async createExternalTicketRequest(data: {
+    clubId: string;
+    userName: string;
+    phone: string;
+    tickets?: number;
+    preferredDate: string;
+    comments?: string;
+  }): Promise<ApiResponse<ExternalTicketRequest>> {
+    return this.request('/external-tickets', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getExternalTicketRequest(id: string): Promise<ApiResponse<ExternalTicketRequest>> {
+    return this.request(`/external-tickets/${id}`);
+  }
+
+  async listExternalTicketRequestsForClub(clubId: string, params?: { status?: string; page?: number; limit?: number }) {
+    const query: Record<string, any> = {};
+    if (params?.status) query.status = params.status;
+    if (params?.page) query.page = params.page;
+    if (params?.limit) query.limit = params.limit;
+    return this.request(`/external-tickets/club/${clubId}` + (Object.keys(query).length ? `?${new URLSearchParams(query as any).toString()}` : ''));
+  }
+
+  async updateExternalTicketRequestStatus(id: string, status: 'unfulfilled' | 'fulfilled') {
+    return this.request(`/external-tickets/${id}/status`, {
+      method: 'PUT',
+      body: JSON.stringify({ status }),
+    });
   }
 
   async createEvent(data: {
