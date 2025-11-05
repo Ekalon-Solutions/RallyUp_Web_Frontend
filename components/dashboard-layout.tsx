@@ -60,6 +60,7 @@ const adminNavigation = [
   { name: "Inter Club Forum Mgmt", href: "/dashboard/forum", icon: MessageSquare },
   { name: "Volunteer Management", href: "/dashboard/volunteer-management", icon: Heart },
   { name: "Onboarding & Promotions", href: "/dashboard/onboarding", icon: GraduationCap },
+  { name: "Admin Settings", href: "/dashboard/admin-settings", icon: Settings },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
   { name: "Help", href: "/dashboard/help", icon: HelpCircle },
 ]
@@ -93,6 +94,7 @@ const superAdminNavigation = [
   { name: "Inter Club Forum Mgmt", href: "/dashboard/forum", icon: MessageSquare },
   { name: "Volunteer Management", href: "/dashboard/volunteer-management", icon: Heart },
   { name: "Onboarding & Promotions", href: "/dashboard/onboarding", icon: GraduationCap },
+  { name: "Admin Settings", href: "/dashboard/admin-settings", icon: Settings },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
   { name: "Help", href: "/dashboard/help", icon: HelpCircle },
 ]
