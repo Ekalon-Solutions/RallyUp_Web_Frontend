@@ -710,7 +710,7 @@ class ApiClient {
 
   // Admin attendance logging (called from attendance landing page)
   async adminLogAttendance(data: { token?: string | null; userId?: string | null; eventId?: string | null }): Promise<ApiResponse<any>> {
-    return this.request('/events/admin/attendance-log', {
+    return this.request('/events/admin/attendance', {
       method: 'POST',
       body: JSON.stringify(data),
     });
