@@ -25,7 +25,7 @@ export default function EventDetailsModal({ event, isOpen, onClose }: EventDetai
   // Use public NEXT variable for base URL so environments can configure the domain
   const baseUrl = (process.env.NEXT_PUBLIC_APP_URL as string) || "wingmanpro.tech";
   // Convert nullable ids to string (null -> "null") so QR contains an explicit null value when id is absent
-  const qrValue = `${baseUrl.replace(/\/$/, '')}/dashboard/events/attendance?userId=${encodeURIComponent(String(userIdForQr))}&eventId=${encodeURIComponent(String(eventIdForQr))}`
+  const qrValue = `wingmanpro.tech/dashboard/events/attendance?userId=${encodeURIComponent(String(userIdForQr))}&eventId=${encodeURIComponent(String(eventIdForQr))}`
 
   const formatDateTime = (dateString?: string) => {
     if (!dateString) return '—'
