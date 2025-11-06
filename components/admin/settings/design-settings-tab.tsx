@@ -1,12 +1,14 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Save, Palette, Upload, Image as ImageIcon } from "lucide-react"
 import { toast } from "sonner"
+import { useAuth } from "@/contexts/auth-context"
+import { apiClient } from "@/lib/api"
 
 interface DesignSettings {
   primaryColor: string
@@ -23,6 +25,8 @@ interface DesignSettings {
 }
 
 export function DesignSettingsTab() {
+  const { user } = useAuth()
+  const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [settings, setSettings] = useState<DesignSettings>({
     primaryColor: "#3b82f6",
@@ -37,6 +41,47 @@ export function DesignSettingsTab() {
       youtube: ""
     }
   })
+
+  const clubId = (user as any)?.club?._id || (user as any)?.club_id?._id
+
+  useEffect(() => {
+    if (clubId) {
+      loadSettings()
+    }
+  }, [clubId])
+
+  const loadSettings = async () => {
+    if (!clubId) return
+
+    try {
+      setLoading(true)
+      const response = await apiClient.getClubSettings(clubId)
+      
+      if (response.success && response.data) {
+        const actualData = response.data.data || response.data
+        const designSettings = actualData.designSettings || {
+          primaryColor: "#3b82f6",
+          secondaryColor: "#8b5cf6",
+          fontFamily: "Inter",
+          logo: null,
+          motto: "",
+          socialMedia: {
+            facebook: "",
+            twitter: "",
+            instagram: "",
+            youtube: ""
+          }
+        }
+        setSettings(designSettings)
+        console.log("Loaded design settings:", designSettings)
+      }
+    } catch (error) {
+      console.error("Error loading design settings:", error)
+      toast.error("Failed to load design settings")
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -63,11 +108,23 @@ export function DesignSettingsTab() {
   }
 
   const handleSave = async () => {
+    if (!clubId) {
+      toast.error("Club ID not found")
+      return
+    }
+
     try {
       setSaving(true)
-      // TODO: Implement API call
-      // const response = await apiClient.updateDesignSettings(settings)
-      toast.success("Design settings saved successfully!")
+      console.log("Saving design settings:", settings)
+      
+      const response = await apiClient.updateDesignSettings(clubId, settings)
+      
+      if (response.success) {
+        toast.success("Design settings saved successfully!")
+        await loadSettings()
+      } else {
+        toast.error(response.message || "Failed to save design settings")
+      }
     } catch (error) {
       console.error("Error saving design settings:", error)
       toast.error("Failed to save design settings")
@@ -84,6 +141,14 @@ export function DesignSettingsTab() {
     "Montserrat",
     "Poppins"
   ]
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">

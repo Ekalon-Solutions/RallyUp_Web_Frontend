@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
@@ -8,6 +8,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Save, Bell, Shield } from "lucide-react"
 import { toast } from "sonner"
+import { useAuth } from "@/contexts/auth-context"
+import { apiClient } from "@/lib/api"
 
 interface NotificationSettings {
   events: boolean
@@ -21,9 +23,14 @@ interface NotificationSettings {
 interface AppSettings {
   notifications: NotificationSettings
   appRules: string
+  maintenanceMode: boolean
+  openRegistration: boolean
+  publicEvents: boolean
 }
 
 export function AppSettingsTab() {
+  const { user } = useAuth()
+  const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [settings, setSettings] = useState<AppSettings>({
     notifications: {
@@ -34,8 +41,55 @@ export function AppSettingsTab() {
       pollResults: false,
       newsUpdates: true
     },
-    appRules: ""
+    appRules: "",
+    maintenanceMode: false,
+    openRegistration: true,
+    publicEvents: false
   })
+
+  const clubId = (user as any)?.club?._id || (user as any)?.club_id?._id
+
+  useEffect(() => {
+    if (clubId) {
+      loadSettings()
+    }
+  }, [clubId])
+
+  const loadSettings = async () => {
+    if (!clubId) return
+
+    try {
+      setLoading(true)
+      const response = await apiClient.getClubSettings(clubId)
+      
+      if (response.success && response.data) {
+        const actualData = response.data.data || response.data
+        const appSettings = actualData.appSettings || {
+          notifications: {
+            events: true,
+            membershipRenewals: true,
+            membershipExpiry: true,
+            newMerchandise: true,
+            pollResults: false,
+            newsUpdates: true
+          },
+          appRules: ""
+        }
+        setSettings({
+          notifications: appSettings.notifications,
+          appRules: appSettings.appRules,
+          maintenanceMode: appSettings.maintenanceMode ?? false,
+          openRegistration: appSettings.openRegistration ?? true,
+          publicEvents: appSettings.publicEvents ?? false
+        })
+      }
+    } catch (error) {
+      console.error("Error loading app settings:", error)
+      toast.error("Failed to load app settings")
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleNotificationToggle = (key: keyof NotificationSettings) => {
     setSettings({
@@ -48,17 +102,35 @@ export function AppSettingsTab() {
   }
 
   const handleSave = async () => {
+    if (!clubId) {
+      toast.error("Club ID not found")
+      return
+    }
+
     try {
       setSaving(true)
-      // TODO: Implement API call
-      // const response = await apiClient.updateAppSettings(settings)
-      toast.success("App settings saved successfully!")
+      const response = await apiClient.updateAppSettings(clubId, settings)
+      
+      if (response.success) {
+        toast.success("App settings saved successfully!")
+        await loadSettings()
+      } else {
+        toast.error(response.message || "Failed to save app settings")
+      }
     } catch (error) {
       console.error("Error saving app settings:", error)
       toast.error("Failed to save app settings")
     } finally {
       setSaving(false)
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    )
   }
 
   return (

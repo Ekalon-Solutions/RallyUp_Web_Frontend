@@ -4,6 +4,8 @@ import type React from "react"
 
 import { useState } from "react"
 import { useAuth } from "@/contexts/auth-context"
+import { useClubSettings } from "@/hooks/useClubSettings"
+import { useDesignSettings } from "@/hooks/useDesignSettings"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
 import {
@@ -148,21 +150,92 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const pathname = usePathname()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { user, logout, isAdmin } = useAuth()
+  
+  // Get user's club ID for settings
+  const getUserClubId = () => {
+    if (!user || user.role === 'system_owner') return undefined
+    const userWithMemberships = user as any
+    const activeMembership = userWithMemberships.memberships?.find((m: any) => m.status === 'active')
+    return activeMembership?.club_id?._id
+  }
+  
+  const clubId = getUserClubId()
+  const { isSectionVisible, settings } = useClubSettings(clubId)
+  
+  // Apply design settings (colors, fonts) dynamically
+  useDesignSettings(clubId)
+  
+  // Debug logging
+  console.log('Dashboard Layout - User object:', user)
+  console.log('Dashboard Layout - Club ID:', clubId)
+  console.log('Dashboard Layout - Settings:', settings)
+  console.log('Dashboard Layout - User role:', user?.role)
 
   // Get navigation based on user role
   const getNavigation = () => {
     if (!user) return userNavigation
     
+    let nav = []
     switch (user.role) {
       case 'system_owner':
-        return systemOwnerNavigation
+        nav = systemOwnerNavigation
+        break
       case 'super_admin':
-        return superAdminNavigation
+        nav = superAdminNavigation
+        break
       case 'admin':
-        return adminNavigation
+        nav = adminNavigation
+        break
       default:
-        return userNavigation
+        nav = userNavigation
     }
+    
+    // Don't filter admin/super_admin navigation - they need to see everything to manage
+    // Filter for regular members (no role property or role === 'member')
+    const isRegularUser = !user.role || user.role === 'member'
+    
+    if (isRegularUser && clubId) {
+      console.log('Filtering navigation for regular user...')
+      const filtered = nav.filter(item => {
+        // Map navigation items to section visibility settings
+        if (item.name === 'News') {
+          const visible = isSectionVisible('news')
+          console.log('News visible:', visible)
+          return visible
+        }
+        if (item.name === 'Events') {
+          const visible = isSectionVisible('events')
+          console.log('Events visible:', visible)
+          return visible
+        }
+        if (item.name === 'Merchandise' || item.name === 'Merchandise Store') {
+          const visible = isSectionVisible('merchandise')
+          console.log('Merchandise visible:', visible)
+          return visible
+        }
+        if (item.name === 'Polls') {
+          const visible = isSectionVisible('polls')
+          console.log('Polls visible:', visible)
+          return visible
+        }
+        if (item.name === 'Our Chants') {
+          const visible = isSectionVisible('chants')
+          console.log('Our Chants visible:', visible)
+          return visible
+        }
+        if (item.name === 'Members') {
+          const visible = isSectionVisible('members')
+          console.log('Members visible:', visible)
+          return visible
+        }
+        // Always show other items
+        return true
+      })
+      console.log('Filtered navigation:', filtered)
+      return filtered
+    }
+    
+    return nav
   }
 
   const Sidebar = ({ mobile = false }: { mobile?: boolean }) => (
