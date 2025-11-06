@@ -12,120 +12,120 @@ import { HelpCircle } from "lucide-react"
 export default function FAQsPage(): React.JSX.Element {
   const faqs = [
     {
-      category: "General",
+      category: "General & Technical",
       questions: [
         {
           question: "What is Wingman Pro?",
-          answer: "Wingman Pro is a comprehensive platform designed for football supporter groups to manage members, organize events, sell merchandise, run polls, and engage their community—all in one place. It's built to help supporter groups run smoothly so leaders can focus on what matters: supporting their club."
+          answer: "It is an all-encompassing sports club management platform developed by RallyUp Solutions Pvt. Ltd. It centralizes member management, communications, events, and payments into one cohesive system, eliminating the need for fragmented tools."
         },
         {
-          question: "Who can use Wingman Pro?",
-          answer: "Wingman Pro is designed for football supporter groups, fan clubs, and professional clubs looking to engage with their community. Whether you're a small local group or a large organization, our platform can scale to meet your needs."
+          question: "Who is Wingman Pro designed for?",
+          answer: "It is designed for sports club administrators, managers, and volunteer staff who need to streamline operations, reduce paperwork, improve member engagement, and grow their organization efficiently."
         },
         {
-          question: "How do I get started?",
-          answer: "Getting started is simple! Visit our clubs page, create an account, and set up your supporter group. You'll have access to all features including member management, event planning, merchandise store, and more. Our team is also available to help guide you through the setup process."
+          question: "What technology does Wingman Pro use?",
+          answer: "The core platform utilizes a robust, scalable technology stack designed for growth and reliability. We are the reliable partner that keeps your operations seamless and secure."
         },
         {
-          question: "Is there a mobile app?",
-          answer: "Wingman Pro is a web-based platform that works seamlessly on all devices including smartphones, tablets, and desktops. You can access all features through your mobile browser, ensuring your community can engage from anywhere."
+          question: "Does Wingman Pro replace our existing website?",
+          answer: "Wingman Pro acts as your central operating system, replacing fragmented administrative tools. You can either use its dedicated interface as your primary web portal or easily integrate its key functions (like registration and store links) into your existing club website."
         }
       ]
     },
     {
-      category: "Membership & Accounts",
+      category: "Onboarding & Usage",
       questions: [
         {
-          question: "How does member management work?",
-          answer: "Wingman Pro provides comprehensive member management tools. You can add members manually or allow them to register themselves. Each member gets a profile, digital membership card, and access to group-specific features. Members can track their engagement, view leaderboards, and participate in polls."
+          question: "How do users log into the app?",
+          answer: "User access is secured via a mandatory OTP (One-Time Password) login mechanism delivered instantly via Email and Mobile SMS."
         },
         {
-          question: "What is OTP authentication?",
-          answer: "We use One-Time Password (OTP) authentication for secure account access. When logging in, members receive a unique code via email and SMS. This ensures that only authorized users can access their accounts and protects member data."
+          question: "How do we get our current member data onto Wingman Pro?",
+          answer: "Our support team handles the secure data migration. You provide your existing member data in a standard format (like CSV or Excel), and we manage the mapping and secure transfer to your new Wingman Pro dashboard. We work with you to verify all data accuracy before going live."
         },
         {
-          question: "Can members have different roles?",
-          answer: "Yes! Wingman Pro supports role-based access control. You can assign different roles such as admin, moderator, staff, or member, each with appropriate permissions. This helps you manage your group effectively while giving members the right level of access."
+          question: "What kind of training is provided for our volunteers and administrators?",
+          answer: "We provide comprehensive, personalized training sessions tailored to your team's roles, including one-on-one sessions, dedicated after-sales support through our communication channels and easy to use self-help documentation."
         },
         {
-          question: "What is the minimum age requirement?",
-          answer: "Wingman Pro is intended for users who are at least 18 years of age or the age of legal majority in their jurisdiction. We do not knowingly allow clubs to collect personal data from children without parental consent."
+          question: "Can we track attendance for events and training sessions?",
+          answer: "Yes. The Event Management module includes Attendance Tracking functionality. You can quickly track check-ins for events, training, or meetings, providing valuable data for resource allocation and member engagement analysis."
+        },
+        {
+          question: "Can members update their own profile information?",
+          answer: "Yes. Members have direct, secure access to their profile and can update their personal contact details and preferences at any time. This ensures the data accuracy remains current, reducing the administrative burden on club staff."
         }
       ]
     },
     {
-      category: "Events & Tickets",
+      category: "Financial & Commerce Management",
       questions: [
         {
-          question: "How do I create and manage events?",
-          answer: "Creating events is straightforward. Simply go to the Events section, click 'Create Event', fill in details like date, time, location, and description. You can set capacity limits, ticket prices, and customize event settings. Members can then RSVP or purchase tickets directly through the platform."
+          question: "Can Wingman Pro handle our merchandise sales and ticketing?",
+          answer: "Yes. Wingman Pro includes fully integrated Store and Ticketing modules. You can list merchandise, manage inventory, sell event tickets (including recurring events), and consolidate all sales directly into centralized financial reports."
         },
         {
-          question: "Can I sell tickets through Wingman Pro?",
-          answer: "Absolutely! Wingman Pro includes a full ticketing system. You can create events with paid or free tickets, set pricing, manage capacity, and track attendance. All transactions are processed securely through our integrated payment gateway."
+          question: "Is there an extra fee for payment processing?",
+          answer: "We integrate with secure, reputable payment gateways (RazorPay and Stripe). The standard transaction processing fee charged by the payment gateway itself will apply to each transaction. All fees are transparently outlined in your pricing package taken during the contract agreement."
         },
         {
-          question: "How do away day trips work?",
-          answer: "You can organize away day trips using our Events feature. Create an event for the away match, set departure times and locations, manage bus/transport bookings, and track RSVPs. Members can reserve seats and coordinate travel logistics all in one place."
+          question: "How does the system handle membership renewals?",
+          answer: "The platform gives you the option to automate this process. You can set up automated renewal reminders via in-app notification, email and SMS. The system automatically tracks member status (Active, Pending, Expired) and allows administrators to easily generate reports, minimizing manual administrative effort."
         }
       ]
     },
     {
-      category: "Merchandise & Store",
+      category: "Security & Compliance",
       questions: [
         {
-          question: "Can I sell merchandise through Wingman Pro?",
-          answer: "Yes! Wingman Pro includes a built-in merchandise store. You can add products, set prices, manage inventory, and process orders. Members can browse your store, add items to cart, and checkout securely. The platform tracks orders from purchase to fulfillment."
+          question: "How is my club's data protected?",
+          answer: "We implement comprehensive technical and organizational safeguards, including data encryption, access controls, and regular security assessments. We are committed to global data protection principles."
         },
         {
-          question: "How do payments work?",
-          answer: "Payments for merchandise and tickets are processed securely through our payment partner gateway. We support multiple payment methods including credit cards, debit cards, and digital wallets. All sensitive payment information is handled by our certified payment partner—we never store full card details."
+          question: "Is the platform compliant with international data laws?",
+          answer: "Yes. We adhere to the stringent DPDPA (India) and general principles of global frameworks like GDPR/UK GDPR by maintaining secure data practices and implementing robust data subject rights mechanisms."
         },
         {
-          question: "What payment methods are accepted?",
-          answer: "We support various payment methods depending on your region. Typically, this includes major credit cards, debit cards, UPI, digital wallets, and bank transfers. The exact methods available will depend on your location and payment provider."
+          question: "What happens if a member withdraws their consent for data usage?",
+          answer: "As required by global data privacy laws (like the DPDPA and GDPR), Wingman Pro provides tools to manage consent withdrawal. Our system enables administrators to instantly halt all processing of that user's non-essential personal data and securely erase it upon request (subject to necessary legal retention requirements)."
+        },
+        {
+          question: "What role does RallyUp Solutions play in managing my members' data?",
+          answer: "We act as the Data Processor (or Data Fiduciary/Controller, depending on the region) providing the secure technology. The Club/Group maintains full responsibility for the data accuracy and integrity of its members."
         }
       ]
     },
     {
-      category: "Features & Platform",
+      category: "Engagement & Data Security",
       questions: [
         {
-          question: "What features are included?",
-          answer: "Wingman Pro includes member management, event planning and ticketing, merchandise store, polls and voting, leaderboards, matchday tools (check-ins, predictions, player of the match), chants library, forum/discussions, membership cards, volunteer management, and more—all integrated into one platform."
+          question: "How does Wingman Pro help us engage with our members more effectively?",
+          answer: "The platform centralizes communication tools, allowing you to send targeted SMS and Email notifications for urgent updates, events, or announcements. Furthermore, features like the Leaderboard, Polls, and specialized Content sections (News/Events, Gallery) encourage active participation, helping to strengthen community loyalty and engagement."
         },
         {
-          question: "Can I customize the platform for my group?",
-          answer: "Yes! You can customize branding, colors, logos, and content to match your supporter group's identity. The platform supports multiple clubs, each with its own branding and settings, while sharing the same powerful tools."
+          question: "What happens if a member withdraws their consent for data usage?",
+          answer: "As required by global data privacy laws (like the DPDPA and GDPR), Wingman Pro provides tools to manage consent withdrawal. If a member revokes their consent, our system enables administrators to instantly halt all processing of that user's non-essential personal data and securely erase it upon request (subject to necessary legal retention requirements)."
         },
         {
-          question: "How do polls work?",
-          answer: "Polls allow you to engage your community with quick questions and instant results. Create polls on any topic—match predictions, event preferences, merchandise choices, and more. Results are displayed in real-time, and you can track participation."
-        },
-        {
-          question: "What about data privacy and security?",
-          answer: "Data privacy and security are paramount. We implement encryption, access controls, and follow best practices for data protection. We comply with applicable privacy laws including GDPR, DPDPA (India), and other regional regulations. See our Privacy Policy for detailed information."
+          question: "Can we track attendance for events and training sessions?",
+          answer: "Yes. The Event Management module includes Attendance Tracking functionality. You can quickly track check-ins for events, training, or meetings, providing valuable data for resource allocation and member engagement analysis."
         }
       ]
     },
     {
-      category: "Support & Pricing",
+      category: "Customization, Branding & Data Ownership",
       questions: [
         {
-          question: "How can I get support?",
-          answer: "We offer multiple support channels. You can reach out through our contact page, email us at response@wingmanpro.tech, or use the in-platform help section. Our support team is available to assist with setup, troubleshooting, and platform questions."
+          question: "Can we brand the platform with our club's colours and logo?",
+          answer: "Absolutely. Wingman Pro supports deep visual customization. Administrators can easily upload the club's logo, set primary and secondary colours, and configure branding elements to ensure the member interface is fully consistent with the club's identity."
         },
         {
-          question: "Is there a free trial?",
-          answer: "Yes, we offer trial periods for new clubs. Contact us to learn more about trial options and pricing plans that best fit your supporter group's needs and size."
+          question: "Who owns the data we upload to Wingman Pro?",
+          answer: "You retain full ownership of all User Content and member data uploaded to the platform. RallyUp Solutions acts purely as the data processor (or fiduciary) providing the secure technology and hosting service. We will never sell or misuse your member data, as strictly outlined in our Privacy Policy and Terms & Conditions."
         },
         {
-          question: "What are the pricing options?",
-          answer: "Pricing varies based on your group size and needs. We offer flexible plans for small groups to large organizations. Contact us to discuss your requirements and we'll recommend the best plan for you."
-        },
-        {
-          question: "Can I cancel or change my plan?",
-          answer: "Yes, you can upgrade, downgrade, or cancel your plan at any time. Changes take effect based on your billing cycle. Contact our support team if you need assistance with plan changes."
+          question: "Can we export our data if we decide to leave the Wingman Pro platform?",
+          answer: "Yes. We ensure full data portability. Clubs maintain the right to receive a copy of their core data (member details, financial reports, etc.) in a standard, machine-readable format upon request, guaranteeing a smooth transition if your needs ever change."
         }
       ]
     }
