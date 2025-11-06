@@ -629,6 +629,9 @@ class ApiClient {
   }
 
   async put<T = any>(endpoint: string, data?: any, options?: { headers?: Record<string, string> }): Promise<ApiResponse<T>> {
+    console.log(`🔵 PUT ${endpoint}`)
+    console.log("📤 Data being sent:", JSON.stringify(data, null, 2))
+    
     const requestOptions: RequestInit = {
       method: 'PUT',
     };
@@ -1504,6 +1507,15 @@ class ApiClient {
     });
   }
 
+  async updateClubBasicInfo(id: string, data: { 
+    name: string; 
+    description?: string;
+    contactInfo?: string;
+  }): Promise<ApiResponse<{ message: string; club: Club }>> {
+    console.log('🔵 PATCH /clubs/' + id + '/basic-info', data);
+    return this.patch(`/clubs/${id}/basic-info`, data);
+  }
+
   async deleteClub(id: string): Promise<ApiResponse<{ message: string }>> {
     return this.request(`/clubs/${id}`, {
       method: 'DELETE',
@@ -1551,10 +1563,24 @@ class ApiClient {
     });
   }
 
+  // Admin-only: Assign membership plan to a user
   async assignMembershipPlan(planId: string, userId: string): Promise<ApiResponse<{ message: string; user: User }>> {
     return this.request(`/membership-plans/${planId}/assign`, {
       method: 'POST',
       body: JSON.stringify({ userId }),
+    });
+  }
+
+  // User-facing: Subscribe to a membership plan (with auto-upgrade)
+  async subscribeMembershipPlan(planId: string): Promise<ApiResponse<{ 
+    message: string; 
+    data: { 
+      userMembership: any; 
+      isUpgrade: boolean;
+    } 
+  }>> {
+    return this.request(`/membership-plans/${planId}/subscribe`, {
+      method: 'POST',
     });
   }
 
@@ -2336,6 +2362,89 @@ class ApiClient {
 
   async getPublicMerchandiseById(id: string): Promise<ApiResponse<any>> {
     return this.get(`/merchandise/public/${id}`);
+  }
+
+  // Club Settings APIs
+  async getClubSettings(clubId: string): Promise<ApiResponse<any>> {
+    return this.get(`/club-settings/${clubId}`);
+  }
+
+  async updateWebsiteSetup(clubId: string, data: {
+    title: string;
+    description: string;
+    contactEmail: string;
+    contactPhone: string;
+    sections: {
+      news: boolean;
+      events: boolean;
+      store: boolean;
+      polls: boolean;
+      chants: boolean;
+      members: boolean;
+      merchandise: boolean;
+    };
+  }): Promise<ApiResponse<any>> {
+    return this.put(`/club-settings/${clubId}/website-setup`, data);
+  }
+
+  async updateGroupListings(clubId: string, listings: Array<{
+    name: string;
+    description: string;
+    contactInfo: string;
+    members?: string[];
+    memberCount?: number;
+    isVisible: boolean;
+  }>): Promise<ApiResponse<any>> {
+    console.log('🔵 PUT /club-settings/' + clubId + '/group-listings', listings);
+    return this.put(`/club-settings/${clubId}/group-listings`, { listings });
+  }
+
+  async updateDesignSettings(clubId: string, data: {
+    primaryColor: string;
+    secondaryColor: string;
+    fontFamily: string;
+    logo: string | null;
+    motto: string;
+    socialMedia: {
+      facebook: string;
+      twitter: string;
+      instagram: string;
+      youtube: string;
+    };
+  }): Promise<ApiResponse<any>> {
+    return this.put(`/club-settings/${clubId}/design-settings`, data);
+  }
+
+  async updateAppSettings(clubId: string, data: {
+    notifications: {
+      events: boolean;
+      membershipRenewals: boolean;
+      membershipExpiry: boolean;
+      newMerchandise: boolean;
+      pollResults: boolean;
+      newsUpdates: boolean;
+    };
+    appRules: string;
+    maintenanceMode: boolean;
+    openRegistration: boolean;
+    publicEvents: boolean;
+  }): Promise<ApiResponse<any>> {
+    return this.put(`/club-settings/${clubId}/app-settings`, data);
+  }
+
+  async updateHelpSection(clubId: string, data: {
+    faqs: Array<{
+      question: string;
+      answer: string;
+      order: number;
+    }>;
+    contactInfo: {
+      email: string;
+      phone: string;
+      supportHours: string;
+    };
+  }): Promise<ApiResponse<any>> {
+    return this.put(`/club-settings/${clubId}/help-section`, data);
   }
 }
 

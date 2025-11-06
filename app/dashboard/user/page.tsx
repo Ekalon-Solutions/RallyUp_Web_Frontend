@@ -17,6 +17,7 @@ import EventDetailsModal from '@/components/modals/event-details-modal'
 import { MembershipStatus } from "@/components/membership-status"
 import { PromotionFeed } from "@/components/promotion-feed"
 import { PollsWidget } from "@/components/polls-widget"
+import { useClubSettings } from "@/hooks/useClubSettings"
 
 export default function UserDashboardPage() {
   const { user } = useAuth()
@@ -39,6 +40,9 @@ export default function UserDashboardPage() {
 
   const activeMembership = getActiveMembership();
   const userClub = activeMembership?.club_id;
+  
+  // Load club settings to check section visibility
+  const { isSectionVisible } = useClubSettings(userClub?._id)
 
   // Get user's display name
   const getUserDisplayName = () => {
@@ -95,14 +99,16 @@ export default function UserDashboardPage() {
       ])
 
       if (eventsResponse.success && eventsResponse.data) {
-        setEvents(eventsResponse.data.events || eventsResponse.data)
+        const eventsData = Array.isArray(eventsResponse.data) ? eventsResponse.data : (eventsResponse.data as any).events || []
+        setEvents(eventsData)
       }
 
       if (newsResponse.success && newsResponse.data) {
         console.log('News response:', newsResponse)
         console.log('News data:', newsResponse.data)
-        console.log('News array:', newsResponse.data.news || newsResponse.data)
-        setNews(newsResponse.data.news || newsResponse.data)
+        const newsData = Array.isArray(newsResponse.data) ? newsResponse.data : (newsResponse.data as any).news || []
+        console.log('News array:', newsData)
+        setNews(newsData)
       } else {
         console.error('News response failed:', newsResponse)
         console.error('News error details:', newsResponse.error)
@@ -262,16 +268,21 @@ export default function UserDashboardPage() {
           {/* Club Membership Status */}
           <MembershipStatus />
 
-          {/* Events and News Tabs */}
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="events">Events ({eventsUserIsRegisteredForOngoing().length})</TabsTrigger>
-              <TabsTrigger value="news">News & Updates ({news.filter(article => article.isPublished).length})</TabsTrigger>
-            </TabsList>
+          {/* Events and News Tabs - Only show if sections are visible */}
+          {(isSectionVisible('events') || isSectionVisible('news')) && (
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+              <TabsList className="grid w-full grid-cols-2">
+                {isSectionVisible('events') && (
+                  <TabsTrigger value="events">Events ({eventsUserIsRegisteredForOngoing().length})</TabsTrigger>
+                )}
+                {isSectionVisible('news') && (
+                  <TabsTrigger value="news">News & Updates ({news.filter(article => article.isPublished).length})</TabsTrigger>
+                )}
+              </TabsList>
 
-            <TabsContent value="events" className="space-y-4">
-              {loading ? (
+              {isSectionVisible('events') && (
+                <TabsContent value="events" className="space-y-4">
+                  {loading ? (
                 <div className="flex items-center justify-center h-64">
                   <div className="text-center">
                     <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
@@ -457,9 +468,11 @@ export default function UserDashboardPage() {
                 </div>
               )}
             </TabsContent>
+            )}
 
-            <TabsContent value="news" className="space-y-4">
-              {loading ? (
+            {isSectionVisible('news') && (
+              <TabsContent value="news" className="space-y-4">
+                {loading ? (
                 <div className="flex items-center justify-center h-64">
                   <div className="text-center">
                     <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
@@ -580,10 +593,12 @@ export default function UserDashboardPage() {
                 </div>
               )}
             </TabsContent>
+            )}
           </Tabs>
+          )}
 
-          {/* Promotion Feed */}
-          {userClub && (
+          {/* Promotion Feed - Only show if visible */}
+          {userClub && isSectionVisible('store') && (
             <PromotionFeed 
               clubId={userClub._id} 
               limit={2} 
@@ -591,8 +606,8 @@ export default function UserDashboardPage() {
             />
           )}
 
-          {/* Polls Widget */}
-          {userClub && (
+          {/* Polls Widget - Only show if visible */}
+          {userClub && isSectionVisible('polls') && (
             <PollsWidget limit={3} showCreateButton={false} />
           )}
 

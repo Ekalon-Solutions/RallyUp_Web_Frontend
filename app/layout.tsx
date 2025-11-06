@@ -8,13 +8,13 @@ import { CartProvider } from "@/contexts/cart-context"
 import { SocketWrapper } from "@/components/socket-wrapper"
 import { Toaster } from "sonner"
 import Analytics from "@/components/Analytics"
+import Script from "next/script"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "RallyUp - Supporter Group Management",
+  title: "Wingman Pro - Supporter Group Management",
   description: "Manage your supporter group with ease",
-    generator: 'v0.dev'
 }
 
 export default function RootLayout({
@@ -24,10 +24,29 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-SRLNL9FQ0G"></script>
-     <body className={inter.className}>
-        <Analytics/>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+      <head>
+        <Script
+          async
+          src="https://www.googletagmanager.com/gtag/js?id=G-SDPCKFH4E2"
+        />
+        <Script id="google-analytics">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-SDPCKFH4E2');
+          `}
+        </Script>
+      </head>
+
+      <body className={inter.className}>
+        <Analytics />
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
           <AuthProvider>
             <SocketWrapper>
               <CartProvider>

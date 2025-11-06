@@ -1,7 +1,7 @@
 // Environment Configuration
 export const ENV = {
   // Change this to switch between environments
-  CURRENT: 'production' as 'development' | 'production' | 'staging',
+  CURRENT: 'development' as 'development' | 'production' | 'staging',
   
   // Development environment (localhost)
   development: {
@@ -13,7 +13,7 @@ export const ENV = {
   
   // Production environment (deployment)
   production: {
-    apiBaseUrl: 'https://teplworkspace.com/rallyApi/api',
+    apiBaseUrl: 'https://wingmanpro.tech/api/',
     wsBaseUrl: 'wss://teplworkspace.com/rallyApi',
     environment: 'production',
     debug: false,
@@ -21,7 +21,7 @@ export const ENV = {
   
   // Staging environment (if needed)
   staging: {
-    apiBaseUrl: 'https://teplworkspace.com/rallyApi/api',
+    apiBaseUrl: 'https://wingmanpro.tech/api/',
     wsBaseUrl: 'wss://teplworkspace.com/rallyApi',
     environment: 'staging',
     debug: true,

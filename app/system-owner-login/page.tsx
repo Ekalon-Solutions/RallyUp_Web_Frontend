@@ -5,10 +5,12 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
-import { Shield, User, Mail, Phone, ArrowLeft, Crown } from "lucide-react"
+import { Mail, Phone, ArrowLeft, Crown } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import Link from "next/link"
+import { SiteNavbar } from "@/components/site-navbar"
+import { SiteFooter } from "@/components/site-footer"
 import { useAuth } from "@/contexts/auth-context"
 
 export default function SystemOwnerLoginPage() {
@@ -26,7 +28,6 @@ export default function SystemOwnerLoginPage() {
   const router = useRouter()
   const { login } = useAuth()
 
-  // Countdown effect for resend OTP
   useEffect(() => {
     if (resendCountdown > 0) {
       const timer = setTimeout(() => setResendCountdown(resendCountdown - 1), 1000)
@@ -44,11 +45,9 @@ export default function SystemOwnerLoginPage() {
       return
     }
     
-    // Generate OTP
     const otp = generateOTP()
     setGeneratedOtp(otp)
     
-    // Simulate OTP sending
     if (formData.email) {
       toast.success(`OTP sent to ${formData.email}. Code: ${otp}`)
     } else {
@@ -101,23 +100,25 @@ export default function SystemOwnerLoginPage() {
   }
 
   return (
-    <div className="relative h-screen">
-      {/* Background Pattern */}
-      <div className="absolute inset-0">
-        <div className="absolute top-0 z-[-2] h-screen w-screen bg-[#000000] bg-[radial-gradient(#ffffff33_1px,#000000_1px)] bg-[size:20px_20px]"></div>
-      </div>
-      
-      {/* Hero Content */}
-      <div className="relative z-10 flex h-full flex-col items-center justify-center px-4">
-        <div className="max-w-md w-full">
-          <Card className="backdrop-blur-sm bg-white/10 border-white/20 shadow-2xl">
+    <>
+      <SiteNavbar brandName="Wingman Pro" />
+      <div className="relative min-h-screen">
+        {/* Background Pattern */}
+        <div className="absolute inset-0">
+          <div className="absolute top-0 z-[-2] h-full w-full bg-[#000000] bg-[radial-gradient(#ffffff33_1px,#000000_1px)] bg-[size:20px_20px]"></div>
+        </div>
+        
+        {/* Hero Content */}
+        <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-4">
+          <div className="max-w-md w-full">
+            <Card className="backdrop-blur-sm bg-white/10 border-white/20 shadow-2xl">
             <CardHeader className="text-center">
               <div className="mx-auto mb-4 w-16 h-16 bg-gradient-to-r from-sky-400 to-blue-600 rounded-full flex items-center justify-center shadow-lg">
                 <Crown className="w-8 h-8 text-white" />
               </div>
               <CardTitle className="text-2xl font-bold text-white">System Owner Login</CardTitle>
               <CardDescription className="text-slate-300">
-                Access the RallyUp platform as a system owner
+                Access the Wingman Pro platform as a system owner
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -227,9 +228,11 @@ export default function SystemOwnerLoginPage() {
                 </div>
               </form>
             </CardContent>
-          </Card>
+            </Card>
+          </div>
         </div>
       </div>
-    </div>
+      <SiteFooter brandName="Wingman Pro" />
+    </>
   )
 } 
