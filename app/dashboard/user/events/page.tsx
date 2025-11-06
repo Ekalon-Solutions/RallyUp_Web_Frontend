@@ -12,6 +12,7 @@ import { apiClient, Event } from "@/lib/api"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
 import { Calendar, MapPin, Clock, Users, Search, Filter, Eye, Infinity as InfinityIcon } from "lucide-react"
+import EventDetailsModal from '@/components/modals/event-details-modal'
 
 const eventCategories = [
   "all",
@@ -33,6 +34,8 @@ export default function UserEventsPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [categoryFilter, setCategoryFilter] = useState<string>("all")
+  const [selectedEventForDetails, setSelectedEventForDetails] = useState<Event | null>(null)
+  const [showEventDetailsModal, setShowEventDetailsModal] = useState(false)
 
   useEffect(() => {
     fetchEvents()
@@ -97,6 +100,26 @@ export default function UserEventsPage() {
     return new Date(event.startTime) < new Date()
   }
 
+  const isEventOngoing = (event: Event) => {
+    const now = new Date()
+    const start = new Date(event.startTime)
+    const end = event.endTime ? new Date(event.endTime) : null
+    if (end) {
+      return start <= now && now < end
+    }
+    // If no end time, consider ongoing if startTime is in the past and it's not marked as past by existing logic
+    return start <= now && !isEventPast(event)
+  }
+
+  const eventsUserIsRegisteredForOngoing = () => {
+    if (!user) return [] as Event[]
+    return (events || []).filter(ev => {
+      const regs = ev.registrations || []
+      const found = regs.find((r: any) => r.userId === user._id)
+      return !!found && isEventOngoing(ev)
+    })
+  }
+
   const filteredEvents = events.filter(event => {
     // Apply search filter
     const searchMatch = !searchTerm || 
@@ -156,6 +179,44 @@ export default function UserEventsPage() {
 
           {/* Upcoming Events */}
           <div className="space-y-4">
+            {/* Ongoing events the user has registered for (inside Upcoming section) */}
+            <div className="mt-4">
+              <h4 className="text-md font-semibold">Ongoing events</h4>
+              <p className="text-sm text-muted-foreground mb-3">Ongoing events that you've registered for</p>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {eventsUserIsRegisteredForOngoing().length === 0 ? (
+                  <Card>
+                    <CardContent className="text-center py-6">
+                      <p className="text-sm text-muted-foreground">No ongoing events that you're registered for right now.</p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  eventsUserIsRegisteredForOngoing().map(event => (
+                    <Card key={event._id} className="overflow-hidden hover:shadow-md transition-shadow">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-start justify-between">
+                          <div className="space-y-1 flex-1">
+                            <CardTitle className="text-lg line-clamp-2">{event.title}</CardTitle>
+                            <CardDescription className="line-clamp-2">{event.description}</CardDescription>
+                          </div>
+                          <Badge variant={event.isActive ? "default" : "secondary"} className="ml-2 flex-shrink-0">{event.category}</Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div className="space-y-2 text-sm">
+                          <div className="flex items-center gap-2"><Calendar className="w-4 h-4 text-muted-foreground" /><span className="font-medium">{formatDate(event.startTime)}</span></div>
+                          <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-muted-foreground" /><span>{new Date(event.startTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span></div>
+                          <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-muted-foreground" /><span className="truncate">{event.venue}</span></div>
+                        </div>
+                        <div className="pt-2">
+                          <Button onClick={() => { setSelectedEventForDetails(event); setShowEventDetailsModal(true) }} className="w-full">View event</Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </div>
+            </div>
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-semibold">Upcoming Events</h2>
               <Badge variant="outline">{upcomingEvents.length} events</Badge>
@@ -255,7 +316,7 @@ export default function UserEventsPage() {
                         )}
                       </div>
                       
-                      <div className="pt-2">
+                          <div className="pt-2">
                         {event.maxAttendees && isEventFull(event) ? (
                           <Button disabled className="w-full" variant="secondary">
                             Event Full
@@ -269,6 +330,7 @@ export default function UserEventsPage() {
                           </Button>
                         )}
                       </div>
+                        
                     </CardContent>
                   </Card>
                 ))}
@@ -369,6 +431,11 @@ export default function UserEventsPage() {
           )}
         </div>
       </DashboardLayout>
+      <EventDetailsModal
+        event={selectedEventForDetails}
+        isOpen={showEventDetailsModal}
+        onClose={() => { setShowEventDetailsModal(false); setSelectedEventForDetails(null) }}
+      />
     </ProtectedRoute>
   )
 } 

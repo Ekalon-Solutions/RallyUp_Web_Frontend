@@ -13,6 +13,7 @@ import { apiClient, Event, News, User, Admin } from "@/lib/api"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
 import { Calendar, MapPin, Clock, Users, Newspaper, Tag, User as UserIcon, Eye, Building2, CreditCard, Crown, Star, Shield, InfinityIcon } from "lucide-react"
+import EventDetailsModal from '@/components/modals/event-details-modal'
 import { MembershipStatus } from "@/components/membership-status"
 import { PromotionFeed } from "@/components/promotion-feed"
 import { PollsWidget } from "@/components/polls-widget"
@@ -26,6 +27,8 @@ export default function UserDashboardPage() {
   const [activeTab, setActiveTab] = useState("events")
   const [showReadMoreModal, setShowReadMoreModal] = useState(false)
   const [selectedNewsForReadMore, setSelectedNewsForReadMore] = useState<News | null>(null)
+  const [selectedEventForDetails, setSelectedEventForDetails] = useState<Event | null>(null)
+  const [showEventDetailsModal, setShowEventDetailsModal] = useState(false)
 
   // Get user's active club membership
   const getActiveMembership = () => {
@@ -168,8 +171,27 @@ export default function UserDashboardPage() {
   }
 
   const isEventPast = (event: Event) => {
-    const eventDate = new Date(event.eventDate + 'T' + event.eventTime)
-    return eventDate < new Date()
+    return new Date(event.startTime) < new Date()
+  }
+
+  const isEventOngoing = (event: Event) => {
+    const now = new Date()
+    const start = new Date(event.startTime)
+    const end = event.endTime ? new Date(event.endTime) : null
+    if (end) {
+      return start <= now && now < end
+    }
+    // If no end time, consider ongoing if startTime is in the past and it's not marked as past by existing logic
+    return start <= now && !isEventPast(event)
+  }
+
+  const eventsUserIsRegisteredForOngoing = () => {
+    if (!user) return [] as Event[]
+    return (events || []).filter(ev => {
+      const regs = ev.registrations || []
+      const found = regs.find(r => r.userId === user._id)
+      return !!found && isEventOngoing(ev)
+    })
   }
 
   // Get membership plan icon
@@ -251,7 +273,7 @@ export default function UserDashboardPage() {
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
               <TabsList className="grid w-full grid-cols-2">
                 {isSectionVisible('events') && (
-                  <TabsTrigger value="events">Events ({events.filter(e => !isEventPast(e)).length})</TabsTrigger>
+                  <TabsTrigger value="events">Events ({eventsUserIsRegisteredForOngoing().length})</TabsTrigger>
                 )}
                 {isSectionVisible('news') && (
                   <TabsTrigger value="news">News & Updates ({news.filter(article => article.isPublished).length})</TabsTrigger>
@@ -284,6 +306,44 @@ export default function UserDashboardPage() {
                 </Card>
               ) : (
                 <div className="space-y-4">
+                  {/* Ongoing events the user has registered for (inside Upcoming tab) */}
+                  <div className="mt-4">
+                    <h4 className="text-md font-semibold">Ongoing events</h4>
+                    <p className="text-sm text-muted-foreground mb-3">Ongoing events that you've registered for</p>
+                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                      {eventsUserIsRegisteredForOngoing().length === 0 ? (
+                        <Card>
+                          <CardContent className="text-center py-6">
+                            <p className="text-sm text-muted-foreground">No ongoing events that you're registered for right now.</p>
+                          </CardContent>
+                        </Card>
+                      ) : (
+                        eventsUserIsRegisteredForOngoing().map(event => (
+                          <Card key={event._id} className="overflow-hidden hover:shadow-md transition-shadow">
+                            <CardHeader className="pb-3">
+                              <div className="flex items-start justify-between">
+                                <div className="space-y-1 flex-1">
+                                  <CardTitle className="text-lg line-clamp-2">{event.title}</CardTitle>
+                                  <CardDescription className="line-clamp-2">{event.description}</CardDescription>
+                                </div>
+                                <Badge variant={event.isPublished ? "default" : "secondary"} className="ml-2 flex-shrink-0">{event.category}</Badge>
+                              </div>
+                            </CardHeader>
+                            <CardContent className="space-y-3">
+                              <div className="space-y-2 text-sm">
+                                <div className="flex items-center gap-2"><Calendar className="w-4 h-4 text-muted-foreground" /><span className="font-medium">{formatDate(event.startTime)}</span></div>
+                                <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-muted-foreground" /><span>{new Date(event.startTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span></div>
+                                <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-muted-foreground" /><span className="truncate">{event.venue}</span></div>
+                              </div>
+                              <div className="pt-2">
+                                <Button onClick={() => { setSelectedEventForDetails(event); setShowEventDetailsModal(true) }} className="w-full">View event</Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))
+                      )}
+                    </div>
+                  </div>
                   {/* Events Summary */}
                   <div className="flex items-center justify-between">
                     <div>
@@ -292,10 +352,9 @@ export default function UserDashboardPage() {
                         {events.filter(e => !isEventPast(e)).length} events available
                       </p>
                     </div>
-                    <Badge variant="outline" className="text-xs">
-                      {userClub?.name || 'Your Club'}
-                    </Badge>
                   </div>
+
+
 
                   {/* Events Grid */}
                   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -393,7 +452,6 @@ export default function UserDashboardPage() {
                       </Card>
                     ))}
                   </div>
-
                   {/* Past Events Notice */}
                   {events.filter(e => isEventPast(e)).length > 0 && (
                     <Card className="border-dashed">
@@ -606,6 +664,11 @@ export default function UserDashboardPage() {
             setShowReadMoreModal(false)
             setSelectedNewsForReadMore(null)
           }}
+        />
+        <EventDetailsModal
+          event={selectedEventForDetails}
+          isOpen={showEventDetailsModal}
+          onClose={() => { setShowEventDetailsModal(false); setSelectedEventForDetails(null) }}
         />
       </DashboardLayout>
     </ProtectedRoute>

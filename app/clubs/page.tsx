@@ -116,7 +116,8 @@ export default function ClubsPage() {
       const data = await response.json()
       
       if (response.ok) {
-        setClubs(data.clubs || [])
+        // Cast API response to local Club[] to satisfy local UI types
+        setClubs((data.clubs || []) as unknown as Club[])
       } else {
         toast.error("Failed to load clubs")
       }

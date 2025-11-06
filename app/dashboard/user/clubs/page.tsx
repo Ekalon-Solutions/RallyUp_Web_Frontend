@@ -120,7 +120,8 @@ export default function UserClubsPage() {
       const response = await apiClient.getPublicClubs()
       
       if (response.success) {
-        setClubs(response.data?.clubs || [])
+        // API returns a Club type from lib/api which may differ from the UI type
+        setClubs((response.data?.clubs || []) as unknown as Club[])
       } else {
         toast.error("Failed to load clubs")
       }
