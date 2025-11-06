@@ -16,7 +16,7 @@ export default function FAQsPage(): React.JSX.Element {
       questions: [
         {
           question: "What is Wingman Pro?",
-          answer: "It is an all-encompassing sports club management platform developed by RallyUp Solutions Pvt. Ltd. It centralizes member management, communications, events, and payments into one cohesive system, eliminating the need for fragmented tools."
+          answer: <>It is an all-encompassing sports club management platform developed by <strong>RallyUp Solutions Pvt. Ltd.</strong> It centralizes member management, communications, events, and payments into one cohesive system, eliminating the need for fragmented tools.</>
         },
         {
           question: "Who is Wingman Pro designed for?",
@@ -28,7 +28,7 @@ export default function FAQsPage(): React.JSX.Element {
         },
         {
           question: "Does Wingman Pro replace our existing website?",
-          answer: "Wingman Pro acts as your central operating system, replacing fragmented administrative tools. You can either use its dedicated interface as your primary web portal or easily integrate its key functions (like registration and store links) into your existing club website."
+          answer: <><strong>Wingman Pro</strong> acts as your central operating system, replacing fragmented administrative tools. You can either use its dedicated interface as your primary web portal or easily integrate its key functions (like registration and store links) into your existing club website.</>
         }
       ]
     },
@@ -37,11 +37,11 @@ export default function FAQsPage(): React.JSX.Element {
       questions: [
         {
           question: "How do users log into the app?",
-          answer: "User access is secured via a mandatory OTP (One-Time Password) login mechanism delivered instantly via Email and Mobile SMS."
+          answer: <>User access is secured via a mandatory <strong>OTP (One-Time Password)</strong> login mechanism delivered instantly via <strong>Email and Mobile SMS</strong>.</>
         },
         {
           question: "How do we get our current member data onto Wingman Pro?",
-          answer: "Our support team handles the secure data migration. You provide your existing member data in a standard format (like CSV or Excel), and we manage the mapping and secure transfer to your new Wingman Pro dashboard. We work with you to verify all data accuracy before going live."
+          answer: <>Our support team handles the secure data migration. You provide your existing member data in a standard format (like <strong>CSV or Excel</strong>), and we manage the mapping and secure transfer to your new <strong>Wingman Pro</strong> dashboard. We work with you to verify all data accuracy before going live.</>
         },
         {
           question: "What kind of training is provided for our volunteers and administrators?",
@@ -49,7 +49,7 @@ export default function FAQsPage(): React.JSX.Element {
         },
         {
           question: "Can we track attendance for events and training sessions?",
-          answer: "Yes. The Event Management module includes Attendance Tracking functionality. You can quickly track check-ins for events, training, or meetings, providing valuable data for resource allocation and member engagement analysis."
+          answer: <>Yes. The <strong>Event Management module</strong> includes <strong>Attendance Tracking functionality</strong>. You can quickly track check-ins for events, training, or meetings, providing valuable data for resource allocation and member engagement analysis.</>
         },
         {
           question: "Can members update their own profile information?",
@@ -62,15 +62,15 @@ export default function FAQsPage(): React.JSX.Element {
       questions: [
         {
           question: "Can Wingman Pro handle our merchandise sales and ticketing?",
-          answer: "Yes. Wingman Pro includes fully integrated Store and Ticketing modules. You can list merchandise, manage inventory, sell event tickets (including recurring events), and consolidate all sales directly into centralized financial reports."
+          answer: <>Yes. <strong>Wingman Pro</strong> includes fully integrated <strong>Store and Ticketing modules</strong>. You can list merchandise, manage inventory, sell event tickets (including recurring events), and consolidate all sales directly into centralized financial reports.</>
         },
         {
           question: "Is there an extra fee for payment processing?",
-          answer: "We integrate with secure, reputable payment gateways (RazorPay and Stripe). The standard transaction processing fee charged by the payment gateway itself will apply to each transaction. All fees are transparently outlined in your pricing package taken during the contract agreement."
+          answer: <>We integrate with secure, reputable payment gateways (<strong>RazorPay and Stripe</strong>). The standard transaction processing fee charged by the payment gateway itself will apply to each transaction. All fees are transparently outlined in your pricing package taken during the contract agreement.</>
         },
         {
           question: "How does the system handle membership renewals?",
-          answer: "The platform gives you the option to automate this process. You can set up automated renewal reminders via in-app notification, email and SMS. The system automatically tracks member status (Active, Pending, Expired) and allows administrators to easily generate reports, minimizing manual administrative effort."
+          answer: <>The platform gives you the option to automate this process. You can set up automated renewal reminders via in-app notification, email and SMS. The system automatically tracks member status (<strong>Active, Pending, Expired</strong>) and allows administrators to easily generate reports, minimizing manual administrative effort.</>
         }
       ]
     },
@@ -83,15 +83,15 @@ export default function FAQsPage(): React.JSX.Element {
         },
         {
           question: "Is the platform compliant with international data laws?",
-          answer: "Yes. We adhere to the stringent DPDPA (India) and general principles of global frameworks like GDPR/UK GDPR by maintaining secure data practices and implementing robust data subject rights mechanisms."
+          answer: <>Yes. We adhere to the stringent <strong>DPDPA (India)</strong> and general principles of global frameworks like <strong>GDPR/UK GDPR</strong> by maintaining secure data practices and implementing robust data subject rights mechanisms.</>
         },
         {
           question: "What happens if a member withdraws their consent for data usage?",
-          answer: "As required by global data privacy laws (like the DPDPA and GDPR), Wingman Pro provides tools to manage consent withdrawal. Our system enables administrators to instantly halt all processing of that user's non-essential personal data and securely erase it upon request (subject to necessary legal retention requirements)."
+          answer: <>As required by global data privacy laws (like the <strong>DPDPA and GDPR</strong>), <strong>Wingman Pro</strong> provides tools to manage consent withdrawal. Our system enables administrators to instantly halt all processing of that user's non-essential personal data and securely erase it upon request (subject to necessary legal retention requirements).</>
         },
         {
           question: "What role does RallyUp Solutions play in managing my members' data?",
-          answer: "We act as the Data Processor (or Data Fiduciary/Controller, depending on the region) providing the secure technology. The Club/Group maintains full responsibility for the data accuracy and integrity of its members."
+          answer: <>We act as the <strong>Data Processor</strong> (or <strong>Data Fiduciary/Controller</strong>, depending on the region) providing the secure technology. The Club/Group maintains full responsibility for the data accuracy and integrity of its members.</>
         }
       ]
     },
@@ -100,15 +100,15 @@ export default function FAQsPage(): React.JSX.Element {
       questions: [
         {
           question: "How does Wingman Pro help us engage with our members more effectively?",
-          answer: "The platform centralizes communication tools, allowing you to send targeted SMS and Email notifications for urgent updates, events, or announcements. Furthermore, features like the Leaderboard, Polls, and specialized Content sections (News/Events, Gallery) encourage active participation, helping to strengthen community loyalty and engagement."
+          answer: <>The platform centralizes communication tools, allowing you to send targeted SMS and Email notifications for urgent updates, events, or announcements. Furthermore, features like the <strong>Leaderboard, Polls</strong>, and specialized Content sections (<strong>News/Events, Gallery</strong>) encourage active participation, helping to strengthen community loyalty and engagement.</>
         },
         {
           question: "What happens if a member withdraws their consent for data usage?",
-          answer: "As required by global data privacy laws (like the DPDPA and GDPR), Wingman Pro provides tools to manage consent withdrawal. If a member revokes their consent, our system enables administrators to instantly halt all processing of that user's non-essential personal data and securely erase it upon request (subject to necessary legal retention requirements)."
+          answer: <>As required by global data privacy laws (like the <strong>DPDPA and GDPR</strong>), <strong>Wingman Pro</strong> provides tools to manage consent withdrawal. If a member revokes their consent, our system enables administrators to instantly halt all processing of that user's non-essential personal data and securely erase it upon request (subject to necessary legal retention requirements).</>
         },
         {
           question: "Can we track attendance for events and training sessions?",
-          answer: "Yes. The Event Management module includes Attendance Tracking functionality. You can quickly track check-ins for events, training, or meetings, providing valuable data for resource allocation and member engagement analysis."
+          answer: <>Yes. The <strong>Event Management module</strong> includes <strong>Attendance Tracking functionality</strong>. You can quickly track check-ins for events, training, or meetings, providing valuable data for resource allocation and member engagement analysis.</>
         }
       ]
     },
@@ -117,15 +117,15 @@ export default function FAQsPage(): React.JSX.Element {
       questions: [
         {
           question: "Can we brand the platform with our club's colours and logo?",
-          answer: "Absolutely. Wingman Pro supports deep visual customization. Administrators can easily upload the club's logo, set primary and secondary colours, and configure branding elements to ensure the member interface is fully consistent with the club's identity."
+          answer: <>Absolutely. <strong>Wingman Pro</strong> supports deep visual customization. Administrators can easily upload the club's logo, set primary and secondary colours, and configure branding elements to ensure the member interface is fully consistent with the club's identity.</>
         },
         {
           question: "Who owns the data we upload to Wingman Pro?",
-          answer: "You retain full ownership of all User Content and member data uploaded to the platform. RallyUp Solutions acts purely as the data processor (or fiduciary) providing the secure technology and hosting service. We will never sell or misuse your member data, as strictly outlined in our Privacy Policy and Terms & Conditions."
+          answer: <>You retain full ownership of all <strong>User Content</strong> and member data uploaded to the platform. <strong>RallyUp Solutions</strong> acts purely as the data processor (or fiduciary) providing the secure technology and hosting service. We will never sell or misuse your member data, as strictly outlined in our <strong>Privacy Policy and Terms & Conditions</strong>.</>
         },
         {
           question: "Can we export our data if we decide to leave the Wingman Pro platform?",
-          answer: "Yes. We ensure full data portability. Clubs maintain the right to receive a copy of their core data (member details, financial reports, etc.) in a standard, machine-readable format upon request, guaranteeing a smooth transition if your needs ever change."
+          answer: <>Yes. We ensure full data portability. Clubs maintain the right to receive a copy of their core data (member details, financial reports, etc.) in a standard, machine-readable format upon request, guaranteeing a smooth transition if your needs ever change.</>
         }
       ]
     }
