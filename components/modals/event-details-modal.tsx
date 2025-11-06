@@ -23,7 +23,7 @@ export default function EventDetailsModal({ event, isOpen, onClose }: EventDetai
   const userIdForQr: string | null = user?._id ?? null
   const eventIdForQr: string | null = event._id ?? null
   // Use public NEXT variable for base URL so environments can configure the domain
-  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL as string) || "localhost:3000";
+  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL as string) || "wingmanpro.tech";
   // Convert nullable ids to string (null -> "null") so QR contains an explicit null value when id is absent
   const qrValue = `${baseUrl.replace(/\/$/, '')}/dashboard/events/attendance?userId=${encodeURIComponent(String(userIdForQr))}&eventId=${encodeURIComponent(String(eventIdForQr))}`
 
@@ -32,6 +32,12 @@ export default function EventDetailsModal({ event, isOpen, onClose }: EventDetai
     const d = new Date(dateString)
     return d.toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
   }
+
+  // Determine whether the current user already has attendance marked.
+  const attendeesFromEvent = (event as any).attendees as string[] | undefined
+  const registrationIds = event.registrations?.map(r => (r as any).userId) ?? []
+  const attendeesList = Array.isArray(attendeesFromEvent) ? attendeesFromEvent : registrationIds
+  const attendanceMarked = Boolean(user?._id && attendeesList && attendeesList.includes(user._id))
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -76,10 +82,15 @@ export default function EventDetailsModal({ event, isOpen, onClose }: EventDetai
             </CardContent>
           </Card>
 
-          {/* QR Code / Check-in placeholder */}
+          {/* Attendance status + QR Code combined in one section */}
           <Card>
             <CardContent>
+              <div className="my-3 flex items-start justify-between">
               <h3 className="text-lg font-semibold mb-3">Event QR Code</h3>
+                  <Badge variant={attendanceMarked ? 'default' : 'secondary'} className="capitalize text-sm">
+                    Attendance {attendanceMarked ? 'Marked' : 'Not marked'}
+                  </Badge>
+              </div>
               <div className="flex flex-col items-center justify-center py-6">
                 <a
                   href={qrValue}
