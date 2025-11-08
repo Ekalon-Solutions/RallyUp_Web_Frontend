@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Sparkles, Users, Trophy, Building2, CalendarDays, MapPin, Ticket } from "lucide-react"
@@ -11,6 +12,13 @@ import { ScrollToTop } from "@/components/scroll-to-top"
 import { FadeIn } from "@/components/fade-in"
 
 function Hero() {
+  const marqueeLogos = [
+    { src: "/WingmanPro Logo (White BG).svg", alt: "Wingman Pro" },
+    { src: "/WingmanPro Logo (Chalk BG).svg", alt: "Wingman Pro Chalk" },
+    { src: "/RallyUpSolutions Logo (WhiteBackground).svg", alt: "RallyUp Solutions" },
+    { src: "/RallyUpSolutions Logo (Transparent Background).svg", alt: "RallyUp Solutions Transparent" },
+  ]
+
   return (
     <section className="relative overflow-hidden" id="home">
       <div className="absolute inset-0 -z-10">
@@ -20,6 +28,27 @@ function Hero() {
       <div className="mx-auto max-w-7xl px-4 py-20 md:py-28">
         <div className="grid md:grid-cols-2 gap-10 items-center">
           <div className="space-y-6">
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="relative h-12 w-44 sm:h-14 sm:w-56">
+                <Image
+                  src="/WingmanPro Logo (Chalk BG).svg"
+                  alt="Wingman Pro logo"
+                  fill
+                  sizes="(max-width: 640px) 176px, 224px"
+                  className="object-contain"
+                  priority
+                />
+              </div>
+              <div className="relative h-10 w-44 sm:h-12 sm:w-52">
+                <Image
+                  src="/RallyUpSolutions Logo (WhiteBackground).svg"
+                  alt="RallyUp Solutions logo"
+                  fill
+                  sizes="(max-width: 640px) 176px, 208px"
+                  className="object-contain"
+                />
+              </div>
+            </div>
             <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-sky-200">
               <Sparkles className="h-3.5 w-3.5" />
               Built for Supporter Communities
@@ -64,8 +93,16 @@ function Hero() {
           <div className="text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-3">Trusted by spirited clubs</div>
           <div className="overflow-hidden">
             <div className="marquee flex items-center gap-12 opacity-80">
-              {Array.from({length:12}).map((_,i)=> (
-                <img key={i} src="/placeholder-logo.svg" alt="Club logo" className="h-8 w-auto opacity-70" />
+              {Array.from({ length: 4 }).flatMap(() => marqueeLogos).map((logo, index) => (
+                <div key={`${logo.alt}-${index}`} className="relative h-8 w-36">
+                  <Image
+                    src={logo.src}
+                    alt={`${logo.alt} partner logo`}
+                    fill
+                    sizes="144px"
+                    className="object-contain opacity-80 hover:opacity-100 transition-opacity"
+                  />
+                </div>
               ))}
                           </div>
                         </div>

@@ -1,4 +1,5 @@
 import type React from "react"
+import Image from "next/image"
 import { SiteNavbar } from "@/components/site-navbar"
 import { SiteFooter } from "@/components/site-footer"
 import { ScrollToTop } from "@/components/scroll-to-top"
@@ -7,7 +8,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Building2,
   Rocket,
-  ShieldCheck,
   Sparkles,
   Target,
   Users,
@@ -25,6 +25,27 @@ export default function AboutPage(): React.JSX.Element {
       <div className="mx-auto max-w-7xl px-4 py-16">
         <FadeIn>
           <div className="max-w-3xl">
+            <div className="flex flex-wrap items-center gap-4 mb-6">
+              <div className="relative h-12 w-44 sm:h-14 sm:w-56">
+                <Image
+                  src="/WingmanPro Logo (Chalk BG).svg"
+                  alt="Wingman Pro logo"
+                  fill
+                  sizes="(max-width: 640px) 176px, 224px"
+                  className="object-contain"
+                  priority
+                />
+              </div>
+              <div className="relative h-11 w-44 sm:h-12 sm:w-52">
+                <Image
+                  src="/RallyUpSolutions Logo (WhiteBackground).svg"
+                  alt="RallyUp Solutions logo"
+                  fill
+                  sizes="(max-width: 640px) 176px, 208px"
+                  className="object-contain"
+                />
+              </div>
+            </div>
             <h1 className="text-3xl md:text-4xl font-bold mb-6">About Us: RallyUp Solutions & Wingman Pro</h1>
             <p className="text-slate-700 dark:text-slate-300 leading-relaxed text-lg">
               RallyUp Solutions Private Limited was founded to match the passion of sports communities with seamless, modern operations.

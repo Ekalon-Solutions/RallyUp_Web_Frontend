@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -610,13 +611,32 @@ export default function AuthPage() {
           <div className={`w-full ${activeTab.includes('register') ? 'max-w-6xl' : 'max-w-2xl'} transition-all duration-300`}>
             <Card className="backdrop-blur-sm bg-black/20 border-white/20 shadow-2xl">
             <CardHeader className="text-center pb-6">
-              <div className="mx-auto mb-4 w-16 h-16 bg-gradient-to-r from-sky-100 to-blue-200 rounded-full flex items-center justify-center shadow-lg">
-                <Shield className="w-8 h-8 text-black" />
+              <div className="mx-auto mb-4 relative w-24 h-24">
+                <Image
+                  src="/WingmanPro Logo (White BG).svg"
+                  alt="Wingman Pro logo"
+                  fill
+                  sizes="96px"
+                  className="object-contain"
+                  priority
+                />
               </div>
               <CardTitle className="text-3xl font-bold text-white">Welcome to Wingman Pro</CardTitle>
               <CardDescription className="text-slate-300 text-lg">
                 Manage your supporter group with ease
               </CardDescription>
+              <div className="mx-auto mt-4 flex flex-col items-center gap-2 text-xs uppercase tracking-wider text-slate-400">
+                <span>Powered by</span>
+                <div className="relative h-8 w-40">
+                  <Image
+                    src="/RallyUpSolutions Logo (Transparent Background).svg"
+                    alt="RallyUp Solutions logo"
+                    fill
+                    sizes="160px"
+                    className="object-contain"
+                  />
+                </div>
+              </div>
             </CardHeader>
             <CardContent className="px-6 pb-6">
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

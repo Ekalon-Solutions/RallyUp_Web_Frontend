@@ -2,7 +2,7 @@
 
 import React from "react"
 import Link from "next/link"
-import { Shield } from "lucide-react"
+import Image from "next/image"
 
 type SiteFooterProps = {
   brandName?: string
@@ -12,11 +12,31 @@ export function SiteFooter({ brandName = "Wingman Pro" }: SiteFooterProps) {
   return (
     <footer className="border-t border-white/10 bg-slate-900/80">
       <div className="mx-auto max-w-7xl px-4 py-8 flex flex-col md:flex-row md:items-center md:justify-between gap-6 text-slate-300">
-        <div className="flex items-center gap-2">
-          <div className="h-7 w-7 rounded-md bg-gradient-to-br from-sky-200 to-blue-300 flex items-center justify-center">
-            <Shield className="h-4 w-4 text-slate-900" />
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-3">
+            <div className="relative h-9 w-9 overflow-hidden rounded-md bg-white">
+              <Image
+                src="/WingmanPro Logo (White BG).svg"
+                alt="Wingman Pro logo"
+                fill
+                sizes="36px"
+                className="object-contain p-1.5"
+              />
+            </div>
+            <div className="flex flex-col leading-tight">
+              <span className="text-white font-semibold">{brandName}</span>
+              <span className="text-xs text-slate-400">Powered by RallyUp Solutions</span>
+            </div>
           </div>
-          <span className="text-white font-semibold">{brandName}</span>
+          <div className="relative h-6 w-48">
+            <Image
+              src="/RallyUpSolutions Logo (Transparent Background).svg"
+              alt="RallyUp Solutions logo"
+              fill
+              sizes="192px"
+              className="object-contain"
+            />
+          </div>
         </div>
         <nav className="flex flex-wrap items-center gap-4 text-sm">
           <Link href="/" className="hover:text-white">Home</Link>

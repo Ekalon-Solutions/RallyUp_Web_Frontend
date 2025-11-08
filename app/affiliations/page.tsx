@@ -1,4 +1,5 @@
 import type React from "react"
+import Image from "next/image"
 import { SiteNavbar } from "@/components/site-navbar"
 import { SiteFooter } from "@/components/site-footer"
 import { ScrollToTop } from "@/components/scroll-to-top"
@@ -30,6 +31,27 @@ export default function AffiliationsPage(): React.JSX.Element {
       <div className="mx-auto max-w-7xl px-4 py-16">
         <FadeIn>
           <div className="max-w-3xl mb-12">
+            <div className="flex flex-wrap items-center gap-4 mb-6">
+              <div className="relative h-11 w-40 sm:h-12 sm:w-48">
+                <Image
+                  src="/WingmanPro Logo (White BG).svg"
+                  alt="Wingman Pro logo"
+                  fill
+                  sizes="(max-width: 640px) 160px, 192px"
+                  className="object-contain"
+                  priority
+                />
+              </div>
+              <div className="relative h-10 w-40 sm:h-11 sm:w-48">
+                <Image
+                  src="/RallyUpSolutions Logo (Transparent Background).svg"
+                  alt="RallyUp Solutions logo"
+                  fill
+                  sizes="(max-width: 640px) 160px, 192px"
+                  className="object-contain"
+                />
+              </div>
+            </div>
             <h1 className="text-3xl md:text-4xl font-bold mb-4">Our Affiliation Ecosystem</h1>
             <p className="text-slate-700 dark:text-slate-300 leading-relaxed text-lg">
               Wingman Pro, a flagship product of RallyUp Solutions Private Limited, connects supporter groups and sports organizations with the technology, infrastructure, and partnerships they need to thrive.
