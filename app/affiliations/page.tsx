@@ -4,7 +4,19 @@ import { SiteFooter } from "@/components/site-footer"
 import { ScrollToTop } from "@/components/scroll-to-top"
 import { FadeIn } from "@/components/fade-in"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Building2, Handshake, Users, Trophy, MapPin, Globe } from "lucide-react"
+import {
+  ArrowRight,
+  Building2,
+  Cloud,
+  CreditCard,
+  Globe,
+  Handshake,
+  MapPin,
+  ShieldCheck,
+  Sprout,
+  Trophy,
+  Users,
+} from "lucide-react"
 
 export const metadata = {
   title: "Affiliations | Wingman Pro",
@@ -18,42 +30,93 @@ export default function AffiliationsPage(): React.JSX.Element {
       <div className="mx-auto max-w-7xl px-4 py-16">
         <FadeIn>
           <div className="max-w-3xl mb-12">
-            <h1 className="text-3xl md:text-4xl font-bold mb-4">Affiliations & Partnerships</h1>
+            <h1 className="text-3xl md:text-4xl font-bold mb-4">Our Affiliation Ecosystem</h1>
             <p className="text-slate-700 dark:text-slate-300 leading-relaxed text-lg">
-              Wingman Pro proudly partners with football clubs, supporter groups, and organizations worldwide to build stronger communities around the beautiful game.
+              Wingman Pro, a flagship product of RallyUp Solutions Private Limited, connects supporter groups and sports organizations with the technology, infrastructure, and partnerships they need to thrive.
             </p>
           </div>
         </FadeIn>
 
         <FadeIn>
           <section className="mt-10">
-            <h2 className="text-2xl md:text-3xl font-bold mb-6 text-slate-900 dark:text-white">Our Partners</h2>
+            <h2 className="text-2xl md:text-3xl font-bold mb-6 text-slate-900 dark:text-white">Technology Partners & Infrastructure</h2>
+            <p className="text-slate-700 dark:text-slate-300 mb-6">
+              These alliances keep our platform secure, scalable, and always-on for supporter communities across the globe.
+            </p>
             <div className="grid md:grid-cols-3 gap-6">
               <Card className="bg-white border-slate-200 hover:bg-slate-50 dark:bg-white/5 dark:border-white/10 dark:hover:bg-white/10 transition-colors">
                 <CardHeader className="flex flex-row items-center gap-3">
-                  <Building2 className="h-6 w-6 text-sky-600 dark:text-sky-300" />
-                  <CardTitle className="text-slate-900 dark:text-white">Professional Clubs</CardTitle>
+                  <CreditCard className="h-6 w-6 text-sky-600 dark:text-sky-300" />
+                  <CardTitle className="text-slate-900 dark:text-white">Payment Gateways</CardTitle>
                 </CardHeader>
-                <CardContent className="text-slate-600 dark:text-slate-300">
-                  We work directly with professional football clubs to provide supporter engagement platforms and membership management solutions.
+                <CardContent className="text-slate-600 dark:text-slate-300 space-y-2">
+                  <p>
+                    Seamless integrations with secure domestic and international payment processors like RazorPay to manage membership
+                    fees, merchandise, and ticketing.
+                  </p>
+                  <p>Supports multi-currency transactions and diverse payment types, including UPI.</p>
                 </CardContent>
               </Card>
               <Card className="bg-white border-slate-200 hover:bg-slate-50 dark:bg-white/5 dark:border-white/10 dark:hover:bg-white/10 transition-colors">
                 <CardHeader className="flex flex-row items-center gap-3">
+                  <Cloud className="h-6 w-6 text-sky-600 dark:text-sky-300" />
+                  <CardTitle className="text-slate-900 dark:text-white">Cloud Hosting & Infrastructure</CardTitle>
+                </CardHeader>
+                <CardContent className="text-slate-600 dark:text-slate-300 space-y-2">
+                  <p>
+                    Built on leading global cloud providers to guarantee data security, low latency, and resilient operations backed by
+                    international compliance standards.
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="bg-white border-slate-200 hover:bg-slate-50 dark:bg-white/5 dark:border-white/10 dark:hover:bg-white/10 transition-colors">
+                <CardHeader className="flex flex-row items-center gap-3">
+                  <ShieldCheck className="h-6 w-6 text-sky-600 dark:text-sky-300" />
+                  <CardTitle className="text-slate-900 dark:text-white">Authentication Services</CardTitle>
+                </CardHeader>
+                <CardContent className="text-slate-600 dark:text-slate-300 space-y-2">
+                  <p>
+                    Integrated with trusted identity providers such as Google Firebase to deliver secure, rapid OTP-based authentication
+                    and identity management.
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </section>
+        </FadeIn>
+
+        <FadeIn>
+          <section className="mt-10">
+            <h2 className="text-2xl md:text-3xl font-bold mb-6 text-slate-900 dark:text-white">League & Organizational Affiliates</h2>
+            <p className="text-slate-700 dark:text-slate-300 mb-6">
+              We collaborate with organizations that amplify value for our club network, expanding marketing reach, resources, and grassroots development.
+            </p>
+            <div className="grid md:grid-cols-3 gap-6">
+              <Card className="bg-white border-slate-200 hover:bg-slate-50 dark:bg-white/5 dark:border-white/10 dark:hover:bg-white/10 transition-colors">
+                <CardHeader className="flex flex-row items-center gap-3">
                   <Users className="h-6 w-6 text-sky-600 dark:text-sky-300" />
-                  <CardTitle className="text-slate-900 dark:text-white">Supporter Groups</CardTitle>
+                  <CardTitle className="text-slate-900 dark:text-white">Supporter Group Networks</CardTitle>
                 </CardHeader>
                 <CardContent className="text-slate-600 dark:text-slate-300">
-                  Independent supporter groups and fan clubs use Wingman Pro to organize matchdays, events, and community initiatives.
+                  Collaborations with global supporter networks to share best practices in member management and deliver shared knowledge among groups using Wingman Pro.
                 </CardContent>
               </Card>
               <Card className="bg-white border-slate-200 hover:bg-slate-50 dark:bg-white/5 dark:border-white/10 dark:hover:bg-white/10 transition-colors">
                 <CardHeader className="flex flex-row items-center gap-3">
                   <Handshake className="h-6 w-6 text-sky-600 dark:text-sky-300" />
-                  <CardTitle className="text-slate-900 dark:text-white">Football Associations</CardTitle>
+                  <CardTitle className="text-slate-900 dark:text-white">Corporate Sponsors</CardTitle>
                 </CardHeader>
                 <CardContent className="text-slate-600 dark:text-slate-300">
-                  Partnerships with regional and national football associations to support grassroots football communities.
+                  Streamlined engagement channels between sponsors and our network of engaged supporter groups, unlocking new revenue opportunities for partner clubs.
+                </CardContent>
+              </Card>
+              <Card className="bg-white border-slate-200 hover:bg-slate-50 dark:bg-white/5 dark:border-white/10 dark:hover:bg-white/10 transition-colors">
+                <CardHeader className="flex flex-row items-center gap-3">
+                  <Sprout className="h-6 w-6 text-sky-600 dark:text-sky-300" />
+                  <CardTitle className="text-slate-900 dark:text-white">Youth & Grassroots Programs</CardTitle>
+                </CardHeader>
+                <CardContent className="text-slate-600 dark:text-slate-300">
+                  Purpose-built tracking modules such as attendance and engagement scoring to document development, support grant obligations, and grow local communities.
                 </CardContent>
               </Card>
             </div>
