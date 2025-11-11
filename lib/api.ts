@@ -488,7 +488,8 @@ class ApiClient {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
-    const url = `${this.baseURL}${endpoint}`;
+    // Remove double slashes when concatenating baseURL and endpoint
+    const url = `${this.baseURL}${endpoint}`.replace(/([^:]\/)\/+/g, "$1");
     const token = this.getToken();
     console.log(`API request to ${endpoint} with token:`, token ? 'exists' : 'missing');
 
