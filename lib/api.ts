@@ -1517,8 +1517,34 @@ class ApiClient {
     return this.request('/clubs/public');
   }
 
-  async getClubById(id: string): Promise<ApiResponse<Club>> {
-    return this.request(`/clubs/${id}`);
+  async getClubById(id: string, isPublic: boolean = false): Promise<ApiResponse<Club>> {
+    const endpoint = isPublic ? `/clubs/${id}/public` : `/clubs/${id}`;
+    
+    if (isPublic) {
+      // For public access, make request without requiring auth token
+      const url = `${this.baseURL}${endpoint}`;
+      const response = await fetch(url, {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        return {
+          success: false,
+          error: 'Failed to fetch club data'
+        };
+      }
+      
+      const data = await response.json();
+      return {
+        success: true,
+        data: data
+      };
+    }
+    
+    return this.request(endpoint);
   }
 
   async updateClub(id: string, data: any): Promise<ApiResponse<{ message: string; club: Club }>> {
@@ -2386,8 +2412,34 @@ class ApiClient {
   }
 
   // Club Settings APIs
-  async getClubSettings(clubId: string): Promise<ApiResponse<any>> {
-    return this.get(`/club-settings/${clubId}`);
+  async getClubSettings(clubId: string, isPublic: boolean = false): Promise<ApiResponse<any>> {
+    const endpoint = isPublic ? `/club-settings/${clubId}/public` : `/club-settings/${clubId}`;
+    
+    if (isPublic) {
+      // For public access, make request without requiring auth token
+      const url = `${this.baseURL}${endpoint}`;
+      const response = await fetch(url, {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        return {
+          success: false,
+          error: 'Failed to fetch club settings'
+        };
+      }
+      
+      const data = await response.json();
+      return {
+        success: true,
+        data: data
+      };
+    }
+    
+    return this.get(endpoint);
   }
 
   async updateWebsiteSetup(clubId: string, data: {
