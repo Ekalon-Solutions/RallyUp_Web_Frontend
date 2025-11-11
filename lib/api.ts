@@ -750,11 +750,32 @@ class ApiClient {
     email?: string;
     phoneNumber?: string;
     countryCode?: string;
+    notificationPreferences?: {
+      events?: boolean;
+      membershipRenewals?: boolean;
+      membershipExpiry?: boolean;
+      newMerchandise?: boolean;
+      pollResults?: boolean;
+      newsUpdates?: boolean;
+    };
   }): Promise<ApiResponse<User>> {
     return this.request('/users/profile', {
       method: 'PUT',
       body: JSON.stringify(data),
     });
+  }
+
+  async getUserProfile(): Promise<ApiResponse<User & {
+    notificationPreferences?: {
+      events: boolean;
+      membershipRenewals: boolean;
+      membershipExpiry: boolean;
+      newMerchandise: boolean;
+      pollResults: boolean;
+      newsUpdates: boolean;
+    };
+  }>> {
+    return this.request('/users/profile');
   }
 
   // Admin Member Management APIs

@@ -135,15 +135,32 @@ export function AppSettingsTab() {
 
   return (
     <div className="space-y-6">
+      {/* Info Banner */}
+      <Card className="border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-950">
+        <CardContent className="pt-6">
+          <div className="flex gap-3">
+            <Bell className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-blue-900 dark:text-blue-100">
+                User Notification Preferences
+              </p>
+              <p className="text-sm text-blue-700 dark:text-blue-300">
+                These are default notification settings for your club. Individual users can override these settings in their personal preferences (My Settings).
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Notification Settings */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Bell className="h-5 w-5" />
-            Notification Settings
+            Default Notification Settings
           </CardTitle>
           <CardDescription>
-            Configure which events trigger notifications for your members
+            Configure default notification settings for new members
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

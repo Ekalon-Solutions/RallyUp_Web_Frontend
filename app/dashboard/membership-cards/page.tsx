@@ -1012,7 +1012,7 @@ export default function MembershipCardsPage() {
               </div>
 
               <div>
-                <Label htmlFor="primaryColor">Primary Color</Label>
+                <Label htmlFor="primaryColor">Secondary Color</Label>
                 <Input
                   id="primaryColor"
                   type="color"
@@ -1023,7 +1023,7 @@ export default function MembershipCardsPage() {
               </div>
 
               <div>
-                <Label htmlFor="secondaryColor">Secondary Color</Label>
+                <Label htmlFor="secondaryColor">Primary Color</Label>
                 <Input
                   id="secondaryColor"
                   type="color"
