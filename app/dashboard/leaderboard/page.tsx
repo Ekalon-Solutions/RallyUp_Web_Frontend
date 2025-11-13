@@ -1,84 +1,274 @@
-"use client";
-import React from 'react';
-import { DashboardLayout } from '@/components/dashboard-layout';
-import { MemberLeaderboard } from '@/components/leaderboard/member-leaderboard';
-import { useAuth } from '@/contexts/auth-context';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Trophy, Calendar, Clock, TrendingUp } from 'lucide-react';
+"use client"
 
-export default function LeaderboardPage() {
-  const { user } = useAuth();
-  const clubId = user?.club?._id || user?.club;
+import React, { useState, useEffect, useCallback } from 'react'
+import { DashboardLayout } from '@/components/dashboard-layout'
+import { ProtectedRoute } from '@/components/protected-route'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Loader2, Trophy, Medal, Award, Calendar, Star, RefreshCw } from 'lucide-react'
+import { apiClient } from '@/lib/api'
+import { toast } from 'sonner'
 
-  if (!clubId) {
+interface LeaderboardEntry {
+  userId: string
+  name?: string
+  email?: string
+  avatar?: string
+  club?: string
+  eventCount: number
+  points: number
+}
+
+export default function AdminLeaderboardPage() {
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
+  const [loading, setLoading] = useState(true)
+  const [editedPoints, setEditedPoints] = useState<Record<string, string>>({})
+  const [savingId, setSavingId] = useState<string | null>(null)
+
+  const fetchLeaderboard = useCallback(async () => {
+    try {
+      setLoading(true)
+      const response = await apiClient.getLeaderboard()
+
+      if (response.success && response.data) {
+        const entries = response.data.leaderboard || []
+        setLeaderboard(entries)
+
+        const pointsMap: Record<string, string> = {}
+        entries.forEach(entry => {
+          pointsMap[entry.userId] = String(entry.points ?? 0)
+        })
+        setEditedPoints(pointsMap)
+      } else {
+        toast.error(response.error || 'Failed to fetch leaderboard')
+      }
+    } catch (error) {
+      console.error('Error fetching leaderboard:', error)
+      toast.error('Error fetching leaderboard')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  const getInitials = (name?: string) => {
+    if (!name) return '??'
+    const parts = name.trim().split(' ')
+    if (parts.length >= 2) {
+      return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase()
+    }
+    return name.substring(0, 2).toUpperCase()
+  }
+
+  useEffect(() => {
+    fetchLeaderboard()
+  }, [fetchLeaderboard])
+
+  const handlePointsChange = (userId: string, value: string) => {
+    if (/^\d*$/.test(value)) {
+      setEditedPoints(prev => ({ ...prev, [userId]: value }))
+    }
+  }
+
+  const handleUpdatePoints = async (userId: string) => {
+    const rawValue = editedPoints[userId]
+
+    if (rawValue === undefined || rawValue === '') {
+      toast.error('Please enter a points value')
+      return
+    }
+
+    const numericValue = Number(rawValue)
+    if (!Number.isFinite(numericValue) || numericValue < 0) {
+      toast.error('Points must be a non-negative number')
+      return
+    }
+
+    try {
+      setSavingId(userId)
+      const response = await apiClient.updateLeaderboardPoints(userId, numericValue)
+
+      if (response.success) {
+        toast.success('Points updated successfully')
+        await fetchLeaderboard()
+      } else {
+        toast.error(response.error || 'Failed to update points')
+      }
+    } catch (error) {
+      console.error('Error updating points:', error)
+      toast.error('Error updating points')
+    } finally {
+      setSavingId(null)
+    }
+  }
+
+  const getRankIcon = (rank: number) => {
+    if (rank === 1) return <Trophy className="w-5 h-5 text-yellow-500" />
+    if (rank === 2) return <Medal className="w-5 h-5 text-gray-400" />
+    if (rank === 3) return <Award className="w-5 h-5 text-amber-600" />
+    return null
+  }
+
+  const getRankBadgeVariant = (rank: number) => {
+    if (rank === 1) return 'default'
+    if (rank <= 3) return 'secondary'
+    if (rank <= 10) return 'outline'
+    return 'secondary'
+  }
+
+  if (loading) {
     return (
+      <ProtectedRoute requireAdmin>
+        <DashboardLayout>
+          <div className="p-6 flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
+              <p className="text-muted-foreground">Loading leaderboard...</p>
+            </div>
+          </div>
+        </DashboardLayout>
+      </ProtectedRoute>
+    )
+  }
+
+  return (
+    <ProtectedRoute requireAdmin>
       <DashboardLayout>
-        <div className="space-y-6">
+        <div className="p-6 space-y-6">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div>
+              <h1 className="text-3xl font-bold">Leaderboard Management</h1>
+              <p className="text-muted-foreground mt-1 max-w-2xl">
+                Review member rankings and adjust points awarded for event attendance. Updates are applied immediately.
+              </p>
+            </div>
+            <Button variant="outline" onClick={fetchLeaderboard} disabled={loading || savingId !== null}>
+              <RefreshCw className="w-4 h-4 mr-2" /> Refresh
+            </Button>
+          </div>
+
           <Card>
-            <CardContent className="pt-6">
-              <div className="text-center py-8">
-                <Trophy className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
-                <p className="text-muted-foreground">Club information not available.</p>
-              </div>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Trophy className="w-5 h-5" /> Leaderboard Overview
+              </CardTitle>
+              <CardDescription>
+                Points determine the ordering. Adjust them to reflect manual corrections or bonus awards.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {leaderboard.length === 0 ? (
+                <div className="text-center py-12">
+                  <Trophy className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">No leaderboard data available yet</p>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Once members attend events they will appear here.
+                  </p>
+                </div>
+              ) : (
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-20">Rank</TableHead>
+                        <TableHead>Member</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead className="text-right">Events</TableHead>
+                        <TableHead className="text-right">Points</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {leaderboard.map((entry, index) => {
+                        const rank = index + 1
+                        const inputValue = editedPoints[entry.userId] ?? String(entry.points ?? 0)
+                        const isSaving = savingId === entry.userId
+                        const parsedValue = Number(inputValue)
+                        const hasChanged =
+                          inputValue !== '' && Number.isFinite(parsedValue) && parsedValue !== entry.points
+
+                        return (
+                          <TableRow key={entry.userId}>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                {getRankIcon(rank) || (
+                                  <span className="text-muted-foreground font-semibold">#{rank}</span>
+                                )}
+                                {rank <= 3 && (
+                                  <Badge variant={getRankBadgeVariant(rank)} className="ml-1">
+                                    {rank === 1 ? '🥇' : rank === 2 ? '🥈' : '🥉'}
+                                  </Badge>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-3">
+                                <Avatar className="h-9 w-9">
+                                  <AvatarImage src={entry.avatar} alt={entry.name || 'User'} />
+                                  <AvatarFallback>
+                                    {getInitials(entry.name)}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div>
+                                  <p className="font-medium">{entry.name || 'Anonymous User'}</p>
+                                  {entry.club && (
+                                    <p className="text-xs text-muted-foreground">Club: {entry.club}</p>
+                                  )}
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <p className="text-sm text-muted-foreground">{entry.email || 'N/A'}</p>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                <Calendar className="w-4 h-4 text-muted-foreground" />
+                                <span className="font-semibold">{entry.eventCount}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex items-center justify-end gap-2">
+                                <Star className="w-4 h-4 text-yellow-500" />
+                                <Input
+                                  type="text"
+                                  inputMode="numeric"
+                                  pattern="\\d*"
+                                  value={inputValue}
+                                  onChange={(event) => handlePointsChange(entry.userId, event.target.value)}
+                                  className="w-24 text-right"
+                                  disabled={isSaving}
+                                />
+                              </div>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                size="sm"
+                                onClick={() => handleUpdatePoints(entry.userId)}
+                                disabled={isSaving || !hasChanged}
+                              >
+                                {isSaving ? (
+                                  <>
+                                    <Loader2 className="w-4 h-4 animate-spin mr-2" /> Saving
+                                  </>
+                                ) : (
+                                  'Update'
+                                )}
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
       </DashboardLayout>
-    );
-  }
-
-  return (
-    <DashboardLayout>
-      <div className="space-y-6">
-        {/* Page Header */}
-        <div>
-          <h1 className="text-3xl font-bold">Leaderboard</h1>
-          <p className="text-muted-foreground">
-            View your ranking and compete with other club members based on event attendance.
-          </p>
-        </div>
-
-        {/* Quick Stats */}
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Event Attendance</CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">-</div>
-              <p className="text-xs text-muted-foreground">Events you've attended</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Hours</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">-</div>
-              <p className="text-xs text-muted-foreground">Hours volunteered</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Current Streak</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">-</div>
-              <p className="text-xs text-muted-foreground">Consecutive events</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Leaderboard Component */}
-        <MemberLeaderboard clubId={clubId} />
-      </div>
-    </DashboardLayout>
-  );
+    </ProtectedRoute>
+  )
 }
-
-

@@ -96,7 +96,7 @@ export default function ClubExternalTicketsPage() {
                   <CardDescription className="text-sm">Tickets: {r.tickets} — Status: {r.status}</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="mb-2">Phone: {r.phone}</div>
+                  <div className="mb-2">Phone: {r.phone_country_code ? `${r.phone_country_code} ${r.phone}` : r.phone}</div>
                   {r.comments && <div className="mb-2">Comments: {r.comments}</div>}
                   <div className="flex gap-2">
                     {r.status !== 'fulfilled' ? (
