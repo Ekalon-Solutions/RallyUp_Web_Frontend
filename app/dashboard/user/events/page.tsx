@@ -215,6 +215,12 @@ export default function UserEventsPage() {
     });
   };
 
+  const formatTime = (dateString: string) => {
+    return new Date(dateString).toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+    })
+  }
   const getAttendancePercentage = (current: number, max: number) => {
     return Math.round((current / max) * 100);
   };
@@ -338,7 +344,7 @@ export default function UserEventsPage() {
                         {category === "all"
                           ? "All Categories"
                           : category.charAt(0).toUpperCase() +
-                            category.slice(1)}
+                          category.slice(1)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -413,9 +419,9 @@ export default function UserEventsPage() {
                           {(() => {
                             const isRegistered = Boolean(
                               user?._id &&
-                                (event.registrations || []).some(
-                                  (r: any) => r.userId === user._id
-                                )
+                              (event.registrations || []).some(
+                                (r: any) => r.userId === user._id
+                              )
                             );
                             return (
                               <Button
@@ -487,38 +493,10 @@ export default function UserEventsPage() {
                           </div>
                           <div className="ml-2 flex-shrink-0 space-y-1">
                             <Badge
-                              variant={event.isActive ? "default" : "secondary"}
+                              variant="secondary"
                               className="block">
                               {event.category}
                             </Badge>
-                            {(() => {
-                              const attendeesFromEvent = (event as any)
-                                .attendees as string[] | undefined;
-                              const registrationIds =
-                                event.registrations?.map(
-                                  (r) => (r as any).userId
-                                ) ?? [];
-                              const attendeesList = Array.isArray(
-                                attendeesFromEvent
-                              )
-                                ? attendeesFromEvent
-                                : registrationIds;
-                              const attendanceMarked = Boolean(
-                                user?._id &&
-                                  attendeesList &&
-                                  attendeesList.includes(user._id)
-                              );
-                              return (
-                                <Badge
-                                  variant={
-                                    attendanceMarked ? "default" : "secondary"
-                                  }
-                                  className="capitalize text-sm mt-1">
-                                  Attendance{" "}
-                                  {attendanceMarked ? "Marked" : "Not marked"}
-                                </Badge>
-                              );
-                            })()}
                           </div>
                         </div>
                       </CardHeader>
@@ -533,11 +511,17 @@ export default function UserEventsPage() {
                           <div className="flex items-center gap-2">
                             <Clock className="w-4 h-4 text-muted-foreground" />
                             <span>
-                              {new Date(event.startTime).toLocaleTimeString(
-                                "en-US"
-                              )}
+                              Starts {formatDate(event.startTime)} at {formatTime(event.startTime)}
                             </span>
                           </div>
+                          {event.endTime && (
+                            <div className="flex items-center gap-2">
+                              <Clock className="w-4 h-4 text-muted-foreground" />
+                              <span>
+                                Ends {formatDate(event.endTime)} at {formatTime(event.endTime)}
+                              </span>
+                            </div>
+                          )}
                           <div className="flex items-center gap-2">
                             <MapPin className="w-4 h-4 text-muted-foreground" />
                             <span className="truncate">{event.venue}</span>
@@ -571,19 +555,18 @@ export default function UserEventsPage() {
                           {event.maxAttendees ? (
                             <div className="w-full bg-gray-200 rounded-full h-2">
                               <div
-                                className={`h-2 rounded-full transition-all ${
-                                  getAttendancePercentage(
-                                    event.currentAttendees || 0,
-                                    event.maxAttendees
-                                  ) >= 90
+                                className={`h-2 rounded-full transition-all ${getAttendancePercentage(
+                                  event.currentAttendees || 0,
+                                  event.maxAttendees
+                                ) >= 90
                                     ? "bg-red-500"
                                     : getAttendancePercentage(
-                                        event.currentAttendees || 0,
-                                        event.maxAttendees
-                                      ) >= 75
-                                    ? "bg-yellow-500"
-                                    : "bg-green-500"
-                                }`}
+                                      event.currentAttendees || 0,
+                                      event.maxAttendees
+                                    ) >= 75
+                                      ? "bg-yellow-500"
+                                      : "bg-green-500"
+                                  }`}
                                 style={{
                                   width: `${Math.min(
                                     getAttendancePercentage(
@@ -637,7 +620,8 @@ export default function UserEventsPage() {
                                 className="w-full"
                                 variant="secondary">
                                 Event Full
-                              </Button> }
+                              </Button>
+                            }
                             else {
                               return <Button
                                 onClick={() =>
@@ -688,7 +672,7 @@ export default function UserEventsPage() {
                             <Badge variant="secondary" className="block">
                               {event.category}
                             </Badge>
-                         </div>
+                          </div>
                         </div>
                       </CardHeader>
                       <CardContent className="space-y-3">
@@ -741,19 +725,18 @@ export default function UserEventsPage() {
                           {event.maxAttendees ? (
                             <div className="w-full bg-gray-200 rounded-full h-2">
                               <div
-                                className={`h-2 rounded-full transition-all ${
-                                  getAttendancePercentage(
-                                    event.currentAttendees || 0,
-                                    event.maxAttendees
-                                  ) >= 90
+                                className={`h-2 rounded-full transition-all ${getAttendancePercentage(
+                                  event.currentAttendees || 0,
+                                  event.maxAttendees
+                                ) >= 90
                                     ? "bg-red-500"
                                     : getAttendancePercentage(
-                                        event.currentAttendees || 0,
-                                        event.maxAttendees
-                                      ) >= 75
-                                    ? "bg-yellow-500"
-                                    : "bg-green-500"
-                                }`}
+                                      event.currentAttendees || 0,
+                                      event.maxAttendees
+                                    ) >= 75
+                                      ? "bg-yellow-500"
+                                      : "bg-green-500"
+                                  }`}
                                 style={{
                                   width: `${Math.min(
                                     getAttendancePercentage(
@@ -776,7 +759,7 @@ export default function UserEventsPage() {
                             Event Ended
                           </Button>
                         </div>
-                     </CardContent>
+                      </CardContent>
                     </Card>
                   ))}
               </div>
