@@ -2,8 +2,9 @@
 
 import React, { useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { Shield, Sun, Moon, Menu, X } from "lucide-react"
+import { Sun, Moon, Menu, X } from "lucide-react"
 import { useTheme } from "next-themes"
 
 type SiteNavbarProps = {
@@ -17,11 +18,20 @@ export function SiteNavbar({ brandName = "Wingman Pro" }: SiteNavbarProps) {
   return (
     <header className="sticky top-0 z-30 backdrop-blur supports-[backdrop-filter]:bg-white/70 dark:supports-[backdrop-filter]:bg-slate-900/60 bg-white/80 dark:bg-slate-900/80 border-b border-slate-200 dark:border-white/10">
       <div className="mx-auto max-w-7xl px-4 py-3 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 group">
-          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-sky-300 to-blue-400 dark:from-sky-200 dark:to-blue-300 flex items-center justify-center shadow">
-            <Shield className="h-5 w-5 text-white dark:text-slate-900" />
+        <Link href="/" className="flex items-center gap-3 group">
+          <div className="relative h-10 w-10 md:h-11 md:w-11 overflow-hidden rounded-lg bg-white shadow">
+            <Image
+              src="/WingmanPro Logo (White BG).svg"
+              alt="Wingman Pro logo"
+              fill
+              sizes="44px"
+              className="object-contain p-1.5"
+              priority
+            />
           </div>
-          <span className="font-semibold text-slate-900 dark:text-white tracking-tight group-hover:text-sky-600 dark:group-hover:text-sky-200 transition-colors">{brandName}</span>
+          <span className="font-semibold text-slate-900 dark:text-white tracking-tight leading-tight group-hover:text-sky-600 dark:group-hover:text-sky-200 transition-colors">
+            {brandName}
+          </span>
         </Link>
 
         <nav className="hidden md:flex items-center gap-8 text-slate-700 dark:text-slate-200">

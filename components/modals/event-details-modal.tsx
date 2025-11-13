@@ -51,7 +51,11 @@ export default function EventDetailsModal({ event, isOpen, onClose }: EventDetai
     return d.toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
   }
 
-  // Attendance marker moved to the event box; QR modal now only shows QR and details.
+  // Determine whether the current user already has attendance marked.
+  const attendeesFromEvent = (event as any).attendees as string[] | undefined
+  const registrationIds = event.registrations?.map(r => (r as any).userId) ?? []
+  const attendeesList = Array.isArray(attendeesFromEvent) ? attendeesFromEvent : registrationIds
+  const attendanceMarked = Boolean(user?._id && attendeesList && attendeesList.includes(user._id))
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

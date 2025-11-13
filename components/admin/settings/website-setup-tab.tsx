@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
-import { Save, Globe, Eye, EyeOff } from "lucide-react"
+import { Save, Globe, Eye, EyeOff, ExternalLink, Copy, Share2 } from "lucide-react"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
@@ -142,6 +142,21 @@ export function WebsiteSetupTab() {
     })
   }
 
+  const copyPublicUrl = () => {
+    if (!clubId) return
+    
+    const publicUrl = `${window.location.origin}/clubs/${clubId}`
+    navigator.clipboard.writeText(publicUrl)
+    toast.success("Public URL copied to clipboard!")
+  }
+
+  const openPublicPage = () => {
+    if (!clubId) return
+    
+    const publicUrl = `${window.location.origin}/clubs/${clubId}`
+    window.open(publicUrl, '_blank')
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -152,6 +167,45 @@ export function WebsiteSetupTab() {
 
   return (
     <div className="space-y-6">
+      {/* Public Page URL Card */}
+      <Card className="border-blue-200 bg-blue-50/50 dark:bg-blue-950/20 dark:border-blue-800">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-blue-700 dark:text-blue-400">
+            <Share2 className="h-5 w-5" />
+            Public Club Page
+          </CardTitle>
+          <CardDescription className="text-blue-600 dark:text-blue-400">
+            Your club's public page is live and can be shared with anyone
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center gap-2 p-3 bg-white dark:bg-gray-900 rounded-lg border">
+            <Globe className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <code className="text-sm flex-1 truncate text-blue-600 dark:text-blue-400">
+              {clubId ? `${typeof window !== 'undefined' ? window.location.origin : ''}/clubs/${clubId}` : 'Loading...'}
+            </code>
+          </div>
+          <div className="flex gap-2">
+            <Button 
+              onClick={copyPublicUrl}
+              variant="outline"
+              className="flex-1"
+            >
+              <Copy className="mr-2 h-4 w-4" />
+              Copy URL
+            </Button>
+            <Button 
+              onClick={openPublicPage}
+              variant="default"
+              className="flex-1"
+            >
+              <ExternalLink className="mr-2 h-4 w-4" />
+              Open Public Page
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -159,7 +213,7 @@ export function WebsiteSetupTab() {
             Website Information
           </CardTitle>
           <CardDescription>
-            Configure your club basic website details
+            Configure your club basic website details that will appear on the public page
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

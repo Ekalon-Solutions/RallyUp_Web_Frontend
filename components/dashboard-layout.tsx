@@ -122,7 +122,7 @@ const userNavigation = [
   { name: "Browse Plans", href: "/dashboard/user/browse-plans", icon: CreditCard },
   { name: "Membership Card", href: "/dashboard/user/membership-card", icon: CreditCard },
   { name: "My Profile", href: "/dashboard/user/profile", icon: User },
-  { name: "Settings", href: "/dashboard/settings", icon: Settings },
+  { name: "My Settings", href: "/dashboard/user-settings", icon: Settings },
   { name: "Help", href: "/dashboard/help", icon: HelpCircle },
 ]
 

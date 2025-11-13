@@ -489,7 +489,8 @@ class ApiClient {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
-    const url = `${this.baseURL}${endpoint}`;
+    // Remove double slashes when concatenating baseURL and endpoint
+    const url = `${this.baseURL}${endpoint}`.replace(/([^:]\/)\/+/g, "$1");
     const token = this.getToken();
     console.log(`API request to ${endpoint} with token:`, token ? 'exists' : 'missing');
 
@@ -751,11 +752,32 @@ class ApiClient {
     email?: string;
     phoneNumber?: string;
     countryCode?: string;
+    notificationPreferences?: {
+      events?: boolean;
+      membershipRenewals?: boolean;
+      membershipExpiry?: boolean;
+      newMerchandise?: boolean;
+      pollResults?: boolean;
+      newsUpdates?: boolean;
+    };
   }): Promise<ApiResponse<User>> {
     return this.request('/users/profile', {
       method: 'PUT',
       body: JSON.stringify(data),
     });
+  }
+
+  async getUserProfile(): Promise<ApiResponse<User & {
+    notificationPreferences?: {
+      events: boolean;
+      membershipRenewals: boolean;
+      membershipExpiry: boolean;
+      newMerchandise: boolean;
+      pollResults: boolean;
+      newsUpdates: boolean;
+    };
+  }>> {
+    return this.request('/users/profile');
   }
 
   // Admin Member Management APIs
@@ -1525,8 +1547,34 @@ class ApiClient {
     return this.request('/clubs/public');
   }
 
-  async getClubById(id: string): Promise<ApiResponse<Club>> {
-    return this.request(`/clubs/${id}`);
+  async getClubById(id: string, isPublic: boolean = false): Promise<ApiResponse<Club>> {
+    const endpoint = isPublic ? `/clubs/${id}/public` : `/clubs/${id}`;
+    
+    if (isPublic) {
+      // For public access, make request without requiring auth token
+      const url = `${this.baseURL}${endpoint}`;
+      const response = await fetch(url, {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        return {
+          success: false,
+          error: 'Failed to fetch club data'
+        };
+      }
+      
+      const data = await response.json();
+      return {
+        success: true,
+        data: data
+      };
+    }
+    
+    return this.request(endpoint);
   }
 
   async updateClub(id: string, data: any): Promise<ApiResponse<{ message: string; club: Club }>> {
@@ -2394,8 +2442,34 @@ class ApiClient {
   }
 
   // Club Settings APIs
-  async getClubSettings(clubId: string): Promise<ApiResponse<any>> {
-    return this.get(`/club-settings/${clubId}`);
+  async getClubSettings(clubId: string, isPublic: boolean = false): Promise<ApiResponse<any>> {
+    const endpoint = isPublic ? `/club-settings/${clubId}/public` : `/club-settings/${clubId}`;
+    
+    if (isPublic) {
+      // For public access, make request without requiring auth token
+      const url = `${this.baseURL}${endpoint}`;
+      const response = await fetch(url, {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        return {
+          success: false,
+          error: 'Failed to fetch club settings'
+        };
+      }
+      
+      const data = await response.json();
+      return {
+        success: true,
+        data: data
+      };
+    }
+    
+    return this.get(endpoint);
   }
 
   async updateWebsiteSetup(clubId: string, data: {

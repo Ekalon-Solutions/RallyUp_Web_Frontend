@@ -1,5 +1,6 @@
 import type React from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { SiteNavbar } from "@/components/site-navbar"
 import { SiteFooter } from "@/components/site-footer"
 import { ScrollToTop } from "@/components/scroll-to-top"
@@ -14,6 +15,26 @@ export default function PrivacyPage(): React.JSX.Element {
     <main className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-sky-50 dark:from-slate-950 dark:via-slate-900 dark:to-blue-950 text-slate-900 dark:text-white">
       <SiteNavbar />
       <div className="mx-auto max-w-3xl px-4 py-16">
+        <div className="flex flex-wrap items-center gap-4 mb-8">
+          <div className="relative h-10 w-40 sm:h-11 sm:w-48">
+            <Image
+              src="/WingmanPro Logo (White BG).svg"
+              alt="Wingman Pro logo"
+              fill
+              sizes="(max-width: 640px) 160px, 192px"
+              className="object-contain"
+            />
+          </div>
+          <div className="relative h-10 w-40 sm:h-11 sm:w-48">
+            <Image
+              src="/RallyUpSolutions Logo (WhiteBackground).svg"
+              alt="RallyUp Solutions logo"
+              fill
+              sizes="(max-width: 640px) 160px, 192px"
+              className="object-contain"
+            />
+          </div>
+        </div>
         <h1 className="text-3xl md:text-4xl font-bold mb-4">PRIVACY POLICY: RALLYUP SOLUTIONS PRIVATE LIMITED (For Wingman Pro)</h1>
         <p className="text-sm text-slate-600 dark:text-slate-400 mb-10">
           Effective Date: October 31, 2025
