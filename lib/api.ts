@@ -469,6 +469,7 @@ export interface ExternalTicketRequest {
   user_id?: User;
   user_name: string;
   phone: string;
+  phone_country_code?: string;
   tickets: number;
   preferred_date: string;
   comments?: string;
@@ -710,7 +711,7 @@ class ApiClient {
   }
 
   // Admin attendance logging (called from attendance landing page)
-  async adminLogAttendance(data: { token?: string | null; userId?: string | null; eventId?: string | null }): Promise<ApiResponse<any>> {
+  async adminLogAttendance(data: { registrationId?: string | null; attendeeId?: string | null;}): Promise<ApiResponse<any>> {
     return this.request('/events/admin/attendance', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -928,6 +929,7 @@ class ApiClient {
     clubId: string;
     userName: string;
     phone: string;
+    phone_country_code?: string;
     tickets?: number;
     preferredDate: string;
     comments?: string;
@@ -1009,10 +1011,11 @@ class ApiClient {
   }
 
   // Event Registration APIs
-  async registerForEvent(eventId: string, notes?: string): Promise<ApiResponse<{ message: string; event: Event }>> {
+  // Accepts optional notes and an attendees array: [{ name, phone }]
+  async registerForEvent(eventId: string, notes?: string, attendees?: Array<{ name: string; phone: string }>): Promise<ApiResponse<{ message: string; event: Event }>> {
     return this.request(`/events/${eventId}/register`, {
       method: 'POST',
-      body: JSON.stringify({ notes }),
+      body: JSON.stringify({ notes, attendees }),
     });
   }
 
@@ -1037,6 +1040,10 @@ class ApiClient {
     return this.request(`/events/${eventId}/registrations`);
   }
 
+  async getRegistrationById(registrationId: string): Promise<ApiResponse<{ registration: any }>> {
+    return this.request(`/events/registration/${registrationId}`);
+  }
+
   async getUserEventRegistrations(): Promise<ApiResponse<Array<{
     eventId: string;
     eventTitle: string;
@@ -1053,6 +1060,28 @@ class ApiClient {
     };
   }>>> {
     return this.request('/events/my-registrations');
+  }
+
+  // Leaderboard
+  async getLeaderboard(): Promise<ApiResponse<{
+    leaderboard: Array<{
+      userId: string;
+      name?: string;
+      email?: string;
+      avatar?: string;
+      club?: string;
+      eventCount: number;
+      points: number;
+    }>;
+  }>> {
+    return this.request('/leaderboard');
+  }
+
+  async updateLeaderboardPoints(userId: string, points: number): Promise<ApiResponse<any>> {
+    return this.request(`/leaderboard/${encodeURIComponent(userId)}/points`, {
+      method: 'PATCH',
+      body: JSON.stringify({ points }),
+    });
   }
 
   // Volunteer Management (Updated for new structure)

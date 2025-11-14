@@ -1,6 +1,6 @@
 "use client"
 
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import QRCode from 'react-qr-code'
 import { useAuth } from '@/contexts/auth-context'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -9,6 +9,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Calendar, MapPin, Clock, Users, Infinity as InfinityIcon } from 'lucide-react'
 import { Event } from '@/lib/api'
+import { apiClient } from '@/lib/api'
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion'
 
 interface EventDetailsModalProps {
   event: Event | null
@@ -18,14 +20,30 @@ interface EventDetailsModalProps {
 
 export default function EventDetailsModal({ event, isOpen, onClose }: EventDetailsModalProps) {
   const { user } = useAuth()
-  if (!event) return null
-
-  const userIdForQr: string | null = user?._id ?? null
-  const eventIdForQr: string | null = event._id ?? null
+  const [registration, setRegistration] = useState<any | null>(null)
   // Use public NEXT variable for base URL so environments can configure the domain
   const baseUrl = (process.env.NEXT_PUBLIC_APP_URL as string) || "wingmanpro.tech";
-  // Convert nullable ids to string (null -> "null") so QR contains an explicit null value when id is absent
-  const qrValue = `wingmanpro.tech/dashboard/events/attendance?userId=${encodeURIComponent(String(userIdForQr))}&eventId=${encodeURIComponent(String(eventIdForQr))}`
+
+  useEffect(() => {
+    if (!event) {
+      setRegistration(null)
+      return
+    }
+    // Find a registration entry on the event for the current user
+    const regs = (event.registrations || []) as any[]
+    const myRegEntry = regs.find(r => r && String(r.userId) === String(user?._id) && r.registrationId)
+    if (myRegEntry && myRegEntry.registrationId) {
+      apiClient.getRegistrationById(String(myRegEntry.registrationId)).then(res => {
+        if (res && res.success && res.data && res.data.registration) setRegistration(res.data.registration)
+      }).catch(() => {
+        // ignore failures; leave registration null
+      })
+    } else {
+      setRegistration(null)
+    }
+  }, [event, user])
+
+  if (!event) return null
 
   const formatDateTime = (dateString?: string) => {
     if (!dateString) return '—'
@@ -67,7 +85,7 @@ export default function EventDetailsModal({ event, isOpen, onClose }: EventDetai
                     <div className="flex items-center gap-2"><Users className="w-4 h-4 text-muted-foreground" /><span>{event.currentAttendees}{event.maxAttendees ? `/${event.maxAttendees}` : ''} attendees</span></div>
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-muted-foreground">Category</span>
-                      <Badge variant={event.isActive ? 'default' : 'secondary'} className="ml-2">{event.category}</Badge>
+                      <Badge variant="secondary" className="ml-2">{event.category}</Badge>
                     </div>
                     <div className="flex items-center gap-2">
                       {event.maxAttendees ? (
@@ -85,24 +103,42 @@ export default function EventDetailsModal({ event, isOpen, onClose }: EventDetai
           {/* Attendance status + QR Code combined in one section */}
           <Card>
             <CardContent>
-              <div className="my-3 flex items-start justify-between">
-              <h3 className="text-lg font-semibold mb-3">Event QR Code</h3>
-                  <Badge variant={attendanceMarked ? 'default' : 'secondary'} className="capitalize text-sm">
-                    Attendance {attendanceMarked ? 'Marked' : 'Not marked'}
-                  </Badge>
+              <div className="my-3">
+                <h3 className="text-lg font-semibold mb-3">Event QR Code</h3>
               </div>
-              <div className="flex flex-col items-center justify-center py-6">
-                <a
-                  href={qrValue}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-40 h-40 bg-white rounded-md flex items-center justify-center cursor-pointer"
-                  aria-label="Open attendance link in new tab"
-                >
-                  {/* QR Code - clicking opens the attendance URL */}
-                  <QRCode value={qrValue} size={152} />
-                </a>
-                <p className="text-sm text-muted-foreground mt-3 text-center">A QR code for event check-in will appear here. You can generate or display the QR code via the admin panel or when the event is live.</p>
+              <div className="flex flex-col items-center justify-center py-6 space-y-4">
+                {registration && Array.isArray(registration.attendees) && registration.attendees.length > 0 ? (
+                  <div className="w-full">
+                    <Accordion type="single" collapsible>
+                      {registration.attendees.map((att: any) => {
+                        const linkSuffix = `/dashboard/events/attendance?registrationId=${encodeURIComponent(String(registration._id))}&attendeeId=${encodeURIComponent(String(att._id))}` 
+                        const val = `${baseUrl}${linkSuffix}`
+                        return (
+                          <AccordionItem key={String(att._id)} value={String(att._id)}>
+                            <AccordionTrigger>
+                              <div className="flex items-center gap-3 w-full">
+                                <div className="text-sm font-medium">{att.name || 'Attendee'}</div>
+                                <div className="text-xs text-muted-foreground">{att.phone}</div>
+                                <Badge variant={att.attended ? "default" : "secondary"} className="text-xs ml-auto">
+                                  {att.attended ? "Attended" : "Not Attended"}
+                                </Badge>
+                              </div>
+                            </AccordionTrigger>
+                            <AccordionContent>
+                              <div className="flex items-center justify-center">
+                                <a href={linkSuffix} target="_blank" rel="noopener noreferrer" className="w-40 h-40 bg-white rounded-md flex items-center justify-center cursor-pointer" aria-label={`Open attendance link for ${att.name}`}>
+                                  <QRCode value={val} size={152} />
+                                </a>
+                              </div>
+                            </AccordionContent>
+                          </AccordionItem>
+                        )
+                      })}
+                    </Accordion>
+                  </div>
+                ) : (
+                  <p>No attendees registered for this event</p>
+                )}
               </div>
             </CardContent>
           </Card>

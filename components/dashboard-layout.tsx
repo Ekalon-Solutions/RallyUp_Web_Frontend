@@ -35,6 +35,7 @@ import {
   Music,
   ShoppingCart,
   UserCheck,
+  ChartNoAxesColumn,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -55,6 +56,7 @@ const adminNavigation = [
   { name: "Merchandise Store", href: "/dashboard/merchandise", icon: Shirt },
   { name: "Order Management", href: "/dashboard/orders", icon: ShoppingCart },
   { name: "Events & Tickets", href: "/dashboard/events", icon: Ticket },
+  { name: "Leaderboard", href: "/dashboard/leaderboard", icon: ChartNoAxesColumn },
   { name: "Match Center", href: "/dashboard/match-center", icon: Calendar },
   { name: "Group Website", href: "/dashboard/website", icon: Globe },
   { name: "Travel & Away Days", href: "/dashboard/travel", icon: Bus },
@@ -89,6 +91,7 @@ const superAdminNavigation = [
   { name: "Merchandise Store", href: "/dashboard/merchandise", icon: Shirt },
   { name: "Order Management", href: "/dashboard/orders", icon: ShoppingCart },
   { name: "Events & Tickets", href: "/dashboard/events", icon: Ticket },
+  { name: "Leaderboard", href: "/dashboard/leaderboard", icon: ChartNoAxesColumn },
   { name: "Match Center", href: "/dashboard/match-center", icon: Calendar },
   { name: "Group Website", href: "/dashboard/website", icon: Globe },
   { name: "Travel & Away Days", href: "/dashboard/travel", icon: Bus },
@@ -107,6 +110,7 @@ const userNavigation = [
   { name: "My Clubs", href: "/dashboard/user/my-clubs", icon: UserCheck },
   { name: "Members", href: "/dashboard/user/members", icon: Users },
   { name: "Events", href: "/dashboard/user/events", icon: Ticket },
+  { name: "Leaderboard", href: "/dashboard/user/leaderboard", icon: ChartNoAxesColumn },
   { name: "News", href: "/dashboard/user/news", icon: Newspaper },
   { name: "Polls", href: "/dashboard/user/polls", icon: Vote },
   { name: "Our Chants", href: "/dashboard/user/chants", icon: Music },

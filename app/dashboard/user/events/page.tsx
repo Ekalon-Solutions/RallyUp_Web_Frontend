@@ -1,18 +1,40 @@
-"use client"
+"use client";
 
-import React, { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { DashboardLayout } from "@/components/dashboard-layout"
-import { ProtectedRoute } from "@/components/protected-route"
-import { apiClient, Event } from "@/lib/api"
-import { toast } from "sonner"
-import { useAuth } from "@/contexts/auth-context"
-import { Calendar, MapPin, Clock, Users, Search, Filter, Eye, Infinity as InfinityIcon } from "lucide-react"
-import EventDetailsModal from '@/components/modals/event-details-modal'
+import { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { DashboardLayout } from "@/components/dashboard-layout";
+import { ProtectedRoute } from "@/components/protected-route";
+import { apiClient, Event } from "@/lib/api";
+import { toast } from "sonner";
+import { useAuth } from "@/contexts/auth-context";
+import {
+  Calendar,
+  MapPin,
+  Clock,
+  Users,
+  Search,
+  Filter, Infinity as InfinityIcon,
+  Trash,
+  User
+} from "lucide-react";
+import EventDetailsModal from "@/components/modals/event-details-modal";
+import UserEventRegistrationModal from "@/components/modals/user-event-registration-modal";
 
 const eventCategories = [
   "all",
@@ -25,116 +47,263 @@ const eventCategories = [
   "charity",
   "technology",
   "health",
-  "entertainment"
-]
+  "entertainment",
+];
 
-export default function UserEventsPage() {
-  const { user } = useAuth()
-  const [events, setEvents] = useState<Event[]>([])
-  const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [categoryFilter, setCategoryFilter] = useState<string>("all")
-  const [selectedEventForDetails, setSelectedEventForDetails] = useState<Event | null>(null)
-  const [showEventDetailsModal, setShowEventDetailsModal] = useState(false)
+// Component to display attendance marker with user's registration data
+function AttendanceMarker({ event, userId }: { event: Event; userId?: string }) {
+  const [registration, setRegistration] = useState<any | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchEvents()
-  }, [])
+    if (!event || !userId) {
+      setRegistration(null);
+      setLoading(false);
+      return;
+    }
+
+    // Find the user's registration entry
+    const regs = (event.registrations || []) as any[];
+    const myRegEntry = regs.find(
+      (r) => r && String(r.userId) === String(userId) && r.registrationId
+    );
+
+    if (myRegEntry && myRegEntry.registrationId) {
+      setLoading(true);
+      apiClient
+        .getRegistrationById(String(myRegEntry.registrationId))
+        .then((res) => {
+          if (res && res.success && res.data && res.data.registration) {
+            setRegistration(res.data.registration);
+          } else {
+            setRegistration(null);
+          }
+        })
+        .catch(() => {
+          setRegistration(null);
+        })
+        .finally(() => {
+          setLoading(false);
+        });
+    } else {
+      setRegistration(null);
+      setLoading(false);
+    }
+  }, [event, userId]);
+
+  if (loading) {
+    return (
+      <Badge variant="secondary" className="w-fit ml-auto text-sm mt-1 flex items-center gap-1">
+        <User className="w-3 h-3" />
+        <span>...</span>
+      </Badge>
+    );
+  }
+
+  if (!registration || !Array.isArray(registration.attendees)) {
+    return null;
+  }
+
+  const totalRegistrations = registration.attendees.length;
+  const totalAttended = registration.attendees.filter(
+    (att: any) => att.attended === true
+  ).length;
+
+  return (
+    <Badge
+      variant="secondary"
+      className="w-fit ml-auto text-sm mt-1 flex items-center gap-1">
+      <User className="w-3 h-3" />
+      <span>{totalAttended}/{totalRegistrations}</span>
+    </Badge>
+  );
+}
+
+export default function UserEventsPage() {
+  const { user } = useAuth();
+  console.log("events user:", user)
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [selectedEventForDetails, setSelectedEventForDetails] =
+    useState<Event | null>(null);
+  const [showEventDetailsModal, setShowEventDetailsModal] = useState(false);
+  const [registrationEventId, setRegistrationEventId] = useState<string | null>(
+    null
+  );
+  const [showRegistrationModal, setShowRegistrationModal] = useState(false);
+  const [cancellingEventId, setCancellingEventId] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchEvents();
+  }, []);
 
   const fetchEvents = async () => {
     try {
-      setLoading(true)
-      const response = await apiClient.getPublicEvents()
+      setLoading(true);
+      const response = await apiClient.getPublicEvents();
 
       if (response.success && response.data) {
-        setEvents(response.data)
+        setEvents(response.data);
       } else {
-        console.error("Failed to fetch events:", response.error)
-        toast.error("Failed to fetch events")
+        console.error("Failed to fetch events:", response.error);
+        toast.error("Failed to fetch events");
       }
     } catch (error) {
-      console.error("Error fetching events:", error)
-      toast.error("Error fetching events")
+      console.error("Error fetching events:", error);
+      toast.error("Error fetching events");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-  const handleEventRegistration = async (eventId: string) => {
+  // Open registration modal instead of immediately calling the API.
+  const handleEventRegistration = (eventId: string) => {
     if (!user) {
-      toast.error("Please log in to register for events")
-      return
+      toast.error("Please log in to register for events");
+      return;
     }
+    setRegistrationEventId(eventId);
+    setShowRegistrationModal(true);
+  };
 
+  // Frontend-only handler that receives registration payload from the modal
+  const handlePerformRegistration = async (payload: {
+    eventId: string;
+    attendees: any[];
+  }) => {
+    if (!payload || !payload.eventId) return;
     try {
-      const response = await apiClient.registerForEvent(eventId, user._id)
-      if (response.success) {
-        toast.success("Successfully registered for event!")
-        fetchEvents() // Refresh events to update attendance
-      } else {
-        toast.error(response.error || "Failed to register for event")
-      }
+      // Wrap API call so we can detect success flag (apiClient resolves for non-2xx)
+      const p = (async () => {
+        const res = await apiClient.registerForEvent(
+          payload.eventId,
+          undefined,
+          payload.attendees
+        );
+        // apiClient returns an object even for non-ok responses; reject to let toast.promise show error
+        if (!res || !res.success) throw res ?? new Error("Registration failed");
+        return res;
+      })();
+
+      toast.promise(p, {
+        loading: "Registering...",
+        success: (res: any) => {
+          // Refresh events and close modal
+          fetchEvents();
+          setShowRegistrationModal(false);
+          setRegistrationEventId(null);
+          return res?.data?.message || "Registered successfully";
+        },
+        error: (err: any) => {
+          const msg = err?.error || err?.message || err?.data?.message || "Registration failed";
+          return msg;
+        },
+      });
     } catch (error) {
-      console.error("Error registering for event:", error)
-      toast.error("Error registering for event")
+      console.error("Registration API error", error);
+      toast.error("Failed to register for event");
     }
-  }
+  };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  const formatTime = (dateString: string) => {
+    return new Date(dateString).toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
     })
   }
-
   const getAttendancePercentage = (current: number, max: number) => {
-    return Math.round((current / max) * 100)
-  }
+    return Math.round((current / max) * 100);
+  };
 
   const isEventFull = (event: Event) => {
-    return event.maxAttendees ? event.currentAttendees >= event.maxAttendees : false
-  }
+    return event.maxAttendees
+      ? event.currentAttendees >= event.maxAttendees
+      : false;
+  };
+
+  const isEventUpcoming = (event: Event) => {
+    return new Date(event.startTime) > new Date();
+  };
 
   const isEventPast = (event: Event) => {
-    return new Date(event.startTime) < new Date()
-  }
+    return event.endTime ? new Date(event.endTime) < new Date() : false;
+  };
 
   const isEventOngoing = (event: Event) => {
-    const now = new Date()
-    const start = new Date(event.startTime)
-    const end = event.endTime ? new Date(event.endTime) : null
+    const now = new Date();
+    const start = new Date(event.startTime);
+    const end = event.endTime ? new Date(event.endTime) : null;
     if (end) {
-      return start <= now && now < end
+      return start <= now && now < end;
     }
     // If no end time, consider ongoing if startTime is in the past and it's not marked as past by existing logic
-    return start <= now && !isEventPast(event)
-  }
+    return start <= now && !isEventPast(event);
+  };
 
   const eventsUserIsRegisteredForOngoing = () => {
-    if (!user) return [] as Event[]
-    return (events || []).filter(ev => {
-      const regs = ev.registrations || []
-      const found = regs.find((r: any) => r.userId === user._id)
-      return !!found && isEventOngoing(ev)
-    })
-  }
+    if (!user) return [] as Event[];
+    return (events || []).filter((ev) => {
+      const regs = ev.registrations || [];
+      const found = regs.find((r: any) => r.userId === user._id);
+      return !!found && isEventOngoing(ev);
+    });
+  };
 
-  const filteredEvents = events.filter(event => {
+  const handleCancelRegistration = async (eventId: string) => {
+    if (!eventId) return;
+    if (
+      !confirm(
+        "Are you sure you want to cancel your registration for this event?"
+      )
+    )
+      return;
+    try {
+      setCancellingEventId(eventId);
+      // Call the API and inspect the response object
+      const res = await apiClient.cancelEventRegistration(eventId);
+      if (res && res.success) {
+        toast.success(res.data?.message || "Registration cancelled");
+        await fetchEvents();
+      } else {
+        const msg = res?.error || res?.message || `Cancellation failed (status ${res?.status ?? 'unknown'})`;
+        toast.error(msg);
+        console.error('Cancel registration failed:', res);
+      }
+    } catch (error) {
+      console.error("Cancel registration error", error);
+      toast.error("Failed to cancel registration");
+    } finally {
+      setCancellingEventId(null);
+    }
+  };
+
+  const filteredEvents = events.filter((event) => {
     // Apply search filter
-    const searchMatch = !searchTerm || 
+    const searchMatch =
+      !searchTerm ||
       event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       event.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      event.venue.toLowerCase().includes(searchTerm.toLowerCase())
+      event.venue.toLowerCase().includes(searchTerm.toLowerCase());
 
     // Apply category filter
-    const categoryMatch = categoryFilter === "all" || event.category === categoryFilter
+    const categoryMatch =
+      categoryFilter === "all" || event.category === categoryFilter;
 
-    return searchMatch && categoryMatch
-  })
+    return searchMatch && categoryMatch;
+  });
 
-  const upcomingEvents = filteredEvents.filter(event => !isEventPast(event))
-  const pastEvents = filteredEvents.filter(event => isEventPast(event))
+  const upcomingEvents = filteredEvents.filter((event) => isEventUpcoming(event));
+  const pastEvents = filteredEvents.filter((event) => isEventPast(event));
 
   return (
     <ProtectedRoute>
@@ -142,7 +311,9 @@ export default function UserEventsPage() {
         <div className="space-y-6">
           <div>
             <h1 className="text-3xl font-bold">Events</h1>
-            <p className="text-muted-foreground">Discover and register for upcoming events</p>
+            <p className="text-muted-foreground">
+              Discover and register for upcoming events
+            </p>
           </div>
 
           {/* Filters */}
@@ -160,7 +331,9 @@ export default function UserEventsPage() {
                     />
                   </div>
                 </div>
-                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <Select
+                  value={categoryFilter}
+                  onValueChange={setCategoryFilter}>
                   <SelectTrigger className="w-full sm:w-48">
                     <Filter className="w-4 h-4 mr-2" />
                     <SelectValue placeholder="Filter by category" />
@@ -168,7 +341,10 @@ export default function UserEventsPage() {
                   <SelectContent>
                     {eventCategories.map((category) => (
                       <SelectItem key={category} value={category}>
-                        {category === "all" ? "All Categories" : category.charAt(0).toUpperCase() + category.slice(1)}
+                        {category === "all"
+                          ? "All Categories"
+                          : category.charAt(0).toUpperCase() +
+                          category.slice(1)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -177,39 +353,87 @@ export default function UserEventsPage() {
             </CardContent>
           </Card>
 
-          {/* Upcoming Events */}
+          {/* Ongoing Events */}
           <div className="space-y-4">
-            {/* Ongoing events the user has registered for (inside Upcoming section) */}
             <div className="mt-4">
               <h4 className="text-md font-semibold">Ongoing events</h4>
-              <p className="text-sm text-muted-foreground mb-3">Ongoing events that you've registered for</p>
+              <p className="text-sm text-muted-foreground mb-3">
+                Ongoing events that you've registered for
+              </p>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {eventsUserIsRegisteredForOngoing().length === 0 ? (
                   <Card>
                     <CardContent className="text-center py-6">
-                      <p className="text-sm text-muted-foreground">No ongoing events that you're registered for right now.</p>
+                      <p className="text-sm text-muted-foreground">
+                        No ongoing events that you're registered for right now.
+                      </p>
                     </CardContent>
                   </Card>
                 ) : (
-                  eventsUserIsRegisteredForOngoing().map(event => (
-                    <Card key={event._id} className="overflow-hidden hover:shadow-md transition-shadow">
+                  eventsUserIsRegisteredForOngoing().map((event) => (
+                    <Card
+                      key={event._id}
+                      className="overflow-hidden hover:shadow-md transition-shadow">
                       <CardHeader className="pb-3">
                         <div className="flex items-start justify-between">
                           <div className="space-y-1 flex-1">
-                            <CardTitle className="text-lg line-clamp-2">{event.title}</CardTitle>
-                            <CardDescription className="line-clamp-2">{event.description}</CardDescription>
+                            <CardTitle className="text-lg line-clamp-2">
+                              {event.title}
+                            </CardTitle>
+                            <CardDescription className="line-clamp-2">
+                              {event.description}
+                            </CardDescription>
                           </div>
-                          <Badge variant={event.isActive ? "default" : "secondary"} className="ml-2 flex-shrink-0">{event.category}</Badge>
+                          <div className="ml-2 flex-shrink-0 space-y-1">
+                            <Badge variant="secondary" className="block">
+                              {event.category}
+                            </Badge>
+                            {/* Attendance marker */}
+                            <AttendanceMarker event={event} userId={user?._id} />
+                          </div>
                         </div>
                       </CardHeader>
                       <CardContent className="space-y-3">
                         <div className="space-y-2 text-sm">
-                          <div className="flex items-center gap-2"><Calendar className="w-4 h-4 text-muted-foreground" /><span className="font-medium">{formatDate(event.startTime)}</span></div>
-                          <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-muted-foreground" /><span>{new Date(event.startTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span></div>
-                          <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-muted-foreground" /><span className="truncate">{event.venue}</span></div>
+                          <div className="flex items-center gap-2">
+                            <Calendar className="w-4 h-4 text-muted-foreground" />
+                            <span className="font-medium">
+                              {formatDate(event.startTime)}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Clock className="w-4 h-4 text-muted-foreground" />
+                            <span>
+                              {new Date(event.startTime).toLocaleTimeString(
+                                "en-US",
+                                { hour: "2-digit", minute: "2-digit" }
+                              )}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <MapPin className="w-4 h-4 text-muted-foreground" />
+                            <span className="truncate">{event.venue}</span>
+                          </div>
                         </div>
                         <div className="pt-2">
-                          <Button onClick={() => { setSelectedEventForDetails(event); setShowEventDetailsModal(true) }} className="w-full">View event</Button>
+                          {(() => {
+                            const isRegistered = Boolean(
+                              user?._id &&
+                              (event.registrations || []).some(
+                                (r: any) => r.userId === user._id
+                              )
+                            );
+                            return (
+                              <Button
+                                onClick={() => {
+                                  setSelectedEventForDetails(event);
+                                  setShowEventDetailsModal(true);
+                                }}
+                                className="w-full">
+                                View event
+                              </Button>
+                            );
+                          })()}
                         </div>
                       </CardContent>
                     </Card>
@@ -226,7 +450,9 @@ export default function UserEventsPage() {
               <div className="flex items-center justify-center h-64">
                 <div className="text-center">
                   <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
-                  <p className="mt-4 text-muted-foreground">Loading events...</p>
+                  <p className="mt-4 text-muted-foreground">
+                    Loading events...
+                  </p>
                 </div>
               </div>
             ) : upcomingEvents.length === 0 ? (
@@ -234,106 +460,182 @@ export default function UserEventsPage() {
                 <CardContent className="flex items-center justify-center h-64">
                   <div className="text-center">
                     <Calendar className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-semibold">No upcoming events</h3>
-                    <p className="text-muted-foreground">Check back later for new events</p>
+                    <h3 className="text-lg font-semibold">
+                      No upcoming events
+                    </h3>
+                    <p className="text-muted-foreground">
+                      Check back later for new events
+                    </p>
                   </div>
                 </CardContent>
               </Card>
             ) : (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {upcomingEvents
-                  .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+                  .sort(
+                    (a, b) =>
+                      new Date(a.startTime).getTime() -
+                      new Date(b.startTime).getTime()
+                  )
                   .map((event) => (
-                  <Card key={event._id} className="overflow-hidden hover:shadow-md transition-shadow">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-1 flex-1">
-                          <CardTitle className="text-lg line-clamp-2">{event.title}</CardTitle>
-                          <CardDescription className="line-clamp-2">
-                            {event.description}
-                          </CardDescription>
+                    <Card
+                      key={event._id}
+                      className="overflow-hidden hover:shadow-md transition-shadow">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-start justify-between">
+                          <div className="space-y-1 flex-1">
+                            <CardTitle className="text-lg line-clamp-2">
+                              {event.title}
+                            </CardTitle>
+                            <CardDescription className="line-clamp-2">
+                              {event.description}
+                            </CardDescription>
+                          </div>
+                          <div className="ml-2 flex-shrink-0 space-y-1">
+                            <Badge
+                              variant="secondary"
+                              className="block">
+                              {event.category}
+                            </Badge>
+                          </div>
                         </div>
-                        <Badge 
-                          variant={event.isActive ? "default" : "secondary"}
-                          className="ml-2 flex-shrink-0"
-                        >
-                          {event.category}
-                        </Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="space-y-2 text-sm">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4 text-muted-foreground" />
-                          <span className="font-medium">
-                            {formatDate(event.startTime)}
-                          </span>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div className="space-y-2 text-sm">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="w-4 h-4 text-muted-foreground" />
+                            <span className="font-medium">
+                              {formatDate(event.startTime)}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Clock className="w-4 h-4 text-muted-foreground" />
+                            <span>
+                              Starts {formatDate(event.startTime)} at {formatTime(event.startTime)}
+                            </span>
+                          </div>
+                          {event.endTime && (
+                            <div className="flex items-center gap-2">
+                              <Clock className="w-4 h-4 text-muted-foreground" />
+                              <span>
+                                Ends {formatDate(event.endTime)} at {formatTime(event.endTime)}
+                              </span>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-2">
+                            <MapPin className="w-4 h-4 text-muted-foreground" />
+                            <span className="truncate">{event.venue}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Users className="w-4 h-4 text-muted-foreground" />
+                            <span className="text-xs">
+                              {event.currentAttendees}
+                              {event.maxAttendees
+                                ? `/${event.maxAttendees}`
+                                : ""}{" "}
+                              attendees
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Clock className="w-4 h-4 text-muted-foreground" />
-                          <span>{new Date(event.startTime).toLocaleTimeString('en-US')}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <MapPin className="w-4 h-4 text-muted-foreground" />
-                          <span className="truncate">{event.venue}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Users className="w-4 h-4 text-muted-foreground" />
-                          <span className="text-xs">
-                            {event.currentAttendees}{event.maxAttendees ? `/${event.maxAttendees}` : ''} attendees
-                          </span>
-                        </div>
-                      </div>
-                      
-                      {/* Attendance Progress Bar */}
-                      <div className="space-y-1">
-                        <div className="flex justify-between text-xs text-muted-foreground">
-                          <span>Capacity</span>
-                          {event.maxAttendees && (
-                            <span>{getAttendancePercentage(event.currentAttendees || 0, event.maxAttendees)}%</span>
+
+                        {/* Attendance Progress Bar */}
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-xs text-muted-foreground">
+                            <span>Capacity</span>
+                            {event.maxAttendees && (
+                              <span>
+                                {getAttendancePercentage(
+                                  event.currentAttendees || 0,
+                                  event.maxAttendees
+                                )}
+                                %
+                              </span>
+                            )}
+                          </div>
+                          {event.maxAttendees ? (
+                            <div className="w-full bg-gray-200 rounded-full h-2">
+                              <div
+                                className={`h-2 rounded-full transition-all ${getAttendancePercentage(
+                                  event.currentAttendees || 0,
+                                  event.maxAttendees
+                                ) >= 90
+                                    ? "bg-red-500"
+                                    : getAttendancePercentage(
+                                      event.currentAttendees || 0,
+                                      event.maxAttendees
+                                    ) >= 75
+                                      ? "bg-yellow-500"
+                                      : "bg-green-500"
+                                  }`}
+                                style={{
+                                  width: `${Math.min(
+                                    getAttendancePercentage(
+                                      event.currentAttendees || 0,
+                                      event.maxAttendees
+                                    ),
+                                    100
+                                  )}%`,
+                                }}></div>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <InfinityIcon className="h-3 w-3" />
+                              <span>Unlimited capacity</span>
+                            </div>
                           )}
                         </div>
-                        {event.maxAttendees ? (
-                          <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div 
-                              className={`h-2 rounded-full transition-all ${
-                                getAttendancePercentage(event.currentAttendees || 0, event.maxAttendees) >= 90 
-                                  ? 'bg-red-500' 
-                                  : getAttendancePercentage(event.currentAttendees || 0, event.maxAttendees) >= 75 
-                                  ? 'bg-yellow-500' 
-                                  : 'bg-green-500'
-                              }`}
-                              style={{ 
-                                width: `${Math.min(getAttendancePercentage(event.currentAttendees || 0, event.maxAttendees), 100)}%` 
-                              }}
-                            ></div>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <InfinityIcon className="h-3 w-3" />
-                            <span>Unlimited capacity</span>
-                          </div>
-                        )}
-                      </div>
-                      
-                          <div className="pt-2">
-                        {event.maxAttendees && isEventFull(event) ? (
-                          <Button disabled className="w-full" variant="secondary">
-                            Event Full
-                          </Button>
-                        ) : (
-                          <Button 
-                            onClick={() => handleEventRegistration(event._id)}
-                            className="w-full"
-                          >
-                            Register for Event
-                          </Button>
-                        )}
-                      </div>
-                        
-                    </CardContent>
-                  </Card>
-                ))}
+
+                        <div className="pt-2">
+                          {(() => {
+                            const isRegistered =
+                              user?._id &&
+                              (event.registrations || []).some(
+                                (r: any) => r.userId === user._id
+                              );
+                            if (isRegistered) {
+                              return (
+                                <div className="flex gap-2">
+                                  <Button
+                                    disabled
+                                    className="w-full"
+                                    variant="outline">
+                                    Registered
+                                  </Button>
+                                  <Button
+                                    variant="destructive"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleCancelRegistration(event._id);
+                                    }}
+                                    disabled={cancellingEventId === event._id}
+                                    className="h-10 w-10 p-0 flex items-center justify-center"
+                                    title="Cancel registration">
+                                    <Trash className="w-4 h-4 text-white" />
+                                  </Button>
+                                </div>
+                              );
+                            } else if (event.maxAttendees && isEventFull(event)) {
+                              return <Button
+                                disabled
+                                className="w-full"
+                                variant="secondary">
+                                Event Full
+                              </Button>
+                            }
+                            else {
+                              return <Button
+                                onClick={() =>
+                                  handleEventRegistration(event._id)
+                                }
+                                className="w-full">
+                                Register for Event
+                              </Button>
+                            }
+                          })()}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
               </div>
             )}
           </div>
@@ -347,85 +649,119 @@ export default function UserEventsPage() {
               </div>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {pastEvents
-                  .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())
+                  .sort(
+                    (a, b) =>
+                      new Date(b.startTime).getTime() -
+                      new Date(a.startTime).getTime()
+                  )
                   .map((event) => (
-                  <Card key={event._id} className="overflow-hidden opacity-75 hover:shadow-md transition-shadow">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-1 flex-1">
-                          <CardTitle className="text-lg line-clamp-2">{event.title}</CardTitle>
-                          <CardDescription className="line-clamp-2">
-                            {event.description}
-                          </CardDescription>
+                    <Card
+                      key={event._id}
+                      className="overflow-hidden hover:shadow-md transition-shadow">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-start justify-between">
+                          <div className="space-y-1 flex-1">
+                            <CardTitle className="text-lg line-clamp-2">
+                              {event.title}
+                            </CardTitle>
+                            <CardDescription className="line-clamp-2">
+                              {event.description}
+                            </CardDescription>
+                          </div>
+                          <div className="ml-2 flex-shrink-0 space-y-1">
+                            <Badge variant="secondary" className="block">
+                              {event.category}
+                            </Badge>
+                          </div>
                         </div>
-                        <Badge variant="secondary" className="ml-2 flex-shrink-0">
-                          {event.category}
-                        </Badge>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      <div className="space-y-2 text-sm">
-                        <div className="flex items-center gap-2">
-                          <Calendar className="w-4 h-4 text-muted-foreground" />
-                          <span className="font-medium">
-                            {formatDate(event.startTime)}
-                          </span>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <div className="space-y-2 text-sm">
+                          <div className="flex items-center gap-2">
+                            <Calendar className="w-4 h-4 text-muted-foreground" />
+                            <span className="font-medium">
+                              {formatDate(event.startTime)}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Clock className="w-4 h-4 text-muted-foreground" />
+                            <span>
+                              {new Date(event.startTime).toLocaleTimeString(
+                                "en-US",
+                                { hour: "2-digit", minute: "2-digit" }
+                              )}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <MapPin className="w-4 h-4 text-muted-foreground" />
+                            <span className="truncate">{event.venue}</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Users className="w-4 h-4 text-muted-foreground" />
+                            <span className="text-xs">
+                              {event.currentAttendees}
+                              {event.maxAttendees
+                                ? `/${event.maxAttendees}`
+                                : ""}{" "}
+                              attendees
+                            </span>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Clock className="w-4 h-4 text-muted-foreground" />
-                          <span>{new Date(event.startTime).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <MapPin className="w-4 h-4 text-muted-foreground" />
-                          <span className="truncate">{event.venue}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Users className="w-4 h-4 text-muted-foreground" />
-                          <span className="text-xs">
-                            {event.currentAttendees}{event.maxAttendees ? `/${event.maxAttendees}` : ''} attendees
-                          </span>
-                        </div>
-                      </div>
-                      
-                      {/* Attendance Progress Bar */}
-                      <div className="space-y-1">
-                        <div className="flex justify-between text-xs text-muted-foreground">
-                          <span>Capacity</span>
-                          {event.maxAttendees && (
-                            <span>{getAttendancePercentage(event.currentAttendees || 0, event.maxAttendees)}%</span>
+
+                        {/* Attendance Progress Bar */}
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-xs text-muted-foreground">
+                            <span>Capacity</span>
+                            {event.maxAttendees && (
+                              <span>
+                                {getAttendancePercentage(
+                                  event.currentAttendees || 0,
+                                  event.maxAttendees
+                                )}
+                                %
+                              </span>
+                            )}
+                          </div>
+                          {event.maxAttendees ? (
+                            <div className="w-full bg-gray-200 rounded-full h-2">
+                              <div
+                                className={`h-2 rounded-full transition-all ${getAttendancePercentage(
+                                  event.currentAttendees || 0,
+                                  event.maxAttendees
+                                ) >= 90
+                                    ? "bg-red-500"
+                                    : getAttendancePercentage(
+                                      event.currentAttendees || 0,
+                                      event.maxAttendees
+                                    ) >= 75
+                                      ? "bg-yellow-500"
+                                      : "bg-green-500"
+                                  }`}
+                                style={{
+                                  width: `${Math.min(
+                                    getAttendancePercentage(
+                                      event.currentAttendees || 0,
+                                      event.maxAttendees
+                                    ),
+                                    100
+                                  )}%`,
+                                }}></div>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <InfinityIcon className="h-3 w-3" />
+                              <span>Unlimited capacity</span>
+                            </div>
                           )}
                         </div>
-                        {event.maxAttendees ? (
-                          <div className="w-full bg-gray-200 rounded-full h-2">
-                            <div 
-                              className={`h-2 rounded-full transition-all ${
-                                getAttendancePercentage(event.currentAttendees || 0, event.maxAttendees) >= 90 
-                                  ? 'bg-red-500' 
-                                  : getAttendancePercentage(event.currentAttendees || 0, event.maxAttendees) >= 75 
-                                  ? 'bg-yellow-500' 
-                                  : 'bg-green-500'
-                              }`}
-                              style={{ 
-                                width: `${Math.min(getAttendancePercentage(event.currentAttendees || 0, event.maxAttendees), 100)}%` 
-                              }}
-                            ></div>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <InfinityIcon className="h-3 w-3" />
-                            <span>Unlimited capacity</span>
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="pt-2">
-                        <Button variant="outline" className="w-full" disabled>
-                          Event Ended
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                        <div className="pt-2">
+                          <Button variant="outline" className="w-full" disabled>
+                            Event Ended
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
               </div>
             </div>
           )}
@@ -434,8 +770,20 @@ export default function UserEventsPage() {
       <EventDetailsModal
         event={selectedEventForDetails}
         isOpen={showEventDetailsModal}
-        onClose={() => { setShowEventDetailsModal(false); setSelectedEventForDetails(null) }}
+        onClose={() => {
+          setShowEventDetailsModal(false);
+          setSelectedEventForDetails(null);
+        }}
+      />
+      <UserEventRegistrationModal
+        eventId={registrationEventId}
+        isOpen={showRegistrationModal}
+        onClose={() => {
+          setShowRegistrationModal(false);
+          setRegistrationEventId(null);
+        }}
+        onRegister={handlePerformRegistration}
       />
     </ProtectedRoute>
-  )
-} 
+  );
+}
