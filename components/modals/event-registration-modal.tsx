@@ -1,13 +1,14 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, Clock, MapPin, Users, Ticket, UserCheck, Bus, CheckCircle, XCircle } from "lucide-react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Calendar, Clock, MapPin, Users, Ticket, UserCheck, Bus, CheckCircle, XCircle, Plus, X, UserPlus, AlertCircle } from "lucide-react"
 import { toast } from "sonner"
 import { apiClient, Event } from "@/lib/api"
 
@@ -18,6 +19,11 @@ interface EventRegistrationModalProps {
   event: Event | null
   isRegistered: boolean
   registrationStatus?: 'confirmed' | 'pending' | 'cancelled'
+}
+
+interface Attendee {
+  name: string
+  phone: string
 }
 
 export function EventRegistrationModal({ 
@@ -31,15 +37,79 @@ export function EventRegistrationModal({
   const [loading, setLoading] = useState(false)
   const [notes, setNotes] = useState("")
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
+  const [attendees, setAttendees] = useState<Attendee[]>([{ name: "", phone: "" }])
+  const [errors, setErrors] = useState<Record<number, { name?: string; phone?: string }>>({})
+
+  // Reset form when modal opens
+  useEffect(() => {
+    if (isOpen && !isRegistered) {
+      setNotes("")
+      setAttendees([{ name: "", phone: "" }])
+      setErrors({})
+      setShowCancelConfirm(false)
+    }
+  }, [isOpen, isRegistered])
 
   if (!event) return null
+
+  const validateAttendees = (): boolean => {
+    const newErrors: Record<number, { name?: string; phone?: string }> = {}
+    let hasError = false
+
+    attendees.forEach((attendee, index) => {
+      const attendeeErrors: { name?: string; phone?: string } = {}
+
+      // Validate name
+      if (!attendee.name.trim()) {
+        attendeeErrors.name = "Name is required"
+        hasError = true
+      } else if (attendee.name.trim().length < 2) {
+        attendeeErrors.name = "Name must be at least 2 characters"
+        hasError = true
+      }
+
+      // Validate phone
+      if (!attendee.phone.trim()) {
+        attendeeErrors.phone = "Phone is required"
+        hasError = true
+      } else {
+        // Remove all non-digit characters for validation
+        const phoneDigits = attendee.phone.replace(/[^0-9]/g, '')
+        if (phoneDigits.length < 10) {
+          attendeeErrors.phone = "Phone must be at least 10 digits"
+          hasError = true
+        }
+      }
+
+      if (Object.keys(attendeeErrors).length > 0) {
+        newErrors[index] = attendeeErrors
+      }
+    })
+
+    // Check for duplicate phone numbers
+    const phoneNumbers = attendees.map(a => a.phone.replace(/[^0-9]/g, ''))
+    const uniquePhones = new Set(phoneNumbers)
+    if (phoneNumbers.length !== uniquePhones.size) {
+      toast.error("Each attendee must have a unique phone number")
+      hasError = true
+    }
+
+    setErrors(newErrors)
+    return !hasError
+  }
 
   const handleRegister = async () => {
     if (!event) return
 
+    // Validate attendees before submission
+    if (!validateAttendees()) {
+      toast.error("Please fix the errors in the form")
+      return
+    }
+
     setLoading(true)
     try {
-      const response = await apiClient.registerForEvent(event._id, notes)
+      const response = await apiClient.registerForEvent(event._id, notes, attendees)
       
       if (response.success) {
         toast.success("Successfully registered for event!")
@@ -75,6 +145,47 @@ export function EventRegistrationModal({
       toast.error("An error occurred while cancelling registration")
     } finally {
       setLoading(false)
+      setShowCancelConfirm(false)
+    }
+  }
+
+  const addAttendee = () => {
+    if (attendees.length < 10) { // Limit to 10 attendees
+      setAttendees([...attendees, { name: "", phone: "" }])
+    } else {
+      toast.error("Maximum 10 attendees allowed per registration")
+    }
+  }
+
+  const removeAttendee = (index: number) => {
+    if (attendees.length > 1) {
+      const newAttendees = attendees.filter((_, i) => i !== index)
+      setAttendees(newAttendees)
+      
+      // Remove errors for this index
+      const newErrors = { ...errors }
+      delete newErrors[index]
+      setErrors(newErrors)
+    } else {
+      toast.error("At least one attendee is required")
+    }
+  }
+
+  const updateAttendee = (index: number, field: 'name' | 'phone', value: string) => {
+    const newAttendees = [...attendees]
+    newAttendees[index][field] = value
+    setAttendees(newAttendees)
+
+    // Clear error for this field
+    if (errors[index]?.[field]) {
+      const newErrors = { ...errors }
+      if (newErrors[index]) {
+        delete newErrors[index][field]
+        if (Object.keys(newErrors[index]).length === 0) {
+          delete newErrors[index]
+        }
+      }
+      setErrors(newErrors)
     }
   }
 
@@ -120,9 +231,11 @@ export function EventRegistrationModal({
   const canRegister = event.isActive && !isEventFull && !isRegistered
   const canCancel = isRegistered && registrationStatus === 'confirmed'
 
+  const hasErrors = Object.keys(errors).length > 0
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Calendar className="w-5 h-5" />
@@ -136,171 +249,306 @@ export function EventRegistrationModal({
           </DialogDescription>
         </DialogHeader>
 
-        {/* Event Information */}
-        <div className="space-y-4">
-          <div className="border rounded-lg p-4 bg-muted/50">
-            <h3 className="font-semibold text-lg mb-3">{event.title}</h3>
-            
-            <div className="grid gap-3 text-sm">
-              <div className="flex items-center gap-2">
-                <Badge className={getCategoryColor(event.category)}>
-                  {getCategoryIcon(event.category)} {event.category.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                </Badge>
+        <div className="space-y-6">
+          {/* Event Details Card */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div className="space-y-2 flex-1">
+                  <CardTitle className="text-xl">{event.title}</CardTitle>
+                  <div className="flex items-center gap-2">
+                    <Badge className={getCategoryColor(event.category)}>
+                      {getCategoryIcon(event.category)} {event.category.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    </Badge>
+                    {event.memberOnly && (
+                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                        <UserCheck className="w-3 h-3 mr-1" />
+                        Members Only
+                      </Badge>
+                    )}
+                    {event.requiresTicket && (
+                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                        <Ticket className="w-3 h-3 mr-1" />
+                        Ticket Required
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+                {isRegistered && (
+                  <Badge className={
+                    registrationStatus === 'confirmed' ? 'bg-green-100 text-green-800' :
+                    registrationStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-red-100 text-red-800'
+                  }>
+                    {registrationStatus === 'confirmed' && <CheckCircle className="w-3 h-3 mr-1" />}
+                    {registrationStatus === 'cancelled' && <XCircle className="w-3 h-3 mr-1" />}
+                    {registrationStatus?.toUpperCase()}
+                  </Badge>
+                )}
               </div>
-              
-              <div className="flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-muted-foreground" />
-                <span>Start: {formatDate(event.startTime)}</span>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="flex items-center gap-3 text-sm">
+                  <Clock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                  <div>
+                    <div className="font-medium">Start Time</div>
+                    <div className="text-muted-foreground">{formatDate(event.startTime)}</div>
+                  </div>
+                </div>
+                {event.endTime && (
+                  <div className="flex items-center gap-3 text-sm">
+                    <Clock className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                    <div>
+                      <div className="font-medium">End Time</div>
+                      <div className="text-muted-foreground">{formatDate(event.endTime)}</div>
+                    </div>
+                  </div>
+                )}
+                <div className="flex items-center gap-3 text-sm">
+                  <MapPin className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                  <div>
+                    <div className="font-medium">Venue</div>
+                    <div className="text-muted-foreground">{event.venue}</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 text-sm">
+                  <Users className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                  <div>
+                    <div className="font-medium">Capacity</div>
+                    <div className="text-muted-foreground">
+                      {event.currentAttendees} / {event.maxAttendees || '∞'} attendees
+                    </div>
+                  </div>
+                </div>
+                {event.ticketPrice > 0 && (
+                  <div className="flex items-center gap-3 text-sm">
+                    <Ticket className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                    <div>
+                      <div className="font-medium">Ticket Price</div>
+                      <div className="text-muted-foreground">₹{event.ticketPrice}</div>
+                    </div>
+                  </div>
+                )}
               </div>
-              
-              {event.endTime && (
-                <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-muted-foreground" />
-                  <span>End: {formatDate(event.endTime)}</span>
+              {event.description && (
+                <div className="pt-4 border-t">
+                  <div className="font-medium mb-2">About this event</div>
+                  <p className="text-sm text-muted-foreground">{event.description}</p>
                 </div>
               )}
-              
-              <div className="flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-muted-foreground" />
-                <span>{event.venue}</span>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <Users className="w-4 h-4 text-muted-foreground" />
-                <span>
-                  {event.currentAttendees}
-                  {event.maxAttendees ? ` / ${event.maxAttendees}` : ''} attendees
-                  {isEventFull && <span className="text-red-600 font-medium"> (FULL)</span>}
-                </span>
-              </div>
-              
-              {event.ticketPrice > 0 && (
-                <div className="flex items-center gap-2">
-                  <Ticket className="w-4 h-4 text-muted-foreground" />
-                  <span>Ticket Price: ₹{event.ticketPrice}</span>
-                </div>
-              )}
-              
-              {event.memberOnly && (
-                <div className="flex items-center gap-2">
-                  <UserCheck className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-blue-600">Members only event</span>
-                </div>
-              )}
-              
-              {event.awayDayEvent && (
-                <div className="flex items-center gap-2">
-                  <Bus className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-green-600">Away day travel event</span>
-                </div>
-              )}
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
-          {/* Registration Status */}
-          {isRegistered && (
-            <div className="border rounded-lg p-4 bg-green-50 border-green-200">
-              <div className="flex items-center gap-2 text-green-800">
-                <CheckCircle className="w-5 h-5" />
-                <span className="font-medium">You are registered for this event!</span>
-              </div>
-              <p className="text-green-700 text-sm mt-1">
-                Status: <Badge variant="outline" className="text-green-700 border-green-300">
-                  {registrationStatus?.charAt(0).toUpperCase() + registrationStatus?.slice(1)}
-                </Badge>
-              </p>
-            </div>
+          {/* Registration Status Warning */}
+          {isEventFull && (
+            <Card className="border-orange-200 bg-orange-50">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3">
+                  <AlertCircle className="w-5 h-5 text-orange-600 flex-shrink-0" />
+                  <div className="text-sm text-orange-800">
+                    <div className="font-medium">Event is Full</div>
+                    <div>This event has reached maximum capacity</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           )}
 
-          {/* Event Full Warning */}
-          {isEventFull && !isRegistered && (
-            <div className="border rounded-lg p-4 bg-red-50 border-red-200">
-              <div className="flex items-center gap-2 text-red-800">
-                <XCircle className="w-5 h-5" />
-                <span className="font-medium">Event is full</span>
-              </div>
-              <p className="text-red-700 text-sm mt-1">
-                This event has reached its maximum capacity.
-              </p>
-            </div>
+          {!event.isActive && (
+            <Card className="border-red-200 bg-red-50">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3">
+                  <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+                  <div className="text-sm text-red-800">
+                    <div className="font-medium">Event is Inactive</div>
+                    <div>This event is not currently accepting registrations</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           )}
 
           {/* Registration Form */}
           {!isRegistered && canRegister && (
-            <div className="space-y-4">
+            <>
+              {/* Error Summary */}
+              {hasErrors && (
+                <Card className="border-red-200 bg-red-50">
+                  <CardContent className="pt-6">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <div className="font-medium text-red-800 mb-2">Please fix the following errors:</div>
+                        <ul className="text-sm text-red-700 space-y-1">
+                          {Object.entries(errors).map(([index, fieldErrors]) => (
+                            <div key={index}>
+                              {Object.entries(fieldErrors).map(([field, error]) => (
+                                <li key={`${index}-${field}`}>• Attendee {parseInt(index) + 1}: {error}</li>
+                              ))}
+                            </div>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <UserPlus className="w-5 h-5" />
+                    Attendee Information
+                  </CardTitle>
+                  <CardDescription>
+                    Add attendees who will be participating in this event (Maximum 10)
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {attendees.map((attendee, index) => (
+                    <div key={index} className="flex gap-3 items-start p-4 border rounded-lg bg-muted/30">
+                      <div className="flex-1 space-y-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <Label className="font-semibold">Attendee {index + 1}</Label>
+                          {attendees.length > 1 && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeAttendee(index)}
+                              className="h-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <X className="w-4 h-4 mr-1" />
+                              Remove
+                            </Button>
+                          )}
+                        </div>
+                        <div className="grid gap-4 md:grid-cols-2">
+                          <div className="space-y-2">
+                            <Label htmlFor={`name-${index}`}>
+                              Full Name <span className="text-red-500">*</span>
+                            </Label>
+                            <Input
+                              id={`name-${index}`}
+                              placeholder="Enter full name"
+                              value={attendee.name}
+                              onChange={(e) => updateAttendee(index, 'name', e.target.value)}
+                              className={errors[index]?.name ? "border-red-500" : ""}
+                            />
+                            {errors[index]?.name && (
+                              <p className="text-red-500 text-sm">{errors[index].name}</p>
+                            )}
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor={`phone-${index}`}>
+                              Phone Number <span className="text-red-500">*</span>
+                            </Label>
+                            <Input
+                              id={`phone-${index}`}
+                              type="tel"
+                              placeholder="+91 1234567890"
+                              value={attendee.phone}
+                              onChange={(e) => updateAttendee(index, 'phone', e.target.value)}
+                              className={errors[index]?.phone ? "border-red-500" : ""}
+                            />
+                            {errors[index]?.phone && (
+                              <p className="text-red-500 text-sm">{errors[index].phone}</p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {attendees.length < 10 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={addAttendee}
+                      className="w-full border-dashed"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Another Attendee
+                    </Button>
+                  )}
+                </CardContent>
+              </Card>
+
               <div className="space-y-2">
                 <Label htmlFor="notes">Additional Notes (Optional)</Label>
                 <Textarea
                   id="notes"
-                  placeholder="Any special requirements or notes for the event organizers..."
+                  placeholder="Any special requirements or notes (e.g., dietary restrictions, accessibility needs)"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   rows={3}
                 />
+                <p className="text-xs text-muted-foreground">
+                  These notes will be visible to event organizers
+                </p>
               </div>
-            </div>
+            </>
+          )}
+
+          {/* Cancel Confirmation */}
+          {showCancelConfirm && (
+            <Card className="border-red-200 bg-red-50">
+              <CardContent className="pt-6">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+                    <div>
+                      <div className="font-medium text-red-800">Confirm Cancellation</div>
+                      <p className="text-sm text-red-700 mt-1">
+                        Are you sure you want to cancel your registration? This action cannot be undone.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 justify-end">
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowCancelConfirm(false)}
+                      disabled={loading}
+                    >
+                      No, Keep Registration
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      onClick={handleCancelRegistration}
+                      disabled={loading}
+                    >
+                      {loading ? "Cancelling..." : "Yes, Cancel Registration"}
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           )}
         </div>
 
-        {/* Actions */}
-        <DialogFooter className="flex justify-between">
-          <Button type="button" variant="outline" onClick={onClose}>
-            Close
+        <DialogFooter className="flex-col sm:flex-row gap-2">
+          {isRegistered && canCancel && !showCancelConfirm && (
+            <Button
+              variant="destructive"
+              onClick={() => setShowCancelConfirm(true)}
+              className="sm:mr-auto"
+            >
+              <XCircle className="w-4 h-4 mr-2" />
+              Cancel Registration
+            </Button>
+          )}
+          
+          <Button variant="outline" onClick={onClose} disabled={loading}>
+            {isRegistered ? "Close" : "Cancel"}
           </Button>
           
-          <div className="flex gap-2">
-            {canCancel && (
-              <Button 
-                type="button" 
-                variant="destructive" 
-                onClick={() => setShowCancelConfirm(true)}
-                disabled={loading}
-              >
-                {loading ? "Cancelling..." : "Cancel Registration"}
-              </Button>
-            )}
-            
-            {canRegister && (
-              <Button 
-                type="button" 
-                onClick={handleRegister}
-                disabled={loading}
-              >
-                {loading ? "Registering..." : "Register for Event"}
-              </Button>
-            )}
-          </div>
+          {!isRegistered && canRegister && (
+            <Button onClick={handleRegister} disabled={loading || hasErrors}>
+              {loading ? "Registering..." : "Register for Event"}
+            </Button>
+          )}
         </DialogFooter>
-
-        {/* Cancel Confirmation Dialog */}
-        <Dialog open={showCancelConfirm} onOpenChange={setShowCancelConfirm}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Cancel Registration</DialogTitle>
-              <DialogDescription>
-                Are you sure you want to cancel your registration for "{event.title}"? 
-                This action cannot be undone.
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter className="flex gap-2">
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => setShowCancelConfirm(false)}
-              >
-                Keep Registration
-              </Button>
-              <Button 
-                type="button" 
-                variant="destructive" 
-                onClick={handleCancelRegistration}
-                disabled={loading}
-              >
-                {loading ? "Cancelling..." : "Yes, Cancel"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </DialogContent>
     </Dialog>
   )
