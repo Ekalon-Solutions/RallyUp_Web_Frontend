@@ -269,22 +269,18 @@ export default function UserEventsPage() {
   };
 
   const isEventUpcoming = (event: Event) => {
-    return new Date(event.startTime) > new Date();
+    return new Date(event.bookingStartTime) > new Date();
   };
 
   const isEventPast = (event: Event) => {
-    return event.endTime ? new Date(event.endTime) < new Date() : false;
+    return event.bookingEndTime ? new Date(event.bookingEndTime) < new Date() : false;
   };
 
   const isEventOngoing = (event: Event) => {
     const now = new Date();
-    const start = new Date(event.startTime);
-    const end = event.endTime ? new Date(event.endTime) : null;
-    if (end) {
-      return start <= now && now < end;
-    }
-    // If no end time, consider ongoing if startTime is in the past and it's not marked as past by existing logic
-    return start <= now && !isEventPast(event);
+    const start = new Date(event.bookingStartTime);
+    const end = new Date(event.bookingEndTime);
+    return start <= now && now < end;
   };
 
   const eventsUserIsRegisteredForOngoing = () => {

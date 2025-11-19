@@ -25,10 +25,11 @@ interface Event {
   ticketPrice: number
   requiresTicket: boolean
   memberOnly: boolean
-  awayDayEvent: boolean
   isActive: boolean
   createdAt: string
   updatedAt: string
+  bookingStartTime: string
+  bookingEndTime: string
 }
 
 interface CreateEventModalProps {
@@ -52,7 +53,8 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
     ticketPrice: "0",
     requiresTicket: false,
     memberOnly: false,
-    awayDayEvent: false,
+    bookingStartTime: "",
+    bookingEndTime: "",
   })
 
   // Reset form when modal opens/closes or when editing
@@ -71,7 +73,8 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
           ticketPrice: editEvent.ticketPrice.toString(),
           requiresTicket: editEvent.requiresTicket,
           memberOnly: editEvent.memberOnly,
-          awayDayEvent: editEvent.awayDayEvent,
+          bookingStartTime: editEvent.bookingStartTime?.slice(0, 16) || "",
+          bookingEndTime: editEvent.bookingEndTime?.slice(0, 16) || "",
         })
       } else {
         // Set default values for new event
@@ -90,7 +93,8 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
           ticketPrice: "0",
           requiresTicket: false,
           memberOnly: false,
-          awayDayEvent: false,
+          bookingStartTime: "",
+          bookingEndTime: "",
         })
       }
     }
@@ -182,7 +186,8 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
         ticketPrice: parseFloat(formData.ticketPrice) || 0,
         requiresTicket: formData.requiresTicket,
         memberOnly: formData.memberOnly,
-        awayDayEvent: formData.awayDayEvent,
+        bookingStartTime: formData.bookingStartTime || undefined,
+        bookingEndTime: formData.bookingEndTime || undefined,
       }
 
       // Use API client to create/update event
@@ -244,7 +249,8 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
       ticketPrice: "0",
       requiresTicket: false,
       memberOnly: false,
-      awayDayEvent: false,
+      bookingStartTime: "",
+      bookingEndTime: "",
     })
   }
 
@@ -528,16 +534,33 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
                   onCheckedChange={(checked) => setFormData({ ...formData, memberOnly: checked })}
                 />
               </div>
+            </div>
+          </div>
 
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label htmlFor="awayDayEvent">Away Day Event</Label>
-                  <p className="text-sm text-muted-foreground">This is an away day travel event</p>
-                </div>
-                <Switch
-                  id="awayDayEvent"
-                  checked={formData.awayDayEvent}
-                  onCheckedChange={(checked) => setFormData({ ...formData, awayDayEvent: checked })}
+          {/* Booking Information */}
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="bookingStartTime">Booking Start Time</Label>
+                <Input
+                  id="bookingStartTime"
+                  type="datetime-local"
+                  value={formData.bookingStartTime}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, bookingStartTime: e.target.value }))
+                  }
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="bookingEndTime">Booking End Time</Label>
+                <Input
+                  id="bookingEndTime"
+                  type="datetime-local"
+                  value={formData.bookingEndTime}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, bookingEndTime: e.target.value }))
+                  }
                 />
               </div>
             </div>

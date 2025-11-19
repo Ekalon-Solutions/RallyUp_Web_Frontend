@@ -162,6 +162,8 @@ export interface Event {
   endTime?: string; // ISO date string from backend (optional)
   venue: string;
   description: string;
+  bookingStartTime: string;
+  bookingEndTime: string;
   maxAttendees?: number;
   ticketPrice: number;
   requiresTicket: boolean;
@@ -970,7 +972,8 @@ class ApiClient {
     ticketPrice: number;
     requiresTicket: boolean;
     memberOnly: boolean;
-    awayDayEvent: boolean;
+    bookingStartTime?: string;
+    bookingEndTime?: string;
   }): Promise<ApiResponse<{ message: string; event: Event }>> {
     return this.request('/events', {
       method: 'POST',
