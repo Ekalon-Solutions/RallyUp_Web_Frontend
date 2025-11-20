@@ -972,8 +972,12 @@ class ApiClient {
     ticketPrice: number;
     requiresTicket: boolean;
     memberOnly: boolean;
-    bookingStartTime?: string;
-    bookingEndTime?: string;
+    awayDayEvent: boolean;
+    bookingStartTime?: string; // ISO date string
+    bookingEndTime?: string; // ISO date string
+    earlyBirdDiscount?: any;
+    memberDiscount?: any;
+    groupDiscount?: any;
   }): Promise<ApiResponse<{ message: string; event: Event }>> {
     return this.request('/events', {
       method: 'POST',
