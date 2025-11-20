@@ -162,6 +162,8 @@ export interface Event {
   endTime?: string; // ISO date string from backend (optional)
   venue: string;
   description: string;
+  bookingStartTime: string;
+  bookingEndTime: string;
   maxAttendees?: number;
   ticketPrice: number;
   requiresTicket: boolean;

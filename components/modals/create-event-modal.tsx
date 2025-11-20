@@ -48,6 +48,8 @@ interface Event {
   isActive: boolean
   createdAt: string
   updatedAt: string
+  bookingStartTime: string
+  bookingEndTime: string
 }
 
 interface CreateEventModalProps {
@@ -114,8 +116,8 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
           requiresTicket: editEvent.requiresTicket,
           memberOnly: editEvent.memberOnly,
           awayDayEvent: editEvent.awayDayEvent,
-          bookingStartTime: defaultBookingStart,
-          bookingEndTime: defaultBookingEnd,
+          bookingStartTime: editEvent.bookingStartTime?.slice(0, 16) || "",
+          bookingEndTime: editEvent.bookingEndTime?.slice(0, 16) || "",
           // Discount fields
           earlyBirdEnabled: editEvent.earlyBirdDiscount?.enabled || false,
           earlyBirdType: editEvent.earlyBirdDiscount?.type || "percentage",
@@ -985,6 +987,33 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
                   id="groupDiscountEnabled"
                   checked={formData.groupDiscountEnabled}
                   onCheckedChange={(checked) => setFormData({ ...formData, groupDiscountEnabled: checked })}
+            </div>
+          </div>
+
+          {/* Booking Information */}
+          <div className="grid gap-6 md:grid-cols-2">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="bookingStartTime">Booking Start Time</Label>
+                <Input
+                  id="bookingStartTime"
+                  type="datetime-local"
+                  value={formData.bookingStartTime}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, bookingStartTime: e.target.value }))
+                  }
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="bookingEndTime">Booking End Time</Label>
+                <Input
+                  id="bookingEndTime"
+                  type="datetime-local"
+                  value={formData.bookingEndTime}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, bookingEndTime: e.target.value }))
+                  }
                 />
               </div>
               

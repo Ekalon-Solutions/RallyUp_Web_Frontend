@@ -14,6 +14,8 @@ import { useAuth } from "@/contexts/auth-context"
 import { Calendar, MapPin, Clock, Users, Newspaper, Tag, User as UserIcon, Eye, CreditCard, Crown, Star, Shield, Infinity as InfinityIcon, Trash } from "lucide-react"
 import EventDetailsModal from '@/components/modals/event-details-modal'
 import UserEventRegistrationModal from "@/components/modals/user-event-registration-modal"
+import { EventCheckoutModal } from "@/components/modals/event-checkout-modal"
+import { EventPaymentSimulationModal } from "@/components/modals/event-payment-simulation-modal"
 
 function AttendanceMarker({ event, userId }: { event: Event; userId?: string }) {
   const [registration, setRegistration] = useState<any | null>(null)
@@ -100,6 +102,10 @@ export default function UserDashboardPage() {
   const [registrationEventId, setRegistrationEventId] = useState<string | null>(null)
   const [showRegistrationModal, setShowRegistrationModal] = useState(false)
   const [cancellingEventId, setCancellingEventId] = useState<string | null>(null)
+  const [showEventCheckoutModal, setShowEventCheckoutModal] = useState(false)
+  const [showEventPaymentSimulationModal, setShowEventPaymentSimulationModal] = useState(false)
+  const [eventForPayment, setEventForPayment] = useState<Event | null>(null)
+  const [attendeesForPayment, setAttendeesForPayment] = useState<any[]>([])
 
   // Get user's active club membership
   const getActiveMembership = () => {
@@ -239,6 +245,18 @@ export default function UserDashboardPage() {
     attendees: any[];
   }) => {
     if (!payload || !payload.eventId) return
+    const event = events.find((e) => e._id === payload.eventId);
+    if (event?.ticketPrice) {
+      // Open EventCheckoutModal for paid events
+      setShowEventCheckoutModal(true);
+      setEventForPayment({ ...event, price: event.ticketPrice } as Event & {
+        price: number;
+      });
+      setAttendeesForPayment(
+        payload.attendees
+      );
+      return;
+    }
     try {
       const registrationPromise = (async () => {
         const res = await apiClient.registerForEvent(
@@ -592,6 +610,17 @@ export default function UserDashboardPage() {
     if (lowerPlan.includes('advanced') || lowerPlan.includes('pro')) return <Star className="w-4 h-4" />
     return <Calendar className="w-4 h-4" />
   }
+
+  const handleEventPayment = (event: Event, attendees: any[]) => {
+    setEventForPayment(event);
+    setAttendeesForPayment(attendees);
+    setShowEventCheckoutModal(true);
+  };
+
+  const handleEventCheckoutSuccess = () => {
+    setShowEventCheckoutModal(false);
+    setShowEventPaymentSimulationModal(true);
+  };
 
   return (
     <ProtectedRoute>
@@ -1117,7 +1146,30 @@ export default function UserDashboardPage() {
           }}
           onRegister={handlePerformRegistration}
         />
+        <EventCheckoutModal
+          isOpen={showEventCheckoutModal}
+          onClose={() => setShowEventCheckoutModal(false)}
+          event={eventForPayment}
+          attendees={attendeesForPayment}
+          onSuccess={handleEventCheckoutSuccess}
+        />
+
+        <EventPaymentSimulationModal
+          isOpen={showEventPaymentSimulationModal}
+          onClose={() => setShowEventPaymentSimulationModal(false)}
+          event={eventForPayment}
+          attendees={attendeesForPayment}
+          onPaymentSuccess={() => {
+            setShowEventPaymentSimulationModal(false);
+            fetchData();
+            toast.success("Event payment successful!");
+          }}
+          onPaymentFailure={() => {
+            setShowEventPaymentSimulationModal(false);
+            toast.error("Event payment failed. Please try again.");
+          }}
+        />
       </DashboardLayout>
     </ProtectedRoute>
   )
-} 
+}
