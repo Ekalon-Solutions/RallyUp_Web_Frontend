@@ -45,6 +45,25 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, onSucces
     }
   }
 
+  const calculateDiscountedPrice = () => {
+    if (!event || !event.earlyBirdDiscount?.enabled) return event?.ticketPrice || 0;
+
+    const now = new Date();
+    const startTime = new Date(event.earlyBirdDiscount.startTime);
+    const endTime = new Date(event.earlyBirdDiscount.endTime);
+
+    if (now >= startTime && now <= endTime) {
+      const discount = event.earlyBirdDiscount.type === 'percentage'
+        ? (event.ticketPrice * event.earlyBirdDiscount.value) / 100
+        : event.earlyBirdDiscount.value;
+      return Math.max(event.ticketPrice - discount, 0);
+    }
+
+    return event.ticketPrice;
+  };
+
+  const discountedPrice = calculateDiscountedPrice();
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md">
@@ -67,7 +86,9 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, onSucces
               <span>Price:</span>
               <span className="flex items-center gap-1">
                 <DollarSign className="w-4 h-4" />
-                {event?.price}
+                {event?.price===discountedPrice ? discountedPrice : (
+                  <><span className="line-through text-muted-foreground">{event?.price}</span> <span>{discountedPrice}</span></>
+                )}
               </span>
             </div>
             <Separator className="my-4" />

@@ -269,17 +269,17 @@ export default function UserEventsPage() {
   };
 
   const isEventUpcoming = (event: Event) => {
-    return new Date(event.bookingStartTime) > new Date();
+    return new Date(event.bookingEndTime) > new Date() && new Date(event.bookingStartTime) < new Date();
   };
 
   const isEventPast = (event: Event) => {
-    return event.bookingEndTime ? new Date(event.bookingEndTime) < new Date() : false;
+    return event.endTime ? new Date(event.endTime) < new Date() : false;
   };
 
   const isEventOngoing = (event: Event) => {
     const now = new Date();
-    const start = new Date(event.bookingStartTime);
-    const end = new Date(event.bookingEndTime);
+    const start = new Date(event.startTime);
+    const end = event.endTime ? new Date(event.endTime) : new Date().setDate((new Date().getDate()) + 1);
     return start <= now && now < end;
   };
 

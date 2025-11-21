@@ -179,6 +179,13 @@ export interface Event {
     notes?: string;
   }>;
   currentAttendees: number;
+  earlyBirdDiscount?: {
+    enabled: boolean
+    type: 'percentage' | 'fixed'
+    value: number
+    startTime: string,
+    endTime: string,
+  }
   createdAt: string;
   updatedAt: string;
 }
@@ -2556,6 +2563,10 @@ class ApiClient {
   }): Promise<ApiResponse<any>> {
     return this.put(`/club-settings/${clubId}/help-section`, data);
   }
+
+  async getCoupons(): Promise<ApiResponse<any>> {
+    return this.get('/coupons');
+  }
 }
 
-export const apiClient = new ApiClient(API_BASE_URL); 
+export const apiClient = new ApiClient(API_BASE_URL);
