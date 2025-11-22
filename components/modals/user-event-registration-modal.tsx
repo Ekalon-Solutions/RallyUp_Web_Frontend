@@ -5,7 +5,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Minus, ChevronDown, ChevronRight } from 'lucide-react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Plus, Minus, ChevronDown, ChevronRight, Tag, CheckCircle, X, Percent, Loader2 } from 'lucide-react'
 import { apiClient } from '@/lib/api'
 import { useAuth } from '@/contexts/auth-context'
 import { toast } from 'sonner'
@@ -18,17 +19,33 @@ interface Attendee {
   open?: boolean
 }
 
+interface AppliedCoupon {
+  code: string
+  name: string
+  discountType: 'flat' | 'percentage'
+  discountValue: number
+  discount: number
+  originalPrice: number
+  finalPrice: number
+}
+
 interface UserEventRegistrationModalProps {
   eventId: string | null
   isOpen: boolean
   onClose: () => void
-  onRegister?: (payload: { eventId: string; attendees: Attendee[] }) => void
+  onRegister?: (payload: { eventId: string; attendees: Attendee[]; couponCode?: string }) => void
+  ticketPrice?: number
 }
 
-export default function UserEventRegistrationModal({ eventId, isOpen, onClose, onRegister }: UserEventRegistrationModalProps) {
+export default function UserEventRegistrationModal({ eventId, isOpen, onClose, onRegister, ticketPrice = 0 }: UserEventRegistrationModalProps) {
   const { user } = useAuth()
   const [ticketCount, setTicketCount] = useState<number>(1)
   const [attendees, setAttendees] = useState<Attendee[]>([{ name: '', phone: '', phoneCode: '', open: true }])
+  
+  // Coupon states
+  const [couponCode, setCouponCode] = useState("")
+  const [validatingCoupon, setValidatingCoupon] = useState(false)
+  const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null)
 
   useEffect(() => {
     // keep attendees in sync with ticketCount and prefill primary attendee when available
@@ -57,6 +74,12 @@ export default function UserEventRegistrationModal({ eventId, isOpen, onClose, o
 
       return copy
     })
+    
+    // Reset coupon when modal closes
+    if (!isOpen) {
+      setCouponCode("")
+      setAppliedCoupon(null)
+    }
   }, [ticketCount, isOpen, user])
 
   const updateAttendee = (index: number, field: 'name' | 'phone' | 'phoneCode', value: string) => {
@@ -75,7 +98,7 @@ export default function UserEventRegistrationModal({ eventId, isOpen, onClose, o
     })
   }
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
     if (!eventId) return
 
     const phoneCodeRegex = /^\+?\d{1,4}$/
@@ -108,8 +131,76 @@ export default function UserEventRegistrationModal({ eventId, isOpen, onClose, o
       a.phoneFull = `${code}${p}`
     }
 
-    onRegister && onRegister({ eventId, attendees: attendees.map(a => ({ name: a.name.trim(), phone: a.phoneFull || a.phone })) })
+    // Apply coupon if one is being used
+    let couponToApply = null
+    if (appliedCoupon && ticketPrice > 0) {
+      try {
+        const applyResponse = await apiClient.applyCoupon(
+          appliedCoupon.code,
+          eventId,
+          ticketPrice * ticketCount
+        )
+        
+        if (applyResponse.success) {
+          couponToApply = appliedCoupon.code
+        } else {
+          toast.error(applyResponse.error || "Failed to apply coupon")
+          return
+        }
+      } catch (error) {
+        toast.error("Failed to apply coupon")
+        return
+      }
+    }
+
+    onRegister && onRegister({ 
+      eventId, 
+      attendees: attendees.map(a => ({ name: a.name.trim(), phone: a.phoneFull || a.phone })),
+      couponCode: couponToApply || undefined
+    })
     onClose()
+  }
+
+  const handleValidateCoupon = async () => {
+    if (!eventId || !couponCode.trim()) {
+      toast.error("Please enter a coupon code")
+      return
+    }
+
+    if (ticketPrice <= 0) {
+      toast.error("This event is free, coupons are not applicable")
+      return
+    }
+
+    setValidatingCoupon(true)
+    try {
+      const totalPrice = ticketPrice * ticketCount
+      const response = await apiClient.validateCoupon(
+        couponCode.toUpperCase(),
+        eventId,
+        totalPrice
+      )
+
+      if (response.success && response.data?.coupon) {
+        setAppliedCoupon(response.data.coupon)
+        toast.success("Coupon applied successfully!")
+      } else {
+        setAppliedCoupon(null)
+        toast.error(response.error || "Invalid coupon code")
+      }
+    } catch (error) {
+      console.error("Error validating coupon:", error)
+      setAppliedCoupon(null)
+      toast.error("Failed to validate coupon")
+    } finally {
+      setValidatingCoupon(false)
+    }
+  }
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null)
+    setCouponCode("")
+    toast.info("Coupon removed")
   }
 
   return (
@@ -158,6 +249,104 @@ export default function UserEventRegistrationModal({ eventId, isOpen, onClose, o
               </div>
             ))}
           </div>
+
+          {/* Coupon Section */}
+          {ticketPrice > 0 && (
+            <Card className="border-2 border-dashed">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-sm">
+                  <Tag className="w-4 h-4" />
+                  Have a Coupon Code?
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Apply a discount code to reduce your ticket price
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {!appliedCoupon ? (
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Enter coupon code"
+                      value={couponCode}
+                      onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                      disabled={validatingCoupon}
+                      className="font-mono text-sm"
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          handleValidateCoupon()
+                        }
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      onClick={handleValidateCoupon}
+                      disabled={!couponCode.trim() || validatingCoupon}
+                      variant="outline"
+                      size="sm"
+                    >
+                      {validatingCoupon ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Validating...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle className="w-4 h-4 mr-2" />
+                          Apply
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between p-2 bg-green-50 border border-green-200 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        <div>
+                          <div className="font-medium text-sm text-green-900">{appliedCoupon.name}</div>
+                          <div className="text-xs text-green-700">
+                            Code: <code className="font-mono font-semibold">{appliedCoupon.code}</code>
+                          </div>
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={handleRemoveCoupon}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 w-8 p-0"
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+
+                    <div className="space-y-1.5 p-2 bg-muted/50 rounded-lg text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Original Price ({ticketCount} ticket{ticketCount > 1 ? 's' : ''})</span>
+                        <span className="font-medium">₹{(ticketPrice * ticketCount).toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-green-600 flex items-center gap-1">
+                          <Percent className="w-3 h-3" />
+                          Discount ({appliedCoupon.discountType === 'percentage' ? `${appliedCoupon.discountValue}%` : `₹${appliedCoupon.discountValue}`})
+                        </span>
+                        <span className="font-medium text-green-600">
+                          -₹{(appliedCoupon.discount * ticketCount).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="pt-1.5 border-t flex justify-between">
+                        <span className="font-semibold">Final Price</span>
+                        <span className="font-bold text-base text-primary">
+                          ₹{((ticketPrice - appliedCoupon.discount) * ticketCount).toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           <div className="flex justify-end pt-2">
             <Button variant="outline" className="mr-2" onClick={onClose}>Cancel</Button>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
     Dialog,
     DialogContent,
@@ -13,7 +13,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import {
     CreditCard, Loader2,
-    DollarSign
+    DollarSign,
+    Tag
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiClient } from "@/lib/api";
@@ -27,6 +28,7 @@ interface EventPaymentSimulationModalProps {
     _id: string;
   };
   attendees: Array<{ name: string; phone: string }>;
+  couponCode?: string;
   onPaymentSuccess: () => void;
   onPaymentFailure: () => void;
 }
@@ -36,6 +38,7 @@ export function EventPaymentSimulationModal({
   onClose,
   event,
   attendees,
+  couponCode,
   onPaymentSuccess,
   onPaymentFailure,
 }: EventPaymentSimulationModalProps) {
@@ -44,6 +47,31 @@ export function EventPaymentSimulationModal({
   const [simulating, setSimulating] = useState<"success" | "failure" | null>(
     null
   );
+  const [couponDiscount, setCouponDiscount] = useState(0);
+
+  useEffect(() => {
+    const validateCoupon = async () => {
+      if (couponCode && event?._id && isOpen) {
+        try {
+          const totalPrice = event.price * attendees.length
+          const response = await apiClient.validateCoupon(couponCode, event._id, totalPrice)
+          
+          if (response.success && response.data?.coupon) {
+            setCouponDiscount(response.data.coupon.discount * attendees.length)
+          } else {
+            setCouponDiscount(0)
+          }
+        } catch (error) {
+          console.error("Error validating coupon:", error)
+          setCouponDiscount(0)
+        }
+      } else {
+        setCouponDiscount(0)
+      }
+    }
+    
+    validateCoupon()
+  }, [couponCode, event?._id, attendees.length, isOpen])
 
   const simulatePayment = async (type: "success" | "failure") => {
     setProcessing(true);
@@ -58,7 +86,8 @@ export function EventPaymentSimulationModal({
         const response = await apiClient.registerForEvent(
           event._id,
           undefined,
-          attendees
+          attendees,
+          couponCode
         );
         if (response.success) {
           toast({
@@ -99,6 +128,13 @@ export function EventPaymentSimulationModal({
     }
   };
 
+  const totalBeforeCoupon = (event?.price || 0) * attendees.length;
+  const finalPrice = Math.max(totalBeforeCoupon - couponDiscount, 0);
+
+  if (!event) {
+    return null;
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md">
@@ -115,17 +151,48 @@ export function EventPaymentSimulationModal({
             <CardTitle>{event?.name}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex justify-between items-center">
-              <span>Price:</span>
-              <span className="flex items-center gap-1">
-                <DollarSign className="w-4 h-4" />
-                {event?.price}
-              </span>
+            <div className="space-y-3">
+              <div className="flex justify-between items-center">
+                <span>Price per ticket:</span>
+                <span>₹{(event?.price || 0).toLocaleString()}</span>
+              </div>
+              
+              <div className="flex justify-between items-center">
+                <span>Number of tickets:</span>
+                <span>{attendees.length}</span>
+              </div>
+              
+              <Separator />
+              
+              <div className="flex justify-between items-center font-medium">
+                <span>Subtotal:</span>
+                <span>₹{totalBeforeCoupon.toLocaleString()}</span>
+              </div>
+              
+              {couponCode && couponDiscount > 0 && (
+                <>
+                  <div className="flex justify-between items-center text-green-600">
+                    <span className="flex items-center gap-1">
+                      <Tag className="w-4 h-4" />
+                      Coupon ({couponCode})
+                    </span>
+                    <span>-₹{couponDiscount.toLocaleString()}</span>
+                  </div>
+                  <Separator />
+                </>
+              )}
+              
+              <div className="flex justify-between items-center font-bold text-lg">
+                <span>Total to Pay:</span>
+                <span className="text-primary">₹{finalPrice.toLocaleString()}</span>
+              </div>
             </div>
+            
             <Separator className="my-4" />
+            
             <div>
-              <h4 className="text-sm font-medium">Attendees:</h4>
-              <ul className="list-disc pl-5">
+              <h4 className="text-sm font-medium mb-2">Attendees:</h4>
+              <ul className="list-disc pl-5 text-sm">
                 {attendees.map((attendee, index) => (
                   <li key={index}>
                     {attendee.name} ({attendee.phone})

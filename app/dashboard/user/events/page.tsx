@@ -146,6 +146,7 @@ export default function UserEventsPage() {
   const [registrationEventId, setRegistrationEventId] = useState<string | null>(
     null
   );
+  const [registrationEvent, setRegistrationEvent] = useState<Event | null>(null);
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
   const [cancellingEventId, setCancellingEventId] = useState<string | null>(
     null
@@ -155,6 +156,7 @@ export default function UserEventsPage() {
     useState(false);
   const [eventForPayment, setEventForPayment] = useState<Event | null>(null);
   const [attendeesForPayment, setAttendeesForPayment] = useState<any[]>([]);
+  const [couponForPayment, setCouponForPayment] = useState<{code: string; discount: number} | null>(null);
 
   useEffect(() => {
     fetchEvents();
@@ -185,7 +187,9 @@ export default function UserEventsPage() {
       toast.error("Please log in to register for events");
       return;
     }
+    const event = events.find(e => e._id === eventId);
     setRegistrationEventId(eventId);
+    setRegistrationEvent(event || null);
     setShowRegistrationModal(true);
   };
 
@@ -193,11 +197,22 @@ export default function UserEventsPage() {
   const handlePerformRegistration = async (payload: {
     eventId: string;
     attendees: any[];
+    couponCode?: string;
   }) => {
     if (!payload || !payload.eventId) return;
 
     const event = events.find((e) => e._id === payload.eventId);
     if (event?.ticketPrice) {
+      // Calculate discount if coupon was applied
+      let discountAmount = 0;
+      if (payload.couponCode) {
+        // The coupon was already validated in the modal, so we trust the discount
+        // We'll pass it to the checkout modal
+        setCouponForPayment({ code: payload.couponCode, discount: 0 }); // Will be calculated in checkout
+      } else {
+        setCouponForPayment(null);
+      }
+      
       // Open EventCheckoutModal for paid events
       setShowEventCheckoutModal(true);
       setEventForPayment({ ...event, price: event.ticketPrice } as Event & {
@@ -214,7 +229,8 @@ export default function UserEventsPage() {
         const res = await apiClient.registerForEvent(
           payload.eventId,
           undefined,
-          payload.attendees
+          payload.attendees,
+          payload.couponCode
         );
         if (!res || !res.success) throw res ?? new Error("Registration failed");
         return res;
@@ -227,6 +243,7 @@ export default function UserEventsPage() {
           fetchEvents();
           setShowRegistrationModal(false);
           setRegistrationEventId(null);
+          setRegistrationEvent(null);
           return res?.data?.message || "Registered successfully";
         },
         error: (err: any) => {
@@ -837,14 +854,17 @@ export default function UserEventsPage() {
         onClose={() => {
           setShowRegistrationModal(false);
           setRegistrationEventId(null);
+          setRegistrationEvent(null);
         }}
         onRegister={handlePerformRegistration}
+        ticketPrice={registrationEvent?.ticketPrice || 0}
       />
         <EventCheckoutModal
           isOpen={showEventCheckoutModal}
           onClose={() => setShowEventCheckoutModal(false)}
           event={eventForPayment}
           attendees={attendeesForPayment}
+          couponCode={couponForPayment?.code}
           onSuccess={() => {
             setShowEventCheckoutModal(false);
             setShowEventPaymentSimulationModal(true);
@@ -856,6 +876,7 @@ export default function UserEventsPage() {
           onClose={() => setShowEventPaymentSimulationModal(false)}
           event={eventForPayment}
           attendees={attendeesForPayment}
+          couponCode={couponForPayment?.code}
           onPaymentSuccess={() => {
             setShowEventPaymentSimulationModal(false);
             fetchEvents();

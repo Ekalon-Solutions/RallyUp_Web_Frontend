@@ -1026,10 +1026,10 @@ class ApiClient {
 
   // Event Registration APIs
   // Accepts optional notes and an attendees array: [{ name, phone }]
-  async registerForEvent(eventId: string, notes?: string, attendees?: Array<{ name: string; phone: string }>): Promise<ApiResponse<{ message: string; event: Event }>> {
+  async registerForEvent(eventId: string, notes?: string, attendees?: Array<{ name: string; phone: string }>, couponCode?: string | null): Promise<ApiResponse<{ message: string; event: Event }>> {
     return this.request(`/events/${eventId}/register`, {
       method: 'POST',
-      body: JSON.stringify({ notes, attendees }),
+      body: JSON.stringify({ notes, attendees, couponCode }),
     });
   }
 
@@ -2564,8 +2564,58 @@ class ApiClient {
     return this.put(`/club-settings/${clubId}/help-section`, data);
   }
 
-  async getCoupons(): Promise<ApiResponse<any>> {
-    return this.get('/coupons');
+  // Coupon APIs
+  async getCoupons(): Promise<ApiResponse<{ coupons: any[] }>> {
+    return this.request('/coupons');
+  }
+
+  async getActiveCoupons(): Promise<ApiResponse<{ coupons: any[] }>> {
+    return this.request('/coupons/active');
+  }
+
+  async createCoupon(data: any): Promise<ApiResponse<{ message: string; coupon: any }>> {
+    return this.request('/coupons', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateCoupon(id: string, data: any): Promise<ApiResponse<{ message: string; coupon: any }>> {
+    return this.request(`/coupons/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteCoupon(id: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request(`/coupons/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async toggleCouponStatus(id: string, isActive: boolean): Promise<ApiResponse<{ message: string; coupon: any }>> {
+    return this.request(`/coupons/${id}/toggle`, {
+      method: 'PATCH',
+      body: JSON.stringify({ isActive }),
+    });
+  }
+
+  async validateCoupon(code: string, eventId?: string, ticketPrice?: number): Promise<ApiResponse<{ coupon: { code: string; name: string; discountType: 'flat' | 'percentage'; discountValue: number; discount: number; originalPrice: number; finalPrice: number } }>> {
+    return this.request('/coupons/validate', {
+      method: 'POST',
+      body: JSON.stringify({ code, eventId, ticketPrice }),
+    });
+  }
+
+  async applyCoupon(code: string, eventId?: string, ticketPrice?: number): Promise<ApiResponse<{ message: string; discount: number; finalPrice: number }>> {
+    return this.request('/coupons/apply', {
+      method: 'POST',
+      body: JSON.stringify({ code, eventId, ticketPrice }),
+    });
+  }
+
+  async getCouponStats(id: string): Promise<ApiResponse<any>> {
+    return this.request(`/coupons/${id}/stats`);
   }
 }
 
