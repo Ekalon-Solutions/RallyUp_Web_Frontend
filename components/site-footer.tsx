@@ -38,15 +38,21 @@ export function SiteFooter({ brandName = "Wingman Pro" }: SiteFooterProps) {
             />
           </div>
         </div>
-        <nav className="flex flex-wrap items-center gap-4 text-sm">
-          <Link href="/" className="hover:text-white">Home</Link>
-          <Link href="/about" className="hover:text-white">About Us</Link>
-          <Link href="/affiliations" className="hover:text-white">Affiliations</Link>
-          <Link href="/faqs" className="hover:text-white">FAQs</Link>
-          <Link href="/contact" className="hover:text-white">Contact Us</Link>
-          <Link href="/terms" className="hover:text-white">Terms</Link>
-          <Link href="/privacy" className="hover:text-white">Privacy</Link>
-        </nav>
+        <div className="flex flex-col gap-4">
+          <nav className="flex flex-wrap items-center gap-4 text-sm">
+            <Link href="/about" className="hover:text-white">About Us</Link>
+            <Link href="#features" className="hover:text-white">Features</Link>
+            <Link href="/affiliations" className="hover:text-white">Affiliations</Link>
+            <Link href="/privacy" className="hover:text-white">Privacy Policy</Link>
+            <Link href="/terms" className="hover:text-white">Terms of Service</Link>
+          </nav>
+          <div className="text-sm">
+            <span className="text-slate-400">Contact: </span>
+            <a href="mailto:support@wingmanpro.tech" className="text-sky-400 hover:text-sky-300">
+              support@wingmanpro.tech
+            </a>
+          </div>
+        </div>
       </div>
       <div className="px-4 py-4 text-center text-xs text-slate-400">©️ 2025 RallyUp Solutions Private Limited. All rights reserved. Wingman Pro is a proprietary service of RallyUp Solutions Pvt. Ltd.</div>
     </footer>

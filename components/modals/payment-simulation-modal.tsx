@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -8,20 +8,23 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { 
   CreditCard, 
-  CheckCircle, 
-  XCircle, 
   Loader2,
   DollarSign,
-  Clock,
   AlertCircle
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
+declare global {
+  interface Window {
+    Razorpay: any
+  }
+}
+
 interface PaymentSimulationModalProps {
   isOpen: boolean
   onClose: () => void
-  onPaymentSuccess: (orderId: string) => void
-  onPaymentFailure: (orderId: string) => void
+  onPaymentSuccess: (orderId: string, paymentId: string, razorpayOrderId: string) => void
+  onPaymentFailure: (orderId: string, error: any) => void
   orderId: string
   orderNumber: string
   total: number
@@ -42,49 +45,161 @@ export function PaymentSimulationModal({
 }: PaymentSimulationModalProps) {
   const { toast } = useToast()
   const [processing, setProcessing] = useState(false)
-  const [simulating, setSimulating] = useState<'success' | 'failure' | null>(null)
+  const [scriptLoaded, setScriptLoaded] = useState(false)
 
-  const formatCurrency = (amount: number, currency: string = 'USD') => {
-    return new Intl.NumberFormat('en-US', {
+  useEffect(() => {
+    const script = document.createElement('script')
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+    script.async = true
+    script.onload = () => setScriptLoaded(true)
+    script.onerror = () => {
+      toast({
+        title: "Error",
+        description: "Failed to load Razorpay. Please check your internet connection.",
+        variant: "destructive",
+      })
+    }
+    document.body.appendChild(script)
+
+    return () => {
+      document.body.removeChild(script)
+    }
+  }, [toast])
+
+  const formatCurrency = (amount: number, currency: string = 'INR') => {
+    return new Intl.NumberFormat('en-IN', {
       style: 'currency',
       currency: currency
     }).format(amount)
   }
 
-  const simulatePayment = async (type: 'success' | 'failure') => {
-    setProcessing(true)
-    setSimulating(type)
-
-    try {
-      // Simulate payment processing delay
-      await new Promise(resolve => setTimeout(resolve, 2000))
-
-      if (type === 'success') {
-        toast({
-          title: "Payment Successful!",
-          description: `Order ${orderNumber} payment completed successfully.`,
-        })
-        onPaymentSuccess(orderId)
-      } else {
-        toast({
-          title: "Payment Failed",
-          description: `Order ${orderNumber} payment failed. Please try again.`,
-          variant: "destructive",
-        })
-        onPaymentFailure(orderId)
-      }
-      
-      onClose()
-    } catch (error) {
-      console.error('Payment simulation error:', error)
+  const initiatePayment = async () => {
+    if (!scriptLoaded) {
       toast({
         title: "Error",
-        description: "An error occurred during payment simulation.",
+        description: "Payment system is still loading. Please wait.",
         variant: "destructive",
       })
-    } finally {
+      return
+    }
+
+    setProcessing(true)
+
+    try {
+      const response = await fetch('/api/razorpay/create-order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount: total,
+          currency: currency,
+          orderId: orderId,
+          orderNumber: orderNumber,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to create payment order')
+      }
+
+      const { razorpayOrderId, amount, currency: orderCurrency } = await response.json()
+
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        amount: amount,
+        currency: orderCurrency,
+        name: 'RallyUp',
+        description: `Payment for Order ${orderNumber}`,
+        order_id: razorpayOrderId,
+        method: {
+          netbanking: true,
+          card: true,
+          wallet: true,
+          upi: true,
+          paylater: true,
+          cardless_emi: true,
+          emi: true,
+          bank_transfer: true,
+        },
+        handler: async function (response: any) {
+          try {
+            const verifyResponse = await fetch('/api/razorpay/verify-payment', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                orderId: orderId,
+              }),
+            })
+
+            if (!verifyResponse.ok) {
+              throw new Error('Payment verification failed')
+            }
+
+            toast({
+              title: "Payment Successful!",
+              description: `Order ${orderNumber} payment completed successfully.`,
+            })
+            
+            onPaymentSuccess(orderId, response.razorpay_payment_id, response.razorpay_order_id)
+            onClose()
+          } catch (error) {
+            console.error('Payment verification error:', error)
+            toast({
+              title: "Payment Verification Failed",
+              description: "Payment was received but verification failed. Please contact support.",
+              variant: "destructive",
+            })
+            onPaymentFailure(orderId, error)
+          }
+        },
+        prefill: {
+          name: '',
+          email: '',
+          contact: '',
+        },
+        theme: {
+          color: '#3b82f6',
+        },
+        modal: {
+          ondismiss: function() {
+            setProcessing(false)
+            toast({
+              title: "Payment Cancelled",
+              description: "You cancelled the payment process.",
+              variant: "destructive",
+            })
+          }
+        }
+      }
+
+      const razorpay = new window.Razorpay(options)
+      
+      razorpay.on('payment.failed', function (response: any) {
+        console.error('Payment failed:', response.error)
+        toast({
+          title: "Payment Failed",
+          description: response.error.description || "Payment processing failed. Please try again.",
+          variant: "destructive",
+        })
+        onPaymentFailure(orderId, response.error)
+        setProcessing(false)
+      })
+
+      razorpay.open()
+    } catch (error) {
+      console.error('Payment initiation error:', error)
+      toast({
+        title: "Error",
+        description: "Failed to initiate payment. Please try again.",
+        variant: "destructive",
+      })
       setProcessing(false)
-      setSimulating(null)
     }
   }
 
@@ -92,25 +207,33 @@ export function PaymentSimulationModal({
     switch (method) {
       case 'card':
         return <CreditCard className="w-5 h-5" />
-      case 'paypal':
-        return <div className="w-5 h-5 bg-blue-600 rounded text-white text-xs flex items-center justify-center font-bold">PP</div>
-      case 'bank_transfer':
-        return <div className="w-5 h-5 bg-green-600 rounded text-white text-xs flex items-center justify-center font-bold">BT</div>
+      case 'upi':
+        return <div className="w-5 h-5 bg-purple-600 rounded text-white text-xs flex items-center justify-center font-bold">UPI</div>
+      case 'netbanking':
+        return <div className="w-5 h-5 bg-blue-600 rounded text-white text-xs flex items-center justify-center font-bold">NB</div>
+      case 'wallet':
+        return <div className="w-5 h-5 bg-green-600 rounded text-white text-xs flex items-center justify-center font-bold">W</div>
+      case 'all':
+        return <DollarSign className="w-5 h-5" />
       default:
-        return <CreditCard className="w-5 h-5" />
+        return <DollarSign className="w-5 h-5" />
     }
   }
 
   const getPaymentMethodName = (method: string) => {
     switch (method) {
       case 'card':
-        return 'Credit Card'
-      case 'paypal':
-        return 'PayPal'
-      case 'bank_transfer':
-        return 'Bank Transfer'
+        return 'Credit/Debit Card'
+      case 'upi':
+        return 'UPI'
+      case 'netbanking':
+        return 'Net Banking'
+      case 'wallet':
+        return 'Wallet'
+      case 'all':
+        return 'All Payment Methods'
       default:
-        return 'Credit Card'
+        return 'All Payment Methods'
     }
   }
 
@@ -120,10 +243,10 @@ export function PaymentSimulationModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CreditCard className="w-5 h-5" />
-            Payment Simulation
+            Complete Payment
           </DialogTitle>
           <DialogDescription>
-            Simulate payment processing for testing purposes
+            Secure payment powered by Razorpay
           </DialogDescription>
         </DialogHeader>
 
@@ -158,62 +281,38 @@ export function PaymentSimulationModal({
             </CardContent>
           </Card>
 
-          {/* Simulation Buttons */}
-          <div className="space-y-3">
-            <div className="text-sm font-medium text-muted-foreground">
-              Choose payment simulation:
-            </div>
-            
-            <div className="grid grid-cols-1 gap-3">
-              {/* Success Button */}
-              <Button
-                onClick={() => simulatePayment('success')}
-                disabled={processing}
-                className="w-full h-12 bg-green-600 hover:bg-green-700 text-white"
-              >
-                {simulating === 'success' ? (
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Processing...
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4" />
-                    Simulate Successful Payment
-                  </div>
-                )}
-              </Button>
-
-              {/* Failure Button */}
-              <Button
-                onClick={() => simulatePayment('failure')}
-                disabled={processing}
-                variant="destructive"
-                className="w-full h-12"
-              >
-                {simulating === 'failure' ? (
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Processing...
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <XCircle className="w-4 h-4" />
-                    Simulate Failed Payment
-                  </div>
-                )}
-              </Button>
-            </div>
-          </div>
+          {/* Payment Button */}
+          <Button
+            onClick={initiatePayment}
+            disabled={processing || !scriptLoaded}
+            className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white"
+          >
+            {processing ? (
+              <div className="flex items-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Processing Payment...
+              </div>
+            ) : !scriptLoaded ? (
+              <div className="flex items-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Loading Payment System...
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <CreditCard className="w-4 h-4" />
+                Pay {formatCurrency(total, currency)}
+              </div>
+            )}
+          </Button>
 
           {/* Info Note */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
             <div className="flex items-start gap-2">
               <AlertCircle className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
               <div className="text-sm text-blue-800">
-                <p className="font-medium">Testing Mode</p>
+                <p className="font-medium">Secure Payment</p>
                 <p className="text-blue-700">
-                  This is a simulation for testing purposes. No real payment will be processed.
+                  Your payment is secured by Razorpay. We support UPI, Cards, Net Banking, Wallets, EMI, Pay Later, and Bank Transfer.
                 </p>
               </div>
             </div>
