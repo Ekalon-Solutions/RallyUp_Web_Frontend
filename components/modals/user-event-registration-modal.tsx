@@ -35,9 +35,10 @@ interface UserEventRegistrationModalProps {
   onClose: () => void
   onRegister?: (payload: { eventId: string; attendees: Attendee[]; couponCode?: string }) => void
   ticketPrice?: number
+  event?: any // Full event object to access member discount info
 }
 
-export default function UserEventRegistrationModal({ eventId, isOpen, onClose, onRegister, ticketPrice = 0 }: UserEventRegistrationModalProps) {
+export default function UserEventRegistrationModal({ eventId, isOpen, onClose, onRegister, ticketPrice = 0, event }: UserEventRegistrationModalProps) {
   const { user } = useAuth()
   const [ticketCount, setTicketCount] = useState<number>(1)
   const [attendees, setAttendees] = useState<Attendee[]>([{ name: '', phone: '', phoneCode: '', open: true }])
@@ -46,6 +47,42 @@ export default function UserEventRegistrationModal({ eventId, isOpen, onClose, o
   const [couponCode, setCouponCode] = useState("")
   const [validatingCoupon, setValidatingCoupon] = useState(false)
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null)
+  
+  // Calculate member discount
+  const isMember = user && (user as any).membershipStatus === 'active'
+  
+  // Calculate early bird discount (check if it's members-only)
+  const calculateEarlyBirdDiscount = () => {
+    if (!event?.earlyBirdDiscount?.enabled) return 0
+    
+    // If early bird is members-only and user is not a member, no discount
+    if (event.earlyBirdDiscount.membersOnly && !isMember) return 0
+    
+    const now = new Date()
+    const startTime = new Date(event.earlyBirdDiscount.startTime)
+    const endTime = new Date(event.earlyBirdDiscount.endTime)
+    
+    if (now >= startTime && now <= endTime) {
+      return event.earlyBirdDiscount.type === 'percentage'
+        ? (ticketPrice * event.earlyBirdDiscount.value) / 100
+        : event.earlyBirdDiscount.value
+    }
+    
+    return 0
+  }
+  
+  const earlyBirdDiscount = calculateEarlyBirdDiscount()
+  const priceAfterEarlyBird = Math.max(ticketPrice - earlyBirdDiscount, 0)
+  
+  // Member discount applies on top of early bird
+  const memberDiscount = event?.memberDiscount?.enabled && isMember
+    ? event.memberDiscount.type === 'percentage'
+      ? (priceAfterEarlyBird * event.memberDiscount.value) / 100
+      : event.memberDiscount.value
+    : 0
+    
+  const basePrice = ticketPrice
+  const priceAfterMemberDiscount = Math.max(priceAfterEarlyBird - memberDiscount, 0)
 
   useEffect(() => {
     // keep attendees in sync with ticketCount and prefill primary attendee when available
@@ -133,12 +170,12 @@ export default function UserEventRegistrationModal({ eventId, isOpen, onClose, o
 
     // Apply coupon if one is being used
     let couponToApply = null
-    if (appliedCoupon && ticketPrice > 0) {
+    if (appliedCoupon && priceAfterMemberDiscount > 0) {
       try {
         const applyResponse = await apiClient.applyCoupon(
           appliedCoupon.code,
           eventId,
-          ticketPrice * ticketCount
+          priceAfterMemberDiscount * ticketCount
         )
         
         if (applyResponse.success) {
@@ -167,14 +204,15 @@ export default function UserEventRegistrationModal({ eventId, isOpen, onClose, o
       return
     }
 
-    if (ticketPrice <= 0) {
+    if (priceAfterMemberDiscount <= 0) {
       toast.error("This event is free, coupons are not applicable")
       return
     }
 
     setValidatingCoupon(true)
     try {
-      const totalPrice = ticketPrice * ticketCount
+      // Use price after member discount for coupon validation
+      const totalPrice = priceAfterMemberDiscount * ticketCount
       const response = await apiClient.validateCoupon(
         couponCode.toUpperCase(),
         eventId,
@@ -211,6 +249,39 @@ export default function UserEventRegistrationModal({ eventId, isOpen, onClose, o
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Early Bird Discount Banner */}
+          {earlyBirdDiscount > 0 && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-5 h-5 text-green-600" />
+                <div>
+                  <div className="font-medium text-green-900 text-sm">
+                    Early Bird Discount Applied!
+                    {event?.earlyBirdDiscount?.membersOnly && " (Members Only)"}
+                  </div>
+                  <div className="text-xs text-green-700">
+                    You're saving ₹{earlyBirdDiscount.toLocaleString()} per ticket
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {/* Member Discount Banner */}
+          {memberDiscount > 0 && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-5 h-5 text-blue-600" />
+                <div>
+                  <div className="font-medium text-blue-900 text-sm">Member Discount Applied!</div>
+                  <div className="text-xs text-blue-700">
+                    You're saving ₹{memberDiscount.toLocaleString()} per ticket as a club member
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center gap-3">
             <div className="flex items-center space-x-2">
               <Button size="sm" variant="outline" onClick={() => setTicketCount(Math.max(1, ticketCount - 1))}>
@@ -251,7 +322,7 @@ export default function UserEventRegistrationModal({ eventId, isOpen, onClose, o
           </div>
 
           {/* Coupon Section */}
-          {ticketPrice > 0 && (
+          {priceAfterMemberDiscount > 0 && (
             <Card className="border-2 border-dashed">
               <CardHeader className="pb-3">
                 <CardTitle className="flex items-center gap-2 text-sm">
@@ -323,13 +394,24 @@ export default function UserEventRegistrationModal({ eventId, isOpen, onClose, o
 
                     <div className="space-y-1.5 p-2 bg-muted/50 rounded-lg text-sm">
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Original Price ({ticketCount} ticket{ticketCount > 1 ? 's' : ''})</span>
-                        <span className="font-medium">₹{(ticketPrice * ticketCount).toLocaleString()}</span>
+                        <span className="text-muted-foreground">Base Price ({ticketCount} ticket{ticketCount > 1 ? 's' : ''})</span>
+                        <span className="font-medium">₹{(basePrice * ticketCount).toLocaleString()}</span>
                       </div>
+                      {memberDiscount > 0 && (
+                        <div className="flex justify-between">
+                          <span className="text-blue-600 flex items-center gap-1">
+                            <Percent className="w-3 h-3" />
+                            Member Discount ({event.memberDiscount.type === 'percentage' ? `${event.memberDiscount.value}%` : `₹${event.memberDiscount.value}`})
+                          </span>
+                          <span className="font-medium text-blue-600">
+                            -₹{(memberDiscount * ticketCount).toLocaleString()}
+                          </span>
+                        </div>
+                      )}
                       <div className="flex justify-between">
                         <span className="text-green-600 flex items-center gap-1">
                           <Percent className="w-3 h-3" />
-                          Discount ({appliedCoupon.discountType === 'percentage' ? `${appliedCoupon.discountValue}%` : `₹${appliedCoupon.discountValue}`})
+                          Coupon Discount ({appliedCoupon.discountType === 'percentage' ? `${appliedCoupon.discountValue}%` : `₹${appliedCoupon.discountValue}`})
                         </span>
                         <span className="font-medium text-green-600">
                           -₹{(appliedCoupon.discount * ticketCount).toLocaleString()}
@@ -338,7 +420,7 @@ export default function UserEventRegistrationModal({ eventId, isOpen, onClose, o
                       <div className="pt-1.5 border-t flex justify-between">
                         <span className="font-semibold">Final Price</span>
                         <span className="font-bold text-base text-primary">
-                          ₹{((ticketPrice - appliedCoupon.discount) * ticketCount).toLocaleString()}
+                          ₹{((priceAfterMemberDiscount - appliedCoupon.discount) * ticketCount).toLocaleString()}
                         </span>
                       </div>
                     </div>

@@ -858,6 +858,7 @@ export default function UserEventsPage() {
         }}
         onRegister={handlePerformRegistration}
         ticketPrice={registrationEvent?.ticketPrice || 0}
+        event={registrationEvent}
       />
         <EventCheckoutModal
           isOpen={showEventCheckoutModal}

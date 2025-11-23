@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, Clock, MapPin, Users, Ticket, UserCheck, Bus, Plus, X } from "lucide-react"
+import { Calendar, Clock, MapPin, Users, Ticket, UserCheck, Bus, Plus, X, Percent } from "lucide-react"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api"
 
@@ -81,6 +81,7 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
     earlyBirdValue: "",
     earlyBirdStartTime: "",
     earlyBirdEndTime: "",
+    earlyBirdMembersOnly: false,
     memberDiscountEnabled: false,
     memberDiscountType: "percentage" as "percentage" | "fixed",
     memberDiscountValue: "",
@@ -116,6 +117,7 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
           earlyBirdValue: editEvent.earlyBirdDiscount?.value?.toString() || "",
           earlyBirdStartTime: editEvent.earlyBirdDiscount?.startTime?.slice(0, 16) || "",
           earlyBirdEndTime: editEvent.earlyBirdDiscount?.endTime?.slice(0, 16) || "",
+          earlyBirdMembersOnly: editEvent.earlyBirdDiscount?.membersOnly || false,
           memberDiscountEnabled: editEvent.memberDiscount?.enabled || false,
           memberDiscountType: editEvent.memberDiscount?.type || "percentage",
           memberDiscountValue: editEvent.memberDiscount?.value?.toString() || "",
@@ -152,6 +154,7 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
           earlyBirdValue: "",
           earlyBirdStartTime: "",
           earlyBirdEndTime: "",
+          earlyBirdMembersOnly: false,
           memberDiscountEnabled: false,
           memberDiscountType: "percentage",
           memberDiscountValue: "",
@@ -319,7 +322,8 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
           type: formData.earlyBirdType,
           value: parseFloat(formData.earlyBirdValue),
           startTime: new Date(formData.earlyBirdStartTime).toDateString(),
-          endTime: new Date(formData.earlyBirdEndTime).toDateString()
+          endTime: new Date(formData.earlyBirdEndTime).toDateString(),
+          membersOnly: formData.earlyBirdMembersOnly
         } : { enabled: false, type: 'percentage', value: 0 },
         memberDiscount: formData.memberDiscountEnabled ? {
           enabled: true,
@@ -407,6 +411,7 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
       earlyBirdValue: "",
       earlyBirdStartTime: "",
       earlyBirdEndTime: "",
+      earlyBirdMembersOnly: false,
       memberDiscountEnabled: false,
       memberDiscountType: "percentage",
       memberDiscountValue: "",
@@ -921,70 +926,23 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
                       <p className="text-red-500 text-sm">{errors.earlyBirdEndTime}</p>
                     )}
                   </div>
+                  <div className="space-y-2 md:col-span-3">
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id="earlyBirdMembersOnly"
+                        checked={formData.earlyBirdMembersOnly || false}
+                        onChange={(e) => setFormData({ ...formData, earlyBirdMembersOnly: e.target.checked })}
+                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      />
+                      <Label htmlFor="earlyBirdMembersOnly" className="cursor-pointer">
+                        Members Only - Apply this discount only to club members
+                      </Label>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
-
-            {/* Member Discount */}
-            {/* <div className="space-y-4 mb-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label htmlFor="memberDiscountEnabled" className="font-medium">Member Discount</Label>
-                  <p className="text-sm text-muted-foreground">Special discount for club members</p>
-                </div>
-                <Switch
-                  id="memberDiscountEnabled"
-                  checked={formData.memberDiscountEnabled}
-                  onCheckedChange={(checked) => setFormData({ ...formData, memberDiscountEnabled: checked })}
-                />
-              </div>
-              
-              {formData.memberDiscountEnabled && (
-                <div className="grid gap-4 md:grid-cols-2 pl-4 border-l-2 border-green-300">
-                  <div className="space-y-2">
-                    <Label htmlFor="memberDiscountType">Type</Label>
-                    <Select
-                      value={formData.memberDiscountType}
-                      onValueChange={(value: "percentage" | "fixed") => setFormData({ ...formData, memberDiscountType: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="percentage">Percentage (%)</SelectItem>
-                        <SelectItem value="fixed">Fixed Amount (₹)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="memberDiscountValue">
-                      Value {formData.memberDiscountType === "percentage" ? "(%)" : "(₹)"}
-                    </Label>
-                    <Input
-                      id="memberDiscountValue"
-                      type="number"
-                      placeholder={formData.memberDiscountType === "percentage" ? "e.g., 15" : "e.g., 50"}
-                      value={formData.memberDiscountValue}
-                      onChange={(e) => {
-                        setFormData({ ...formData, memberDiscountValue: e.target.value });
-                        if (errors.memberDiscountValue) {
-                          setErrors((errors) => {
-                            const { memberDiscountValue, ...rest } = errors;
-                            return rest;
-                          });
-                        }
-                      }}
-                      className={errors.memberDiscountValue ? "border-red-500" : ""}
-                      min="0"
-                      max={formData.memberDiscountType === "percentage" ? "100" : undefined}
-                    />
-                    {errors.memberDiscountValue && (
-                      <p className="text-red-500 text-sm">{errors.memberDiscountValue}</p>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div> */}
 
             {/* Group Discount */}
             {/* <div className="space-y-4">
