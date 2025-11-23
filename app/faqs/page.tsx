@@ -134,26 +134,6 @@ export default function FAQsPage(): React.JSX.Element {
       <div className="mx-auto max-w-4xl px-4 py-16">
         <FadeIn>
           <div className="text-center mb-12">
-            <div className="flex justify-center gap-4 mb-6">
-              <div className="relative h-10 w-40 md:h-12 md:w-48">
-                <Image
-                  src="/WingmanPro Logo (White BG).svg"
-                  alt="Wingman Pro logo"
-                  fill
-                  sizes="(max-width: 768px) 160px, 192px"
-                  className="object-contain"
-                />
-              </div>
-              <div className="relative h-9 w-40 md:h-11 md:w-48">
-                <Image
-                  src="/RallyUpSolutions Logo (Transparent Background).svg"
-                  alt="RallyUp Solutions logo"
-                  fill
-                  sizes="(max-width: 768px) 160px, 192px"
-                  className="object-contain"
-                />
-              </div>
-            </div>
             <div className="inline-flex items-center justify-center mb-4">
               <HelpCircle className="h-12 w-12 text-sky-600 dark:text-sky-300" />
             </div>

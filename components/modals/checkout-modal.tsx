@@ -81,7 +81,6 @@ export function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutModalProps
     setLoading(true)
     
     try {
-      // Create order via API
       const orderData = {
         customer: {
           firstName: orderForm.firstName,
@@ -112,7 +111,6 @@ export function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutModalProps
         const order = response.data.data
         setCreatedOrder(order)
         setShowPaymentModal(true)
-        // Don't close the modal yet - wait for payment simulation
       } else {
         toast.error(response.message || 'Failed to place order. Please try again.')
       }

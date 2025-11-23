@@ -25,27 +25,6 @@ export default function AboutPage(): React.JSX.Element {
       <div className="mx-auto max-w-7xl px-4 py-16">
         <FadeIn>
           <div className="max-w-3xl">
-            <div className="flex flex-wrap items-center gap-4 mb-6">
-              <div className="relative h-12 w-44 sm:h-14 sm:w-56">
-                <Image
-                  src="/WingmanPro Logo (Chalk BG).svg"
-                  alt="Wingman Pro logo"
-                  fill
-                  sizes="(max-width: 640px) 176px, 224px"
-                  className="object-contain"
-                  priority
-                />
-              </div>
-              <div className="relative h-11 w-44 sm:h-12 sm:w-52">
-                <Image
-                  src="/RallyUpSolutions Logo (WhiteBackground).svg"
-                  alt="RallyUp Solutions logo"
-                  fill
-                  sizes="(max-width: 640px) 176px, 208px"
-                  className="object-contain"
-                />
-              </div>
-            </div>
             <h1 className="text-3xl md:text-4xl font-bold mb-6">About Us: RallyUp Solutions & Wingman Pro</h1>
             <p className="text-slate-700 dark:text-slate-300 leading-relaxed text-lg">
               RallyUp Solutions Private Limited was founded to match the passion of sports communities with seamless, modern operations.
@@ -179,24 +158,28 @@ export default function AboutPage(): React.JSX.Element {
                   title: "Managing Director, COO & CCO",
                   description:
                     "Over 40 years leading quality, audits, compliance, and operations. Guides RallyUp Solutions’ operational rigor and global security standards as the lead Operations and Compliance Officer.",
+                  image: "/Sunil.png",
                 },
                 {
                   name: "Dr. Neeta Acharya",
                   title: "Managing Director, CMO & CFO",
                   description:
                     "Expert in marketing, finance, branding, and strategy. Shapes club growth, brand perception, and financial health while overseeing marketing strategy and corporate growth for RallyUp Solutions.",
+                  image: "/Neeta.png",
                 },
                 {
                   name: "Mihir Chheda",
                   title: "CTO, Wingman Pro & Partner",
                   description:
                     "FinTech veteran and sports club administrator. Designs the Wingman Pro architecture, aligning engineering excellence with the real-world operational needs of clubs and supporter groups globally.",
+                  image: "/Mihir.png",
                 },
                 {
                   name: "Ankit Ameria",
                   title: "Partner & Chief Sales Officer, Wingman Pro",
                   description:
                     "Leads market strategy and sales initiatives. Specializes in scaling startups and SMBs, ensuring Wingman Pro delivers measurable value to organizations and their supporter communities.",
+                  image: "/Ankit.png",
                 },
               ].map((leader) => (
                 <Card
@@ -205,8 +188,14 @@ export default function AboutPage(): React.JSX.Element {
                 >
                   <CardHeader>
                     <div className="flex items-center gap-3">
-                      <div className="rounded-full bg-sky-500/10 p-3 dark:bg-sky-400/10">
-                        <Users className="h-6 w-6 text-sky-600 dark:text-sky-300" />
+                      <div className="relative h-16 w-16 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800">
+                        <Image
+                          src={leader.image}
+                          alt={leader.name}
+                          fill
+                          sizes="64px"
+                          className="object-cover"
+                        />
                       </div>
                       <div>
                         <CardTitle className="text-lg text-slate-900 dark:text-white">{leader.name}</CardTitle>

@@ -5,198 +5,295 @@ import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Sparkles, Users, Trophy, Building2, CalendarDays, MapPin, Ticket } from "lucide-react"
+import { Sparkles, Users, Trophy, Building2, CalendarDays, MapPin, Ticket, Shield, Zap, TrendingUp, Database, CreditCard, BarChart3, Target, Globe, Lock, Smartphone, CheckCircle2, XCircle, Brain } from "lucide-react"
 import { SiteNavbar } from "@/components/site-navbar"
 import { SiteFooter } from "@/components/site-footer"
 import { ScrollToTop } from "@/components/scroll-to-top"
 import { FadeIn } from "@/components/fade-in"
 
 function Hero() {
-  const marqueeLogos = [
-    { src: "/WingmanPro Logo (White BG).svg", alt: "Wingman Pro" },
-    { src: "/WingmanPro Logo (Chalk BG).svg", alt: "Wingman Pro Chalk" },
-    { src: "/RallyUpSolutions Logo (WhiteBackground).svg", alt: "RallyUp Solutions" },
-    { src: "/RallyUpSolutions Logo (Transparent Background).svg", alt: "RallyUp Solutions Transparent" },
-  ]
-
   return (
     <section className="relative overflow-hidden" id="home">
       <div className="absolute inset-0 -z-10">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,#38bdf81f,transparent_35%),radial-gradient(circle_at_80%_20%,#60a5fa1f,transparent_35%),radial-gradient(circle_at_50%_80%,#38bdf81a,transparent_40%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(#ffffff22_1px,transparent_1px)] [background-size:20px_20px] opacity-20" />
-                    </div>
-      <div className="mx-auto max-w-7xl px-4 py-20 md:py-28">
-        <div className="grid md:grid-cols-2 gap-10 items-center">
-          <div className="space-y-6">
-            <div className="flex flex-wrap items-center gap-4">
-              <div className="relative h-12 w-44 sm:h-14 sm:w-56">
-                <Image
-                  src="/WingmanPro Logo (Chalk BG).svg"
-                  alt="Wingman Pro logo"
-                  fill
-                  sizes="(max-width: 640px) 176px, 224px"
-                  className="object-contain"
-                  priority
-                />
-              </div>
-              <div className="relative h-10 w-44 sm:h-12 sm:w-52">
-                <Image
-                  src="/RallyUpSolutions Logo (WhiteBackground).svg"
-                  alt="RallyUp Solutions logo"
-                  fill
-                  sizes="(max-width: 640px) 176px, 208px"
-                  className="object-contain"
-                />
-              </div>
+      </div>
+      <div className="mx-auto max-w-7xl px-4 py-20 md:py-32">
+        <div className="text-center max-w-5xl mx-auto space-y-8">
+          <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight">
+            Don't Just Run Your Club.<br />
+            <span className="bg-gradient-to-r from-sky-600 to-blue-600 dark:from-sky-400 dark:to-blue-400 bg-clip-text text-transparent">
+              Revolutionize It
+            </span> with Intelligent Sports Club Management Software.
+          </h1>
+          <p className="text-slate-600 dark:text-slate-300 text-lg md:text-xl leading-relaxed max-w-4xl mx-auto">
+            The world's first AI-enhanced platform built exclusively for Supporter Groups and Sports Clubs. We replace your spreadsheets, payment links, and chat groups with one powerful, secure Operating System for membership management, ticketing, and fan engagement.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
+            <Link href="/contact">
+              <Button size="lg" className="h-14 px-8 bg-sky-600 text-white hover:bg-sky-500 dark:bg-sky-400 dark:text-slate-900 dark:hover:bg-sky-300 text-lg font-semibold">
+                Book Your Demo
+              </Button>
+            </Link>
+            <Link href="#features">
+              <Button size="lg" variant="outline" className="h-14 px-8 border-slate-300 dark:border-white/20 bg-white text-slate-900 hover:bg-slate-100 dark:bg-white/5 dark:text-white dark:hover:bg-white/10 text-lg font-semibold">
+                Explore Features
+              </Button>
+            </Link>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-6 pt-6 text-sm text-slate-600 dark:text-slate-300">
+            <div className="flex items-center gap-2">
+              <Trophy className="h-5 w-5 text-sky-600 dark:text-sky-400" />
+              <span>Built for High-Performance Clubs</span>
             </div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-sky-200">
-              <Sparkles className="h-3.5 w-3.5" />
-              Built for Supporter Communities
-                          </div>
-            <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-slate-900 dark:text-white">
-              Where supporters go<br />to power matchday
-            </h1>
-            <p className="text-slate-600 dark:text-slate-300 text-lg leading-relaxed">
-              100 moving parts. 1 platform. Everything you need to run a football supporters group—so you can have a pint and watch the match.
-            </p>
-            <div className="flex flex-wrap items-center gap-3">
-              <Link href="/clubs">
-                <Button size="lg" className="h-12 px-6 bg-sky-400 text-slate-900 hover:bg-sky-300">Get Started</Button>
-              </Link>
-              <Link href="/login">
-                <Button size="lg" variant="outline" className="h-12 px-6 border-white/20 bg-white/5 text-white hover:bg-white/10">Log in</Button>
-              </Link>
-                        </div>
-             <div className="flex items-center gap-6 pt-2 text-slate-600 dark:text-slate-300">
-              <div className="flex items-center gap-2"><Users className="h-5 w-5 text-sky-500 dark:text-sky-300" /><span>Community-first</span></div>
-              <div className="flex items-center gap-2"><Trophy className="h-5 w-5 text-sky-500 dark:text-sky-300" /><span>Gamified</span></div>
-              <div className="flex items-center gap-2"><Building2 className="h-5 w-5 text-sky-500 dark:text-sky-300" /><span>Club-grade tools</span></div>
-                          </div>
-                          </div>
-          <div className="relative">
-            <div className="relative rounded-2xl border border-slate-200 dark:border-white/10 bg-white p-6 shadow-2xl dark:bg-gradient-to-br dark:from-slate-900/60 dark:to-blue-900/50 animate-in fade-in-50 slide-in-from-right-4">
-              <div className="grid sm:grid-cols-2 gap-4">
-                {[{src:"/placeholder.jpg", alt:"Fans cheering"},{src:"/placeholder.jpg", alt:"Club tifo"},{src:"/placeholder.jpg", alt:"Merch table"},{src:"/placeholder.jpg", alt:"Away day bus"}].map((img,idx)=> (
-                  <div key={idx} className="relative overflow-hidden rounded-xl border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/5">
-                    <img src={img.src} alt={img.alt} className="h-32 w-full object-cover opacity-95 hover:opacity-100 transition-opacity" />
-                    <div className="absolute inset-0 hidden dark:block bg-gradient-to-t from-slate-950/60 to-transparent" />
-                        </div>
+            <div className="flex items-center gap-2">
+              <Shield className="h-5 w-5 text-sky-600 dark:text-sky-400" />
+              <span>GDPR & DPDPA Compliant</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Lock className="h-5 w-5 text-sky-600 dark:text-sky-400" />
+              <span>Secure OTP Access</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function ProblemSolution() {
+  const comparisons = [
+    { old: "Fragmented Excel Sheets & Google Forms", new: "One Centralized Sports Membership Database" },
+    { old: "Chasing payments via WhatsApp", new: "Automated Membership Renewals & Ticketing" },
+    { old: '"Best Guess" decision making', new: "AI-Driven Club Growth Insights" },
+    { old: "Static, boring emails", new: "Gamified Member Engagement Tools" },
+  ]
+  
+  return (
+    <section className="mx-auto max-w-7xl px-4 py-16 md:py-24" id="problem">
+      <div className="text-center max-w-3xl mx-auto mb-12">
+        <h2 className="text-3xl md:text-5xl font-bold text-slate-900 dark:text-white mb-6">
+          The "Volunteer Burnout" Ends Here.
+        </h2>
+        <p className="text-slate-600 dark:text-slate-300 text-lg leading-relaxed">
+          You started this club because you love the game. But lately, you're spending more time on club administration, reconciling bank transfers, chasing membership renewals, and managing data privacy than actually watching the match.
+        </p>
+        <p className="text-slate-700 dark:text-slate-200 text-lg font-semibold mt-4">
+          Wingman Pro restores the balance. We handle the heavy lifting of administration, compliance, and commerce, so you can get back to the stands.
+        </p>
+      </div>
+      
+      <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+        <div className="space-y-4">
+          <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-6 text-center">The Old Way</h3>
+          {comparisons.map((item, i) => (
+            <Card key={i} className="bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-900/30">
+              <CardContent className="flex items-start gap-3 p-4">
+                <XCircle className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                <span className="text-slate-900 dark:text-white">{item.old}</span>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        
+        <div className="space-y-4">
+          <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-6 text-center">The Wingman Pro Way</h3>
+          {comparisons.map((item, i) => (
+            <Card key={i} className="bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-900/30">
+              <CardContent className="flex items-start gap-3 p-4">
+                <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+                <span className="text-slate-900 dark:text-white">{item.new}</span>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function CoreFeatures() {
+  const features = [
+    {
+      title: "Command Center Administration",
+      desc: "Total control over your organization with our comprehensive club management system. Manage hierarchy, access roles, and member data with military-grade security.",
+      icon: Database,
+      points: [
+        "Smart Profiles: Self-updating member portals",
+        "Global Compliance: Built-in adherence to DPDPA (India), GDPR (UK/EU), and international data laws",
+        "Zero-Password Risk: Secure OTP-only login infrastructure"
+      ]
+    },
+    {
+      title: "Integrated Commerce Engine",
+      desc: "Stop using third-party ticketing tools that eat your margins. Wingman Pro turns your passion into revenue with an integrated sports ecommerce platform.",
+      icon: CreditCard,
+      points: [
+        "Merchandise Store: Real-time inventory tracking and seamless checkout",
+        "Event Ticketing: QR-code ready ticketing software for match days and socials",
+        "Financial Reporting: One-click export for easy club accounting and reconciliation"
+      ]
+    },
+    {
+      title: 'Next-Gen Engagement (The "Pro" Advantage)',
+      desc: "This is where we leave the competition behind. We use fan engagement technology to turn casual fans into die-hard members.",
+      icon: Target,
+      points: [
+        "Gamified Leaderboards: Award points for attendance, purchases, and interactions to boost fan loyalty",
+        "AI Content Curation: Deliver the right news and events to the right members automatically",
+        "Interactive Polls & Galleries: Keep the conversation alive with a dedicated community platform between match days"
+      ]
+    }
+  ]
+  
+  return (
+    <section className="mx-auto max-w-7xl px-4 py-16 md:py-24" id="features">
+      <div className="text-center max-w-3xl mx-auto mb-12">
+        <h2 className="text-3xl md:text-5xl font-bold text-slate-900 dark:text-white mb-4">
+          Core Feature Pillars
+        </h2>
+      </div>
+      <div className="grid lg:grid-cols-3 gap-8">
+        {features.map((feature, i) => (
+          <Card key={i} className="bg-white border-slate-200 dark:bg-white/5 dark:border-white/10 hover:shadow-xl transition-shadow">
+            <CardHeader>
+              <div className="h-12 w-12 rounded-lg bg-sky-100 dark:bg-sky-900/30 flex items-center justify-center mb-4">
+                {React.createElement(feature.icon, { className: "h-6 w-6 text-sky-600 dark:text-sky-400" })}
+              </div>
+              <CardTitle className="text-slate-900 dark:text-white text-xl mb-3">{feature.title}</CardTitle>
+              <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed">{feature.desc}</p>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-3">
+                {feature.points.map((point, j) => (
+                  <li key={j} className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
+                    <CheckCircle2 className="h-4 w-4 text-sky-600 dark:text-sky-400 flex-shrink-0 mt-0.5" />
+                    <span>{point}</span>
+                  </li>
                 ))}
-                          </div>
-                        </div>
-                            </div>
-                          </div>
-                            </div>
-      {/* Marquee */}
-      <div className="border-y border-slate-200 dark:border-white/10 bg-slate-50/60 dark:bg-slate-900/40">
-        <div className="mx-auto max-w-7xl px-4 py-6">
-          <div className="text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-3">Trusted by spirited clubs</div>
-          <div className="overflow-hidden">
-            <div className="marquee flex items-center gap-12 opacity-80">
-              {Array.from({ length: 4 }).flatMap(() => marqueeLogos).map((logo, index) => (
-                <div key={`${logo.alt}-${index}`} className="relative h-8 w-36">
-                  <Image
-                    src={logo.src}
-                    alt={`${logo.alt} partner logo`}
-                    fill
-                    sizes="144px"
-                    className="object-contain opacity-80 hover:opacity-100 transition-opacity"
-                  />
-                </div>
-              ))}
-                          </div>
-                        </div>
-                          </div>
-                          </div>
-    </section>
-  )
-}
-
-function Features() {
-  const items = [
-    { title: "Create and manage clubs", desc: "Launch new supporter clubs with branding, roles, and permissions.", icon: Building2 },
-    { title: "Monetize with merch", desc: "Built-in store and checkout to sell official merchandise.", icon: Trophy },
-    { title: "Engage with polls", desc: "Run interactive polls and display live results instantly.", icon: Sparkles },
-  ]
-  return (
-    <section className="mx-auto max-w-7xl px-4 py-16" id="platform">
-      <h2 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-6">The Platform</h2>
-      <div className="grid md:grid-cols-3 gap-6">
-        {items.map((it, i) => (
-          <Card key={i} className="bg-white border-slate-200 hover:bg-slate-50 dark:bg-white/5 dark:border-white/10 dark:hover:bg-white/10 transition-colors animate-in fade-in-50 slide-in-from-bottom-6">
-            <CardHeader className="flex flex-row items-center gap-3">
-              {React.createElement(it.icon, { className: "h-5 w-5 text-sky-600 dark:text-sky-300" })}
-              <CardTitle className="text-slate-900 dark:text-white text-base">{it.title}</CardTitle>
-            </CardHeader>
-            <CardContent className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed">{it.desc}</CardContent>
-          </Card>
-        ))}
-                        </div>
-    </section>
-  )
-}
-
-function Showcase() {
-  const tiles = [
-    { title: "Matchdays", caption: "Screenings & stadium trips", img: "/placeholder.jpg" },
-    { title: "Chants", caption: "Sing it loud together", img: "/placeholder.jpg" },
-    { title: "Merch", caption: "Kits, scarves, badges", img: "/placeholder.jpg" },
-    { title: "Community", caption: "Volunteer & give back", img: "/placeholder.jpg" },
-  ]
-  return (
-    <section className="mx-auto max-w-7xl px-4 py-8 md:py-12" id="features">
-      <h2 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-6">100 Moving Parts. 1 Platform.</h2>
-      <p className="text-slate-700 dark:text-slate-300 mb-6 max-w-3xl">Everything you need to run a football supporters group. Member management, your website, merch, events, tickets and more—integrated and simplified.</p>
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {tiles.map((t, i) => (
-          <div key={i} className="group relative overflow-hidden rounded-xl border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/5">
-            <img src={t.img} alt={t.title} className="h-48 w-full object-cover transition-transform duration-500 group-hover:scale-105" />
-            <div className="absolute inset-0 hidden dark:block bg-gradient-to-t from-slate-950/70 to-transparent" />
-            <div className="absolute bottom-3 left-3 right-3">
-              <div className="text-slate-900 dark:text-white font-semibold">{t.title}</div>
-              <div className="text-slate-700 dark:text-slate-300 text-sm">{t.caption}</div>
-                        </div>
-                          </div>
-        ))}
-                          </div>
-    </section>
-  )
-}
-
-function EventsPreview() {
-  const events = [
-    { title: "Derby Day Screening", date: "Nov 12", where: "City Arena", cta: "Get Tickets" },
-    { title: "Away Day: Bengaluru", date: "Dec 03", where: "Departure: 6 AM", cta: "Reserve Seat" },
-    { title: "Annual Fan Meet", date: "Jan 18", where: "Clubhouse", cta: "RSVP" },
-  ]
-  return (
-    <section className="mx-auto max-w-7xl px-4 py-12" id="groups">
-      <div className="mb-6 flex items-center justify-between">
-        <h2 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white">Upcoming Highlights</h2>
-        <Link href="/events" className="text-sky-700 hover:text-sky-600 dark:text-sky-300 dark:hover:text-sky-200 text-sm">View all</Link>
-                        </div>
-      <div className="grid md:grid-cols-3 gap-6">
-        {events.map((e, i) => (
-          <Card key={i} className="bg-white border-slate-200 hover:bg-slate-50 dark:bg-white/5 dark:border-white/10 dark:hover:bg-white/10 transition-colors animate-in fade-in-50 slide-in-from-bottom-6">
-            <CardHeader className="pb-2">
-              <div className="flex items-center gap-2 text-sky-700 dark:text-sky-300 text-sm">
-                <CalendarDays className="h-4 w-4" />
-                <span>{e.date}</span>
-                          </div>
-              <CardTitle className="text-slate-900 dark:text-white text-lg">{e.title}</CardTitle>
-            </CardHeader>
-            <CardContent className="flex items-center justify-between text-slate-700 dark:text-slate-300 text-sm">
-              <div className="flex items-center gap-2"><MapPin className="h-4 w-4 text-slate-500 dark:text-slate-400" />{e.where}</div>
-              <Button size="sm" className="bg-sky-600 text-white hover:bg-sky-500 dark:bg-sky-400 dark:text-slate-900 dark:hover:bg-sky-300">
-                <Ticket className="h-4 w-4 mr-1" /> {e.cta}
-                        </Button>
+              </ul>
             </CardContent>
           </Card>
         ))}
-                      </div>
+      </div>
     </section>
   )
 }
+
+function WhyWingmanPro() {
+  const differentiators = [
+    {
+      icon: Globe,
+      title: "We are Global",
+      desc: "Ready for multi-currency support and cross-border data regulations from Day 1."
+    },
+    {
+      icon: Brain,
+      title: "We are Smart",
+      desc: "Our predictive AI analyzes member behavior to help you reduce churn before it happens."
+    },
+    {
+      icon: Users,
+      title: "We are Partners",
+      desc: 'We don\'t just sell you club software; our "Grassroots Growth" initiative helps you secure sponsorships and build affiliations with major leagues.'
+    }
+  ]
+  
+  return (
+    <section className="mx-auto max-w-7xl px-4 py-16 md:py-24 bg-gradient-to-br from-sky-50 to-blue-50 dark:from-sky-950/20 dark:to-blue-950/20 rounded-3xl">
+      <div className="text-center max-w-3xl mx-auto mb-12">
+        <h2 className="text-3xl md:text-5xl font-bold text-slate-900 dark:text-white mb-6">
+          Why Choose Wingman Pro's Membership Platform?
+        </h2>
+        <p className="text-slate-700 dark:text-slate-200 text-xl leading-relaxed">
+          Most software manages data. <span className="font-bold text-sky-700 dark:text-sky-300">Wingman Pro manages communities.</span>
+        </p>
+        <p className="text-slate-600 dark:text-slate-300 text-lg mt-4">
+          While others offer you a database, we offer you an Intelligence Partner for your sports organization.
+        </p>
+      </div>
+      
+      <div className="grid md:grid-cols-3 gap-8">
+        {differentiators.map((item, i) => (
+          <Card key={i} className="bg-white border-slate-200 dark:bg-slate-900/50 dark:border-white/10 text-center">
+            <CardHeader>
+              <div className="h-16 w-16 rounded-full bg-sky-100 dark:bg-sky-900/30 flex items-center justify-center mx-auto mb-4">
+                {React.createElement(item.icon, { className: "h-8 w-8 text-sky-600 dark:text-sky-400" })}
+              </div>
+              <CardTitle className="text-slate-900 dark:text-white text-xl">{item.title}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-slate-600 dark:text-slate-300 leading-relaxed">{item.desc}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function TechPromise() {
+  const promises = [
+    { icon: Zap, text: "99.9% Uptime Guarantee" },
+    { icon: Lock, text: "Bank-Level Data Encryption" },
+    { icon: Smartphone, text: "Mobile-First Responsive Design (No app download required)" }
+  ]
+  
+  return (
+    <section className="mx-auto max-w-7xl px-4 py-16 md:py-24">
+      <div className="text-center max-w-3xl mx-auto mb-12">
+        <h2 className="text-3xl md:text-5xl font-bold text-slate-900 dark:text-white mb-6">
+          Built for Scale. Secured for Peace of Mind.
+        </h2>
+        <p className="text-slate-600 dark:text-slate-300 text-lg leading-relaxed">
+          Whether you have 50 members or 50,000, our enterprise-grade infrastructure scales with you.
+        </p>
+      </div>
+      
+      <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+        {promises.map((item, i) => (
+          <Card key={i} className="bg-gradient-to-br from-slate-50 to-sky-50 border-slate-200 dark:from-slate-900/50 dark:to-blue-900/30 dark:border-white/10 text-center">
+            <CardContent className="pt-8 pb-8">
+              <div className="h-14 w-14 rounded-full bg-sky-600 dark:bg-sky-400 flex items-center justify-center mx-auto mb-4">
+                {React.createElement(item.icon, { className: "h-7 w-7 text-white dark:text-slate-900" })}
+              </div>
+              <p className="text-slate-900 dark:text-white font-semibold text-lg">{item.text}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function FinalCTA() {
+  return (
+    <section className="mx-auto max-w-7xl px-4 py-16 md:py-24">
+      <div className="rounded-3xl border border-slate-200 dark:border-white/10 bg-gradient-to-br from-sky-500 via-blue-600 to-sky-600 dark:from-sky-600 dark:via-blue-700 dark:to-sky-700 p-10 md:p-16 text-center text-white shadow-2xl">
+        <h2 className="text-3xl md:text-5xl font-bold mb-4">
+          Ready to Upgrade Your Sports Management System?
+        </h2>
+        <p className="text-sky-50 text-lg md:text-xl mb-8 max-w-2xl mx-auto">
+          Join the waiting list or book a consultation with our strategy team to see how Wingman Pro can unlock your club's potential.
+        </p>
+        <div className="flex flex-wrap items-center justify-center gap-4">
+          <Link href="/contact">
+            <Button size="lg" className="h-14 px-8 bg-white text-sky-700 hover:bg-slate-100 text-lg font-semibold">
+              Book a Consultation
+            </Button>
+          </Link>
+          <Link href="/clubs">
+            <Button size="lg" variant="outline" className="h-14 px-8 border-white text-white hover:bg-white/10 text-lg font-semibold">
+              Join Waiting List
+            </Button>
+          </Link>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+
 
 function CTA() {
   return (
@@ -221,17 +318,19 @@ export default function LandingPage() {
         <Hero />
       </FadeIn>
       <FadeIn>
-        <Features />
+        <ProblemSolution />
       </FadeIn>
       <FadeIn>
-        <Showcase />
+        <CoreFeatures />
       </FadeIn>
       <FadeIn>
-        <EventsPreview />
+        <WhyWingmanPro />
       </FadeIn>
-      
       <FadeIn>
-        <CTA />
+        <TechPromise />
+      </FadeIn>
+      <FadeIn>
+        <FinalCTA />
       </FadeIn>
       <SiteFooter brandName="Wingman Pro" />
       <ScrollToTop />
