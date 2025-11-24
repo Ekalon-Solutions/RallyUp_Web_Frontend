@@ -166,9 +166,12 @@ export default function AuthPage() {
 
     try {
       const confirmationResult = window.confirmationResult
-      const result = await confirmationResult.confirm(userLoginOtp)
-
-      if (result.user) {
+      const firebaseResult = await confirmationResult.confirm(userLoginOtp)
+      let backendResult;
+      if (firebaseResult.user) {
+        backendResult = await login(userLoginData.email, userLoginData.phone_number, userLoginData.countryCode, false)
+      }
+      if (backendResult?.success) {
         toast.success("Login successful!")
         router.push("/dashboard")
       }
