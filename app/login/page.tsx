@@ -766,7 +766,7 @@ export default function AuthPage() {
                           <Label htmlFor="user-login-otp" className="text-white font-medium">OTP Code</Label>
                           <Input
                             id="user-login-otp"
-                            type="text"
+                            type="password"
                             placeholder="Enter 6-digit OTP"
                             value={userLoginOtp}
                             onChange={(e) => setUserLoginOtp(e.target.value)}
@@ -1150,7 +1150,7 @@ export default function AuthPage() {
                           <div className="flex items-center gap-2">
                             <Input
                               id="user-otp"
-                              type="text"
+                              type="password"
                               placeholder="Enter 6-digit OTP"
                               value={userOtp}
                               onChange={(e) => setUserOtp(e.target.value)}
@@ -1277,7 +1277,7 @@ export default function AuthPage() {
                           <Label htmlFor="admin-login-otp" className="text-white font-medium">OTP Code</Label>
                           <Input
                             id="admin-login-otp"
-                            type="text"
+                            type="password"
                             placeholder="Enter 6-digit OTP"
                             value={adminLoginOtp}
                             onChange={(e) => setAdminLoginOtp(e.target.value)}
@@ -1403,7 +1403,7 @@ export default function AuthPage() {
                         <div className="flex items-center gap-2">
                           <Input
                             id="admin-otp"
-                            type="text"
+                            type="password"
                             placeholder="Enter 6-digit OTP"
                             value={adminOtp}
                             onChange={(e) => setAdminOtp(e.target.value)}
@@ -1544,7 +1544,7 @@ export default function AuthPage() {
                           <Label htmlFor="system-owner-login-otp" className="text-white font-medium">OTP Code</Label>
                           <Input
                             id="system-owner-login-otp"
-                            type="text"
+                            type="password"
                             placeholder="Enter 6-digit OTP"
                             value={systemOwnerLoginOtp}
                             onChange={(e) => setSystemOwnerLoginOtp(e.target.value)}
@@ -1670,7 +1670,7 @@ export default function AuthPage() {
                         <div className="flex items-center gap-2">
                           <Input
                             id="system-owner-otp"
-                            type="text"
+                            type="password"
                             placeholder="Enter 6-digit OTP"
                             value={systemOwnerOtp}
                             onChange={(e) => setSystemOwnerOtp(e.target.value)}
