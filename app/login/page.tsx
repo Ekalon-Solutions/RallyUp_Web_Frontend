@@ -17,6 +17,10 @@ import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth
 import { auth } from "@/lib/firebase/config"
 
 
+const generateOTP = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString()
+}
+
 const setupRecaptcha = (phoneNumber: string) => {
 
   if (!window.recaptchaVerifier) {
@@ -328,37 +332,38 @@ export default function AuthPage() {
     e.preventDefault()
 
     if (!adminLoginOtpSent) {
-      toast.error("Please verify your phone number first")
+      toast.error("Please verify your phone number first.")
       return
     }
 
-    if (adminLoginOtp !== generatedLoginOtp) {
-      toast.error("Invalid OTP. Please check and try again")
+    if (!adminLoginOtp) {
+      toast.error("Please enter the OTP.")
       return
     }
 
-    setIsLoading(true)
-    
     try {
-      const result = await login(adminLoginData.email, adminLoginData.phoneNumber, adminLoginData.countryCode, true)
-      console.log('Admin login result:', result)
-      if (result.success) {
-        toast.success("Admin login successful!")
-        console.log('Redirecting admin to dashboard...')
-        window.location.href = "/dashboard"
-      } else {
-        toast.error(result.error || "Admin login failed. Please check your credentials.")
+      const confirmationResult = window.confirmationResult
+      const result = await confirmationResult.confirm(adminLoginOtp)
+
+      if (result.user) {
+        const loginResult = await login(
+          adminLoginData.email,
+          adminLoginData.phoneNumber,
+          adminLoginData.countryCode,
+          true // isAdmin flag set to true
+        )
+
+        if (loginResult.success) {
+          toast.success("Admin login successful!")
+          // Redirect or perform additional admin-specific actions
+        } else {
+          toast.error("Admin login failed. Please try again.")
+        }
       }
     } catch (error) {
-      console.error("Admin login error:", error)
-      toast.error("An error occurred during admin login.")
-    } finally {
-      setIsLoading(false)
+      console.error("Error verifying OTP:", error)
+      toast.error("Invalid OTP. Please try again.")
     }
-  }
-
-  const generateOTP = () => {
-    return Math.floor(100000 + Math.random() * 900000).toString()
   }
 
   const handleUserVerifyNumber = async () => {
@@ -386,34 +391,46 @@ export default function AuthPage() {
 
   const handleAdminVerifyNumber = async () => {
     if (!adminRegisterData.phone_number || !adminRegisterData.countryCode) {
-      toast.error("Please enter phone number and country code")
+      toast.error("Please provide a valid phone number and country code.")
       return
     }
-    
-    // Generate OTP
-    const otp = generateOTP()
-    setGeneratedOtp(otp)
-    
-    // Simulate OTP sending
-    toast.success(`OTP sent to ${adminRegisterData.countryCode}${adminRegisterData.phone_number}. Code: ${otp}`)
-    setAdminOtpSent(true)
-    setAdminRegisterResendCountdown(10)
+
+    const phoneNumber = `${adminRegisterData.countryCode}${adminRegisterData.phone_number}`
+
+    try {
+      const recaptchaVerifier = setupRecaptcha(phoneNumber)
+      const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier)
+
+      window.confirmationResult = confirmationResult
+      toast.success(`OTP sent to ${phoneNumber}`)
+      setAdminOtpSent(true)
+      setAdminRegisterResendCountdown(10)
+    } catch (error) {
+      console.error("Error sending OTP:", error)
+      toast.error("Failed to send OTP. Please try again.")
+    }
   }
 
   const handleSystemOwnerVerifyNumber = async () => {
     if (!systemOwnerRegisterData.phone_number || !systemOwnerRegisterData.countryCode) {
-      toast.error("Please enter phone number and country code")
+      toast.error("Please provide a valid phone number and country code.")
       return
     }
-    
-    // Generate OTP
-    const otp = generateOTP()
-    setGeneratedOtp(otp)
-    
-    // Simulate OTP sending
-    toast.success(`OTP sent to ${systemOwnerRegisterData.countryCode}${systemOwnerRegisterData.phone_number}. Code: ${otp}`)
-    setSystemOwnerOtpSent(true)
-    setSystemOwnerRegisterResendCountdown(10)
+
+    const phoneNumber = `${systemOwnerRegisterData.countryCode}${systemOwnerRegisterData.phone_number}`
+
+    try {
+      const recaptchaVerifier = setupRecaptcha(phoneNumber)
+      const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier)
+
+      window.confirmationResult = confirmationResult
+      toast.success(`OTP sent to ${phoneNumber}`)
+      setSystemOwnerOtpSent(true)
+      setSystemOwnerRegisterResendCountdown(10)
+    } catch (error) {
+      console.error("Error sending OTP:", error)
+      toast.error("Failed to send OTP. Please try again.")
+    }
   }
 
   // Login OTP verification handlers
@@ -441,34 +458,44 @@ export default function AuthPage() {
 
   const handleAdminLoginVerifyNumber = async () => {
     if (!adminLoginData.phoneNumber || !adminLoginData.countryCode) {
-      toast.error("Please enter phone number and country code")
+      toast.error("Please provide a valid phone number and country code.")
       return
     }
-    
-    // Generate OTP
-    const otp = generateOTP()
-    setGeneratedLoginOtp(otp)
-    
-    // Simulate OTP sending
-    toast.success(`OTP sent to ${adminLoginData.countryCode}${adminLoginData.phoneNumber}. Code: ${otp}`)
-    setAdminLoginOtpSent(true)
-    setAdminLoginResendCountdown(10)
+
+    const phoneNumber = `${adminLoginData.countryCode}${adminLoginData.phoneNumber}`
+
+    try {
+      const recaptchaVerifier = setupRecaptcha(phoneNumber)
+      const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier)
+      window.confirmationResult = confirmationResult
+      toast.success(`OTP sent to ${phoneNumber}`)
+      setAdminLoginOtpSent(true)
+      setAdminLoginResendCountdown(10)
+    } catch (error) {
+      console.error("Error sending OTP:", error)
+      toast.error("Failed to send OTP. Please try again.")
+    }
   }
 
   const handleSystemOwnerLoginVerifyNumber = async () => {
     if (!systemOwnerLoginData.phoneNumber || !systemOwnerLoginData.countryCode) {
-      toast.error("Please enter phone number and country code")
+      toast.error("Please provide a valid phone number and country code.")
       return
     }
-    
-    // Generate OTP
-    const otp = generateOTP()
-    setGeneratedLoginOtp(otp)
-    
-    // Simulate OTP sending
-    toast.success(`OTP sent to ${systemOwnerLoginData.countryCode}${systemOwnerLoginData.phoneNumber}. Code: ${otp}`)
-    setSystemOwnerLoginOtpSent(true)
-    setSystemOwnerLoginResendCountdown(10)
+
+    const phoneNumber = `${systemOwnerLoginData.countryCode}${systemOwnerLoginData.phoneNumber}`
+
+    try {
+      const recaptchaVerifier = setupRecaptcha(phoneNumber)
+      const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier)
+      window.confirmationResult = confirmationResult
+      toast.success(`OTP sent to ${phoneNumber}`)
+      setSystemOwnerLoginOtpSent(true)
+      setSystemOwnerLoginResendCountdown(10)
+    } catch (error) {
+      console.error("Error sending OTP:", error)
+      toast.error("Failed to send OTP. Please try again.")
+    }
   }
 
   // Resend OTP functions
