@@ -75,25 +75,36 @@ export default function SystemOwnerLoginPage() {
       return
     }
 
-    if (otp !== generatedOtp) {
-      toast.error("Invalid OTP. Please check and try again")
+    if (!otp) {
+      toast.error("Please enter the OTP.")
       return
     }
 
     setIsLoading(true)
 
     try {
-      const result = await login(formData.email, formData.phoneNumber, formData.countryCode, false, true)
-      
-      if (result.success) {
+      const confirmationResult = window.confirmationResult
+      const firebaseResult = await confirmationResult.confirm(otp)
+      let backendResult
+      if (firebaseResult.user) {
+        backendResult = await login(
+          formData.email,
+          formData.phoneNumber,
+          formData.countryCode,
+          false,
+          true
+        )
+      }
+
+      if (backendResult?.success) {
         toast.success("System owner login successful!")
         router.push("/dashboard")
       } else {
-        toast.error(result.error || "Failed to login as system owner")
+        toast.error(backendResult?.error || "Failed to login as system owner")
       }
     } catch (error) {
-      console.error("System owner login error:", error)
-      toast.error("An error occurred during system owner login")
+      console.error("Error verifying OTP:", error)
+      toast.error("Invalid OTP. Please try again.")
     } finally {
       setIsLoading(false)
     }
@@ -235,4 +246,4 @@ export default function SystemOwnerLoginPage() {
       <SiteFooter brandName="Wingman Pro" />
     </>
   )
-} 
+}
