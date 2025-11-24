@@ -881,11 +881,11 @@ export default function UserEventsPage() {
           onPaymentSuccess={() => {
             setShowEventPaymentSimulationModal(false);
             fetchEvents();
-            toast.success("Event payment successful!");
+            toast.success("Payment successful!");
           }}
           onPaymentFailure={() => {
             setShowEventPaymentSimulationModal(false);
-            toast.error("Event payment failed. Please try again.");
+            toast.error("Payment failed. Please try again.");
           }}
         />
     </ProtectedRoute>

@@ -2,19 +2,17 @@
 
 import { useState, useEffect } from "react";
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import {
-    CreditCard, Loader2,
-    DollarSign,
-    Tag
+  CreditCard, Loader2, Tag
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiClient } from "@/lib/api";
@@ -23,10 +21,13 @@ interface EventPaymentSimulationModalProps {
   isOpen: boolean;
   onClose: () => void;
   event: {
-    name: string;
-    price: number;
-    _id: string;
-  };
+    _id: string
+    name: string
+    price: number
+    ticketPrice?: number
+    earlyBirdDiscount?: any
+  }
+ 
   attendees: Array<{ name: string; phone: string }>;
   couponCode?: string;
   onPaymentSuccess: () => void;
@@ -128,7 +129,27 @@ export function EventPaymentSimulationModal({
     }
   };
 
-  const totalBeforeCoupon = (event?.price || 0) * attendees.length;
+  const calculateDiscountedPrice = () => {
+    if (!event || !event.earlyBirdDiscount?.enabled) return event?.ticketPrice || event?.price || 0;
+
+    const now = new Date();
+    const startTime = new Date(event.earlyBirdDiscount.startTime);
+    const endTime = new Date(event.earlyBirdDiscount.endTime);
+    const eventPrice = event.ticketPrice || event.price;
+
+    if (now >= startTime && now <= endTime) {
+      const discount = event.earlyBirdDiscount.type === 'percentage'
+        ? (eventPrice * event.earlyBirdDiscount.value) / 100
+        : event.earlyBirdDiscount.value;
+      return Math.max((eventPrice || event.price) - discount, 0);
+    }
+
+    return eventPrice;
+  };
+
+  const basePrice = calculateDiscountedPrice();
+ 
+  const totalBeforeCoupon = (basePrice || 0) * attendees.length;
   const finalPrice = Math.max(totalBeforeCoupon - couponDiscount, 0);
 
   if (!event) {
@@ -154,7 +175,7 @@ export function EventPaymentSimulationModal({
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <span>Price per ticket:</span>
-                <span>₹{(event?.price || 0).toLocaleString()}</span>
+                <span>₹{(basePrice || 0).toLocaleString()}</span>
               </div>
               
               <div className="flex justify-between items-center">

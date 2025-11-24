@@ -395,7 +395,10 @@ export default function UserEventRegistrationModal({ eventId, isOpen, onClose, o
                     <div className="space-y-1.5 p-2 bg-muted/50 rounded-lg text-sm">
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Base Price ({ticketCount} ticket{ticketCount > 1 ? 's' : ''})</span>
-                        <span className="font-medium">₹{(basePrice * ticketCount).toLocaleString()}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium line-through text-muted-foreground">₹{(basePrice * ticketCount).toLocaleString()}</span>
+                          <span className="font-medium">₹{(priceAfterMemberDiscount * ticketCount).toLocaleString()}</span>
+                        </div>
                       </div>
                       {memberDiscount > 0 && (
                         <div className="flex justify-between">
@@ -420,7 +423,7 @@ export default function UserEventRegistrationModal({ eventId, isOpen, onClose, o
                       <div className="pt-1.5 border-t flex justify-between">
                         <span className="font-semibold">Final Price</span>
                         <span className="font-bold text-base text-primary">
-                          ₹{((priceAfterMemberDiscount - appliedCoupon.discount) * ticketCount).toLocaleString()}
+                          ₹{Math.max((priceAfterMemberDiscount - appliedCoupon.discount) * ticketCount, 0).toLocaleString()}
                         </span>
                       </div>
                     </div>

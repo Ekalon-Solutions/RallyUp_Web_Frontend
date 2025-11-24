@@ -142,7 +142,6 @@ export default function EventDetailsModal({ event, isOpen, onClose }: EventDetai
               </div>
             </CardContent>
           </Card>
-
           <div className="flex justify-end pt-4 border-t border-border">
             <Button variant="outline" onClick={onClose}>Close</Button>
           </div>

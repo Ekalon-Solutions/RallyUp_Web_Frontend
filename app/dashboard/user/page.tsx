@@ -1162,11 +1162,11 @@ export default function UserDashboardPage() {
           onPaymentSuccess={() => {
             setShowEventPaymentSimulationModal(false);
             fetchData();
-            toast.success("Event payment successful!");
+            toast.success("Payment successful!");
           }}
           onPaymentFailure={() => {
             setShowEventPaymentSimulationModal(false);
-            toast.error("Event payment failed. Please try again.");
+            toast.error("Payment failed. Please try again.");
           }}
         />
       </DashboardLayout>
