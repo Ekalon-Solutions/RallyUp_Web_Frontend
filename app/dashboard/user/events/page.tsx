@@ -29,12 +29,16 @@ import {
   Clock,
   Users,
   Search,
-  Filter, Infinity as InfinityIcon,
+  Filter,
+  Infinity as InfinityIcon,
   Trash,
-  User
+  User,
 } from "lucide-react";
 import EventDetailsModal from "@/components/modals/event-details-modal";
 import UserEventRegistrationModal from "@/components/modals/user-event-registration-modal";
+import { CheckoutModal } from "@/components/modals/checkout-modal";
+import { EventCheckoutModal } from "@/components/modals/event-checkout-modal";
+import { EventPaymentSimulationModal } from "@/components/modals/event-payment-simulation-modal";
 
 const eventCategories = [
   "all",
@@ -51,7 +55,13 @@ const eventCategories = [
 ];
 
 // Component to display attendance marker with user's registration data
-function AttendanceMarker({ event, userId }: { event: Event; userId?: string }) {
+function AttendanceMarker({
+  event,
+  userId,
+}: {
+  event: Event;
+  userId?: string;
+}) {
   const [registration, setRegistration] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -93,7 +103,9 @@ function AttendanceMarker({ event, userId }: { event: Event; userId?: string }) 
 
   if (loading) {
     return (
-      <Badge variant="secondary" className="w-fit ml-auto text-sm mt-1 flex items-center gap-1">
+      <Badge
+        variant="secondary"
+        className="w-fit ml-auto text-sm mt-1 flex items-center gap-1">
         <User className="w-3 h-3" />
         <span>...</span>
       </Badge>
@@ -114,14 +126,16 @@ function AttendanceMarker({ event, userId }: { event: Event; userId?: string }) 
       variant="secondary"
       className="w-fit ml-auto text-sm mt-1 flex items-center gap-1">
       <User className="w-3 h-3" />
-      <span>{totalAttended}/{totalRegistrations}</span>
+      <span>
+        {totalAttended}/{totalRegistrations}
+      </span>
     </Badge>
   );
 }
 
 export default function UserEventsPage() {
   const { user } = useAuth();
-  console.log("events user:", user)
+  console.log("events user:", user);
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -132,8 +146,17 @@ export default function UserEventsPage() {
   const [registrationEventId, setRegistrationEventId] = useState<string | null>(
     null
   );
+  const [registrationEvent, setRegistrationEvent] = useState<Event | null>(null);
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
-  const [cancellingEventId, setCancellingEventId] = useState<string | null>(null);
+  const [cancellingEventId, setCancellingEventId] = useState<string | null>(
+    null
+  );
+  const [showEventCheckoutModal, setShowEventCheckoutModal] = useState(false);
+  const [showEventPaymentSimulationModal, setShowEventPaymentSimulationModal] =
+    useState(false);
+  const [eventForPayment, setEventForPayment] = useState<Event | null>(null);
+  const [attendeesForPayment, setAttendeesForPayment] = useState<any[]>([]);
+  const [couponForPayment, setCouponForPayment] = useState<{code: string; discount: number} | null>(null);
 
   useEffect(() => {
     fetchEvents();
@@ -164,7 +187,9 @@ export default function UserEventsPage() {
       toast.error("Please log in to register for events");
       return;
     }
+    const event = events.find(e => e._id === eventId);
     setRegistrationEventId(eventId);
+    setRegistrationEvent(event || null);
     setShowRegistrationModal(true);
   };
 
@@ -172,39 +197,34 @@ export default function UserEventsPage() {
   const handlePerformRegistration = async (payload: {
     eventId: string;
     attendees: any[];
+    couponCode?: string;
   }) => {
     if (!payload || !payload.eventId) return;
-    try {
-      // Wrap API call so we can detect success flag (apiClient resolves for non-2xx)
-      const p = (async () => {
-        const res = await apiClient.registerForEvent(
-          payload.eventId,
-          undefined,
-          payload.attendees
-        );
-        // apiClient returns an object even for non-ok responses; reject to let toast.promise show error
-        if (!res || !res.success) throw res ?? new Error("Registration failed");
-        return res;
-      })();
 
-      toast.promise(p, {
-        loading: "Registering...",
-        success: (res: any) => {
-          // Refresh events and close modal
-          fetchEvents();
-          setShowRegistrationModal(false);
-          setRegistrationEventId(null);
-          return res?.data?.message || "Registered successfully";
-        },
-        error: (err: any) => {
-          const msg = err?.error || err?.message || err?.data?.message || "Registration failed";
-          return msg;
-        },
+    const event = events.find((e) => e._id === payload.eventId);
+    if (event?.ticketPrice) {
+      // Calculate discount if coupon was applied
+      let discountAmount = 0;
+      if (payload.couponCode) {
+        // The coupon was already validated in the modal, so we trust the discount
+        // We'll pass it to the checkout modal
+        setCouponForPayment({ code: payload.couponCode, discount: 0 }); // Will be calculated in checkout
+      } else {
+        setCouponForPayment(null);
+      }
+      
+      // Open EventCheckoutModal for paid events
+      setShowEventCheckoutModal(true);
+      setEventForPayment({ ...event, price: event.ticketPrice } as Event & {
+        price: number;
       });
-    } catch (error) {
-      console.error("Registration API error", error);
-      toast.error("Failed to register for event");
+      setAttendeesForPayment(
+        payload.attendees
+      );
+      return;
     }
+    setRegistrationEventId(event?._id || "");
+    setShowRegistrationModal(true);
   };
 
   const formatDate = (dateString: string) => {
@@ -219,8 +239,8 @@ export default function UserEventsPage() {
     return new Date(dateString).toLocaleTimeString("en-US", {
       hour: "2-digit",
       minute: "2-digit",
-    })
-  }
+    });
+  };
   const getAttendancePercentage = (current: number, max: number) => {
     return Math.round((current / max) * 100);
   };
@@ -232,7 +252,7 @@ export default function UserEventsPage() {
   };
 
   const isEventUpcoming = (event: Event) => {
-    return new Date(event.startTime) > new Date();
+    return new Date(event.bookingEndTime) > new Date() && new Date(event.bookingStartTime) < new Date();
   };
 
   const isEventPast = (event: Event) => {
@@ -242,12 +262,8 @@ export default function UserEventsPage() {
   const isEventOngoing = (event: Event) => {
     const now = new Date();
     const start = new Date(event.startTime);
-    const end = event.endTime ? new Date(event.endTime) : null;
-    if (end) {
-      return start <= now && now < end;
-    }
-    // If no end time, consider ongoing if startTime is in the past and it's not marked as past by existing logic
-    return start <= now && !isEventPast(event);
+    const end = event.endTime ? new Date(event.endTime) : new Date().setDate((new Date().getDate()) + 1);
+    return start <= now && now < end;
   };
 
   const eventsUserIsRegisteredForOngoing = () => {
@@ -275,9 +291,12 @@ export default function UserEventsPage() {
         toast.success(res.data?.message || "Registration cancelled");
         await fetchEvents();
       } else {
-        const msg = res?.error || res?.message || `Cancellation failed (status ${res?.status ?? 'unknown'})`;
+        const msg =
+          res?.error ||
+          res?.message ||
+          `Cancellation failed (status ${res?.status ?? "unknown"})`;
         toast.error(msg);
-        console.error('Cancel registration failed:', res);
+        console.error("Cancel registration failed:", res);
       }
     } catch (error) {
       console.error("Cancel registration error", error);
@@ -302,7 +321,9 @@ export default function UserEventsPage() {
     return searchMatch && categoryMatch;
   });
 
-  const upcomingEvents = filteredEvents.filter((event) => isEventUpcoming(event));
+  const upcomingEvents = filteredEvents.filter((event) =>
+    isEventUpcoming(event)
+  );
   const pastEvents = filteredEvents.filter((event) => isEventPast(event));
 
   return (
@@ -344,7 +365,7 @@ export default function UserEventsPage() {
                         {category === "all"
                           ? "All Categories"
                           : category.charAt(0).toUpperCase() +
-                          category.slice(1)}
+                            category.slice(1)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -389,7 +410,10 @@ export default function UserEventsPage() {
                               {event.category}
                             </Badge>
                             {/* Attendance marker */}
-                            <AttendanceMarker event={event} userId={user?._id} />
+                            <AttendanceMarker
+                              event={event}
+                              userId={user?._id}
+                            />
                           </div>
                         </div>
                       </CardHeader>
@@ -419,9 +443,9 @@ export default function UserEventsPage() {
                           {(() => {
                             const isRegistered = Boolean(
                               user?._id &&
-                              (event.registrations || []).some(
-                                (r: any) => r.userId === user._id
-                              )
+                                (event.registrations || []).some(
+                                  (r: any) => r.userId === user._id
+                                )
                             );
                             return (
                               <Button
@@ -437,8 +461,8 @@ export default function UserEventsPage() {
                         </div>
                       </CardContent>
                     </Card>
-                  ))
-                )}
+                  )))
+                }
               </div>
             </div>
             <div className="flex items-center justify-between">
@@ -492,9 +516,7 @@ export default function UserEventsPage() {
                             </CardDescription>
                           </div>
                           <div className="ml-2 flex-shrink-0 space-y-1">
-                            <Badge
-                              variant="secondary"
-                              className="block">
+                            <Badge variant="secondary" className="block">
                               {event.category}
                             </Badge>
                           </div>
@@ -511,14 +533,16 @@ export default function UserEventsPage() {
                           <div className="flex items-center gap-2">
                             <Clock className="w-4 h-4 text-muted-foreground" />
                             <span>
-                              Starts {formatDate(event.startTime)} at {formatTime(event.startTime)}
+                              Starts {formatDate(event.startTime)} at{" "}
+                              {formatTime(event.startTime)}
                             </span>
                           </div>
                           {event.endTime && (
                             <div className="flex items-center gap-2">
                               <Clock className="w-4 h-4 text-muted-foreground" />
                               <span>
-                                Ends {formatDate(event.endTime)} at {formatTime(event.endTime)}
+                                Ends {formatDate(event.endTime)} at{" "}
+                                {formatTime(event.endTime)}
                               </span>
                             </div>
                           )}
@@ -536,6 +560,13 @@ export default function UserEventsPage() {
                               attendees
                             </span>
                           </div>
+                          {event.ticketPrice && (
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-primary">
+                                Price: ${event.ticketPrice}
+                              </span>
+                            </div>
+                          )}
                         </div>
 
                         {/* Attendance Progress Bar */}
@@ -555,18 +586,19 @@ export default function UserEventsPage() {
                           {event.maxAttendees ? (
                             <div className="w-full bg-gray-200 rounded-full h-2">
                               <div
-                                className={`h-2 rounded-full transition-all ${getAttendancePercentage(
-                                  event.currentAttendees || 0,
-                                  event.maxAttendees
-                                ) >= 90
+                                className={`h-2 rounded-full transition-all ${
+                                  getAttendancePercentage(
+                                    event.currentAttendees || 0,
+                                    event.maxAttendees
+                                  ) >= 90
                                     ? "bg-red-500"
                                     : getAttendancePercentage(
-                                      event.currentAttendees || 0,
-                                      event.maxAttendees
-                                    ) >= 75
-                                      ? "bg-yellow-500"
-                                      : "bg-green-500"
-                                  }`}
+                                        event.currentAttendees || 0,
+                                        event.maxAttendees
+                                      ) >= 75
+                                    ? "bg-yellow-500"
+                                    : "bg-green-500"
+                                }`}
                                 style={{
                                   width: `${Math.min(
                                     getAttendancePercentage(
@@ -614,22 +646,28 @@ export default function UserEventsPage() {
                                   </Button>
                                 </div>
                               );
-                            } else if (event.maxAttendees && isEventFull(event)) {
-                              return <Button
-                                disabled
-                                className="w-full"
-                                variant="secondary">
-                                Event Full
-                              </Button>
-                            }
-                            else {
-                              return <Button
-                                onClick={() =>
-                                  handleEventRegistration(event._id)
-                                }
-                                className="w-full">
-                                Register for Event
-                              </Button>
+                            } else if (
+                              event.maxAttendees &&
+                              isEventFull(event)
+                            ) {
+                              return (
+                                <Button
+                                  disabled
+                                  className="w-full"
+                                  variant="secondary">
+                                  Event Full
+                                </Button>
+                              );
+                            } else {
+                              return (
+                                <Button
+                                  onClick={() =>
+                                    handleEventRegistration(event._id)
+                                  }
+                                  className="w-full">
+                                  Register for Event
+                                </Button>
+                              );
                             }
                           })()}
                         </div>
@@ -725,18 +763,19 @@ export default function UserEventsPage() {
                           {event.maxAttendees ? (
                             <div className="w-full bg-gray-200 rounded-full h-2">
                               <div
-                                className={`h-2 rounded-full transition-all ${getAttendancePercentage(
-                                  event.currentAttendees || 0,
-                                  event.maxAttendees
-                                ) >= 90
+                                className={`h-2 rounded-full transition-all ${
+                                  getAttendancePercentage(
+                                    event.currentAttendees || 0,
+                                    event.maxAttendees
+                                  ) >= 90
                                     ? "bg-red-500"
                                     : getAttendancePercentage(
-                                      event.currentAttendees || 0,
-                                      event.maxAttendees
-                                    ) >= 75
-                                      ? "bg-yellow-500"
-                                      : "bg-green-500"
-                                  }`}
+                                        event.currentAttendees || 0,
+                                        event.maxAttendees
+                                      ) >= 75
+                                    ? "bg-yellow-500"
+                                    : "bg-green-500"
+                                }`}
                                 style={{
                                   width: `${Math.min(
                                     getAttendancePercentage(
@@ -781,9 +820,40 @@ export default function UserEventsPage() {
         onClose={() => {
           setShowRegistrationModal(false);
           setRegistrationEventId(null);
+          setRegistrationEvent(null);
         }}
         onRegister={handlePerformRegistration}
+        ticketPrice={registrationEvent?.ticketPrice || 0}
+        event={registrationEvent}
       />
+        <EventCheckoutModal
+          isOpen={showEventCheckoutModal}
+          onClose={() => setShowEventCheckoutModal(false)}
+          event={eventForPayment}
+          attendees={attendeesForPayment}
+          couponCode={couponForPayment?.code}
+          onSuccess={() => {
+            setShowEventCheckoutModal(false);
+            setShowEventPaymentSimulationModal(true);
+          }}
+        />
+
+        <EventPaymentSimulationModal
+          isOpen={showEventPaymentSimulationModal}
+          onClose={() => setShowEventPaymentSimulationModal(false)}
+          event={eventForPayment}
+          attendees={attendeesForPayment}
+          couponCode={couponForPayment?.code}
+          onPaymentSuccess={() => {
+            setShowEventPaymentSimulationModal(false);
+            fetchEvents();
+            toast.success("Payment successful!");
+          }}
+          onPaymentFailure={() => {
+            setShowEventPaymentSimulationModal(false);
+            toast.error("Payment failed. Please try again.");
+          }}
+        />
     </ProtectedRoute>
   );
 }

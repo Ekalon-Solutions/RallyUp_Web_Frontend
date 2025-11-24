@@ -13,6 +13,23 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { SiteNavbar } from "@/components/site-navbar"
 import { SiteFooter } from "@/components/site-footer"
+import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth"
+import { auth } from "@/lib/firebase/config"
+
+
+const setupRecaptcha = (phoneNumber: string) => {
+
+  if (!window.recaptchaVerifier) {
+    window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+      'size': 'invisible',
+      'callback': (response: any) => {
+        // reCAPTCHA solved, allow signInWithPhoneNumber.
+        console.log("reCAPTCHA solved for phone number:", phoneNumber)
+      }
+    });
+  }
+  return window.recaptchaVerifier
+}
 
 export default function AuthPage() {
   const [isLoading, setIsLoading] = useState(false)
@@ -138,30 +155,26 @@ export default function AuthPage() {
     e.preventDefault()
 
     if (!userLoginOtpSent) {
-      toast.error("Please verify your phone number first")
+      toast.error("Please verify your phone number first.")
       return
     }
 
-    if (userLoginOtp !== generatedLoginOtp) {
-      toast.error("Invalid OTP. Please check and try again")
+    if (!userLoginOtp) {
+      toast.error("Please enter the OTP.")
       return
     }
 
-    setIsLoading(true)
-    
     try {
-      const result = await login(userLoginData.email, userLoginData.phone_number, userLoginData.countryCode, false)
-      if (result.success) {
+      const confirmationResult = window.confirmationResult
+      const result = await confirmationResult.confirm(userLoginOtp)
+
+      if (result.user) {
         toast.success("Login successful!")
         router.push("/dashboard")
-      } else {
-        toast.error(result.error || "Login failed. Please check your credentials.")
       }
     } catch (error) {
-      console.error("Login error:", error)
-      toast.error("An error occurred during login.")
-    } finally {
-      setIsLoading(false)
+      console.error("Error verifying OTP:", error)
+      toast.error("Invalid OTP. Please try again.")
     }
   }
 
@@ -347,18 +360,25 @@ export default function AuthPage() {
 
   const handleUserVerifyNumber = async () => {
     if (!userRegisterData.phone_number || !userRegisterData.countryCode) {
-      toast.error("Please enter phone number and country code")
+      toast.error("Please provide a valid phone number and country code.")
       return
     }
-    
-    // Generate OTP
-    const otp = generateOTP()
-    setGeneratedOtp(otp)
-    
-    // Simulate OTP sending
-    toast.success(`OTP sent to ${userRegisterData.countryCode}${userRegisterData.phone_number}. Code: ${otp}`)
-    setUserOtpSent(true)
-    setUserRegisterResendCountdown(10)
+
+    const phoneNumber = `${userRegisterData.countryCode}${userRegisterData.phone_number}`
+
+    try {
+      const recaptchaVerifier = setupRecaptcha(phoneNumber)
+      console.log("recaptchaVerifier", recaptchaVerifier)
+      const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier)
+
+      window.confirmationResult = confirmationResult
+      toast.success(`OTP sent to ${phoneNumber}`)
+      setUserOtpSent(true)
+      setUserRegisterResendCountdown(10)
+    } catch (error) {
+      console.error("Error sending OTP:", error)
+      toast.error("Failed to send OTP. Please try again.")
+    }
   }
 
   const handleAdminVerifyNumber = async () => {
@@ -396,18 +416,24 @@ export default function AuthPage() {
   // Login OTP verification handlers
   const handleUserLoginVerifyNumber = async () => {
     if (!userLoginData.phone_number || !userLoginData.countryCode) {
-      toast.error("Please enter phone number and country code")
+      toast.error("Please provide a valid phone number and country code.")
       return
     }
-    
-    // Generate OTP
-    const otp = generateOTP()
-    setGeneratedLoginOtp(otp)
-    
-    // Simulate OTP sending
-    toast.success(`OTP sent to ${userLoginData.countryCode}${userLoginData.phone_number}. Code: ${otp}`)
-    setUserLoginOtpSent(true)
-    setUserLoginResendCountdown(10)
+
+    const phoneNumber = `${userLoginData.countryCode}${userLoginData.phone_number}`
+
+    try {
+      const recaptchaVerifier = setupRecaptcha(phoneNumber)
+      console.log("recaptchaVerifier", recaptchaVerifier)
+      const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier)
+      window.confirmationResult = confirmationResult
+      toast.success(`OTP sent to ${phoneNumber}`)
+      setUserLoginOtpSent(true)
+      setUserLoginResendCountdown(10)
+    } catch (error) {
+      console.error("Error sending OTP:", error)
+      toast.error("Failed to send OTP. Please try again.")
+    }
   }
 
   const handleAdminLoginVerifyNumber = async () => {
@@ -1698,6 +1724,7 @@ export default function AuthPage() {
           </div>
         </div>
       </div>
+      <div id="recaptcha-container"></div>
       <SiteFooter brandName="Wingman Pro" />
     </>
   )

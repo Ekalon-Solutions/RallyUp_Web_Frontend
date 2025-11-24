@@ -8,6 +8,7 @@ import { CartProvider } from "@/contexts/cart-context"
 import { SocketWrapper } from "@/components/socket-wrapper"
 import { Toaster } from "sonner"
 import Analytics from "@/components/Analytics"
+import { AntiScrapingProtection } from "@/components/anti-scraping-protection"
 import Script from "next/script"
 
 const inter = Inter({ subsets: ["latin"] })
@@ -41,6 +42,7 @@ export default function RootLayout({
 
       <body className={inter.className}>
         <Analytics />
+        <AntiScrapingProtection />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
