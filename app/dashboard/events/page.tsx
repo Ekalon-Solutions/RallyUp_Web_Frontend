@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calendar, Search, MoreHorizontal, Edit, Trash2, MapPin, Clock, Users, Plus, Filter } from "lucide-react"
+import { Calendar, Search, MoreHorizontal, Edit, Trash2, MapPin, Clock, Users, Plus, Filter, Ban, CheckCircle } from "lucide-react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
 import { CreateEventModal } from "@/components/modals/create-event-modal"
@@ -372,7 +372,17 @@ export default function EventsPage() {
                                           Edit
                                         </DropdownMenuItem>
                                         <DropdownMenuItem onClick={() => handleToggleStatus(event._id, event.isActive)}>
-                                          {event.isActive ? "Deactivate" : "Activate"}
+                                          {event.isActive ? (
+                                            <>
+                                              <Ban className="w-4 h-4 mr-2" />
+                                              Deactivate
+                                            </>
+                                          ) : (
+                                            <>
+                                              <CheckCircle className="w-4 h-4 mr-2" />
+                                              Activate
+                                            </>
+                                          )}
                                         </DropdownMenuItem>
                                         <DropdownMenuItem onClick={() => handleDeleteEvent(event._id)}>
                                           <Trash2 className="w-4 h-4 mr-2" />

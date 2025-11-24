@@ -291,20 +291,7 @@ export default function ClubMembersPage() {
                                 {membershipStatus.status}
                               </Badge>
                             </div>
-                            <div className="flex items-center space-x-4 text-sm text-muted-foreground mt-1">
-                              <div className="flex items-center space-x-1">
-                                <Mail className="w-3 h-3" />
-                                <span>{member.email}</span>
-                              </div>
-                              <div className="flex items-center space-x-1">
-                                <Phone className="w-3 h-3" />
-                                <span>{formatPhoneNumber(member.phoneNumber, member.countryCode)}</span>
-                              </div>
-                              <div className="flex items-center space-x-1">
-                                <Calendar className="w-3 h-3" />
-                                <span>Joined {formatDate(member.createdAt)}</span>
-                              </div>
-                            </div>
+
                             {member.membershipPlan && (
                               <div className="text-xs text-muted-foreground mt-1">
                                 Plan: {member.membershipPlan.name} ({member.membershipPlan.price} {member.membershipPlan.currency})

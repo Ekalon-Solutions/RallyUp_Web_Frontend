@@ -759,7 +759,6 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
                         </Avatar>
                         <div>
                           <h3 className="font-medium">{getUserFullName(member)}</h3>
-                          <p className="text-sm text-gray-500">{member.email}</p>
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
