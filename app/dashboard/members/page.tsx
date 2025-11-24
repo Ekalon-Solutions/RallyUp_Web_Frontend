@@ -480,14 +480,19 @@ export default function MembersPage() {
                             </div>
                           </div>
                           <div className="flex items-center space-x-4 text-sm text-muted-foreground mt-1">
-                            <div className="flex items-center space-x-1">
-                              <Mail className="w-3 h-3" />
-                              <span>{member.email}</span>
-                            </div>
-                            <div className="flex items-center space-x-1">
-                              <Phone className="w-3 h-3" />
-                              <span>{formatPhoneNumber(member.phoneNumber, member.countryCode)}</span>
-                            </div>
+                            {/* Only show contact info to admins/system owners */}
+                            {(user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'system_owner') && (
+                              <>
+                                <div className="flex items-center space-x-1">
+                                  <Mail className="w-3 h-3" />
+                                  <span>{member.email}</span>
+                                </div>
+                                <div className="flex items-center space-x-1">
+                                  <Phone className="w-3 h-3" />
+                                  <span>{formatPhoneNumber(member.phoneNumber, member.countryCode)}</span>
+                                </div>
+                              </>
+                            )}
                             {member.club && (
                               <div className="flex items-center space-x-1">
                                 <Building2 className="w-3 h-3" />
@@ -502,22 +507,25 @@ export default function MembersPage() {
                           )}
                         </div>
                       </div>
-                      <div className="flex items-center space-x-2">
-                        <Button variant="ghost" size="sm">
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => openEditDialog(member)}>
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="text-destructive hover:text-destructive"
-                          onClick={() => openDeleteDialog(member)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
+                      {/* Only show action buttons to admins/system owners */}
+                      {(user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'system_owner') && (
+                        <div className="flex items-center space-x-2">
+                          <Button variant="ghost" size="sm">
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => openEditDialog(member)}>
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => openDeleteDialog(member)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
