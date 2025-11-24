@@ -223,42 +223,8 @@ export default function UserEventsPage() {
       );
       return;
     }
-
-    try {
-      const p = (async () => {
-        const res = await apiClient.registerForEvent(
-          payload.eventId,
-          undefined,
-          payload.attendees,
-          payload.couponCode
-        );
-        if (!res || !res.success) throw res ?? new Error("Registration failed");
-        return res;
-      })();
-
-      toast.promise(p, {
-        loading: "Registering...",
-        success: (res: any) => {
-          // Refresh events and close modal
-          fetchEvents();
-          setShowRegistrationModal(false);
-          setRegistrationEventId(null);
-          setRegistrationEvent(null);
-          return res?.data?.message || "Registered successfully";
-        },
-        error: (err: any) => {
-          const msg =
-            err?.error ||
-            err?.message ||
-            err?.data?.message ||
-            "Registration failed";
-          return msg;
-        },
-      });
-    } catch (error) {
-      console.error("Registration API error", error);
-      toast.error("Failed to register for event");
-    }
+    setRegistrationEventId(event?._id || "");
+    setShowRegistrationModal(true);
   };
 
   const formatDate = (dateString: string) => {
