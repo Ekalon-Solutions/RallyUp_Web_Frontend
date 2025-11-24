@@ -148,8 +148,12 @@ export default function MyClubsPage() {
     }
   }
 
-  const navigateToClub = (clubId: string) => {
-    router.push(`/dashboard/clubs/${clubId}`)
+  const navigateToClub = (clubId: string, clubName?: string) => {
+    // Create URL-friendly slug from club name
+    const slug = clubName 
+      ? clubName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+      : clubId
+    router.push(`/dashboard/clubs/${slug}?id=${clubId}`)
   }
 
   const navigateToPlans = () => {
@@ -319,7 +323,7 @@ export default function MyClubsPage() {
                           <Button 
                             variant="outline" 
                             size="sm" 
-                            onClick={() => navigateToClub(membership.club_id._id)}
+                            onClick={() => navigateToClub(membership.club_id._id, membership.club_id.name)}
                             className="flex-1"
                           >
                             <Eye className="h-4 w-4 mr-2" />
