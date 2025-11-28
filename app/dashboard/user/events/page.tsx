@@ -254,6 +254,10 @@ export default function UserEventsPage() {
   const isEventUpcoming = (event: Event) => {
     return new Date(event.bookingEndTime) > new Date() && new Date(event.bookingStartTime) < new Date();
   };
+  
+  const isEventMembersOnly = (event: Event) => {
+    return (event.memberOnly ? user?.memberships?.map(a=>a.club_id._id).includes(event.clubId || "null") || false : true)
+  }
 
   const isEventPast = (event: Event) => {
     return event.endTime ? new Date(event.endTime) < new Date() : false;
@@ -322,7 +326,7 @@ export default function UserEventsPage() {
   });
 
   const upcomingEvents = filteredEvents.filter((event) =>
-    isEventUpcoming(event)
+    isEventUpcoming(event) && isEventMembersOnly(event)
   );
   const pastEvents = filteredEvents.filter((event) => isEventPast(event));
 
