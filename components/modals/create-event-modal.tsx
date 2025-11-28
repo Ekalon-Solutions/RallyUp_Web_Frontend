@@ -15,6 +15,7 @@ import { apiClient } from "@/lib/api"
 
 interface Event {
   _id: string
+  clubId?: string
   title: string
   category: string
   startTime: string
@@ -32,6 +33,7 @@ interface Event {
     value: number
     startTime: string,
     endTime: string,
+    membersOnly: boolean,
   }
   memberDiscount?: {
     enabled: boolean
@@ -82,6 +84,7 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
     earlyBirdStartTime: "",
     earlyBirdEndTime: "",
     earlyBirdMembersOnly: false,
+    clubId: "",
     memberDiscountEnabled: false,
     memberDiscountType: "percentage" as "percentage" | "fixed",
     memberDiscountValue: "",
@@ -90,6 +93,29 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
     groupDiscountValue: "",
     groupDiscountMinQty: "2",
   })
+
+  const [clubs, setClubs] = useState<Array<{ _id: string; name: string }>>([])
+
+  useEffect(() => {
+    // Fetch clubs list for the members-only dropdown
+    let mounted = true
+    async function fetchClubs() {
+      try {
+        const res: any = await apiClient.getPublicClubs()
+        console.log('Fetched clubs for event modal:', res)
+        if (mounted && res?.data) {
+          // res.data might be an array or an object with items
+          const list = res?.data?.clubs || []
+          setClubs(list.map((c: any) => ({ _id: c._id, name: c.name })))
+        }
+      } catch (err) {
+        console.error('Failed to load clubs for event modal', err)
+      }
+    }
+
+    if (isOpen) fetchClubs()
+    return () => { mounted = false }
+  }, [isOpen])
 
   // Reset form when modal opens/closes or when editing
   useEffect(() => {
@@ -118,6 +144,7 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
           earlyBirdStartTime: editEvent.earlyBirdDiscount?.startTime?.slice(0, 16) || "",
           earlyBirdEndTime: editEvent.earlyBirdDiscount?.endTime?.slice(0, 16) || "",
           earlyBirdMembersOnly: editEvent.earlyBirdDiscount?.membersOnly || false,
+          clubId: (editEvent as any).clubId || (editEvent as any).club?._id || "",
           memberDiscountEnabled: editEvent.memberDiscount?.enabled || false,
           memberDiscountType: editEvent.memberDiscount?.type || "percentage",
           memberDiscountValue: editEvent.memberDiscount?.value?.toString() || "",
@@ -155,6 +182,7 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
           earlyBirdStartTime: "",
           earlyBirdEndTime: "",
           earlyBirdMembersOnly: false,
+          clubId: "",
           memberDiscountEnabled: false,
           memberDiscountType: "percentage",
           memberDiscountValue: "",
@@ -232,6 +260,11 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
       }
     }
 
+    // If members-only, ensure a club is selected
+    if (formData.memberOnly && !formData.clubId) {
+      newErrors.clubId = "Please select a club for members-only events"
+    }
+
     // Early bird discount validation
     if (formData.earlyBirdEnabled) {
       if (!formData.earlyBirdValue || parseFloat(formData.earlyBirdValue) <= 0) {
@@ -302,7 +335,6 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
     setLoading(true)
 
     try {
-      console.log("formData:", formData)
       const eventData = {
         title: formData.title.trim(),
         category: formData.category,
@@ -314,6 +346,7 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
         ticketPrice: parseFloat(formData.ticketPrice) || 0,
         requiresTicket: formData.requiresTicket,
         memberOnly: formData.memberOnly,
+        clubId: formData.memberOnly ? (formData.clubId || undefined) : undefined,
         awayDayEvent: formData.awayDayEvent,
         bookingStartTime: formData.bookingStartTime ? new Date(formData.bookingStartTime).toISOString() : undefined,
         bookingEndTime: formData.bookingEndTime ? new Date(formData.bookingEndTime).toISOString() : undefined,
@@ -419,6 +452,7 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
       groupDiscountType: "percentage",
       groupDiscountValue: "",
       groupDiscountMinQty: "2",
+      clubId: "",
     })
   }
 
@@ -774,6 +808,31 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
                     onCheckedChange={(checked) => setFormData({ ...formData, memberOnly: checked })}
                   />
                 </div>
+                {formData.memberOnly && (
+                  <div className="space-y-2 px-4">
+                    <Label htmlFor="clubId" className="text-sm font-medium">Select Club</Label>
+                    <Select
+                      value={formData.clubId}
+                      onValueChange={(value) => setFormData({ ...formData, clubId: value })}
+                    >
+                      <SelectTrigger className="border-gray-300">
+                        <SelectValue placeholder="Choose a club" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {clubs.length === 0 ? (
+                          <SelectItem disabled value="No clubs available">No clubs available</SelectItem>
+                        ) : (
+                          clubs.map((club) => (
+                            <SelectItem key={club._id} value={club._id}>{club.name}</SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                    {formData.memberOnly && !formData.clubId && (
+                      <p className="text-red-500 text-sm">Please select a club for members-only events</p>
+                    )}
+                  </div>
+                )}
              </div>
             </div>
           </div>

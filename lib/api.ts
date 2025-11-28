@@ -168,6 +168,7 @@ export interface Event {
   ticketPrice: number;
   requiresTicket: boolean;
   memberOnly: boolean;
+  clubId?: string;
   awayDayEvent: boolean;
   isActive: boolean;
   registrations?: Array<{
@@ -979,6 +980,7 @@ class ApiClient {
     ticketPrice: number;
     requiresTicket: boolean;
     memberOnly: boolean;
+    clubId?: string;
     awayDayEvent: boolean;
     bookingStartTime?: string; // ISO date string
     bookingEndTime?: string; // ISO date string
@@ -1003,6 +1005,7 @@ class ApiClient {
     ticketPrice?: number;
     requiresTicket?: boolean;
     memberOnly?: boolean;
+    clubId?: string;
     awayDayEvent?: boolean;
   }): Promise<ApiResponse<{ message: string; event: Event }>> {
     return this.request(`/events/${id}`, {
