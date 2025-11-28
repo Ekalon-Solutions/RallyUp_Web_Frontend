@@ -256,7 +256,6 @@ export default function UserEventsPage() {
   };
   
   const isEventMembersOnly = (event: Event) => {
-    console.log("user memberships:", user?.memberships?.map(a=>a._id).includes(event.clubId || "null"), user?.memberships?.map(a=>a.club_id._id), "event club id:", event.clubId)
     return (event.memberOnly ? user?.memberships?.map(a=>a.club_id._id).includes(event.clubId || "null") || false : true)
   }
 
