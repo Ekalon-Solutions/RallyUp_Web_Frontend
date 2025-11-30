@@ -39,66 +39,88 @@ function Hero() {
 
       <ParticleBackground />
 
-      <div className="mx-auto max-w-7xl px-4 py-20 md:py-32 relative z-10">
-        <div className="text-center max-w-5xl mx-auto space-y-8">
-          {/* Animated Title with Gradient */}
-          <h1 className="text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight animate-slide-up">
-            Don't Just Run Your Club.<br />
-            <span className="bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-600 dark:from-sky-400 dark:via-blue-400 dark:to-indigo-400 bg-clip-text text-transparent animate-gradient inline-block">
-              Revolutionize It
-            </span>{" "}
-            <span className="inline-block animate-bounce-subtle">⚡</span>
-            <br />
-            with Intelligent Sports Club Management Software.
-          </h1>
-          
-          {/* Enhanced Description with Shimmer */}
-          <p className="text-slate-600 dark:text-slate-300 text-lg md:text-xl leading-relaxed max-w-4xl mx-auto relative overflow-hidden animate-slide-up" style={{ animationDelay: '0.2s' }}>
-            <span className="relative z-10">
-              The world's first AI-enhanced platform built exclusively for Supporter Groups and Sports Clubs. We replace your spreadsheets, payment links, and chat groups with one powerful, secure Operating System for membership management, ticketing, and fan engagement.
-            </span>
-            <span className="absolute inset-0 animate-shimmer bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-          </p>
-          
-          {/* Enhanced Buttons with Hover Effects */}
-          <div className="flex flex-wrap items-center justify-center gap-4 pt-4 animate-slide-up" style={{ animationDelay: '0.4s' }}>
-            <Link href="/contact">
-              <Button 
-                size="lg" 
-                className="h-14 px-8 bg-gradient-to-r from-sky-600 to-blue-600 dark:from-sky-500 dark:to-blue-500 text-white hover:from-sky-500 hover:to-blue-500 dark:hover:from-sky-400 dark:hover:to-blue-400 text-lg font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 relative overflow-hidden group"
-              >
-                <span className="relative z-10 flex items-center gap-2">
-                  <Flame className="w-5 h-5" />
-                  Book Your Demo
-                </span>
-                <span className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-              </Button>
-            </Link>
-            <Link href="#features">
-              <Button 
-                size="lg" 
-                variant="outline" 
-                className="h-14 px-8 border-2 border-slate-300 dark:border-white/20 bg-white/80 backdrop-blur-sm text-slate-900 hover:bg-white dark:bg-white/5 dark:text-white dark:hover:bg-white/10 text-lg font-semibold shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300"
-              >
-                Explore Features
-              </Button>
-            </Link>
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 sm:py-16 md:py-20 lg:py-24 relative z-10">
+        <div className="grid lg:grid-cols-2 gap-6 md:gap-8 lg:gap-12 items-center min-h-[500px] md:min-h-[600px]">
+          {/* Left Column - Text Content */}
+          <div className="space-y-5 md:space-y-6 lg:space-y-7 text-left order-2 lg:order-1">
+            {/* Animated Title with Gradient */}
+            <h1 className="text-3xl sm:text-4xl md:text-4xl lg:text-5xl xl:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-[1.2] animate-slide-up">
+              Don't Just Run Your Club.
+              <br />
+              <span className="bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-600 dark:from-sky-400 dark:via-blue-400 dark:to-indigo-400 bg-clip-text text-transparent animate-gradient inline-block">
+                Revolutionize It
+              </span>{" "}
+              <span className="inline-block animate-bounce-subtle text-2xl sm:text-3xl md:text-4xl">⚡</span>
+              <br />
+              <span className="text-2xl sm:text-3xl md:text-3xl lg:text-4xl xl:text-4xl">
+                with Intelligent Sports Club Management Software.
+              </span>
+            </h1>
+            
+            {/* Enhanced Description with Shimmer */}
+            <p className="text-slate-600 dark:text-slate-300 text-base sm:text-lg md:text-lg leading-relaxed relative overflow-hidden animate-slide-up max-w-2xl" style={{ animationDelay: '0.2s' }}>
+              <span className="relative z-10">
+                The world's first AI-enhanced platform built exclusively for Supporter Groups and Sports Clubs. We replace your spreadsheets, payment links, and chat groups with one powerful, secure Operating System for membership management, ticketing, and fan engagement.
+              </span>
+              <span className="absolute inset-0 animate-shimmer bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+            </p>
+            
+            {/* Enhanced Buttons with Hover Effects */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 pt-2 animate-slide-up" style={{ animationDelay: '0.4s' }}>
+              <Link href="/contact" className="flex-1 sm:flex-initial">
+                <Button 
+                  size="lg" 
+                  className="w-full sm:w-auto h-12 sm:h-14 px-6 sm:px-8 bg-gradient-to-r from-sky-600 to-blue-600 dark:from-sky-500 dark:to-blue-500 text-white hover:from-sky-500 hover:to-blue-500 dark:hover:from-sky-400 dark:hover:to-blue-400 text-base sm:text-lg font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 relative overflow-hidden group"
+                >
+                  <span className="relative z-10 flex items-center justify-center gap-2">
+                    <Flame className="w-4 h-4 sm:w-5 sm:h-5" />
+                    Book Your Demo
+                  </span>
+                  <span className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                </Button>
+              </Link>
+              <Link href="#features" className="flex-1 sm:flex-initial">
+                <Button 
+                  size="lg" 
+                  variant="outline" 
+                  className="w-full sm:w-auto h-12 sm:h-14 px-6 sm:px-8 border-2 border-slate-300 dark:border-white/20 bg-white/80 backdrop-blur-sm text-slate-900 hover:bg-white dark:bg-white/5 dark:text-white dark:hover:bg-white/10 text-base sm:text-lg font-semibold shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300"
+                >
+                  Explore Features
+                </Button>
+              </Link>
+            </div>
+            
+            {/* Enhanced Feature Badges */}
+            <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-3 sm:gap-4 pt-4 text-xs sm:text-sm text-slate-600 dark:text-slate-300 animate-slide-up" style={{ animationDelay: '0.6s' }}>
+              <div className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full bg-white/60 dark:bg-white/5 backdrop-blur-sm border border-slate-200/50 dark:border-white/10 hover:scale-110 transition-transform duration-300">
+                <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-sky-600 dark:text-sky-400 animate-wiggle flex-shrink-0" />
+                <span className="font-medium whitespace-nowrap">Built for High-Performance Clubs</span>
+              </div>
+              <div className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full bg-white/60 dark:bg-white/5 backdrop-blur-sm border border-slate-200/50 dark:border-white/10 hover:scale-110 transition-transform duration-300">
+                <Shield className="h-4 w-4 sm:h-5 sm:w-5 text-sky-600 dark:text-sky-400 animate-pulse-glow flex-shrink-0" />
+                <span className="font-medium whitespace-nowrap">GDPR & DPDPA Compliant</span>
+              </div>
+              <div className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-full bg-white/60 dark:bg-white/5 backdrop-blur-sm border border-slate-200/50 dark:border-white/10 hover:scale-110 transition-transform duration-300">
+                <Lock className="h-4 w-4 sm:h-5 sm:w-5 text-sky-600 dark:text-sky-400 flex-shrink-0" />
+                <span className="font-medium whitespace-nowrap">Secure OTP Access</span>
+              </div>
+            </div>
           </div>
-          
-          {/* Enhanced Feature Badges */}
-          <div className="flex flex-wrap items-center justify-center gap-6 pt-6 text-sm text-slate-600 dark:text-slate-300 animate-slide-up" style={{ animationDelay: '0.6s' }}>
-            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/60 dark:bg-white/5 backdrop-blur-sm border border-slate-200/50 dark:border-white/10 hover:scale-110 transition-transform duration-300">
-              <Trophy className="h-5 w-5 text-sky-600 dark:text-sky-400 animate-wiggle" />
-              <span className="font-medium">Built for High-Performance Clubs</span>
+
+          {/* Right Column - Hero Image */}
+          <div className="relative h-[300px] sm:h-[400px] md:h-[500px] lg:h-[550px] xl:h-[600px] w-full animate-slide-up order-1 lg:order-2" style={{ animationDelay: '0.3s' }}>
+            <div className="relative h-full w-full animate-float">
+              <Image
+                src="/Webpage Assets 01.png"
+                alt="Global sports community celebration"
+                fill
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 100vw, 50vw"
+                className="object-contain drop-shadow-2xl"
+                priority
+              />
             </div>
-            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/60 dark:bg-white/5 backdrop-blur-sm border border-slate-200/50 dark:border-white/10 hover:scale-110 transition-transform duration-300">
-              <Shield className="h-5 w-5 text-sky-600 dark:text-sky-400 animate-pulse-glow" />
-              <span className="font-medium">GDPR & DPDPA Compliant</span>
-            </div>
-            <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/60 dark:bg-white/5 backdrop-blur-sm border border-slate-200/50 dark:border-white/10 hover:scale-110 transition-transform duration-300">
-              <Lock className="h-5 w-5 text-sky-600 dark:text-sky-400" />
-              <span className="font-medium">Secure OTP Access</span>
-            </div>
+            {/* Decorative glow effect */}
+            <div className="absolute inset-0 bg-gradient-to-l from-sky-400/20 via-transparent to-transparent rounded-full blur-3xl -z-10 animate-pulse-glow" />
           </div>
         </div>
       </div>
@@ -235,6 +257,19 @@ function CoreFeatures() {
           Core Feature Pillars
         </h2>
       </div>
+      {/* Dashboard Image Background */}
+      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1/2 max-w-xl opacity-10 dark:opacity-5 -z-0 hidden xl:block">
+        <div className="relative h-[500px] w-full animate-float" style={{ animationDelay: '1s' }}>
+          <Image
+            src="/Webpage Assets 00.png"
+            alt="Wingman Pro Dashboard"
+            fill
+            sizes="(max-width: 1280px) 0px, 600px"
+            className="object-contain"
+          />
+        </div>
+      </div>
+
       <div className="grid lg:grid-cols-3 gap-8 relative z-10">
         {features.map((feature, i) => {
           let bgGradientClass = "from-purple-50 to-indigo-50 dark:from-purple-950/20 dark:to-indigo-950/20"
@@ -331,6 +366,19 @@ function WhyWingmanPro() {
       </div>
       <div className="absolute bottom-10 left-10 w-12 h-12 opacity-10 animate-rotate-slow" style={{ animationDirection: 'reverse', animationDuration: '15s' }}>
         <Activity className="w-full h-full text-blue-500" />
+      </div>
+
+      {/* Puzzle Globe Image */}
+      <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1/3 max-w-md opacity-15 dark:opacity-8 -z-0 hidden lg:block">
+        <div className="relative h-[400px] w-full animate-float" style={{ animationDelay: '2s' }}>
+          <Image
+            src="/Webpage Assets 03.png"
+            alt="Global partnership and organization"
+            fill
+            sizes="(max-width: 1024px) 0px, 400px"
+            className="object-contain"
+          />
+        </div>
       </div>
 
       <div className="text-center max-w-3xl mx-auto mb-12 relative z-10">
@@ -470,7 +518,7 @@ function FinalCTA() {
             <Button 
               size="lg" 
               variant="outline" 
-              className="h-14 px-8 border-2 border-white text-white hover:bg-white/20 text-lg font-semibold backdrop-blur-sm shadow-lg hover:shadow-xl transform hover:scale-110 transition-all duration-300"
+              className="h-14 px-8 border-2 border-white text-sky-700 dark:text-white hover:bg-white/20 hover:text-sky-700 dark:hover:text-white text-lg font-semibold backdrop-blur-sm shadow-lg hover:shadow-xl transform hover:scale-110 transition-all duration-300"
             >
               Join Waiting List
             </Button>

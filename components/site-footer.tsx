@@ -41,7 +41,6 @@ export function SiteFooter({ brandName = "Wingman Pro" }: SiteFooterProps) {
         <div className="flex flex-col gap-4">
           <nav className="flex flex-wrap items-center gap-4 text-sm">
             <Link href="/about" className="hover:text-white">About Us</Link>
-            <Link href="#features" className="hover:text-white">Features</Link>
             <Link href="/affiliations" className="hover:text-white">Affiliations</Link>
             <Link href="/privacy" className="hover:text-white">Privacy Policy</Link>
             <Link href="/terms" className="hover:text-white">Terms of Service</Link>

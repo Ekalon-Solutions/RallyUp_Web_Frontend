@@ -6,9 +6,11 @@ import { SiteNavbar } from "@/components/site-navbar"
 import { SiteFooter } from "@/components/site-footer"
 import { ScrollToTop } from "@/components/scroll-to-top"
 import { FadeIn } from "@/components/fade-in"
+import { JellyCursor } from "@/components/jelly-cursor"
+import { ParticleBackground } from "@/components/particle-background"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { HelpCircle } from "lucide-react"
+import { HelpCircle, Sparkles, MessageCircle, BookOpen } from "lucide-react"
 
 export default function FAQsPage(): React.JSX.Element {
   const faqs = [
@@ -129,17 +131,29 @@ export default function FAQsPage(): React.JSX.Element {
   ]
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-sky-50 dark:from-slate-950 dark:via-slate-900 dark:to-blue-950 text-slate-900 dark:text-white">
+    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-sky-50 dark:from-slate-950 dark:via-slate-900 dark:to-blue-950 text-slate-900 dark:text-white relative overflow-x-hidden">
+      <JellyCursor />
+      <ParticleBackground />
       <SiteNavbar />
-      <div className="mx-auto max-w-4xl px-4 py-16">
+      
+      <div className="mx-auto max-w-4xl px-4 py-16 relative z-10">
         <FadeIn>
-          <div className="text-center mb-12">
-            <div className="inline-flex items-center justify-center mb-4">
-              <HelpCircle className="h-12 w-12 text-sky-600 dark:text-sky-300" />
+          <div className="text-center mb-12 relative">
+            {/* Background Decoration */}
+            <div className="absolute inset-0 -z-10 overflow-hidden">
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-96 h-96 bg-sky-200/20 dark:bg-sky-900/10 rounded-full blur-3xl animate-float" />
             </div>
-            <h1 className="text-3xl md:text-4xl font-bold mb-4">Frequently Asked Questions</h1>
-            <p className="text-slate-700 dark:text-slate-300 leading-relaxed text-lg max-w-2xl mx-auto">
-              Find answers to common questions about Wingman Pro. Can't find what you're looking for? <a href="/contact" className="text-sky-600 dark:text-sky-300 hover:underline">Contact us</a> and we'll be happy to help.
+
+            <div className="inline-flex items-center justify-center mb-4 relative z-10">
+              <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center shadow-lg animate-pulse-glow">
+                <HelpCircle className="h-8 w-8 text-white" />
+              </div>
+            </div>
+            <h1 className="text-3xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-slate-900 via-sky-800 to-blue-900 dark:from-white dark:via-sky-200 dark:to-blue-200 bg-clip-text text-transparent relative z-10">
+              Frequently Asked Questions
+            </h1>
+            <p className="text-slate-700 dark:text-slate-300 leading-relaxed text-lg max-w-2xl mx-auto relative z-10">
+              Find answers to common questions about Wingman Pro. Can't find what you're looking for? <a href="/contact" className="text-sky-600 dark:text-sky-300 hover:underline font-semibold">Contact us</a> and we'll be happy to help.
             </p>
           </div>
         </FadeIn>
@@ -147,19 +161,26 @@ export default function FAQsPage(): React.JSX.Element {
         <FadeIn>
           <div className="space-y-8">
             {faqs.map((category, categoryIndex) => (
-              <div key={categoryIndex} className="space-y-4">
-                <h2 className="text-2xl font-semibold text-slate-900 dark:text-white">{category.category}</h2>
+              <div key={categoryIndex} className="space-y-4 relative">
+                {/* Category Header with Gradient */}
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-sky-100 to-blue-100 dark:from-sky-900/30 dark:to-blue-900/30 mb-2 animate-scale-in" style={{ animationDelay: `${categoryIndex * 0.1}s` }}>
+                  <Sparkles className="h-4 w-4 text-sky-600 dark:text-sky-400 animate-pulse" />
+                  <h2 className="text-2xl font-semibold text-slate-900 dark:text-white bg-gradient-to-r from-sky-700 to-blue-700 dark:from-sky-300 dark:to-blue-300 bg-clip-text text-transparent">
+                    {category.category}
+                  </h2>
+                </div>
                 <Accordion type="single" collapsible className="space-y-3">
                   {category.questions.map((faq, faqIndex) => (
                     <AccordionItem
                       key={faqIndex}
                       value={`item-${categoryIndex}-${faqIndex}`}
-                      className="border border-slate-200 dark:border-white/10 rounded-lg px-4 bg-white dark:bg-white/5"
+                      className="border-2 border-slate-200 dark:border-white/10 rounded-xl px-4 bg-gradient-to-br from-white to-sky-50/50 dark:from-slate-900/50 dark:to-blue-950/30 hover:shadow-lg hover:scale-[1.02] transition-all duration-300 group animate-scale-in"
+                      style={{ animationDelay: `${(categoryIndex * 0.1) + (faqIndex * 0.05)}s` }}
                     >
-                      <AccordionTrigger className="text-left text-slate-900 dark:text-white hover:no-underline">
+                      <AccordionTrigger className="text-left text-slate-900 dark:text-white hover:no-underline group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors duration-300 font-semibold">
                         {faq.question}
                       </AccordionTrigger>
-                      <AccordionContent className="text-slate-600 dark:text-slate-300 pt-2 pb-4">
+                      <AccordionContent className="text-slate-600 dark:text-slate-300 pt-2 pb-4 leading-relaxed">
                         {faq.answer}
                       </AccordionContent>
                     </AccordionItem>
@@ -171,19 +192,38 @@ export default function FAQsPage(): React.JSX.Element {
         </FadeIn>
 
         <FadeIn>
-          <Card className="mt-12 bg-gradient-to-r from-sky-500/10 via-blue-500/10 to-sky-500/10 border-slate-200 dark:border-white/10">
-            <CardHeader>
-              <CardTitle className="text-slate-900 dark:text-white">Still have questions?</CardTitle>
+          <Card className="mt-12 bg-gradient-to-br from-sky-500/10 via-blue-500/10 to-indigo-500/10 dark:from-sky-950/20 dark:via-blue-950/20 dark:to-indigo-950/20 border-2 border-slate-200 dark:border-white/10 relative overflow-hidden group">
+            {/* Animated Background */}
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(56,189,248,0.1),transparent_50%)]" />
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+            
+            <CardHeader className="relative z-10">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center shadow-lg">
+                  <MessageCircle className="h-6 w-6 text-white" />
+                </div>
+                <CardTitle className="text-slate-900 dark:text-white text-2xl bg-gradient-to-r from-sky-700 to-blue-700 dark:from-sky-300 dark:to-blue-300 bg-clip-text text-transparent">
+                  Still have questions?
+                </CardTitle>
+              </div>
             </CardHeader>
-            <CardContent className="text-slate-700 dark:text-slate-300">
-              <p className="mb-4">
+            <CardContent className="text-slate-700 dark:text-slate-300 relative z-10">
+              <p className="mb-4 text-lg">
                 We're here to help! Reach out to our support team and we'll get back to you as soon as possible.
               </p>
               <div className="flex flex-wrap gap-3">
-                <a href="/contact" className="inline-flex items-center justify-center rounded-lg bg-sky-600 px-6 py-3 text-white hover:bg-sky-500 dark:bg-sky-400 dark:text-slate-900 dark:hover:bg-sky-300 transition-colors">
+                <a 
+                  href="/contact" 
+                  className="inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-sky-600 to-blue-600 dark:from-sky-500 dark:to-blue-500 px-6 py-3 text-white hover:from-sky-500 hover:to-blue-500 dark:hover:from-sky-400 dark:hover:to-blue-400 transition-all shadow-lg hover:shadow-xl transform hover:scale-105 duration-300 font-semibold"
+                >
+                  <MessageCircle className="h-4 w-4 mr-2" />
                   Contact Support
                 </a>
-                <a href="/about" className="inline-flex items-center justify-center rounded-lg border border-slate-300 dark:border-white/20 bg-white px-6 py-3 text-slate-900 hover:bg-slate-100 dark:bg-white/5 dark:text-white dark:hover:bg-white/10 transition-colors">
+                <a 
+                  href="/about" 
+                  className="inline-flex items-center justify-center rounded-lg border-2 border-slate-300 dark:border-white/20 bg-white/80 backdrop-blur-sm px-6 py-3 text-slate-900 hover:bg-white dark:bg-white/5 dark:text-white dark:hover:bg-white/10 transition-all shadow-md hover:shadow-lg transform hover:scale-105 duration-300 font-semibold"
+                >
+                  <BookOpen className="h-4 w-4 mr-2" />
                   Learn More About Us
                 </a>
               </div>
@@ -196,4 +236,3 @@ export default function FAQsPage(): React.JSX.Element {
     </main>
   )
 }
-
