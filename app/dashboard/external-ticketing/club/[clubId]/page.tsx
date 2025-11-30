@@ -40,7 +40,7 @@ export default function ClubExternalTicketsPage() {
     if (resp.success) {
       const updated = (resp.data as any)?.data || (resp.data as any)
       setRequests((r) => r.map(req => req._id === id ? (updated as any) : req))
-      console.log("setting requests", requests.map(req => req._id === id ? (updated as any) : req))
+      // console.log("setting requests", requests.map(req => req._id === id ? (updated as any) : req))
       toast.success('Status updated')
     } else {
       toast.error('Failed to update status')
@@ -62,7 +62,7 @@ export default function ClubExternalTicketsPage() {
       triggerBlobDownload(blob, filename)
       toast.success('Download started')
     } catch (err: any) {
-      console.error('Export error', err)
+      // console.error('Export error', err)
       toast.error('Failed to export requests')
     } finally {
       setExporting(false)

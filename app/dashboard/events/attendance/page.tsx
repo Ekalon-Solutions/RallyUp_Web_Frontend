@@ -44,7 +44,7 @@ export default function AttendanceLandingPage() {
           }
         }
       } catch (error) {
-        console.error('Error fetching registration info:', error)
+        // console.error('Error fetching registration info:', error)
         // Continue even if we can't fetch attendee info
       }
     }
@@ -105,7 +105,7 @@ export default function AttendanceLandingPage() {
         setState('success')
         toast.success(response.data?.message || 'Attendance marked successfully')
       } catch (error: any) {
-        console.error('Error calling attendance API', error)
+        // console.error('Error calling attendance API', error)
         const errorMsg = error?.message || error?.error || error?.errorDetails?.details || 'An unexpected error occurred'
         setErrorMessage(errorMsg)
         

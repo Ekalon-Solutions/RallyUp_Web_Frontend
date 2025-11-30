@@ -103,7 +103,7 @@ export default function SystemOwnerLoginPage() {
         toast.error(backendResult?.error || "Failed to login as system owner")
       }
     } catch (error) {
-      console.error("Error verifying OTP:", error)
+      // console.error("Error verifying OTP:", error)
       toast.error("Invalid OTP. Please try again.")
     } finally {
       setIsLoading(false)

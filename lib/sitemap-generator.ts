@@ -102,7 +102,7 @@ export async function getEventPages(): Promise<SitemapEntry[]> {
     
     return []
   } catch (error) {
-    console.error('Error fetching event pages for sitemap:', error)
+    // console.error('Error fetching event pages for sitemap:', error)
     return []
   }
 }
@@ -125,7 +125,7 @@ export async function getClubPages(): Promise<SitemapEntry[]> {
     
     return []
   } catch (error) {
-    console.error('Error fetching club pages for sitemap:', error)
+    // console.error('Error fetching club pages for sitemap:', error)
     return []
   }
 }
@@ -148,7 +148,7 @@ export async function getMerchandisePages(): Promise<SitemapEntry[]> {
     
     return []
   } catch (error) {
-    console.error('Error fetching merchandise pages for sitemap:', error)
+    // console.error('Error fetching merchandise pages for sitemap:', error)
     return []
   }
 }

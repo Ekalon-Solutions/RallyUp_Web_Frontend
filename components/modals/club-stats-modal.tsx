@@ -73,7 +73,7 @@ export function ClubStatsModal({ club, trigger }: ClubStatsModalProps) {
         toast.error(response.error || 'Failed to load club statistics')
       }
     } catch (error) {
-      console.error('Error fetching club stats:', error)
+      // console.error('Error fetching club stats:', error)
       toast.error('Failed to load club statistics')
     } finally {
       setLoading(false)

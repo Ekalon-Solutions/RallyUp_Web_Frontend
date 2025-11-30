@@ -74,7 +74,7 @@ export function PollResultsModal({ pollId, isOpen, onClose, refreshTrigger }: Po
         throw new Error(response.error || "Failed to load poll results")
       }
     } catch (error: any) {
-      console.error("Error fetching poll results:", error)
+      // console.error("Error fetching poll results:", error)
       
       // Provide specific error messages based on the error
       if (error.message?.includes("Poll not found")) {
@@ -120,7 +120,7 @@ export function PollResultsModal({ pollId, isOpen, onClose, refreshTrigger }: Po
           url: window.location.href
         })
       } catch (error) {
-        console.error('Error sharing:', error)
+        // console.error('Error sharing:', error)
       }
     } else {
       // Fallback: copy to clipboard
@@ -128,7 +128,7 @@ export function PollResultsModal({ pollId, isOpen, onClose, refreshTrigger }: Po
         await navigator.clipboard.writeText(window.location.href)
         toast.success("Link copied to clipboard")
       } catch (error) {
-        console.error('Error copying to clipboard:', error)
+        // console.error('Error copying to clipboard:', error)
       }
     }
   }

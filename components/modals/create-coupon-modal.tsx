@@ -10,6 +10,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Ticket, AlertCircle } from "lucide-react"
 import { toast } from "sonner"
+import config from "@/lib/config"
 
 interface Coupon {
   _id: string
@@ -167,8 +168,8 @@ export function CreateCouponModal({ isOpen, onClose, onSuccess, editCoupon }: Cr
 
       const token = localStorage.getItem("token")
       const url = editCoupon 
-        ? `http://localhost:5000/api/coupons/${editCoupon._id}`
-        : "http://localhost:5000/api/coupons"
+        ? `${config.apiBaseUrl}/coupons/${editCoupon._id}`
+        : `${config.apiBaseUrl}/coupons`
       
       const response = await fetch(url, {
         method: editCoupon ? "PUT" : "POST",
@@ -189,7 +190,7 @@ export function CreateCouponModal({ isOpen, onClose, onSuccess, editCoupon }: Cr
         toast.error(data.message || "Failed to save coupon")
       }
     } catch (error) {
-      console.error("Error saving coupon:", error)
+      // console.error("Error saving coupon:", error)
       toast.error("An error occurred while saving the coupon")
     } finally {
       setLoading(false)

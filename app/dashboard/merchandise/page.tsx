@@ -151,7 +151,7 @@ export default function MerchandiseManagementPage() {
         setTotalPages(response.data.pagination?.pages || 1)
       }
     } catch (error: any) {
-      console.error('Error fetching merchandise:', error)
+      // console.error('Error fetching merchandise:', error)
       if (error?.errorDetails?.status === 401) {
         toast.error('Admin access required. Please log in as an admin.')
         // Redirect to login or dashboard
@@ -171,7 +171,7 @@ export default function MerchandiseManagementPage() {
         setStats(response.data)
       }
     } catch (error: any) {
-      console.error('Error fetching stats:', error)
+      // console.error('Error fetching stats:', error)
       if (error?.errorDetails?.status === 401) {
         toast.error('Admin access required. Please log in as an admin.')
         window.location.href = '/dashboard'
@@ -190,7 +190,7 @@ export default function MerchandiseManagementPage() {
       fetchMerchandise()
       fetchStats()
     } catch (error) {
-      console.error('Error deleting merchandise:', error)
+      // console.error('Error deleting merchandise:', error)
       toast.error('Failed to delete merchandise')
     }
   }
@@ -202,7 +202,7 @@ export default function MerchandiseManagementPage() {
       fetchMerchandise()
       fetchStats()
     } catch (error) {
-      console.error('Error toggling availability:', error)
+      // console.error('Error toggling availability:', error)
       toast.error('Failed to update merchandise availability')
     }
   }

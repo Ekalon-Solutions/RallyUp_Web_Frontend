@@ -50,7 +50,7 @@ export async function getClubSettings(clubId: string, forceRefresh = false): Pro
     }
     return null
   } catch (error) {
-    console.error('Error fetching club settings:', error)
+    // console.error('Error fetching club settings:', error)
     return null
   }
 }

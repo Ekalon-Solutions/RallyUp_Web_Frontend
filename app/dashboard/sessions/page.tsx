@@ -101,7 +101,7 @@ export default function SessionsPage() {
         throw new Error('Failed to fetch data');
       }
     } catch (error) {
-      console.error('Error fetching data:', error);
+      // // console.error('Error fetching data:', error);
       toast({
         title: 'Error',
         description: 'Failed to fetch session data',
@@ -125,7 +125,7 @@ export default function SessionsPage() {
         throw new Error(response.error || 'Failed to terminate session');
       }
     } catch (error) {
-      console.error('Error terminating session:', error);
+      // // console.error('Error terminating session:', error);
       toast({
         title: 'Error',
         description: 'Failed to terminate session',
@@ -147,7 +147,7 @@ export default function SessionsPage() {
         throw new Error(response.error || 'Failed to terminate user sessions');
       }
     } catch (error) {
-      console.error('Error terminating user sessions:', error);
+      // // console.error('Error terminating user sessions:', error);
       toast({
         title: 'Error',
         description: 'Failed to terminate user sessions',
@@ -169,7 +169,7 @@ export default function SessionsPage() {
         throw new Error(response.error || 'Failed to cleanup expired sessions');
       }
     } catch (error) {
-      console.error('Error cleaning up sessions:', error);
+      // // console.error('Error cleaning up sessions:', error);
       toast({
         title: 'Error',
         description: 'Failed to cleanup expired sessions',

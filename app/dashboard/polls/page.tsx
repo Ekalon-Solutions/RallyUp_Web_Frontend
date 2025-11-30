@@ -63,7 +63,7 @@ export default function PollsManagementPage() {
         throw new Error(response.error || "Failed to load polls")
       }
     } catch (error: any) {
-      console.error("Error fetching polls:", error)
+      // console.error("Error fetching polls:", error)
       
       // Provide specific error messages based on the error
       if (error.message?.includes("Access denied") || error.message?.includes("Unauthorized")) {
@@ -102,7 +102,7 @@ export default function PollsManagementPage() {
         throw new Error(response.error || "Failed to delete poll")
       }
     } catch (error: any) {
-      console.error("Error deleting poll:", error)
+      // console.error("Error deleting poll:", error)
       
       // Provide specific error messages based on the error
       if (error.message?.includes("Poll not found")) {
@@ -127,7 +127,7 @@ export default function PollsManagementPage() {
         throw new Error(response.error || `Failed to ${status} poll`)
       }
     } catch (error: any) {
-      console.error(`Error updating poll status:`, error)
+      // console.error(`Error updating poll status:`, error)
       
       // Provide specific error messages based on the error
       if (error.message?.includes("Poll not found")) {

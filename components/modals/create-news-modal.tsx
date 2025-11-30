@@ -81,7 +81,7 @@ export function CreateNewsModal({ isOpen, onClose, onSuccess, editNews }: Create
         toast.error(response.error || "Failed to save news article")
       }
     } catch (error) {
-      console.error("Error saving news:", error)
+      // console.error("Error saving news:", error)
       toast.error("An error occurred while saving the news article")
     } finally {
       setLoading(false)

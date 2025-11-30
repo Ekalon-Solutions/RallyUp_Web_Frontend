@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Plus, Users, Shield, UserCheck, UserX, Mail, Phone } from "lucide-react"
 import { toast } from "sonner"
+import config from "@/lib/config"
 
 interface StaffMember {
   _id: string
@@ -42,7 +43,7 @@ export default function StaffPage() {
   const loadStaff = async () => {
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch('http://3.111.169.32:5050/api/staff', {
+      const response = await fetch(`${config.apiBaseUrl}/staff`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -68,9 +69,9 @@ export default function StaffPage() {
 
     try {
       const token = localStorage.getItem('token')
-      const endpoint = createType === 'admin' ? '/api/staff/admins' : '/api/staff/volunteers'
+      const endpoint = createType === 'admin' ? '/staff/admins' : '/staff/volunteers'
       
-      const response = await fetch(`http://3.111.169.32:5050${endpoint}`, {
+      const response = await fetch(`${config.apiBaseUrl}${endpoint}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

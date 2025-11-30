@@ -32,7 +32,7 @@ const setupRecaptcha = (phoneNumber: string) => {
       'size': 'invisible',
       'callback': (response: any) => {
         // reCAPTCHA solved, allow signInWithPhoneNumber.
-        console.log("reCAPTCHA solved for phone number:", phoneNumber)
+        // console.log("reCAPTCHA solved for phone number:", phoneNumber)
       }
     });
   }
@@ -199,7 +199,7 @@ export default function AuthPage() {
         router.push("/dashboard")
       }
     } catch (error) {
-      console.error("Error verifying OTP:", error)
+      // console.error("Error verifying OTP:", error)
       toast.error("Invalid OTP. Please try again.")
     }
   }
@@ -295,7 +295,7 @@ export default function AuthPage() {
         }
       }
     } catch (error: any) {
-      console.error("Registration error:", error)
+      // console.error("Registration error:", error)
       
       // Handle different types of errors
       if (error.response) {
@@ -401,7 +401,7 @@ export default function AuthPage() {
         }
       }
     } catch (error) {
-      console.error("Error verifying OTP:", error)
+      // console.error("Error verifying OTP:", error)
       toast.error("Invalid OTP. Please try again.")
     }
   }
@@ -426,7 +426,7 @@ export default function AuthPage() {
 
     try {
       const recaptchaVerifier = setupRecaptcha(phoneNumber)
-      console.log("recaptchaVerifier", recaptchaVerifier)
+      // console.log("recaptchaVerifier", recaptchaVerifier)
       const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier)
 
       window.confirmationResult = confirmationResult
@@ -434,7 +434,7 @@ export default function AuthPage() {
       setUserOtpSent(true)
       setUserRegisterResendCountdown(10)
     } catch (error) {
-      console.error("Error sending OTP:", error)
+      // console.error("Error sending OTP:", error)
       toast.error("Failed to send OTP. Please try again.")
     }
   }
@@ -466,7 +466,7 @@ export default function AuthPage() {
       setAdminOtpSent(true)
       setAdminRegisterResendCountdown(10)
     } catch (error) {
-      console.error("Error sending OTP:", error)
+      // console.error("Error sending OTP:", error)
       toast.error("Failed to send OTP. Please try again.")
     }
   }
@@ -498,7 +498,7 @@ export default function AuthPage() {
       setSystemOwnerOtpSent(true)
       setSystemOwnerRegisterResendCountdown(10)
     } catch (error) {
-      console.error("Error sending OTP:", error)
+      // console.error("Error sending OTP:", error)
       toast.error("Failed to send OTP. Please try again.")
     }
   }
@@ -524,14 +524,14 @@ export default function AuthPage() {
 
     try {
       const recaptchaVerifier = setupRecaptcha(phoneNumber)
-      console.log("recaptchaVerifier", recaptchaVerifier)
+      // console.log("recaptchaVerifier", recaptchaVerifier)
       const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier)
       window.confirmationResult = confirmationResult
       toast.success(`OTP sent to ${phoneNumber}`)
       setUserLoginOtpSent(true)
       setUserLoginResendCountdown(10)
     } catch (error) {
-      console.error("Error sending OTP:", error)
+      // console.error("Error sending OTP:", error)
       toast.error("Failed to send OTP. Please try again.")
     }
   }
@@ -562,7 +562,7 @@ export default function AuthPage() {
       setAdminLoginOtpSent(true)
       setAdminLoginResendCountdown(10)
     } catch (error) {
-      console.error("Error sending OTP:", error)
+      // console.error("Error sending OTP:", error)
       toast.error("Failed to send OTP. Please try again.")
     }
   }
@@ -593,7 +593,7 @@ export default function AuthPage() {
       setSystemOwnerLoginOtpSent(true)
       setSystemOwnerLoginResendCountdown(10)
     } catch (error) {
-      console.error("Error sending OTP:", error)
+      // console.error("Error sending OTP:", error)
       toast.error("Failed to send OTP. Please try again.")
     }
   }
@@ -678,7 +678,7 @@ export default function AuthPage() {
         toast.error(result.error || "Admin registration failed. Please check your admin code.")
       }
     } catch (error) {
-      console.error("Admin registration error:", error)
+      // console.error("Admin registration error:", error)
       toast.error("An error occurred during admin registration.")
     } finally {
       setIsLoading(false)
@@ -711,7 +711,7 @@ export default function AuthPage() {
         toast.error(result.error || "System Owner login failed. Please check your credentials.")
       }
     } catch (error) {
-      console.error("System Owner login error:", error)
+      // console.error("System Owner login error:", error)
       toast.error("An error occurred during System Owner login.")
     } finally {
       setIsLoading(false)
@@ -752,7 +752,7 @@ export default function AuthPage() {
         toast.error(result.error || "System Owner registration failed.")
       }
     } catch (error) {
-      console.error("System Owner registration error:", error)
+      // console.error("System Owner registration error:", error)
       toast.error("An error occurred during System Owner registration.")
     } finally {
       setIsLoading(false)

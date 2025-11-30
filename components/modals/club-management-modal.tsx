@@ -108,7 +108,7 @@ export default function ClubManagementModal({ isOpen, onClose, club, onClubUpdat
         toast.error(data.message || "Failed to update club")
       }
     } catch (error) {
-      console.error("Update club error:", error)
+      // console.error("Update club error:", error)
       toast.error("An error occurred")
     } finally {
       setLoading(false)
@@ -139,7 +139,7 @@ export default function ClubManagementModal({ isOpen, onClose, club, onClubUpdat
         toast.error("Failed to delete club")
       }
     } catch (error) {
-      console.error("Delete club error:", error)
+      // console.error("Delete club error:", error)
       toast.error("An error occurred")
     } finally {
       setLoading(false)

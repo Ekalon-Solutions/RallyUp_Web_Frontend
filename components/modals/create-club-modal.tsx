@@ -91,7 +91,7 @@ export function CreateClubModal({ isOpen, onClose, onSuccess }: CreateClubModalP
         toast.error(response.error || "Failed to create club")
       }
     } catch (error) {
-      console.error("Create club error:", error)
+      // console.error("Create club error:", error)
       toast.error("An error occurred while creating the club")
     } finally {
       setIsLoading(false)

@@ -38,7 +38,7 @@ export function CreateTopicModal({ trigger }: CreateTopicModalProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    console.log("Creating topic:", formData)
+    // console.log("Creating topic:", formData)
     setOpen(false)
     // Reset form
     setFormData({

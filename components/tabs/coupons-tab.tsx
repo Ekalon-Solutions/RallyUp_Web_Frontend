@@ -85,7 +85,7 @@ export function CouponsTab() {
         toast.error(response.error || "Failed to fetch coupons")
       }
     } catch (error) {
-      console.error("Error fetching coupons:", error)
+      // console.error("Error fetching coupons:", error)
       toast.error("An error occurred while fetching coupons")
     } finally {
       setLoading(false)
@@ -114,7 +114,7 @@ export function CouponsTab() {
         toast.error(response.error || "Failed to delete coupon")
       }
     } catch (error) {
-      console.error("Error deleting coupon:", error)
+      // console.error("Error deleting coupon:", error)
       toast.error("An error occurred while deleting the coupon")
     } finally {
       setDeletingCoupon(null)
@@ -131,7 +131,7 @@ export function CouponsTab() {
         toast.error(response.error || "Failed to toggle coupon status")
       }
     } catch (error) {
-      console.error("Error toggling coupon status:", error)
+      // console.error("Error toggling coupon status:", error)
       toast.error("An error occurred while updating the coupon")
     }
   }
@@ -145,7 +145,7 @@ export function CouponsTab() {
         toast.error(response.error || "Failed to fetch coupon statistics")
       }
     } catch (error) {
-      console.error("Error fetching coupon stats:", error)
+      // console.error("Error fetching coupon stats:", error)
       toast.error("An error occurred while fetching statistics")
     }
   }

@@ -227,7 +227,7 @@ export default function UserEventRegistrationModal({ eventId, isOpen, onClose, o
         toast.error(response.error || "Invalid coupon code")
       }
     } catch (error) {
-      console.error("Error validating coupon:", error)
+      // console.error("Error validating coupon:", error)
       setAppliedCoupon(null)
       toast.error("Failed to validate coupon")
     } finally {

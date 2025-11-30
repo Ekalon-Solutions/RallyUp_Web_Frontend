@@ -50,7 +50,7 @@ export default function VolunteerManagementPage() {
                 currentUser={user}
                 clubId={clubId}
                 onProfileUpdate={(profile) => {
-                  console.log('Volunteer profile updated:', profile);
+                  // // console.log('Volunteer profile updated:', profile);
                 }}
               />
             </div>

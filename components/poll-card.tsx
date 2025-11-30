@@ -147,7 +147,7 @@ export function PollCard({ poll, onVote, showResults = false }: PollCardProps) {
         setResultsRefreshTrigger(prev => prev + 1)
       }
     } catch (error: any) {
-      console.error("Error voting:", error)
+      // console.error("Error voting:", error)
       
       // Provide specific error messages based on the error
       if (error.message?.includes("already voted for this option")) {
@@ -187,7 +187,7 @@ export function PollCard({ poll, onVote, showResults = false }: PollCardProps) {
         throw new Error(response.error || "Failed to remove vote")
       }
     } catch (error: any) {
-      console.error("Error removing vote:", error)
+      // console.error("Error removing vote:", error)
       
       // Provide specific error messages based on the error
       if (error.message?.includes("User has not voted for this option")) {

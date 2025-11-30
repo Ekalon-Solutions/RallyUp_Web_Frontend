@@ -51,7 +51,7 @@ export default function UserPollsPage() {
         throw new Error(response.error || "Failed to load polls")
       }
     } catch (error: any) {
-      console.error("Error fetching polls:", error)
+      // console.error("Error fetching polls:", error)
       
       // Provide specific error messages based on the error
       if (error.message?.includes("Access denied") || error.message?.includes("Unauthorized")) {

@@ -171,10 +171,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   useDesignSettings(clubId)
   
   // Debug logging
-  console.log('Dashboard Layout - User object:', user)
-  console.log('Dashboard Layout - Club ID:', clubId)
-  console.log('Dashboard Layout - Settings:', settings)
-  console.log('Dashboard Layout - User role:', user?.role)
+  // console.log('Dashboard Layout - User object:', user)
+  // console.log('Dashboard Layout - Club ID:', clubId)
+  // console.log('Dashboard Layout - Settings:', settings)
+  // console.log('Dashboard Layout - User role:', user?.role)
 
   // Get navigation based on user role
   const getNavigation = () => {
@@ -200,43 +200,43 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     const isRegularUser = !user.role || user.role === 'member'
     
     if (isRegularUser && clubId) {
-      console.log('Filtering navigation for regular user...')
+      // console.log('Filtering navigation for regular user...')
       const filtered = nav.filter(item => {
         // Map navigation items to section visibility settings
         if (item.name === 'News') {
           const visible = isSectionVisible('news')
-          console.log('News visible:', visible)
+          // console.log('News visible:', visible)
           return visible
         }
         if (item.name === 'Events') {
           const visible = isSectionVisible('events')
-          console.log('Events visible:', visible)
+          // console.log('Events visible:', visible)
           return visible
         }
         if (item.name === 'Merchandise' || item.name === 'Merchandise Store') {
           const visible = isSectionVisible('merchandise')
-          console.log('Merchandise visible:', visible)
+          // console.log('Merchandise visible:', visible)
           return visible
         }
         if (item.name === 'Polls') {
           const visible = isSectionVisible('polls')
-          console.log('Polls visible:', visible)
+          // console.log('Polls visible:', visible)
           return visible
         }
         if (item.name === 'Our Chants') {
           const visible = isSectionVisible('chants')
-          console.log('Our Chants visible:', visible)
+          // console.log('Our Chants visible:', visible)
           return visible
         }
         if (item.name === 'Members') {
           const visible = isSectionVisible('members')
-          console.log('Members visible:', visible)
+          // console.log('Members visible:', visible)
           return visible
         }
         // Always show other items
         return true
       })
-      console.log('Filtered navigation:', filtered)
+      // console.log('Filtered navigation:', filtered)
       return filtered
     }
     

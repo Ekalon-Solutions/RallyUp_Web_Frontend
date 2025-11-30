@@ -90,7 +90,7 @@ export function AddMemberModal({ trigger, onMemberAdded }: AddMemberModalProps) 
     try {
       const clubId = user && 'club' in user ? user.club?._id : null
       if (!clubId) {
-        console.error('No club found for user')
+        // console.error('No club found for user')
         return
       }
 
@@ -106,7 +106,7 @@ export function AddMemberModal({ trigger, onMemberAdded }: AddMemberModalProps) 
         setMembershipPlans(data.data || [])
       }
     } catch (error) {
-      console.error('Error fetching membership plans:', error)
+      // console.error('Error fetching membership plans:', error)
     }
   }
 
@@ -178,7 +178,7 @@ export function AddMemberModal({ trigger, onMemberAdded }: AddMemberModalProps) 
 
     try {
       // Step 1: Create user
-      console.log('Creating user with data:', userData)
+      // console.log('Creating user with data:', userData)
       
       const userResponse = await fetch(getApiUrl('/users/register'), {
         method: 'POST',
@@ -204,13 +204,13 @@ export function AddMemberModal({ trigger, onMemberAdded }: AddMemberModalProps) 
           throw new Error('User is not associated with any club')
         }
 
-        console.log('Creating membership for plan:', {
-          planId: selectedPlan._id,
-          planName: selectedPlan.name,
-          duration: selectedPlan.duration,
-          durationType: typeof selectedPlan.duration,
-          clubId: clubId
-        })
+        // console.log('Creating membership for plan:', {
+//           planId: selectedPlan._id,
+//           planName: selectedPlan.name,
+//           duration: selectedPlan.duration,
+//           durationType: typeof selectedPlan.duration,
+//           clubId: clubId
+//         })
 
         // Calculate proper dates for membership
         const startDate = new Date()
@@ -242,7 +242,7 @@ export function AddMemberModal({ trigger, onMemberAdded }: AddMemberModalProps) 
           membershipData.end_date = endDate
         }
 
-        console.log('Sending membership data:', membershipData)
+        // console.log('Sending membership data:', membershipData)
 
         const membershipResponse = await fetch(getApiUrl('/user-memberships'), {
           method: 'POST',
@@ -255,15 +255,15 @@ export function AddMemberModal({ trigger, onMemberAdded }: AddMemberModalProps) 
 
         if (!membershipResponse.ok) {
           const errorData = await membershipResponse.json()
-          console.error('Membership creation failed:', errorData)
+          // console.error('Membership creation failed:', errorData)
           throw new Error(errorData.message || 'Failed to create membership')
         }
 
-        console.log('Membership created successfully:', {
-          startDate: startDate.toISOString(),
-          endDate: endDate ? endDate.toISOString() : 'Lifetime',
-          duration: selectedPlan.duration
-        })
+        // console.log('Membership created successfully:', {
+//           startDate: startDate.toISOString(),
+//           endDate: endDate ? endDate.toISOString() : 'Lifetime',
+//           duration: selectedPlan.duration
+//         })
       }
 
       // Success
@@ -278,7 +278,7 @@ export function AddMemberModal({ trigger, onMemberAdded }: AddMemberModalProps) 
       }, 2000)
 
     } catch (error) {
-      console.error('Error creating member:', error)
+      // console.error('Error creating member:', error)
       toast.error(error instanceof Error ? error.message : 'Failed to create member')
     } finally {
       setIsLoading(false)

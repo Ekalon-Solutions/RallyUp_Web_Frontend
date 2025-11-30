@@ -54,30 +54,30 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children, token 
 
     // Connection event handlers
     socketInstance.on('connect', () => {
-      console.log('Socket connected:', socketInstance.id);
+      // // console.log('Socket connected:', socketInstance.id);
       setIsConnected(true);
       setConnectionError(null);
     });
 
     socketInstance.on('disconnect', (reason) => {
-      console.log('Socket disconnected:', reason);
+      // // console.log('Socket disconnected:', reason);
       setIsConnected(false);
     });
 
     socketInstance.on('connect_error', (error) => {
-      console.error('Socket connection error:', error);
+      // // console.error('Socket connection error:', error);
       setConnectionError(error.message || 'Connection failed');
       setIsConnected(false);
     });
 
     socketInstance.on('reconnect', (attemptNumber) => {
-      console.log('Socket reconnected after', attemptNumber, 'attempts');
+      // // console.log('Socket reconnected after', attemptNumber, 'attempts');
       setIsConnected(true);
       setConnectionError(null);
     });
 
     socketInstance.on('reconnect_error', (error) => {
-      console.error('Socket reconnection error:', error);
+      // // console.error('Socket reconnection error:', error);
       setConnectionError(`Reconnection failed: ${error.message || 'Unknown error'}`);
     });
 

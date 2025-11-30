@@ -55,11 +55,11 @@ export default function PublicEventsPage() {
 
         setEvents(filteredEvents)
       } else {
-        console.error("Failed to fetch events:", response.error)
+        // console.error("Failed to fetch events:", response.error)
         toast.error("Failed to fetch events")
       }
     } catch (error) {
-      console.error("Error fetching events:", error)
+      // console.error("Error fetching events:", error)
       toast.error("Error fetching events")
     } finally {
       setLoading(false)
@@ -77,7 +77,7 @@ export default function PublicEventsPage() {
         setUserRegistrations(registrationsMap)
       }
     } catch (error) {
-      console.error("Error fetching user registrations:", error)
+      // console.error("Error fetching user registrations:", error)
     }
   }
 

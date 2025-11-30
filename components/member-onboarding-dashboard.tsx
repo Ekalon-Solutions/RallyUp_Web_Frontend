@@ -120,7 +120,7 @@ export default function MemberOnboardingDashboard({ userId, userRole }: MemberOn
         }
       }
     } catch (error) {
-      console.error('Error fetching onboarding flows:', error)
+      // console.error('Error fetching onboarding flows:', error)
     }
   }
 
@@ -164,7 +164,7 @@ export default function MemberOnboardingDashboard({ userId, userRole }: MemberOn
         
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}))
-          console.error('Failed to save progress. Status:', response.status, 'Error:', errorData)
+          // console.error('Failed to save progress. Status:', response.status, 'Error:', errorData)
           throw new Error(`Failed to save progress to server: ${errorData.message || response.statusText}`)
         }
         
@@ -205,7 +205,7 @@ export default function MemberOnboardingDashboard({ userId, userRole }: MemberOn
         }
       }
     } catch (error) {
-      console.error('Error completing step:', error)
+      // console.error('Error completing step:', error)
       toast.error("An error occurred while completing the step")
     } finally {
       setLoading(false)

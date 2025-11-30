@@ -104,7 +104,7 @@ export function AdminManagementModal({ clubId, clubName, trigger }: AdminManagem
         toast.error(response.error || 'Failed to load admins')
       }
     } catch (error) {
-      console.error('Error fetching admins:', error)
+      // console.error('Error fetching admins:', error)
       toast.error('Failed to load admins')
     } finally {
       setLoading(false)
@@ -161,7 +161,7 @@ export function AdminManagementModal({ clubId, clubName, trigger }: AdminManagem
         toast.error(response.error || 'Failed to create admin')
       }
     } catch (error) {
-      console.error('Error creating admin:', error)
+      // console.error('Error creating admin:', error)
       toast.error('Failed to create admin')
     } finally {
       setCreating(false)
@@ -183,7 +183,7 @@ export function AdminManagementModal({ clubId, clubName, trigger }: AdminManagem
         toast.error(response.error || 'Failed to remove admin')
       }
     } catch (error) {
-      console.error('Error removing admin:', error)
+      // console.error('Error removing admin:', error)
       toast.error('Failed to remove admin')
     }
   }
@@ -207,7 +207,7 @@ export function AdminManagementModal({ clubId, clubName, trigger }: AdminManagem
         setSearchResults([])
       }
     } catch (error) {
-      console.error('Error searching admins:', error)
+      // console.error('Error searching admins:', error)
       setSearchResults([])
     } finally {
       setSearching(false)
@@ -233,7 +233,7 @@ export function AdminManagementModal({ clubId, clubName, trigger }: AdminManagem
         toast.error(response.error || 'Failed to assign admin to club')
       }
     } catch (error) {
-      console.error('Error assigning admin to club:', error)
+      // console.error('Error assigning admin to club:', error)
       toast.error('Failed to assign admin to club')
     } finally {
       setAssigning(false)

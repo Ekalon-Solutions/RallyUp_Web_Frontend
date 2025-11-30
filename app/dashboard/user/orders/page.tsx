@@ -143,7 +143,7 @@ export default function UserOrdersPage() {
         setTotalPages(1)
       }
     } catch (error) {
-      console.error('Error loading orders:', error)
+      // console.error('Error loading orders:', error)
       toast({
         title: "Error",
         description: "Failed to fetch orders",
@@ -176,7 +176,7 @@ export default function UserOrdersPage() {
         toast({ title: 'Report downloaded', description: 'Your orders report downloaded successfully.' });
       }
     } catch (error) {
-      console.error('Error downloading my orders report:', error);
+      // // console.error('Error downloading my orders report:', error);
       toast({ title: 'Error', description: 'Failed to download report', variant: 'destructive' });
     }
   }

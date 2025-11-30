@@ -86,7 +86,7 @@ export default function UserOnboardingProgressAdmin() {
         setFlows(data.flows || [])
       }
     } catch (error) {
-      console.error("Error fetching flows:", error)
+      // console.error("Error fetching flows:", error)
     }
   }
 
@@ -107,7 +107,7 @@ export default function UserOnboardingProgressAdmin() {
         toast.error("Failed to fetch user progress data")
       }
     } catch (error) {
-      console.error("Error fetching progress:", error)
+      // console.error("Error fetching progress:", error)
       toast.error("Error loading user progress")
     } finally {
       setLoading(false)

@@ -161,7 +161,7 @@ export default function OrdersPage() {
         setOrders(response.data.data?.orders || [])
         setTotalPages(response.data.data?.pagination?.totalPages || 1)
       } else {
-        console.error('API Response:', response)
+        // console.error('API Response:', response)
         toast({
           title: "Error",
           description: response.message || "Failed to fetch orders",
@@ -171,7 +171,7 @@ export default function OrdersPage() {
         setTotalPages(1)
       }
     } catch (error) {
-      console.error('Error loading orders:', error)
+      // console.error('Error loading orders:', error)
       toast({
         title: "Error",
         description: "Failed to fetch orders",
@@ -191,7 +191,7 @@ export default function OrdersPage() {
         setStats(response.data.data?.overview || null)
       }
     } catch (error) {
-      console.error('Error loading stats:', error)
+      // console.error('Error loading stats:', error)
     }
   }
 
@@ -216,7 +216,7 @@ export default function OrdersPage() {
         toast({ title: 'Report downloaded', description: 'Orders report downloaded successfully.' });
       }
     } catch (error) {
-      console.error('Error downloading report:', error);
+      // // console.error('Error downloading report:', error);
       toast({ title: 'Error', description: 'Failed to download report', variant: 'destructive' });
     }
   }
@@ -249,7 +249,7 @@ export default function OrdersPage() {
         })
       }
     } catch (error) {
-      console.error('Error updating order status:', error)
+      // console.error('Error updating order status:', error)
       toast({
         title: "Error",
         description: "Failed to update order status",
@@ -278,7 +278,7 @@ export default function OrdersPage() {
         })
       }
     } catch (error) {
-      console.error('Error cancelling order:', error)
+      // console.error('Error cancelling order:', error)
       toast({
         title: "Error",
         description: "Failed to cancel order",
@@ -307,7 +307,7 @@ export default function OrdersPage() {
         })
       }
     } catch (error) {
-      console.error('Error updating payment status:', error)
+      // console.error('Error updating payment status:', error)
       toast({
         title: "Error",
         description: "Failed to update payment status",

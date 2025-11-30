@@ -73,8 +73,8 @@ function OpportunityForm({ onSubmit, onCancel, initialData, mode }: OpportunityF
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Form submitted with data:', formData);
-    console.log('Club ID:', clubId);
+    // // console.log('Form submitted with data:', formData);
+    // // console.log('Club ID:', clubId);
     
     if (!clubId) {
       alert('Club information not available. Please contact your administrator.');
@@ -92,7 +92,7 @@ function OpportunityForm({ onSubmit, onCancel, initialData, mode }: OpportunityF
         volunteersAssigned: []
       }]
     };
-    console.log('Submitting opportunity:', opportunity);
+    // // console.log('Submitting opportunity:', opportunity);
     onSubmit(opportunity);
   };
 
@@ -234,7 +234,7 @@ export default function VolunteerManagementPage() {
   const { user, logout } = useAuth();
   
   React.useEffect(() => {
-    console.log('Current user:', user);
+    // // console.log('Current user:', user);
   }, [user]);
   const [opportunities, setOpportunities] = React.useState<VolunteerOpportunity[]>([]);
   const [volunteers, setVolunteers] = React.useState<Volunteer[]>([]);
@@ -265,23 +265,23 @@ export default function VolunteerManagementPage() {
     const userMemberships = (user as any).memberships || [];
     const activeMembership = userMemberships.find((m: any) => m.status === 'active');
     if (activeMembership?.club_id?._id) {
-      console.log('🔍 Found club ID from active membership:', activeMembership.club_id._id);
+      // // console.log('🔍 Found club ID from active membership:', activeMembership.club_id._id);
       return activeMembership.club_id._id;
     }
     
     // Fallback: try to get club from old club field (for backward compatibility)
     if ((user as any).club?._id) {
-      console.log('🔍 Found club ID from old club field:', (user as any).club._id);
+      // console.log('🔍 Found club ID from old club field:', (user as any).club._id);
       return (user as any).club._id;
     }
     
     // If still no club, try to find any membership (even if not active)
     if (userMemberships.length > 0 && userMemberships[0]?.club_id?._id) {
-      console.log('🔍 Found club ID from first membership:', userMemberships[0].club_id._id);
+      // // console.log('🔍 Found club ID from first membership:', userMemberships[0].club_id._id);
       return userMemberships[0].club_id._id;
     }
     
-    console.log('❌ No club ID found for user:', {
+    // console.log('❌ No club ID found for user:', {
       role: user.role,
       hasMemberships: !!userMemberships.length,
       memberships: userMemberships,
@@ -292,56 +292,56 @@ export default function VolunteerManagementPage() {
 
   // Debug effect to log when clubId changes
   React.useEffect(() => {
-    console.log('🔍 Club ID changed:', clubId);
+    // // console.log('🔍 Club ID changed:', clubId);
     if (clubId) {
-      console.log('✅ Club ID found, will fetch data');
+      // // console.log('✅ Club ID found, will fetch data');
     } else {
-      console.log('❌ No club ID, cannot fetch data');
+      // // console.log('❌ No club ID, cannot fetch data');
     }
   }, [clubId]);
 
   const fetchOpportunities = React.useCallback(async () => {
     if (!clubId) {
-      console.log('❌ Cannot fetch opportunities: no club ID');
+      // // console.log('❌ Cannot fetch opportunities: no club ID');
       return;
     }
     
-    console.log('🔍 Fetching opportunities for club:', clubId);
+    // // console.log('🔍 Fetching opportunities for club:', clubId);
     try {
       const response = await apiClient.getVolunteerOpportunities({ club: clubId });
-      console.log('📋 Opportunities API response:', response);
+      // // console.log('📋 Opportunities API response:', response);
       
       if (response.success) {
         // Handle both array and object with opportunities property
         const opportunities = Array.isArray(response.data) ? response.data : ((response.data as any)?.opportunities || []);
-        console.log('✅ Processed opportunities:', opportunities);
+        // // console.log('✅ Processed opportunities:', opportunities);
         setOpportunities(opportunities);
       } else {
-        console.error('❌ Failed to fetch opportunities:', response.error);
+        // // console.error('❌ Failed to fetch opportunities:', response.error);
         setOpportunities([]);
       }
     } catch (error) {
-      console.error('❌ Error fetching opportunities:', error);
+      // // console.error('❌ Error fetching opportunities:', error);
       setOpportunities([]);
     }
   }, [clubId]);
 
   const fetchVolunteers = React.useCallback(async () => {
     if (!clubId) {
-      console.log('❌ Cannot fetch volunteers: no club ID');
+      // // console.log('❌ Cannot fetch volunteers: no club ID');
       return;
     }
     
-    console.log('🔍 Fetching volunteers for club:', clubId);
+    // // console.log('🔍 Fetching volunteers for club:', clubId);
     try {
       const response = await apiClient.getVolunteers({ club: clubId });
-      console.log('👥 Volunteers API response:', response);
+      // // console.log('👥 Volunteers API response:', response);
       
       if (response.success) {
-        console.log('✅ Processed volunteers:', response.data);
+        // // console.log('✅ Processed volunteers:', response.data);
         // Log the structure of the first volunteer to understand the data format
         if (response.data && response.data.length > 0) {
-          console.log('🔍 First volunteer structure:', {
+          // console.log('🔍 First volunteer structure:', {
             id: response.data[0]._id,
             hasUser: !!response.data[0].user,
             userFields: response.data[0].user ? Object.keys(response.data[0].user) : 'No user object',
@@ -350,11 +350,11 @@ export default function VolunteerManagementPage() {
         }
         setVolunteers(response.data || []);
       } else {
-        console.error('❌ Failed to fetch volunteers:', response.error);
+        // // console.error('❌ Failed to fetch volunteers:', response.error);
         setVolunteers([]);
       }
     } catch (error) {
-      console.error('❌ Error fetching volunteers:', error);
+      // // console.error('❌ Error fetching volunteers:', error);
       setVolunteers([]);
     }
   }, [clubId]);
@@ -401,33 +401,33 @@ export default function VolunteerManagementPage() {
       
       setVolunteerSignups(allSignups);
     } catch (error) {
-      console.error('Error fetching volunteer signups:', error);
+      // // console.error('Error fetching volunteer signups:', error);
     } finally {
       setLoading(false);
     }
   }, [clubId]);
 
   const fetchOpportunitySignups = React.useCallback(async (opportunityId: string) => {
-    console.log('🔍 Frontend: fetchOpportunitySignups called with ID:', opportunityId);
+    // // console.log('🔍 Frontend: fetchOpportunitySignups called with ID:', opportunityId);
     try {
-      console.log('🔍 Frontend: Calling API getVolunteerSignupsForOpportunity...');
+      // // console.log('🔍 Frontend: Calling API getVolunteerSignupsForOpportunity...');
       const response = await apiClient.getVolunteerSignupsForOpportunity(opportunityId);
-      console.log('🔍 Frontend: API response:', response);
+      // // console.log('🔍 Frontend: API response:', response);
       if (response.success) {
-        console.log('🔍 Frontend: Setting signups:', response.data);
+        // // console.log('🔍 Frontend: Setting signups:', response.data);
         setOpportunitySignups(response.data || []);
       } else {
-        console.error('Failed to fetch opportunity signups:', response.error);
+        // // console.error('Failed to fetch opportunity signups:', response.error);
         setOpportunitySignups([]);
       }
     } catch (error) {
-      console.error('Error fetching opportunity signups:', error);
+      // // console.error('Error fetching opportunity signups:', error);
       setOpportunitySignups([]);
     }
   }, []);
 
   const handleViewSignups = React.useCallback((opportunity: VolunteerOpportunity) => {
-    console.log('🔍 Frontend: handleViewSignups called for opportunity:', opportunity._id);
+    // // console.log('🔍 Frontend: handleViewSignups called for opportunity:', opportunity._id);
     setSelectedOpportunity(opportunity);
     fetchOpportunitySignups(opportunity._id);
     setShowSignupsModal(true);
@@ -466,7 +466,7 @@ export default function VolunteerManagementPage() {
         });
       }
     } catch (error) {
-      console.error('Error creating opportunity:', error);
+      // // console.error('Error creating opportunity:', error);
       toast({
         title: 'Error',
         description: 'Failed to create volunteer opportunity',
@@ -496,7 +496,7 @@ export default function VolunteerManagementPage() {
         });
       }
     } catch (error) {
-      console.error('Error updating opportunity:', error);
+      // // console.error('Error updating opportunity:', error);
       toast({
         title: 'Error',
         description: 'Failed to update volunteer opportunity',
@@ -524,7 +524,7 @@ export default function VolunteerManagementPage() {
         });
       }
     } catch (error) {
-      console.error('Error deleting opportunity:', error);
+      // // console.error('Error deleting opportunity:', error);
       toast({
         title: 'Error',
         description: 'Failed to delete volunteer opportunity',
@@ -597,13 +597,13 @@ export default function VolunteerManagementPage() {
           </Select>
           <Button 
             onClick={() => {
-              console.log('🔄 Manual refresh triggered');
+              // // console.log('🔄 Manual refresh triggered');
               if (clubId) {
                 fetchOpportunities();
                 fetchVolunteers();
                 fetchVolunteerSignups();
               } else {
-                console.log('❌ Cannot refresh: no club ID');
+                // // console.log('❌ Cannot refresh: no club ID');
               }
             }}
             variant="outline"
@@ -863,15 +863,15 @@ export default function VolunteerManagementPage() {
                       onClick={async () => {
                         try {
                           const response = await apiClient.debugVolunteers();
-                          console.log('🔍 Debug volunteers response:', response);
+                          // // console.log('🔍 Debug volunteers response:', response);
                           if (response.success) {
-                            console.log('🔍 Total volunteers:', response.data.total);
-                            console.log('🔍 Volunteers with filters:', response.data.withFilters);
-                            console.log('🔍 All volunteers:', response.data.allVolunteers);
-                            console.log('🔍 Filtered volunteers:', response.data.filteredVolunteers);
+                            // // console.log('🔍 Total volunteers:', response.data.total);
+                            // // console.log('🔍 Volunteers with filters:', response.data.withFilters);
+                            // // console.log('🔍 All volunteers:', response.data.allVolunteers);
+                            // // console.log('🔍 Filtered volunteers:', response.data.filteredVolunteers);
                           }
                         } catch (error) {
-                          console.error('🔍 Debug error:', error);
+                          // // console.error('🔍 Debug error:', error);
                         }
                       }}
                     >
@@ -1112,7 +1112,7 @@ export default function VolunteerManagementPage() {
         <Dialog 
           open={isCreateModalOpen} 
           onOpenChange={(open) => {
-            console.log('Dialog onOpenChange called with:', open);
+            // // console.log('Dialog onOpenChange called with:', open);
             setIsCreateModalOpen(open);
           }}
         >

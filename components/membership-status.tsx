@@ -37,7 +37,7 @@ export function MembershipStatus() {
         toast.error(response.error || 'Failed to leave club')
       }
     } catch (error) {
-      console.error('Error leaving club:', error)
+      // console.error('Error leaving club:', error)
       toast.error('Failed to leave club')
     } finally {
       setLeaving(false)

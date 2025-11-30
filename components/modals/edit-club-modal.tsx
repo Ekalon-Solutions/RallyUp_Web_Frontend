@@ -150,7 +150,7 @@ export function EditClubModal({ club, trigger, onClubUpdated }: EditClubModalPro
         toast.error(response.error || 'Failed to update club')
       }
     } catch (error) {
-      console.error('Error updating club:', error)
+      // console.error('Error updating club:', error)
       toast.error('Failed to update club')
     } finally {
       setLoading(false)

@@ -84,7 +84,7 @@ export function AppSettingsTab() {
         })
       }
     } catch (error) {
-      console.error("Error loading app settings:", error)
+      // console.error("Error loading app settings:", error)
       toast.error("Failed to load app settings")
     } finally {
       setLoading(false)
@@ -118,7 +118,7 @@ export function AppSettingsTab() {
         toast.error(response.message || "Failed to save app settings")
       }
     } catch (error) {
-      console.error("Error saving app settings:", error)
+      // console.error("Error saving app settings:", error)
       toast.error("Failed to save app settings")
     } finally {
       setSaving(false)

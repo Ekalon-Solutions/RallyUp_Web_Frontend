@@ -80,7 +80,7 @@ export function HelpSectionTab() {
       // const response = await apiClient.updateHelpSection({ faqs, contactInfo })
       toast.success("Help section saved successfully!")
     } catch (error) {
-      console.error("Error saving help section:", error)
+      // console.error("Error saving help section:", error)
       toast.error("Failed to save help section")
     } finally {
       setSaving(false)

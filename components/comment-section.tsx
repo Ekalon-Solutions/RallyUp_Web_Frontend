@@ -29,34 +29,34 @@ export function CommentSection({ newsId, onCommentUpdate }: CommentSectionProps)
   const { toast } = useToast()
 
   useEffect(() => {
-    console.log('🔄 useEffect triggered with:', { newsId, page })
-    console.log('🔄 useEffect dependencies:', { newsId, page })
+    // console.log('🔄 useEffect triggered with:', { newsId, page })
+    // console.log('🔄 useEffect dependencies:', { newsId, page })
     if (newsId) {
-      console.log('✅ newsId exists, calling loadComments')
+      // console.log('✅ newsId exists, calling loadComments')
       loadComments()
     } else {
-      console.log('❌ newsId is falsy, not calling loadComments')
+      // console.log('❌ newsId is falsy, not calling loadComments')
     }
   }, [newsId, page, loadComments]) // Added loadComments to dependencies
 
   const loadComments = useCallback(async () => {
     try {
       setLoading(true)
-      console.log('🔄 Loading comments for news:', newsId, 'page:', page)
-      console.log('🔗 API URL would be:', `/comments/news/${newsId}?page=${page}&limit=20`)
+      // console.log('🔄 Loading comments for news:', newsId, 'page:', page)
+      // console.log('🔗 API URL would be:', `/comments/news/${newsId}?page=${page}&limit=20`)
       
       const response = await apiClient.getComments(newsId, page, 20)
       
-      console.log('📥 Comments API response:', response)
-      console.log('📥 Response success:', response.success)
-      console.log('📥 Response data:', response.data)
-      console.log('📥 Comments array:', response.data?.comments)
-      console.log('📥 Comments length:', response.data?.comments?.length)
+      // console.log('📥 Comments API response:', response)
+      // console.log('📥 Response success:', response.success)
+      // console.log('📥 Response data:', response.data)
+      // console.log('📥 Comments array:', response.data?.comments)
+      // console.log('📥 Comments length:', response.data?.comments?.length)
       
       if (response.success) {
         const newComments = response.data.comments || []
-        console.log('📝 Setting comments:', newComments.length, 'comments')
-        console.log('📝 Comments content:', newComments)
+        // console.log('📝 Setting comments:', newComments.length, 'comments')
+        // console.log('📝 Comments content:', newComments)
         
         if (page === 1) {
           setComments(newComments)
@@ -69,7 +69,7 @@ export function CommentSection({ newsId, onCommentUpdate }: CommentSectionProps)
         if (page === 1) {
           setComments([])
         }
-        console.error('❌ API returned success: false:', response.error)
+        // console.error('❌ API returned success: false:', response.error)
         toast({
           title: "Error",
           description: response.error || "Failed to load comments",
@@ -77,7 +77,7 @@ export function CommentSection({ newsId, onCommentUpdate }: CommentSectionProps)
         })
       }
     } catch (error) {
-      console.error('❌ Error loading comments:', error)
+      // console.error('❌ Error loading comments:', error)
       // If there's an error, ensure we have a valid array
       if (page === 1) {
         setComments([])
@@ -104,18 +104,18 @@ export function CommentSection({ newsId, onCommentUpdate }: CommentSectionProps)
 
     setSubmitting(true)
     try {
-      console.log('📝 Submitting comment:', { newsId, content: newComment.trim() })
+      // console.log('📝 Submitting comment:', { newsId, content: newComment.trim() })
       const response = await apiClient.createComment({
         newsId,
         content: newComment.trim()
       })
       
-      console.log('✅ Comment creation response:', response)
+      // console.log('✅ Comment creation response:', response)
       
       if (response.success) {
         setNewComment('')
-        console.log('🔄 Reloading comments after successful creation')
-        console.log('📊 Comment creation response data:', response.data)
+        // console.log('🔄 Reloading comments after successful creation')
+        // console.log('📊 Comment creation response data:', response.data)
         
         // Reload comments to show the new one
         setPage(1)
@@ -127,7 +127,7 @@ export function CommentSection({ newsId, onCommentUpdate }: CommentSectionProps)
           const currentComments = await apiClient.getComments(newsId, 1, 20)
           if (currentComments.success) {
             const newTotal = currentComments.data.comments?.length || 0
-            console.log('📝 Updating comment count to:', newTotal)
+            // console.log('📝 Updating comment count to:', newTotal)
             onCommentUpdate(newTotal)
           }
         }
@@ -144,7 +144,7 @@ export function CommentSection({ newsId, onCommentUpdate }: CommentSectionProps)
         })
       }
     } catch (error) {
-      console.error('❌ Error creating comment:', error)
+      // console.error('❌ Error creating comment:', error)
       toast({
         title: "Error",
         description: "Failed to post comment",
@@ -179,7 +179,7 @@ export function CommentSection({ newsId, onCommentUpdate }: CommentSectionProps)
           const currentComments = await apiClient.getComments(newsId, 1, 20)
           if (currentComments.success) {
             const newTotal = currentComments.data.comments?.length || 0
-            console.log('📝 Updating comment count to:', newTotal)
+            // console.log('📝 Updating comment count to:', newTotal)
             onCommentUpdate(newTotal)
           }
         }
@@ -362,7 +362,7 @@ export function CommentSection({ newsId, onCommentUpdate }: CommentSectionProps)
             </div>
           ) : (
             <>
-              {console.log('🔍 Rendering comments section. Comments:', comments, 'Length:', comments?.length)}
+              {/* console.log('🔍 Rendering comments section. Comments:', comments, 'Length:', comments?.length) */}
               {!comments || comments.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <MessageCircle className="mx-auto h-12 w-12 mb-4" />
@@ -371,7 +371,7 @@ export function CommentSection({ newsId, onCommentUpdate }: CommentSectionProps)
               ) : (
                 <div className="space-y-4">
                   {comments.map((comment) => {
-                    console.log('📝 Rendering comment:', comment)
+                    // console.log('📝 Rendering comment:', comment)
                     return (
                       <NewsComment
                         key={comment._id}

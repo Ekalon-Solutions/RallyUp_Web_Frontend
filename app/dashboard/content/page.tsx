@@ -13,6 +13,7 @@ import NewsReadMoreModal from "@/components/modals/news-readmore-modal"
 import { apiClient, News } from "@/lib/api"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
+import { getBaseUrl } from "@/lib/config"
 import { 
   Newspaper, 
   Search, 
@@ -92,11 +93,11 @@ export default function ContentManagementPage() {
           setTotalPages(response.data.pagination.pages)
         }
       } else {
-        console.error("Failed to fetch news:", response.error)
+        // console.error("Failed to fetch news:", response.error)
         toast.error("Failed to fetch news")
       }
     } catch (error) {
-      console.error("Error fetching news:", error)
+      // console.error("Error fetching news:", error)
       toast.error("Error fetching news")
     } finally {
       setLoading(false)
@@ -110,7 +111,7 @@ export default function ContentManagementPage() {
         setStats(response.data)
       }
     } catch (error) {
-      console.error("Error fetching stats:", error)
+      // console.error("Error fetching stats:", error)
     }
   }
 
@@ -144,7 +145,7 @@ export default function ContentManagementPage() {
         toast.error(response.error || "Failed to delete news article")
       }
     } catch (error) {
-      console.error("Error deleting news:", error)
+      // console.error("Error deleting news:", error)
       toast.error("Error deleting news article")
     }
   }
@@ -160,7 +161,7 @@ export default function ContentManagementPage() {
         toast.error(response.error || "Failed to update publish status")
       }
     } catch (error) {
-      console.error("Error updating publish status:", error)
+      // console.error("Error updating publish status:", error)
       toast.error("Error updating publish status")
     }
   }
@@ -395,11 +396,11 @@ export default function ContentManagementPage() {
                     {article.featuredImage && (
                       <div className="relative h-48 overflow-hidden">
                         <img
-                          src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/uploads/news/${article.featuredImage}`}
+                          src={`${getBaseUrl()}/uploads/news/${article.featuredImage}`}
                           alt={article.title}
                           className="w-full h-full object-cover"
                           onError={(e) => {
-                            console.error('Failed to load featured image:', article.featuredImage);
+//                             console.error('Failed to load featured image:', article.featuredImage);
                             e.currentTarget.style.display = 'none';
                           }}
                         />
@@ -464,11 +465,11 @@ export default function ContentManagementPage() {
                             {article.images.slice(0, 4).map((image, index) => (
                               <img
                                 key={index}
-                                src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/uploads/news/${image}`}
+                                src={`${getBaseUrl()}/uploads/news/${image}`}
                                 alt={`${article.title} - Image ${index + 1}`}
                                 className="w-full h-20 object-cover rounded-lg"
                                 onError={(e) => {
-                                  console.error('Failed to load image:', image);
+                                  // // console.error('Failed to load image:', image);
                                   e.currentTarget.style.display = 'none';
                                 }}
                               />

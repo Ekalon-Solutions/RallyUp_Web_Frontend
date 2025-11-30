@@ -45,7 +45,7 @@ export default function CreateEventPage() {
 
     try {
       // Here you would typically call your API to create the event
-      console.log('Event data to submit:', eventData)
+      // console.log('Event data to submit:', eventData)
       alert('Event created successfully! (This is a demo - implement API call)')
       
       // Reset form
@@ -62,7 +62,7 @@ export default function CreateEventPage() {
         notes: "",
       })
     } catch (error) {
-      console.error('Error creating event:', error)
+      // console.error('Error creating event:', error)
       alert('Error creating event')
     }
   }

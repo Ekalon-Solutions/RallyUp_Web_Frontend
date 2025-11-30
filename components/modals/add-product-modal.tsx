@@ -45,7 +45,7 @@ export function AddProductModal({ trigger }: AddProductModalProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    console.log("Adding product:", formData)
+    // console.log("Adding product:", formData)
     setOpen(false)
     // Reset form
     setFormData({

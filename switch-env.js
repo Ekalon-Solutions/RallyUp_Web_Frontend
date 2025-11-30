@@ -14,11 +14,11 @@ const environments = {
 const targetEnv = process.argv[2];
 
 if (!targetEnv || !environments[targetEnv]) {
-  console.log('Usage: node switch-env.js <environment>');
-  console.log('Available environments:');
-  console.log('  dev     - Switch to development (localhost:5000)');
-  console.log('  prod    - Switch to production (3.111.169.32:5050)');
-  console.log('  staging - Switch to staging (3.111.169.32:5050)');
+  // // console.log('Usage: node switch-env.js <environment>');
+  // // console.log('Available environments:');
+  // console.log('  dev     - Switch to development (localhost:5000)');
+  // console.log('  prod    - Switch to production (3.111.169.32:5050)');
+  // console.log('  staging - Switch to staging (3.111.169.32:5050)');
   process.exit(1);
 }
 
@@ -34,10 +34,10 @@ try {
   
   fs.writeFileSync(configPath, configContent);
   
-  console.log(`✅ Switched to ${newEnv} environment`);
-  console.log(`🌐 API Base URL: ${newEnv === 'development' ? 'http://localhost:5000/api' : 'http://3.111.169.32:5050/api'}`);
+  // // console.log(`✅ Switched to ${newEnv} environment`);
+  // // console.log(`🌐 API Base URL: ${newEnv === 'development' ? 'http://localhost:5000/api' : 'http://3.111.169.32:5050/api'}`);
   
 } catch (error) {
-  console.error('❌ Error switching environment:', error.message);
+  // // console.error('❌ Error switching environment:', error.message);
   process.exit(1);
 }

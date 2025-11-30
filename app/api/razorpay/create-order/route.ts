@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
   try {
     const { amount, currency, orderId, orderNumber } = await request.json()
 
-    console.log('Create order request:', { amount, currency, orderId, orderNumber })
+    // console.log('Create order request:', { amount, currency, orderId, orderNumber })
 
     if (!amount || !currency || !orderId) {
       return NextResponse.json(
@@ -21,14 +21,14 @@ export async function POST(request: NextRequest) {
     const keyId = process.env.RAZORPAY_KEY_ID
     const keySecret = process.env.RAZORPAY_KEY_SECRET
 
-    console.log('Environment check:', {
-      hasKeyId: !!keyId,
-      hasKeySecret: !!keySecret,
-      keyIdPrefix: keyId?.substring(0, 8)
+    // console.log('Environment check:', {
+//       hasKeyId: !!keyId,
+//       hasKeySecret: !!keySecret,
+//       keyIdPrefix: keyId?.substring(0, 8)
     })
 
     if (!keyId || !keySecret) {
-      console.error('Razorpay credentials not configured')
+      // console.error('Razorpay credentials not configured')
       return NextResponse.json(
         { error: 'Payment system not configured. Please check environment variables.' },
         { status: 500 }
@@ -51,11 +51,11 @@ export async function POST(request: NextRequest) {
       },
     }
 
-    console.log('Creating Razorpay order with options:', options)
+    // console.log('Creating Razorpay order with options:', options)
 
     const razorpayOrder = await razorpay.orders.create(options)
 
-    console.log('Razorpay order created successfully:', razorpayOrder.id)
+    // console.log('Razorpay order created successfully:', razorpayOrder.id)
 
     return NextResponse.json({
       razorpayOrderId: razorpayOrder.id,
@@ -63,12 +63,12 @@ export async function POST(request: NextRequest) {
       currency: razorpayOrder.currency,
     })
   } catch (error: any) {
-    console.error('Razorpay order creation error:', {
-      message: error.message,
-      statusCode: error.statusCode,
-      error: error.error,
-      stack: error.stack
-    })
+    // console.error('Razorpay order creation error:', {
+//       message: error.message,
+//       statusCode: error.statusCode,
+//       error: error.error,
+//       stack: error.stack
+//     })
     
     return NextResponse.json(
       { 

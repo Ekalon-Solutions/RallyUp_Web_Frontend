@@ -41,7 +41,7 @@ export default function UserSettingsPage() {
         }
       }
     } catch (error) {
-      console.error("Error loading preferences:", error)
+      // console.error("Error loading preferences:", error)
       toast.error("Failed to load notification preferences")
     } finally {
       setLoading(false)
@@ -69,7 +69,7 @@ export default function UserSettingsPage() {
         toast.error("Failed to save preferences")
       }
     } catch (error) {
-      console.error("Error saving preferences:", error)
+      // console.error("Error saving preferences:", error)
       toast.error("Failed to save preferences")
     } finally {
       setSaving(false)

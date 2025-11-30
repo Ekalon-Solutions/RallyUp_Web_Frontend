@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Calendar, User, Eye, Tag, Building } from 'lucide-react'
 import { News } from '@/lib/api'
+import { getBaseUrl } from '@/lib/config'
 
 interface NewsReadMoreModalProps {
   news: News | null
@@ -61,7 +62,7 @@ export default function NewsReadMoreModal({ news, isOpen, onClose }: NewsReadMor
               {news.featuredImage && (
                 <div className="relative">
                   <img
-                    src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/uploads/news/${news.featuredImage}`}
+                    src={`${getBaseUrl()}/uploads/news/${news.featuredImage}`}
                     alt={news.title}
                     className="w-full h-64 object-cover rounded-lg"
                   />
@@ -149,11 +150,11 @@ export default function NewsReadMoreModal({ news, isOpen, onClose }: NewsReadMor
                       {news.images.map((image, index) => (
                         <div key={index} className="relative group">
                           <img
-                            src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/uploads/news/${image}`}
+                            src={`${getBaseUrl()}/uploads/news/${image}`}
                             alt={`${news.title} - Image ${index + 1}`}
                             className="w-full h-32 object-cover rounded-lg cursor-pointer transition-transform group-hover:scale-105"
                             onClick={() => {
-                              window.open(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/uploads/news/${image}`, '_blank')
+                              window.open(`${getBaseUrl()}/uploads/news/${image}`, '_blank')
                             }}
                           />
                           <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 rounded-lg flex items-center justify-center">

@@ -126,7 +126,7 @@ export default function UserClubsPage() {
         toast.error("Failed to load clubs")
       }
     } catch (error) {
-      console.error("Error fetching clubs:", error)
+      // console.error("Error fetching clubs:", error)
       toast.error("Error loading clubs")
     } finally {
       setLoading(false)
@@ -196,7 +196,7 @@ export default function UserClubsPage() {
         toast.error(response.error || "Failed to join club. Please try again.")
       }
     } catch (error) {
-      console.error("Join request error:", error)
+      // console.error("Join request error:", error)
       toast.error("An error occurred while joining the club.")
     } finally {
       setIsRegistering(false)

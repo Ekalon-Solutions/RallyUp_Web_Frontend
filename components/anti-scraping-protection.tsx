@@ -14,7 +14,7 @@ export function AntiScrapingProtection() {
       }
 
       if (checks.webdriver) {
-        console.warn('Automated browser detected')
+        // console.warn('Automated browser detected')
       }
     }
 
@@ -24,7 +24,7 @@ export function AntiScrapingProtection() {
       const heightThreshold = window.outerHeight - window.innerHeight > threshold
 
       if (widthThreshold || heightThreshold) {
-        console.warn('DevTools may be open')
+        // console.warn('DevTools may be open')
       }
     }
 
@@ -50,7 +50,7 @@ export function AntiScrapingProtection() {
       if (timeDiff < 100) {
         requestCount++
         if (requestCount > 10) {
-          console.warn('Rapid requests detected - possible scraping')
+          // console.warn('Rapid requests detected - possible scraping')
         }
       } else {
         requestCount = 0

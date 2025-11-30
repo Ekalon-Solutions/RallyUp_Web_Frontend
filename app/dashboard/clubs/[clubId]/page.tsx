@@ -64,7 +64,7 @@ export default function ClubDetailsPage() {
         setError(response.error || 'Failed to load club details')
       }
     } catch (err) {
-      console.error('Error fetching club details:', err)
+      // console.error('Error fetching club details:', err)
       setError('Failed to load club details')
     } finally {
       setLoading(false)

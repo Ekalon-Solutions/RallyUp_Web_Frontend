@@ -165,7 +165,7 @@ export default function ClubManagementPage() {
                 stats: statsResponse.success ? statsResponse.data : undefined
               }
             } catch (error) {
-              console.error('Error fetching club stats:', error)
+              // console.error('Error fetching club stats:', error)
               return club
             }
           })
@@ -175,7 +175,7 @@ export default function ClubManagementPage() {
         toast.error(response.error || 'Failed to load clubs')
       }
     } catch (error) {
-      console.error('Error fetching clubs:', error)
+      // console.error('Error fetching clubs:', error)
       toast.error('Failed to load clubs')
     } finally {
       setLoading(false)
@@ -259,7 +259,7 @@ export default function ClubManagementPage() {
         toast.error(response.error || 'Failed to create club')
       }
     } catch (error) {
-      console.error('Error creating club:', error)
+      // console.error('Error creating club:', error)
       toast.error('Failed to create club')
     } finally {
       setCreating(false)
@@ -281,7 +281,7 @@ export default function ClubManagementPage() {
         toast.error(response.error || 'Failed to delete club')
       }
     } catch (error) {
-      console.error('Error deleting club:', error)
+      // console.error('Error deleting club:', error)
       toast.error('Failed to delete club')
     }
   }

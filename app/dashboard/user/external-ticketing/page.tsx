@@ -93,7 +93,7 @@ export default function ExternalTicketingPage() {
       setError(null)
       
       const response = await apiClient.getUserMemberships()
-      console.log('User memberships response:', response)
+      // console.log('User memberships response:', response)
       
       if (response.success && response.data) {
         // Normalize the response: the API may return either an array or an object
@@ -109,7 +109,7 @@ export default function ExternalTicketingPage() {
         setError('Failed to load your club memberships')
       }
     } catch (err) {
-      console.error('Error loading user memberships:', err)
+      // console.error('Error loading user memberships:', err)
       setError('Failed to load your club memberships')
       setMemberships([])
       toast.error('Failed to load your club memberships')
@@ -390,7 +390,7 @@ export default function ExternalTicketingPage() {
                       toast.error(message)
                     }
                   } catch (err) {
-                    console.error('Ticket request error:', err)
+                    // console.error('Ticket request error:', err)
                     toast.error('Failed to submit request')
                   } finally {
                     setIsSubmittingRequest(false)

@@ -49,27 +49,6 @@ export default function AffiliationsPage(): React.JSX.Element {
             </div>
 
             <div className="max-w-3xl relative z-10">
-              <div className="flex flex-wrap items-center gap-4 mb-6">
-                <div className="relative h-11 w-40 sm:h-12 sm:w-48 animate-scale-in">
-                  <Image
-                    src="/WingmanPro Logo (White BG).svg"
-                    alt="Wingman Pro logo"
-                    fill
-                    sizes="(max-width: 640px) 160px, 192px"
-                    className="object-contain"
-                    priority
-                  />
-                </div>
-                <div className="relative h-10 w-40 sm:h-11 sm:w-48 animate-scale-in" style={{ animationDelay: '0.1s' }}>
-                  <Image
-                    src="/RallyUpSolutions Logo (Transparent Background).svg"
-                    alt="RallyUp Solutions logo"
-                    fill
-                    sizes="(max-width: 640px) 160px, 192px"
-                    className="object-contain"
-                  />
-                </div>
-              </div>
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-sky-100 to-blue-100 dark:from-sky-900/30 dark:to-blue-900/30 mb-4 animate-scale-in">
                 <Sparkles className="h-4 w-4 text-sky-600 dark:text-sky-400 animate-pulse" />
                 <span className="text-sm font-semibold text-sky-700 dark:text-sky-300">Partnerships & Affiliations</span>

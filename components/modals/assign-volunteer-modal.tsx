@@ -56,7 +56,7 @@ export function AssignVolunteerModal({
   const fetchAvailableVolunteers = React.useCallback(async () => {
     if (!opportunity || !timeSlotId) return;
     
-    console.log('🔍 Frontend: Fetching volunteers for opportunity:', opportunity._id, 'timeSlot:', timeSlotId);
+    // // console.log('🔍 Frontend: Fetching volunteers for opportunity:', opportunity._id, 'timeSlot:', timeSlotId);
     
     try {
       setLoading(true);
@@ -66,21 +66,21 @@ export function AssignVolunteerModal({
         club: opportunity.club 
       });
       
-      console.log('🔍 Frontend: API response:', response);
+      // // console.log('🔍 Frontend: API response:', response);
       
       if (response.success) {
         const allVolunteers = response.data || [];
-        console.log('🔍 Frontend: Received all volunteers:', allVolunteers.length, allVolunteers);
+        // // console.log('🔍 Frontend: Received all volunteers:', allVolunteers.length, allVolunteers);
         
         // Filter out volunteers already assigned to this time slot
         const availableVolunteers = allVolunteers.filter(volunteer => 
           !timeSlot?.volunteersAssigned.includes(volunteer._id)
         );
         
-        console.log('🔍 Frontend: Available volunteers after filtering assigned:', availableVolunteers.length);
+        // // console.log('🔍 Frontend: Available volunteers after filtering assigned:', availableVolunteers.length);
         setAvailableVolunteers(availableVolunteers);
       } else {
-        console.log('🔍 Frontend: API error:', response.error);
+        // // console.log('🔍 Frontend: API error:', response.error);
         toast({
           title: 'Error',
           description: response.error || 'Failed to fetch available volunteers',
@@ -88,7 +88,7 @@ export function AssignVolunteerModal({
         });
       }
     } catch (error) {
-      console.error('❌ Frontend: Error fetching available volunteers:', error);
+      // // console.error('❌ Frontend: Error fetching available volunteers:', error);
       toast({
         title: 'Error',
         description: 'Failed to fetch available volunteers',
@@ -134,7 +134,7 @@ export function AssignVolunteerModal({
         });
       }
     } catch (error) {
-      console.error('Error assigning volunteer:', error);
+      // // console.error('Error assigning volunteer:', error);
       toast({
         title: 'Error',
         description: 'Failed to assign volunteer',

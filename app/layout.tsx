@@ -113,6 +113,11 @@ export default function RootLayout({
             gtag('config', 'G-SDPCKFH4E2');
           `}
         </Script>
+        <Script id="ekalon-branding">
+          {`
+//             console.log('%cPowered by Ekalon Solutions', 'color: #0ea5e9; font-size: 16px; font-weight: bold; padding: 4px;');
+          `}
+        </Script>
       </head>
 
       <body className={inter.className}>

@@ -117,7 +117,7 @@ export function ProductViewModal({ isOpen, onClose, product }: ProductViewModalP
           url: window.location.href,
         })
       } catch (error) {
-        console.log('Error sharing:', error)
+        // console.log('Error sharing:', error)
       }
     } else {
       // Fallback: copy to clipboard

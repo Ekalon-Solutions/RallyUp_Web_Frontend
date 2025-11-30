@@ -110,7 +110,7 @@ export default function UserMembershipCardPage() {
         throw new Error('No active club membership found for the user.');
       }
     } catch (error) {
-      console.error('Error fetching membership ID:', error);
+      // // console.error('Error fetching membership ID:', error);
       setMembershipIdError(error instanceof Error ? error.message : String(error));
     } finally {
       setMembershipIdLoading(false);
@@ -155,7 +155,7 @@ export default function UserMembershipCardPage() {
           
           // Log detailed error information for debugging
           if (errorDetails) {
-            console.error('Membership cards API error details:', errorDetails);
+            // // console.error('Membership cards API error details:', errorDetails);
           }
         }
         
@@ -174,7 +174,7 @@ export default function UserMembershipCardPage() {
           description: errorMessage,
           variant: "destructive",
         });
-        console.error('Membership cards fetch error:', err);
+        // // console.error('Membership cards fetch error:', err);
       } finally {
         setLoading(false)
       }
@@ -276,7 +276,7 @@ export default function UserMembershipCardPage() {
       }, 'image/png', 1.0)
 
     } catch (error) {
-      console.error('Download error:', error)
+      // console.error('Download error:', error)
       toast({
         title: "Error",
         description: "Failed to download membership card. Please try again.",

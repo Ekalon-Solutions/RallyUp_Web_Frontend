@@ -46,30 +46,30 @@ export function useDesignSettings(clubId?: string) {
       const designSettings = actualData.designSettings
 
       if (designSettings) {
-        console.log('Applying design settings:', designSettings)
+        // console.log('Applying design settings:', designSettings)
         
         // Apply primary color as HSL
         if (designSettings.primaryColor) {
           const primaryHSL = hexToHSL(designSettings.primaryColor)
           document.documentElement.style.setProperty('--primary', primaryHSL)
-          console.log('Applied primary color:', designSettings.primaryColor, '→', primaryHSL)
+          // console.log('Applied primary color:', designSettings.primaryColor, '→', primaryHSL)
         }
 
         // Apply secondary color as HSL
         if (designSettings.secondaryColor) {
           const secondaryHSL = hexToHSL(designSettings.secondaryColor)
           document.documentElement.style.setProperty('--secondary', secondaryHSL)
-          console.log('Applied secondary color:', designSettings.secondaryColor, '→', secondaryHSL)
+          // console.log('Applied secondary color:', designSettings.secondaryColor, '→', secondaryHSL)
         }
 
         // Apply font family
         if (designSettings.fontFamily) {
           document.documentElement.style.setProperty('--font-sans', designSettings.fontFamily)
           document.body.style.fontFamily = designSettings.fontFamily
-          console.log('Applied font family:', designSettings.fontFamily)
+          // console.log('Applied font family:', designSettings.fontFamily)
         }
 
-        console.log('✅ Design settings applied successfully')
+        // console.log('✅ Design settings applied successfully')
       }
     }
   }, [settings])

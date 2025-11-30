@@ -4,6 +4,11 @@ import { triggerBlobDownload } from './utils';
 // Legacy support - will be removed after migration
 const API_BASE_URL = getApiUrl('');
 
+// Debug: Log the API base URL being used
+if (typeof window !== 'undefined') {
+  // // console.log('🔧 [API CLIENT] Initialized with base URL:', API_BASE_URL);
+}
+
 export interface ApiResponse<T = any> {
   success: boolean;
   data?: T;
@@ -502,7 +507,8 @@ class ApiClient {
     // Remove double slashes when concatenating baseURL and endpoint
     const url = `${this.baseURL}${endpoint}`.replace(/([^:]\/)\/+/g, "$1");
     const token = this.getToken();
-    console.log(`API request to ${endpoint} with token:`, token ? 'exists' : 'missing');
+    // // console.log(`🔧 [API REQUEST] Full URL: ${url}`);
+    // // console.log(`API request to ${endpoint} with token:`, token ? 'exists' : 'missing');
 
     // Determine if we should set Content-Type header
     const isFormData = options.body instanceof FormData;
@@ -532,9 +538,9 @@ class ApiClient {
     };
 
     // Debug headers
-    console.log('🔍 Request headers:', config.headers);
-    console.log('🔍 Token exists:', !!token);
-    console.log('🔍 Authorization header:', headers['Authorization']);
+    // // console.log('🔍 Request headers:', config.headers);
+    // // console.log('🔍 Token exists:', !!token);
+    // // console.log('🔍 Authorization header:', headers['Authorization']);
 
     try {
       const response = await fetch(url, config);
@@ -549,12 +555,12 @@ class ApiClient {
         data = { message: text || `HTTP ${response.status} error` };
       }
       
-      console.log(`API ${endpoint} response:`, { 
-        status: response.status, 
-        statusText: response.statusText,
-        data,
-        url: response.url 
-      });
+      // // console.log(`API ${endpoint} response:`, {
+//         status: response.status, 
+//         statusText: response.statusText,
+//         data,
+//         url: response.url 
+//       });
 
       if (!response.ok) {
         // Enhanced error handling with more details
@@ -567,7 +573,7 @@ class ApiClient {
           ...(data.details && { details: data.details })
         };
         
-        console.error(`API Error for ${endpoint}:`, errorDetails);
+        // // console.error(`API Error for ${endpoint}:`, errorDetails);
         
         return {
           success: false,
@@ -582,7 +588,7 @@ class ApiClient {
         data,
       };
     } catch (error) {
-      console.error('API request failed:', error);
+      // // console.error('API request failed:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Network error',
@@ -598,7 +604,7 @@ class ApiClient {
   private getToken(): string | null {
     if (typeof window !== 'undefined') {
       const token = localStorage.getItem('token');
-      console.log('🔑 Getting token from localStorage:', token ? 'exists' : 'missing');
+      // // console.log('🔑 Getting token from localStorage:', token ? 'exists' : 'missing');
       return token;
     }
     return null;
@@ -641,8 +647,8 @@ class ApiClient {
   }
 
   async put<T = any>(endpoint: string, data?: any, options?: { headers?: Record<string, string> }): Promise<ApiResponse<T>> {
-    console.log(`🔵 PUT ${endpoint}`)
-    console.log("📤 Data being sent:", JSON.stringify(data, null, 2))
+    // console.log(`🔵 PUT ${endpoint}`)
+    // console.log("📤 Data being sent:", JSON.stringify(data, null, 2))
     
     const requestOptions: RequestInit = {
       method: 'PUT',
@@ -1473,7 +1479,7 @@ class ApiClient {
       const blob = await response.blob();
       return { success: true, blob, filename: filename || undefined };
     } catch (error: any) {
-      console.error('downloadFile error', error);
+      // // console.error('downloadFile error', error);
       return { success: false, error: error?.message || 'Download failed' };
     }
   }
@@ -1491,7 +1497,7 @@ class ApiClient {
 
       return { success: true };
     } catch (error: any) {
-      console.error('downloadOrdersReport error', error);
+      // // console.error('downloadOrdersReport error', error);
       return { success: false, error: error?.message || 'Failed to download orders report' };
     }
   }
@@ -1509,7 +1515,7 @@ class ApiClient {
 
       return { success: true };
     } catch (error: any) {
-      console.error('downloadMyOrdersReport error', error);
+      // // console.error('downloadMyOrdersReport error', error);
       return { success: false, error: error?.message || 'Failed to download my orders report' };
     }
   }
@@ -1606,7 +1612,7 @@ class ApiClient {
     description?: string;
     contactInfo?: string;
   }): Promise<ApiResponse<{ message: string; club: Club }>> {
-    console.log('🔵 PATCH /clubs/' + id + '/basic-info', data);
+    // // console.log('🔵 PATCH /clubs/' + id + '/basic-info', data);
     return this.patch(`/clubs/${id}/basic-info`, data);
   }
 
@@ -1831,14 +1837,14 @@ class ApiClient {
 
   // Member Directory APIs
   async searchUsers(query: string): Promise<ApiResponse<User[]>> {
-    console.log('API searchUsers - Query:', query);
+    // // console.log('API searchUsers - Query:', query);
     const endpoint = `/users/search?q=${encodeURIComponent(query)}`;
     const response = await this.request<any>(endpoint);
-    console.log('API searchUsers - Raw response:', response);
+    // // console.log('API searchUsers - Raw response:', response);
 
     // Handle the case where the data is directly in the response
     const users = response.success ? (Array.isArray(response.data) ? response.data : []) : [];
-    console.log('API searchUsers - Processed users:', users);
+    // // console.log('API searchUsers - Processed users:', users);
 
     return {
       success: response.success,
@@ -1849,15 +1855,15 @@ class ApiClient {
 
   // Admin Search API (System Owner only)
   async searchAdmins(query: string): Promise<ApiResponse<Admin[]>> {
-    console.log('API searchAdmins - Query:', query);
+    // // console.log('API searchAdmins - Query:', query);
     const endpoint = `/admin/search?q=${encodeURIComponent(query)}`;
     const response = await this.request<any>(endpoint);
-    console.log('API searchAdmins - Raw response:', response);
+    // // console.log('API searchAdmins - Raw response:', response);
 
     // Handle the nested response structure
     const responseData = response.data || response;
     const admins = responseData.success ? (Array.isArray(responseData.data) ? responseData.data : []) : [];
-    console.log('API searchAdmins - Processed admins:', admins);
+    // // console.log('API searchAdmins - Processed admins:', admins);
 
     return {
       success: responseData.success,
@@ -2515,7 +2521,7 @@ class ApiClient {
     memberCount?: number;
     isVisible: boolean;
   }>): Promise<ApiResponse<any>> {
-    console.log('🔵 PUT /club-settings/' + clubId + '/group-listings', listings);
+    // // console.log('🔵 PUT /club-settings/' + clubId + '/group-listings', listings);
     return this.put(`/club-settings/${clubId}/group-listings`, { listings });
   }
 

@@ -104,7 +104,7 @@ export default function OnboardingAnalytics({ flowId }: OnboardingAnalyticsProps
         }
       }
     } catch (error) {
-      console.error('Error fetching analytics:', error)
+      // console.error('Error fetching analytics:', error)
       toast.error('Failed to fetch onboarding analytics')
     } finally {
       setLoading(false)

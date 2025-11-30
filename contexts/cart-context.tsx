@@ -41,7 +41,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       try {
         setItems(JSON.parse(savedCart))
       } catch (error) {
-        console.error('Error loading cart from localStorage:', error)
+        // console.error('Error loading cart from localStorage:', error)
       }
     }
   }, [])

@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Plus, Edit, Trash2, Users, UserCheck, UserX } from "lucide-react"
 import { toast } from "sonner"
+import config from "@/lib/config"
 
 interface StaffMember {
   _id: string
@@ -65,7 +66,7 @@ export default function StaffManagementModal({ isOpen, onClose, club }: StaffMan
     try {
       setLoading(true)
       const token = localStorage.getItem('token')
-      const response = await fetch(`http://3.111.169.32:5050/api/staff/club/${club._id}`, {
+      const response = await fetch(`${config.apiBaseUrl}/staff/club/${club._id}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -79,7 +80,7 @@ export default function StaffManagementModal({ isOpen, onClose, club }: StaffMan
         toast.error("Failed to load staff")
       }
     } catch (error) {
-      console.error("Error loading staff:", error)
+      // console.error("Error loading staff:", error)
       toast.error("Error loading staff")
     } finally {
       setLoading(false)
@@ -91,7 +92,7 @@ export default function StaffManagementModal({ isOpen, onClose, club }: StaffMan
 
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch(`http://3.111.169.32:5050/api/staff/club/${club._id}/stats`, {
+      const response = await fetch(`${config.apiBaseUrl}/staff/club/${club._id}/stats`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -103,7 +104,7 @@ export default function StaffManagementModal({ isOpen, onClose, club }: StaffMan
         setStats(data)
       }
     } catch (error) {
-      console.error("Error loading stats:", error)
+      // console.error("Error loading stats:", error)
     }
   }
 
@@ -113,7 +114,7 @@ export default function StaffManagementModal({ isOpen, onClose, club }: StaffMan
 
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch(`http://3.111.169.32:5050/api/staff/club/${club._id}`, {
+      const response = await fetch(`${config.apiBaseUrl}/staff/club/${club._id}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -140,7 +141,7 @@ export default function StaffManagementModal({ isOpen, onClose, club }: StaffMan
         toast.error(data.message || "Failed to create staff member")
       }
     } catch (error) {
-      console.error("Create staff error:", error)
+      // console.error("Create staff error:", error)
       toast.error("An error occurred")
     }
   }
@@ -151,7 +152,7 @@ export default function StaffManagementModal({ isOpen, onClose, club }: StaffMan
 
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch(`http://3.111.169.32:5050/api/staff/club/${club._id}/${editingStaff._id}`, {
+      const response = await fetch(`${config.apiBaseUrl}/staff/club/${club._id}/${editingStaff._id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -178,7 +179,7 @@ export default function StaffManagementModal({ isOpen, onClose, club }: StaffMan
         toast.error(data.message || "Failed to update staff member")
       }
     } catch (error) {
-      console.error("Update staff error:", error)
+      // console.error("Update staff error:", error)
       toast.error("An error occurred")
     }
   }
@@ -190,7 +191,7 @@ export default function StaffManagementModal({ isOpen, onClose, club }: StaffMan
 
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch(`http://3.111.169.32:5050/api/staff/club/${club._id}/${staffId}`, {
+      const response = await fetch(`${config.apiBaseUrl}/staff/club/${club._id}/${staffId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -206,7 +207,7 @@ export default function StaffManagementModal({ isOpen, onClose, club }: StaffMan
         toast.error("Failed to delete staff member")
       }
     } catch (error) {
-      console.error("Delete staff error:", error)
+      // console.error("Delete staff error:", error)
       toast.error("An error occurred")
     }
   }

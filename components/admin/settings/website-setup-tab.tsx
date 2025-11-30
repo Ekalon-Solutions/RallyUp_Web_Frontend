@@ -62,8 +62,8 @@ export function WebsiteSetupTab() {
     try {
       setLoading(true)
       const response = await apiClient.getClubSettings(clubId)
-      console.log("Club settings response:", response)
-      console.log("Full response structure:", JSON.stringify(response, null, 2))
+      // console.log("Club settings response:", response)
+      // console.log("Full response structure:", JSON.stringify(response, null, 2))
       
       // Backend returns { success: true, data: settings }
       // API client wraps it as { success: true, data: { success: true, data: settings } }
@@ -86,13 +86,13 @@ export function WebsiteSetupTab() {
           }
         }
         setSettings(websiteSetup)
-        console.log("Loaded websiteSetup:", websiteSetup)
+        // console.log("Loaded websiteSetup:", websiteSetup)
       } else {
-        console.warn("Invalid response format:", response)
+        // console.warn("Invalid response format:", response)
         toast.error("Failed to load settings - invalid response")
       }
     } catch (error) {
-      console.error("Error loading settings:", error)
+      // console.error("Error loading settings:", error)
       toast.error("Failed to load settings")
     } finally {
       setLoading(false)
@@ -109,13 +109,13 @@ export function WebsiteSetupTab() {
 
     try {
       setSaving(true)
-      console.log("=== SAVE ATTEMPT ===")
-      console.log("Club ID:", clubId)
-      console.log("Settings to save:", JSON.stringify(settings, null, 2))
+      // console.log("=== SAVE ATTEMPT ===")
+      // console.log("Club ID:", clubId)
+      // console.log("Settings to save:", JSON.stringify(settings, null, 2))
       
       const response = await apiClient.updateWebsiteSetup(clubId, settings)
-      console.log("=== SAVE RESPONSE ===")
-      console.log("Full response:", response)
+      // console.log("=== SAVE RESPONSE ===")
+      // console.log("Full response:", response)
       
       if (response.success) {
         toast.success("Website settings saved successfully!")
@@ -125,7 +125,7 @@ export function WebsiteSetupTab() {
         toast.error(response.message || "Failed to save settings")
       }
     } catch (error) {
-      console.error("Error saving settings:", error)
+      // console.error("Error saving settings:", error)
       toast.error("Failed to save settings")
     } finally {
       setSaving(false)
@@ -223,7 +223,7 @@ export function WebsiteSetupTab() {
               id="title"
               value={settings.title}
               onChange={(e) => {
-                console.log("Title changed to:", e.target.value)
+                // console.log("Title changed to:", e.target.value)
                 setSettings({ ...settings, title: e.target.value })
               }}
               placeholder="Enter your club name"
@@ -236,7 +236,7 @@ export function WebsiteSetupTab() {
               id="description"
               value={settings.description}
               onChange={(e) => {
-                console.log("Description changed to:", e.target.value)
+                // console.log("Description changed to:", e.target.value)
                 setSettings({ ...settings, description: e.target.value })
               }}
               placeholder="Brief description of your club"

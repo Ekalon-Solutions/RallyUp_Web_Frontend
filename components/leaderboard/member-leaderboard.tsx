@@ -40,7 +40,7 @@ export function MemberLeaderboard(_props: MemberLeaderboardProps) {
         setError(response.error || 'Failed to fetch leaderboard');
       }
     } catch (err) {
-      console.error('Error fetching leaderboard:', err);
+      // // console.error('Error fetching leaderboard:', err);
       setError('Failed to fetch leaderboard data');
     } finally {
       setLoading(false);

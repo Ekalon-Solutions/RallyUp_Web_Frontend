@@ -268,13 +268,6 @@ export default function AboutPage(): React.JSX.Element {
                     "Leads market strategy and sales initiatives. Specializes in scaling startups and SMBs, ensuring Wingman Pro delivers measurable value to organizations and their supporter communities.",
                   image: "/Ankit.png",
                 },
-                {
-                  name: "Nabil Mukadam",
-                  title: "Partner & Head of Product Development",
-                  description:
-                    "Drives product innovation and user experience excellence. With expertise in product strategy and user-centric design, Nabil ensures Wingman Pro delivers intuitive solutions that empower sports organizations to achieve their goals.",
-                  image: "/placeholder-user.jpg",
-                },
               ].map((leader, i) => (
                 <Card
                   key={leader.name}

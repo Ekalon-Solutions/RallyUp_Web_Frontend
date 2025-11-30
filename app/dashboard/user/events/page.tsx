@@ -135,7 +135,7 @@ function AttendanceMarker({
 
 export default function UserEventsPage() {
   const { user } = useAuth();
-  console.log("events user:", user);
+  // // console.log("events user:", user);
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -170,11 +170,11 @@ export default function UserEventsPage() {
       if (response.success && response.data) {
         setEvents(response.data);
       } else {
-        console.error("Failed to fetch events:", response.error);
+        // // console.error("Failed to fetch events:", response.error);
         toast.error("Failed to fetch events");
       }
     } catch (error) {
-      console.error("Error fetching events:", error);
+      // // console.error("Error fetching events:", error);
       toast.error("Error fetching events");
     } finally {
       setLoading(false);
@@ -300,10 +300,10 @@ export default function UserEventsPage() {
           res?.message ||
           `Cancellation failed (status ${res?.status ?? "unknown"})`;
         toast.error(msg);
-        console.error("Cancel registration failed:", res);
+        // // console.error("Cancel registration failed:", res);
       }
     } catch (error) {
-      console.error("Cancel registration error", error);
+      // // console.error("Cancel registration error", error);
       toast.error("Failed to cancel registration");
     } finally {
       setCancellingEventId(null);

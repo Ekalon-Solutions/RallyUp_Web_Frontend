@@ -114,7 +114,7 @@ export default function MembersPage() {
         toast.error(response.error || 'Failed to load members')
       }
     } catch (error) {
-      console.error('Error fetching members:', error)
+      // console.error('Error fetching members:', error)
       toast.error('Error loading members')
     } finally {
       setLoading(false)
@@ -156,41 +156,41 @@ export default function MembersPage() {
   }
 
   const handleUserSearch = async (query: string): Promise<void> => {
-    console.log('handleUserSearch - Starting search with query:', query);
+//     console.log('handleUserSearch - Starting search with query:', query);
     
     // Only search if we have at least 2 characters
     if (query.trim().length < 2) {
-      console.log('handleUserSearch - Query too short, clearing results');
+      // // console.log('handleUserSearch - Query too short, clearing results');
       setSearchResults([]);
       return;
     }
 
     setIsSearching(true);
     try {
-      console.log('handleUserSearch - Calling API...');
+      // // console.log('handleUserSearch - Calling API...');
       const response = await apiClient.searchUsers(query);
-      console.log('handleUserSearch - API Response:', response);
+      // // console.log('handleUserSearch - API Response:', response);
 
       if (response.success) {
         const users = response.data || [];
-        console.log('handleUserSearch - Setting search results:', users);
+        // // console.log('handleUserSearch - Setting search results:', users);
         setSearchResults(users);
 
         // Update UI based on results
         if (users.length === 0) {
-          console.log('handleUserSearch - No users found');
+          // // console.log('handleUserSearch - No users found');
           toast.info('No users found matching your search');
         } else {
-          console.log('handleUserSearch - Found', users.length, 'users');
+          // // console.log('handleUserSearch - Found', users.length, 'users');
           toast.success(`Found ${users.length} user${users.length === 1 ? '' : 's'}`);
         }
       } else {
-        console.error('handleUserSearch - Search failed:', response);
+        // // console.error('handleUserSearch - Search failed:', response);
         toast.error(response.error || 'Failed to search users');
         setSearchResults([]);
       }
     } catch (error) {
-      console.error('handleUserSearch - Error:', error);
+      // // console.error('handleUserSearch - Error:', error);
       toast.error('Failed to search users');
       setSearchResults([]);
     } finally {
@@ -205,13 +205,13 @@ export default function MembersPage() {
     }
 
     try {
-      console.log('Adding user:', selectedUser);
+      // // console.log('Adding user:', selectedUser);
       const response = await apiClient.addUserToClub({
         email: selectedUser.email,
         name: selectedUser.name,
         phoneNumber: selectedUser.phoneNumber
       });
-      console.log('Add user response:', response);
+      // // console.log('Add user response:', response);
       
       if (response.success) {
         toast.success('Member added successfully');
@@ -226,7 +226,7 @@ export default function MembersPage() {
         toast.error(response.error || 'Failed to add member');
       }
     } catch (error) {
-      console.error('Error adding member:', error);
+      // // console.error('Error adding member:', error);
       toast.error('Failed to add member');
     }
   }
@@ -246,7 +246,7 @@ export default function MembersPage() {
         toast.error(response.error || 'Failed to add member')
       }
     } catch (error) {
-      console.error('Error adding member:', error)
+      // console.error('Error adding member:', error)
       toast.error('Failed to add member')
     }
   }
@@ -265,7 +265,7 @@ export default function MembersPage() {
         toast.error(response.error || 'Failed to update member')
       }
     } catch (error) {
-      console.error('Error updating member:', error)
+      // console.error('Error updating member:', error)
       toast.error('Failed to update member')
     }
   }
@@ -284,7 +284,7 @@ export default function MembersPage() {
         toast.error(response.error || 'Failed to delete member')
       }
     } catch (error) {
-      console.error('Error deleting member:', error)
+      // console.error('Error deleting member:', error)
       toast.error('Failed to delete member')
     }
   }
@@ -626,12 +626,12 @@ export default function MembersPage() {
                     </div>
 
                     {(() => {
-                      console.log('Rendering search results section:', {
-                        isSearching,
-                        searchResults,
-                        searchResultsLength: searchResults?.length,
-                        searchQuery
-                      });
+//                       console.log('Rendering search results section:', {
+//                         isSearching,
+//                         searchResults,
+//                         searchResultsLength: searchResults?.length,
+//                         searchQuery
+//                       });
 
                       if (isSearching) {
                         return (
@@ -650,11 +650,11 @@ export default function MembersPage() {
                       }
 
                       if (searchResults && searchResults.length > 0) {
-                        console.log('Rendering user list with', searchResults.length, 'results');
+                        // // console.log('Rendering user list with', searchResults.length, 'results');
                         return (
                           <div className="space-y-2 max-h-[300px] overflow-y-auto border rounded-lg p-2">
                             {searchResults.map((user: User) => {
-                              console.log('Rendering user:', user);
+                              // // console.log('Rendering user:', user);
                               return (
                                 <div
                                   key={user._id}
@@ -662,7 +662,7 @@ export default function MembersPage() {
                                     selectedUser?._id === user._id ? 'bg-primary/10' : 'hover:bg-muted/50'
                                   }`}
                                   onClick={() => {
-                                    console.log('Selecting user:', user);
+                                    // // console.log('Selecting user:', user);
                                     setSelectedUser(user);
                                     toast.success('User selected');
                                   }}
