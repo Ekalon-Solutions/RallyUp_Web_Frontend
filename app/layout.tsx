@@ -14,8 +14,77 @@ import Script from "next/script"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Wingman Pro - Supporter Group Management",
-  description: "Manage your supporter group with ease",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://wingmanpro.tech'),
+  title: {
+    default: "Wingman Pro - Intelligent Sports Club Management Software",
+    template: "%s | Wingman Pro"
+  },
+  description: "The world's first AI-enhanced platform built exclusively for Supporter Groups and Sports Clubs. Revolutionize your club management with intelligent membership management, ticketing, and fan engagement.",
+  keywords: [
+    "sports club management",
+    "supporter group software",
+    "membership management",
+    "sports ticketing",
+    "fan engagement platform",
+    "club administration",
+    "sports organization software",
+    "AI-powered club management",
+    "sports ecommerce",
+    "member management system"
+  ],
+  authors: [{ name: "RallyUp Solutions" }],
+  creator: "RallyUp Solutions Private Limited",
+  publisher: "RallyUp Solutions Private Limited",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "/",
+    siteName: "Wingman Pro",
+    title: "Wingman Pro - Revolutionize Your Sports Club Management",
+    description: "The world's first AI-enhanced platform built exclusively for Supporter Groups and Sports Clubs. Replace spreadsheets and fragmented tools with one powerful, secure Operating System.",
+    images: [
+      {
+        url: "/Webpage Assets 01.png",
+        width: 1200,
+        height: 630,
+        alt: "Wingman Pro - Global Sports Community Management Platform",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Wingman Pro - Revolutionize Your Sports Club Management",
+    description: "The world's first AI-enhanced platform for Supporter Groups and Sports Clubs. Intelligent membership management, ticketing, and fan engagement.",
+    images: ["/Webpage Assets 01.png"],
+    creator: "@WingmanPro",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/WingmanPro Logo (White BG).svg', type: 'image/svg+xml' },
+    ],
+    apple: [
+      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+    ],
+  },
+  manifest: '/site.webmanifest',
+  category: 'technology',
 }
 
 export default function RootLayout({
@@ -26,6 +95,12 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" href="/WingmanPro Logo (White BG).svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="manifest" href="/site.webmanifest" />
+        <meta name="theme-color" content="#0ea5e9" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
         <Script
           async
           src="https://www.googletagmanager.com/gtag/js?id=G-SDPCKFH4E2"

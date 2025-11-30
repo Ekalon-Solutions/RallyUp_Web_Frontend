@@ -1,0 +1,18 @@
+{
+  "name": "Wingman Pro - Sports Club Management Software",
+  "short_name": "Wingman Pro",
+  "description": "The world's first AI-enhanced platform for Supporter Groups and Sports Clubs",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0ea5e9",
+  "icons": [
+    {
+      "src": "/WingmanPro Logo (White BG).svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
+
