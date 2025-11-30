@@ -282,11 +282,11 @@ export default function VolunteerManagementPage() {
     }
     
     // console.log('❌ No club ID found for user:', {
-      role: user.role,
-      hasMemberships: !!userMemberships.length,
-      memberships: userMemberships,
-      oldClub: (user as any).club
-    });
+    //   role: user.role,
+    //   hasMemberships: !!userMemberships.length,
+    //   memberships: userMemberships,
+    //   oldClub: (user as any).club
+    // });
     return null;
   }, [user]);
 
@@ -342,11 +342,11 @@ export default function VolunteerManagementPage() {
         // Log the structure of the first volunteer to understand the data format
         if (response.data && response.data.length > 0) {
           // console.log('🔍 First volunteer structure:', {
-            id: response.data[0]._id,
-            hasUser: !!response.data[0].user,
-            userFields: response.data[0].user ? Object.keys(response.data[0].user) : 'No user object',
-            userData: response.data[0].user
-          });
+          //   id: response.data[0]._id,
+          //   hasUser: !!response.data[0].user,
+          //   userFields: response.data[0].user ? Object.keys(response.data[0].user) : 'No user object',
+          //   userData: response.data[0].user
+          // });
         }
         setVolunteers(response.data || []);
       } else {

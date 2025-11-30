@@ -73,11 +73,11 @@ export function UnassignVolunteerModal({
         // // console.log('🔍 Valid volunteers with user data:', validVolunteers.length);
         // // console.log('🔍 Volunteers without user data:', invalidVolunteers.length);
         // console.log('🔍 Volunteer data structure:', volunteers.map(v => ({
-          id: v._id,
-          hasUser: !!v.user,
-          userFields: v.user ? Object.keys(v.user) : 'No user object',
-          userData: v.user
-        })));
+        //   id: v._id,
+        //   hasUser: !!v.user,
+        //   userFields: v.user ? Object.keys(v.user) : 'No user object',
+        //   userData: v.user
+        // })));
         setAssignedVolunteers(validVolunteers);
         setVolunteersWithoutUserData(invalidVolunteers.length);
       } else {

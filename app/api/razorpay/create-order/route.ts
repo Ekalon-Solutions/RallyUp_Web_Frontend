@@ -22,10 +22,10 @@ export async function POST(request: NextRequest) {
     const keySecret = process.env.RAZORPAY_KEY_SECRET
 
     // console.log('Environment check:', {
-//       hasKeyId: !!keyId,
-//       hasKeySecret: !!keySecret,
-//       keyIdPrefix: keyId?.substring(0, 8)
-    })
+    //   hasKeyId: !!keyId,
+    //   hasKeySecret: !!keySecret,
+    //   keyIdPrefix: keyId?.substring(0, 8)
+    // })
 
     if (!keyId || !keySecret) {
       // console.error('Razorpay credentials not configured')

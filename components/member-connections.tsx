@@ -546,9 +546,9 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
   const sendMessage = async () => {
     if (!newMessage.trim() || !selectedConversation) {
       // console.log('Cannot send message:', { 
-        hasMessage: !!newMessage.trim(), 
-        hasConversation: !!selectedConversation 
-      });
+      //   hasMessage: !!newMessage.trim(), 
+      //   hasConversation: !!selectedConversation 
+      // });
       return;
     }
 

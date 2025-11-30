@@ -99,9 +99,9 @@ export default function VolunteerDashboard() {
       const clubIds = activeMemberships.map(membership => membership.club_id._id);
       // // console.log('🏢 Found club IDs:', clubIds);
       // console.log('🏢 Club details:', activeMemberships.map(m => ({
-        id: m.club_id._id,
-        name: m.club_id.name
-      })));
+      //   id: m.club_id._id,
+      //   name: m.club_id.name
+      // })));
       
       // Fetch opportunities for ALL user's clubs
       // // console.log('🔍 Fetching opportunities for all clubs:', clubIds);
@@ -142,17 +142,17 @@ export default function VolunteerDashboard() {
       });
       
       // console.log('✅ Combined opportunities from all clubs:', {
-        totalCount: combinedOpportunities.length,
-        clubsCount: clubIds.length,
-        clubIds: clubIds,
-        opportunities: combinedOpportunities.map(o => ({
-          id: o._id,
-          title: o.title,
-          club: o.club,
-          status: o.status,
-          timeSlots: o.timeSlots?.length || 0
-        }))
-      });
+      //   totalCount: combinedOpportunities.length,
+      //   clubsCount: clubIds.length,
+      //   clubIds: clubIds,
+      //   opportunities: combinedOpportunities.map(o => ({
+      //     id: o._id,
+      //     title: o.title,
+      //     club: o.club,
+      //     status: o.status,
+      //     timeSlots: o.timeSlots?.length || 0
+      //   }))
+      // });
 
       setOpportunities(combinedOpportunities);
       setError(null);
@@ -221,13 +221,13 @@ export default function VolunteerDashboard() {
   // Log state changes
   React.useEffect(() => {
     // console.log('📊 Opportunities state updated:', {
-      count: opportunities.length,
-      opportunities: opportunities.map((o: VolunteerOpportunity) => ({
-        id: o._id,
-        title: o.title,
-        status: o.status
-      }))
-    });
+    //   count: opportunities.length,
+    //   opportunities: opportunities.map((o: VolunteerOpportunity) => ({
+    //     id: o._id,
+    //     title: o.title,
+    //     status: o.status
+    //   }))
+    // });
   }, [opportunities]);
 
   const handleSignUp = async (opportunityId: string, timeSlotId: string) => {
@@ -507,22 +507,22 @@ export default function VolunteerDashboard() {
   // Debug logging
   React.useEffect(() => {
     // console.log('🔍 Current opportunities state:', {
-      total: opportunities.length,
-      available: availableOpportunities.length,
-      myOpportunities: myOpportunities.length,
-      allVolunteerProfileIds,
-      volunteerProfile: volunteerProfile ? { id: volunteerProfile._id, name: volunteerProfile.user?.name } : null,
-      opportunities: opportunities.map(o => ({
-        id: o._id,
-        title: o.title,
-        status: o.status,
-        club: o.club || 'Unknown Club',
-        timeSlots: o.timeSlots?.map(slot => ({
-          id: slot._id,
-          volunteersAssigned: slot.volunteersAssigned?.length || 0
-        }))
-      }))
-    });
+    //   total: opportunities.length,
+    //   available: availableOpportunities.length,
+    //   myOpportunities: myOpportunities.length,
+    //   allVolunteerProfileIds,
+    //   volunteerProfile: volunteerProfile ? { id: volunteerProfile._id, name: volunteerProfile.user?.name } : null,
+    //   opportunities: opportunities.map(o => ({
+    //     id: o._id,
+    //     title: o.title,
+    //     status: o.status,
+    //     club: o.club || 'Unknown Club',
+    //     timeSlots: o.timeSlots?.map(slot => ({
+    //       id: slot._id,
+    //       volunteersAssigned: slot.volunteersAssigned?.length || 0
+    //     }))
+    //   }))
+    // });
   }, [opportunities, availableOpportunities, myOpportunities, volunteerProfile]);
 
   return (

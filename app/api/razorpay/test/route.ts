@@ -12,12 +12,12 @@ export async function GET(request: NextRequest) {
     const publicKeyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID
 
     // console.log('Environment variables check:', {
-//       hasKeyId: !!keyId,
-//       hasKeySecret: !!keySecret,
-//       hasPublicKeyId: !!publicKeyId,
-//       keyIdPrefix: keyId?.substring(0, 8),
-//       publicKeyIdPrefix: publicKeyId?.substring(0, 8)
-    })
+    //   hasKeyId: !!keyId,
+    //   hasKeySecret: !!keySecret,
+    //   hasPublicKeyId: !!publicKeyId,
+    //   keyIdPrefix: keyId?.substring(0, 8),
+    //   publicKeyIdPrefix: publicKeyId?.substring(0, 8)
+    // })
 
     if (!keyId || !keySecret) {
       return NextResponse.json({

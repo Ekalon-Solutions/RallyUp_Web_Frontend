@@ -67,11 +67,11 @@ export default function ChantsManagementPage() {
     if (!user || user.role === 'system_owner') return null;
     
     // console.log('🔍 Debugging user object for club ID:', {
-      role: user.role,
-      user: user,
-      club: (user as any).club,
-      memberships: (user as any).memberships
-    });
+    //   role: user.role,
+    //   user: user,
+    //   club: (user as any).club,
+    //   memberships: (user as any).memberships
+    // });
     
     // First try to get club from memberships (new structure)
     const userMemberships = (user as any).memberships || [];
@@ -94,11 +94,11 @@ export default function ChantsManagementPage() {
     }
     
     // console.log('❌ No club ID found for user:', {
-      role: user.role,
-      hasMemberships: !!userMemberships.length,
-      memberships: userMemberships,
-      oldClub: (user as any).club
-    });
+    //   role: user.role,
+    //   hasMemberships: !!userMemberships.length,
+    //   memberships: userMemberships,
+    //   oldClub: (user as any).club
+    // });
     return null;
   }, [user]);
 
