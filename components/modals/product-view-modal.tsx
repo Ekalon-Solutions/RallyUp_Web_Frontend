@@ -257,8 +257,7 @@ export function ProductViewModal({ isOpen, onClose, product }: ProductViewModalP
 
               {/* Price */}
               <div className="flex items-center text-3xl font-bold">
-                <DollarSign className="w-6 h-6" />
-                {product.price.toFixed(2)} {product.currency}
+                ₹ {product.price.toFixed(2)}
               </div>
 
               {/* Stock Status */}

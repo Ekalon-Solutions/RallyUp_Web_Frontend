@@ -403,8 +403,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutModalProps
                         </div>
                         
                         <div className="text-sm font-medium">
-                          <DollarSign className="w-3 h-3 inline mr-1" />
-                          {(item.price * item.quantity).toFixed(2)}
+                          ₹ {(item.price * item.quantity).toFixed(2)}
                         </div>
                       </div>
                     ))}
@@ -419,8 +418,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutModalProps
                     <div className="flex justify-between">
                       <span>Subtotal:</span>
                       <span>
-                        <DollarSign className="w-4 h-4 inline mr-1" />
-                        {totalPrice.toFixed(2)} {items[0]?.currency || 'USD'}
+                        ₹ {totalPrice.toFixed(2)}
                       </span>
                     </div>
                     <div className="flex justify-between">
@@ -431,8 +429,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutModalProps
                     <div className="flex justify-between text-lg font-bold">
                       <span>Total:</span>
                       <span>
-                        <DollarSign className="w-4 h-4 inline mr-1" />
-                        {totalPrice.toFixed(2)} {items[0]?.currency || 'USD'}
+                        ₹ {totalPrice.toFixed(2)}
                       </span>
                     </div>
                   </div>

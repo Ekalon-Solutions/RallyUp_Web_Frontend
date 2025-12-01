@@ -20,7 +20,6 @@ import {
   Tag, 
   Star, 
   Package,
-  DollarSign,
   Filter,
   Grid3X3,
   List,
@@ -364,8 +363,7 @@ export default function MerchandisePage() {
                               <span className="ml-1 capitalize">{item.category}</span>
                             </Badge>
                             <div className="flex items-center text-lg font-bold">
-                              <DollarSign className="w-4 h-4" />
-                              {item.price.toFixed(2)} {item.currency}
+                              ₹ {item.price.toFixed(2)}
                             </div>
                           </div>
                           
@@ -521,8 +519,7 @@ export default function MerchandisePage() {
                               {/* Price and Actions */}
                               <div className="flex flex-col items-end space-y-2 ml-4">
                                 <div className="flex items-center text-xl font-bold">
-                                  <DollarSign className="w-5 h-5" />
-                                  {item.price.toFixed(2)} {item.currency}
+                                  ₹ {item.price.toFixed(2)}
                                 </div>
                                 
                                 <div className="flex space-x-2">

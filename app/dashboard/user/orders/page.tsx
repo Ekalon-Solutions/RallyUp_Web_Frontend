@@ -191,10 +191,10 @@ export default function UserOrdersPage() {
     })
   }
 
-  const formatCurrency = (amount: number, currency: string = 'USD') => {
-    return new Intl.NumberFormat('en-US', {
+  const formatCurrency = (amount: number, currency: string = 'INR') => {
+    return new Intl.NumberFormat('en-IN', {
       style: 'currency',
-      currency: currency
+      currency: 'INR'
     }).format(amount)
   }
 

@@ -429,8 +429,7 @@ export default function MerchandiseManagementPage() {
                             </TableCell>
                             <TableCell>
                               <div className="flex items-center">
-                                <DollarSign className="w-3 h-3 mr-1" />
-                                {item.price.toFixed(2)} {item.currency}
+                                ₹ {item.price.toFixed(2)}
                               </div>
                             </TableCell>
                             <TableCell>

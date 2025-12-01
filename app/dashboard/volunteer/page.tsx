@@ -241,30 +241,19 @@ export default function VolunteerDashboard() {
     const userClub = activeMembership?.club_id?.name || 'No active club membership';
     // // console.log('🏢 User club:', userClub);
     
-    // Frontend validation to prevent duplicate signup attempts
-    if (!volunteerProfile) {
-      // // console.log('❌ No volunteer profile found');
-      toast({
-        title: 'Error',
-        description: 'You need to create a volunteer profile first',
-        variant: 'destructive',
-      });
-      return;
-    }
-    
-    // // console.log('✅ Volunteer profile found:', volunteerProfile._id);
-    
-    // Check if already signed up for this time slot
-    const opportunity = opportunities.find(o => o._id === opportunityId);
-    if (opportunity) {
-      const timeSlot = opportunity.timeSlots.find(slot => slot._id === timeSlotId);
-      if (timeSlot && timeSlot.volunteersAssigned.includes(volunteerProfile._id)) {
-        toast({
-          title: 'Already Signed Up',
-          description: 'You are already signed up for this time slot',
-          variant: 'default',
-        });
-        return;
+    // Check if already signed up for this time slot (only if we have a volunteer profile)
+    if (volunteerProfile) {
+      const opportunity = opportunities.find(o => o._id === opportunityId);
+      if (opportunity) {
+        const timeSlot = opportunity.timeSlots.find(slot => slot._id === timeSlotId);
+        if (timeSlot && timeSlot.volunteersAssigned.includes(volunteerProfile._id)) {
+          toast({
+            title: 'Already Signed Up',
+            description: 'You are already signed up for this time slot',
+            variant: 'default',
+          });
+          return;
+        }
       }
     }
     

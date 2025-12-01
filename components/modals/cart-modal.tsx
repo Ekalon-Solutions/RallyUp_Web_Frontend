@@ -150,8 +150,7 @@ export function CartModal({ isOpen, onClose, onCheckout }: CartModalProps) {
                     
                     {/* Price */}
                     <div className="flex items-center text-lg font-bold mb-3">
-                      <DollarSign className="w-4 h-4" />
-                      {item.price.toFixed(2)} {item.currency}
+                      ₹ {item.price.toFixed(2)}
                     </div>
 
                     {/* Quantity Controls */}
@@ -200,8 +199,7 @@ export function CartModal({ isOpen, onClose, onCheckout }: CartModalProps) {
                   {/* Item Total */}
                   <div className="text-right">
                     <div className="text-lg font-bold">
-                      <DollarSign className="w-4 h-4 inline mr-1" />
-                      {(item.price * item.quantity).toFixed(2)} {item.currency}
+                      ₹ {(item.price * item.quantity).toFixed(2)}
                     </div>
                     <div className="text-sm text-muted-foreground">
                       {item.quantity} × {item.price.toFixed(2)}
@@ -222,8 +220,7 @@ export function CartModal({ isOpen, onClose, onCheckout }: CartModalProps) {
               <div className="flex justify-between items-center">
                 <span className="text-lg font-semibold">Total ({totalItems} items):</span>
                 <span className="text-2xl font-bold">
-                  <DollarSign className="w-5 h-5 inline mr-1" />
-                  {totalPrice.toFixed(2)} {items[0]?.currency || 'USD'}
+                  ₹ {totalPrice.toFixed(2)}
                 </span>
               </div>
 

@@ -2093,6 +2093,13 @@ class ApiClient {
     });
   }
 
+  // Regenerate QR code for user's own membership card
+  async regenerateMyQRCode(): Promise<ApiResponse<{ qrCode: string }>> {
+    return this.request(`/membership-cards/my-card/regenerate-qr`, {
+      method: 'POST',
+    });
+  }
+
   async regenerateBarcode(cardId: string): Promise<ApiResponse<{ barcode: string }>> {
     return this.request(`/membership-cards/${cardId}/regenerate-barcode`, {
       method: 'POST',
