@@ -47,7 +47,7 @@ export default function AdminLeaderboardPage() {
         toast.error(response.error || 'Failed to fetch leaderboard')
       }
     } catch (error) {
-      console.error('Error fetching leaderboard:', error)
+      // console.error('Error fetching leaderboard:', error)
       toast.error('Error fetching leaderboard')
     } finally {
       setLoading(false)
@@ -98,7 +98,7 @@ export default function AdminLeaderboardPage() {
         toast.error(response.error || 'Failed to update points')
       }
     } catch (error) {
-      console.error('Error updating points:', error)
+      // console.error('Error updating points:', error)
       toast.error('Error updating points')
     } finally {
       setSavingId(null)

@@ -110,7 +110,7 @@ export default function OnboardingModal({ isOpen, onClose, onFlowCreated }: Onbo
         setFlows(data.flows || [])
       }
     } catch (error) {
-      console.error('Error fetching onboarding flows:', error)
+      // console.error('Error fetching onboarding flows:', error)
     }
   }
 
@@ -178,7 +178,7 @@ export default function OnboardingModal({ isOpen, onClose, onFlowCreated }: Onbo
         toast.error(data.message || "Failed to create onboarding flow")
       }
     } catch (error) {
-      console.error('Error creating onboarding flow:', error)
+      // console.error('Error creating onboarding flow:', error)
       toast.error("An error occurred while creating the flow")
     } finally {
       setLoading(false)
@@ -232,7 +232,7 @@ export default function OnboardingModal({ isOpen, onClose, onFlowCreated }: Onbo
         fetchOnboardingFlows()
       }
     } catch (error) {
-      console.error('Error toggling flow status:', error)
+      // console.error('Error toggling flow status:', error)
       toast.error("Failed to update flow status")
     }
   }
@@ -256,7 +256,7 @@ export default function OnboardingModal({ isOpen, onClose, onFlowCreated }: Onbo
         fetchOnboardingFlows()
       }
     } catch (error) {
-      console.error('Error deleting flow:', error)
+      // console.error('Error deleting flow:', error)
       toast.error("Failed to delete flow")
     }
   }

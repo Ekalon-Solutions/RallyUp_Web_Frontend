@@ -88,10 +88,10 @@ export function PromotionFeed({ clubId, limit = 5, showStats = true }: Promotion
         const limitedPromotions = promotionsData.slice(0, limit)
         setPromotions(limitedPromotions)
       } else {
-        console.error('Failed to fetch promotions')
+        // console.error('Failed to fetch promotions')
       }
     } catch (error) {
-      console.error('Error fetching promotions:', error)
+      // console.error('Error fetching promotions:', error)
     } finally {
       setLoading(false)
     }
@@ -108,7 +108,7 @@ export function PromotionFeed({ clubId, limit = 5, showStats = true }: Promotion
         },
       })
     } catch (error) {
-      console.error('Error tracking view:', error)
+      // console.error('Error tracking view:', error)
     }
   }
 
@@ -123,7 +123,7 @@ export function PromotionFeed({ clubId, limit = 5, showStats = true }: Promotion
         },
       })
     } catch (error) {
-      console.error('Error tracking click:', error)
+      // console.error('Error tracking click:', error)
     }
   }
 

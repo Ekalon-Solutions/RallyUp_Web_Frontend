@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -44,7 +44,6 @@ interface OrderForm {
   zipCode: string
   country: string
   notes: string
-  paymentMethod: 'card' | 'paypal' | 'bank_transfer'
 }
 
 export function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutModalProps) {
@@ -63,9 +62,20 @@ export function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutModalProps
     state: '',
     zipCode: '',
     country: 'United States',
-    notes: '',
-    paymentMethod: 'card'
+    notes: ''
   })
+
+  // Auto-fill user data when modal opens or user changes
+  useEffect(() => {
+    if (isOpen && user) {
+      setOrderForm(prev => ({
+        ...prev,
+        firstName: prev.firstName || user?.name?.split(' ')[0] || '',
+        lastName: prev.lastName || user?.name?.split(' ').slice(1).join(' ') || '',
+        email: prev.email || user?.email || '',
+      }))
+    }
+  }, [isOpen, user])
 
   const handleInputChange = (field: keyof OrderForm, value: string) => {
     setOrderForm(prev => ({ ...prev, [field]: value }))
@@ -101,7 +111,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutModalProps
           productId: item._id,
           quantity: item.quantity
         })),
-        paymentMethod: orderForm.paymentMethod,
+        paymentMethod: 'card', // Default payment method
         notes: orderForm.notes
       }
 
@@ -115,7 +125,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutModalProps
         toast.error(response.message || 'Failed to place order. Please try again.')
       }
     } catch (error) {
-      console.error('Error placing order:', error)
+      // console.error('Error placing order:', error)
       toast.error('Failed to place order. Please try again.')
     } finally {
       setLoading(false)
@@ -134,7 +144,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutModalProps
       onSuccess()
       onClose()
     } catch (error) {
-      console.error('Error updating payment status:', error)
+      // console.error('Error updating payment status:', error)
       toast.error('Payment successful but failed to update order status.')
     }
   }
@@ -149,7 +159,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutModalProps
       toast.error('Payment failed. Please try again.')
       // Keep the order in pending status for retry
     } catch (error) {
-      console.error('Error updating payment status:', error)
+      // console.error('Error updating payment status:', error)
       toast.error('Failed to update payment status.')
     }
   }
@@ -402,53 +412,6 @@ export function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutModalProps
                 </CardContent>
               </Card>
 
-              {/* Payment Method */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <CreditCard className="w-4 h-4" />
-                    Payment Method
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="space-y-2">
-                    <label className="flex items-center space-x-2">
-                      <input
-                        type="radio"
-                        name="paymentMethod"
-                        value="card"
-                        checked={orderForm.paymentMethod === 'card'}
-                        onChange={(e) => handleInputChange('paymentMethod', e.target.value)}
-                        className="text-primary"
-                      />
-                      <span>Credit/Debit Card</span>
-                    </label>
-                    <label className="flex items-center space-x-2">
-                      <input
-                        type="radio"
-                        name="paymentMethod"
-                        value="paypal"
-                        checked={orderForm.paymentMethod === 'paypal'}
-                        onChange={(e) => handleInputChange('paymentMethod', e.target.value)}
-                        className="text-primary"
-                      />
-                      <span>PayPal</span>
-                    </label>
-                    <label className="flex items-center space-x-2">
-                      <input
-                        type="radio"
-                        name="paymentMethod"
-                        value="bank_transfer"
-                        checked={orderForm.paymentMethod === 'bank_transfer'}
-                        onChange={(e) => handleInputChange('paymentMethod', e.target.value)}
-                        className="text-primary"
-                      />
-                      <span>Bank Transfer</span>
-                    </label>
-                  </div>
-                </CardContent>
-              </Card>
-
               {/* Order Total */}
               <Card>
                 <CardContent className="pt-6">
@@ -514,7 +477,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutModalProps
           orderNumber={createdOrder.orderNumber}
           total={createdOrder.total}
           currency={createdOrder.currency}
-          paymentMethod={createdOrder.paymentMethod}
+          paymentMethod={createdOrder.paymentMethod || 'card'}
         />
       )}
     </Dialog>

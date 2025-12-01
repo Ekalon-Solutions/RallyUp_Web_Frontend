@@ -37,7 +37,7 @@ export default function ClubsPage() {
         toast.error(response.error || 'Failed to load clubs')
       }
     } catch (error) {
-      console.error('Error fetching clubs:', error)
+      // console.error('Error fetching clubs:', error)
       toast.error('Failed to load clubs')
     } finally {
       setLoading(false)
@@ -60,7 +60,7 @@ export default function ClubsPage() {
         toast.error(response.error || 'Failed to join club')
       }
     } catch (error) {
-      console.error('Error joining club:', error)
+      // console.error('Error joining club:', error)
       toast.error('Failed to join club')
     } finally {
       setJoiningClub(null)
@@ -79,7 +79,7 @@ export default function ClubsPage() {
         toast.error(response.error || 'Failed to leave club')
       }
     } catch (error) {
-      console.error('Error leaving club:', error)
+      // console.error('Error leaving club:', error)
       toast.error('Failed to leave club')
     }
   }

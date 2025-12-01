@@ -20,7 +20,7 @@ export function NewsLikeButton({
   className = "",
   onLikeUpdate
 }: NewsLikeButtonProps) {
-  console.log('🎯 NewsLikeButton initialized with:', { newsId, initialLikeCount })
+  // console.log('🎯 NewsLikeButton initialized with:', { newsId, initialLikeCount })
   
   const [isLiked, setIsLiked] = useState(false)
   const [likeCount, setLikeCount] = useState(initialLikeCount)
@@ -28,25 +28,25 @@ export function NewsLikeButton({
   const { user } = useAuth()
   const { toast } = useToast()
 
-  console.log('🎯 Current like state:', { isLiked, likeCount, user: !!user })
+  // console.log('🎯 Current like state:', { isLiked, likeCount, user: !!user })
 
   const checkLikeStatus = useCallback(async () => {
     try {
-      console.log('🔍 Checking like status for news:', newsId)
+      // console.log('🔍 Checking like status for news:', newsId)
       const response = await apiClient.checkNewsLike(newsId)
-      console.log('🔍 Like status response:', response)
+      // console.log('🔍 Like status response:', response)
       if (response.success) {
-        console.log('🔍 Setting initial like status:', response.data.isLiked)
+        // console.log('🔍 Setting initial like status:', response.data.isLiked)
         setIsLiked(response.data.isLiked)
       }
     } catch (error) {
-      console.error('❌ Failed to check like status:', error)
+      // console.error('❌ Failed to check like status:', error)
     }
   }, [newsId])
 
   useEffect(() => {
     if (user) {
-      console.log('👤 User authenticated, checking like status for news:', newsId)
+      // console.log('👤 User authenticated, checking like status for news:', newsId)
       checkLikeStatus()
     }
   }, [user, newsId, checkLikeStatus])
@@ -63,17 +63,17 @@ export function NewsLikeButton({
 
     setIsLoading(true)
     try {
-      console.log('❤️ Toggling like for news:', newsId, 'current state:', isLiked)
+      // console.log('❤️ Toggling like for news:', newsId, 'current state:', isLiked)
       const response = await apiClient.toggleNewsLike(newsId)
       
-      console.log('✅ Like toggle response:', response)
+      // console.log('✅ Like toggle response:', response)
       
       if (response.success) {
         // Update local state immediately
         const newIsLiked = response.data.isLiked
         const newLikeCount = response.data.likeCount
         
-        console.log('🔄 Updating like state:', { newIsLiked, newLikeCount })
+        // console.log('🔄 Updating like state:', { newIsLiked, newLikeCount })
         
         setIsLiked(newIsLiked)
         setLikeCount(newLikeCount)
@@ -95,7 +95,7 @@ export function NewsLikeButton({
         })
       }
     } catch (error) {
-      console.error('❌ Error toggling like:', error)
+      // console.error('❌ Error toggling like:', error)
       toast({
         title: "Error",
         description: "Failed to update like",

@@ -66,39 +66,39 @@ export default function ChantsManagementPage() {
   const clubId = React.useMemo(() => {
     if (!user || user.role === 'system_owner') return null;
     
-    console.log('🔍 Debugging user object for club ID:', {
-      role: user.role,
-      user: user,
-      club: (user as any).club,
-      memberships: (user as any).memberships
-    });
+    // console.log('🔍 Debugging user object for club ID:', {
+    //   role: user.role,
+    //   user: user,
+    //   club: (user as any).club,
+    //   memberships: (user as any).memberships
+    // });
     
     // First try to get club from memberships (new structure)
     const userMemberships = (user as any).memberships || [];
     const activeMembership = userMemberships.find((m: any) => m.status === 'active');
     if (activeMembership?.club_id?._id) {
-      console.log('🔍 Found club ID from active membership:', activeMembership.club_id._id);
+      // // console.log('🔍 Found club ID from active membership:', activeMembership.club_id._id);
       return activeMembership.club_id._id;
     }
     
     // Fallback: try to get club from old club field (for backward compatibility)
     if ((user as any).club?._id) {
-      console.log('🔍 Found club ID from old club field:', (user as any).club._id);
+      // console.log('🔍 Found club ID from old club field:', (user as any).club._id);
       return (user as any).club._id;
     }
     
     // If still no club, try to find any membership (even if not active)
     if (userMemberships.length > 0 && userMemberships[0]?.club_id?._id) {
-      console.log('🔍 Found club ID from first membership:', userMemberships[0].club_id._id);
+      // // console.log('🔍 Found club ID from first membership:', userMemberships[0].club_id._id);
       return userMemberships[0].club_id._id;
     }
     
-    console.log('❌ No club ID found for user:', {
-      role: user.role,
-      hasMemberships: !!userMemberships.length,
-      memberships: userMemberships,
-      oldClub: (user as any).club
-    });
+    // console.log('❌ No club ID found for user:', {
+    //   role: user.role,
+    //   hasMemberships: !!userMemberships.length,
+    //   memberships: userMemberships,
+    //   oldClub: (user as any).club
+    // });
     return null;
   }, [user]);
 
@@ -139,7 +139,7 @@ export default function ChantsManagementPage() {
         });
       }
     } catch (error) {
-      console.error('Error fetching chants:', error);
+      // // console.error('Error fetching chants:', error);
       toast({
         title: "Error",
         description: "Failed to fetch chants",
@@ -159,7 +159,7 @@ export default function ChantsManagementPage() {
         setStats(response.data);
       }
     } catch (error) {
-      console.error('Error fetching stats:', error);
+      // // console.error('Error fetching stats:', error);
     }
   };
 
@@ -173,7 +173,7 @@ export default function ChantsManagementPage() {
       return;
     }
     
-    console.log('🎵 Creating chant for club ID:', clubId);
+    // // console.log('🎵 Creating chant for club ID:', clubId);
     
     try {
       const tags = formData.tags ? formData.tags.split(',').map(tag => tag.trim()).filter(Boolean) : [];
@@ -204,7 +204,7 @@ export default function ChantsManagementPage() {
         });
       }
     } catch (error) {
-      console.error('Error creating chant:', error);
+      // // console.error('Error creating chant:', error);
       toast({
         title: "Error",
         description: "Failed to create chant",
@@ -245,7 +245,7 @@ export default function ChantsManagementPage() {
         });
       }
     } catch (error) {
-      console.error('Error updating chant:', error);
+      // // console.error('Error updating chant:', error);
       toast({
         title: "Error",
         description: "Failed to update chant",
@@ -274,7 +274,7 @@ export default function ChantsManagementPage() {
         });
       }
     } catch (error) {
-      console.error('Error deleting chant:', error);
+      // // console.error('Error deleting chant:', error);
       toast({
         title: "Error",
         description: "Failed to delete chant",

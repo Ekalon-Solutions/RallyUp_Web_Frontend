@@ -59,7 +59,7 @@ export function AdminLeaderboard({ clubId }: AdminLeaderboardProps) {
         });
       }
     } catch (error) {
-      console.error('Error fetching leaderboard stats:', error);
+      // // console.error('Error fetching leaderboard stats:', error);
       toast({
         title: 'Error',
         description: 'Failed to fetch leaderboard stats',
@@ -105,7 +105,7 @@ export function AdminLeaderboard({ clubId }: AdminLeaderboardProps) {
         });
       }
     } catch (error) {
-      console.error('Error syncing leaderboard:', error);
+      // // console.error('Error syncing leaderboard:', error);
       toast({
         title: 'Error',
         description: 'Failed to sync leaderboard',
@@ -150,7 +150,7 @@ export function AdminLeaderboard({ clubId }: AdminLeaderboardProps) {
         });
       }
     } catch (error) {
-      console.error('Error creating leaderboard:', error);
+      // // console.error('Error creating leaderboard:', error);
       toast({
         title: 'Error',
         description: 'Failed to create leaderboard',

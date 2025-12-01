@@ -28,20 +28,10 @@ export function SiteFooter({ brandName = "Wingman Pro" }: SiteFooterProps) {
               <span className="text-xs text-slate-400">Powered by RallyUp Solutions</span>
             </div>
           </div>
-          <div className="relative h-6 w-48">
-            <Image
-              src="/RallyUpSolutions Logo (Transparent Background).svg"
-              alt="RallyUp Solutions logo"
-              fill
-              sizes="192px"
-              className="object-contain"
-            />
-          </div>
         </div>
         <div className="flex flex-col gap-4">
           <nav className="flex flex-wrap items-center gap-4 text-sm">
             <Link href="/about" className="hover:text-white">About Us</Link>
-            <Link href="#features" className="hover:text-white">Features</Link>
             <Link href="/affiliations" className="hover:text-white">Affiliations</Link>
             <Link href="/privacy" className="hover:text-white">Privacy Policy</Link>
             <Link href="/terms" className="hover:text-white">Terms of Service</Link>

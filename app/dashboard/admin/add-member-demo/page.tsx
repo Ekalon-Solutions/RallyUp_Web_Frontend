@@ -7,7 +7,7 @@ import { UserPlus, Users, CreditCard, DollarSign } from "lucide-react"
 
 export default function AddMemberDemoPage() {
   const handleMemberAdded = () => {
-    console.log("Member was added successfully!")
+    // console.log("Member was added successfully!")
     // You can add additional logic here like refreshing a member list
   }
 

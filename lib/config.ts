@@ -1,7 +1,7 @@
 // Environment Configuration
 export const ENV = {
   // Change this to switch between environments
-  CURRENT: 'production' as 'development' | 'production' | 'staging',
+  CURRENT: 'development' as 'development' | 'production' | 'staging',
   
   // Development environment (localhost)
   development: {
@@ -30,6 +30,14 @@ export const ENV = {
 
 // Get current environment config
 export const currentConfig = ENV[ENV.CURRENT];
+
+// Debug: Log the current configuration
+if (typeof window !== 'undefined') {
+  // // console.log('🔧 [CONFIG] Current Environment:', ENV.CURRENT);
+  // // console.log('🔧 [CONFIG] API Base URL:', currentConfig.apiBaseUrl);
+  // // console.log('🔧 [CONFIG] WebSocket URL:', currentConfig.wsBaseUrl);
+  // // console.log('🔧 [CONFIG] Debug Mode:', currentConfig.debug);
+}
 
 // API Endpoints - All endpoints will use the base URL from config
 export const API_ENDPOINTS = {
@@ -166,6 +174,9 @@ export const getApiUrl = (endpoint: string) => `${currentConfig.apiBaseUrl}${end
 // Helper function to get full WebSocket URL
 export const getWsUrl = (endpoint: string) => `${currentConfig.wsBaseUrl}${endpoint}`;
 
+// Helper function to get base URL without /api (for static files, uploads, etc.)
+export const getBaseUrl = () => currentConfig.apiBaseUrl.replace('/api', '');
+
 // Environment detection helpers
 export const isDevelopment = () => ENV.CURRENT === 'development';
 export const isProduction = () => ENV.CURRENT === 'production';
@@ -174,7 +185,7 @@ export const isStaging = () => ENV.CURRENT === 'staging';
 // Debug logging (only in development/staging)
 export const debugLog = (message: string, data?: any) => {
   if (currentConfig.debug) {
-    console.log(`[${ENV.CURRENT.toUpperCase()}] ${message}`, data || '');
+    // console.log(`[${ENV.CURRENT.toUpperCase()}] ${message}`, data || '');
   }
 };
 

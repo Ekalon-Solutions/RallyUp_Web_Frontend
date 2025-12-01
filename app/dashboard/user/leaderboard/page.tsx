@@ -67,7 +67,7 @@ export default function UserLeaderboardPage() {
                 toast.error(response.error || 'Failed to fetch leaderboard')
             }
         } catch (error) {
-            console.error('Error fetching leaderboard:', error)
+            // console.error('Error fetching leaderboard:', error)
             toast.error('Error fetching leaderboard')
         } finally {
             setLoading(false)

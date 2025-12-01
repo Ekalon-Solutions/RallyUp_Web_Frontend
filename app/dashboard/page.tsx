@@ -22,9 +22,9 @@ export default function DashboardPage() {
   
   // Redirect users to their appropriate dashboard
   useEffect(() => {
-    console.log('Dashboard redirect check:', { user, isAdmin, userRole: user?.role })
+    // console.log('Dashboard redirect check:', { user, isAdmin, userRole: user?.role })
     if (user && !isAdmin) {
-      console.log('Redirecting user to /dashboard/user')
+      // console.log('Redirecting user to /dashboard/user')
       window.location.href = "/dashboard/user"
     }
   }, [user, isAdmin])

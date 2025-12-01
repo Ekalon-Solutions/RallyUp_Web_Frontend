@@ -122,7 +122,7 @@ export default function ClubsPage() {
         toast.error("Failed to load clubs")
       }
     } catch (error) {
-      console.error("Error fetching clubs:", error)
+      // console.error("Error fetching clubs:", error)
       toast.error("Error loading clubs")
     } finally {
       setLoading(false)
@@ -225,7 +225,7 @@ export default function ClubsPage() {
         toast.error(registerData.message || "Registration failed")
       }
     } catch (error) {
-      console.error("Registration error:", error)
+      // console.error("Registration error:", error)
       toast.error("An error occurred during registration")
     } finally {
       setIsRegistering(false)

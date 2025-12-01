@@ -7,7 +7,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const entries = await generateSitemap()
     return entries
   } catch (error) {
-    console.error('Error generating sitemap:', error)
+    // console.error('Error generating sitemap:', error)
     
     const baseUrl = 'https://wingmanpro.tech'
     const currentDate = new Date()

@@ -85,11 +85,11 @@ export default function MyClubsPage() {
       setError(null)
       
       const response = await apiClient.getUserMemberships()
-      console.log('User memberships response:', response)
-      console.log('Response data type:', typeof response.data)
-      console.log('Is response.data an array?', Array.isArray(response.data))
-      console.log('Response.data contents:', response.data)
-      console.log('Response.data keys:', Object.keys(response.data || {}))
+      // console.log('User memberships response:', response)
+      // console.log('Response data type:', typeof response.data)
+      // console.log('Is response.data an array?', Array.isArray(response.data))
+      // console.log('Response.data contents:', response.data)
+      // console.log('Response.data keys:', Object.keys(response.data || {}))
       
       if (response.success && response.data) {
         // Check if data is an array or if it contains an array
@@ -104,14 +104,14 @@ export default function MyClubsPage() {
           membershipData = data.data
         }
         
-        console.log('Setting memberships:', membershipData)
+        // console.log('Setting memberships:', membershipData)
         setMemberships(membershipData)
       } else {
-        console.log('API response failed or no data')
+        // console.log('API response failed or no data')
         setError('Failed to load your club memberships')
       }
     } catch (error) {
-      console.error('Error loading user memberships:', error)
+      // console.error('Error loading user memberships:', error)
       setError('Failed to load your club memberships')
       setMemberships([]) // Ensure it's always an array
       toast.error('Failed to load your club memberships')
@@ -148,8 +148,12 @@ export default function MyClubsPage() {
     }
   }
 
-  const navigateToClub = (clubId: string) => {
-    router.push(`/dashboard/clubs/${clubId}`)
+  const navigateToClub = (clubId: string, clubName?: string) => {
+    // Create URL-friendly slug from club name
+    const slug = clubName 
+      ? clubName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+      : clubId
+    router.push(`/dashboard/clubs/${slug}?id=${clubId}`)
   }
 
   const navigateToPlans = () => {
@@ -319,7 +323,7 @@ export default function MyClubsPage() {
                           <Button 
                             variant="outline" 
                             size="sm" 
-                            onClick={() => navigateToClub(membership.club_id._id)}
+                            onClick={() => navigateToClub(membership.club_id._id, membership.club_id.name)}
                             className="flex-1"
                           >
                             <Eye className="h-4 w-4 mr-2" />

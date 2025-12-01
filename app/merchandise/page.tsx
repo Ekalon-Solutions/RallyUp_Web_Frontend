@@ -92,8 +92,8 @@ export default function MerchandisePage() {
         
         // Debug: Log the first item to see the structure
         if (items.length > 0) {
-          console.log('First merchandise item:', items[0])
-          console.log('Tags:', items[0].tags, 'Type:', typeof items[0].tags)
+          // console.log('First merchandise item:', items[0])
+          // console.log('Tags:', items[0].tags, 'Type:', typeof items[0].tags)
         }
         
         // Sort items
@@ -117,7 +117,7 @@ export default function MerchandisePage() {
         setTotalPages(response.data.pagination?.pages || 1)
       }
     } catch (error) {
-      console.error('Error fetching merchandise:', error)
+      // console.error('Error fetching merchandise:', error)
       toast.error('Failed to load merchandise')
     } finally {
       setLoading(false)

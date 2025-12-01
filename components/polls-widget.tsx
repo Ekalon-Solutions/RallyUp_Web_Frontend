@@ -40,7 +40,7 @@ export function PollsWidget({ limit = 3, showCreateButton = true }: PollsWidgetP
         setPolls(response.data.polls.slice(0, limit))
       }
     } catch (error) {
-      console.error("Error fetching recent polls:", error)
+      // console.error("Error fetching recent polls:", error)
     } finally {
       setLoading(false)
     }

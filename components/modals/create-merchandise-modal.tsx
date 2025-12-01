@@ -226,7 +226,7 @@ export function CreateMerchandiseModal({
 
       onSuccess()
     } catch (error: any) {
-      console.error('Error saving merchandise:', error)
+      // console.error('Error saving merchandise:', error)
       if (error?.errorDetails?.status === 401) {
         toast.error('Admin access required. Please log in as an admin.')
         onClose()

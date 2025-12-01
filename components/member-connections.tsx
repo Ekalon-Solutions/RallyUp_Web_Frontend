@@ -206,7 +206,7 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
     },
     onMessagesRead: (data) => {
       // Update read status in UI if needed
-      console.log('Messages marked as read:', data);
+      // // console.log('Messages marked as read:', data);
     }
   });
 
@@ -231,12 +231,12 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
 
   // Debug log when data changes
   useEffect(() => {
-    console.log('=== Member Connections Data ===');
-    console.log('Current User ID:', currentUser?._id);
-    console.log('Members count:', members.length);
-    console.log('Connection Requests:', connectionRequests.length, connectionRequests);
-    console.log('My Connections:', myConnections.length, myConnections);
-    console.log('==============================');
+    // // console.log('=== Member Connections Data ===');
+    // // console.log('Current User ID:', currentUser?._id);
+    // // console.log('Members count:', members.length);
+    // // console.log('Connection Requests:', connectionRequests.length, connectionRequests);
+    // // console.log('My Connections:', myConnections.length, myConnections);
+    // // console.log('==============================');
   }, [members, connectionRequests, myConnections, currentUser]);
 
   const getAuthHeaders = () => ({
@@ -247,18 +247,18 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
   const fetchMembers = async () => {
     try {
       setLoading(true);
-      console.log('Fetching members for club:', clubId);
-      console.log('Auth headers:', getAuthHeaders());
+      // // console.log('Fetching members for club:', clubId);
+      // console.log('Auth headers:', getAuthHeaders());
       
       const response = await fetch(`${config.apiBaseUrl}/clubs/${clubId}/members`, {
         headers: getAuthHeaders(),
       });
       
-      console.log('Response status:', response.status, response.statusText);
+      // // console.log('Response status:', response.status, response.statusText);
       
       if (response.ok) {
         const data = await response.json();
-        console.log('Club memberships response:', data); // Debug log
+        // // console.log('Club memberships response:', data); // Debug log
         const clubMembers = data.memberships?.map((member: any) => ({
           _id: member._id || '',
           first_name: member.first_name || '',
@@ -266,11 +266,11 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
           email: member.email || '',
           profilePicture: member.profilePicture || ''
         })).filter((member: any) => member._id) || [];
-        console.log('Processed members:', clubMembers);
+        // // console.log('Processed members:', clubMembers);
         setMembers(clubMembers);
       } else {
         const errorText = await response.text();
-        console.error('Failed to fetch members:', response.status, response.statusText, errorText);
+        // // console.error('Failed to fetch members:', response.status, response.statusText, errorText);
         toast({ 
           title: "Error", 
           description: `Failed to load club members: ${response.statusText}`,
@@ -278,7 +278,7 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
         });
       }
     } catch (error) {
-      console.error('Error fetching members:', error);
+      // // console.error('Error fetching members:', error);
       toast({ 
         title: "Error", 
         description: "Network error while loading members",
@@ -291,36 +291,36 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
 
   const fetchConnectionRequests = async () => {
     try {
-      console.log('Fetching connection requests...');
+      // // console.log('Fetching connection requests...');
       const response = await fetch(`${config.apiBaseUrl}/member-connections/requests`, {
         headers: getAuthHeaders(),
       });
       
-      console.log('Connection requests response status:', response.status);
+      // // console.log('Connection requests response status:', response.status);
       
       if (response.ok) {
         const data = await response.json();
-        console.log('Connection requests raw data:', data);
+        // // console.log('Connection requests raw data:', data);
         // Backend returns { requests: [...], counts: {...} }
         const requests = (data.requests || []).filter((request: any) => 
           request?.requester?._id && request?.recipient?._id
         );
-        console.log('Filtered connection requests:', requests.length);
+        // // console.log('Filtered connection requests:', requests.length);
         
         // Log each request to see structure
         requests.forEach((req: any, idx: number) => {
-          console.log(`Request ${idx}:`, {
-            _id: req._id,
-            requester: req.requester?._id || req.requester,
-            recipient: req.recipient?._id || req.recipient,
-            status: req.status
-          });
+          // // console.log(`Request ${idx}:`, {
+//             _id: req._id,
+//             requester: req.requester?._id || req.requester,
+//             recipient: req.recipient?._id || req.recipient,
+//             status: req.status
+//           });
         });
         
         setConnectionRequests(requests);
       } else {
         const errorText = await response.text();
-        console.error('Failed to fetch connection requests:', response.status, errorText);
+        // // console.error('Failed to fetch connection requests:', response.status, errorText);
         toast({ 
           title: "Error", 
           description: "Failed to load connection requests",
@@ -328,7 +328,7 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
         });
       }
     } catch (error) {
-      console.error('Error fetching connection requests:', error);
+      // // console.error('Error fetching connection requests:', error);
       toast({ 
         title: "Error", 
         description: "Network error while loading connection requests",
@@ -339,21 +339,21 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
 
   const fetchMyConnections = async () => {
     try {
-      console.log('Fetching my connections...');
+      // // console.log('Fetching my connections...');
       const response = await fetch(`${config.apiBaseUrl}/member-connections/my-connections`, {
         headers: getAuthHeaders(),
       });
       
-      console.log('My connections response status:', response.status);
+      // // console.log('My connections response status:', response.status);
       
       if (response.ok) {
         const data = await response.json();
-        console.log('My connections raw data:', data);
-        console.log('Connections array:', data.connections);
+        // // console.log('My connections raw data:', data);
+        // // console.log('Connections array:', data.connections);
         
         // Log first connection to see structure
         if (data.connections && data.connections.length > 0) {
-          console.log('First connection structure:', data.connections[0]);
+          // // console.log('First connection structure:', data.connections[0]);
         }
         
         // Filter out any malformed connections
@@ -361,7 +361,7 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
           connection?._id && connection?.requester && connection?.recipient
         );
         
-        console.log('Filtered connections count:', connections.length);
+        // // console.log('Filtered connections count:', connections.length);
         setMyConnections(connections);
         
         // Load last message for each connection for preview
@@ -371,7 +371,7 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
           }
         });
       } else {
-        console.error('Failed to fetch connections:', response.statusText);
+        // // console.error('Failed to fetch connections:', response.statusText);
         toast({ 
           title: "Error", 
           description: "Failed to load your connections",
@@ -379,7 +379,7 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
         });
       }
     } catch (error) {
-      console.error('Error fetching connections:', error);
+      // // console.error('Error fetching connections:', error);
       toast({ 
         title: "Error", 
         description: "Network error while loading connections",
@@ -404,15 +404,15 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
         }));
       }
     } catch (error) {
-      console.error('Error fetching conversation:', error);
+      // // console.error('Error fetching conversation:', error);
     }
   };
 
   const sendConnectionRequest = async (recipientId: string) => {
     setLoadingStates(prev => ({ ...prev, [`connect_${recipientId}`]: true }));
-    console.log('Sending connection request to:', recipientId, 'for club:', clubId);
-    console.log('Auth headers:', getAuthHeaders());
-    console.log('API URL:', `${config.apiBaseUrl}/member-connections/send-request`);
+    // // console.log('Sending connection request to:', recipientId, 'for club:', clubId);
+    // console.log('Auth headers:', getAuthHeaders());
+    // // console.log('API URL:', `${config.apiBaseUrl}/member-connections/send-request`);
     
     try {
       const response = await fetch(`${config.apiBaseUrl}/member-connections/send-request`, {
@@ -424,11 +424,11 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
         }),
       });
 
-      console.log('Connection request response:', response.status, response.statusText);
+      // // console.log('Connection request response:', response.status, response.statusText);
 
       if (response.ok) {
         const data = await response.json();
-        console.log('Connection request successful:', data);
+        // // console.log('Connection request successful:', data);
         toast({
           title: "Success",
           description: "Connection request sent successfully",
@@ -437,7 +437,7 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
         fetchMyConnections();
       } else {
         const errorText = await response.text();
-        console.error('Connection request failed:', response.status, errorText);
+        // // console.error('Connection request failed:', response.status, errorText);
         let errorMessage = "Failed to send connection request";
         let shouldRefreshData = false;
         
@@ -468,8 +468,8 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
         }
       }
     } catch (error) {
-      console.error('Network error sending connection request:', error);
-      console.error('Error details:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
+      // // console.error('Network error sending connection request:', error);
+      // console.error('Error details:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Network error occurred",
@@ -482,11 +482,11 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
 
   const respondToRequest = async (requestId: string, action: 'accept' | 'decline') => {
     setLoadingStates(prev => ({ ...prev, [`request_${requestId}_${action}`]: true }));
-    console.log(`Responding to request ${requestId} with action: ${action}`);
-    console.log('Current user:', currentUser);
-    console.log('Current user ID:', currentUser?._id);
-    console.log('Auth headers:', getAuthHeaders());
-    console.log('Request body:', JSON.stringify({ requestId, action }));
+    // // console.log(`Responding to request ${requestId} with action: ${action}`);
+    // // console.log('Current user:', currentUser);
+    // // console.log('Current user ID:', currentUser?._id);
+    // console.log('Auth headers:', getAuthHeaders());
+    // console.log('Request body:', JSON.stringify({ requestId, action }));
     
     try {
       const response = await fetch(`${config.apiBaseUrl}/member-connections/respond-request`, {
@@ -498,11 +498,11 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
         }),
       });
 
-      console.log(`Response status for ${action}:`, response.status, response.statusText);
+      // // console.log(`Response status for ${action}:`, response.status, response.statusText);
 
       if (response.ok) {
         const data = await response.json();
-        console.log(`${action} request successful:`, data);
+        // // console.log(`${action} request successful:`, data);
         toast({
           title: "Success",
           description: `Connection request ${action}ed successfully`,
@@ -510,13 +510,13 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
         
         // Refresh data after a small delay to ensure backend has updated
         setTimeout(() => {
-          console.log('Refreshing connection data after accept/decline...');
+          // // console.log('Refreshing connection data after accept/decline...');
           fetchConnectionRequests();
           fetchMyConnections();
         }, 300);
       } else {
         const errorText = await response.text();
-        console.error(`Failed to ${action} request:`, response.status, errorText);
+        // // console.error(`Failed to ${action} request:`, response.status, errorText);
         let errorMessage = `Failed to ${action} request`;
         try {
           const errorJson = JSON.parse(errorText);
@@ -531,8 +531,8 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
         });
       }
     } catch (error) {
-      console.error(`Network error ${action}ing request:`, error);
-      console.error('Error details:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
+      // // console.error(`Network error ${action}ing request:`, error);
+      // console.error('Error details:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Network error occurred",
@@ -545,23 +545,23 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
 
   const sendMessage = async () => {
     if (!newMessage.trim() || !selectedConversation) {
-      console.log('Cannot send message:', { 
-        hasMessage: !!newMessage.trim(), 
-        hasConversation: !!selectedConversation 
-      });
+      // console.log('Cannot send message:', { 
+      //   hasMessage: !!newMessage.trim(), 
+      //   hasConversation: !!selectedConversation 
+      // });
       return;
     }
 
-    console.log('=== Sending Message ===');
-    console.log('Selected conversation ID:', selectedConversation);
-    console.log('Current user:', currentUser);
-    console.log('Current user ID:', currentUser?._id);
-    console.log('Message content:', newMessage.trim());
-    console.log('Auth headers:', getAuthHeaders());
+    // // console.log('=== Sending Message ===');
+    // // console.log('Selected conversation ID:', selectedConversation);
+    // // console.log('Current user:', currentUser);
+    // // console.log('Current user ID:', currentUser?._id);
+    // console.log('Message content:', newMessage.trim());
+    // console.log('Auth headers:', getAuthHeaders());
     
     // Find the connection details for debugging
     const connection = myConnections.find(c => c._id === selectedConversation);
-    console.log('Connection details:', connection);
+    // // console.log('Connection details:', connection);
 
     setLoadingStates(prev => ({ ...prev, sendingMessage: true }));
     
@@ -575,18 +575,18 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
         }),
       });
 
-      console.log('Send message response:', response.status, response.statusText);
+      // // console.log('Send message response:', response.status, response.statusText);
 
       if (response.ok) {
         const data = await response.json();
-        console.log('Message sent successfully:', data);
+        // // console.log('Message sent successfully:', data);
         setNewMessage('');
         stopTyping();
         // Refresh conversation to show the new message
         fetchConversation(selectedConversation);
       } else {
         const errorText = await response.text();
-        console.error('Failed to send message:', response.status, errorText);
+        // // console.error('Failed to send message:', response.status, errorText);
         toast({
           title: "Error",
           description: "Failed to send message",
@@ -594,7 +594,7 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
         });
       }
     } catch (error) {
-      console.error('Network error sending message:', error);
+      // // console.error('Network error sending message:', error);
       toast({
         title: "Error",
         description: "Network error occurred",
@@ -655,11 +655,11 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
 
     // Debug logging for troubleshooting
     if (memberId && (connection || sentRequest || receivedRequest)) {
-      console.log('Connection status for member:', memberId, {
-        connection: connection ? 'connected' : null,
-        sentRequest: sentRequest ? 'sent' : null,
-        receivedRequest: receivedRequest ? 'received' : null,
-      });
+      // // console.log('Connection status for member:', memberId, {
+//         connection: connection ? 'connected' : null,
+//         sentRequest: sentRequest ? 'sent' : null,
+//         receivedRequest: receivedRequest ? 'received' : null,
+//       });
     }
 
     if (connection) return 'connected';
@@ -681,20 +681,20 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
     const requesterId = req.requester?._id?.toString();
     
     // Debug log
-    console.log('Checking request:', {
-      requestId: req._id,
-      currentUserId,
-      recipientId,
-      requesterId,
-      isRecipient: recipientId === currentUserId,
-      status: req.status
-    });
+    // // console.log('Checking request:', {
+//       requestId: req._id,
+//       currentUserId,
+//       recipientId,
+//       requesterId,
+//       isRecipient: recipientId === currentUserId,
+//       status: req.status
+//     });
     
     // Only show requests where current user is the RECIPIENT and status is pending
     return recipientId === currentUserId && req.status === 'pending';
   });
 
-  console.log('Pending requests to display:', pendingRequests.length);
+  // // console.log('Pending requests to display:', pendingRequests.length);
 
   return (
     <div className="container mx-auto p-6">
@@ -759,7 +759,6 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
                         </Avatar>
                         <div>
                           <h3 className="font-medium">{getUserFullName(member)}</h3>
-                          <p className="text-sm text-gray-500">{member.email}</p>
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
@@ -883,7 +882,7 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
                   {myConnections.map((connection) => {
                     // Safety check for populated fields
                     if (!connection.requester || !connection.recipient) {
-                      console.warn('Connection missing requester or recipient:', connection);
+                      // // console.warn('Connection missing requester or recipient:', connection);
                       return null;
                     }
                     

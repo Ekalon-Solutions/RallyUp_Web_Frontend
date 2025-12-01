@@ -62,7 +62,7 @@ export default function UserProfilePage() {
         toast.error(result.error || "Failed to update profile")
       }
     } catch (error) {
-      console.error("Error updating profile:", error)
+      // console.error("Error updating profile:", error)
       toast.error("Error updating profile")
     } finally {
       setLoading(false)
@@ -148,7 +148,7 @@ export default function UserProfilePage() {
         }
       }
     } catch (error) {
-      console.error("Error updating volunteer preferences:", error);
+      // // console.error("Error updating volunteer preferences:", error);
       toast.error("Error updating volunteer preferences");
     }
   };

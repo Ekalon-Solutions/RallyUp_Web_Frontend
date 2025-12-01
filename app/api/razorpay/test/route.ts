@@ -11,13 +11,13 @@ export async function GET(request: NextRequest) {
     const keySecret = process.env.RAZORPAY_KEY_SECRET
     const publicKeyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID
 
-    console.log('Environment variables check:', {
-      hasKeyId: !!keyId,
-      hasKeySecret: !!keySecret,
-      hasPublicKeyId: !!publicKeyId,
-      keyIdPrefix: keyId?.substring(0, 8),
-      publicKeyIdPrefix: publicKeyId?.substring(0, 8)
-    })
+    // console.log('Environment variables check:', {
+    //   hasKeyId: !!keyId,
+    //   hasKeySecret: !!keySecret,
+    //   hasPublicKeyId: !!publicKeyId,
+    //   keyIdPrefix: keyId?.substring(0, 8),
+    //   publicKeyIdPrefix: publicKeyId?.substring(0, 8)
+    // })
 
     if (!keyId || !keySecret) {
       return NextResponse.json({
@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
       }
     })
   } catch (error: any) {
-    console.error('Razorpay test error:', error)
+    // console.error('Razorpay test error:', error)
     return NextResponse.json({
       success: false,
       error: error.message,

@@ -148,9 +148,9 @@ export default function UserDashboardPage() {
   }
 
   useEffect(() => {
-    console.log('User dashboard - User object:', user)
-    console.log('Active membership:', activeMembership)
-    console.log('User club:', userClub)
+    // console.log('User dashboard - User object:', user)
+    // console.log('Active membership:', activeMembership)
+    // console.log('User club:', userClub)
     fetchData()
   }, [user, activeMembership, userClub])
 
@@ -168,14 +168,14 @@ export default function UserDashboardPage() {
 
       // Check if user has an active club membership
       if (!activeMembership || !userClub) {
-        console.log('User has no active club membership:', { activeMembership, userClub })
+        // console.log('User has no active club membership:', { activeMembership, userClub })
         toast.error("You need to have an active club membership to view news and events")
         setLoading(false)
         return
       }
 
-      console.log('User club:', userClub)
-      console.log('User club ID:', userClub._id)
+      // console.log('User club:', userClub)
+      // console.log('User club ID:', userClub._id)
 
       // Fetch public events and club-specific news
       const [eventsResponse, newsResponse] = await Promise.all([
@@ -195,17 +195,17 @@ export default function UserDashboardPage() {
       }
 
       if (newsResponse.success && newsResponse.data) {
-        console.log('News response:', newsResponse)
-        console.log('News data:', newsResponse.data)
+        // console.log('News response:', newsResponse)
+        // console.log('News data:', newsResponse.data)
         const newsData = Array.isArray(newsResponse.data) ? newsResponse.data : (newsResponse.data as any).news || []
-        console.log('News array:', newsData)
+        // console.log('News array:', newsData)
         setNews(newsData)
       } else {
-        console.error('News response failed:', newsResponse)
-        console.error('News error details:', newsResponse.error)
+        // console.error('News response failed:', newsResponse)
+        // console.error('News error details:', newsResponse.error)
       }
     } catch (error) {
-      console.error("Error fetching data:", error)
+      // console.error("Error fetching data:", error)
       toast.error("Error loading dashboard data")
     } finally {
       setLoading(false)
@@ -227,7 +227,7 @@ export default function UserDashboardPage() {
         setUserRegistrations(registrationsMap)
       }
     } catch (error) {
-      console.error("Error fetching user registrations:", error)
+      // console.error("Error fetching user registrations:", error)
     }
   }
 
@@ -282,7 +282,7 @@ export default function UserDashboardPage() {
         },
       })
     } catch (error) {
-      console.error("Registration API error", error)
+      // console.error("Registration API error", error)
       toast.error("Failed to register for event")
     }
   }
@@ -301,10 +301,10 @@ export default function UserDashboardPage() {
       } else {
         const msg = res?.error || res?.message || `Cancellation failed (status ${res?.status ?? "unknown"})`
         toast.error(msg)
-        console.error('Cancel registration failed:', res)
+        // console.error('Cancel registration failed:', res)
       }
     } catch (error) {
-      console.error("Cancel registration error", error)
+      // console.error("Cancel registration error", error)
       toast.error("Failed to cancel registration")
     } finally {
       setCancellingEventId(null)

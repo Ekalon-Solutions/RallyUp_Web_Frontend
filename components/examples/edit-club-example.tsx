@@ -45,7 +45,7 @@ export function EditClubExample() {
 
   const handleClubUpdated = () => {
     // Refresh clubs data
-    console.log('Club updated, refreshing data...')
+    // console.log('Club updated, refreshing data...')
   }
 
   return (

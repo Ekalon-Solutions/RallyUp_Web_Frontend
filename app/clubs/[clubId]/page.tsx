@@ -86,7 +86,7 @@ export default function PublicClubPage() {
         setSettings(actualData)
       }
     } catch (error) {
-      console.error("Error loading club data:", error)
+      // console.error("Error loading club data:", error)
     } finally {
       setLoading(false)
     }

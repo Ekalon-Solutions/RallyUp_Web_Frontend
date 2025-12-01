@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calendar, Search, MoreHorizontal, Edit, Trash2, MapPin, Clock, Users, Plus, Filter } from "lucide-react"
+import { Calendar, Search, MoreHorizontal, Edit, Trash2, MapPin, Clock, Users, Plus, Filter, Ban, CheckCircle } from "lucide-react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
 import { CreateEventModal } from "@/components/modals/create-event-modal"
@@ -76,11 +76,11 @@ export default function EventsPage() {
 
         setEvents(filteredEvents)
       } else {
-        console.error("Failed to fetch events:", response.error)
+        // console.error("Failed to fetch events:", response.error)
         toast.error("Failed to fetch events")
       }
     } catch (error) {
-      console.error("Error fetching events:", error)
+      // console.error("Error fetching events:", error)
       toast.error("Error fetching events")
     } finally {
       setLoading(false)
@@ -98,7 +98,7 @@ export default function EventsPage() {
         setUserRegistrations(registrationsMap)
       }
     } catch (error) {
-      console.error("Error fetching user registrations:", error)
+      // console.error("Error fetching user registrations:", error)
     }
   }
 
@@ -126,7 +126,7 @@ export default function EventsPage() {
         toast.error(response.error || "Failed to delete event")
       }
     } catch (error) {
-      console.error("Error deleting event:", error)
+      // console.error("Error deleting event:", error)
       toast.error("Error deleting event")
     }
   }
@@ -141,7 +141,7 @@ export default function EventsPage() {
         toast.error(response.error || "Failed to update event status")
       }
     } catch (error) {
-      console.error("Error toggling event status:", error)
+      // console.error("Error toggling event status:", error)
       toast.error("Error updating event status")
     }
   }
@@ -372,7 +372,17 @@ export default function EventsPage() {
                                           Edit
                                         </DropdownMenuItem>
                                         <DropdownMenuItem onClick={() => handleToggleStatus(event._id, event.isActive)}>
-                                          {event.isActive ? "Deactivate" : "Activate"}
+                                          {event.isActive ? (
+                                            <>
+                                              <Ban className="w-4 h-4 mr-2" />
+                                              Deactivate
+                                            </>
+                                          ) : (
+                                            <>
+                                              <CheckCircle className="w-4 h-4 mr-2" />
+                                              Activate
+                                            </>
+                                          )}
                                         </DropdownMenuItem>
                                         <DropdownMenuItem onClick={() => handleDeleteEvent(event._id)}>
                                           <Trash2 className="w-4 h-4 mr-2" />

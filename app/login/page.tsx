@@ -15,6 +15,10 @@ import { SiteNavbar } from "@/components/site-navbar"
 import { SiteFooter } from "@/components/site-footer"
 import { RecaptchaVerifier, signInWithPhoneNumber, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink } from "firebase/auth"
 import { auth } from "@/lib/firebase/config"
+import { isDevelopment, debugLog } from "@/lib/config"
+
+// Debug OTP for development mode - bypasses Firebase OTP verification
+const DEBUG_OTP = "123456"
 
 
 const generateOTP = () => {
@@ -28,7 +32,7 @@ const setupRecaptcha = (phoneNumber: string) => {
       'size': 'invisible',
       'callback': (response: any) => {
         // reCAPTCHA solved, allow signInWithPhoneNumber.
-        console.log("reCAPTCHA solved for phone number:", phoneNumber)
+        // console.log("reCAPTCHA solved for phone number:", phoneNumber)
       }
     });
   }
@@ -214,6 +218,21 @@ export default function AuthPage() {
     }
 
     try {
+      // Debug mode: Skip Firebase OTP confirmation
+      if (isDevelopment()) {
+        debugLog("Debug mode: Skipping Firebase OTP confirmation")
+        if (userLoginOtp !== DEBUG_OTP) {
+          toast.error(`[DEBUG MODE] Invalid OTP. Use: ${DEBUG_OTP}`)
+          return
+        }
+        const backendResult = await login(userLoginData.email, userLoginData.phone_number, userLoginData.countryCode, false)
+        if (backendResult?.success) {
+          toast.success("Login successful!")
+          router.push("/dashboard")
+        }
+        return
+      }
+
       const confirmationResult = window.confirmationResult
       const firebaseResult = await confirmationResult.confirm(userLoginOtp)
       let backendResult;
@@ -225,7 +244,7 @@ export default function AuthPage() {
         router.push("/dashboard")
       }
     } catch (error) {
-      console.error("Error verifying OTP:", error)
+      // console.error("Error verifying OTP:", error)
       toast.error("Invalid OTP. Please try again.")
     }
   }
@@ -321,7 +340,7 @@ export default function AuthPage() {
         }
       }
     } catch (error: any) {
-      console.error("Registration error:", error)
+      // console.error("Registration error:", error)
       
       // Handle different types of errors
       if (error.response) {
@@ -387,6 +406,27 @@ export default function AuthPage() {
     }
 
     try {
+      // Debug mode: Skip Firebase OTP confirmation
+      if (isDevelopment()) {
+        debugLog("Debug mode: Skipping Firebase OTP confirmation for admin")
+        if (adminLoginOtp !== DEBUG_OTP) {
+          toast.error(`[DEBUG MODE] Invalid OTP. Use: ${DEBUG_OTP}`)
+          return
+        }
+        const loginResult = await login(
+          adminLoginData.email,
+          adminLoginData.phoneNumber,
+          adminLoginData.countryCode,
+          true // isAdmin flag set to true
+        )
+        if (loginResult.success) {
+          toast.success("Admin login successful!")
+        } else {
+          toast.error("Admin login failed. Please try again.")
+        }
+        return
+      }
+
       const confirmationResult = window.confirmationResult
       const result = await confirmationResult.confirm(adminLoginOtp)
 
@@ -406,7 +446,7 @@ export default function AuthPage() {
         }
       }
     } catch (error) {
-      console.error("Error verifying OTP:", error)
+      // console.error("Error verifying OTP:", error)
       toast.error("Invalid OTP. Please try again.")
     }
   }
@@ -419,9 +459,19 @@ export default function AuthPage() {
 
     const phoneNumber = `${userRegisterData.countryCode}${userRegisterData.phone_number}`
 
+    // Debug mode: Skip Firebase OTP, use DEBUG_OTP
+    if (isDevelopment()) {
+      debugLog("Debug mode: Skipping Firebase OTP verification for user registration")
+      toast.success(`[DEBUG MODE] OTP sent to ${phoneNumber}. Use code: ${DEBUG_OTP}`)
+      setUserOtpSent(true)
+      setUserOtp(DEBUG_OTP) // Auto-fill the OTP
+      setUserRegisterResendCountdown(10)
+      return
+    }
+
     try {
       const recaptchaVerifier = setupRecaptcha(phoneNumber)
-      console.log("recaptchaVerifier", recaptchaVerifier)
+      // console.log("recaptchaVerifier", recaptchaVerifier)
       const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier)
 
       window.confirmationResult = confirmationResult
@@ -429,7 +479,7 @@ export default function AuthPage() {
       setUserOtpSent(true)
       setUserRegisterResendCountdown(10)
     } catch (error) {
-      console.error("Error sending OTP:", error)
+      // console.error("Error sending OTP:", error)
       toast.error("Failed to send OTP. Please try again.")
     }
   }
@@ -442,6 +492,16 @@ export default function AuthPage() {
 
     const phoneNumber = `${adminRegisterData.countryCode}${adminRegisterData.phone_number}`
 
+    // Debug mode: Skip Firebase OTP, use DEBUG_OTP
+    if (isDevelopment()) {
+      debugLog("Debug mode: Skipping Firebase OTP verification for admin registration")
+      toast.success(`[DEBUG MODE] OTP sent to ${phoneNumber}. Use code: ${DEBUG_OTP}`)
+      setAdminOtpSent(true)
+      setAdminOtp(DEBUG_OTP) // Auto-fill the OTP
+      setAdminRegisterResendCountdown(10)
+      return
+    }
+
     try {
       const recaptchaVerifier = setupRecaptcha(phoneNumber)
       const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier)
@@ -451,7 +511,7 @@ export default function AuthPage() {
       setAdminOtpSent(true)
       setAdminRegisterResendCountdown(10)
     } catch (error) {
-      console.error("Error sending OTP:", error)
+      // console.error("Error sending OTP:", error)
       toast.error("Failed to send OTP. Please try again.")
     }
   }
@@ -464,6 +524,16 @@ export default function AuthPage() {
 
     const phoneNumber = `${systemOwnerRegisterData.countryCode}${systemOwnerRegisterData.phone_number}`
 
+    // Debug mode: Skip Firebase OTP, use DEBUG_OTP
+    if (isDevelopment()) {
+      debugLog("Debug mode: Skipping Firebase OTP verification for system owner registration")
+      toast.success(`[DEBUG MODE] OTP sent to ${phoneNumber}. Use code: ${DEBUG_OTP}`)
+      setSystemOwnerOtpSent(true)
+      setSystemOwnerOtp(DEBUG_OTP) // Auto-fill the OTP
+      setSystemOwnerRegisterResendCountdown(10)
+      return
+    }
+
     try {
       const recaptchaVerifier = setupRecaptcha(phoneNumber)
       const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier)
@@ -473,7 +543,7 @@ export default function AuthPage() {
       setSystemOwnerOtpSent(true)
       setSystemOwnerRegisterResendCountdown(10)
     } catch (error) {
-      console.error("Error sending OTP:", error)
+      // console.error("Error sending OTP:", error)
       toast.error("Failed to send OTP. Please try again.")
     }
   }
@@ -487,16 +557,26 @@ export default function AuthPage() {
 
     const phoneNumber = `${userLoginData.countryCode}${userLoginData.phone_number}`
 
+    // Debug mode: Skip Firebase OTP, use DEBUG_OTP
+    if (isDevelopment()) {
+      debugLog("Debug mode: Skipping Firebase OTP verification")
+      toast.success(`[DEBUG MODE] OTP sent to ${phoneNumber}. Use code: ${DEBUG_OTP}`)
+      setUserLoginOtpSent(true)
+      setUserLoginOtp(DEBUG_OTP) // Auto-fill the OTP
+      setUserLoginResendCountdown(10)
+      return
+    }
+
     try {
       const recaptchaVerifier = setupRecaptcha(phoneNumber)
-      console.log("recaptchaVerifier", recaptchaVerifier)
+      // console.log("recaptchaVerifier", recaptchaVerifier)
       const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier)
       window.confirmationResult = confirmationResult
       toast.success(`OTP sent to ${phoneNumber}`)
       setUserLoginOtpSent(true)
       setUserLoginResendCountdown(10)
     } catch (error) {
-      console.error("Error sending OTP:", error)
+      // console.error("Error sending OTP:", error)
       toast.error("Failed to send OTP. Please try again.")
     }
   }
@@ -509,6 +589,16 @@ export default function AuthPage() {
 
     const phoneNumber = `${adminLoginData.countryCode}${adminLoginData.phoneNumber}`
 
+    // Debug mode: Skip Firebase OTP, use DEBUG_OTP
+    if (isDevelopment()) {
+      debugLog("Debug mode: Skipping Firebase OTP verification for admin")
+      toast.success(`[DEBUG MODE] OTP sent to ${phoneNumber}. Use code: ${DEBUG_OTP}`)
+      setAdminLoginOtpSent(true)
+      setAdminLoginOtp(DEBUG_OTP) // Auto-fill the OTP
+      setAdminLoginResendCountdown(10)
+      return
+    }
+
     try {
       const recaptchaVerifier = setupRecaptcha(phoneNumber)
       const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier)
@@ -517,7 +607,7 @@ export default function AuthPage() {
       setAdminLoginOtpSent(true)
       setAdminLoginResendCountdown(10)
     } catch (error) {
-      console.error("Error sending OTP:", error)
+      // console.error("Error sending OTP:", error)
       toast.error("Failed to send OTP. Please try again.")
     }
   }
@@ -530,6 +620,16 @@ export default function AuthPage() {
 
     const phoneNumber = `${systemOwnerLoginData.countryCode}${systemOwnerLoginData.phoneNumber}`
 
+    // Debug mode: Skip Firebase OTP, use DEBUG_OTP
+    if (isDevelopment()) {
+      debugLog("Debug mode: Skipping Firebase OTP verification for system owner")
+      toast.success(`[DEBUG MODE] OTP sent to ${phoneNumber}. Use code: ${DEBUG_OTP}`)
+      setSystemOwnerLoginOtpSent(true)
+      setSystemOwnerLoginOtp(DEBUG_OTP) // Auto-fill the OTP
+      setSystemOwnerLoginResendCountdown(10)
+      return
+    }
+
     try {
       const recaptchaVerifier = setupRecaptcha(phoneNumber)
       const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier)
@@ -538,7 +638,7 @@ export default function AuthPage() {
       setSystemOwnerLoginOtpSent(true)
       setSystemOwnerLoginResendCountdown(10)
     } catch (error) {
-      console.error("Error sending OTP:", error)
+      // console.error("Error sending OTP:", error)
       toast.error("Failed to send OTP. Please try again.")
     }
   }
@@ -598,8 +698,10 @@ export default function AuthPage() {
       return
     }
 
-    if (adminOtp !== generatedOtp) {
-      toast.error("Invalid OTP. Please check and try again")
+    // Debug mode: Use DEBUG_OTP instead of generatedOtp
+    const expectedOtp = isDevelopment() ? DEBUG_OTP : generatedOtp
+    if (adminOtp !== expectedOtp) {
+      toast.error(isDevelopment() ? `[DEBUG MODE] Invalid OTP. Use: ${DEBUG_OTP}` : "Invalid OTP. Please check and try again")
       return
     }
     */
@@ -623,7 +725,7 @@ export default function AuthPage() {
         toast.error(result.error || "Admin registration failed. Please check your admin code.")
       }
     } catch (error) {
-      console.error("Admin registration error:", error)
+      // console.error("Admin registration error:", error)
       toast.error("An error occurred during admin registration.")
     } finally {
       setIsLoading(false)
@@ -638,8 +740,10 @@ export default function AuthPage() {
       return
     }
 
-    if (systemOwnerLoginOtp !== generatedLoginOtp) {
-      toast.error("Invalid OTP. Please check and try again")
+    // Debug mode: Use DEBUG_OTP instead of generatedLoginOtp
+    const expectedOtp = isDevelopment() ? DEBUG_OTP : generatedLoginOtp
+    if (systemOwnerLoginOtp !== expectedOtp) {
+      toast.error(isDevelopment() ? `[DEBUG MODE] Invalid OTP. Use: ${DEBUG_OTP}` : "Invalid OTP. Please check and try again")
       return
     }
 
@@ -654,7 +758,7 @@ export default function AuthPage() {
         toast.error(result.error || "System Owner login failed. Please check your credentials.")
       }
     } catch (error) {
-      console.error("System Owner login error:", error)
+      // console.error("System Owner login error:", error)
       toast.error("An error occurred during System Owner login.")
     } finally {
       setIsLoading(false)
@@ -670,8 +774,10 @@ export default function AuthPage() {
       return
     }
 
-    if (systemOwnerOtp !== generatedOtp) {
-      toast.error("Invalid OTP. Please check and try again")
+    // Debug mode: Use DEBUG_OTP instead of generatedOtp
+    const expectedOtp = isDevelopment() ? DEBUG_OTP : generatedOtp
+    if (systemOwnerOtp !== expectedOtp) {
+      toast.error(isDevelopment() ? `[DEBUG MODE] Invalid OTP. Use: ${DEBUG_OTP}` : "Invalid OTP. Please check and try again")
       return
     }
     */
@@ -695,7 +801,7 @@ export default function AuthPage() {
         toast.error(result.error || "System Owner registration failed.")
       }
     } catch (error) {
-      console.error("System Owner registration error:", error)
+      // console.error("System Owner registration error:", error)
       toast.error("An error occurred during System Owner registration.")
     } finally {
       setIsLoading(false)
@@ -1280,7 +1386,7 @@ export default function AuthPage() {
                           <div className="flex items-center gap-2">
                             <Input
                               id="user-otp"
-                              type="text"
+                              type="password"
                               placeholder="Enter 6-digit OTP"
                               value={userOtp}
                               onChange={(e) => setUserOtp(e.target.value)}
@@ -1584,7 +1690,7 @@ export default function AuthPage() {
                         <div className="flex items-center gap-2">
                           <Input
                             id="admin-otp"
-                            type="text"
+                            type="password"
                             placeholder="Enter 6-digit OTP"
                             value={adminOtp}
                             onChange={(e) => setAdminOtp(e.target.value)}
@@ -1902,7 +2008,7 @@ export default function AuthPage() {
                         <div className="flex items-center gap-2">
                           <Input
                             id="system-owner-otp"
-                            type="text"
+                            type="password"
                             placeholder="Enter 6-digit OTP"
                             value={systemOwnerOtp}
                             onChange={(e) => setSystemOwnerOtp(e.target.value)}

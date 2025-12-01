@@ -163,7 +163,7 @@ export function EventRegistrationModal({
         toast.error(response.error || "Failed to register for event")
       }
     } catch (error) {
-      console.error("Error registering for event:", error)
+      // console.error("Error registering for event:", error)
       toast.error("An error occurred while registering for the event")
     } finally {
       setLoading(false)
@@ -198,7 +198,7 @@ export function EventRegistrationModal({
         toast.error(response.error || "Invalid coupon code")
       }
     } catch (error) {
-      console.error("Error validating coupon:", error)
+      // console.error("Error validating coupon:", error)
       setAppliedCoupon(null)
       toast.error("Failed to validate coupon")
     } finally {
@@ -227,7 +227,7 @@ export function EventRegistrationModal({
         toast.error(response.error || "Failed to cancel registration")
       }
     } catch (error) {
-      console.error("Error cancelling registration:", error)
+      // console.error("Error cancelling registration:", error)
       toast.error("An error occurred while cancelling registration")
     } finally {
       setLoading(false)

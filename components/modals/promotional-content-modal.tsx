@@ -130,23 +130,23 @@ export default function PromotionalContentModal({ isOpen, onClose, onContentCrea
 
   const fetchPromotionalContent = async () => {
     try {
-      console.log('Fetching promotions from:', getApiUrl(API_ENDPOINTS.promotions.getAll))
+      // console.log('Fetching promotions from:', getApiUrl(API_ENDPOINTS.promotions.getAll))
       
       const response = await fetch(getApiUrl(API_ENDPOINTS.promotions.getAll))
       
-      console.log('Response status:', response.status)
+      // console.log('Response status:', response.status)
       
       if (response.ok) {
         const data = await response.json()
-        console.log('Promotions data:', data)
+        // console.log('Promotions data:', data)
         setContents(data.data || data.promotions || [])
       } else {
-        console.error('Failed to fetch promotions:', response.status, response.statusText)
+        // console.error('Failed to fetch promotions:', response.status, response.statusText)
         const errorData = await response.json().catch(() => ({}))
-        console.error('Error data:', errorData)
+        // console.error('Error data:', errorData)
       }
     } catch (error) {
-      console.error('Error fetching promotional content:', error)
+      // console.error('Error fetching promotional content:', error)
     }
   }
 
@@ -217,7 +217,7 @@ export default function PromotionalContentModal({ isOpen, onClose, onContentCrea
         toast.error(data.message || errorMessage)
       }
     } catch (error) {
-      console.error('Error saving promotional content:', error)
+      // console.error('Error saving promotional content:', error)
               const errorMessage = currentEditingPromotion ? "updating" : "creating"
       toast.error(`An error occurred while ${errorMessage} the content`)
     } finally {
@@ -256,7 +256,7 @@ export default function PromotionalContentModal({ isOpen, onClose, onContentCrea
         fetchPromotionalContent()
       }
     } catch (error) {
-      console.error('Error updating content status:', error)
+      // console.error('Error updating content status:', error)
       toast.error("Failed to update content status")
     }
   }
@@ -280,7 +280,7 @@ export default function PromotionalContentModal({ isOpen, onClose, onContentCrea
         fetchPromotionalContent()
       }
     } catch (error) {
-      console.error('Error deleting content:', error)
+      // console.error('Error deleting content:', error)
       toast.error("Failed to delete content")
     }
   }

@@ -69,23 +69,23 @@ export function UnassignVolunteerModal({
         const validVolunteers = volunteers.filter(volunteer => volunteer.user);
         const invalidVolunteers = volunteers.filter(volunteer => !volunteer.user);
         
-        console.log('🔍 Found assigned volunteers:', volunteers.length);
-        console.log('🔍 Valid volunteers with user data:', validVolunteers.length);
-        console.log('🔍 Volunteers without user data:', invalidVolunteers.length);
-        console.log('🔍 Volunteer data structure:', volunteers.map(v => ({
-          id: v._id,
-          hasUser: !!v.user,
-          userFields: v.user ? Object.keys(v.user) : 'No user object',
-          userData: v.user
-        })));
+        // // console.log('🔍 Found assigned volunteers:', volunteers.length);
+        // // console.log('🔍 Valid volunteers with user data:', validVolunteers.length);
+        // // console.log('🔍 Volunteers without user data:', invalidVolunteers.length);
+        // console.log('🔍 Volunteer data structure:', volunteers.map(v => ({
+        //   id: v._id,
+        //   hasUser: !!v.user,
+        //   userFields: v.user ? Object.keys(v.user) : 'No user object',
+        //   userData: v.user
+        // })));
         setAssignedVolunteers(validVolunteers);
         setVolunteersWithoutUserData(invalidVolunteers.length);
       } else {
-        console.error('Failed to fetch volunteers:', response.error);
+        // // console.error('Failed to fetch volunteers:', response.error);
         setAssignedVolunteers([]);
       }
     } catch (error) {
-      console.error('Error fetching assigned volunteers:', error);
+      // // console.error('Error fetching assigned volunteers:', error);
       toast({
         title: 'Error',
         description: 'Failed to fetch volunteer details',
@@ -128,7 +128,7 @@ export function UnassignVolunteerModal({
         });
       }
     } catch (error) {
-      console.error('Error unassigning volunteer:', error);
+      // // console.error('Error unassigning volunteer:', error);
       toast({
         title: 'Error',
         description: 'Failed to unassign volunteer',

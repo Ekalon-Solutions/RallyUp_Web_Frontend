@@ -35,11 +35,11 @@ export function useClubSettings(clubId?: string) {
           // API client wraps it as { success: true, data: { success: true, data: settings } }
           // So we need response.data.data
           const actualData = response.data.data || response.data
-          console.log('useClubSettings - Actual data:', actualData)
+          // console.log('useClubSettings - Actual data:', actualData)
           setSettings(actualData)
         }
       } catch (error) {
-        console.error('Error loading club settings:', error)
+        // console.error('Error loading club settings:', error)
       } finally {
         setLoading(false)
       }

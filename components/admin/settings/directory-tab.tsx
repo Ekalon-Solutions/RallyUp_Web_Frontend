@@ -46,13 +46,13 @@ export function DirectoryTab() {
       setLoading(true)
       const response = await apiClient.getClubSettings(clubId)
       
-      console.log('📡 Load response:', response)
+      // console.log('📡 Load response:', response)
       
       if (response.success && response.data) {
         const actualData = response.data.data || response.data
         const groupListings = actualData.groupListings || []
         
-        console.log('📋 Group listings:', groupListings)
+        // console.log('📋 Group listings:', groupListings)
         
         // Load the first (and only) group listing which represents the admin's club
         if (groupListings.length > 0) {
@@ -66,7 +66,7 @@ export function DirectoryTab() {
         }
       }
     } catch (error) {
-      console.error("Error loading club info:", error)
+      // console.error("Error loading club info:", error)
       toast.error("Failed to load club information")
     } finally {
       setLoading(false)
@@ -132,18 +132,18 @@ export function DirectoryTab() {
         isVisible: true
       }]
       
-      console.log('💾 Saving club settings:', listings)
+      // console.log('💾 Saving club settings:', listings)
       const settingsResponse = await apiClient.updateGroupListings(clubId, listings)
-      console.log('📥 Settings response:', settingsResponse)
+      // console.log('📥 Settings response:', settingsResponse)
       
       // 2. Update the actual Club model (so name appears everywhere)
-      console.log('💾 Updating club basic info:', { name: clubInfo.name, description: clubInfo.description })
+      // console.log('💾 Updating club basic info:', { name: clubInfo.name, description: clubInfo.description })
       const clubResponse = await apiClient.updateClubBasicInfo(clubId, {
         name: clubInfo.name,
         description: clubInfo.description,
         contactInfo: clubInfo.contactInfo
       })
-      console.log('📥 Club response:', clubResponse)
+      // console.log('📥 Club response:', clubResponse)
       
       if (settingsResponse.success && clubResponse.success) {
         toast.success("Club information saved successfully!")
@@ -155,7 +155,7 @@ export function DirectoryTab() {
         toast.error("Failed to save some information")
       }
     } catch (error) {
-      console.error("Error saving club info:", error)
+      // console.error("Error saving club info:", error)
       toast.error("Failed to save club information")
     } finally {
       setSaving(false)

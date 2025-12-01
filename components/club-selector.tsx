@@ -50,12 +50,12 @@ export const ClubSelector: React.FC<ClubSelectorProps> = ({ onClubSelect, select
     try {
       setIsLoading(true)
       
-      console.log('ClubSelector: Loading memberships, user:', user)
+      // console.log('ClubSelector: Loading memberships, user:', user)
       
       // Get memberships from user object (already in auth context)
       if (user && (user as any).memberships) {
         const userMemberships = (user as any).memberships || []
-        console.log('ClubSelector: Found memberships from user object:', userMemberships)
+        // console.log('ClubSelector: Found memberships from user object:', userMemberships)
         
         // Filter only active memberships and ensure unique by club_id
         const activeMemberships = userMemberships.filter((m: any) => m.status === 'active')
@@ -75,23 +75,23 @@ export const ClubSelector: React.FC<ClubSelectorProps> = ({ onClubSelect, select
           return acc
         }, [])
         
-        console.log('ClubSelector: Active memberships:', activeMemberships)
-        console.log('ClubSelector: Unique memberships:', uniqueMemberships)
+        // console.log('ClubSelector: Active memberships:', activeMemberships)
+        // console.log('ClubSelector: Unique memberships:', uniqueMemberships)
         setMemberships(uniqueMemberships)
         
         // Auto-select first club if none selected
         if (!selectedClubId && uniqueMemberships.length > 0) {
-          console.log('ClubSelector: Auto-selecting first club:', uniqueMemberships[0].club_id._id)
+          // console.log('ClubSelector: Auto-selecting first club:', uniqueMemberships[0].club_id._id)
           onClubSelect(uniqueMemberships[0].club_id._id)
         } else if (uniqueMemberships.length === 0) {
-          console.log('ClubSelector: No active memberships found')
+          // console.log('ClubSelector: No active memberships found')
         }
       } else {
-        console.log('ClubSelector: User object has no memberships, trying API')
+        // console.log('ClubSelector: User object has no memberships, trying API')
         // Fallback: try API endpoint (might not exist yet)
         try {
           const response = await apiClient.getUserMemberships()
-          console.log('ClubSelector: API response:', response)
+          // console.log('ClubSelector: API response:', response)
           
           if (response.success) {
             const membershipData = Array.isArray(response.data) ? response.data : []
@@ -104,14 +104,14 @@ export const ClubSelector: React.FC<ClubSelectorProps> = ({ onClubSelect, select
             }
           }
         } catch (apiError) {
-          console.warn('ClubSelector: API endpoint /users/memberships not available, using user object data')
+          // console.warn('ClubSelector: API endpoint /users/memberships not available, using user object data')
         }
       }
     } catch (error) {
-      console.error('ClubSelector: Error loading memberships:', error)
+      // console.error('ClubSelector: Error loading memberships:', error)
       toast.error("Failed to load your club memberships")
     } finally {
-      console.log('ClubSelector: Finished loading, isLoading = false')
+      // console.log('ClubSelector: Finished loading, isLoading = false')
       setIsLoading(false)
     }
   }

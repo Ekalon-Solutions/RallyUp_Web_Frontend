@@ -73,10 +73,10 @@ export function DesignSettingsTab() {
           }
         }
         setSettings(designSettings)
-        console.log("Loaded design settings:", designSettings)
+        // console.log("Loaded design settings:", designSettings)
       }
     } catch (error) {
-      console.error("Error loading design settings:", error)
+      // console.error("Error loading design settings:", error)
       toast.error("Failed to load design settings")
     } finally {
       setLoading(false)
@@ -115,7 +115,7 @@ export function DesignSettingsTab() {
 
     try {
       setSaving(true)
-      console.log("Saving design settings:", settings)
+      // console.log("Saving design settings:", settings)
       
       const response = await apiClient.updateDesignSettings(clubId, settings)
       
@@ -126,7 +126,7 @@ export function DesignSettingsTab() {
         toast.error(response.message || "Failed to save design settings")
       }
     } catch (error) {
-      console.error("Error saving design settings:", error)
+      // console.error("Error saving design settings:", error)
       toast.error("Failed to save design settings")
     } finally {
       setSaving(false)

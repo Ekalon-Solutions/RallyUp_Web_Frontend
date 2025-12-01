@@ -102,14 +102,14 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
     async function fetchClubs() {
       try {
         const res: any = await apiClient.getPublicClubs()
-        console.log('Fetched clubs for event modal:', res)
+        // console.log('Fetched clubs for event modal:', res)
         if (mounted && res?.data) {
           // res.data might be an array or an object with items
           const list = res?.data?.clubs || []
           setClubs(list.map((c: any) => ({ _id: c._id, name: c.name })))
         }
-      } catch (err) {
-        console.error('Failed to load clubs for event modal', err)
+            } catch (err) {
+        // console.error('Failed to load clubs for event modal', err)
       }
     }
 
@@ -370,7 +370,7 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
           minQuantity: parseInt(formData.groupDiscountMinQty)
         } : { enabled: false, type: 'percentage', value: 0, minQuantity: 2 }
       }
-      console.log("eventData to submit:", eventData)
+      // console.log("eventData to submit:", eventData)
       // Use API client to create/update event
       let response
       if (editEvent) {
@@ -392,7 +392,7 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
         }
       }
     } catch (error) {
-      console.error("Error saving event:", error)
+      // console.error("Error saving event:", error)
 
       // Provide user-friendly error messages
       let errorMessage = "An error occurred while saving the event"

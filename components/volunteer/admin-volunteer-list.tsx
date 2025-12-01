@@ -93,7 +93,7 @@ export default function AdminVolunteerList({ clubId, currentUser }: AdminVolunte
         throw new Error('Failed to fetch volunteers');
       }
     } catch (error) {
-      console.error('Error fetching volunteers:', error);
+      // // console.error('Error fetching volunteers:', error);
       toast({
         title: 'Error',
         description: 'Failed to load volunteers. Please try again.',

@@ -122,7 +122,7 @@ export default function MemberChantsPage() {
       setTotalPages(Math.ceil(allChants.length / itemsPerPage));
       
     } catch (error) {
-      console.error('Error fetching chants:', error);
+      // // console.error('Error fetching chants:', error);
       toast({
         title: "Error",
         description: "Failed to fetch chants",
@@ -175,7 +175,7 @@ export default function MemberChantsPage() {
           url: window.location.href
         });
       } catch (error) {
-        console.log('Error sharing:', error);
+        // // console.log('Error sharing:', error);
       }
     } else {
       // Fallback: copy to clipboard

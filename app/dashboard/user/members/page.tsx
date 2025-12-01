@@ -59,9 +59,9 @@ export default function ClubMembersPage() {
   })
 
   useEffect(() => {
-    console.log('User data in ClubMembersPage:', user)
-    console.log('User memberships:', (user as any)?.memberships)
-    console.log('User memberships length:', (user as any)?.memberships?.length)
+    // console.log('User data in ClubMembersPage:', user)
+    // console.log('User memberships:', (user as any)?.memberships)
+    // console.log('User memberships length:', (user as any)?.memberships?.length)
     if (user) {
       fetchClubMembers()
     }
@@ -72,13 +72,13 @@ export default function ClubMembersPage() {
       setLoading(true)
       
       // Check if user has club memberships
-      console.log('Checking user memberships in fetchClubMembers:')
-      console.log('User object keys:', Object.keys(user || {}))
-      console.log('User memberships:', (user as any)?.memberships)
-      console.log('User memberships length:', (user as any)?.memberships?.length)
+      // console.log('Checking user memberships in fetchClubMembers:')
+      // console.log('User object keys:', Object.keys(user || {}))
+      // console.log('User memberships:', (user as any)?.memberships)
+      // console.log('User memberships length:', (user as any)?.memberships?.length)
       
       if (!(user as any)?.memberships || (user as any).memberships.length === 0) {
-        console.log('No memberships found - showing error')
+        // console.log('No memberships found - showing error')
         toast.error('No club memberships found. Please join a club first.')
         setLoading(false)
         return
@@ -90,7 +90,7 @@ export default function ClubMembersPage() {
       )
 
       if (!activeMembership?.club_id?._id) {
-        console.log('No active club membership found')
+        // console.log('No active club membership found')
         toast.error('No active club membership found. Please join a club first.')
         setLoading(false)
         return
@@ -98,7 +98,7 @@ export default function ClubMembersPage() {
 
       setActiveClubId(activeMembership.club_id._id)
 
-      console.log('Fetching club members for club ID:', activeMembership.club_id._id)
+      // console.log('Fetching club members for club ID:', activeMembership.club_id._id)
       const response = await apiClient.getClubMemberDirectory({
         search: searchTerm || undefined,
         page: currentPage,
@@ -106,18 +106,18 @@ export default function ClubMembersPage() {
         clubId: activeMembership.club_id._id
       })
 
-      console.log('API response:', response)
+      // console.log('API response:', response)
       if (response.success && response.data) {
-        console.log('Members data:', response.data.members)
-        console.log('Pagination data:', response.data.pagination)
+        // console.log('Members data:', response.data.members)
+        // console.log('Pagination data:', response.data.pagination)
         setMembers(response.data.members as ClubMember[])
         setPagination(response.data.pagination)
       } else {
-        console.error('API error:', response.error)
+        // console.error('API error:', response.error)
         toast.error(response.error || 'Failed to load club members')
       }
     } catch (error) {
-      console.error('Error fetching club members:', error)
+      // console.error('Error fetching club members:', error)
       toast.error('Error loading club members')
     } finally {
       setLoading(false)
@@ -291,20 +291,7 @@ export default function ClubMembersPage() {
                                 {membershipStatus.status}
                               </Badge>
                             </div>
-                            <div className="flex items-center space-x-4 text-sm text-muted-foreground mt-1">
-                              <div className="flex items-center space-x-1">
-                                <Mail className="w-3 h-3" />
-                                <span>{member.email}</span>
-                              </div>
-                              <div className="flex items-center space-x-1">
-                                <Phone className="w-3 h-3" />
-                                <span>{formatPhoneNumber(member.phoneNumber, member.countryCode)}</span>
-                              </div>
-                              <div className="flex items-center space-x-1">
-                                <Calendar className="w-3 h-3" />
-                                <span>Joined {formatDate(member.createdAt)}</span>
-                              </div>
-                            </div>
+
                             {member.membershipPlan && (
                               <div className="text-xs text-muted-foreground mt-1">
                                 Plan: {member.membershipPlan.name} ({member.membershipPlan.price} {member.membershipPlan.currency})

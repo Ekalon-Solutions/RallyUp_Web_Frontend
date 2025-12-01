@@ -122,17 +122,17 @@ export function middleware(request: NextRequest) {
              'unknown'
   
   if (isBlockedUserAgent(userAgent)) {
-    console.log(`🚫 Blocked scraping tool: ${userAgent} from ${ip}`)
+    // console.log(`🚫 Blocked scraping tool: ${userAgent} from ${ip}`)
     return new NextResponse('Access Denied', { status: 403 })
   }
   
   if (isSuspiciousRequest(request)) {
-    console.log(`⚠️ Suspicious request detected: ${userAgent} from ${ip}`)
+    // console.log(`⚠️ Suspicious request detected: ${userAgent} from ${ip}`)
     return NextResponse.redirect(new URL('/challenge', request.url))
   }
   
   if (!checkRateLimit(ip)) {
-    console.log(`🚨 Rate limit exceeded for ${ip}`)
+    // console.log(`🚨 Rate limit exceeded for ${ip}`)
     return new NextResponse('Too Many Requests', { 
       status: 429,
       headers: {

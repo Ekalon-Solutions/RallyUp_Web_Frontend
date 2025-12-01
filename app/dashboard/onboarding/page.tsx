@@ -113,10 +113,10 @@ export default function OnboardingDashboard() {
         const data = await response.json()
         setFlows(data.flows || [])
       } else {
-        console.error('Failed to fetch flows')
+        // console.error('Failed to fetch flows')
       }
     } catch (error) {
-      console.error('Error fetching flows:', error)
+      // console.error('Error fetching flows:', error)
     } finally {
       setLoading(false)
     }
@@ -130,10 +130,10 @@ export default function OnboardingDashboard() {
         const data = await response.json()
         setPromotions(data.data || [])
       } else {
-        console.error('Failed to fetch promotions')
+        // console.error('Failed to fetch promotions')
       }
     } catch (error) {
-      console.error('Error fetching promotions:', error)
+      // console.error('Error fetching promotions:', error)
     }
   }
 
@@ -162,7 +162,7 @@ export default function OnboardingDashboard() {
         toast.error('Failed to update promotion status')
       }
     } catch (error) {
-      console.error('Error updating promotion status:', error)
+      // console.error('Error updating promotion status:', error)
       toast.error('Failed to update promotion status')
     } finally {
       setUpdatingStatus(null)
@@ -188,7 +188,7 @@ export default function OnboardingDashboard() {
         toast.error('Failed to update flow status')
       }
     } catch (error) {
-      console.error('Error toggling flow status:', error)
+      // console.error('Error toggling flow status:', error)
       toast.error("Failed to update flow status")
     }
   }
@@ -214,7 +214,7 @@ export default function OnboardingDashboard() {
         toast.error("Failed to delete flow")
       }
     } catch (error) {
-      console.error('Error deleting flow:', error)
+      // console.error('Error deleting flow:', error)
       toast.error("Failed to delete flow")
     }
   }

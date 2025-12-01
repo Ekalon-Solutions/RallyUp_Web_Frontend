@@ -102,13 +102,13 @@ export default function MembershipCardsPage() {
                 cardsData = cardsResponse.data.data
               }
               
-              console.log('Fetched membership cards:', cardsData)
+              // console.log('Fetched membership cards:', cardsData)
               
               // Filter out any invalid cards - ensure card structure is valid
               const validCards = cardsData.filter(card => {
                 // Skip API response wrappers that might have slipped through
                 if (card && card.success && card.data) {
-                  console.warn('Found API response wrapper instead of card data:', card);
+//                   console.warn('Found API response wrapper instead of card data:', card);
                   return false;
                 }
                 
@@ -121,17 +121,17 @@ export default function MembershipCardsPage() {
                   card.membershipPlan; // Ensure membershipPlan exists
                 
                 if (!isValid) {
-                  console.warn('Invalid card structure found:', card);
+                  // // console.warn('Invalid card structure found:', card);
                 }
                 
                 return isValid;
               })
               
-              console.log('Valid cards after filtering:', validCards)
-              console.log(`Filtered out ${cardsData.length - validCards.length} invalid cards`)
+              // console.log('Valid cards after filtering:', validCards)
+              // console.log(`Filtered out ${cardsData.length - validCards.length} invalid cards`)
               
               if (validCards.length === 0 && cardsData.length > 0) {
-                console.error('All cards were filtered out due to invalid structure. Raw data:', cardsData);
+//                 console.error('All cards were filtered out due to invalid structure. Raw data:', cardsData);
                 toast({
                   title: "Warning",
                   description: "No valid membership cards found. Some cards may have invalid data structure.",
@@ -143,7 +143,7 @@ export default function MembershipCardsPage() {
             } else {
               // Handle API error response
               const errorMessage = cardsResponse.error || 'Failed to fetch membership cards';
-              console.error('Membership cards API error:', cardsResponse);
+              // // console.error('Membership cards API error:', cardsResponse);
               toast({
                 title: "Error",
                 description: errorMessage,
@@ -161,7 +161,7 @@ export default function MembershipCardsPage() {
           description: errorMessage,
           variant: "destructive",
         });
-        console.error('Initial data fetch error:', err);
+        // // console.error('Initial data fetch error:', err);
       } finally {
         setLoading(false)
       }
@@ -288,7 +288,7 @@ export default function MembershipCardsPage() {
           setPreviewUrl(null)
           setSelectedFile(null)
         } else {
-          console.error('Invalid card structure received:', newCard);
+          // // console.error('Invalid card structure received:', newCard);
           toast({
             title: "Error",
             description: "Received invalid card structure from server",
@@ -305,7 +305,7 @@ export default function MembershipCardsPage() {
         return
       }
     } catch (error) {
-      console.error('Error creating membership card:', error)
+      // console.error('Error creating membership card:', error)
       toast({
         title: "Error",
         description: "Failed to create membership card",
@@ -445,7 +445,7 @@ export default function MembershipCardsPage() {
             }
           } : null);
         } catch (error) {
-          console.error('Error converting logo to base64:', error);
+          // // console.error('Error converting logo to base64:', error);
           toast({
             title: "Error",
             description: "Failed to process logo file",
@@ -468,8 +468,8 @@ export default function MembershipCardsPage() {
       
       if (response.success && response.data) {
         // Debug: Log the response structure
-        console.log('Update response:', response);
-        console.log('Response data:', response.data);
+        // // console.log('Update response:', response);
+        // // console.log('Response data:', response.data);
         
         // Update the card in the list with the new data
         setCards(prev => prev.map(card => {
@@ -500,7 +500,7 @@ export default function MembershipCardsPage() {
         throw new Error(response.error || 'Failed to update card');
       }
     } catch (error) {
-      console.error('Update error:', error);
+      // // console.error('Update error:', error);
       toast({
         title: "Error",
         description: "Failed to update membership card",
@@ -869,11 +869,11 @@ export default function MembershipCardsPage() {
                     <div className="space-y-4">
                        {cards.map((card) => {
                           // Debug: Log the card structure
-                          console.log('Card structure:', card);
+                          // // console.log('Card structure:', card);
                           
                           // Check if card has the expected structure
                           if (!card || !card.card) {
-                            console.error('Invalid card structure:', card);
+                            // // console.error('Invalid card structure:', card);
                             return null; // Skip invalid cards
                           }
                           

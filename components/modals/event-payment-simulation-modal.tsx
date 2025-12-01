@@ -63,7 +63,7 @@ export function EventPaymentSimulationModal({
             setCouponDiscount(0)
           }
         } catch (error) {
-          console.error("Error validating coupon:", error)
+          // console.error("Error validating coupon:", error)
           setCouponDiscount(0)
         }
       } else {
@@ -116,7 +116,7 @@ export function EventPaymentSimulationModal({
 
       onClose();
     } catch (error) {
-      console.error("Payment simulation error:", error);
+      // // console.error("Payment simulation error:", error);
       toast({
         title: "Error",
         description:

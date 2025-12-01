@@ -64,12 +64,12 @@ export default function MembershipPlansPage() {
   const loadPlans = async () => {
     try {
       setIsLoading(true)
-      console.log('Loading membership plans...')
+      // console.log('Loading membership plans...')
       
       // Check if user is authenticated
       const token = localStorage.getItem('token')
       if (!token) {
-        console.error('No authentication token found')
+        // console.error('No authentication token found')
         toast.error('Please log in to view membership plans')
         setIsLoading(false)
         return
@@ -79,37 +79,37 @@ export default function MembershipPlansPage() {
       let clubResponse
       try {
         clubResponse = await apiClient.getAdminClub()
-        console.log('Club response:', clubResponse)
+        // console.log('Club response:', clubResponse)
       } catch (error) {
-        console.log('Could not get admin club, proceeding without club context')
+        // console.log('Could not get admin club, proceeding without club context')
       }
       
       const clubId = clubResponse?.success ? clubResponse.data?.club?._id : undefined
-      console.log('Using club ID:', clubId)
+      // console.log('Using club ID:', clubId)
       
       if (!clubId) {
-        console.log('No club ID available, trying to load plans without club context')
+        // console.log('No club ID available, trying to load plans without club context')
       }
       
       const response = await apiClient.getMembershipPlans(clubId)
-      console.log('Membership plans response:', response)
+      // console.log('Membership plans response:', response)
       
       if (response.success) {
         // Handle both direct array response and nested data response
         const plansData = Array.isArray(response.data) ? response.data : (response.data?.data || [])
-        console.log('Processed plans data:', plansData)
+        // console.log('Processed plans data:', plansData)
         setPlans(plansData)
         
         if (plansData.length === 0) {
-          console.log('No membership plans found')
+          // console.log('No membership plans found')
           toast.info('No membership plans found. You can create your first plan.')
         }
       } else {
-        console.error('Failed to load membership plans:', response.error)
+        // console.error('Failed to load membership plans:', response.error)
         toast.error(response.error || "Failed to load membership plans")
       }
     } catch (error) {
-      console.error('Error loading membership plans:', error)
+      // console.error('Error loading membership plans:', error)
       toast.error("Failed to load membership plans")
     } finally {
       setIsLoading(false)
@@ -148,7 +148,7 @@ export default function MembershipPlansPage() {
         toast.error(response.error || "Failed to create membership plan")
       }
     } catch (error) {
-      console.error('Error creating membership plan:', error)
+      // console.error('Error creating membership plan:', error)
       toast.error("An error occurred while creating the plan")
     } finally {
       setIsCreating(false)

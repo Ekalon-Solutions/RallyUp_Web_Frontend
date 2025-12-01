@@ -149,7 +149,7 @@ export function PaymentSimulationModal({
             onPaymentSuccess(orderId, response.razorpay_payment_id, response.razorpay_order_id)
             onClose()
           } catch (error) {
-            console.error('Payment verification error:', error)
+            // console.error('Payment verification error:', error)
             toast({
               title: "Payment Verification Failed",
               description: "Payment was received but verification failed. Please contact support.",
@@ -181,7 +181,7 @@ export function PaymentSimulationModal({
       const razorpay = new window.Razorpay(options)
       
       razorpay.on('payment.failed', function (response: any) {
-        console.error('Payment failed:', response.error)
+        // console.error('Payment failed:', response.error)
         toast({
           title: "Payment Failed",
           description: response.error.description || "Payment processing failed. Please try again.",
@@ -193,7 +193,7 @@ export function PaymentSimulationModal({
 
       razorpay.open()
     } catch (error) {
-      console.error('Payment initiation error:', error)
+      // console.error('Payment initiation error:', error)
       toast({
         title: "Error",
         description: "Failed to initiate payment. Please try again.",

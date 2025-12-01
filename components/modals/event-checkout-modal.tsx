@@ -11,6 +11,13 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api"
+import { useAuth } from "@/contexts/auth-context"
+
+declare global {
+  interface Window {
+    Razorpay: any
+  }
+}
 
 interface EventCheckoutModalProps {
   isOpen: boolean
@@ -28,9 +35,31 @@ interface EventCheckoutModalProps {
 }
 
 export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCode, onSuccess }: EventCheckoutModalProps) {
+  const { user } = useAuth()
   const [loading, setLoading] = useState(false)
   const [couponDiscount, setCouponDiscount] = useState(0)
   const [couponName, setCouponName] = useState("")
+  const [scriptLoaded, setScriptLoaded] = useState(false)
+
+  useEffect(() => {
+    // Load Razorpay script
+    if (isOpen && !scriptLoaded) {
+      const script = document.createElement('script')
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+      script.async = true
+      script.onload = () => setScriptLoaded(true)
+      script.onerror = () => {
+        toast.error("Failed to load payment system. Please refresh the page.")
+      }
+      document.body.appendChild(script)
+
+      return () => {
+        if (document.body.contains(script)) {
+          document.body.removeChild(script)
+        }
+      }
+    }
+  }, [isOpen, scriptLoaded])
 
   useEffect(() => {
     const validateCoupon = async () => {
@@ -48,7 +77,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
             setCouponName("")
           }
         } catch (error) {
-          console.error("Error validating coupon:", error)
+          // console.error("Error validating coupon:", error)
           setCouponDiscount(0)
           setCouponName("")
         }
@@ -62,16 +91,150 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
   }, [couponCode, event?._id, attendees.length, isOpen])
 
   const handlePayment = async () => {
+    if (!scriptLoaded) {
+      toast.error("Payment system is still loading. Please wait.")
+      return
+    }
+
+    if (!event?._id) {
+      toast.error("Event information is missing")
+      return
+    }
+
     setLoading(true)
+
     try {
-      // Simulate API call for payment
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      onSuccess()
-      onClose()
+      const basePrice = calculateDiscountedPrice()
+      const totalBeforeCoupon = basePrice * attendees.length
+      const finalPrice = Math.max(totalBeforeCoupon - couponDiscount, 0)
+
+      if (finalPrice <= 0) {
+        // Free event, register directly
+        const response = await apiClient.registerForEvent(
+          event._id,
+          undefined,
+          attendees,
+          couponCode
+        )
+        
+        if (response.success) {
+          toast.success("Successfully registered for event!")
+          onSuccess()
+          onClose()
+        } else {
+          toast.error(response.error || "Failed to register for event")
+        }
+        setLoading(false)
+        return
+      }
+
+      // Create Razorpay order
+      const response = await fetch('/api/razorpay/create-order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount: finalPrice,
+          currency: 'INR',
+          orderId: `event_${event._id}_${Date.now()}`,
+          orderNumber: `EVT-${Date.now()}`,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to create payment order')
+      }
+
+      const { razorpayOrderId, amount, currency: orderCurrency } = await response.json()
+
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        amount: amount,
+        currency: orderCurrency,
+        name: 'RallyUp',
+        description: `Payment for ${event.name} - ${attendees.length} ticket(s)`,
+        order_id: razorpayOrderId,
+        method: {
+          netbanking: true,
+          card: true,
+          wallet: true,
+          upi: true,
+          paylater: true,
+          cardless_emi: true,
+          emi: true,
+          bank_transfer: true,
+        },
+        handler: async function (response: any) {
+          try {
+            // Verify payment
+            const verifyResponse = await fetch('/api/razorpay/verify-payment', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                orderId: `event_${event._id}_${Date.now()}`,
+              }),
+            })
+
+            if (!verifyResponse.ok) {
+              throw new Error('Payment verification failed')
+            }
+
+            // Register for event after successful payment
+            const registerResponse = await apiClient.registerForEvent(
+              event._id,
+              undefined,
+              attendees,
+              couponCode
+            )
+
+            if (registerResponse.success) {
+              toast.success("Payment successful! You are now registered for the event.")
+              onSuccess()
+              onClose()
+            } else {
+              toast.error("Payment successful but registration failed. Please contact support.")
+            }
+          } catch (error) {
+            // console.error('Payment verification error:', error)
+            toast.error("Payment verification failed. Please contact support.")
+          } finally {
+            setLoading(false)
+          }
+        },
+        prefill: {
+          name: user?.name || '',
+          email: user?.email || '',
+          contact: user?.phoneNumber || '',
+        },
+        theme: {
+          color: '#3b82f6',
+        },
+        modal: {
+          ondismiss: function() {
+            setLoading(false)
+            toast.error("Payment cancelled")
+          }
+        }
+      }
+
+      const razorpay = new window.Razorpay(options)
+      
+      razorpay.on('payment.failed', function (response: any) {
+        // console.error('Payment failed:', response.error)
+        toast.error(response.error.description || "Payment processing failed. Please try again.")
+        setLoading(false)
+      })
+
+      razorpay.open()
     } catch (error) {
-      console.error("Payment error:", error)
-      toast.error("Payment failed. Please try again.")
-    } finally {
+      // console.error('Payment initiation error:', error)
+      toast.error("Failed to initiate payment. Please try again.")
       setLoading(false)
     }
   }

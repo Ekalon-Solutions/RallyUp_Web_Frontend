@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!process.env.RAZORPAY_KEY_SECRET) {
-      console.error('Razorpay secret key not configured')
+      // console.error('Razorpay secret key not configured')
       return NextResponse.json(
         { error: 'Payment verification not configured' },
         { status: 500 }
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
     const isAuthentic = expectedSignature === razorpay_signature
 
     if (!isAuthentic) {
-      console.error('Payment signature verification failed')
+      // console.error('Payment signature verification failed')
       return NextResponse.json(
         { error: 'Invalid payment signature' },
         { status: 400 }
@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
         }
       })
     } catch (fetchError) {
-      console.warn('Could not fetch payment details:', fetchError)
+      // console.warn('Could not fetch payment details:', fetchError)
       return NextResponse.json({
         success: true,
         message: 'Payment verified successfully',
@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
       })
     }
   } catch (error: any) {
-    console.error('Payment verification error:', error)
+    // console.error('Payment verification error:', error)
     return NextResponse.json(
       { 
         error: 'Payment verification failed',

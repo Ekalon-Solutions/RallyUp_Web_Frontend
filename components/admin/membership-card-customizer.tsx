@@ -106,7 +106,7 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
             }
           } else {
             // If no cards found, create a mock card for preview purposes
-            console.log('No membership cards found. Creating mock card for preview.');
+            // // console.log('No membership cards found. Creating mock card for preview.');
             
             // Create a minimal mock card structure for preview
             const mockCard = {
@@ -144,7 +144,7 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
           }
         } else {
           // API returned error or no data
-          console.warn('API returned no data, creating preview card');
+          // // console.warn('API returned no data, creating preview card');
           const mockCard = {
             card: {
               _id: 'preview-card',
@@ -179,7 +179,7 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
           setCardData(mockCard);
         }
       } catch (error: any) {
-        console.error('Error fetching card data:', error);
+        // // console.error('Error fetching card data:', error);
         
         // Always create a mock card for preview on error
         const mockCard = {
@@ -283,7 +283,7 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
         description: "Logo uploaded successfully",
       });
     } catch (error) {
-      console.error('Error uploading logo:', error);
+      // // console.error('Error uploading logo:', error);
       toast({
         title: "Upload failed",
         description: "Failed to upload logo",
@@ -338,7 +338,7 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
         throw new Error(response.error || 'Failed to save');
       }
     } catch (error) {
-      console.error('Error saving customization:', error);
+      // // console.error('Error saving customization:', error);
       toast({
         title: "Error",
         description: "Failed to save customization",
