@@ -108,7 +108,7 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
           const list = res?.data?.clubs || []
           setClubs(list.map((c: any) => ({ _id: c._id, name: c.name })))
         }
-      } catch (err) {
+            } catch (err) {
         // console.error('Failed to load clubs for event modal', err)
       }
     }
