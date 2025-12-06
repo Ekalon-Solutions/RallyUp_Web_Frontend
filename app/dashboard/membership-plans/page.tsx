@@ -37,6 +37,8 @@ interface MembershipPlan {
 export default function MembershipPlansPage() {
   const [plans, setPlans] = useState<MembershipPlan[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [clubs, setClubs] = useState<Array<{ _id: string; name: string }>>([])
+  const [selectedClubId, setSelectedClubId] = useState<string | undefined>(undefined)
   const [isCreating, setIsCreating] = useState(false)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [formData, setFormData] = useState({
@@ -58,10 +60,15 @@ export default function MembershipPlansPage() {
   })
 
   useEffect(() => {
-    loadPlans()
+    // Load clubs and then plans
+    loadClubsAndDefault()
   }, [])
 
   const loadPlans = async () => {
+    return loadPlansForClub(selectedClubId)
+  }
+
+  const loadPlansForClub = async (clubId?: string) => {
     try {
       setIsLoading(true)
       // console.log('Loading membership plans...')
@@ -75,28 +82,13 @@ export default function MembershipPlansPage() {
         return
       }
       
-      // First, let's try to get the user's club context
-      let clubResponse
-      try {
-        clubResponse = await apiClient.getAdminClub()
-        // console.log('Club response:', clubResponse)
-      } catch (error) {
-        // console.log('Could not get admin club, proceeding without club context')
-      }
-      
-      const clubId = clubResponse?.success ? clubResponse.data?.club?._id : undefined
-      // console.log('Using club ID:', clubId)
-      
-      if (!clubId) {
-        // console.log('No club ID available, trying to load plans without club context')
-      }
-      
       const response = await apiClient.getMembershipPlans(clubId)
       // console.log('Membership plans response:', response)
       
       if (response.success) {
         // Handle both direct array response and nested data response
-        const plansData = Array.isArray(response.data) ? response.data : (response.data?.data || [])
+        const respAny: any = response
+        const plansData = Array.isArray(respAny.data) ? respAny.data : (respAny.data?.data || [])
         // console.log('Processed plans data:', plansData)
         setPlans(plansData)
         
@@ -116,12 +108,45 @@ export default function MembershipPlansPage() {
     }
   }
 
+  const loadClubsAndDefault = async () => {
+    try {
+      // fetch available clubs (first page, large limit)
+      const clubsResp = await apiClient.getPublicClubs()
+      const clubsList = clubsResp.success ? (clubsResp.data?.clubs || []) : []
+      setClubs(clubsList)
+
+      // Try to get the admin club to preselect
+      try {
+        const adminClubResp = await apiClient.getAdminClub()
+        const adminClubId = adminClubResp.success ? adminClubResp.data?.club?._id : undefined
+        const initialClubId = adminClubId || (clubsList.length > 0 ? clubsList[0]._id : undefined)
+        setSelectedClubId(initialClubId)
+        // Load plans for the initial club
+        await loadPlansForClub(initialClubId)
+      } catch (err) {
+        const fallbackId = clubsList.length > 0 ? clubsList[0]._id : undefined
+        setSelectedClubId(fallbackId)
+        await loadPlansForClub(fallbackId)
+      }
+    } catch (error) {
+      // If clubs fail to load, still try to load plans without a club
+      setClubs([])
+      await loadPlansForClub(undefined)
+    }
+  }
+
   const handleCreatePlan = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsCreating(true)
 
     try {
-      const response = await apiClient.createMembershipPlan(formData)
+      if (!selectedClubId) {
+        toast.error('Please select a club to create the plan for')
+        setIsCreating(false)
+        return
+      }
+
+      const response = await (apiClient as any).createMembershipPlan({ ...formData, clubId: selectedClubId })
 
       if (response.success) {
         toast.success("Membership plan created successfully!")
@@ -203,6 +228,24 @@ export default function MembershipPlansPage() {
               <p className="text-muted-foreground">Create and manage membership plans for your club</p>
             </div>
             <div className="flex gap-2">
+              <div className="flex items-center space-x-2">
+                <Label>Club</Label>
+                <select
+                  value={selectedClubId}
+                  onChange={(e) => {
+                    const id = e.target.value || undefined
+                    setSelectedClubId(id)
+                    // reload plans for selected club
+                    loadPlansForClub(id)
+                  }}
+                  className="px-3 py-2 border border-input rounded-md bg-background text-foreground"
+                >
+                  <option value={""}>Select Club</option>
+                  {clubs.map((c) => (
+                    <option key={c._id} value={c._id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
               <Button variant="outline" onClick={loadPlans}>
                 Refresh
               </Button>
