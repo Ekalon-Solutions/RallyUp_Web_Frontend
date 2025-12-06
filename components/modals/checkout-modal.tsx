@@ -12,14 +12,15 @@ import { Badge } from "@/components/ui/badge"
 import { 
   CreditCard, 
   MapPin, 
-  Phone, 
-  Mail, 
   User, 
   DollarSign,
   Package,
   CheckCircle,
   Image as ImageIcon,
-  Loader2
+  Loader2,
+  Wallet,
+  Building2,
+  Smartphone
 } from "lucide-react"
 import { useCart } from "@/contexts/cart-context"
 import { useAuth } from "@/contexts/auth-context"
@@ -44,6 +45,7 @@ interface OrderForm {
   zipCode: string
   country: string
   notes: string
+  paymentMethod: string
 }
 
 export function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutModalProps) {
@@ -62,7 +64,8 @@ export function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutModalProps
     state: '',
     zipCode: '',
     country: 'United States',
-    notes: ''
+    notes: '',
+    paymentMethod: 'all'
   })
 
   // Auto-fill user data when modal opens or user changes
@@ -111,7 +114,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutModalProps
           productId: item._id,
           quantity: item.quantity
         })),
-        paymentMethod: 'card', // Default payment method
+        paymentMethod: orderForm.paymentMethod || 'all',
         notes: orderForm.notes
       }
 
@@ -132,9 +135,8 @@ export function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutModalProps
     }
   }
 
-  const handlePaymentSuccess = async (orderId: string) => {
+  const handlePaymentSuccess = async (orderId: string, paymentId: string, razorpayOrderId: string) => {
     try {
-      // Update payment status to paid
       await apiClient.patch(`/orders/admin/${orderId}/payment-status`, {
         paymentStatus: 'paid'
       })
@@ -149,15 +151,13 @@ export function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutModalProps
     }
   }
 
-  const handlePaymentFailure = async (orderId: string) => {
+  const handlePaymentFailure = async (orderId: string, error?: any) => {
     try {
-      // Update payment status to failed
       await apiClient.patch(`/orders/admin/${orderId}/payment-status`, {
         paymentStatus: 'failed'
       })
       
       toast.error('Payment failed. Please try again.')
-      // Keep the order in pending status for retry
     } catch (error) {
       // console.error('Error updating payment status:', error)
       toast.error('Failed to update payment status.')
@@ -173,8 +173,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutModalProps
         return false
       }
     }
-
-    // Basic email validation
+    
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(orderForm.email)) {
       toast.error('Please enter a valid email address')
@@ -314,6 +313,107 @@ export function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutModalProps
                         required
                       />
                     </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Payment Method */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <CreditCard className="w-4 h-4" />
+                    Payment Method
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 gap-3">
+                    <label className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-accent transition-colors">
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value="all"
+                        checked={orderForm.paymentMethod === 'all'}
+                        onChange={(e) => handleInputChange('paymentMethod', e.target.value)}
+                        className="w-4 h-4"
+                      />
+                      <div className="flex items-center gap-2 flex-1">
+                        <DollarSign className="w-4 h-4" />
+                        <div>
+                          <div className="font-medium">All Payment Methods</div>
+                          <div className="text-xs text-muted-foreground">
+                            UPI, Cards, Net Banking, Wallets, EMI, Pay Later, Bank Transfer
+                          </div>
+                        </div>
+                      </div>
+                    </label>
+                    <label className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-accent transition-colors">
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value="card"
+                        checked={orderForm.paymentMethod === 'card'}
+                        onChange={(e) => handleInputChange('paymentMethod', e.target.value)}
+                        className="w-4 h-4"
+                      />
+                      <div className="flex items-center gap-2 flex-1">
+                        <CreditCard className="w-4 h-4" />
+                        <div>
+                          <div className="font-medium">Credit/Debit Card</div>
+                          <div className="text-xs text-muted-foreground">Visa, Mastercard, RuPay, and more</div>
+                        </div>
+                      </div>
+                    </label>
+                    <label className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-accent transition-colors">
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value="upi"
+                        checked={orderForm.paymentMethod === 'upi'}
+                        onChange={(e) => handleInputChange('paymentMethod', e.target.value)}
+                        className="w-4 h-4"
+                      />
+                      <div className="flex items-center gap-2 flex-1">
+                        <Smartphone className="w-4 h-4" />
+                        <div>
+                          <div className="font-medium">UPI</div>
+                          <div className="text-xs text-muted-foreground">GPay, PhonePe, Paytm, BHIM, and more</div>
+                        </div>
+                      </div>
+                    </label>
+                    <label className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-accent transition-colors">
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value="netbanking"
+                        checked={orderForm.paymentMethod === 'netbanking'}
+                        onChange={(e) => handleInputChange('paymentMethod', e.target.value)}
+                        className="w-4 h-4"
+                      />
+                      <div className="flex items-center gap-2 flex-1">
+                        <Building2 className="w-4 h-4" />
+                        <div>
+                          <div className="font-medium">Net Banking</div>
+                          <div className="text-xs text-muted-foreground">All major banks supported</div>
+                        </div>
+                      </div>
+                    </label>
+                    <label className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-accent transition-colors">
+                      <input
+                        type="radio"
+                        name="paymentMethod"
+                        value="wallet"
+                        checked={orderForm.paymentMethod === 'wallet'}
+                        onChange={(e) => handleInputChange('paymentMethod', e.target.value)}
+                        className="w-4 h-4"
+                      />
+                      <div className="flex items-center gap-2 flex-1">
+                        <Wallet className="w-4 h-4" />
+                        <div>
+                          <div className="font-medium">Wallet</div>
+                          <div className="text-xs text-muted-foreground">Paytm, PhonePe, Freecharge, and more</div>
+                        </div>
+                      </div>
+                    </label>
                   </div>
                 </CardContent>
               </Card>
@@ -474,7 +574,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutModalProps
           orderNumber={createdOrder.orderNumber}
           total={createdOrder.total}
           currency={createdOrder.currency}
-          paymentMethod={createdOrder.paymentMethod || 'card'}
+          paymentMethod={createdOrder.paymentMethod || orderForm.paymentMethod || 'all'}
         />
       )}
     </Dialog>

@@ -17,9 +17,81 @@ import { RecaptchaVerifier, signInWithPhoneNumber, sendSignInLinkToEmail, isSign
 import { auth } from "@/lib/firebase/config"
 import { isDevelopment, debugLog } from "@/lib/config"
 
-// Debug OTP for development mode - bypasses Firebase OTP verification
 const DEBUG_OTP = "123456"
 
+const validateEmail = (email: string): string => {
+  if (!email) return ""
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailRegex.test(email)) {
+    return "Please enter a valid email address"
+  }
+  return ""
+}
+
+const validatePhoneNumber = (phone: string): string => {
+  if (!phone) return ""
+  const phoneRegex = /^\d{10,15}$/
+  if (!phoneRegex.test(phone)) {
+    return "Phone number must be 10-15 digits"
+  }
+  return ""
+}
+
+const validateAadhar = (aadhar: string): string => {
+  if (!aadhar) return ""
+  const aadharRegex = /^\d{12}$/
+  if (!aadharRegex.test(aadhar)) {
+    return "Aadhar number must be exactly 12 digits"
+  }
+  if (/^(\d)\1{11}$/.test(aadhar)) {
+    return "Aadhar number cannot be all the same digit"
+  }
+  return ""
+}
+
+const validateZipCode = (zipCode: string, country?: string): string => {
+  if (!zipCode) return ""
+  const zipRegex = /^[A-Za-z0-9]{5,10}$/
+  if (!zipRegex.test(zipCode)) {
+    return "ZIP code must be 5-10 alphanumeric characters"
+  }
+  if (country === "India") {
+    const indiaZipRegex = /^\d{6}$/
+    if (!indiaZipRegex.test(zipCode)) {
+      return "Indian PIN code must be exactly 6 digits"
+    }
+  } else if (country === "United States") {
+    const usZipRegex = /^\d{5}(-\d{4})?$/
+    if (!usZipRegex.test(zipCode)) {
+      return "US ZIP code must be 5 digits or 5+4 format"
+    }
+  }
+  return ""
+}
+
+const validateDOB = (dob: string): string => {
+  if (!dob) return ""
+  const today = new Date()
+  const birthDate = new Date(dob)
+  const age = today.getFullYear() - birthDate.getFullYear()
+  const monthDiff = today.getMonth() - birthDate.getMonth()
+  
+  if (birthDate > today) {
+    return "Date of birth cannot be in the future"
+  }
+  
+  const actualAge = monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate()) ? age - 1 : age
+  
+  if (actualAge < 13) {
+    return "You must be at least 13 years old"
+  }
+  
+  if (actualAge > 120) {
+    return "Please enter a valid date of birth"
+  }
+  
+  return ""
+}
 
 const generateOTP = () => {
   return Math.floor(100000 + Math.random() * 900000).toString()
@@ -111,6 +183,19 @@ export default function AuthPage() {
   const [adminRegisterResendCountdown, setAdminRegisterResendCountdown] = useState(0)
   const [systemOwnerRegisterResendCountdown, setSystemOwnerRegisterResendCountdown] = useState(0)
 
+  const [userLoginErrors, setUserLoginErrors] = useState({ email: "", phone_number: "" })
+  const [userRegisterErrors, setUserRegisterErrors] = useState({
+    email: "",
+    phone_number: "",
+    date_of_birth: "",
+    zip_code: "",
+    id_proof_number: ""
+  })
+  const [adminLoginErrors, setAdminLoginErrors] = useState({ email: "", phoneNumber: "" })
+  const [adminRegisterErrors, setAdminRegisterErrors] = useState({ email: "", phone_number: "" })
+  const [systemOwnerLoginErrors, setSystemOwnerLoginErrors] = useState({ email: "", phoneNumber: "" })
+  const [systemOwnerRegisterErrors, setSystemOwnerRegisterErrors] = useState({ email: "", phone_number: "" })
+
   useEffect(() => {
     if (userLoginResendCountdown > 0) {
       const timer = setTimeout(() => setUserLoginResendCountdown(userLoginResendCountdown - 1), 1000)
@@ -159,7 +244,6 @@ export default function AuthPage() {
     }
   }, [isAuthenticated, router])
 
-  // Handle Firebase email link sign-in completion
   useEffect(() => {
     if (typeof window === "undefined") return
     const url = window.location.href
@@ -177,7 +261,6 @@ export default function AuthPage() {
         signInWithEmailLink(auth, email, url)
           .then(async (result) => {
             const signInType = window.localStorage.getItem("emailSignInType") || "user"
-            // Call backend login depending on signInType
             try {
               if (signInType === "user") {
                 await login(email, "", "", false)
@@ -218,7 +301,6 @@ export default function AuthPage() {
     }
 
     try {
-      // Debug mode: Skip Firebase OTP confirmation
       if (isDevelopment()) {
         debugLog("Debug mode: Skipping Firebase OTP confirmation")
         if (userLoginOtp !== DEBUG_OTP) {
@@ -252,6 +334,20 @@ export default function AuthPage() {
   const handleUserRegister = async () => {
     if (isLoading) return
 
+    const emailError = validateEmail(userRegisterData.email)
+    const phoneError = validatePhoneNumber(userRegisterData.phone_number)
+    const dobError = validateDOB(userRegisterData.date_of_birth)
+    const zipError = validateZipCode(userRegisterData.zip_code, userRegisterData.country)
+    const idProofError = userRegisterData.id_proof_type === "Aadhar" ? validateAadhar(userRegisterData.id_proof_number) : ""
+
+    setUserRegisterErrors({
+      email: emailError,
+      phone_number: phoneError,
+      date_of_birth: dobError,
+      zip_code: zipError,
+      id_proof_number: idProofError
+    })
+
     if (!userRegisterData.username || !userRegisterData.email || !userRegisterData.first_name || 
         !userRegisterData.last_name || !userRegisterData.phone_number || !userRegisterData.countryCode) {
       toast.error("Please fill in all required fields")
@@ -263,14 +359,8 @@ export default function AuthPage() {
       return
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(userRegisterData.email)) {
-      toast.error("Please enter a valid email address")
-      return
-    }
-
-    if (!/^\d{10,15}$/.test(userRegisterData.phone_number)) {
-      toast.error("Please enter a valid phone number (10-15 digits)")
+    if (emailError || phoneError || dobError || zipError || idProofError) {
+      toast.error("Please fix the validation errors before submitting")
       return
     }
 
@@ -342,9 +432,7 @@ export default function AuthPage() {
     } catch (error: any) {
       // console.error("Registration error:", error)
       
-      // Handle different types of errors
       if (error.response) {
-        // Server responded with error status
         const { status, data } = error.response
         
         if (status === 400) {
@@ -362,7 +450,6 @@ export default function AuthPage() {
             toast.error("User already exists with this information.")
           }
         } else if (status === 422) {
-          // Validation errors
           if (data?.errors) {
             const errorMessages = Object.values(data.errors).map((err: any) => err.message || err)
             errorMessages.forEach(msg => toast.error(msg))
@@ -381,10 +468,8 @@ export default function AuthPage() {
           toast.error(`Registration failed (${status}). Please try again.`)
         }
       } else if (error.request) {
-        // Network error
         toast.error("Network error. Please check your connection and try again.")
       } else {
-        // Other errors
         toast.error("An unexpected error occurred. Please try again.")
       }
     } finally {
@@ -406,7 +491,6 @@ export default function AuthPage() {
     }
 
     try {
-      // Debug mode: Skip Firebase OTP confirmation
       if (isDevelopment()) {
         debugLog("Debug mode: Skipping Firebase OTP confirmation for admin")
         if (adminLoginOtp !== DEBUG_OTP) {
@@ -417,7 +501,7 @@ export default function AuthPage() {
           adminLoginData.email,
           adminLoginData.phoneNumber,
           adminLoginData.countryCode,
-          true // isAdmin flag set to true
+          true
         )
         if (loginResult.success) {
           toast.success("Admin login successful!")
@@ -435,12 +519,11 @@ export default function AuthPage() {
           adminLoginData.email,
           adminLoginData.phoneNumber,
           adminLoginData.countryCode,
-          true // isAdmin flag set to true
+          true
         )
 
         if (loginResult.success) {
           toast.success("Admin login successful!")
-          // Redirect or perform additional admin-specific actions
         } else {
           toast.error("Admin login failed. Please try again.")
         }
@@ -459,12 +542,11 @@ export default function AuthPage() {
 
     const phoneNumber = `${userRegisterData.countryCode}${userRegisterData.phone_number}`
 
-    // Debug mode: Skip Firebase OTP, use DEBUG_OTP
     if (isDevelopment()) {
       debugLog("Debug mode: Skipping Firebase OTP verification for user registration")
       toast.success(`[DEBUG MODE] OTP sent to ${phoneNumber}. Use code: ${DEBUG_OTP}`)
       setUserOtpSent(true)
-      setUserOtp(DEBUG_OTP) // Auto-fill the OTP
+      setUserOtp(DEBUG_OTP)
       setUserRegisterResendCountdown(10)
       return
     }
@@ -492,12 +574,11 @@ export default function AuthPage() {
 
     const phoneNumber = `${adminRegisterData.countryCode}${adminRegisterData.phone_number}`
 
-    // Debug mode: Skip Firebase OTP, use DEBUG_OTP
     if (isDevelopment()) {
       debugLog("Debug mode: Skipping Firebase OTP verification for admin registration")
       toast.success(`[DEBUG MODE] OTP sent to ${phoneNumber}. Use code: ${DEBUG_OTP}`)
       setAdminOtpSent(true)
-      setAdminOtp(DEBUG_OTP) // Auto-fill the OTP
+      setAdminOtp(DEBUG_OTP)
       setAdminRegisterResendCountdown(10)
       return
     }
@@ -524,12 +605,11 @@ export default function AuthPage() {
 
     const phoneNumber = `${systemOwnerRegisterData.countryCode}${systemOwnerRegisterData.phone_number}`
 
-    // Debug mode: Skip Firebase OTP, use DEBUG_OTP
     if (isDevelopment()) {
       debugLog("Debug mode: Skipping Firebase OTP verification for system owner registration")
       toast.success(`[DEBUG MODE] OTP sent to ${phoneNumber}. Use code: ${DEBUG_OTP}`)
       setSystemOwnerOtpSent(true)
-      setSystemOwnerOtp(DEBUG_OTP) // Auto-fill the OTP
+      setSystemOwnerOtp(DEBUG_OTP)
       setSystemOwnerRegisterResendCountdown(10)
       return
     }
@@ -548,7 +628,6 @@ export default function AuthPage() {
     }
   }
 
-  // Login OTP verification handlers
   const handleUserLoginVerifyNumber = async () => {
     if (!userLoginData.phone_number || !userLoginData.countryCode) {
       toast.error("Please provide a valid phone number and country code.")
@@ -557,12 +636,11 @@ export default function AuthPage() {
 
     const phoneNumber = `${userLoginData.countryCode}${userLoginData.phone_number}`
 
-    // Debug mode: Skip Firebase OTP, use DEBUG_OTP
     if (isDevelopment()) {
       debugLog("Debug mode: Skipping Firebase OTP verification")
       toast.success(`[DEBUG MODE] OTP sent to ${phoneNumber}. Use code: ${DEBUG_OTP}`)
       setUserLoginOtpSent(true)
-      setUserLoginOtp(DEBUG_OTP) // Auto-fill the OTP
+      setUserLoginOtp(DEBUG_OTP)
       setUserLoginResendCountdown(10)
       return
     }
@@ -589,12 +667,11 @@ export default function AuthPage() {
 
     const phoneNumber = `${adminLoginData.countryCode}${adminLoginData.phoneNumber}`
 
-    // Debug mode: Skip Firebase OTP, use DEBUG_OTP
     if (isDevelopment()) {
       debugLog("Debug mode: Skipping Firebase OTP verification for admin")
       toast.success(`[DEBUG MODE] OTP sent to ${phoneNumber}. Use code: ${DEBUG_OTP}`)
       setAdminLoginOtpSent(true)
-      setAdminLoginOtp(DEBUG_OTP) // Auto-fill the OTP
+      setAdminLoginOtp(DEBUG_OTP)
       setAdminLoginResendCountdown(10)
       return
     }
@@ -619,13 +696,12 @@ export default function AuthPage() {
     }
 
     const phoneNumber = `${systemOwnerLoginData.countryCode}${systemOwnerLoginData.phoneNumber}`
-
-    // Debug mode: Skip Firebase OTP, use DEBUG_OTP
+    
     if (isDevelopment()) {
       debugLog("Debug mode: Skipping Firebase OTP verification for system owner")
       toast.success(`[DEBUG MODE] OTP sent to ${phoneNumber}. Use code: ${DEBUG_OTP}`)
       setSystemOwnerLoginOtpSent(true)
-      setSystemOwnerLoginOtp(DEBUG_OTP) // Auto-fill the OTP
+      setSystemOwnerLoginOtp(DEBUG_OTP)
       setSystemOwnerLoginResendCountdown(10)
       return
     }
@@ -643,7 +719,6 @@ export default function AuthPage() {
     }
   }
 
-  // Resend OTP functions
   const handleUserLoginResendOTP = () => {
     if (userLoginData.email) {
       toast.success(`OTP resent to ${userLoginData.email}. Code: ${generatedLoginOtp}`)
@@ -692,13 +767,11 @@ export default function AuthPage() {
   const handleAdminRegister = async (e: React.FormEvent) => {
     e.preventDefault()
     /*
-    // Phone verification disabled for registration — comment out checks
     if (!adminOtpSent) {
       toast.error("Please verify your phone number first")
       return
     }
 
-    // Debug mode: Use DEBUG_OTP instead of generatedOtp
     const expectedOtp = isDevelopment() ? DEBUG_OTP : generatedOtp
     if (adminOtp !== expectedOtp) {
       toast.error(isDevelopment() ? `[DEBUG MODE] Invalid OTP. Use: ${DEBUG_OTP}` : "Invalid OTP. Please check and try again")
@@ -740,7 +813,6 @@ export default function AuthPage() {
       return
     }
 
-    // Debug mode: Use DEBUG_OTP instead of generatedLoginOtp
     const expectedOtp = isDevelopment() ? DEBUG_OTP : generatedLoginOtp
     if (systemOwnerLoginOtp !== expectedOtp) {
       toast.error(isDevelopment() ? `[DEBUG MODE] Invalid OTP. Use: ${DEBUG_OTP}` : "Invalid OTP. Please check and try again")
@@ -768,13 +840,11 @@ export default function AuthPage() {
   const handleSystemOwnerRegister = async (e: React.FormEvent) => {
     e.preventDefault()
     /*
-    // Phone verification disabled for registration — comment out checks
     if (!systemOwnerOtpSent) {
       toast.error("Please verify your phone number first")
       return
     }
 
-    // Debug mode: Use DEBUG_OTP instead of generatedOtp
     const expectedOtp = isDevelopment() ? DEBUG_OTP : generatedOtp
     if (systemOwnerOtp !== expectedOtp) {
       toast.error(isDevelopment() ? `[DEBUG MODE] Invalid OTP. Use: ${DEBUG_OTP}` : "Invalid OTP. Please check and try again")
@@ -869,11 +939,19 @@ export default function AuthPage() {
                           placeholder="Enter your email"
                           value={userLoginData.email}
                           onChange={(e) => {
-                            setUserLoginData({ ...userLoginData, email: e.target.value, phone_number: "", countryCode: "+91" })
+                            const email = e.target.value
+                            setUserLoginData({ ...userLoginData, email, phone_number: "", countryCode: "+91" })
+                            setUserLoginErrors({ ...userLoginErrors, email: validateEmail(email) })
                           }}
-                          className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400"
+                          onBlur={(e) => {
+                            setUserLoginErrors({ ...userLoginErrors, email: validateEmail(e.target.value) })
+                          }}
+                          className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 ${userLoginErrors.email ? "border-red-500" : ""}`}
                         />
                       </div>
+                      {userLoginErrors.email && (
+                        <p className="text-red-400 text-sm">{userLoginErrors.email}</p>
+                      )}
                     </div>
                     
                     <div className="flex items-center justify-center">
@@ -910,12 +988,20 @@ export default function AuthPage() {
                             placeholder="Enter your phone number"
                             value={userLoginData.phone_number}
                             onChange={(e) => {
-                              setUserLoginData({ ...userLoginData, phone_number: e.target.value, email: "" })
+                              const phone = e.target.value.replace(/\D/g, "")
+                              setUserLoginData({ ...userLoginData, phone_number: phone, email: "" })
+                              setUserLoginErrors({ ...userLoginErrors, phone_number: validatePhoneNumber(phone) })
+                            }}
+                            onBlur={(e) => {
+                              setUserLoginErrors({ ...userLoginErrors, phone_number: validatePhoneNumber(e.target.value) })
                             }}
                             disabled={!!userLoginData.email}
-                            className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 disabled:opacity-50 disabled:cursor-not-allowed focus:ring-2 focus:ring-sky-400"
+                            className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 disabled:opacity-50 disabled:cursor-not-allowed focus:ring-2 focus:ring-sky-400 ${userLoginErrors.phone_number ? "border-red-500" : ""}`}
                           />
                         </div>
+                        {userLoginErrors.phone_number && (
+                          <p className="text-red-400 text-sm">{userLoginErrors.phone_number}</p>
+                        )}
                       </div>
                     </div>
                     
@@ -924,6 +1010,12 @@ export default function AuthPage() {
                         onClick={() => {
                           ;(async () => {
                             if (userLoginData.email) {
+                              const emailError = validateEmail(userLoginData.email)
+                              setUserLoginErrors({ ...userLoginErrors, email: emailError })
+                              if (emailError) {
+                                toast.error("Please fix the email validation error")
+                                return
+                              }
                               const actionCodeSettings = {
                                 url: window.location.origin + "/login",
                                 handleCodeInApp: true,
@@ -940,14 +1032,19 @@ export default function AuthPage() {
                                 toast.error("Failed to send sign-in link. Please try again.")
                               }
                             } else if (userLoginData.phone_number && userLoginData.countryCode) {
-                              // Send OTP to phone
+                              const phoneError = validatePhoneNumber(userLoginData.phone_number)
+                              setUserLoginErrors({ ...userLoginErrors, phone_number: phoneError })
+                              if (phoneError) {
+                                toast.error("Please fix the phone number validation error")
+                                return
+                              }
                               handleUserLoginVerifyNumber()
                             } else {
                               toast.error("Please enter either email or phone number")
                             }
                           })()
                         }}
-                        disabled={!userLoginData.email && (!userLoginData.phone_number || !userLoginData.countryCode)}
+                        disabled={!userLoginData.email && (!userLoginData.phone_number || !userLoginData.countryCode) || (userLoginData.email && userLoginErrors.email) || (userLoginData.phone_number && userLoginErrors.phone_number)}
                         className="w-full bg-sky-400 text-slate-900 hover:bg-sky-300 h-12 text-lg font-medium"
                       >
                         Send OTP
@@ -983,7 +1080,6 @@ export default function AuthPage() {
                                 type="button"
                                 variant="outline"
                                 onClick={() => {
-                                  // allow user to switch to phone if desired
                                   setUserLoginOtpSent(false)
                                 }}
                                 className="border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-12 px-4"
@@ -1102,10 +1198,20 @@ export default function AuthPage() {
                               type="email"
                               placeholder="Enter your email"
                               value={userRegisterData.email}
-                              onChange={(e) => setUserRegisterData({ ...userRegisterData, email: e.target.value })}
-                              className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400"
+                              onChange={(e) => {
+                                const email = e.target.value
+                                setUserRegisterData({ ...userRegisterData, email })
+                                setUserRegisterErrors({ ...userRegisterErrors, email: validateEmail(email) })
+                              }}
+                              onBlur={(e) => {
+                                setUserRegisterErrors({ ...userRegisterErrors, email: validateEmail(e.target.value) })
+                              }}
+                              className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 ${userRegisterErrors.email ? "border-red-500" : ""}`}
                             />
                           </div>
+                          {userRegisterErrors.email && (
+                            <p className="text-red-400 text-sm">{userRegisterErrors.email}</p>
+                          )}
                         </div>
                         
                         <div className="grid grid-cols-3 gap-2">
@@ -1132,10 +1238,20 @@ export default function AuthPage() {
                                 type="tel"
                                 placeholder="Enter your phone number"
                                 value={userRegisterData.phone_number}
-                                onChange={(e) => setUserRegisterData({ ...userRegisterData, phone_number: e.target.value })}
-                                className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400"
+                                onChange={(e) => {
+                                  const phone = e.target.value.replace(/\D/g, "")
+                                  setUserRegisterData({ ...userRegisterData, phone_number: phone })
+                                  setUserRegisterErrors({ ...userRegisterErrors, phone_number: validatePhoneNumber(phone) })
+                                }}
+                                onBlur={(e) => {
+                                  setUserRegisterErrors({ ...userRegisterErrors, phone_number: validatePhoneNumber(e.target.value) })
+                                }}
+                                className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 ${userRegisterErrors.phone_number ? "border-red-500" : ""}`}
                               />
                             </div>
+                            {userRegisterErrors.phone_number && (
+                              <p className="text-red-400 text-sm">{userRegisterErrors.phone_number}</p>
+                            )}
                           </div>
                         </div>
                         
@@ -1146,9 +1262,20 @@ export default function AuthPage() {
                               id="user-date-of-birth"
                               type="date"
                               value={userRegisterData.date_of_birth}
-                              onChange={(e) => setUserRegisterData({ ...userRegisterData, date_of_birth: e.target.value })}
-                              className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400"
+                              onChange={(e) => {
+                                const dob = e.target.value
+                                setUserRegisterData({ ...userRegisterData, date_of_birth: dob })
+                                setUserRegisterErrors({ ...userRegisterErrors, date_of_birth: validateDOB(dob) })
+                              }}
+                              onBlur={(e) => {
+                                setUserRegisterErrors({ ...userRegisterErrors, date_of_birth: validateDOB(e.target.value) })
+                              }}
+                              max={new Date().toISOString().split('T')[0]}
+                              className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 ${userRegisterErrors.date_of_birth ? "border-red-500" : ""}`}
                             />
+                            {userRegisterErrors.date_of_birth && (
+                              <p className="text-red-400 text-sm">{userRegisterErrors.date_of_birth}</p>
+                            )}
                           </div>
                           <div className="space-y-2">
                             <Label htmlFor="user-gender" className="text-white font-medium">Gender</Label>
@@ -1222,9 +1349,19 @@ export default function AuthPage() {
                               type="text"
                               placeholder="Enter ZIP code"
                               value={userRegisterData.zip_code}
-                              onChange={(e) => setUserRegisterData({ ...userRegisterData, zip_code: e.target.value })}
-                              className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400"
+                              onChange={(e) => {
+                                const zipCode = e.target.value
+                                setUserRegisterData({ ...userRegisterData, zip_code: zipCode })
+                                setUserRegisterErrors({ ...userRegisterErrors, zip_code: validateZipCode(zipCode, userRegisterData.country) })
+                              }}
+                              onBlur={(e) => {
+                                setUserRegisterErrors({ ...userRegisterErrors, zip_code: validateZipCode(e.target.value, userRegisterData.country) })
+                              }}
+                              className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 ${userRegisterErrors.zip_code ? "border-red-500" : ""}`}
                             />
+                            {userRegisterErrors.zip_code && (
+                              <p className="text-red-400 text-sm">{userRegisterErrors.zip_code}</p>
+                            )}
                           </div>
                         </div>
                         
@@ -1233,7 +1370,13 @@ export default function AuthPage() {
                           <select
                             id="user-country"
                             value={userRegisterData.country}
-                            onChange={(e) => setUserRegisterData({ ...userRegisterData, country: e.target.value })}
+                            onChange={(e) => {
+                              const country = e.target.value
+                              setUserRegisterData({ ...userRegisterData, country })
+                              if (userRegisterData.zip_code) {
+                                setUserRegisterErrors({ ...userRegisterErrors, zip_code: validateZipCode(userRegisterData.zip_code, country) })
+                              }
+                            }}
                             className="w-full bg-white/10 border border-white/20 text-white rounded-md px-3 py-2 focus:ring-2 focus:ring-sky-400 focus:outline-none"
                           >
                             <option value="">Select your country</option>
@@ -1340,7 +1483,11 @@ export default function AuthPage() {
                             <select
                               id="user-id-proof-type"
                               value={userRegisterData.id_proof_type}
-                              onChange={(e) => setUserRegisterData({ ...userRegisterData, id_proof_type: e.target.value as "Aadhar" | "Voter ID" | "Passport" | "Driver License" })}
+                              onChange={(e) => {
+                                const idType = e.target.value as "Aadhar" | "Voter ID" | "Passport" | "Driver License"
+                                setUserRegisterData({ ...userRegisterData, id_proof_type: idType, id_proof_number: "" })
+                                setUserRegisterErrors({ ...userRegisterErrors, id_proof_number: "" })
+                              }}
                               className="w-full bg-white/10 border border-white/20 text-white rounded-md px-3 py-2 focus:ring-2 focus:ring-sky-400 focus:outline-none"
                             >
                               <option value="Aadhar">Aadhar</option>
@@ -1354,11 +1501,31 @@ export default function AuthPage() {
                             <Input
                               id="user-id-proof-number"
                               type="text"
-                              placeholder="Enter ID number"
+                              placeholder={userRegisterData.id_proof_type === "Aadhar" ? "Enter 12-digit Aadhar number" : "Enter ID number"}
                               value={userRegisterData.id_proof_number}
-                              onChange={(e) => setUserRegisterData({ ...userRegisterData, id_proof_number: e.target.value })}
-                              className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400"
+                              onChange={(e) => {
+                                let idNumber = e.target.value
+                                if (userRegisterData.id_proof_type === "Aadhar") {
+                                  idNumber = idNumber.replace(/\D/g, "")
+                                }
+                                setUserRegisterData({ ...userRegisterData, id_proof_number: idNumber })
+                                if (userRegisterData.id_proof_type === "Aadhar") {
+                                  setUserRegisterErrors({ ...userRegisterErrors, id_proof_number: validateAadhar(idNumber) })
+                                } else {
+                                  setUserRegisterErrors({ ...userRegisterErrors, id_proof_number: "" })
+                                }
+                              }}
+                              onBlur={(e) => {
+                                if (userRegisterData.id_proof_type === "Aadhar") {
+                                  setUserRegisterErrors({ ...userRegisterErrors, id_proof_number: validateAadhar(e.target.value) })
+                                }
+                              }}
+                              maxLength={userRegisterData.id_proof_type === "Aadhar" ? 12 : undefined}
+                              className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 ${userRegisterErrors.id_proof_number ? "border-red-500" : ""}`}
                             />
+                            {userRegisterErrors.id_proof_number && (
+                              <p className="text-red-400 text-sm">{userRegisterErrors.id_proof_number}</p>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -1434,11 +1601,19 @@ export default function AuthPage() {
                           placeholder="Enter admin email"
                           value={adminLoginData.email}
                           onChange={(e) => {
-                            setAdminLoginData({ ...adminLoginData, email: e.target.value, phoneNumber: "", countryCode: "+91" })
+                            const email = e.target.value
+                            setAdminLoginData({ ...adminLoginData, email, phoneNumber: "", countryCode: "+91" })
+                            setAdminLoginErrors({ ...adminLoginErrors, email: validateEmail(email) })
                           }}
-                          className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400"
+                          onBlur={(e) => {
+                            setAdminLoginErrors({ ...adminLoginErrors, email: validateEmail(e.target.value) })
+                          }}
+                          className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 ${adminLoginErrors.email ? "border-red-500" : ""}`}
                         />
                       </div>
+                      {adminLoginErrors.email && (
+                        <p className="text-red-400 text-sm">{adminLoginErrors.email}</p>
+                      )}
                     </div>
                     
                     <div className="flex items-center justify-center">
@@ -1475,12 +1650,20 @@ export default function AuthPage() {
                             placeholder="Enter admin phone number"
                             value={adminLoginData.phoneNumber}
                             onChange={(e) => {
-                              setAdminLoginData({ ...adminLoginData, phoneNumber: e.target.value, email: "" })
+                              const phone = e.target.value.replace(/\D/g, "")
+                              setAdminLoginData({ ...adminLoginData, phoneNumber: phone, email: "" })
+                              setAdminLoginErrors({ ...adminLoginErrors, phoneNumber: validatePhoneNumber(phone) })
+                            }}
+                            onBlur={(e) => {
+                              setAdminLoginErrors({ ...adminLoginErrors, phoneNumber: validatePhoneNumber(e.target.value) })
                             }}
                             disabled={!!adminLoginData.email}
-                            className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 disabled:opacity-50 disabled:cursor-not-allowed focus:ring-2 focus:ring-sky-400"
+                            className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 disabled:opacity-50 disabled:cursor-not-allowed focus:ring-2 focus:ring-sky-400 ${adminLoginErrors.phoneNumber ? "border-red-500" : ""}`}
                           />
                         </div>
+                        {adminLoginErrors.phoneNumber && (
+                          <p className="text-red-400 text-sm">{adminLoginErrors.phoneNumber}</p>
+                        )}
                       </div>
                     </div>
                     
@@ -1505,7 +1688,6 @@ export default function AuthPage() {
                                 toast.error("Failed to send sign-in link. Please try again.")
                               }
                             } else if (adminLoginData.phoneNumber && adminLoginData.countryCode) {
-                              // Send OTP to phone
                               handleAdminLoginVerifyNumber()
                             } else {
                               toast.error("Please enter either email or phone number")
@@ -1633,10 +1815,20 @@ export default function AuthPage() {
                           type="email"
                           placeholder="Enter admin email"
                           value={adminRegisterData.email}
-                          onChange={(e) => setAdminRegisterData({ ...adminRegisterData, email: e.target.value })}
-                          className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400"
+                          onChange={(e) => {
+                            const email = e.target.value
+                            setAdminRegisterData({ ...adminRegisterData, email })
+                            setAdminRegisterErrors({ ...adminRegisterErrors, email: validateEmail(email) })
+                          }}
+                          onBlur={(e) => {
+                            setAdminRegisterErrors({ ...adminRegisterErrors, email: validateEmail(e.target.value) })
+                          }}
+                          className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 ${adminRegisterErrors.email ? "border-red-500" : ""}`}
                         />
                       </div>
+                      {adminRegisterErrors.email && (
+                        <p className="text-red-400 text-sm">{adminRegisterErrors.email}</p>
+                      )}
                     </div>
                     
                     <div className="grid grid-cols-3 gap-2">
@@ -1663,10 +1855,20 @@ export default function AuthPage() {
                             type="tel"
                             placeholder="Enter phone number"
                             value={adminRegisterData.phone_number}
-                            onChange={(e) => setAdminRegisterData({ ...adminRegisterData, phone_number: e.target.value })}
-                            className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400"
+                            onChange={(e) => {
+                              const phone = e.target.value.replace(/\D/g, "")
+                              setAdminRegisterData({ ...adminRegisterData, phone_number: phone })
+                              setAdminRegisterErrors({ ...adminRegisterErrors, phone_number: validatePhoneNumber(phone) })
+                            }}
+                            onBlur={(e) => {
+                              setAdminRegisterErrors({ ...adminRegisterErrors, phone_number: validatePhoneNumber(e.target.value) })
+                            }}
+                            className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 ${adminRegisterErrors.phone_number ? "border-red-500" : ""}`}
                           />
                         </div>
+                        {adminRegisterErrors.phone_number && (
+                          <p className="text-red-400 text-sm">{adminRegisterErrors.phone_number}</p>
+                        )}
                       </div>
                     </div>
                     
@@ -1752,11 +1954,19 @@ export default function AuthPage() {
                           placeholder="Enter your email"
                           value={systemOwnerLoginData.email}
                           onChange={(e) => {
-                            setSystemOwnerLoginData({ ...systemOwnerLoginData, email: e.target.value, phoneNumber: "", countryCode: "+91" })
+                            const email = e.target.value
+                            setSystemOwnerLoginData({ ...systemOwnerLoginData, email, phoneNumber: "", countryCode: "+91" })
+                            setSystemOwnerLoginErrors({ ...systemOwnerLoginErrors, email: validateEmail(email) })
                           }}
-                          className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400"
+                          onBlur={(e) => {
+                            setSystemOwnerLoginErrors({ ...systemOwnerLoginErrors, email: validateEmail(e.target.value) })
+                          }}
+                          className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 ${systemOwnerLoginErrors.email ? "border-red-500" : ""}`}
                         />
                       </div>
+                      {systemOwnerLoginErrors.email && (
+                        <p className="text-red-400 text-sm">{systemOwnerLoginErrors.email}</p>
+                      )}
                     </div>
                     
                     <div className="flex items-center justify-center">
@@ -1793,12 +2003,20 @@ export default function AuthPage() {
                             placeholder="Enter your phone number"
                             value={systemOwnerLoginData.phoneNumber}
                             onChange={(e) => {
-                              setSystemOwnerLoginData({ ...systemOwnerLoginData, phoneNumber: e.target.value, email: "" })
+                              const phone = e.target.value.replace(/\D/g, "")
+                              setSystemOwnerLoginData({ ...systemOwnerLoginData, phoneNumber: phone, email: "" })
+                              setSystemOwnerLoginErrors({ ...systemOwnerLoginErrors, phoneNumber: validatePhoneNumber(phone) })
+                            }}
+                            onBlur={(e) => {
+                              setSystemOwnerLoginErrors({ ...systemOwnerLoginErrors, phoneNumber: validatePhoneNumber(e.target.value) })
                             }}
                             disabled={!!systemOwnerLoginData.email}
-                            className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 disabled:opacity-50 disabled:cursor-not-allowed focus:ring-2 focus:ring-sky-400"
+                            className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 disabled:opacity-50 disabled:cursor-not-allowed focus:ring-2 focus:ring-sky-400 ${systemOwnerLoginErrors.phoneNumber ? "border-red-500" : ""}`}
                           />
                         </div>
+                        {systemOwnerLoginErrors.phoneNumber && (
+                          <p className="text-red-400 text-sm">{systemOwnerLoginErrors.phoneNumber}</p>
+                        )}
                       </div>
                     </div>
                     
@@ -1823,7 +2041,6 @@ export default function AuthPage() {
                                 toast.error("Failed to send sign-in link. Please try again.")
                               }
                             } else if (systemOwnerLoginData.phoneNumber && systemOwnerLoginData.countryCode) {
-                              // Send OTP to phone
                               handleSystemOwnerLoginVerifyNumber()
                             } else {
                               toast.error("Please enter either email or phone number")
@@ -1951,10 +2168,20 @@ export default function AuthPage() {
                           type="email"
                           placeholder="Enter your email"
                           value={systemOwnerRegisterData.email}
-                          onChange={(e) => setSystemOwnerRegisterData({ ...systemOwnerRegisterData, email: e.target.value })}
-                          className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400"
+                          onChange={(e) => {
+                            const email = e.target.value
+                            setSystemOwnerRegisterData({ ...systemOwnerRegisterData, email })
+                            setSystemOwnerRegisterErrors({ ...systemOwnerRegisterErrors, email: validateEmail(email) })
+                          }}
+                          onBlur={(e) => {
+                            setSystemOwnerRegisterErrors({ ...systemOwnerRegisterErrors, email: validateEmail(e.target.value) })
+                          }}
+                          className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 ${systemOwnerRegisterErrors.email ? "border-red-500" : ""}`}
                         />
                       </div>
+                      {systemOwnerRegisterErrors.email && (
+                        <p className="text-red-400 text-sm">{systemOwnerRegisterErrors.email}</p>
+                      )}
                     </div>
                     
                     <div className="grid grid-cols-3 gap-2">
@@ -1981,10 +2208,20 @@ export default function AuthPage() {
                             type="tel"
                             placeholder="Enter phone number"
                             value={systemOwnerRegisterData.phone_number}
-                            onChange={(e) => setSystemOwnerRegisterData({ ...systemOwnerRegisterData, phone_number: e.target.value })}
-                            className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400"
+                            onChange={(e) => {
+                                const phone = e.target.value.replace(/\D/g, "")
+                              setSystemOwnerRegisterData({ ...systemOwnerRegisterData, phone_number: phone })
+                              setSystemOwnerRegisterErrors({ ...systemOwnerRegisterErrors, phone_number: validatePhoneNumber(phone) })
+                            }}
+                            onBlur={(e) => {
+                              setSystemOwnerRegisterErrors({ ...systemOwnerRegisterErrors, phone_number: validatePhoneNumber(e.target.value) })
+                            }}
+                            className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 ${systemOwnerRegisterErrors.phone_number ? "border-red-500" : ""}`}
                           />
                         </div>
+                        {systemOwnerRegisterErrors.phone_number && (
+                          <p className="text-red-400 text-sm">{systemOwnerRegisterErrors.phone_number}</p>
+                        )}
                       </div>
                     </div>
                     
