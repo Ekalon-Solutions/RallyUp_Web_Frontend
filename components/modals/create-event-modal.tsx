@@ -1087,37 +1087,6 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
           </div> */}
           </div>
 
-          {/* Booking Information */}
-          <div className="grid gap-6 md:grid-cols-2">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="bookingStartTime">Booking Start Time</Label>
-                <Input
-                  id="bookingStartTime"
-                  type="datetime-local"
-                  value={formData.bookingStartTime}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, bookingStartTime: e.target.value }))
-                  }
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="bookingEndTime">Booking End Time</Label>
-                <Input
-                  id="bookingEndTime"
-                  type="datetime-local"
-                  value={formData.bookingEndTime}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, bookingEndTime: e.target.value }))
-                  }
-                />
-              </div>
-              
-              
-            </div>
-          </div>
-
           {/* Event Preview */}
           <div className="border rounded-lg p-4 bg-muted/50">
             <h4 className="font-semibold mb-3">Event Preview</h4>
