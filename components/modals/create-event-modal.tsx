@@ -215,7 +215,6 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
           groupDiscountType: "percentage",
           groupDiscountValue: "",
           groupDiscountMinQty: "2",
-          currency: "INR",
         })
       }
     }
@@ -461,7 +460,7 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
       description: "",
       maxAttendees: "",
       ticketPrice: "0",
-        currency: "INR",
+      currency: "INR",
       requiresTicket: false,
       memberOnly: false,
       awayDayEvent: false,
