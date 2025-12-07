@@ -79,6 +79,7 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
     awayDayEvent: false,
     bookingStartTime: "",
     bookingEndTime: "",
+    currency: "INR",
     // Discount fields
     earlyBirdEnabled: false,
     earlyBirdType: "percentage" as "percentage" | "fixed",
@@ -154,6 +155,7 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
           description: editEvent.description,
           maxAttendees: editEvent.maxAttendees?.toString() || "",
           ticketPrice: editEvent.ticketPrice.toString(),
+          currency: (editEvent as any).currency || 'INR',
           requiresTicket: editEvent.requiresTicket,
           memberOnly: editEvent.memberOnly,
           awayDayEvent: editEvent.awayDayEvent,
@@ -192,6 +194,7 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
           description: "",
           maxAttendees: "",
           ticketPrice: "0",
+          currency: "INR",
           requiresTicket: false,
           memberOnly: false,
           awayDayEvent: false,
@@ -212,6 +215,7 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
           groupDiscountType: "percentage",
           groupDiscountValue: "",
           groupDiscountMinQty: "2",
+          currency: "INR",
         })
       }
     }
@@ -372,6 +376,7 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
         awayDayEvent: formData.awayDayEvent,
         bookingStartTime: formData.bookingStartTime ? new Date(formData.bookingStartTime).toISOString() : undefined,
         bookingEndTime: formData.bookingEndTime ? new Date(formData.bookingEndTime).toISOString() : undefined,
+        currency: formData.currency || 'INR',
         earlyBirdDiscount: formData.earlyBirdEnabled ? {
           enabled: true,
           type: formData.earlyBirdType,
@@ -456,6 +461,7 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
       description: "",
       maxAttendees: "",
       ticketPrice: "0",
+        currency: "INR",
       requiresTicket: false,
       memberOnly: false,
       awayDayEvent: false,
@@ -765,7 +771,39 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="ticketPrice" className="text-sm font-medium">Ticket Price (₹)</Label>
+                  <div className="flex items-center justify-between gap-3">
+                    <Label htmlFor="ticketPrice" className="text-sm font-medium">Ticket Price</Label>
+                    <div className="w-40">
+                      <Select value={formData.currency} onValueChange={(value) => setFormData({ ...formData, currency: value })}>
+                        <SelectTrigger className="border-gray-300">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="USD">USD</SelectItem>
+                          <SelectItem value="EUR">EUR</SelectItem>
+                          <SelectItem value="GBP">GBP</SelectItem>
+                          <SelectItem value="CAD">CAD</SelectItem>
+                          <SelectItem value="AUD">AUD</SelectItem>
+                          <SelectItem value="JPY">JPY</SelectItem>
+                          <SelectItem value="CNY">CNY</SelectItem>
+                          <SelectItem value="INR">INR</SelectItem>
+                          <SelectItem value="BRL">BRL</SelectItem>
+                          <SelectItem value="MXN">MXN</SelectItem>
+                          <SelectItem value="ZAR">ZAR</SelectItem>
+                          <SelectItem value="CHF">CHF</SelectItem>
+                          <SelectItem value="SEK">SEK</SelectItem>
+                          <SelectItem value="NZD">NZD</SelectItem>
+                          <SelectItem value="SGD">SGD</SelectItem>
+                          <SelectItem value="HKD">HKD</SelectItem>
+                          <SelectItem value="NOK">NOK</SelectItem>
+                          <SelectItem value="TRY">TRY</SelectItem>
+                          <SelectItem value="DKK">DKK</SelectItem>
+                          <SelectItem value="ILS">ILS</SelectItem>
+                          <SelectItem value="PLN">PLN</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
                   <Input
                     id="ticketPrice"
                     type="number"
@@ -1133,7 +1171,7 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
               </div>
               <div className="flex items-center gap-2">
                 <span className="font-medium">Price:</span>
-                <span>{formData.ticketPrice === "0" ? "Free" : `₹${formData.ticketPrice}`}</span>
+                <span>{formData.ticketPrice === "0" ? "Free" : `${formData.currency} ${formData.ticketPrice}`}</span>
               </div>
               {formData.bookingStartTime && (
                 <div className="flex items-center gap-2">

@@ -28,13 +28,15 @@ interface EventCheckoutModalProps {
     price: number
     ticketPrice?: number
     earlyBirdDiscount?: any
+    currency?: string
   }
   attendees: Array<{ name: string; phone: string }>
   couponCode?: string
   onSuccess: () => void
+  onFailure: () => void
 }
 
-export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCode, onSuccess }: EventCheckoutModalProps) {
+export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCode, onSuccess, onFailure }: EventCheckoutModalProps) {
   const { user } = useAuth()
   const [loading, setLoading] = useState(false)
   const [couponDiscount, setCouponDiscount] = useState(0)
@@ -67,7 +69,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
         try {
           const ticketPrice = event.ticketPrice || event.price
           const totalPrice = ticketPrice * attendees.length
-          const response = await apiClient.validateCoupon(couponCode, event._id, totalPrice)
+          const response = await apiClient.validateCoupon(couponCode, String(event._id), totalPrice)
           
           if (response.success && response.data?.coupon) {
             setCouponDiscount(response.data.coupon.discount * attendees.length)
@@ -111,7 +113,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
       if (finalPrice <= 0) {
         // Free event, register directly
         const response = await apiClient.registerForEvent(
-          event._id,
+          String(event._id),
           undefined,
           attendees,
           couponCode
@@ -122,7 +124,8 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
           onSuccess()
           onClose()
         } else {
-          toast.error(response.error || "Failed to register for event")
+          onFailure()
+          // toast.error(response.error || "Failed to register for event")
         }
         setLoading(false)
         return
@@ -136,8 +139,8 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
         },
         body: JSON.stringify({
           amount: finalPrice,
-          currency: 'INR',
-          orderId: `event_${event._id}_${Date.now()}`,
+          currency: event.currency || 'INR',
+          orderId: `EVT-${Date.now()}`,
           orderNumber: `EVT-${Date.now()}`,
         }),
       })
@@ -187,10 +190,14 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
 
             // Register for event after successful payment
             const registerResponse = await apiClient.registerForEvent(
-              event._id,
+              String(event._id),
               undefined,
               attendees,
-              couponCode
+              couponCode,
+              response.razorpay_order_id,
+              response.razorpay_payment_id,
+              response.razorpay_signature,
+ 
             )
 
             if (registerResponse.success) {
@@ -262,6 +269,36 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
   const totalBeforeCoupon = basePrice * attendees.length;
   const finalPrice = Math.max(totalBeforeCoupon - couponDiscount, 0);
 
+  const currencySymbols: Record<string, string> = {
+    INR: '₹',
+    USD: '$',
+    EUR: '€',
+    GBP: '£',
+    AUD: 'A$',
+    CAD: 'CA$',
+    JPY: '¥',
+    CNY: '¥',
+    BRL: 'R$',
+    MXN: '$',
+    ZAR: 'R',
+    CHF: 'CHF',
+    SEK: 'kr',
+    NZD: 'NZ$',
+    SGD: 'S$',
+    HKD: 'HK$',
+    NOK: 'kr',
+    TRY: '₺',
+    DKK: 'kr',
+    ILS: '₪',
+    PLN: 'zł'
+  }
+
+  const formatCurrency = (amount: number, cur?: string) => {
+    const c = cur || event?.currency || 'INR'
+    const symbol = currencySymbols[c] || (c + ' ')
+    return `${symbol}${Number(amount || 0).toLocaleString()}`
+  }
+
   if (!event) {
     return null;
   }
@@ -289,10 +326,10 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
                 <span>Price per ticket:</span>
                 <span className="flex space-x-2">
                   <span className="flex items-center gap-1 line-through text-muted-foreground">
-                    ₹{priceBeforeDiscount.toLocaleString()}
+                    {formatCurrency(priceBeforeDiscount, event.currency)}
                   </span>
                   <span className="flex items-center gap-1">
-                    ₹{basePrice.toLocaleString()}
+                    {formatCurrency(basePrice, event.currency)}
                   </span>
                 </span>
               </div>
@@ -306,7 +343,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
               
               <div className="flex justify-between items-center font-medium">
                 <span>Subtotal:</span>
-                <span>₹{totalBeforeCoupon.toLocaleString()}</span>
+                <span>{formatCurrency(totalBeforeCoupon, event.currency)}</span>
               </div>
               
               {couponCode && couponDiscount > 0 && (
@@ -316,7 +353,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
                       <Tag className="w-4 h-4" />
                       Coupon ({couponCode})
                     </span>
-                    <span>-₹{couponDiscount.toLocaleString()}</span>
+                    <span>-{formatCurrency(couponDiscount, event.currency)}</span>
                   </div>
                   {couponName && (
                     <div className="text-xs text-muted-foreground">
@@ -329,12 +366,11 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
               
               <div className="flex justify-between items-center font-bold text-lg">
                 <span>Total to Pay:</span>
-                <span className="text-primary">₹{finalPrice.toLocaleString()}</span>
+                <span className="text-primary">{formatCurrency(finalPrice, event.currency)}</span>
               </div>
             </div>
             
             <Separator className="my-4" />
-            
             <div>
               <h4 className="text-sm font-medium mb-2">Attendees:</h4>
               <ul className="list-disc pl-5 text-sm">

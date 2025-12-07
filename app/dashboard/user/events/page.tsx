@@ -241,6 +241,36 @@ export default function UserEventsPage() {
       minute: "2-digit",
     });
   };
+  // Currency helpers
+  const currencySymbols: Record<string, string> = {
+    INR: '₹',
+    USD: '$',
+    EUR: '€',
+    GBP: '£',
+    AUD: 'A$',
+    CAD: 'CA$',
+    JPY: '¥',
+    CNY: '¥',
+    BRL: 'R$',
+    MXN: '$',
+    ZAR: 'R',
+    CHF: 'CHF',
+    SEK: 'kr',
+    NZD: 'NZ$',
+    SGD: 'S$',
+    HKD: 'HK$',
+    NOK: 'kr',
+    TRY: '₺',
+    DKK: 'kr',
+    ILS: '₪',
+    PLN: 'zł'
+  };
+
+  const formatCurrency = (amount: number | undefined, cur?: string) => {
+    const c = cur || "INR";
+    const symbol = currencySymbols[c] || `${c} `;
+    return `${symbol}${Number(amount || 0).toLocaleString()}`;
+  };
   const getAttendancePercentage = (current: number, max: number) => {
     return Math.round((current / max) * 100);
   };
@@ -567,7 +597,7 @@ export default function UserEventsPage() {
                           {event.ticketPrice && (
                             <div className="flex items-center gap-2">
                               <span className="text-sm font-medium text-primary">
-                                Price: ${event.ticketPrice}
+                                Price: {formatCurrency(event.ticketPrice, (event as any).currency)}
                               </span>
                             </div>
                           )}
@@ -838,11 +868,16 @@ export default function UserEventsPage() {
           couponCode={couponForPayment?.code}
           onSuccess={() => {
             setShowEventCheckoutModal(false);
-            setShowEventPaymentSimulationModal(true);
+            fetchEvents();
+            toast.success("Payment successful!");
+            // setShowEventPaymentSimulationModal(true);
+          }}
+          onFailure={()=> {
+            toast.error("Payment failed. Please try again.");
           }}
         />
 
-        <EventPaymentSimulationModal
+{/*         <EventPaymentSimulationModal
           isOpen={showEventPaymentSimulationModal}
           onClose={() => setShowEventPaymentSimulationModal(false)}
           event={eventForPayment}
@@ -850,14 +885,12 @@ export default function UserEventsPage() {
           couponCode={couponForPayment?.code}
           onPaymentSuccess={() => {
             setShowEventPaymentSimulationModal(false);
-            fetchEvents();
-            toast.success("Payment successful!");
           }}
           onPaymentFailure={() => {
             setShowEventPaymentSimulationModal(false);
-            toast.error("Payment failed. Please try again.");
           }}
-        />
+        /> 
+*/}
     </ProtectedRoute>
   );
 }

@@ -1035,10 +1035,10 @@ class ApiClient {
 
   // Event Registration APIs
   // Accepts optional notes and an attendees array: [{ name, phone }]
-  async registerForEvent(eventId: string, notes?: string, attendees?: Array<{ name: string; phone: string }>, couponCode?: string | null): Promise<ApiResponse<{ message: string; event: Event }>> {
+  async registerForEvent(eventId: string, notes?: string, attendees?: Array<{ name: string; phone: string }>, couponCode?: string | null, orderID?: string, paymentID?: string, signature?: string): Promise<ApiResponse<{ message: string; event: Event }>> {
     return this.request(`/events/${eventId}/register`, {
       method: 'POST',
-      body: JSON.stringify({ notes, attendees, couponCode }),
+      body: JSON.stringify({ notes, attendees, couponCode, orderID, paymentID, signature }),
     });
   }
 
