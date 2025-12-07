@@ -28,7 +28,8 @@ import {
   User,
   Tag,
   BarChart3,
-  Upload
+  Upload,
+  Globe
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
@@ -36,9 +37,12 @@ interface ChantFormData {
   title: string;
   description: string;
   content: string;
-  fileType: 'text' | 'image' | 'audio';
+  fileType: 'text' | 'image' | 'audio' | 'iframe';
   tags: string;
   file: File | null;
+  iframeUrl: string;
+  iframeWidth: string;
+  iframeHeight: string;
 }
 
 export default function ChantsManagementPage() {
@@ -60,7 +64,10 @@ export default function ChantsManagementPage() {
     content: '',
     fileType: 'text',
     tags: '',
-    file: null
+    file: null,
+    iframeUrl: '',
+    iframeWidth: '100%',
+    iframeHeight: '600px'
   });
 
   const clubId = React.useMemo(() => {
@@ -128,7 +135,7 @@ export default function ChantsManagementPage() {
       }
       
       const response = await apiClient.getChants(clubId, params);
-      if (response.success) {
+      if (response.success && response.data && 'chants' in response.data && 'pagination' in response.data) {
         setChants(response.data.chants);
         setTotalPages(response.data.pagination.pages);
       } else {
@@ -163,6 +170,15 @@ export default function ChantsManagementPage() {
     }
   };
 
+  const validateUrl = (url: string): boolean => {
+    try {
+      const urlObj = new URL(url);
+      return urlObj.protocol === 'http:' || urlObj.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  };
+
   const handleCreateChant = async () => {
     if (!clubId) {
       toast({
@@ -171,6 +187,26 @@ export default function ChantsManagementPage() {
         variant: "destructive",
       });
       return;
+    }
+
+    // Validate iframe URL if fileType is iframe
+    if (formData.fileType === 'iframe') {
+      if (!formData.iframeUrl || !formData.iframeUrl.trim()) {
+        toast({
+          title: "Error",
+          description: "Please provide a valid URL for the iframe",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (!validateUrl(formData.iframeUrl)) {
+        toast({
+          title: "Error",
+          description: "Please provide a valid URL (must start with http:// or https://)",
+          variant: "destructive",
+        });
+        return;
+      }
     }
     
     // // console.log('🎵 Creating chant for club ID:', clubId);
@@ -184,7 +220,10 @@ export default function ChantsManagementPage() {
         content: formData.fileType === 'text' ? formData.content : undefined,
         fileType: formData.fileType,
         tags,
-        file: formData.file || undefined
+        file: formData.file || undefined,
+        iframeUrl: formData.fileType === 'iframe' ? formData.iframeUrl : undefined,
+        iframeWidth: formData.fileType === 'iframe' ? formData.iframeWidth : undefined,
+        iframeHeight: formData.fileType === 'iframe' ? formData.iframeHeight : undefined
       });
 
       if (response.success) {
@@ -215,6 +254,26 @@ export default function ChantsManagementPage() {
 
   const handleUpdateChant = async () => {
     if (!editingChant) return;
+
+    // Validate iframe URL if fileType is iframe
+    if (formData.fileType === 'iframe') {
+      if (!formData.iframeUrl || !formData.iframeUrl.trim()) {
+        toast({
+          title: "Error",
+          description: "Please provide a valid URL for the iframe",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (!validateUrl(formData.iframeUrl)) {
+        toast({
+          title: "Error",
+          description: "Please provide a valid URL (must start with http:// or https://)",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
     
     try {
       const tags = formData.tags ? formData.tags.split(',').map(tag => tag.trim()).filter(Boolean) : [];
@@ -224,7 +283,10 @@ export default function ChantsManagementPage() {
         description: formData.description || undefined,
         content: formData.fileType === 'text' ? formData.content : undefined,
         tags,
-        file: formData.file || undefined
+        file: formData.file || undefined,
+        iframeUrl: formData.fileType === 'iframe' ? formData.iframeUrl : undefined,
+        iframeWidth: formData.fileType === 'iframe' ? formData.iframeWidth : undefined,
+        iframeHeight: formData.fileType === 'iframe' ? formData.iframeHeight : undefined
       });
 
       if (response.success) {
@@ -290,7 +352,10 @@ export default function ChantsManagementPage() {
       content: '',
       fileType: 'text',
       tags: '',
-      file: null
+      file: null,
+      iframeUrl: '',
+      iframeWidth: '100%',
+      iframeHeight: '600px'
     });
   };
 
@@ -302,7 +367,10 @@ export default function ChantsManagementPage() {
       content: chant.content || '',
       fileType: chant.fileType,
       tags: chant.tags?.join(', ') || '',
-      file: null
+      file: null,
+      iframeUrl: chant.iframeUrl || '',
+      iframeWidth: chant.iframeWidth || '100%',
+      iframeHeight: chant.iframeHeight || '600px'
     });
     setShowEditModal(true);
   };
@@ -312,6 +380,7 @@ export default function ChantsManagementPage() {
       case 'text': return <FileText className="w-4 h-4" />;
       case 'image': return <Image className="w-4 h-4" />;
       case 'audio': return <Music className="w-4 h-4" />;
+      case 'iframe': return <Globe className="w-4 h-4" />;
       default: return <FileText className="w-4 h-4" />;
     }
   };
@@ -426,12 +495,13 @@ export default function ChantsManagementPage() {
                   <SelectTrigger className="w-full sm:w-48">
                     <SelectValue placeholder="Filter by type" />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Types</SelectItem>
-                    <SelectItem value="text">Text</SelectItem>
-                    <SelectItem value="image">Image</SelectItem>
-                    <SelectItem value="audio">Audio</SelectItem>
-                  </SelectContent>
+                    <SelectContent>
+                      <SelectItem value="all">All Types</SelectItem>
+                      <SelectItem value="text">Text</SelectItem>
+                      <SelectItem value="image">Image</SelectItem>
+                      <SelectItem value="audio">Audio</SelectItem>
+                      <SelectItem value="iframe">Embedded Content (iframe)</SelectItem>
+                    </SelectContent>
                 </Select>
               </div>
             </CardContent>
@@ -500,7 +570,38 @@ export default function ChantsManagementPage() {
                       </div>
                     )}
                     
-                    {chant.fileType !== 'text' && chant.fileUrl && (
+                    {chant.fileType === 'iframe' && chant.iframeUrl && (
+                      <div className="space-y-2">
+                        <div className="border rounded-lg overflow-hidden bg-muted/50">
+                          <iframe
+                            src={chant.iframeUrl}
+                            width={chant.iframeWidth || '100%'}
+                            height={chant.iframeHeight || '600px'}
+                            className="w-full border-0"
+                            style={{
+                              minHeight: '400px',
+                              display: 'block'
+                            }}
+                            sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+                            loading="lazy"
+                            title={chant.title}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between text-sm text-muted-foreground">
+                          <span>Embedded content from external source</span>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.open(chant.iframeUrl, '_blank')}
+                          >
+                            <Globe className="w-4 h-4 mr-2" />
+                            Open in new tab
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {chant.fileType !== 'text' && chant.fileType !== 'iframe' && chant.fileUrl && (
                       <div className="space-y-2">
                         {chant.fileType === 'image' && (
                           <img 
@@ -620,7 +721,7 @@ export default function ChantsManagementPage() {
                   <Label htmlFor="fileType">Type *</Label>
                   <Select 
                     value={formData.fileType} 
-                    onValueChange={(value: 'text' | 'image' | 'audio') => 
+                    onValueChange={(value: 'text' | 'image' | 'audio' | 'iframe') => 
                       setFormData(prev => ({ ...prev, fileType: value }))
                     }
                   >
@@ -631,6 +732,7 @@ export default function ChantsManagementPage() {
                       <SelectItem value="text">Text</SelectItem>
                       <SelectItem value="image">Image</SelectItem>
                       <SelectItem value="audio">Audio</SelectItem>
+                      <SelectItem value="iframe">Embedded Content (iframe)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -648,7 +750,60 @@ export default function ChantsManagementPage() {
                   </div>
                 )}
                 
-                {formData.fileType !== 'text' && (
+                {formData.fileType === 'iframe' && (
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="iframeUrl">URL *</Label>
+                      <Input
+                        id="iframeUrl"
+                        type="url"
+                        value={formData.iframeUrl}
+                        onChange={(e) => setFormData(prev => ({ 
+                          ...prev, 
+                          iframeUrl: e.target.value 
+                        }))}
+                        placeholder="https://example.com/embed"
+                      />
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Enter a valid URL (must start with http:// or https://)
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="iframeWidth">Width</Label>
+                        <Input
+                          id="iframeWidth"
+                          value={formData.iframeWidth}
+                          onChange={(e) => setFormData(prev => ({ 
+                            ...prev, 
+                            iframeWidth: e.target.value 
+                          }))}
+                          placeholder="100% or 800px"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          e.g., 100%, 800px
+                        </p>
+                      </div>
+                      <div>
+                        <Label htmlFor="iframeHeight">Height</Label>
+                        <Input
+                          id="iframeHeight"
+                          value={formData.iframeHeight}
+                          onChange={(e) => setFormData(prev => ({ 
+                            ...prev, 
+                            iframeHeight: e.target.value 
+                          }))}
+                          placeholder="600px"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          e.g., 600px, 50vh
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {formData.fileType !== 'text' && formData.fileType !== 'iframe' && (
                   <div>
                     <Label htmlFor="file">File *</Label>
                     <Input
@@ -733,7 +888,60 @@ export default function ChantsManagementPage() {
                   </div>
                 )}
                 
-                {formData.fileType !== 'text' && (
+                {formData.fileType === 'iframe' && (
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="edit-iframeUrl">URL *</Label>
+                      <Input
+                        id="edit-iframeUrl"
+                        type="url"
+                        value={formData.iframeUrl}
+                        onChange={(e) => setFormData(prev => ({ 
+                          ...prev, 
+                          iframeUrl: e.target.value 
+                        }))}
+                        placeholder="https://example.com/embed"
+                      />
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Enter a valid URL (must start with http:// or https://)
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label htmlFor="edit-iframeWidth">Width</Label>
+                        <Input
+                          id="edit-iframeWidth"
+                          value={formData.iframeWidth}
+                          onChange={(e) => setFormData(prev => ({ 
+                            ...prev, 
+                            iframeWidth: e.target.value 
+                          }))}
+                          placeholder="100% or 800px"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          e.g., 100%, 800px
+                        </p>
+                      </div>
+                      <div>
+                        <Label htmlFor="edit-iframeHeight">Height</Label>
+                        <Input
+                          id="edit-iframeHeight"
+                          value={formData.iframeHeight}
+                          onChange={(e) => setFormData(prev => ({ 
+                            ...prev, 
+                            iframeHeight: e.target.value 
+                          }))}
+                          placeholder="600px"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          e.g., 600px, 50vh
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {formData.fileType !== 'text' && formData.fileType !== 'iframe' && (
                   <div>
                     <Label htmlFor="edit-file">Replace File</Label>
                     <Input
