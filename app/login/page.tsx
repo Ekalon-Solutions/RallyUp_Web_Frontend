@@ -813,13 +813,13 @@ export default function AuthPage() {
       toast.error("Please verify your phone number first")
       return
     }
-
+/* 
     const expectedOtp = isDevelopment() ? DEBUG_OTP : generatedLoginOtp
     if (systemOwnerLoginOtp !== expectedOtp) {
       toast.error(isDevelopment() ? `[DEBUG MODE] Invalid OTP. Use: ${DEBUG_OTP}` : "Invalid OTP. Please check and try again")
       return
     }
-
+ */
     setIsLoading(true)
     
     try {
