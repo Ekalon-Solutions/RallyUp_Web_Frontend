@@ -47,7 +47,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 const adminNavigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Members", href: "/dashboard/members", icon: Users },
-  { name: "Browse Clubs", href: "/dashboard/clubs", icon: Building2 },
+  // { name: "Browse Clubs", href: "/dashboard/clubs", icon: Building2 }, // Hidden for now
   { name: "Membership Plans", href: "/dashboard/membership-plans", icon: CreditCard },
   { name: "Membership Cards", href: "/dashboard/membership-cards", icon: CreditCard },
   { name: "News & Updates", href: "/dashboard/content", icon: Newspaper },
@@ -57,11 +57,11 @@ const adminNavigation = [
   { name: "Order Management", href: "/dashboard/orders", icon: ShoppingCart },
   { name: "Events & Tickets", href: "/dashboard/events", icon: Ticket },
   { name: "Leaderboard", href: "/dashboard/leaderboard", icon: ChartNoAxesColumn },
-  { name: "Match Center", href: "/dashboard/match-center", icon: Calendar },
+  // { name: "Match Center", href: "/dashboard/match-center", icon: Calendar },
   { name: "Group Website", href: "/dashboard/website", icon: Globe },
-  { name: "Travel & Away Days", href: "/dashboard/travel", icon: Bus },
+  // { name: "Travel & Away Days", href: "/dashboard/travel", icon: Bus },
   { name: "External Ticketing", href: "/dashboard/external-ticketing", icon: ExternalLink },
-  { name: "Inter Club Forum Mgmt", href: "/dashboard/forum", icon: MessageSquare },
+  // { name: "Inter Club Forum Mgmt", href: "/dashboard/forum", icon: MessageSquare },
   { name: "Volunteer Management", href: "/dashboard/volunteer-management", icon: Heart },
   { name: "Onboarding & Promotions", href: "/dashboard/onboarding", icon: GraduationCap },
   { name: "Admin Settings", href: "/dashboard/admin-settings", icon: Settings },
@@ -72,7 +72,7 @@ const adminNavigation = [
 const systemOwnerNavigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Club Management", href: "/dashboard/club-management", icon: Building },
-  { name: "Browse Clubs", href: "/dashboard/clubs", icon: Building2 },
+  // { name: "Browse Clubs", href: "/dashboard/clubs", icon: Building2 }, // Hidden for now
   { name: "Onboarding & Promotions", href: "/dashboard/onboarding", icon: GraduationCap },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
   { name: "Help", href: "/dashboard/help", icon: HelpCircle },
@@ -81,7 +81,7 @@ const systemOwnerNavigation = [
 const superAdminNavigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Members", href: "/dashboard/members", icon: Users },
-  { name: "Browse Clubs", href: "/dashboard/clubs", icon: Building2 },
+  // { name: "Browse Clubs", href: "/dashboard/clubs", icon: Building2 }, // Hidden for now
   { name: "Staff Management", href: "/dashboard/staff", icon: Shield },
   { name: "Membership Plans", href: "/dashboard/membership-plans", icon: CreditCard },
   { name: "Membership Cards", href: "/dashboard/membership-cards", icon: CreditCard },
@@ -92,11 +92,11 @@ const superAdminNavigation = [
   { name: "Order Management", href: "/dashboard/orders", icon: ShoppingCart },
   { name: "Events & Tickets", href: "/dashboard/events", icon: Ticket },
   { name: "Leaderboard", href: "/dashboard/leaderboard", icon: ChartNoAxesColumn },
-  { name: "Match Center", href: "/dashboard/match-center", icon: Calendar },
+  // { name: "Match Center", href: "/dashboard/match-center", icon: Calendar },
   { name: "Group Website", href: "/dashboard/website", icon: Globe },
-  { name: "Travel & Away Days", href: "/dashboard/travel", icon: Bus },
+  // { name: "Travel & Away Days", href: "/dashboard/travel", icon: Bus },
   { name: "External Ticketing", href: "/dashboard/external-ticketing", icon: ExternalLink },
-  { name: "Inter Club Forum Mgmt", href: "/dashboard/forum", icon: MessageSquare },
+  // { name: "Inter Club Forum Mgmt", href: "/dashboard/forum", icon: MessageSquare },
   { name: "Volunteer Management", href: "/dashboard/volunteer-management", icon: Heart },
   { name: "Onboarding & Promotions", href: "/dashboard/onboarding", icon: GraduationCap },
   { name: "Admin Settings", href: "/dashboard/admin-settings", icon: Settings },

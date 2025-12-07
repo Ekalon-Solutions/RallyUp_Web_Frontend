@@ -46,7 +46,7 @@ const quickLinks = [
   { title: "Getting Started Guide", icon: Book, description: "Complete setup walkthrough" },
   { title: "Video Tutorials", icon: Video, description: "Step-by-step video guides" },
   { title: "API Documentation", icon: ExternalLink, description: "For advanced integrations" },
-  { title: "Community Forum", icon: MessageCircle, description: "Connect with other clubs" },
+  // { title: "Community Forum", icon: MessageCircle, description: "Connect with other clubs" },
 ]
 
 export default function HelpPage() {

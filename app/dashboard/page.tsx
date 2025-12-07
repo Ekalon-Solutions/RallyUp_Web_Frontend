@@ -71,7 +71,7 @@ export default function DashboardPage() {
   const memberEngagement = [
     { metric: "Match Attendance", value: "75%" },
     { metric: "Event Participation", value: "60%" },
-    { metric: "Forum Activity", value: "40%" },
+    // { metric: "Forum Activity", value: "40%" },
   ]
 
   return (

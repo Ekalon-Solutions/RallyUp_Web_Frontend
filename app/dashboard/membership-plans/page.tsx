@@ -12,6 +12,7 @@ import { toast } from "sonner"
 import { apiClient } from "@/lib/api"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
+import { useAuth } from "@/contexts/auth-context"
 
 interface MembershipPlan {
   _id: string
@@ -35,6 +36,7 @@ interface MembershipPlan {
 }
 
 export default function MembershipPlansPage() {
+  const { user } = useAuth()
   const [plans, setPlans] = useState<MembershipPlan[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [clubs, setClubs] = useState<Array<{ _id: string; name: string }>>([])
@@ -60,9 +62,11 @@ export default function MembershipPlansPage() {
   })
 
   useEffect(() => {
-    // Load clubs and then plans
-    loadClubsAndDefault()
-  }, [])
+    // Load clubs and then plans when user is available
+    if (user) {
+      loadClubsAndDefault()
+    }
+  }, [user])
 
   const loadPlans = async () => {
     return loadPlansForClub(selectedClubId)
@@ -110,26 +114,67 @@ export default function MembershipPlansPage() {
 
   const loadClubsAndDefault = async () => {
     try {
-      // fetch available clubs (first page, large limit)
-      const clubsResp = await apiClient.getPublicClubs()
-      const clubsList = clubsResp.success ? (clubsResp.data?.clubs || []) : []
-      setClubs(clubsList)
-
-      // Try to get the admin club to preselect
-      try {
-        const adminClubResp = await apiClient.getAdminClub()
-        const adminClubId = adminClubResp.success ? adminClubResp.data?.club?._id : undefined
-        const initialClubId = adminClubId || (clubsList.length > 0 ? clubsList[0]._id : undefined)
-        setSelectedClubId(initialClubId)
-        // Load plans for the initial club
-        await loadPlansForClub(initialClubId)
-      } catch (err) {
-        const fallbackId = clubsList.length > 0 ? clubsList[0]._id : undefined
-        setSelectedClubId(fallbackId)
-        await loadPlansForClub(fallbackId)
+      let clubsList: Array<{ _id: string; name: string }> = []
+      let initialClubId: string | undefined = undefined
+      
+      // For admin/super_admin, get clubs they have access to
+      const userRole = user?.role
+      const userAny = user as any
+      
+      if (userRole === 'system_owner') {
+        // System owner can see all clubs
+        const clubsResp = await apiClient.getPublicClubs()
+        clubsList = clubsResp.success ? (clubsResp.data?.clubs || []) : []
+        initialClubId = clubsList.length > 0 ? clubsList[0]._id : undefined
+      } else if (userRole === 'admin' || userRole === 'super_admin') {
+        // Admin/Super admin - check for their assigned club or memberships
+        if (userAny?.club?._id) {
+          // Has direct club property
+          clubsList = [{ _id: userAny.club._id, name: userAny.club.name }]
+          initialClubId = userAny.club._id
+        } else if (userAny?.memberships && Array.isArray(userAny.memberships)) {
+          // Has memberships array
+          clubsList = userAny.memberships
+            .filter((m: any) => m.club_id && m.status === 'active')
+            .map((m: any) => ({
+              _id: m.club_id._id || m.club_id,
+              name: m.club_id.name || 'Unknown Club'
+            }))
+          initialClubId = clubsList.length > 0 ? clubsList[0]._id : undefined
+        }
+        
+        // If still no clubs, try the getAdminClub API
+        if (clubsList.length === 0) {
+          try {
+            const adminClubResp = await apiClient.getAdminClub()
+            if (adminClubResp.success && adminClubResp.data?.club) {
+              clubsList = [{ _id: adminClubResp.data.club._id, name: adminClubResp.data.club.name }]
+              initialClubId = adminClubResp.data.club._id
+            }
+          } catch (err) {
+            // Ignore error
+          }
+        }
+      } else {
+        // Regular user - get clubs from their memberships
+        if (userAny?.memberships && Array.isArray(userAny.memberships)) {
+          clubsList = userAny.memberships
+            .filter((m: any) => m.club_id && m.status === 'active')
+            .map((m: any) => ({
+              _id: m.club_id._id || m.club_id,
+              name: m.club_id.name || 'Unknown Club'
+            }))
+          initialClubId = clubsList.length > 0 ? clubsList[0]._id : undefined
+        }
       }
+      
+      setClubs(clubsList)
+      setSelectedClubId(initialClubId)
+      
+      // Load plans for the initial club
+      await loadPlansForClub(initialClubId)
     } catch (error) {
-      // If clubs fail to load, still try to load plans without a club
+      console.error('Error loading clubs:', error)
       setClubs([])
       await loadPlansForClub(undefined)
     }
