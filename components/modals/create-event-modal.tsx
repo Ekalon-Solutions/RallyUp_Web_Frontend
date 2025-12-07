@@ -13,6 +13,7 @@ import { Calendar, Clock, MapPin, Users, Ticket, UserCheck, Bus, Plus, X, Percen
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
+import { toDatetimeLocalString, utcToDatetimeLocal, formatLocalDate } from "@/lib/timezone"
 
 interface Event {
   _id: string
@@ -148,8 +149,8 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
         setFormData({
           title: editEvent.title,
           category: editEvent.category,
-          startTime: editEvent.startTime.slice(0, 16), // Format for datetime-local input
-          endTime: editEvent.endTime ? editEvent.endTime.slice(0, 16) : "",
+          startTime: utcToDatetimeLocal(editEvent.startTime), // Convert UTC to local timezone
+          endTime: editEvent.endTime ? utcToDatetimeLocal(editEvent.endTime) : "",
           venue: editEvent.venue,
           description: editEvent.description,
           maxAttendees: editEvent.maxAttendees?.toString() || "",
@@ -157,14 +158,14 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
           requiresTicket: editEvent.requiresTicket,
           memberOnly: editEvent.memberOnly,
           awayDayEvent: editEvent.awayDayEvent,
-          bookingStartTime: editEvent.bookingStartTime?.slice(0, 16) || "",
-          bookingEndTime: editEvent.bookingEndTime?.slice(0, 16) || "",
+          bookingStartTime: editEvent.bookingStartTime ? utcToDatetimeLocal(editEvent.bookingStartTime) : "",
+          bookingEndTime: editEvent.bookingEndTime ? utcToDatetimeLocal(editEvent.bookingEndTime) : "",
           // Discount fields
           earlyBirdEnabled: editEvent.earlyBirdDiscount?.enabled || false,
           earlyBirdType: editEvent.earlyBirdDiscount?.type || "percentage",
           earlyBirdValue: editEvent.earlyBirdDiscount?.value?.toString() || "",
-          earlyBirdStartTime: editEvent.earlyBirdDiscount?.startTime?.slice(0, 16) || "",
-          earlyBirdEndTime: editEvent.earlyBirdDiscount?.endTime?.slice(0, 16) || "",
+          earlyBirdStartTime: editEvent.earlyBirdDiscount?.startTime ? utcToDatetimeLocal(editEvent.earlyBirdDiscount.startTime) : "",
+          earlyBirdEndTime: editEvent.earlyBirdDiscount?.endTime ? utcToDatetimeLocal(editEvent.earlyBirdDiscount.endTime) : "",
           earlyBirdMembersOnly: editEvent.earlyBirdDiscount?.membersOnly || false,
           clubId: (editEvent as any).clubId || (editEvent as any).club?._id || "",
           memberDiscountEnabled: editEvent.memberDiscount?.enabled || false,
@@ -186,8 +187,8 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
         setFormData({
           title: "",
           category: "match-screening",
-          startTime: defaultStartTime.toISOString().slice(0, 16),
-          endTime: defaultEndTime.toISOString().slice(0, 16),
+          startTime: toDatetimeLocalString(defaultStartTime),
+          endTime: toDatetimeLocalString(defaultEndTime),
           venue: "",
           description: "",
           maxAttendees: "",
@@ -195,8 +196,8 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
           requiresTicket: false,
           memberOnly: false,
           awayDayEvent: false,
-          bookingStartTime: defaultBookingStart.toISOString().slice(0, 16),
-          bookingEndTime: defaultBookingEnd.toISOString().slice(0, 16),
+          bookingStartTime: toDatetimeLocalString(defaultBookingStart),
+          bookingEndTime: toDatetimeLocalString(defaultBookingEnd),
           // Discount fields
           earlyBirdEnabled: false,
           earlyBirdType: "percentage",
@@ -450,8 +451,8 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
     setFormData({
       title: "",
       category: "match-screening",
-      startTime: defaultStartTime.toISOString().slice(0, 16),
-      endTime: defaultEndTime.toISOString().slice(0, 16),
+      startTime: toDatetimeLocalString(defaultStartTime),
+      endTime: toDatetimeLocalString(defaultEndTime),
       venue: "",
       description: "",
       maxAttendees: "",
@@ -459,8 +460,8 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
       requiresTicket: false,
       memberOnly: false,
       awayDayEvent: false,
-      bookingStartTime: defaultBookingStart.toISOString().slice(0, 16),
-      bookingEndTime: defaultBookingEnd.toISOString().slice(0, 16),
+      bookingStartTime: toDatetimeLocalString(defaultBookingStart),
+      bookingEndTime: toDatetimeLocalString(defaultBookingEnd),
       earlyBirdEnabled: false,
       earlyBirdType: "percentage",
       earlyBirdValue: "",
@@ -1125,7 +1126,7 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
               </div>
               <div className="flex items-center gap-2">
                 <span className="font-medium">Start:</span>
-                <span>{formData.startTime ? new Date(formData.startTime).toLocaleString() : "Not set"}</span>
+                <span>{formData.startTime ? formatLocalDate(formData.startTime, 'long') : "Not set"}</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="font-medium">Venue:</span>
@@ -1138,13 +1139,13 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
               {formData.bookingStartTime && (
                 <div className="flex items-center gap-2">
                   <span className="font-medium">Booking Opens:</span>
-                  <span>{new Date(formData.bookingStartTime).toLocaleString()}</span>
+                  <span>{formatLocalDate(formData.bookingStartTime, 'long')}</span>
                 </div>
               )}
               {formData.bookingEndTime && (
                 <div className="flex items-center gap-2">
                   <span className="font-medium">Booking Closes:</span>
-                  <span>{new Date(formData.bookingEndTime).toLocaleString()}</span>
+                  <span>{formatLocalDate(formData.bookingEndTime, 'long')}</span>
                 </div>
               )}
               {(formData.earlyBirdEnabled || formData.memberDiscountEnabled || formData.groupDiscountEnabled) && (
@@ -1155,7 +1156,7 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
                       <div className="flex items-center gap-2 text-green-700">
                         <Badge variant="outline" className="bg-green-100">
                           Early Bird: {formData.earlyBirdType === "percentage" ? `${formData.earlyBirdValue}%` : `₹${formData.earlyBirdValue}`} off
-                          {formData.earlyBirdEndTime && ` until ${new Date(formData.earlyBirdEndTime).toLocaleDateString()}`}
+                          {formData.earlyBirdEndTime && ` until ${formatLocalDate(formData.earlyBirdEndTime, 'date-short')}`}
                         </Badge>
                       </div>
                     )}

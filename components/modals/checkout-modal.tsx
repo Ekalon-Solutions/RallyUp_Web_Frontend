@@ -54,6 +54,13 @@ export function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutModalProps
   const [loading, setLoading] = useState(false)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [createdOrder, setCreatedOrder] = useState<any>(null)
+  const [merchandiseSettings, setMerchandiseSettings] = useState<{
+    shippingCost: number
+    freeShippingThreshold: number
+    taxRate: number
+    enableTax: boolean
+    enableShipping: boolean
+  } | null>(null)
   const [orderForm, setOrderForm] = useState<OrderForm>({
     firstName: user?.name?.split(' ')[0] || '',
     lastName: user?.name?.split(' ').slice(1).join(' ') || '',
@@ -67,6 +74,48 @@ export function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutModalProps
     notes: '',
     paymentMethod: 'card'
   })
+
+  // Fetch merchandise settings when modal opens
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        // Get clubId from the first item in cart
+        const clubId = items[0]?.club?._id || items[0]?.club
+        
+        if (clubId) {
+          // Use public endpoint for regular users
+          const response = await apiClient.getPublicMerchandiseSettings(clubId)
+          if (response.success && response.data?.settings) {
+            setMerchandiseSettings(response.data.settings)
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching merchandise settings:', error)
+      }
+    }
+    
+    if (isOpen && items.length > 0) {
+      fetchSettings()
+    }
+  }, [isOpen, items])
+
+  // Calculate shipping and tax based on settings
+  const calculateShipping = () => {
+    if (!merchandiseSettings?.enableShipping) return 0
+    if (merchandiseSettings.freeShippingThreshold && totalPrice >= merchandiseSettings.freeShippingThreshold) {
+      return 0
+    }
+    return merchandiseSettings.shippingCost || 0
+  }
+
+  const calculateTax = () => {
+    if (!merchandiseSettings?.enableTax || !merchandiseSettings.taxRate) return 0
+    return totalPrice * (merchandiseSettings.taxRate / 100)
+  }
+
+  const shippingCost = calculateShipping()
+  const taxAmount = calculateTax()
+  const orderTotal = totalPrice + shippingCost + taxAmount
 
   // Auto-fill user data when modal opens or user changes
   useEffect(() => {
@@ -420,15 +469,27 @@ export function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutModalProps
                         ₹ {totalPrice.toFixed(2)}
                       </span>
                     </div>
-                    <div className="flex justify-between">
-                      <span>Shipping:</span>
-                      <span className="text-green-600">Free</span>
-                    </div>
+                    {merchandiseSettings?.enableShipping && (
+                      <div className="flex justify-between">
+                        <span>Shipping:</span>
+                        {shippingCost === 0 ? (
+                          <span className="text-green-600">Free</span>
+                        ) : (
+                          <span>₹ {shippingCost.toFixed(2)}</span>
+                        )}
+                      </div>
+                    )}
+                    {merchandiseSettings?.enableTax && taxAmount > 0 && (
+                      <div className="flex justify-between">
+                        <span>Tax ({merchandiseSettings.taxRate}%):</span>
+                        <span>₹ {taxAmount.toFixed(2)}</span>
+                      </div>
+                    )}
                     <Separator />
                     <div className="flex justify-between text-lg font-bold">
                       <span>Total:</span>
                       <span>
-                        ₹ {totalPrice.toFixed(2)}
+                        ₹ {orderTotal.toFixed(2)}
                       </span>
                     </div>
                   </div>
@@ -472,6 +533,9 @@ export function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutModalProps
           orderId={createdOrder._id}
           orderNumber={createdOrder.orderNumber}
           total={createdOrder.total}
+          subtotal={createdOrder.subtotal}
+          shippingCost={createdOrder.shippingCost}
+          tax={createdOrder.tax}
           currency={createdOrder.currency}
           paymentMethod={createdOrder.paymentMethod || orderForm.paymentMethod || 'all'}
         />

@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast'
 import { useAuth } from '@/contexts/auth-context'
 import { apiClient } from '@/lib/api'
 import { Comment as CommentType } from '@/lib/api'
+import { formatLocalDate } from '@/lib/timezone'
 import { 
   Heart, 
   MessageCircle, 
@@ -192,7 +193,7 @@ export function NewsComment({
                 )}
               </div>
               <span className="text-xs text-muted-foreground">
-                {comment.createdAt ? new Date(comment.createdAt).toLocaleDateString() : 'Unknown date'}
+                {comment.createdAt ? formatLocalDate(comment.createdAt, 'date-short') : 'Unknown date'}
               </span>
             </div>
           </div>

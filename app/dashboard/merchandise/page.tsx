@@ -31,7 +31,10 @@ import {
   Package,
   DollarSign,
   Star,
-  AlertTriangle
+  AlertTriangle,
+  Settings,
+  Truck,
+  Percent
 } from "lucide-react"
 import {
   Table,
@@ -49,6 +52,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
 
 interface Merchandise {
   _id: string
@@ -88,10 +93,27 @@ interface MerchandiseStats {
   }>
 }
 
+interface MerchandiseSettings {
+  shippingCost: number
+  freeShippingThreshold: number
+  taxRate: number
+  enableTax: boolean
+  enableShipping: boolean
+}
+
 export default function MerchandiseManagementPage() {
   const { user, isAdmin } = useAuth()
   const [merchandise, setMerchandise] = useState<Merchandise[]>([])
   const [stats, setStats] = useState<MerchandiseStats | null>(null)
+  const [settings, setSettings] = useState<MerchandiseSettings>({
+    shippingCost: 0,
+    freeShippingThreshold: 0,
+    taxRate: 0,
+    enableTax: false,
+    enableShipping: false
+  })
+  const [settingsLoading, setSettingsLoading] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
      const [categoryFilter, setCategoryFilter] = useState("all")
@@ -105,6 +127,7 @@ export default function MerchandiseManagementPage() {
     if (isAdmin) {
       fetchMerchandise()
       fetchStats()
+      fetchSettings()
     }
   }, [page, searchTerm, categoryFilter, availabilityFilter, isAdmin])
 
@@ -179,6 +202,44 @@ export default function MerchandiseManagementPage() {
     }
   }
 
+  const fetchSettings = async () => {
+    try {
+      console.log('📦 [Frontend] Fetching settings...')
+      const response = await apiClient.getMerchandiseSettings()
+      console.log('📦 [Frontend] Fetched settings response:', response)
+      // The response structure is: { success: true, data: { success: true, data: { clubId, clubName, settings } } }
+      // OR: { success: true, data: { clubId, clubName, settings } }
+      const settingsData = response.data?.data?.settings || response.data?.settings
+      if (response.success && settingsData) {
+        console.log('📦 [Frontend] Setting state with:', settingsData)
+        setSettings(settingsData)
+      }
+    } catch (error: any) {
+      console.error('Error fetching settings:', error)
+    }
+  }
+
+  const saveSettings = async () => {
+    try {
+      setSettingsLoading(true)
+      console.log('📦 [Frontend] Saving settings:', settings)
+      const response = await apiClient.updateMerchandiseSettings(settings)
+      console.log('📦 [Frontend] Save response:', response)
+      if (response.success) {
+        toast.success('Settings saved successfully')
+        setShowSettings(false)
+      } else {
+        console.error('📦 [Frontend] Save failed:', response.error, response.errorDetails)
+        toast.error(response.error || 'Failed to save settings')
+      }
+    } catch (error: any) {
+      console.error('📦 [Frontend] Save exception:', error)
+      toast.error('Failed to save settings')
+    } finally {
+      setSettingsLoading(false)
+    }
+  }
+
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this merchandise item?')) {
       return
@@ -242,11 +303,125 @@ export default function MerchandiseManagementPage() {
               <h1 className="text-3xl font-bold">Merchandise Management</h1>
               <p className="text-muted-foreground">Manage your club's merchandise and products</p>
             </div>
-            <Button onClick={() => setIsAddDialogOpen(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Add Product
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setShowSettings(!showSettings)}>
+                <Settings className="w-4 h-4 mr-2" />
+                Settings
+              </Button>
+              <Button onClick={() => setIsAddDialogOpen(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Add Product
+              </Button>
+            </div>
           </div>
+
+          {/* Shipping & Tax Settings */}
+          {showSettings && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="w-5 h-5" />
+                  Shipping & Tax Settings
+                </CardTitle>
+                <CardDescription>
+                  Configure shipping and tax rates for your merchandise orders
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Shipping Settings */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Truck className="w-4 h-4 text-muted-foreground" />
+                        <Label htmlFor="enableShipping">Enable Shipping Charges</Label>
+                      </div>
+                      <Switch
+                        id="enableShipping"
+                        checked={settings.enableShipping}
+                        onCheckedChange={(checked) => setSettings({ ...settings, enableShipping: checked })}
+                      />
+                    </div>
+                    
+                    {settings.enableShipping && (
+                      <>
+                        <div className="space-y-2">
+                          <Label htmlFor="shippingCost">Shipping Cost (₹)</Label>
+                          <Input
+                            id="shippingCost"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={settings.shippingCost}
+                            onChange={(e) => setSettings({ ...settings, shippingCost: parseFloat(e.target.value) || 0 })}
+                            placeholder="Enter shipping cost"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="freeShippingThreshold">Free Shipping Threshold (₹)</Label>
+                          <Input
+                            id="freeShippingThreshold"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={settings.freeShippingThreshold}
+                            onChange={(e) => setSettings({ ...settings, freeShippingThreshold: parseFloat(e.target.value) || 0 })}
+                            placeholder="Order amount for free shipping (0 to disable)"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Orders above this amount will have free shipping. Set to 0 to always charge shipping.
+                          </p>
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Tax Settings */}
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Percent className="w-4 h-4 text-muted-foreground" />
+                        <Label htmlFor="enableTax">Enable Tax</Label>
+                      </div>
+                      <Switch
+                        id="enableTax"
+                        checked={settings.enableTax}
+                        onCheckedChange={(checked) => setSettings({ ...settings, enableTax: checked })}
+                      />
+                    </div>
+                    
+                    {settings.enableTax && (
+                      <div className="space-y-2">
+                        <Label htmlFor="taxRate">Tax Rate (%)</Label>
+                        <Input
+                          id="taxRate"
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.01"
+                          value={settings.taxRate}
+                          onChange={(e) => setSettings({ ...settings, taxRate: parseFloat(e.target.value) || 0 })}
+                          placeholder="Enter tax percentage"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Tax will be calculated as a percentage of the subtotal.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex justify-end gap-2 mt-6">
+                  <Button variant="outline" onClick={() => setShowSettings(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={saveSettings} disabled={settingsLoading}>
+                    {settingsLoading ? 'Saving...' : 'Save Settings'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Create/Edit Merchandise Modal */}
           <CreateMerchandiseModal

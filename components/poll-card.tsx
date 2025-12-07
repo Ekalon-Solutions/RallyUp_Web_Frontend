@@ -18,6 +18,7 @@ import {
 import { toast } from "sonner"
 import { apiClient, Poll } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
+import { formatLocalDate } from "@/lib/timezone"
 import { PollResultsModal } from "./modals/poll-results-modal"
 
 interface PollCardProps {
@@ -209,13 +210,7 @@ export function PollCard({ poll, onVote, showResults = false }: PollCardProps) {
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
+    return formatLocalDate(dateString, 'long')
   }
 
   const getStatusColor = (status: string) => {

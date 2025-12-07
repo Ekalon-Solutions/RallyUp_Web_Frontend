@@ -11,6 +11,7 @@ import NewsReadMoreModal from "@/components/modals/news-readmore-modal"
 import { apiClient, Event, News, User, Admin } from "@/lib/api"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
+import { formatLocalDate } from "@/lib/timezone"
 import { Calendar, MapPin, Clock, Users, Newspaper, Tag, User as UserIcon, Eye, CreditCard, Crown, Star, Shield, Infinity as InfinityIcon, Trash } from "lucide-react"
 import EventDetailsModal from '@/components/modals/event-details-modal'
 import UserEventRegistrationModal from "@/components/modals/user-event-registration-modal"
@@ -343,18 +344,11 @@ export default function UserDashboardPage() {
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    })
+    return formatLocalDate(dateString, 'date-short')
   }
 
   const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-    })
+    return formatLocalDate(dateString, 'time-only')
   }
 
   const getAttendancePercentage = (current: number, max?: number) => {

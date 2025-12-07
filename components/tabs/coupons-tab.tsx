@@ -13,6 +13,7 @@ import { Ticket, Search, MoreHorizontal, Edit, Trash2, Plus, Filter, TrendingUp,
 import { CreateCouponModal } from "@/components/modals/create-coupon-modal"
 import { apiClient } from "@/lib/api"
 import { toast } from "sonner"
+import { formatLocalDate } from "@/lib/timezone"
 
 interface Coupon {
   _id: string
@@ -171,13 +172,7 @@ export function CouponsTab() {
   })
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
+    return formatLocalDate(dateString, 'long')
   }
 
   const getCouponStatus = (coupon: Coupon) => {

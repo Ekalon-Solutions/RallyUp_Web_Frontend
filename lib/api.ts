@@ -2448,6 +2448,46 @@ class ApiClient {
     return this.get('/merchandise/admin/stats');
   }
 
+  async getMerchandiseSettings(): Promise<ApiResponse<{
+    clubId: string;
+    clubName: string;
+    settings: {
+      shippingCost: number;
+      freeShippingThreshold: number;
+      taxRate: number;
+      enableTax: boolean;
+      enableShipping: boolean;
+    };
+  }>> {
+    return this.get('/merchandise/admin/settings');
+  }
+
+  async updateMerchandiseSettings(settings: {
+    shippingCost?: number;
+    freeShippingThreshold?: number;
+    taxRate?: number;
+    enableTax?: boolean;
+    enableShipping?: boolean;
+  }): Promise<ApiResponse<{
+    clubId: string;
+    clubName: string;
+    settings: {
+      shippingCost: number;
+      freeShippingThreshold: number;
+      taxRate: number;
+      enableTax: boolean;
+      enableShipping: boolean;
+    };
+  }>> {
+    console.log('📦 [API Client] updateMerchandiseSettings called with:', settings);
+    const result = await this.request('/merchandise/admin/settings', {
+      method: 'PUT',
+      body: JSON.stringify(settings),
+    });
+    console.log('📦 [API Client] updateMerchandiseSettings result:', result);
+    return result;
+  }
+
   async getPublicMerchandise(params?: {
     page?: number;
     limit?: number;
@@ -2469,6 +2509,20 @@ class ApiClient {
 
   async getPublicMerchandiseById(id: string): Promise<ApiResponse<any>> {
     return this.get(`/merchandise/public/${id}`);
+  }
+
+  async getPublicMerchandiseSettings(clubId: string): Promise<ApiResponse<{
+    clubId: string;
+    clubName: string;
+    settings: {
+      shippingCost: number;
+      freeShippingThreshold: number;
+      taxRate: number;
+      enableTax: boolean;
+      enableShipping: boolean;
+    };
+  }>> {
+    return this.get(`/merchandise/public/settings/${clubId}`);
   }
 
   // Club Settings APIs
