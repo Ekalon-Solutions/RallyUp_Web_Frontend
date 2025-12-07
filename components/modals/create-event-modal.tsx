@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge"
 import { Calendar, Clock, MapPin, Users, Ticket, UserCheck, Bus, Plus, X, Percent } from "lucide-react"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api"
+import { useAuth } from "@/contexts/auth-context"
 
 interface Event {
   _id: string
@@ -61,6 +62,7 @@ interface CreateEventModalProps {
 }
 
 export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: CreateEventModalProps) {
+  const { user } = useAuth()
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [formData, setFormData] = useState({
@@ -97,25 +99,45 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
   const [clubs, setClubs] = useState<Array<{ _id: string; name: string }>>([])
 
   useEffect(() => {
-    // Fetch clubs list for the members-only dropdown
+    // Get clubs list for the members-only dropdown
+    // Only show clubs that the current user (admin) has access to
     let mounted = true
+    
     async function fetchClubs() {
       try {
-        const res: any = await apiClient.getPublicClubs()
-        // console.log('Fetched clubs for event modal:', res)
-        if (mounted && res?.data) {
-          // res.data might be an array or an object with items
-          const list = res?.data?.clubs || []
-          setClubs(list.map((c: any) => ({ _id: c._id, name: c.name })))
+        // For admins, they can only access their assigned club
+        // For super_admin or system_owner, they can access all clubs
+        const userRole = user?.role
+        
+        if (userRole === 'admin' || userRole === 'super_admin') {
+          // Admin: only show their assigned club
+          const adminUser = user as any
+          if (adminUser?.club) {
+            // Admin has a single club assigned
+            const adminClub = adminUser.club
+            if (mounted) {
+              setClubs([{ _id: adminClub._id, name: adminClub.name }])
+            }
+            return
+          }
         }
-            } catch (err) {
+        
+        // System owner or fallback: fetch all clubs
+        if (userRole === 'system_owner') {
+          const res: any = await apiClient.getPublicClubs()
+          if (mounted && res?.data) {
+            const list = res?.data?.clubs || []
+            setClubs(list.map((c: any) => ({ _id: c._id, name: c.name })))
+          }
+        }
+      } catch (err) {
         // console.error('Failed to load clubs for event modal', err)
       }
     }
 
-    if (isOpen) fetchClubs()
+    if (isOpen && user) fetchClubs()
     return () => { mounted = false }
-  }, [isOpen])
+  }, [isOpen, user])
 
   // Reset form when modal opens/closes or when editing
   useEffect(() => {
