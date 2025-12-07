@@ -114,6 +114,7 @@ const setupRecaptcha = (phoneNumber: string) => {
 export default function AuthPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [activeTab, setActiveTab] = useState("user-login")
+  const [otpButtonLoading, setOtpButtonLoading] = useState(false)
   const { login, register, isAuthenticated } = useAuth()
   const router = useRouter()
 
@@ -301,7 +302,7 @@ export default function AuthPage() {
     }
 
     try {
-      if (isDevelopment()) {
+      /* if (isDevelopment()) {
         debugLog("Debug mode: Skipping Firebase OTP confirmation")
         if (userLoginOtp !== DEBUG_OTP) {
           toast.error(`[DEBUG MODE] Invalid OTP. Use: ${DEBUG_OTP}`)
@@ -313,7 +314,7 @@ export default function AuthPage() {
           router.push("/dashboard")
         }
         return
-      }
+      } */
 
       const confirmationResult = window.confirmationResult
       const firebaseResult = await confirmationResult.confirm(userLoginOtp)
@@ -491,7 +492,7 @@ export default function AuthPage() {
     }
 
     try {
-      if (isDevelopment()) {
+/*       if (isDevelopment()) {
         debugLog("Debug mode: Skipping Firebase OTP confirmation for admin")
         if (adminLoginOtp !== DEBUG_OTP) {
           toast.error(`[DEBUG MODE] Invalid OTP. Use: ${DEBUG_OTP}`)
@@ -510,7 +511,7 @@ export default function AuthPage() {
         }
         return
       }
-
+ */
       const confirmationResult = window.confirmationResult
       const result = await confirmationResult.confirm(adminLoginOtp)
 
@@ -542,7 +543,7 @@ export default function AuthPage() {
 
     const phoneNumber = `${userRegisterData.countryCode}${userRegisterData.phone_number}`
 
-    if (isDevelopment()) {
+/*     if (isDevelopment()) {
       debugLog("Debug mode: Skipping Firebase OTP verification for user registration")
       toast.success(`[DEBUG MODE] OTP sent to ${phoneNumber}. Use code: ${DEBUG_OTP}`)
       setUserOtpSent(true)
@@ -550,7 +551,7 @@ export default function AuthPage() {
       setUserRegisterResendCountdown(10)
       return
     }
-
+ */
     try {
       const recaptchaVerifier = setupRecaptcha(phoneNumber)
       // console.log("recaptchaVerifier", recaptchaVerifier)
@@ -574,7 +575,7 @@ export default function AuthPage() {
 
     const phoneNumber = `${adminRegisterData.countryCode}${adminRegisterData.phone_number}`
 
-    if (isDevelopment()) {
+/*     if (isDevelopment()) {
       debugLog("Debug mode: Skipping Firebase OTP verification for admin registration")
       toast.success(`[DEBUG MODE] OTP sent to ${phoneNumber}. Use code: ${DEBUG_OTP}`)
       setAdminOtpSent(true)
@@ -582,7 +583,7 @@ export default function AuthPage() {
       setAdminRegisterResendCountdown(10)
       return
     }
-
+ */
     try {
       const recaptchaVerifier = setupRecaptcha(phoneNumber)
       const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier)
@@ -605,7 +606,7 @@ export default function AuthPage() {
 
     const phoneNumber = `${systemOwnerRegisterData.countryCode}${systemOwnerRegisterData.phone_number}`
 
-    if (isDevelopment()) {
+/*     if (isDevelopment()) {
       debugLog("Debug mode: Skipping Firebase OTP verification for system owner registration")
       toast.success(`[DEBUG MODE] OTP sent to ${phoneNumber}. Use code: ${DEBUG_OTP}`)
       setSystemOwnerOtpSent(true)
@@ -613,7 +614,7 @@ export default function AuthPage() {
       setSystemOwnerRegisterResendCountdown(10)
       return
     }
-
+ */
     try {
       const recaptchaVerifier = setupRecaptcha(phoneNumber)
       const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier)
@@ -636,7 +637,7 @@ export default function AuthPage() {
 
     const phoneNumber = `${userLoginData.countryCode}${userLoginData.phone_number}`
 
-    if (isDevelopment()) {
+/*     if (isDevelopment()) {
       debugLog("Debug mode: Skipping Firebase OTP verification")
       toast.success(`[DEBUG MODE] OTP sent to ${phoneNumber}. Use code: ${DEBUG_OTP}`)
       setUserLoginOtpSent(true)
@@ -644,7 +645,7 @@ export default function AuthPage() {
       setUserLoginResendCountdown(10)
       return
     }
-
+ */
     try {
       const recaptchaVerifier = setupRecaptcha(phoneNumber)
       // console.log("recaptchaVerifier", recaptchaVerifier)
@@ -667,7 +668,7 @@ export default function AuthPage() {
 
     const phoneNumber = `${adminLoginData.countryCode}${adminLoginData.phoneNumber}`
 
-    if (isDevelopment()) {
+/*     if (isDevelopment()) {
       debugLog("Debug mode: Skipping Firebase OTP verification for admin")
       toast.success(`[DEBUG MODE] OTP sent to ${phoneNumber}. Use code: ${DEBUG_OTP}`)
       setAdminLoginOtpSent(true)
@@ -675,7 +676,7 @@ export default function AuthPage() {
       setAdminLoginResendCountdown(10)
       return
     }
-
+ */
     try {
       const recaptchaVerifier = setupRecaptcha(phoneNumber)
       const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier)
@@ -697,7 +698,7 @@ export default function AuthPage() {
 
     const phoneNumber = `${systemOwnerLoginData.countryCode}${systemOwnerLoginData.phoneNumber}`
     
-    if (isDevelopment()) {
+/*     if (isDevelopment()) {
       debugLog("Debug mode: Skipping Firebase OTP verification for system owner")
       toast.success(`[DEBUG MODE] OTP sent to ${phoneNumber}. Use code: ${DEBUG_OTP}`)
       setSystemOwnerLoginOtpSent(true)
@@ -705,7 +706,7 @@ export default function AuthPage() {
       setSystemOwnerLoginResendCountdown(10)
       return
     }
-
+ */
     try {
       const recaptchaVerifier = setupRecaptcha(phoneNumber)
       const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier)
@@ -1021,11 +1022,13 @@ export default function AuthPage() {
                                 handleCodeInApp: true,
                               }
                               try {
+                                setOtpButtonLoading(true)
                                 await sendSignInLinkToEmail(auth, userLoginData.email, actionCodeSettings)
                                 window.localStorage.setItem("emailForSignIn", userLoginData.email)
                                 window.localStorage.setItem("emailSignInType", "user")
                                 toast.success(`Sign-in link sent to ${userLoginData.email}. Check your email to complete sign-in.`)
                                 setUserLoginOtpSent(true)
+                                setOtpButtonLoading(false)
                                 setUserLoginResendCountdown(10)
                               } catch (err) {
                                 console.error("Error sending email sign-in link:", err)
@@ -1038,16 +1041,18 @@ export default function AuthPage() {
                                 toast.error("Please fix the phone number validation error")
                                 return
                               }
-                              handleUserLoginVerifyNumber()
+                              setOtpButtonLoading(true)
+                              await handleUserLoginVerifyNumber()
+                              setOtpButtonLoading(false)
                             } else {
                               toast.error("Please enter either email or phone number")
                             }
                           })()
                         }}
-                        disabled={!userLoginData.email && (!userLoginData.phone_number || !userLoginData.countryCode) || (userLoginData.email && userLoginErrors.email) || (userLoginData.phone_number && userLoginErrors.phone_number)}
+                        disabled={!userLoginData.email && (!userLoginData.phone_number || !userLoginData.countryCode) || (userLoginData.email && userLoginErrors.email) || (userLoginData.phone_number && userLoginErrors.phone_number) || otpButtonLoading}
                         className="w-full bg-sky-400 text-slate-900 hover:bg-sky-300 h-12 text-lg font-medium"
                       >
-                        Send OTP
+                        {!otpButtonLoading ? "Send OTP" : "Sending OTP"}
                         <Phone className="ml-2 w-4 h-4" />
                       </Button>
                     ) : (
@@ -1677,10 +1682,12 @@ export default function AuthPage() {
                                 handleCodeInApp: true,
                               }
                               try {
+                                setOtpButtonLoading(true)
                                 await sendSignInLinkToEmail(auth, adminLoginData.email, actionCodeSettings)
                                 window.localStorage.setItem("emailForSignIn", adminLoginData.email)
                                 window.localStorage.setItem("emailSignInType", "admin")
                                 toast.success(`Sign-in link sent to ${adminLoginData.email}. Check your email to complete sign-in.`)
+                                setOtpButtonLoading(false)
                                 setAdminLoginOtpSent(true)
                                 setAdminLoginResendCountdown(10)
                               } catch (err) {
@@ -1688,16 +1695,18 @@ export default function AuthPage() {
                                 toast.error("Failed to send sign-in link. Please try again.")
                               }
                             } else if (adminLoginData.phoneNumber && adminLoginData.countryCode) {
-                              handleAdminLoginVerifyNumber()
+                              setOtpButtonLoading(true)
+                              await handleAdminLoginVerifyNumber()
+                              setOtpButtonLoading(false)
                             } else {
                               toast.error("Please enter either email or phone number")
                             }
                           })()
                         }}
-                        disabled={!adminLoginData.email && (!adminLoginData.phoneNumber || !adminLoginData.countryCode)}
+                        disabled={!adminLoginData.email && (!adminLoginData.phoneNumber || !adminLoginData.countryCode) || otpButtonLoading}
                         className="w-full bg-sky-400 text-slate-900 hover:bg-sky-300 h-12 text-lg font-medium"
                       >
-                        Send OTP
+                        {!otpButtonLoading ? "Send OTP" : "Sending OTP"}
                         <Phone className="ml-2 w-4 h-4" />
                       </Button>
                     ) : (
@@ -2023,17 +2032,23 @@ export default function AuthPage() {
                     {!systemOwnerLoginOtpSent ? (
                       <Button 
                         onClick={() => {
+                          console.log("hey there")
+                          console.log("system ownder login data",systemOwnerLoginData)
                           ;(async () => {
+                            console.log("system ownder login data",systemOwnerLoginData)
                             if (systemOwnerLoginData.email) {
                               const actionCodeSettings = {
                                 url: window.location.origin + "/login",
                                 handleCodeInApp: true,
                               }
                               try {
+                                console.log("hey email")
+                                setOtpButtonLoading(true)
                                 await sendSignInLinkToEmail(auth, systemOwnerLoginData.email, actionCodeSettings)
                                 window.localStorage.setItem("emailForSignIn", systemOwnerLoginData.email)
                                 window.localStorage.setItem("emailSignInType", "system")
                                 toast.success(`Sign-in link sent to ${systemOwnerLoginData.email}. Check your email to complete sign-in.`)
+                                setOtpButtonLoading(false)
                                 setSystemOwnerLoginOtpSent(true)
                                 setSystemOwnerLoginResendCountdown(10)
                               } catch (err) {
@@ -2041,16 +2056,19 @@ export default function AuthPage() {
                                 toast.error("Failed to send sign-in link. Please try again.")
                               }
                             } else if (systemOwnerLoginData.phoneNumber && systemOwnerLoginData.countryCode) {
-                              handleSystemOwnerLoginVerifyNumber()
+                              console.log("hey mobile")
+                              setOtpButtonLoading(true)
+                              await handleSystemOwnerLoginVerifyNumber()
+                              setOtpButtonLoading(false)
                             } else {
                               toast.error("Please enter either email or phone number")
                             }
                           })()
                         }}
-                        disabled={!systemOwnerLoginData.email && (!systemOwnerLoginData.phoneNumber || !systemOwnerLoginData.countryCode)}
+                        disabled={!systemOwnerLoginData.email && (!systemOwnerLoginData.phoneNumber || !systemOwnerLoginData.countryCode) || otpButtonLoading}
                         className="w-full bg-sky-400 text-slate-900 hover:bg-sky-300 h-12 text-lg font-medium"
                       >
-                        Send OTP
+                        {!otpButtonLoading ? "Send OTP" : "Sending OTP"}
                         <Phone className="ml-2 w-4 h-4" />
                       </Button>
                     ) : (

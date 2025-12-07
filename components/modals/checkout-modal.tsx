@@ -50,6 +50,7 @@ interface OrderForm {
 
 export function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutModalProps) {
   const { user } = useAuth()
+  console.log("user", user)
   const { items, totalPrice, clearCart } = useCart()
   const [loading, setLoading] = useState(false)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
@@ -72,7 +73,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutModalProps
     zipCode: '',
     country: '',
     notes: '',
-    paymentMethod: 'card'
+    paymentMethod: 'all'
   })
 
   // Fetch merchandise settings when modal opens
@@ -126,6 +127,11 @@ export function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutModalProps
         lastName: prev.lastName || user?.name?.split(' ').slice(1).join(' ') || '',
         email: prev.email || user?.email || '',
         phone: prev.phone || user?.phoneNumber || '',
+        address: prev.address || user.address_line1 + user.address_line1 || '',
+        city: prev.city || user.city || '',
+        state: prev.state || user.state_province || '',
+        zipCode: prev.zipCode || user.zip_code || '',
+        country: prev.country || user.country || '',
       }))
     }
   }, [isOpen, user])

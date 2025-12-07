@@ -73,7 +73,6 @@ export function SiteNavbar({ brandName = "Wingman Pro" }: SiteNavbarProps) {
       {mobileOpen && (
         <div className="md:hidden border-t border-slate-200 dark:border-white/10 bg-white/90 dark:bg-slate-900/90 backdrop-blur">
           <div className="mx-auto max-w-7xl px-4 py-4 grid gap-3 text-slate-700 dark:text-slate-200">
-            <Link href="/" onClick={() => setMobileOpen(false)} className="hover:text-slate-900 dark:hover:text-white">Wingman</Link>
             <Link href="/" onClick={() => setMobileOpen(false)} className="hover:text-slate-900 dark:hover:text-white">Wingman Pro</Link>
             <Link href="/affiliations" onClick={() => setMobileOpen(false)} className="hover:text-slate-900 dark:hover:text-white">Affiliations</Link>
             <Link href="/faqs" onClick={() => setMobileOpen(false)} className="hover:text-slate-900 dark:hover:text-white">FAQs</Link>

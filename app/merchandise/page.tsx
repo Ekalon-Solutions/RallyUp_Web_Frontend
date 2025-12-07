@@ -163,11 +163,6 @@ export default function MerchandisePage() {
     toast.success(`${item.name} added to cart`)
   }
 
-  const handleAddToWishlist = (item: Merchandise) => {
-    // TODO: Implement wishlist functionality
-    toast.success(`${item.name} added to wishlist`)
-  }
-
   const handleViewProduct = (item: Merchandise) => {
     setSelectedProduct(item)
     setIsProductModalOpen(true)
@@ -337,14 +332,7 @@ export default function MerchandisePage() {
                               >
                                 <Eye className="w-4 h-4" />
                               </Button>
-                              <Button
-                                size="sm"
-                                variant="secondary"
-                                onClick={() => handleAddToWishlist(item)}
-                              >
-                                <Heart className="w-4 h-4" />
-                              </Button>
-                              <Button
+                             <Button
                                 size="sm"
                                 onClick={() => handleAddToCart(item)}
                                 disabled={item.stockQuantity === 0}
@@ -530,14 +518,7 @@ export default function MerchandisePage() {
                                   >
                                     <Eye className="w-4 h-4" />
                                   </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleAddToWishlist(item)}
-                                  >
-                                    <Heart className="w-4 h-4" />
-                                  </Button>
-                                  <Button
+                                 <Button
                                     size="sm"
                                     onClick={() => handleAddToCart(item)}
                                     disabled={item.stockQuantity === 0}

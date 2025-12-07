@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DashboardLayout } from "@/components/dashboard-layout"
+import { PaymentSimulationModal } from "@/components/modals/payment-simulation-modal"
 import { ProtectedRoute } from "@/components/protected-route"
 import { useAuth } from "@/contexts/auth-context"
 import { apiClient } from "@/lib/api"
@@ -105,6 +106,14 @@ export default function UserClubsPage() {
     countryCode: "+1"
   })
   const [isRegistering, setIsRegistering] = useState(false)
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
+  const [pendingOrder, setPendingOrder] = useState<{
+    orderId: string
+    orderNumber: string
+    total: number
+    currency: string
+    paymentMethod: string
+  } | null>(null)
 
   useEffect(() => {
     fetchClubs()
@@ -181,26 +190,88 @@ export default function UserClubsPage() {
     e.preventDefault()
     if (!selectedClub || !selectedPlan || !user) return
 
+    // Free plans: join immediately
+    if (selectedPlan.price === 0) {
+      setIsRegistering(true)
+      try {
+        const response = await apiClient.joinClub({
+          clubId: selectedClub._id,
+          membershipPlanId: selectedPlan._id
+        } as any)
+
+        if (response.success) {
+          toast.success("Successfully joined the club!")
+          setShowRegistrationDialog(false)
+          fetchClubs()
+        } else {
+          toast.error(response.error || "Failed to join club. Please try again.")
+        }
+      } catch (error) {
+        toast.error("An error occurred while joining the club.")
+      } finally {
+        setIsRegistering(false)
+      }
+      return
+    }
+
+    // Paid plans: create a temporary order object and open the payment modal
+    const orderId = `temp-${Date.now()}`
+    const orderNumber = `ORD-${Math.floor(Math.random() * 900000) + 100000}`
+    const total = selectedPlan.price
+    const currency = selectedPlan.currency || 'INR'
+    const paymentMethod = 'all'
+
+    setPendingOrder({ orderId, orderNumber, total, currency, paymentMethod })
+    setIsPaymentModalOpen(true)
+  }
+
+  const handlePaymentSuccess = async (
+    orderId: string,
+    paymentId: string,
+    razorpayOrderId: string,
+    razorpaySignature: string
+  ) => {
+    if (!selectedClub || !selectedPlan) return
     setIsRegistering(true)
     try {
+      // Finalize join including payment details
       const response = await apiClient.joinClub({
         clubId: selectedClub._id,
-        membershipPlanId: selectedPlan._id
-      })
+        membershipPlanId: selectedPlan._id,
+        payment: {
+          orderId,
+          paymentId,
+          razorpayOrderId,
+          razorpaySignature
+        }
+      } as any)
 
       if (response.success) {
         toast.success("Successfully joined the club!")
         setShowRegistrationDialog(false)
-        fetchClubs() // Refresh the clubs list
+        fetchClubs()
       } else {
         toast.error(response.error || "Failed to join club. Please try again.")
       }
     } catch (error) {
-      // console.error("Join request error:", error)
       toast.error("An error occurred while joining the club.")
     } finally {
       setIsRegistering(false)
+      setIsPaymentModalOpen(false)
+      setPendingOrder(null)
     }
+  }
+
+  const handlePaymentFailure = (
+    orderId: string,
+    paymentId: string,
+    razorpayOrderId: string,
+    razorpaySignature: string,
+    error: any
+  ) => {
+    toast.error('Payment failed or verification failed. Please try again or contact support.')
+    setIsPaymentModalOpen(false)
+    setPendingOrder(null)
   }
 
   const formatPrice = (price: number, currency: string) => {
@@ -569,13 +640,13 @@ export default function UserClubsPage() {
                             </CardHeader>
                             <CardContent>
                               <div className="grid grid-cols-2 gap-4 mb-4">
-                                {Object.entries(plan.features).map(([key, value]) => (
-                                  <div key={key} className="flex items-center gap-2">
-                                    {getFeatureIcon(key)}
+                                {(Object.entries(plan.features) as [keyof typeof plan.features, boolean | number][]).map(([key, value]) => (
+                                  <div key={String(key)} className="flex items-center gap-2">
+                                    {getFeatureIcon(String(key))}
                                     <span className="text-sm">
                                       {typeof value === 'boolean' 
                                         ? (value ? 'Yes' : 'No')
-                                        : `${value} ${key.replace('max', '')}`
+                                        : `${value} ${String(key).replace('max', '')}`
                                       }
                                     </span>
                                   </div>
@@ -645,6 +716,23 @@ export default function UserClubsPage() {
               )}
             </DialogContent>
           </Dialog>
+          {/* Payment Simulation Modal */}
+          {pendingOrder && (
+            <PaymentSimulationModal
+              isOpen={isPaymentModalOpen}
+              onClose={() => {
+                setIsPaymentModalOpen(false)
+                setPendingOrder(null)
+              }}
+              onPaymentSuccess={handlePaymentSuccess}
+              onPaymentFailure={handlePaymentFailure}
+              orderId={pendingOrder.orderId}
+              orderNumber={pendingOrder.orderNumber}
+              total={pendingOrder.total}
+              currency={pendingOrder.currency}
+              paymentMethod={pendingOrder.paymentMethod}
+            />
+          )}
 
           {/* Join Club Dialog */}
           <Dialog open={showRegistrationDialog} onOpenChange={setShowRegistrationDialog}>
@@ -688,10 +776,9 @@ export default function UserClubsPage() {
                       <div className="flex justify-between">
                         <span>Price:</span>
                         <div>
-                          <span className="line-through text-muted-foreground mr-2">
+                          <span className="text-muted-foreground mr-2">
                             {formatPrice(selectedPlan.price, selectedPlan.currency)}
                           </span>
-                          <span className="font-bold text-green-600 dark:text-green-400">FREE</span>
                         </div>
                       </div>
                     </div>

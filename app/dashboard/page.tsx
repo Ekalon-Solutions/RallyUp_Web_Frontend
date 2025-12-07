@@ -15,6 +15,7 @@ import { VolunteerQuickSignup } from "@/components/volunteer/volunteer-quick-sig
 import { VolunteerOpportunitiesWidget } from "@/components/volunteer/volunteer-opportunities-widget"
 import { PromotionFeed } from "@/components/promotion-feed"
 import { PollsWidget } from "@/components/polls-widget"
+import { calculateUserProfileCompletion } from "@/lib/user-completion"
 
 export default function DashboardPage() {
   const { user, isAdmin } = useAuth()
@@ -71,7 +72,7 @@ export default function DashboardPage() {
   const memberEngagement = [
     { metric: "Match Attendance", value: "75%" },
     { metric: "Event Participation", value: "60%" },
-    { metric: "Forum Activity", value: "40%" },
+    // { metric: "Forum Activity", value: "40%" },
   ]
 
   return (
@@ -335,7 +336,9 @@ export default function DashboardPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               Get Started
-              <Badge variant="secondary">0% completed</Badge>
+              <Badge variant="secondary">
+                {user ? calculateUserProfileCompletion(user as any) : 0}% completed
+              </Badge>
             </CardTitle>
             <CardDescription>Complete these steps to set up your club</CardDescription>
           </CardHeader>

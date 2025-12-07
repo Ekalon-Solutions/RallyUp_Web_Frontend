@@ -43,6 +43,7 @@ import { cn } from "@/lib/utils"
 import { useTheme } from "next-themes"
 import { Sun, Moon } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { calculateUserProfileCompletion } from "@/lib/user-completion"
 
 const adminNavigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -57,11 +58,11 @@ const adminNavigation = [
   { name: "Order Management", href: "/dashboard/orders", icon: ShoppingCart },
   { name: "Events & Tickets", href: "/dashboard/events", icon: Ticket },
   { name: "Leaderboard", href: "/dashboard/leaderboard", icon: ChartNoAxesColumn },
-  { name: "Match Center", href: "/dashboard/match-center", icon: Calendar },
+  // { name: "Match Center", href: "/dashboard/match-center", icon: Calendar },
   { name: "Group Website", href: "/dashboard/website", icon: Globe },
-  { name: "Travel & Away Days", href: "/dashboard/travel", icon: Bus },
+  // { name: "Travel & Away Days", href: "/dashboard/travel", icon: Bus },
   { name: "External Ticketing", href: "/dashboard/external-ticketing", icon: ExternalLink },
-  { name: "Inter Club Forum Mgmt", href: "/dashboard/forum", icon: MessageSquare },
+  // { name: "Inter Club Forum Mgmt", href: "/dashboard/forum", icon: MessageSquare },
   { name: "Volunteer Management", href: "/dashboard/volunteer-management", icon: Heart },
   { name: "Onboarding & Promotions", href: "/dashboard/onboarding", icon: GraduationCap },
   { name: "Admin Settings", href: "/dashboard/admin-settings", icon: Settings },
@@ -92,11 +93,11 @@ const superAdminNavigation = [
   { name: "Order Management", href: "/dashboard/orders", icon: ShoppingCart },
   { name: "Events & Tickets", href: "/dashboard/events", icon: Ticket },
   { name: "Leaderboard", href: "/dashboard/leaderboard", icon: ChartNoAxesColumn },
-  { name: "Match Center", href: "/dashboard/match-center", icon: Calendar },
+  // { name: "Match Center", href: "/dashboard/match-center", icon: Calendar },
   { name: "Group Website", href: "/dashboard/website", icon: Globe },
-  { name: "Travel & Away Days", href: "/dashboard/travel", icon: Bus },
+  // { name: "Travel & Away Days", href: "/dashboard/travel", icon: Bus },
   { name: "External Ticketing", href: "/dashboard/external-ticketing", icon: ExternalLink },
-  { name: "Inter Club Forum Mgmt", href: "/dashboard/forum", icon: MessageSquare },
+  // { name: "Inter Club Forum Mgmt", href: "/dashboard/forum", icon: MessageSquare },
   { name: "Volunteer Management", href: "/dashboard/volunteer-management", icon: Heart },
   { name: "Onboarding & Promotions", href: "/dashboard/onboarding", icon: GraduationCap },
   { name: "Admin Settings", href: "/dashboard/admin-settings", icon: Settings },
@@ -273,7 +274,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <BarChart3 className="w-4 h-4" />
-            <span className="truncate">Get Started: 0% completed</span>
+            <span className="truncate">
+              Get Started: {user ? calculateUserProfileCompletion(user as any) : 0}% completed
+            </span>
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

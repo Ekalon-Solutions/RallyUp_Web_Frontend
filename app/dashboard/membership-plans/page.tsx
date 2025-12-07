@@ -47,7 +47,7 @@ export default function MembershipPlansPage() {
     name: "",
     description: "",
     price: 0,
-    currency: "USD",
+    currency: "INR",
     duration: 1,
     features: {
       maxEvents: 10,
@@ -350,9 +350,27 @@ export default function MembershipPlansPage() {
                           onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
                           className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground"
                         >
+                          <option value="INR">INR</option>
                           <option value="USD">USD</option>
                           <option value="EUR">EUR</option>
                           <option value="GBP">GBP</option>
+                          <option value="AUD">AUD</option>
+                          <option value="CAD">CAD</option>
+                          <option value="CHF">CHF</option>
+                          <option value="CNY">CNY</option>
+                          <option value="HKD">HKD</option>
+                          <option value="JPY">JPY</option>
+                          <option value="NZD">NZD</option>
+                          <option value="NOK">NOK</option>
+                          <option value="SEK">SEK</option>
+                          <option value="SGD">SGD</option>
+                          <option value="ZAR">ZAR</option>
+                          <option value="BRL">BRL</option>
+                          <option value="MXN">MXN</option>
+                          <option value="TRY">TRY</option>
+                          <option value="DKK">DKK</option>
+                          <option value="ILS">ILS</option>
+                          <option value="PLN">PLN</option>
                         </select>
                       </div>
                       <div className="space-y-2">
