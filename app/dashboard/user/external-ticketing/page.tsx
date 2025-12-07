@@ -146,8 +146,15 @@ export default function ExternalTicketingPage() {
     }
   }
 
-  const navigateToClub = (clubId: string) => {
-    router.push(`/dashboard/clubs/${clubId}`)
+  const navigateToClub = (clubId: string, clubName?: string) => {
+    const slug = clubName 
+      ? clubName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+      : 'club'
+    // Store club ID in sessionStorage to avoid exposing it in URL
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('selectedClubId', clubId)
+    }
+    router.push(`/dashboard/clubs/${slug}`)
   }
 
   const navigateToPlans = () => {

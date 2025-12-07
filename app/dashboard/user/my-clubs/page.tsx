@@ -153,7 +153,11 @@ export default function MyClubsPage() {
     const slug = clubName 
       ? clubName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
       : clubId
-    router.push(`/dashboard/clubs/${slug}?id=${clubId}`)
+    // Store club ID in sessionStorage to avoid exposing it in URL
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('selectedClubId', clubId)
+    }
+    router.push(`/dashboard/clubs/${slug}`)
   }
 
   const navigateToPlans = () => {
