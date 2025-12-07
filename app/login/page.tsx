@@ -114,6 +114,7 @@ const setupRecaptcha = (phoneNumber: string) => {
 export default function AuthPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [activeTab, setActiveTab] = useState("user-login")
+  const [otpButtonLoading, setOtpButtonLoading] = useState(false)
   const { login, register, isAuthenticated } = useAuth()
   const router = useRouter()
 
@@ -1021,11 +1022,13 @@ export default function AuthPage() {
                                 handleCodeInApp: true,
                               }
                               try {
+                                setOtpButtonLoading(true)
                                 await sendSignInLinkToEmail(auth, userLoginData.email, actionCodeSettings)
                                 window.localStorage.setItem("emailForSignIn", userLoginData.email)
                                 window.localStorage.setItem("emailSignInType", "user")
                                 toast.success(`Sign-in link sent to ${userLoginData.email}. Check your email to complete sign-in.`)
                                 setUserLoginOtpSent(true)
+                                setOtpButtonLoading(false)
                                 setUserLoginResendCountdown(10)
                               } catch (err) {
                                 console.error("Error sending email sign-in link:", err)
@@ -1038,16 +1041,18 @@ export default function AuthPage() {
                                 toast.error("Please fix the phone number validation error")
                                 return
                               }
-                              handleUserLoginVerifyNumber()
+                              setOtpButtonLoading(true)
+                              await handleUserLoginVerifyNumber()
+                              setOtpButtonLoading(false)
                             } else {
                               toast.error("Please enter either email or phone number")
                             }
                           })()
                         }}
-                        disabled={!userLoginData.email && (!userLoginData.phone_number || !userLoginData.countryCode) || (userLoginData.email && userLoginErrors.email) || (userLoginData.phone_number && userLoginErrors.phone_number)}
+                        disabled={!userLoginData.email && (!userLoginData.phone_number || !userLoginData.countryCode) || (userLoginData.email && userLoginErrors.email) || (userLoginData.phone_number && userLoginErrors.phone_number) || otpButtonLoading}
                         className="w-full bg-sky-400 text-slate-900 hover:bg-sky-300 h-12 text-lg font-medium"
                       >
-                        Send OTP
+                        {!otpButtonLoading ? "Send OTP" : "Sending OTP"}
                         <Phone className="ml-2 w-4 h-4" />
                       </Button>
                     ) : (
@@ -1677,10 +1682,12 @@ export default function AuthPage() {
                                 handleCodeInApp: true,
                               }
                               try {
+                                setOtpButtonLoading(true)
                                 await sendSignInLinkToEmail(auth, adminLoginData.email, actionCodeSettings)
                                 window.localStorage.setItem("emailForSignIn", adminLoginData.email)
                                 window.localStorage.setItem("emailSignInType", "admin")
                                 toast.success(`Sign-in link sent to ${adminLoginData.email}. Check your email to complete sign-in.`)
+                                setOtpButtonLoading(false)
                                 setAdminLoginOtpSent(true)
                                 setAdminLoginResendCountdown(10)
                               } catch (err) {
@@ -1688,16 +1695,18 @@ export default function AuthPage() {
                                 toast.error("Failed to send sign-in link. Please try again.")
                               }
                             } else if (adminLoginData.phoneNumber && adminLoginData.countryCode) {
-                              handleAdminLoginVerifyNumber()
+                              setOtpButtonLoading(true)
+                              await handleAdminLoginVerifyNumber()
+                              setOtpButtonLoading(false)
                             } else {
                               toast.error("Please enter either email or phone number")
                             }
                           })()
                         }}
-                        disabled={!adminLoginData.email && (!adminLoginData.phoneNumber || !adminLoginData.countryCode)}
+                        disabled={!adminLoginData.email && (!adminLoginData.phoneNumber || !adminLoginData.countryCode) || otpButtonLoading}
                         className="w-full bg-sky-400 text-slate-900 hover:bg-sky-300 h-12 text-lg font-medium"
                       >
-                        Send OTP
+                        {!otpButtonLoading ? "Send OTP" : "Sending OTP"}
                         <Phone className="ml-2 w-4 h-4" />
                       </Button>
                     ) : (
@@ -2023,17 +2032,23 @@ export default function AuthPage() {
                     {!systemOwnerLoginOtpSent ? (
                       <Button 
                         onClick={() => {
+                          console.log("hey there")
+                          console.log("system ownder login data",systemOwnerLoginData)
                           ;(async () => {
+                            console.log("system ownder login data",systemOwnerLoginData)
                             if (systemOwnerLoginData.email) {
                               const actionCodeSettings = {
                                 url: window.location.origin + "/login",
                                 handleCodeInApp: true,
                               }
                               try {
+                                console.log("hey email")
+                                setOtpButtonLoading(true)
                                 await sendSignInLinkToEmail(auth, systemOwnerLoginData.email, actionCodeSettings)
                                 window.localStorage.setItem("emailForSignIn", systemOwnerLoginData.email)
                                 window.localStorage.setItem("emailSignInType", "system")
                                 toast.success(`Sign-in link sent to ${systemOwnerLoginData.email}. Check your email to complete sign-in.`)
+                                setOtpButtonLoading(false)
                                 setSystemOwnerLoginOtpSent(true)
                                 setSystemOwnerLoginResendCountdown(10)
                               } catch (err) {
@@ -2041,16 +2056,19 @@ export default function AuthPage() {
                                 toast.error("Failed to send sign-in link. Please try again.")
                               }
                             } else if (systemOwnerLoginData.phoneNumber && systemOwnerLoginData.countryCode) {
-                              handleSystemOwnerLoginVerifyNumber()
+                              console.log("hey mobile")
+                              setOtpButtonLoading(true)
+                              await handleSystemOwnerLoginVerifyNumber()
+                              setOtpButtonLoading(false)
                             } else {
                               toast.error("Please enter either email or phone number")
                             }
                           })()
                         }}
-                        disabled={!systemOwnerLoginData.email && (!systemOwnerLoginData.phoneNumber || !systemOwnerLoginData.countryCode)}
+                        disabled={!systemOwnerLoginData.email && (!systemOwnerLoginData.phoneNumber || !systemOwnerLoginData.countryCode) || otpButtonLoading}
                         className="w-full bg-sky-400 text-slate-900 hover:bg-sky-300 h-12 text-lg font-medium"
                       >
-                        Send OTP
+                        {!otpButtonLoading ? "Send OTP" : "Sending OTP"}
                         <Phone className="ml-2 w-4 h-4" />
                       </Button>
                     ) : (
