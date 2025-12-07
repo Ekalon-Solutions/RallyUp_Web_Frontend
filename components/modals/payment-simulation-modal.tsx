@@ -23,8 +23,8 @@ declare global {
 interface PaymentSimulationModalProps {
   isOpen: boolean
   onClose: () => void
-  onPaymentSuccess: (orderId: string, paymentId: string, razorpayOrderId: string) => void
-  onPaymentFailure: (orderId: string, error: any) => void
+  onPaymentSuccess: (orderId: string, paymentId: string, razorpayOrderId: string, razorpaySignature: string) => void
+  onPaymentFailure: (orderId: string, paymentId: string, razorpayOrderId: string, razorpaySignature: string, error: any) => void
   orderId: string
   orderNumber: string
   total: number
@@ -146,7 +146,7 @@ export function PaymentSimulationModal({
               description: `Order ${orderNumber} payment completed successfully.`,
             })
             
-            onPaymentSuccess(orderId, response.razorpay_payment_id, response.razorpay_order_id)
+            onPaymentSuccess(orderId, response.razorpay_payment_id, response.razorpay_order_id, response.razorpay_signature)
             onClose()
           } catch (error) {
             // console.error('Payment verification error:', error)
@@ -155,7 +155,7 @@ export function PaymentSimulationModal({
               description: "Payment was received but verification failed. Please contact support.",
               variant: "destructive",
             })
-            onPaymentFailure(orderId, error)
+            onPaymentFailure(orderId, response.razorpay_payment_id, response.razorpay_order_id, response.razorpay_signature, error)
           }
         },
         prefill: {
@@ -187,7 +187,7 @@ export function PaymentSimulationModal({
           description: response.error.description || "Payment processing failed. Please try again.",
           variant: "destructive",
         })
-        onPaymentFailure(orderId, response.error)
+        onPaymentFailure(orderId, response.razorpay_payment_id, response.razorpay_order_id, response.razorpay_signature, response.error)
         setProcessing(false)
       })
 
@@ -266,7 +266,6 @@ export function PaymentSimulationModal({
               <div className="flex justify-between items-center">
                 <span className="text-sm font-medium">Payment Method:</span>
                 <div className="flex items-center gap-2">
-                  {getPaymentMethodIcon(paymentMethod)}
                   <span className="text-sm">{getPaymentMethodName(paymentMethod)}</span>
                 </div>
               </div>
@@ -274,7 +273,6 @@ export function PaymentSimulationModal({
               <div className="flex justify-between items-center text-lg font-semibold">
                 <span>Total Amount:</span>
                 <span className="flex items-center gap-1">
-                  <DollarSign className="w-4 h-4" />
                   {formatCurrency(total, currency)}
                 </span>
               </div>

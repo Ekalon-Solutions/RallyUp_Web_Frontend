@@ -207,7 +207,7 @@ export default function UserOrdersPage() {
       case 'bank_transfer':
         return 'Bank Transfer'
       default:
-        return 'Credit Card'
+        return 'Razorpay'
     }
   }
 
