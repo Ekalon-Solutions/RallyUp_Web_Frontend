@@ -195,8 +195,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         nav = userNavigation
     }
     
-    // Don't filter admin/super_admin navigation - they need to see everything to manage
-    // Filter for regular members (no role property or role === 'member')
     const isRegularUser = !user.role || user.role === 'member'
     
     if (isRegularUser && clubId) {
@@ -330,7 +328,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               <Menu className="w-5 h-5" />
               <span className="sr-only">Open sidebar</span>
             </Button>
-            <div className="text-sm text-muted-foreground">Client Name</div>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={logout}>
