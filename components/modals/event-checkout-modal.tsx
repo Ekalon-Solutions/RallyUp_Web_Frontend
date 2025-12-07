@@ -187,8 +187,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
             if (!verifyResponse.ok) {
               throw new Error('Payment verification failed')
             }
-
-            // Register for event after successful payment
+            
             const registerResponse = await apiClient.registerForEvent(
               String(event._id),
               undefined,

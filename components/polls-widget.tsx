@@ -14,6 +14,7 @@ import {
 import { apiClient, Poll } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
 import Link from "next/link"
+import { formatLocalDate } from "@/lib/timezone"
 
 interface PollsWidgetProps {
   limit?: number
@@ -57,10 +58,7 @@ export function PollsWidget({ limit = 3, showCreateButton = true }: PollsWidgetP
   }
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric'
-    })
+    return formatLocalDate(dateString, 'date-short')
   }
 
   const isAdmin = user?.role === 'admin' || user?.role === 'super_admin'

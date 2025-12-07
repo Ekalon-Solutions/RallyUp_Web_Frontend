@@ -30,6 +30,7 @@ import {
 import { toast } from "sonner"
 import { getApiUrl, API_ENDPOINTS } from "@/lib/config"
 import { useAuth } from "@/contexts/auth-context"
+import { utcToDatetimeLocal } from "@/lib/timezone"
 
 interface PromotionalContent {
   _id: string
@@ -119,8 +120,8 @@ export default function PromotionalContentModal({ isOpen, onClose, onContentCrea
       setTargetAudience(currentEditingPromotion.targeting?.audience || 'all')
       setPriority(currentEditingPromotion.display?.priority || 1)
       setFrequency(currentEditingPromotion.display?.frequency || 'once')
-      setStartDate(currentEditingPromotion.scheduling?.startDate ? new Date(currentEditingPromotion.scheduling.startDate).toISOString().slice(0, 16) : "")
-      setEndDate(currentEditingPromotion.scheduling?.endDate ? new Date(currentEditingPromotion.scheduling.endDate).toISOString().slice(0, 16) : "")
+      setStartDate(currentEditingPromotion.scheduling?.startDate ? utcToDatetimeLocal(currentEditingPromotion.scheduling.startDate) : "")
+      setEndDate(currentEditingPromotion.scheduling?.endDate ? utcToDatetimeLocal(currentEditingPromotion.scheduling.endDate) : "")
       setTimezone(currentEditingPromotion.scheduling?.timezone || "UTC")
       setActiveTab("create") // Switch to create tab when editing
     } else {

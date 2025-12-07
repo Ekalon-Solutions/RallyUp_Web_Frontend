@@ -11,6 +11,7 @@ import { EventRegistrationModal } from "@/components/modals/event-registration-m
 import { apiClient, Event } from "@/lib/api"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
+import { formatLocalDate } from "@/lib/timezone"
 
 export default function PublicEventsPage() {
   const { user } = useAuth()
@@ -99,13 +100,7 @@ export default function PublicEventsPage() {
 
   const formatDate = (dateString: string) => {
     try {
-      return new Date(dateString).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      })
+      return formatLocalDate(dateString, 'long')
     } catch (error) {
       return 'Invalid Date'
     }

@@ -13,6 +13,7 @@ import { X, Plus, Trash2, Calendar, Clock } from "lucide-react"
 import { toast } from "sonner"
 import { apiClient, Poll } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
+import { utcToDatetimeLocal } from "@/lib/timezone"
 
 interface CreatePollModalProps {
   isOpen: boolean
@@ -31,10 +32,10 @@ export function CreatePollModal({ isOpen, onClose, onSuccess, editPoll }: Create
   const [allowMultipleVotes, setAllowMultipleVotes] = useState(editPoll?.allowMultipleVotes || false)
   const [allowAnonymousVotes, setAllowAnonymousVotes] = useState(editPoll?.allowAnonymousVotes || false)
   const [startDate, setStartDate] = useState(
-    editPoll?.startDate ? new Date(editPoll.startDate).toISOString().slice(0, 16) : ""
+    editPoll?.startDate ? utcToDatetimeLocal(editPoll.startDate) : ""
   )
   const [endDate, setEndDate] = useState(
-    editPoll?.endDate ? new Date(editPoll.endDate).toISOString().slice(0, 16) : ""
+    editPoll?.endDate ? utcToDatetimeLocal(editPoll.endDate) : ""
   )
   const [isPublic, setIsPublic] = useState(editPoll?.isPublic !== undefined ? editPoll.isPublic : true)
   const [tags, setTags] = useState<string[]>(editPoll?.tags || [])

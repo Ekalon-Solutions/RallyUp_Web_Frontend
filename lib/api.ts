@@ -140,9 +140,12 @@ export interface Chant {
   title: string;
   description?: string;
   content?: string;
-  fileType: 'text' | 'image' | 'audio';
+  fileType: 'text' | 'image' | 'audio' | 'iframe';
   fileName?: string;
   fileUrl?: string;
+  iframeUrl?: string;
+  iframeWidth?: string;
+  iframeHeight?: string;
   fileKey?: string;
   fileSize?: number;
   mimeType?: string;
@@ -2305,7 +2308,7 @@ class ApiClient {
   }
 
   async getChants(clubId: string, params?: {
-    fileType?: 'text' | 'image' | 'audio';
+    fileType?: 'text' | 'image' | 'audio' | 'iframe';
     page?: number;
     limit?: number;
     search?: string;
@@ -2335,9 +2338,12 @@ class ApiClient {
     title: string;
     description?: string;
     content?: string;
-    fileType: 'text' | 'image' | 'audio';
+    fileType: 'text' | 'image' | 'audio' | 'iframe';
     tags?: string[];
     file?: File;
+    iframeUrl?: string;
+    iframeWidth?: string;
+    iframeHeight?: string;
   }): Promise<ApiResponse<Chant>> {
     const formData = new FormData();
     formData.append('title', data.title);
@@ -2346,6 +2352,9 @@ class ApiClient {
     formData.append('fileType', data.fileType);
     if (data.tags) formData.append('tags', data.tags.join(','));
     if (data.file) formData.append('file', data.file);
+    if (data.iframeUrl) formData.append('iframeUrl', data.iframeUrl);
+    if (data.iframeWidth) formData.append('iframeWidth', data.iframeWidth);
+    if (data.iframeHeight) formData.append('iframeHeight', data.iframeHeight);
 
     return this.request(`/chants/club/${clubId}`, {
       method: 'POST',
@@ -2360,6 +2369,9 @@ class ApiClient {
     content?: string;
     tags?: string[];
     file?: File;
+    iframeUrl?: string;
+    iframeWidth?: string;
+    iframeHeight?: string;
   }): Promise<ApiResponse<Chant>> {
     const formData = new FormData();
     if (data.title) formData.append('title', data.title);
@@ -2367,6 +2379,9 @@ class ApiClient {
     if (data.content !== undefined) formData.append('content', data.content);
     if (data.tags) formData.append('tags', data.tags.join(','));
     if (data.file) formData.append('file', data.file);
+    if (data.iframeUrl !== undefined) formData.append('iframeUrl', data.iframeUrl);
+    if (data.iframeWidth !== undefined) formData.append('iframeWidth', data.iframeWidth);
+    if (data.iframeHeight !== undefined) formData.append('iframeHeight', data.iframeHeight);
 
     return this.request(`/chants/${id}`, {
       method: 'PUT',
@@ -2448,6 +2463,46 @@ class ApiClient {
     return this.get('/merchandise/admin/stats');
   }
 
+  async getMerchandiseSettings(): Promise<ApiResponse<{
+    clubId: string;
+    clubName: string;
+    settings: {
+      shippingCost: number;
+      freeShippingThreshold: number;
+      taxRate: number;
+      enableTax: boolean;
+      enableShipping: boolean;
+    };
+  }>> {
+    return this.get('/merchandise/admin/settings');
+  }
+
+  async updateMerchandiseSettings(settings: {
+    shippingCost?: number;
+    freeShippingThreshold?: number;
+    taxRate?: number;
+    enableTax?: boolean;
+    enableShipping?: boolean;
+  }): Promise<ApiResponse<{
+    clubId: string;
+    clubName: string;
+    settings: {
+      shippingCost: number;
+      freeShippingThreshold: number;
+      taxRate: number;
+      enableTax: boolean;
+      enableShipping: boolean;
+    };
+  }>> {
+    console.log('📦 [API Client] updateMerchandiseSettings called with:', settings);
+    const result = await this.request('/merchandise/admin/settings', {
+      method: 'PUT',
+      body: JSON.stringify(settings),
+    });
+    console.log('📦 [API Client] updateMerchandiseSettings result:', result);
+    return result;
+  }
+
   async getPublicMerchandise(params?: {
     page?: number;
     limit?: number;
@@ -2469,6 +2524,20 @@ class ApiClient {
 
   async getPublicMerchandiseById(id: string): Promise<ApiResponse<any>> {
     return this.get(`/merchandise/public/${id}`);
+  }
+
+  async getPublicMerchandiseSettings(clubId: string): Promise<ApiResponse<{
+    clubId: string;
+    clubName: string;
+    settings: {
+      shippingCost: number;
+      freeShippingThreshold: number;
+      taxRate: number;
+      enableTax: boolean;
+      enableShipping: boolean;
+    };
+  }>> {
+    return this.get(`/merchandise/public/settings/${clubId}`);
   }
 
   // Club Settings APIs

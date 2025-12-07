@@ -11,6 +11,7 @@ import { Calendar, MapPin, Clock, Users, Infinity as InfinityIcon } from 'lucide
 import { Event } from '@/lib/api'
 import { apiClient } from '@/lib/api'
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion'
+import { formatLocalDate } from '@/lib/timezone'
 
 interface EventDetailsModalProps {
   event: Event | null
@@ -47,8 +48,7 @@ export default function EventDetailsModal({ event, isOpen, onClose }: EventDetai
 
   const formatDateTime = (dateString?: string) => {
     if (!dateString) return '—'
-    const d = new Date(dateString)
-    return d.toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+    return formatLocalDate(dateString, 'long')
   }
 
   // Determine whether the current user already has attendance marked.

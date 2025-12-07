@@ -28,6 +28,9 @@ interface PaymentSimulationModalProps {
   orderId: string
   orderNumber: string
   total: number
+  subtotal?: number
+  shippingCost?: number
+  tax?: number
   currency: string
   paymentMethod: string
 }
@@ -40,6 +43,9 @@ export function PaymentSimulationModal({
   orderId,
   orderNumber,
   total,
+  subtotal,
+  shippingCost,
+  tax,
   currency,
   paymentMethod
 }: PaymentSimulationModalProps) {
@@ -270,6 +276,34 @@ export function PaymentSimulationModal({
                 </div>
               </div>
               <Separator />
+              {/* Price Breakdown */}
+              {subtotal !== undefined && (
+                <div className="flex justify-between items-center text-sm">
+                  <span>Subtotal:</span>
+                  <span>{formatCurrency(subtotal, currency)}</span>
+                </div>
+              )}
+              {shippingCost !== undefined && shippingCost > 0 && (
+                <div className="flex justify-between items-center text-sm">
+                  <span>Shipping:</span>
+                  <span>{formatCurrency(shippingCost, currency)}</span>
+                </div>
+              )}
+              {shippingCost !== undefined && shippingCost === 0 && subtotal !== undefined && (
+                <div className="flex justify-between items-center text-sm">
+                  <span>Shipping:</span>
+                  <span className="text-green-600">Free</span>
+                </div>
+              )}
+              {tax !== undefined && tax > 0 && (
+                <div className="flex justify-between items-center text-sm">
+                  <span>Tax:</span>
+                  <span>{formatCurrency(tax, currency)}</span>
+                </div>
+              )}
+              {(subtotal !== undefined || shippingCost !== undefined || tax !== undefined) && (
+                <Separator />
+              )}
               <div className="flex justify-between items-center text-lg font-semibold">
                 <span>Total Amount:</span>
                 <span className="flex items-center gap-1">

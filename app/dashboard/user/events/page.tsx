@@ -23,6 +23,7 @@ import { ProtectedRoute } from "@/components/protected-route";
 import { apiClient, Event } from "@/lib/api";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/auth-context";
+import { formatLocalDate } from "@/lib/timezone";
 import {
   Calendar,
   MapPin,
@@ -228,18 +229,11 @@ export default function UserEventsPage() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
+    return formatLocalDate(dateString, 'date-short');
   };
 
   const formatTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    return formatLocalDate(dateString, 'time-only');
   };
   // Currency helpers
   const currencySymbols: Record<string, string> = {

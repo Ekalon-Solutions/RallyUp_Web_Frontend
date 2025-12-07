@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
 import { useToast } from '../hooks/use-toast';
 import { apiClient } from '../lib/api';
+import { formatLocalDate } from '../lib/timezone';
 
 interface Session {
   id: string;
@@ -117,7 +118,7 @@ export function UserSessionManagement() {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString();
+    return formatLocalDate(dateString, 'long');
   };
 
   const getDeviceTypeColor = (deviceType: string) => {

@@ -24,7 +24,8 @@ import {
   Volume2,
   Heart,
   Share2,
-  VolumeX
+  VolumeX,
+  Globe
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 
@@ -138,6 +139,7 @@ export default function MemberChantsPage() {
       case 'text': return <FileText className="w-5 h-5" />;
       case 'image': return <Image className="w-5 h-5" />;
       case 'audio': return <Music className="w-5 h-5" />;
+      case 'iframe': return <Globe className="w-5 h-5" />;
       default: return <FileText className="w-5 h-5" />;
     }
   };
@@ -252,6 +254,7 @@ export default function MemberChantsPage() {
                       <SelectItem value="text">Text</SelectItem>
                       <SelectItem value="image">Image</SelectItem>
                       <SelectItem value="audio">Audio</SelectItem>
+                      <SelectItem value="iframe">Embedded Content (iframe)</SelectItem>
                     </SelectContent>
                   </Select>
                   <Button
@@ -348,6 +351,37 @@ export default function MemberChantsPage() {
                         <pre className="whitespace-pre-wrap text-sm font-mono leading-relaxed">
                           {chant.content}
                         </pre>
+                      </div>
+                    )}
+                    
+                    {chant.fileType === 'iframe' && chant.iframeUrl && (
+                      <div className="space-y-3">
+                        <div className="border rounded-lg overflow-hidden bg-muted/50">
+                          <iframe
+                            src={chant.iframeUrl}
+                            width={chant.iframeWidth || '100%'}
+                            height={chant.iframeHeight || '600px'}
+                            className="w-full border-0"
+                            style={{
+                              minHeight: '400px',
+                              display: 'block'
+                            }}
+                            sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+                            loading="lazy"
+                            title={chant.title}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Embedded content from external source</span>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.open(chant.iframeUrl, '_blank')}
+                          >
+                            <Globe className="w-4 h-4 mr-2" />
+                            Open in new tab
+                          </Button>
+                        </div>
                       </div>
                     )}
                     

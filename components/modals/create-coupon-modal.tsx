@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Ticket, AlertCircle } from "lucide-react"
 import { toast } from "sonner"
 import config from "@/lib/config"
+import { toDatetimeLocalString } from "@/lib/timezone"
 
 interface Coupon {
   _id: string
@@ -83,8 +84,8 @@ export function CreateCouponModal({ isOpen, onClose, onSuccess, editCoupon }: Cr
           discountType: "flat",
           discountValue: "",
           maxUsage: "100",
-          startTime: now.toISOString().slice(0, 16),
-          endTime: endDate.toISOString().slice(0, 16),
+          startTime: toDatetimeLocalString(now),
+          endTime: toDatetimeLocalString(endDate),
           eligibility: "all",
           minPurchaseAmount: "",
         })
@@ -209,8 +210,8 @@ export function CreateCouponModal({ isOpen, onClose, onSuccess, editCoupon }: Cr
       discountType: "flat",
       discountValue: "",
       maxUsage: "100",
-      startTime: now.toISOString().slice(0, 16),
-      endTime: endDate.toISOString().slice(0, 16),
+      startTime: toDatetimeLocalString(now),
+      endTime: toDatetimeLocalString(endDate),
       eligibility: "all",
       minPurchaseAmount: "",
     })
