@@ -31,27 +31,58 @@ export default function ClubDetailsPage() {
   const params = useParams()
   const router = useRouter()
   const { user } = useAuth()
-  const [searchParams] = React.useState(() => {
-    if (typeof window !== 'undefined') {
-      return new URLSearchParams(window.location.search)
-    }
-    return new URLSearchParams()
-  })
+  const [clubId, setClubId] = React.useState<string | null>(null)
+  const [isClient, setIsClient] = React.useState(false)
   
-  // Get club ID from query parameter, fallback to route param if it's a valid ObjectId
-  const clubIdFromQuery = searchParams.get('id')
-  const clubIdFromParam = params.clubId as string
-  const clubId = clubIdFromQuery || clubIdFromParam
+  // Handle client-side initialization to avoid SSR issues
+  React.useEffect(() => {
+    setIsClient(true)
+    
+    // Try to get club ID from sessionStorage first
+    const storedClubId = sessionStorage.getItem('selectedClubId')
+    
+    // Also check URL query param for backwards compatibility
+    const urlParams = new URLSearchParams(window.location.search)
+    const queryClubId = urlParams.get('id')
+    
+    // Use stored ID, query param, or route param as fallback
+    const routeParam = params.clubId as string
+    const resolvedClubId = storedClubId || queryClubId || routeParam
+    
+    // Validate that it looks like a MongoDB ObjectId (24 hex chars)
+    const isValidObjectId = /^[a-f\d]{24}$/i.test(resolvedClubId)
+    
+    if (isValidObjectId) {
+      setClubId(resolvedClubId)
+    } else {
+      // If the route param is a slug, we need the ID from storage
+      if (storedClubId || queryClubId) {
+        setClubId(storedClubId || queryClubId)
+      } else {
+        // Try using route param anyway (might be an ID)
+        setClubId(routeParam)
+      }
+    }
+  }, [params.clubId])
 
   const [club, setClub] = React.useState<ClubDetails | null>(null)
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState<string | null>(null)
 
   React.useEffect(() => {
-    fetchClubDetails()
-  }, [clubId])
+    // Only fetch when we have a valid club ID
+    if (clubId && isClient) {
+      fetchClubDetails()
+    }
+  }, [clubId, isClient])
 
   const fetchClubDetails = async () => {
+    if (!clubId) {
+      setError('No club ID provided')
+      setLoading(false)
+      return
+    }
+    
     try {
       setLoading(true)
       setError(null)
@@ -71,7 +102,8 @@ export default function ClubDetailsPage() {
     }
   }
 
-  if (loading) {
+  // Show loading during SSR or while waiting for clubId
+  if (!isClient || loading || !clubId) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
