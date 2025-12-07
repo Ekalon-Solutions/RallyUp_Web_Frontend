@@ -63,7 +63,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutModalProps
     city: '',
     state: '',
     zipCode: '',
-    country: 'United States',
+    country: '',
     notes: '',
     paymentMethod: 'all'
   })
