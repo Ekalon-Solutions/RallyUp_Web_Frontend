@@ -780,31 +780,64 @@ class ApiClient {
       newsUpdates?: boolean;
     };
   }): Promise<ApiResponse<User>> {
+    const userStr = localStorage.getItem('user');
+    let endpoint = '/users/profile';
+    
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        if (user.role === 'system_owner') {
+          endpoint = '/system-owner/profile';
+        } else if (user.role === 'admin' || user.role === 'super_admin') {
+          endpoint = '/admin/profile';
+        }
+      } catch (e) {
+        console.error('Error parsing user from localStorage:', e);
+      }
+    }
+
     const backendData: any = {};
     
-    if (data.name) {
-      const nameParts = data.name.trim().split(' ');
-      backendData.first_name = nameParts[0] || '';
-      backendData.last_name = nameParts.slice(1).join(' ') || nameParts[0] || '';
+    // For admin and system_owner, use 'name' directly
+    // For regular users, split into first_name and last_name
+    if (endpoint === '/users/profile') {
+      if (data.name) {
+        const nameParts = data.name.trim().split(' ');
+        backendData.first_name = nameParts[0] || '';
+        backendData.last_name = nameParts.slice(1).join(' ') || nameParts[0] || '';
+      }
+      
+      if (data.phoneNumber !== undefined) {
+        backendData.phone_number = data.phoneNumber;
+      }
+      
+      if (data.countryCode !== undefined) {
+        backendData.phone_country_code = data.countryCode;
+      }
+    } else {
+      // For admin and system_owner
+      if (data.name !== undefined) {
+        backendData.name = data.name;
+      }
+      
+      if (data.phoneNumber !== undefined) {
+        backendData.phoneNumber = data.phoneNumber;
+      }
+      
+      if (data.countryCode !== undefined) {
+        backendData.countryCode = data.countryCode;
+      }
     }
     
     if (data.email !== undefined) {
       backendData.email = data.email;
     }
     
-    if (data.phoneNumber !== undefined) {
-      backendData.phone_number = data.phoneNumber;
-    }
-    
-    if (data.countryCode !== undefined) {
-      backendData.phone_country_code = data.countryCode;
-    }
-    
     if (data.notificationPreferences !== undefined) {
       backendData.notificationPreferences = data.notificationPreferences;
     }
 
-    return this.request('/users/profile', {
+    return this.request(endpoint, {
       method: 'PUT',
       body: JSON.stringify(backendData),
     });

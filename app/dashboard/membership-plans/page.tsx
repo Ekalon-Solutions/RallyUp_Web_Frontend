@@ -76,7 +76,7 @@ export default function MembershipPlansPage() {
     try {
       setIsLoading(true)
       // console.log('Loading membership plans...')
-      
+
       // Check if user is authenticated
       const token = localStorage.getItem('token')
       if (!token) {
@@ -85,17 +85,17 @@ export default function MembershipPlansPage() {
         setIsLoading(false)
         return
       }
-      
+
       const response = await apiClient.getMembershipPlans(clubId)
       // console.log('Membership plans response:', response)
-      
+
       if (response.success) {
         // Handle both direct array response and nested data response
         const respAny: any = response
         const plansData = Array.isArray(respAny.data) ? respAny.data : (respAny.data?.data || [])
         // console.log('Processed plans data:', plansData)
         setPlans(plansData)
-        
+
         if (plansData.length === 0) {
           // console.log('No membership plans found')
           toast.info('No membership plans found. You can create your first plan.')
@@ -116,11 +116,11 @@ export default function MembershipPlansPage() {
     try {
       let clubsList: Array<{ _id: string; name: string }> = []
       let initialClubId: string | undefined = undefined
-      
+
       // For admin/super_admin, get clubs they have access to
       const userRole = user?.role
       const userAny = user as any
-      
+
       if (userRole === 'system_owner') {
         // System owner can see all clubs
         const clubsResp = await apiClient.getPublicClubs()
@@ -142,7 +142,7 @@ export default function MembershipPlansPage() {
             }))
           initialClubId = clubsList.length > 0 ? clubsList[0]._id : undefined
         }
-        
+
         // If still no clubs, try the getAdminClub API
         if (clubsList.length === 0) {
           try {
@@ -167,10 +167,10 @@ export default function MembershipPlansPage() {
           initialClubId = clubsList.length > 0 ? clubsList[0]._id : undefined
         }
       }
-      
+
       setClubs(clubsList)
       setSelectedClubId(initialClubId)
-      
+
       // Load plans for the initial club
       await loadPlansForClub(initialClubId)
     } catch (error) {
@@ -510,20 +510,19 @@ export default function MembershipPlansPage() {
               <div>Last error: {plans.length === 0 && !isLoading ? 'No plans found or error occurred' : 'None'}</div>
             </div>
           </div>
-
-                         {/* Membership Card Preview Section */}
-               <div className="border-t pt-8">
-                 <div className="text-center text-muted-foreground py-8">
-                   <CreditCard className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                   <p className="text-lg font-medium">Membership Card Preview</p>
-                   <p className="text-sm mt-2">
-                     View your membership cards in the dedicated section
-                   </p>
-                   <Button variant="outline" className="mt-4" asChild>
-                     <a href="/dashboard/user/membership-card">View My Cards</a>
-                   </Button>
-                 </div>
-               </div>
+          {/* Membership Card Preview Section */}
+          <div className="border-t pt-8">
+            <div className="text-center text-muted-foreground py-8">
+              <CreditCard className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p className="text-lg font-medium">Membership Card Preview</p>
+              <p className="text-sm mt-2">
+                View your membership cards in the dedicated section
+              </p>
+              <Button variant="outline" className="mt-4" asChild>
+                <a href="/dashboard/user/membership-card">View My Cards</a>
+              </Button>
+            </div>
+          </div>
 
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {plans.map((plan) => (
@@ -576,39 +575,39 @@ export default function MembershipPlansPage() {
                     </div>
                   </div>
 
-                  {Object.entries(plan.features).some(([key, value]) => 
+                  {Object.entries(plan.features).some(([key, value]) =>
                     key.startsWith('custom') || key.startsWith('advanced') || key.startsWith('priority') || key.startsWith('api') && value
                   ) && (
-                    <div className="border-t pt-4">
-                      <h4 className="font-semibold text-sm mb-2 text-foreground">Premium Features</h4>
-                      <div className="space-y-1">
-                        {plan.features.customBranding && (
-                          <div className="flex items-center gap-2 text-sm">
-                            <CheckCircle className="w-4 h-4 text-green-500" />
-                            <span className="text-foreground">Custom Branding</span>
-                          </div>
-                        )}
-                        {plan.features.advancedAnalytics && (
-                          <div className="flex items-center gap-2 text-sm">
-                            <CheckCircle className="w-4 h-4 text-green-500" />
-                            <span className="text-foreground">Advanced Analytics</span>
-                          </div>
-                        )}
-                        {plan.features.prioritySupport && (
-                          <div className="flex items-center gap-2 text-sm">
-                            <CheckCircle className="w-4 h-4 text-green-500" />
-                            <span className="text-foreground">Priority Support</span>
-                          </div>
-                        )}
-                        {plan.features.apiAccess && (
-                          <div className="flex items-center gap-2 text-sm">
-                            <CheckCircle className="w-4 h-4 text-green-500" />
-                            <span className="text-foreground">API Access</span>
-                          </div>
-                        )}
+                      <div className="border-t pt-4">
+                        <h4 className="font-semibold text-sm mb-2 text-foreground">Premium Features</h4>
+                        <div className="space-y-1">
+                          {plan.features.customBranding && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <CheckCircle className="w-4 h-4 text-green-500" />
+                              <span className="text-foreground">Custom Branding</span>
+                            </div>
+                          )}
+                          {plan.features.advancedAnalytics && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <CheckCircle className="w-4 h-4 text-green-500" />
+                              <span className="text-foreground">Advanced Analytics</span>
+                            </div>
+                          )}
+                          {plan.features.prioritySupport && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <CheckCircle className="w-4 h-4 text-green-500" />
+                              <span className="text-foreground">Priority Support</span>
+                            </div>
+                          )}
+                          {plan.features.apiAccess && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <CheckCircle className="w-4 h-4 text-green-500" />
+                              <span className="text-foreground">API Access</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" className="flex-1">

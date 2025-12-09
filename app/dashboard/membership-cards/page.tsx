@@ -279,11 +279,12 @@ export default function MembershipCardsPage() {
         // Validate the card structure before adding
         if (newCard && newCard.card && newCard.club && newCard.membershipPlan) {
           setCards(prev => [newCard, ...prev])
+          
           toast({
-            title: "Success",
+            title: "Card created",
             description: "Membership card created successfully",
           })
-          // Reset form
+          
           setSelectedPlanId("")
           setPreviewUrl(null)
           setSelectedFile(null)

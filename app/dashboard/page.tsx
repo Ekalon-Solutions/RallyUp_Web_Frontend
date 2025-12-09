@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Users, Calendar, ShoppingBag, TrendingUp, MessageSquare, BadgeIcon as IdCard, Bus, Building2 } from "lucide-react"
+import { Users, Calendar, ShoppingBag, MessageSquare, BadgeIcon as IdCard, Bus, Building2, Loader2 } from "lucide-react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
 import { useAuth } from "@/contexts/auth-context"
@@ -16,64 +16,80 @@ import { VolunteerOpportunitiesWidget } from "@/components/volunteer/volunteer-o
 import { PromotionFeed } from "@/components/promotion-feed"
 import { PollsWidget } from "@/components/polls-widget"
 import { calculateUserProfileCompletion } from "@/lib/user-completion"
+import axios from "axios"
+
+interface DashboardStats {
+  totalMembers: number
+  activeMembers: number
+  upcomingEvents: number
+  storeRevenue: number
+}
 
 export default function DashboardPage() {
   const { user, isAdmin } = useAuth()
   const [showCreateEventModal, setShowCreateEventModal] = useState(false)
+  const [showCreateNewsModal, setShowCreateNewsModal] = useState(false)
+  const [stats, setStats] = useState<DashboardStats | null>(null)
+  const [loading, setLoading] = useState(true)
   
   // Redirect users to their appropriate dashboard
   useEffect(() => {
-    // console.log('Dashboard redirect check:', { user, isAdmin, userRole: user?.role })
     if (user && !isAdmin) {
-      // console.log('Redirecting user to /dashboard/user')
       window.location.href = "/dashboard/user"
     }
   }, [user, isAdmin])
 
-  const stats = [
-    {
-      title: "Active Members",
-      value: "876",
-      icon: Users,
-      color: "text-blue-600",
-    },
-    {
-      title: "Upcoming Events",
-      value: "5",
-      icon: Calendar,
-      color: "text-green-600",
-    },
-    {
-      title: "Store Revenue",
-      value: "₹1,250,000",
-      icon: ShoppingBag,
-      color: "text-purple-600",
-    },
-    {
-      title: "Website Visitors",
-      value: "4,500",
-      icon: TrendingUp,
-      color: "text-orange-600",
-    },
-  ]
+  // Fetch dashboard stats
+  useEffect(() => {
+    const fetchDashboardStats = async () => {
+      if (!user || !('club' in user) || !user.club) {
+        setLoading(false)
+        return
+      }
 
-  const recentActivities = [
-    { action: "New member registration", user: "Alice Brown", time: "1 hour ago" },
-    { action: "Match ticket purchased", user: "Bob Williams", time: "3 hours ago" },
-    { action: "Away day sign-up", user: "Charlie Davis", time: "5 hours ago" },
-    { action: "Merchandise order", user: "David Garcia", time: "10 hours ago" },
-  ]
+      try {
+        const token = localStorage.getItem('token')
+        const clubId = typeof user.club === 'object' ? user.club._id : user.club
 
-  const upcomingFixtures = [
-    { team: "Home vs. Rovers", date: "2024-03-10", time: "15:00" },
-    { team: "Away vs. United", date: "2024-03-17", time: "17:30" },
-  ]
+        // Fetch club stats
+        const clubStatsResponse = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_URL}/clubs/${clubId}/stats`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        )
 
-  const memberEngagement = [
-    { metric: "Match Attendance", value: "75%" },
-    { metric: "Event Participation", value: "60%" },
-    // { metric: "Forum Activity", value: "40%" },
-  ]
+        // Fetch upcoming events count
+        const eventsResponse = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_URL}/events/public`,
+          { 
+            headers: { Authorization: `Bearer ${token}` },
+            params: { limit: 100 }
+          }
+        )
+        const upcomingEvents = eventsResponse.data.events?.filter((event: any) => 
+          new Date(event.date) >= new Date()
+        ).length || 0
+
+        // Fetch order stats for revenue
+        const orderStatsResponse = await axios.get(
+          `${process.env.NEXT_PUBLIC_API_URL}/orders/admin/stats`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        ).catch(() => ({ data: { totalRevenue: 0 } }))
+
+        setStats({
+          totalMembers: clubStatsResponse.data.totalMembers || 0,
+          activeMembers: clubStatsResponse.data.activeMembers || 0,
+          upcomingEvents,
+          storeRevenue: orderStatsResponse.data.totalRevenue || 0
+        })
+      } catch (error) {
+        console.error('Error fetching dashboard stats:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchDashboardStats()
+  }, [user])
 
   return (
     <ProtectedRoute>
@@ -84,35 +100,80 @@ export default function DashboardPage() {
             <h1 className="text-3xl font-bold">Dashboard</h1>
             <p className="text-muted-foreground">Welcome back! Here's what's happening with your supporter group.</p>
           </div>
-          <CreateNewsModal />
+          <CreateNewsModal 
+            isOpen={showCreateNewsModal}
+            onClose={() => setShowCreateNewsModal(false)}
+            onSuccess={() => setShowCreateNewsModal(false)}
+          />
         </div>
 
         {/* Stats Grid */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {stats.map((stat) => (
-            <Card key={stat.title}>
+        {loading ? (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {[1, 2, 3].map((i) => (
+              <Card key={i}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Loading...</CardTitle>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">--</div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : stats ? (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-                <stat.icon className={`h-4 w-4 ${stat.color}`} />
+                <CardTitle className="text-sm font-medium">Active Members</CardTitle>
+                <Users className="h-4 w-4 text-blue-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stat.value}</div>
+                <div className="text-2xl font-bold">{stats.activeMembers}</div>
+                <p className="text-xs text-muted-foreground">
+                  {stats.totalMembers} total members
+                </p>
               </CardContent>
             </Card>
-          ))}
-        </div>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Upcoming Events</CardTitle>
+                <Calendar className="h-4 w-4 text-green-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stats.upcomingEvents}</div>
+                <p className="text-xs text-muted-foreground">
+                  Scheduled events
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Store Revenue</CardTitle>
+                <ShoppingBag className="h-4 w-4 text-purple-600" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">₹{stats.storeRevenue.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground">
+                  Total merchandise sales
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        ) : null}
 
         {/* Promotion Feed */}
-        {user?.club && (
+        {user && 'club' in user && user.club && (
           <PromotionFeed 
-            clubId={user.club._id} 
+            clubId={typeof user.club === 'object' ? user.club._id : user.club} 
             limit={3} 
             showStats={true} 
           />
         )}
 
         {/* Volunteer Quick Signup */}
-        {user?.club && (
+        {user && 'club' in user && user.club && 'volunteering' in user && (
           <div className="grid gap-4 md:grid-cols-2">
             <VolunteerQuickSignup
               onSignup={() => window.location.href = '/dashboard/volunteer'}
@@ -147,7 +208,7 @@ export default function DashboardPage() {
                 <Button 
                   variant="outline" 
                   className="w-full justify-start"
-                  onClick={() => window.location.href = '/dashboard/news'}
+                  onClick={() => setShowCreateNewsModal(true)}
                 >
                   <MessageSquare className="w-4 h-4 mr-2" />
                   Create News
@@ -158,24 +219,23 @@ export default function DashboardPage() {
         )}
 
         {/* Volunteer Opportunities Widget */}
-        {user?.club && (
+        {user && 'club' in user && user.club && (
           <VolunteerOpportunitiesWidget
-            opportunities={[]} // This would be populated with actual data
+            opportunities={[]}
             onViewAll={() => window.location.href = '/dashboard/volunteer'}
             onSignUp={(opportunityId, timeSlotId) => {
-              // Handle signup - redirect to volunteer page
               window.location.href = `/dashboard/volunteer?signup=${opportunityId}&slot=${timeSlotId}`;
             }}
           />
         )}
 
         {/* Polls Widget */}
-        {user?.club && (
+        {user && 'club' in user && user.club && (
           <PollsWidget limit={3} showCreateButton={true} />
         )}
 
         {/* Club Information for Admins */}
-        {user?.club && (user.role === 'admin' || user.role === 'super_admin' || user.role === 'system_owner') && (
+        {user && 'club' in user && user.club && ['admin', 'super_admin', 'system_owner'].includes(user.role) && (
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -190,12 +250,14 @@ export default function DashboardPage() {
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 <div className="space-y-2">
                   <Label className="text-sm font-medium text-muted-foreground">Club Name</Label>
-                  <p className="text-sm font-medium">{user.club.name}</p>
+                  <p className="text-sm font-medium">
+                    {typeof user.club === 'object' ? user.club.name : 'N/A'}
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label className="text-sm font-medium text-muted-foreground">Status</Label>
-                  <Badge variant={user.club.status === 'active' ? "default" : "secondary"}>
-                    {user.club.status}
+                  <Badge variant={typeof user.club === 'object' && user.club.status === 'active' ? "default" : "secondary"}>
+                    {typeof user.club === 'object' ? user.club.status : 'N/A'}
                   </Badge>
                 </div>
                 <div className="space-y-2">
@@ -204,7 +266,7 @@ export default function DashboardPage() {
                     {user.role}
                   </Badge>
                 </div>
-                {user.club.settings && (
+                {typeof user.club === 'object' && user.club.settings && (
                   <>
                     <div className="space-y-2">
                       <Label className="text-sm font-medium text-muted-foreground">Max Members</Label>
@@ -225,17 +287,21 @@ export default function DashboardPage() {
           </Card>
         )}
 
+        {/* Admin Quick Actions */}
         <div className="grid gap-6 md:grid-cols-2">
-          {/* Quick Actions */}
           <Card>
             <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-              <CardDescription>Common tasks and shortcuts</CardDescription>
+              <CardTitle>Admin Actions</CardTitle>
+              <CardDescription>Manage your club content</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button variant="outline" className="w-full justify-start bg-transparent">
+              <Button 
+                variant="outline" 
+                className="w-full justify-start bg-transparent"
+                onClick={() => setShowCreateNewsModal(true)}
+              >
                 <MessageSquare className="w-4 h-4 mr-2" />
-                Send Group Message
+                Create News Article
               </Button>
               <Button 
                 variant="outline" 
@@ -243,128 +309,81 @@ export default function DashboardPage() {
                 onClick={() => setShowCreateEventModal(true)}
               >
                 <Calendar className="w-4 h-4 mr-2" />
-                Create Match Event
+                Create Event
               </Button>
               <CreateEventModal
                 isOpen={showCreateEventModal}
                 onClose={() => setShowCreateEventModal(false)}
                 onSuccess={() => {
                   setShowCreateEventModal(false)
-                  // You can add any success logic here, like refreshing data
                 }}
               />
-              <Button variant="outline" className="w-full justify-start bg-transparent">
-                <IdCard className="w-4 h-4 mr-2" />
-                Add Season Ticket Holder
+              <Button 
+                variant="outline" 
+                className="w-full justify-start bg-transparent"
+                onClick={() => window.location.href = '/dashboard/merchandise'}
+              >
+                <ShoppingBag className="w-4 h-4 mr-2" />
+                Manage Merchandise
               </Button>
-              <Button variant="outline" className="w-full justify-start bg-transparent">
-                <Bus className="w-4 h-4 mr-2" />
-                Manage Away Day Travel
+              <Button 
+                variant="outline" 
+                className="w-full justify-start bg-transparent"
+                onClick={() => window.location.href = '/dashboard/members'}
+              >
+                <Users className="w-4 h-4 mr-2" />
+                View Members
               </Button>
             </CardContent>
           </Card>
 
-          {/* Recent Activity */}
+          {/* Profile Completion */}
           <Card>
             <CardHeader>
-              <CardTitle>Recent Activity</CardTitle>
-              <CardDescription>Latest updates from your supporter group</CardDescription>
+              <CardTitle className="flex items-center gap-2">
+                Get Started
+                <Badge variant="secondary">
+                  {user ? calculateUserProfileCompletion(user as any) : 0}% completed
+                </Badge>
+              </CardTitle>
+              <CardDescription>Complete your profile setup</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {recentActivities.map((activity, index) => (
-                  <div key={index} className="flex items-center space-x-3">
-                    <div className="w-2 h-2 bg-primary rounded-full" />
-                    <div className="flex-1 space-y-1">
-                      <p className="text-sm font-medium">{activity.action}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {activity.user} • {activity.time}
-                      </p>
-                    </div>
-                  </div>
-                ))}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 border rounded-lg">
+                  <span className="text-sm">Complete your profile</span>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => window.location.href = '/dashboard/settings'}
+                  >
+                    Update
+                  </Button>
+                </div>
+                <div className="flex items-center justify-between p-3 border rounded-lg">
+                  <span className="text-sm">Add club members</span>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => window.location.href = '/dashboard/members'}
+                  >
+                    Start
+                  </Button>
+                </div>
+                <div className="flex items-center justify-between p-3 border rounded-lg">
+                  <span className="text-sm">Create your first event</span>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => setShowCreateEventModal(true)}
+                  >
+                    Create
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
         </div>
-
-        {/* Match Fixtures */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Upcoming Fixtures</CardTitle>
-            <CardDescription>Next matches for the team</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {upcomingFixtures.map((fixture, index) => (
-                <div key={index} className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium">{fixture.team}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {fixture.date} • {fixture.time}
-                    </p>
-                  </div>
-                  <Button size="sm" variant="outline">
-                    Get Tickets
-                  </Button>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Member Engagement */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Member Engagement</CardTitle>
-            <CardDescription>Participation metrics for the group</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {memberEngagement.map((engagement, index) => (
-                <div key={index} className="flex items-center justify-between">
-                  <p className="text-sm font-medium">{engagement.metric}</p>
-                  <p className="text-sm">{engagement.value}</p>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Progress Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              Get Started
-              <Badge variant="secondary">
-                {user ? calculateUserProfileCompletion(user as any) : 0}% completed
-              </Badge>
-            </CardTitle>
-            <CardDescription>Complete these steps to set up your club</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 border rounded-lg">
-                <span className="text-sm">Add your first members</span>
-                <Button size="sm" variant="outline">
-                  Start
-                </Button>
-              </div>
-              <div className="flex items-center justify-between p-3 border rounded-lg">
-                <span className="text-sm">Configure payment settings</span>
-                <Button size="sm" variant="outline">
-                  Setup
-                </Button>
-              </div>
-              <div className="flex items-center justify-between p-3 border rounded-lg">
-                <span className="text-sm">Create your first event</span>
-                <Button size="sm" variant="outline">
-                  Create
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
       </div>
       </DashboardLayout>
     </ProtectedRoute>

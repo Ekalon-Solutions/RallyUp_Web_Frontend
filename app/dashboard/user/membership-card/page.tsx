@@ -526,19 +526,6 @@ export default function UserMembershipCardPage() {
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Fix My Membership Card
               </Button>
-              
-              {/* Debug info */}
-              <div className="mt-4 p-4 bg-muted rounded-lg text-left text-xs">
-                <p><strong>Debug Info:</strong></p>
-                <p>Cards array length: {cards.length}</p>
-                <p>Selected card: {selectedCard ? 'Yes' : 'No'}</p>
-                <p>Response info: {responseInfo ? 'Available' : 'None'}</p>
-                {responseInfo && (
-                  <pre className="mt-2 text-xs overflow-auto">
-                    {JSON.stringify(responseInfo, null, 2)}
-                  </pre>
-                )}
-              </div>
             </div>
           </div>
         </DashboardLayout>
