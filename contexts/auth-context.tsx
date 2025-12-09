@@ -261,7 +261,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const response = await apiClient.updateUserProfile(data);
       if (response.success && response.data) {
-        setUser(response.data);
+        const updatedUser = (response.data as any).user || response.data;
+        
+        setUser(prevUser => ({
+          ...prevUser,
+          ...updatedUser,
+          name: updatedUser.first_name && updatedUser.last_name 
+            ? `${updatedUser.first_name} ${updatedUser.last_name}`.trim()
+            : prevUser?.name || '',
+          phoneNumber: updatedUser.phone_number || prevUser?.phoneNumber || '',
+          countryCode: updatedUser.phone_country_code || prevUser?.countryCode || '+1',
+        } as any));
+        
         return { success: true };
       } else {
         // // console.error('Profile update failed:', response.error);

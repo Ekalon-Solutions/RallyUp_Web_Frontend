@@ -780,9 +780,33 @@ class ApiClient {
       newsUpdates?: boolean;
     };
   }): Promise<ApiResponse<User>> {
+    const backendData: any = {};
+    
+    if (data.name) {
+      const nameParts = data.name.trim().split(' ');
+      backendData.first_name = nameParts[0] || '';
+      backendData.last_name = nameParts.slice(1).join(' ') || nameParts[0] || '';
+    }
+    
+    if (data.email !== undefined) {
+      backendData.email = data.email;
+    }
+    
+    if (data.phoneNumber !== undefined) {
+      backendData.phone_number = data.phoneNumber;
+    }
+    
+    if (data.countryCode !== undefined) {
+      backendData.phone_country_code = data.countryCode;
+    }
+    
+    if (data.notificationPreferences !== undefined) {
+      backendData.notificationPreferences = data.notificationPreferences;
+    }
+
     return this.request('/users/profile', {
       method: 'PUT',
-      body: JSON.stringify(data),
+      body: JSON.stringify(backendData),
     });
   }
 
@@ -798,8 +822,7 @@ class ApiClient {
   }>> {
     return this.request('/users/profile');
   }
-
-  // Admin Member Management APIs
+  
   async getMembers(params?: {
     page?: number;
     limit?: number;
