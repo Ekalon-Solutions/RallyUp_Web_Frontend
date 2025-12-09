@@ -99,10 +99,12 @@ export default function ClubsPage() {
     countryCode: "+1"
   })
   const [isRegistering, setIsRegistering] = useState(false)
+  const [userMemberships, setUserMemberships] = useState<string[]>([])
   const router = useRouter()
 
   useEffect(() => {
     fetchClubs()
+    fetchUserMemberships()
   }, [])
 
   useEffect(() => {
@@ -127,6 +129,32 @@ export default function ClubsPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const fetchUserMemberships = async () => {
+    try {
+      const token = localStorage.getItem('token')
+      if (!token) return
+
+      const response = await fetch(getApiUrl(API_ENDPOINTS.users.profile), {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        const clubIds = data.user?.memberships?.map((m: any) => m.club_id?._id || m.club_id) || []
+        setUserMemberships(clubIds)
+      }
+    } catch (error) {
+      // Silently fail - user might not be logged in
+      console.log("Could not fetch user memberships:", error)
+    }
+  }
+
+  const isClubJoined = (clubId: string) => {
+    return userMemberships.includes(clubId)
   }
 
   const filterClubs = () => {
@@ -449,10 +477,20 @@ export default function ClubsPage() {
                         <Award className="w-4 h-4 text-yellow-500" />
                         Membership Plans
                       </h4>
-                      {club.membershipPlans?.filter(plan => plan.isActive).slice(0, 2).map((plan) => (
-                        <div key={plan._id} className="border border-gray-200 rounded-lg p-4 space-y-3 hover:border-blue-300 transition-colors">
+                      {club.membershipPlans?.filter(plan => plan.isActive).slice(0, 2).map((plan) => {
+                        const isJoined = isClubJoined(club._id)
+                        return (
+                        <div key={plan._id} className={`border rounded-lg p-4 space-y-3 transition-colors ${isJoined ? 'border-green-300 bg-green-50/50 dark:bg-green-950/20' : 'border-gray-200 hover:border-blue-300'}`}>
                       <div className="flex items-center justify-between">
-                            <h5 className="font-semibold text-sm">{plan.name}</h5>
+                            <h5 className="font-semibold text-sm flex items-center gap-2">
+                              {plan.name}
+                              {isJoined && (
+                                <Badge className="bg-green-100 text-green-800 border-green-200">
+                                  <CheckCircle className="w-3 h-3 mr-1" />
+                                  Joined
+                                </Badge>
+                              )}
+                            </h5>
                         <span className="text-lg font-bold text-primary">
                           {formatPrice(plan.price, plan.currency)}
                         </span>
@@ -470,14 +508,25 @@ export default function ClubsPage() {
                         <Button 
                           size="sm" 
                           onClick={() => handleJoinClub(club, plan)}
-                              className="flex items-center gap-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                              disabled={isJoined}
+                              className={`flex items-center gap-1 ${isJoined ? 'opacity-50 cursor-not-allowed' : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700'}`}
                         >
-                          Join Club
-                          <ArrowRight className="w-3 h-3" />
+                              {isJoined ? (
+                                <>
+                                  <CheckCircle className="w-3 h-3" />
+                                  Already Joined
+                                </>
+                              ) : (
+                                <>
+                                  Join Club
+                                  <ArrowRight className="w-3 h-3" />
+                                </>
+                              )}
                         </Button>
                       </div>
                     </div>
-                  ))}
+                        )
+                      })}
                       
                       {club.membershipPlans?.filter(plan => plan.isActive).length > 2 && (
                         <Button variant="outline" size="sm" className="w-full" onClick={() => handleViewClubDetails(club)}>
@@ -553,15 +602,26 @@ export default function ClubsPage() {
                         Details
                       </Button>
                       
-                      {club.membershipPlans?.filter(plan => plan.isActive).length > 0 && (
+                      {club.membershipPlans?.filter(plan => plan.isActive).length > 0 && (() => {
+                        const isJoined = isClubJoined(club._id)
+                        return (
                         <Button 
                           size="sm"
                           onClick={() => handleJoinClub(club, club.membershipPlans?.filter(plan => plan.isActive)[0]!)}
-                          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                            disabled={isJoined}
+                            className={isJoined ? 'opacity-50 cursor-not-allowed' : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700'}
                         >
-                          Join Now
+                            {isJoined ? (
+                              <>
+                                <CheckCircle className="w-4 h-4 mr-2" />
+                                Already Joined
+                              </>
+                            ) : (
+                              'Join Now'
+                            )}
                         </Button>
-                      )}
+                        )
+                      })()}
                     </div>
                 </div>
               </CardContent>
@@ -621,11 +681,21 @@ export default function ClubsPage() {
 
                 <TabsContent value="plans" className="space-y-4">
                   <div className="grid gap-4 md:grid-cols-2">
-                    {selectedClub.membershipPlans?.filter(plan => plan.isActive).map((plan) => (
-                      <Card key={plan._id} className="border-2 hover:border-blue-300 transition-colors">
+                    {selectedClub.membershipPlans?.filter(plan => plan.isActive).map((plan) => {
+                      const isJoined = isClubJoined(selectedClub._id)
+                      return (
+                      <Card key={plan._id} className={`border-2 transition-colors ${isJoined ? 'border-green-300 bg-green-50/50 dark:bg-green-950/20' : 'hover:border-blue-300'}`}>
                         <CardHeader>
                           <div className="flex items-center justify-between">
-                            <CardTitle className="text-lg">{plan.name}</CardTitle>
+                            <CardTitle className="text-lg flex items-center gap-2">
+                              {plan.name}
+                              {isJoined && (
+                                <Badge className="bg-green-100 text-green-800 border-green-200">
+                                  <CheckCircle className="w-3 h-3 mr-1" />
+                                  Joined
+                                </Badge>
+                              )}
+                            </CardTitle>
                             <div className="text-right">
                               <div className="text-2xl font-bold text-primary">
                                 {formatPrice(plan.price, plan.currency)}
@@ -676,15 +746,26 @@ export default function ClubsPage() {
                           </div>
                           
                           <Button 
-                            className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                            className={`w-full ${isJoined ? 'opacity-50 cursor-not-allowed' : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700'}`}
                             onClick={() => handleJoinClub(selectedClub, plan)}
+                            disabled={isJoined}
                           >
-                            Join with {plan.name}
-                            <ArrowRight className="w-4 h-4 ml-2" />
+                            {isJoined ? (
+                              <>
+                                <CheckCircle className="w-4 h-4 mr-2" />
+                                Already Joined
+                              </>
+                            ) : (
+                              <>
+                                Join with {plan.name}
+                                <ArrowRight className="w-4 h-4 ml-2" />
+                              </>
+                            )}
                           </Button>
                         </CardContent>
                       </Card>
-                    ))}
+                      )
+                    })}
                   </div>
                 </TabsContent>
 
