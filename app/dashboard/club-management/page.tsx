@@ -518,7 +518,7 @@ export default function ClubManagementPage() {
 
                   {/* Super Admin Information */}
                   <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">Super Administrator</h3>
+                    <h3 className="text-lg font-semibold">Administrator</h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="superAdminEmail">Email *</Label>
@@ -749,16 +749,12 @@ export default function ClubManagementPage() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem>
-                              <Eye className="mr-2 h-4 w-4" />
-                              View Details
-                            </DropdownMenuItem>
                             <ClubStatsModal 
                               club={club}
                               trigger={
                                 <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                                  <BarChart3 className="mr-2 h-4 w-4" />
-                                  View Statistics
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  View Details
                                 </DropdownMenuItem>
                               }
                             />
