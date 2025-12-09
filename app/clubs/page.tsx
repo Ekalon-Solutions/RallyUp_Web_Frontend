@@ -297,16 +297,6 @@ export default function ClubsPage() {
             <p className="text-xl md:text-2xl text-blue-100 max-w-3xl mx-auto mb-8">
               Discover and join supporter clubs to connect with fellow fans, attend exclusive events, and be part of something special.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button size="lg" className="bg-white text-blue-600 hover:bg-blue-50">
-                <Users className="w-5 h-5 mr-2" />
-                Explore Clubs
-              </Button>
-              <Button size="lg" variant="outline" className="border-white text-white hover:bg-white/10">
-                <Heart className="w-5 h-5 mr-2" />
-                Learn More
-              </Button>
-            </div>
           </div>
         </div>
       </div>
