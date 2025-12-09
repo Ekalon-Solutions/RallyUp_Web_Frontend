@@ -434,8 +434,8 @@ export default function ClubManagementPage() {
                           value={createForm.contactPhone}
                           onChange={(e) => {
                             // Remove any non-digit characters and limit to 15 digits
-                            const phoneNumber = e.target.value.replace(/\D/g, '').slice(0, 15)
-                            setCreateForm({ ...createForm, contactPhone: phoneNumber })
+                            const phone_number = e.target.value.replace(/\D/g, '').slice(0, 15)
+                            setCreateForm({ ...createForm, contactPhone: phone_number })
                           }}
                           placeholder="1234567890"
                           maxLength={15}
@@ -542,8 +542,8 @@ export default function ClubManagementPage() {
                           value={createForm.superAdminPhone}
                           onChange={(e) => {
                             // Remove any non-digit characters and limit to 15 digits
-                            const phoneNumber = e.target.value.replace(/\D/g, '').slice(0, 15)
-                            setCreateForm({ ...createForm, superAdminPhone: phoneNumber })
+                            const phone_number = e.target.value.replace(/\D/g, '').slice(0, 15)
+                            setCreateForm({ ...createForm, superAdminPhone: phone_number })
                           }}
                           placeholder="1234567890"
                           maxLength={15}

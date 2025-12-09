@@ -40,7 +40,7 @@ interface Session {
   userInfo: {
     name: string;
     email: string;
-    phoneNumber: string;
+    phone_number: string;
     countryCode: string;
     role: string;
   };
@@ -397,7 +397,7 @@ export default function SessionsPage() {
                       <div>
                         <div className="font-medium">{session.userInfo?.name || 'Unknown'}</div>
                         <div className="text-sm text-muted-foreground">
-                          {session.userInfo?.email || session.userInfo?.phoneNumber || 'No contact info'}
+                          {session.userInfo?.email || session.userInfo?.phone_number || 'No contact info'}
                         </div>
                         <Badge variant="outline" className="text-xs">
                           {session.userType}

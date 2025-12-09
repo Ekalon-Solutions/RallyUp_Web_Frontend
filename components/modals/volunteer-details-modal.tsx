@@ -81,7 +81,7 @@ export function VolunteerDetailsModal({ volunteer, isOpen, onClose }: VolunteerD
                 </div>
                 <div className="flex items-center gap-2">
                   <Phone className="w-4 h-4 text-muted-foreground" />
-                  <span>{volunteer.user.countryCode} {volunteer.user.phoneNumber}</span>
+                  <span>{volunteer.user.countryCode} {volunteer.user.phone_number}</span>
                 </div>
               </div>
             </div>

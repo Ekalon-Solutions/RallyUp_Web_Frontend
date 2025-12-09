@@ -104,9 +104,9 @@ export function EventRegistrationModal({
     })
 
     // Check for duplicate phone numbers
-    const phoneNumbers = attendees.map(a => a.phone.replace(/[^0-9]/g, ''))
-    const uniquePhones = new Set(phoneNumbers)
-    if (phoneNumbers.length !== uniquePhones.size) {
+    const phone_numbers = attendees.map(a => a.phone.replace(/[^0-9]/g, ''))
+    const uniquePhones = new Set(phone_numbers)
+    if (phone_numbers.length !== uniquePhones.size) {
       toast.error("Each attendee must have a unique phone number")
       hasError = true
     }

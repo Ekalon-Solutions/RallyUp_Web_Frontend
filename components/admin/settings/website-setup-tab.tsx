@@ -145,7 +145,11 @@ export function WebsiteSetupTab() {
   const copyPublicUrl = () => {
     if (!clubId) return
     
-    const publicUrl = `${window.location.origin}/clubs/${clubId}`
+    // Get club slug from user object
+    const clubSlug = (user as any)?.club?.slug || (user as any)?.club_id?.slug
+    const identifier = clubSlug || clubId
+    
+    const publicUrl = `${window.location.origin}/clubs/${identifier}`
     navigator.clipboard.writeText(publicUrl)
     toast.success("Public URL copied to clipboard!")
   }
@@ -153,7 +157,11 @@ export function WebsiteSetupTab() {
   const openPublicPage = () => {
     if (!clubId) return
     
-    const publicUrl = `${window.location.origin}/clubs/${clubId}`
+    // Get club slug from user object
+    const clubSlug = (user as any)?.club?.slug || (user as any)?.club_id?.slug
+    const identifier = clubSlug || clubId
+    
+    const publicUrl = `${window.location.origin}/clubs/${identifier}`
     window.open(publicUrl, '_blank')
   }
 
@@ -182,7 +190,7 @@ export function WebsiteSetupTab() {
           <div className="flex items-center gap-2 p-3 bg-white dark:bg-gray-900 rounded-lg border">
             <Globe className="h-4 w-4 text-muted-foreground flex-shrink-0" />
             <code className="text-sm flex-1 truncate text-blue-600 dark:text-blue-400">
-              {clubId ? `${typeof window !== 'undefined' ? window.location.origin : ''}/clubs/${clubId}` : 'Loading...'}
+              {clubId ? `${typeof window !== 'undefined' ? window.location.origin : ''}/clubs/${(user as any)?.club?.slug || (user as any)?.club_id?.slug || clubId}` : 'Loading...'}
             </code>
           </div>
           <div className="flex gap-2">

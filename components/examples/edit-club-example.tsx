@@ -27,7 +27,7 @@ export function EditClubExample() {
         _id: 'admin1',
         name: 'John Admin',
         email: 'admin@sampleclub.com',
-        phoneNumber: '1234567890',
+        phone_number: '1234567890',
         countryCode: '+1',
         isPhoneVerified: true,
         role: 'super_admin' as const,

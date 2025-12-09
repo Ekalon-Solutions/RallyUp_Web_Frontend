@@ -28,7 +28,7 @@ export default function UserProfilePage() {
   const [profileForm, setProfileForm] = useState({
     name: "",
     email: "",
-    phoneNumber: "",
+    phone_number: "",
     countryCode: "+1"
   })
 
@@ -37,7 +37,7 @@ export default function UserProfilePage() {
       setProfileForm({
         name: user.name || "",
         email: user.email || "",
-        phoneNumber: user.phoneNumber || "",
+        phone_number: user.phone_number || "",
         countryCode: user.countryCode || "+1"
       })
     }
@@ -51,7 +51,7 @@ export default function UserProfilePage() {
       const result = await updateProfile({
         name: profileForm.name,
         email: profileForm.email,
-        phoneNumber: profileForm.phoneNumber,
+        phone_number: profileForm.phone_number,
         countryCode: profileForm.countryCode
       })
 
@@ -229,8 +229,8 @@ export default function UserProfilePage() {
                           <Input
                             id="phone"
                             type="tel"
-                            value={profileForm.phoneNumber}
-                            onChange={(e) => setProfileForm({ ...profileForm, phoneNumber: e.target.value })}
+                            value={profileForm.phone_number}
+                            onChange={(e) => setProfileForm({ ...profileForm, phone_number: e.target.value })}
                             required
                           />
                         </div>
@@ -273,7 +273,7 @@ export default function UserProfilePage() {
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <Label className="text-sm font-medium text-muted-foreground">Phone Number</Label>
-                          <p className="text-sm">{user.countryCode} {user.phoneNumber}</p>
+                          <p className="text-sm">{user.countryCode} {user.phone_number}</p>
                         </div>
                         <div>
                           <Label className="text-sm font-medium text-muted-foreground">Phone Verification</Label>

@@ -16,7 +16,7 @@ interface StaffMember {
   _id: string
   name: string
   email: string
-  phoneNumber: string
+  phone_number: string
   countryCode: string
   role: 'admin' | 'volunteer'
   isActive: boolean
@@ -48,7 +48,7 @@ export default function StaffManagementModal({ isOpen, onClose, club }: StaffMan
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    phoneNumber: "",
+    phone_number: "",
     countryCode: "+1",
     role: "volunteer" as 'admin' | 'volunteer'
   })
@@ -131,7 +131,7 @@ export default function StaffManagementModal({ isOpen, onClose, club }: StaffMan
         setFormData({
           name: "",
           email: "",
-          phoneNumber: "",
+          phone_number: "",
           countryCode: "+1",
           role: "volunteer"
         })
@@ -169,7 +169,7 @@ export default function StaffManagementModal({ isOpen, onClose, club }: StaffMan
         setFormData({
           name: "",
           email: "",
-          phoneNumber: "",
+          phone_number: "",
           countryCode: "+1",
           role: "volunteer"
         })
@@ -217,7 +217,7 @@ export default function StaffManagementModal({ isOpen, onClose, club }: StaffMan
     setFormData({
       name: staffMember.name,
       email: staffMember.email,
-      phoneNumber: staffMember.phoneNumber,
+      phone_number: staffMember.phone_number,
       countryCode: staffMember.countryCode,
       role: staffMember.role
     })
@@ -228,7 +228,7 @@ export default function StaffManagementModal({ isOpen, onClose, club }: StaffMan
     setFormData({
       name: "",
       email: "",
-      phoneNumber: "",
+      phone_number: "",
       countryCode: "+1",
       role: "volunteer"
     })
@@ -335,11 +335,11 @@ export default function StaffManagementModal({ isOpen, onClose, club }: StaffMan
                     />
                   </div>
                   <div className="col-span-2 space-y-2">
-                    <Label htmlFor="phoneNumber">Phone Number</Label>
+                    <Label htmlFor="phone_number">Phone Number</Label>
                     <Input
-                      id="phoneNumber"
-                      value={formData.phoneNumber}
-                      onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                      id="phone_number"
+                      value={formData.phone_number}
+                      onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
                       required
                     />
                   </div>
@@ -428,7 +428,7 @@ export default function StaffManagementModal({ isOpen, onClose, club }: StaffMan
                           </div>
                           <p className="text-sm text-muted-foreground">{member.email}</p>
                           <p className="text-sm text-muted-foreground">
-                            {member.countryCode} {member.phoneNumber}
+                            {member.countryCode} {member.phone_number}
                           </p>
                         </div>
                       </div>

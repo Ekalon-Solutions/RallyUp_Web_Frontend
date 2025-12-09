@@ -44,6 +44,7 @@ import { getApiUrl, API_ENDPOINTS } from "@/lib/config"
 interface Club {
   _id: string
   name: string
+  slug: string
   description?: string
   logo?: string
   website?: string
@@ -95,7 +96,7 @@ export default function ClubsPage() {
   const [registrationData, setRegistrationData] = useState({
     name: "",
     email: "",
-    phoneNumber: "",
+    phone_number: "",
     countryCode: "+1"
   })
   const [isRegistering, setIsRegistering] = useState(false)
@@ -243,7 +244,7 @@ export default function ClubsPage() {
         setRegistrationData({
           name: "",
           email: "",
-          phoneNumber: "",
+          phone_number: "",
           countryCode: "+91"
         })
 
@@ -937,12 +938,12 @@ export default function ClubsPage() {
                 />
               </div>
               <div className="col-span-2 space-y-2">
-                <Label htmlFor="phoneNumber">Phone Number</Label>
+                <Label htmlFor="phone_number">Phone Number</Label>
                 <Input
-                  id="phoneNumber"
+                  id="phone_number"
                   type="tel"
-                  value={registrationData.phoneNumber}
-                  onChange={(e) => setRegistrationData({ ...registrationData, phoneNumber: e.target.value })}
+                  value={registrationData.phone_number}
+                  onChange={(e) => setRegistrationData({ ...registrationData, phone_number: e.target.value })}
                   required
                   className="h-12"
                 />

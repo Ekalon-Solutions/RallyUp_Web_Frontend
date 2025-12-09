@@ -1,7 +1,7 @@
 export interface UserProfileData {
   name?: string;
   email?: string;
-  phoneNumber?: string;
+  phone_number?: string;
   countryCode?: string;
   isPhoneVerified?: boolean;
   club?: any;
@@ -29,7 +29,7 @@ export function calculateUserProfileCompletion(user: UserProfileData | null | un
   const basicFields: Array<{ key: keyof UserProfileData; weight: number }> = [
     { key: 'name', weight: 1 },
     { key: 'email', weight: 1 },
-    { key: 'phoneNumber', weight: 1 },
+    { key: 'phone_number', weight: 1 },
     { key: 'countryCode', weight: 1 },
   ];
 

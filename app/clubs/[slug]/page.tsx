@@ -57,30 +57,30 @@ interface Club {
 
 export default function PublicClubPage() {
   const params = useParams()
-  const clubId = params.clubId as string
+  const slug = params.slug as string
   
   const [loading, setLoading] = useState(true)
   const [club, setClub] = useState<Club | null>(null)
   const [settings, setSettings] = useState<ClubSettings | null>(null)
 
   useEffect(() => {
-    if (clubId) {
+    if (slug) {
       loadClubData()
     }
-  }, [clubId])
+  }, [slug])
 
   const loadClubData = async () => {
     try {
       setLoading(true)
       
-      // Load club basic info (public access)
-      const clubResponse = await apiClient.getClubById(clubId, true)
+      // Load club basic info (public access) - now using slug
+      const clubResponse = await apiClient.getClubById(slug, true)
       if (clubResponse.success && clubResponse.data) {
         setClub(clubResponse.data)
       }
 
-      // Load club settings (public access)
-      const settingsResponse = await apiClient.getClubSettings(clubId, true)
+      // Load club settings (public access) - now using slug
+      const settingsResponse = await apiClient.getClubSettings(slug, true)
       if (settingsResponse.success && settingsResponse.data) {
         const actualData = settingsResponse.data.data || settingsResponse.data
         setSettings(actualData)
@@ -173,7 +173,7 @@ export default function PublicClubPage() {
 
             {/* CTA Button */}
             <div className="pt-4">
-              <Link href={`/auth/register?club=${clubId}`}>
+              <Link href={`/auth/register?club=${club?._id || slug}`}>
                 <Button 
                   size="lg" 
                   className="px-8"
@@ -338,7 +338,7 @@ export default function PublicClubPage() {
               Become a member and get access to all our exclusive content, events, and community features.
             </p>
             <div className="flex flex-wrap justify-center gap-4">
-              <Link href={`/auth/register?club=${clubId}`}>
+              <Link href={`/auth/register?club=${club?._id || slug}`}>
                 <Button 
                   size="lg"
                   style={{ 

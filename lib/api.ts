@@ -29,7 +29,7 @@ export interface User {
   _id: string;
   name: string;
   email: string;
-  phoneNumber: string;
+  phone_number: string;
   countryCode: string;
   isPhoneVerified: boolean;
   role: 'member';
@@ -67,7 +67,7 @@ export interface Admin {
   _id: string;
   name: string;
   email: string;
-  phoneNumber: string;
+  phone_number: string;
   countryCode: string;
   isPhoneVerified: boolean;
   role: 'admin' | 'super_admin';
@@ -103,7 +103,7 @@ export interface SystemOwner {
   _id: string;
   name: string;
   email: string;
-  phoneNumber: string;
+  phone_number: string;
   countryCode: string;
   isPhoneVerified: boolean;
   role: 'system_owner';
@@ -704,7 +704,7 @@ class ApiClient {
   async adminRegister(data: {
     name: string;
     email: string;
-    phoneNumber: string;
+    phone_number: string;
     countryCode: string;
     adminCode: string;
   }): Promise<ApiResponse<{ token: string; admin: Admin }>> {
@@ -740,7 +740,7 @@ class ApiClient {
   async userRegister(data: {
     name: string;
     email: string;
-    phoneNumber: string;
+    phone_number: string;
     countryCode: string;
     clubId?: string;
     membershipPlanId?: string;
@@ -769,7 +769,7 @@ class ApiClient {
   async updateUserProfile(data: {
     name?: string;
     email?: string;
-    phoneNumber?: string;
+    phone_number?: string;
     countryCode?: string;
     notificationPreferences?: {
       events?: boolean;
@@ -807,8 +807,8 @@ class ApiClient {
         backendData.last_name = nameParts.slice(1).join(' ') || nameParts[0] || '';
       }
       
-      if (data.phoneNumber !== undefined) {
-        backendData.phone_number = data.phoneNumber;
+      if (data.phone_number !== undefined) {
+        backendData.phone_number = data.phone_number;
       }
       
       if (data.countryCode !== undefined) {
@@ -820,8 +820,8 @@ class ApiClient {
         backendData.name = data.name;
       }
       
-      if (data.phoneNumber !== undefined) {
-        backendData.phoneNumber = data.phoneNumber;
+      if (data.phone_number !== undefined) {
+        backendData.phone_number = data.phone_number;
       }
       
       if (data.countryCode !== undefined) {
@@ -887,7 +887,7 @@ class ApiClient {
   async updateMember(id: string, data: {
     name?: string;
     email?: string;
-    phoneNumber?: string;
+    phone_number?: string;
     countryCode?: string;
     isPhoneVerified?: boolean;
     isActive?: boolean;
@@ -1747,7 +1747,7 @@ class ApiClient {
   async createAdmin(data: {
     name: string;
     email: string;
-    phoneNumber: string;
+    phone_number: string;
     countryCode: string;
   }): Promise<ApiResponse<{ message: string; admin: User }>> {
     return this.request('/staff/admins', {
@@ -1827,7 +1827,7 @@ class ApiClient {
   async createStaffForClub(clubId: string, data: {
     name: string;
     email: string;
-    phoneNumber: string;
+    phone_number: string;
     countryCode: string;
     role: 'admin' | 'volunteer';
   }): Promise<ApiResponse<{ message: string; staffMember: User }>> {
@@ -1854,7 +1854,7 @@ class ApiClient {
   async systemOwnerRegister(data: {
     name: string;
     email: string;
-    phoneNumber: string;
+    phone_number: string;
     countryCode: string;
     accessKey: string;
   }): Promise<ApiResponse<{ token: string; systemOwner: SystemOwner }>> {
@@ -1934,7 +1934,7 @@ class ApiClient {
   async addUserToClub(data: {
     email: string;
     name: string;
-    phoneNumber: string;
+    phone_number: string;
   }): Promise<ApiResponse<{ message: string; user: User }>> {
     return this.request('/users/join-club', {
       method: 'POST',

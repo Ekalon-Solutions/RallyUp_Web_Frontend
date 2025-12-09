@@ -62,7 +62,7 @@ interface AdminManagementModalProps {
 interface CreateAdminForm {
   name: string
   email: string
-  phoneNumber: string
+  phone_number: string
   countryCode: string
   role: 'admin'
 }
@@ -76,7 +76,7 @@ export function AdminManagementModal({ clubId, clubName, trigger }: AdminManagem
   const [createForm, setCreateForm] = useState<CreateAdminForm>({
     name: '',
     email: '',
-    phoneNumber: '',
+    phone_number: '',
     countryCode: '+1',
     role: 'admin'
   })
@@ -116,7 +116,7 @@ export function AdminManagementModal({ clubId, clubName, trigger }: AdminManagem
       setCreating(true)
       
       // Validate required fields
-      if (!createForm.name || !createForm.email || !createForm.phoneNumber) {
+      if (!createForm.name || !createForm.email || !createForm.phone_number) {
         toast.error('Please fill in all required fields')
         return
       }
@@ -136,7 +136,7 @@ export function AdminManagementModal({ clubId, clubName, trigger }: AdminManagem
 
       // Validate phone number format (10-15 digits)
       const phoneRegex = /^\d{10,15}$/
-      if (!phoneRegex.test(createForm.phoneNumber)) {
+      if (!phoneRegex.test(createForm.phone_number)) {
         toast.error('Phone number must be 10-15 digits')
         return
       }
@@ -152,7 +152,7 @@ export function AdminManagementModal({ clubId, clubName, trigger }: AdminManagem
         setCreateForm({
           name: '',
           email: '',
-          phoneNumber: '',
+          phone_number: '',
           countryCode: '+1',
           role: 'admin'
         })
@@ -446,17 +446,17 @@ export function AdminManagementModal({ clubId, clubName, trigger }: AdminManagem
                        <Label htmlFor="adminPhone">Phone Number *</Label>
                        <Input
                          id="adminPhone"
-                         value={createForm.phoneNumber}
+                         value={createForm.phone_number}
                          onChange={(e) => {
                            // Remove any non-digit characters and limit to 15 digits
-                           const phoneNumber = e.target.value.replace(/\D/g, '').slice(0, 15)
-                           setCreateForm({ ...createForm, phoneNumber })
+                           const phone_number = e.target.value.replace(/\D/g, '').slice(0, 15)
+                           setCreateForm({ ...createForm, phone_number })
                          }}
                          placeholder="1234567890"
                          maxLength={15}
                        />
-                       <p className={`text-xs ${createForm.phoneNumber.length >= 10 && createForm.phoneNumber.length <= 15 ? 'text-green-600' : 'text-muted-foreground'}`}>
-                         {createForm.phoneNumber.length >= 10 && createForm.phoneNumber.length <= 15 
+                       <p className={`text-xs ${createForm.phone_number.length >= 10 && createForm.phone_number.length <= 15 ? 'text-green-600' : 'text-muted-foreground'}`}>
+                         {createForm.phone_number.length >= 10 && createForm.phone_number.length <= 15 
                            ? '✓ Valid phone number format' 
                            : 'Enter phone number without country code (10-15 digits)'}
                        </p>
@@ -547,7 +547,7 @@ export function AdminManagementModal({ clubId, clubName, trigger }: AdminManagem
                           </div>
                           <div className="flex items-center space-x-1">
                             <Phone className="w-3 h-3" />
-                            <span>{admin.countryCode} {admin.phoneNumber}</span>
+                            <span>{admin.countryCode} {admin.phone_number}</span>
                           </div>
                         </div>
                       </TableCell>

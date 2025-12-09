@@ -336,7 +336,7 @@ export function AssignVolunteerModal({
                       </div>
                       
                       <p className="text-sm text-muted-foreground mb-2">
-                        {volunteer.user.email} • {volunteer.user.countryCode} {volunteer.user.phoneNumber}
+                        {volunteer.user.email} • {volunteer.user.countryCode} {volunteer.user.phone_number}
                       </p>
                       
                       <div className="space-y-2">

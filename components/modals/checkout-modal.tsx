@@ -126,7 +126,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutModalProps
         firstName: prev.firstName || user?.name?.split(' ')[0] || '',
         lastName: prev.lastName || user?.name?.split(' ').slice(1).join(' ') || '',
         email: prev.email || user?.email || '',
-        phone: prev.phone || user?.phoneNumber || '',
+        phone: prev.phone || user?.phone_number || '',
         address: prev.address || user.address_line1 + user.address_line1 || '',
         city: prev.city || user.city || '',
         state: prev.state || user.state_province || '',

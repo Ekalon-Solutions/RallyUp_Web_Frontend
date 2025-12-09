@@ -21,7 +21,7 @@ export default function SystemOwnerLoginPage() {
   const [resendCountdown, setResendCountdown] = useState(0)
   const [formData, setFormData] = useState({
     email: "",
-    phoneNumber: "",
+    phone_number: "",
     countryCode: "+1"
   })
 
@@ -40,7 +40,7 @@ export default function SystemOwnerLoginPage() {
   }
 
   const handleSendOTP = () => {
-    if (!formData.email && (!formData.phoneNumber || !formData.countryCode)) {
+    if (!formData.email && (!formData.phone_number || !formData.countryCode)) {
       toast.error("Please enter either email or phone number with country code")
       return
     }
@@ -51,15 +51,15 @@ export default function SystemOwnerLoginPage() {
     if (formData.email) {
       toast.success(`OTP sent to ${formData.email}. Code: ${otp}`)
     } else {
-      toast.success(`OTP sent to ${formData.countryCode}${formData.phoneNumber}. Code: ${otp}`)
+      toast.success(`OTP sent to ${formData.countryCode}${formData.phone_number}. Code: ${otp}`)
     }
     setOtpSent(true)
     setResendCountdown(10)
   }
 
   const handleResendOTP = () => {
-    if (formData.phoneNumber && formData.countryCode) {
-      toast.success(`OTP resent to ${formData.countryCode}${formData.phoneNumber}. Code: ${generatedOtp}`)
+    if (formData.phone_number && formData.countryCode) {
+      toast.success(`OTP resent to ${formData.countryCode}${formData.phone_number}. Code: ${generatedOtp}`)
       setResendCountdown(10)
     } else if (formData.email) {
       toast.success(`OTP resent to ${formData.email}. Code: ${generatedOtp}`)
@@ -89,7 +89,7 @@ export default function SystemOwnerLoginPage() {
       if (firebaseResult.user) {
         backendResult = await login(
           formData.email,
-          formData.phoneNumber,
+          formData.phone_number,
           formData.countryCode,
           false,
           true
@@ -174,8 +174,8 @@ export default function SystemOwnerLoginPage() {
                         id="phone"
                         type="tel"
                         placeholder="Enter your phone number"
-                        value={formData.phoneNumber}
-                        onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                        value={formData.phone_number}
+                        onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
                         required
                         className="bg-white/10 border-white/20 text-white placeholder:text-slate-400"
                       />
@@ -187,7 +187,7 @@ export default function SystemOwnerLoginPage() {
                   <Button 
                     type="button" 
                     onClick={handleSendOTP} 
-                    disabled={!formData.email && (!formData.phoneNumber || !formData.countryCode)}
+                    disabled={!formData.email && (!formData.phone_number || !formData.countryCode)}
                     className="w-full bg-sky-400 text-slate-900 hover:bg-sky-300 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Send OTP

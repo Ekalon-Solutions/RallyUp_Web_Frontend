@@ -16,7 +16,7 @@ interface StaffMember {
   _id: string
   name: string
   email: string
-  phoneNumber: string
+  phone_number: string
   countryCode: string
   role: 'admin' | 'volunteer'
   isActive: boolean
@@ -32,7 +32,7 @@ export default function StaffPage() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
-    phoneNumber: "",
+    phone_number: "",
     countryCode: "+1"
   })
 
@@ -88,7 +88,7 @@ export default function StaffPage() {
         setFormData({
           name: "",
           email: "",
-          phoneNumber: "",
+          phone_number: "",
           countryCode: "+1"
         })
         loadStaff()
@@ -187,11 +187,11 @@ export default function StaffPage() {
                   />
                 </div>
                 <div className="col-span-2 space-y-2">
-                  <Label htmlFor="phoneNumber">Phone Number</Label>
+                  <Label htmlFor="phone_number">Phone Number</Label>
                   <Input
-                    id="phoneNumber"
-                    value={formData.phoneNumber}
-                    onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                    id="phone_number"
+                    value={formData.phone_number}
+                    onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
                     required
                   />
                 </div>
@@ -248,7 +248,7 @@ export default function StaffPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Phone className="w-4 h-4" />
-                      <span>{admin.countryCode}{admin.phoneNumber}</span>
+                      <span>{admin.countryCode}{admin.phone_number}</span>
                     </div>
                   </div>
                   <div className="flex gap-2 mt-4">
@@ -293,7 +293,7 @@ export default function StaffPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <Phone className="w-4 h-4" />
-                      <span>{volunteer.countryCode}{volunteer.phoneNumber}</span>
+                      <span>{volunteer.countryCode}{volunteer.phone_number}</span>
                     </div>
                   </div>
                   <div className="flex gap-2 mt-4">

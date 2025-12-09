@@ -29,7 +29,7 @@ interface ClubMember {
   _id: string
   name: string
   email: string
-  phoneNumber: string
+  phone_number: string
   countryCode: string
   isPhoneVerified: boolean
   membershipPlan?: {
@@ -141,8 +141,8 @@ export default function ClubMembersPage() {
     })
   }
 
-  const formatPhoneNumber = (phoneNumber: string, countryCode: string) => {
-    return `${countryCode} ${phoneNumber}`
+  const formatPhoneNumber = (phone_number: string, countryCode: string) => {
+    return `${countryCode} ${phone_number}`
   }
 
   const getVerificationColor = (isVerified: boolean) => {

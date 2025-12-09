@@ -17,7 +17,7 @@ export default function SettingsPage() {
   const [profileForm, setProfileForm] = useState({
     name: "",
     email: "",
-    phoneNumber: "",
+    phone_number: "",
     countryCode: "+1"
   })
 
@@ -26,7 +26,7 @@ export default function SettingsPage() {
       setProfileForm({
         name: user.name || "",
         email: user.email || "",
-        phoneNumber: user.phoneNumber || "",
+        phone_number: user.phone_number || "",
         countryCode: user.countryCode || "+1"
       })
     }
@@ -40,7 +40,7 @@ export default function SettingsPage() {
       const result = await updateProfile({
         name: profileForm.name,
         email: profileForm.email,
-        phoneNumber: profileForm.phoneNumber,
+        phone_number: profileForm.phone_number,
         countryCode: profileForm.countryCode
       })
 
@@ -119,8 +119,8 @@ export default function SettingsPage() {
                     <Input
                       id="phone"
                       type="tel"
-                      value={profileForm.phoneNumber}
-                      onChange={(e) => setProfileForm({ ...profileForm, phoneNumber: e.target.value })}
+                      value={profileForm.phone_number}
+                      onChange={(e) => setProfileForm({ ...profileForm, phone_number: e.target.value })}
                       required
                     />
                   </div>
