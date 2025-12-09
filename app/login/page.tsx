@@ -1136,14 +1136,6 @@ export default function AuthPage() {
                         Create Account
                         <UserPlus className="ml-2 w-4 h-4" />
                       </Button>
-                      <Button 
-                        variant="outline" 
-                        onClick={() => router.push("/clubs")} 
-                        className="w-full border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-11"
-                      >
-                        Browse Clubs
-                        <Building2 className="ml-2 w-4 h-4" />
-                      </Button>
                     </div>
                   </TabsContent>
 

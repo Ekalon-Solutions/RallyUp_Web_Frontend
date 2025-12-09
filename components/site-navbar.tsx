@@ -64,6 +64,9 @@ export function SiteNavbar({ brandName = "Wingman Pro" }: SiteNavbarProps) {
           <Link href="/login">
             <Button variant="outline" className="border-slate-300 dark:border-white/20 bg-white text-slate-900 hover:bg-slate-100 dark:bg-white/5 dark:text-white dark:hover:bg-white/10">Log in</Button>
           </Link>
+          <Link href="/clubs">
+            <Button variant="outline" className="border-slate-300 dark:border-white/20 bg-white text-slate-900 hover:bg-slate-100 dark:bg-white/5 dark:text-white dark:hover:bg-white/10">Browse Clubs</Button>
+          </Link>
           <Link href="/contact">
             <Button className="bg-sky-500 text-white hover:bg-sky-400 dark:bg-sky-400 dark:text-slate-900 dark:hover:bg-sky-300">Contact Us</Button>
           </Link>
@@ -77,6 +80,7 @@ export function SiteNavbar({ brandName = "Wingman Pro" }: SiteNavbarProps) {
             <Link href="/affiliations" onClick={() => setMobileOpen(false)} className="hover:text-slate-900 dark:hover:text-white">Affiliations</Link>
             <Link href="/faqs" onClick={() => setMobileOpen(false)} className="hover:text-slate-900 dark:hover:text-white">FAQs</Link>
             <Link href="/about" onClick={() => setMobileOpen(false)} className="hover:text-slate-900 dark:hover:text-white">About Us</Link>
+            <Link href="/clubs" onClick={() => setMobileOpen(false)} className="hover:text-slate-900 dark:hover:text-white">Browse Clubs</Link>
           </div>
         </div>
       )}
