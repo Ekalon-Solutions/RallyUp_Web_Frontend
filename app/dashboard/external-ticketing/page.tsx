@@ -28,7 +28,26 @@ export default function ExternalTicketingPage() {
         if (resp.success && resp.data) {
           // public endpoint returns { clubs: [...] }
           const payload: any = resp.data;
-          setClubs(payload.clubs || []);
+          let fetchedClubs: any[] = payload.clubs || [];
+
+          // If the current user is an 'admin' (not super_admin), filter clubs
+          // to only the club the admin is associated with. Admins have an
+          // optional `club` field which may be an object or an id string.
+          try {
+            const role = (user as any).role;
+            const userClub = (user as any).club;
+
+            console.log("User role:", user, role, userClub);
+            if ((role === 'admin' || role === 'super_admin') && userClub) {
+              const userClubId = typeof userClub === 'string' ? userClub : userClub._id;
+              fetchedClubs = fetchedClubs.filter((c) => c._id === userClubId);
+            }
+            // super_admin and system_owner will see all clubs (no filtering)
+          } catch (e) {
+            // If anything goes wrong, fall back to showing fetched clubs
+          }
+
+          setClubs(fetchedClubs);
         }
         setIsLoadingClubs(false);
       };

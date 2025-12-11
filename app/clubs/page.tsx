@@ -37,7 +37,7 @@ import {
   Settings,
   ExternalLink
 } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import { getApiUrl, API_ENDPOINTS } from "@/lib/config"
 import { PaymentSimulationModal } from "@/components/modals/payment-simulation-modal"
@@ -129,8 +129,14 @@ export default function ClubsPage() {
   const [registeredToken, setRegisteredToken] = useState<string | null>(null)
   const [userMemberships, setUserMemberships] = useState<string[]>([])
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   useEffect(() => {
+    // If a `search` query param is present, pre-populate searchTerm so
+    // initial filtering happens based on the URL.
+    const initialSearch = searchParams?.get?.('search') || ''
+    if (initialSearch) setSearchTerm(initialSearch)
+
     fetchClubs()
     fetchUserMemberships()
   }, [])

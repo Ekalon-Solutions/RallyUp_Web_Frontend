@@ -150,6 +150,7 @@ export default function OrdersPage() {
     try {
       setLoading(true)
       const params = new URLSearchParams({
+        clubId: user?.club._id || 'none',
         page: currentPage.toString(),
         limit: '10',
         ...(searchTerm && { search: searchTerm }),

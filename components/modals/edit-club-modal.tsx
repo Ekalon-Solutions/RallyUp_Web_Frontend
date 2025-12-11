@@ -51,6 +51,7 @@ interface EditClubModalProps {
 
 interface ClubFormData {
   name: string
+  slug?: string
   description: string
   contactEmail: string
   contactPhone: string
@@ -70,6 +71,7 @@ export function EditClubModal({ club, trigger, onClubUpdated }: EditClubModalPro
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState<ClubFormData>({
     name: '',
+    slug: '',
     description: '',
     contactEmail: '',
     contactPhone: '',
@@ -88,6 +90,7 @@ export function EditClubModal({ club, trigger, onClubUpdated }: EditClubModalPro
     if (club && open) {
       setFormData({
         name: club.name || '',
+        slug: (club as any).slug || '',
         description: club.description || '',
         contactEmail: club.contactEmail || '',
         contactPhone: club.contactPhone || '',
@@ -128,6 +131,17 @@ export function EditClubModal({ club, trigger, onClubUpdated }: EditClubModalPro
     if (!emailRegex.test(formData.contactEmail)) {
       toast.error('Please enter a valid email address')
       return
+    }
+
+    // Validate slug if provided: URL-safe
+    if (formData.slug) {
+      const slugValue = formData.slug.trim()
+      const slugRegex = /^[a-z0-9-]+$/
+      if (!slugRegex.test(slugValue)) {
+        toast.error('Slug must contain only lowercase letters, numbers, and hyphens')
+        return
+      }
+      formData.slug = slugValue
     }
 
     // Validate phone number format (10-15 digits)
@@ -222,6 +236,17 @@ export function EditClubModal({ club, trigger, onClubUpdated }: EditClubModalPro
                   placeholder="Enter club name"
                   required
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="slug">Slug</Label>
+                <Input
+                  id="slug"
+                  value={formData.slug}
+                  onChange={(e) => handleInputChange('slug', e.target.value)}
+                  placeholder="custom-club-slug"
+                />
+                <p className="text-xs text-muted-foreground">Only lowercase letters, numbers and hyphens allowed. Leave blank to keep current slug.</p>
               </div>
 
               <div className="space-y-2">

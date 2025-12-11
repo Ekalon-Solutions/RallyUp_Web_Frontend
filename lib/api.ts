@@ -1670,6 +1670,7 @@ class ApiClient {
     name: string; 
     description?: string;
     contactInfo?: string;
+    slug?: string;
   }): Promise<ApiResponse<{ message: string; club: Club }>> {
     // // console.log('🔵 PATCH /clubs/' + id + '/basic-info', data);
     return this.patch(`/clubs/${id}/basic-info`, data);

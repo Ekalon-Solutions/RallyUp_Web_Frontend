@@ -28,6 +28,7 @@ export function CreateClubModal({ isOpen, onClose, onSuccess }: CreateClubModalP
   const [isLoading, setIsLoading] = useState(false)
   const [formData, setFormData] = useState({
     name: "",
+    slug: "",
     description: "",
     logo: "",
     website: "",
@@ -50,10 +51,27 @@ export function CreateClubModal({ isOpen, onClose, onSuccess }: CreateClubModalP
     superAdminPhone: "",
     superAdminCountryCode: "+1"
   })
+  const [errors, setErrors] = useState<{ slug?: string }>({})
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+
+    // Validate slug: required and URL-safe (lowercase letters, numbers, hyphens)
+    const slugValue = (formData.slug || '').trim()
+    const slugRegex = /^[a-z0-9-]+$/
+    if (!slugValue) {
+      setErrors({ slug: 'Slug is required' })
+      setIsLoading(false)
+      return
+    }
+    if (!slugRegex.test(slugValue)) {
+      setErrors({ slug: 'Slug must contain only lowercase letters, numbers, and hyphens' })
+      setIsLoading(false)
+      return
+    }
+    // keep normalized slug
+    formData.slug = slugValue
 
     try {
       const response = await apiClient.createClub(formData)
@@ -63,8 +81,10 @@ export function CreateClubModal({ isOpen, onClose, onSuccess }: CreateClubModalP
         onSuccess()
         onClose()
         // Reset form
+        setErrors({})
         setFormData({
           name: "",
+          slug: "",
           description: "",
           logo: "",
           website: "",
@@ -147,6 +167,17 @@ export function CreateClubModal({ isOpen, onClose, onSuccess }: CreateClubModalP
                   placeholder="Enter club name"
                   required
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="slug">Slug (optional)</Label>
+                <Input
+                  id="slug"
+                  value={formData.slug}
+                  onChange={(e) => handleInputChange("slug", e.target.value)}
+                  placeholder="custom-club-slug"
+                  aria-describedby="slug-help"
+                />
+                <p id="slug-help" className="text-xs text-muted-foreground">Leave blank to auto-generate from the club name. Only lowercase letters, numbers and hyphens allowed.</p>
               </div>
               
               <div className="space-y-2">

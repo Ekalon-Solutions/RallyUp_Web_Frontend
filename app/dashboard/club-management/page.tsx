@@ -87,10 +87,12 @@ interface ClubWithDetails extends Club {
 
 interface CreateClubForm {
   name: string
+  slug: string
   description: string
   website: string
   contactEmail: string
   contactPhone: string
+  countryCode: string
   address: {
     street: string
     city: string
@@ -117,10 +119,12 @@ export default function ClubManagementPage() {
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [createForm, setCreateForm] = useState<CreateClubForm>({
     name: '',
+    slug: '',
     description: '',
     website: '',
     contactEmail: '',
     contactPhone: '',
+    countryCode: '+1',
     address: {
       street: '',
       city: '',
@@ -138,6 +142,7 @@ export default function ClubManagementPage() {
     superAdminCountryCode: '+1'
   })
   const [creating, setCreating] = useState(false)
+  const [createErrors, setCreateErrors] = useState<{ slug?: string }>({})
 
   useEffect(() => {
     if (user?.role === 'system_owner') {
@@ -191,6 +196,25 @@ export default function ClubManagementPage() {
   const handleCreateClub = async () => {
     try {
       setCreating(true)
+      setCreateErrors({})
+
+      // Validate slug: required and URL-safe (lowercase letters, numbers, hyphens)
+      const slugValue = (createForm.slug || '').trim()
+      const slugRegex = /^[a-z0-9-]+$/
+      if (!slugValue) {
+        setCreateErrors({ slug: 'Slug is required' })
+        toast.error('Please provide a slug for the club')
+        setCreating(false)
+        return
+      }
+      if (!slugRegex.test(slugValue)) {
+        setCreateErrors({ slug: 'Slug must contain only lowercase letters, numbers, and hyphens' })
+        toast.error('Slug must contain only lowercase letters, numbers, and hyphens')
+        setCreating(false)
+        return
+      }
+      // normalize
+      createForm.slug = slugValue
       
       // Validate required fields
       if (!createForm.name || !createForm.contactEmail || !createForm.contactPhone || 
@@ -232,28 +256,30 @@ export default function ClubManagementPage() {
       if (response.success) {
         toast.success('Club created successfully!')
         setShowCreateDialog(false)
-        setCreateForm({
-          name: '',
-          description: '',
-          website: '',
-          contactEmail: '',
-          contactPhone: '',
-          address: {
-            street: '',
-            city: '',
-            state: '',
-            country: '',
-            zipCode: ''
-          },
-          settings: {
-            allowPublicRegistration: true,
-            requireApproval: false,
-            maxMembers: 1000
-          },
-          superAdminEmail: '',
-          superAdminPhone: '',
-          superAdminCountryCode: '+1'
-        })
+          setCreateForm({
+            name: '',
+            slug: '',
+            description: '',
+            website: '',
+            contactEmail: '',
+            contactPhone: '',
+            countryCode: '+1',
+            address: {
+              street: '',
+              city: '',
+              state: '',
+              country: '',
+              zipCode: ''
+            },
+            settings: {
+              allowPublicRegistration: true,
+              requireApproval: false,
+              maxMembers: 1000
+            },
+            superAdminEmail: '',
+            superAdminPhone: '',
+            superAdminCountryCode: '+1'
+          })
         fetchClubs()
       } else {
         toast.error(response.error || 'Failed to create club')
@@ -387,14 +413,27 @@ export default function ClubManagementPage() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="website">Website</Label>
+                        <Label htmlFor="slug">Slug *</Label>
                         <Input
-                          id="website"
-                          value={createForm.website}
-                          onChange={(e) => setCreateForm({ ...createForm, website: e.target.value })}
-                          placeholder="https://example.com"
+                          id="slug"
+                          value={createForm.slug}
+                          onChange={(e) => setCreateForm({ ...createForm, slug: e.target.value })}
+                          placeholder="custom-club-slug"
                         />
+                        <p className="text-xs text-muted-foreground">Only lowercase letters, numbers and hyphens allowed.</p>
+                        {createErrors.slug && (
+                          <p className="text-xs text-destructive">{createErrors.slug}</p>
+                        )}
                       </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="website">Website</Label>
+                      <Input
+                        id="website"
+                        value={createForm.website}
+                        onChange={(e) => setCreateForm({ ...createForm, website: e.target.value })}
+                        placeholder="https://example.com"
+                      />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="description">Description</Label>
@@ -429,17 +468,28 @@ export default function ClubManagementPage() {
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="contactPhone">Contact Phone *</Label>
-                        <Input
-                          id="contactPhone"
-                          value={createForm.contactPhone}
-                          onChange={(e) => {
-                            // Remove any non-digit characters and limit to 15 digits
-                            const phone_number = e.target.value.replace(/\D/g, '').slice(0, 15)
-                            setCreateForm({ ...createForm, contactPhone: phone_number })
-                          }}
-                          placeholder="1234567890"
-                          maxLength={15}
-                        />
+                        <div className="flex items-center gap-2">
+                          <Phone className="w-4 h-4 text-muted-foreground" />
+                          <div className="flex gap-2">
+                            <Input
+                              value={createForm.countryCode}
+                              onChange={(e) => setCreateForm({ ...createForm, countryCode: e.target.value })}
+                              className="w-20"
+                              placeholder="+1"
+                            />
+                            <Input
+                              id="contactPhone"
+                              value={createForm.contactPhone}
+                              onChange={(e) => {
+                                // Remove any non-digit characters and limit to 15 digits
+                                const phone_number = e.target.value.replace(/\D/g, '').slice(0, 15)
+                                setCreateForm({ ...createForm, contactPhone: phone_number })
+                              }}
+                              placeholder="1234567890"
+                              maxLength={15}
+                            />
+                          </div>
+                        </div>
                         <p className={`text-xs ${createForm.contactPhone.length >= 10 && createForm.contactPhone.length <= 15 ? 'text-green-600' : 'text-muted-foreground'}`}>
                           {createForm.contactPhone.length >= 10 && createForm.contactPhone.length <= 15 
                             ? '✓ Valid phone number format' 
@@ -519,16 +569,19 @@ export default function ClubManagementPage() {
                   {/* Super Admin Information */}
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold">Administrator</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="superAdminEmail">Email *</Label>
-                        <Input
-                          id="superAdminEmail"
-                          type="email"
-                          value={createForm.superAdminEmail}
-                          onChange={(e) => setCreateForm({ ...createForm, superAdminEmail: e.target.value })}
-                          placeholder="admin@club.com"
-                        />
+                        <div className="flex items-center gap-2">
+                          <Mail className="w-4 h-4 text-muted-foreground" />
+                          <Input
+                            id="superAdminEmail"
+                            type="email"
+                            value={createForm.superAdminEmail}
+                            onChange={(e) => setCreateForm({ ...createForm, superAdminEmail: e.target.value })}
+                            placeholder="admin@club.com"
+                          />
+                        </div>
                         <p className={`text-xs ${createForm.superAdminEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(createForm.superAdminEmail) ? 'text-green-600' : 'text-muted-foreground'}`}>
                           {createForm.superAdminEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(createForm.superAdminEmail) 
                             ? '✓ Valid email format' 
@@ -537,31 +590,32 @@ export default function ClubManagementPage() {
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="superAdminPhone">Phone *</Label>
-                        <Input
-                          id="superAdminPhone"
-                          value={createForm.superAdminPhone}
-                          onChange={(e) => {
-                            // Remove any non-digit characters and limit to 15 digits
-                            const phone_number = e.target.value.replace(/\D/g, '').slice(0, 15)
-                            setCreateForm({ ...createForm, superAdminPhone: phone_number })
-                          }}
-                          placeholder="1234567890"
-                          maxLength={15}
-                        />
+                        <div className="flex items-center gap-2">
+                          <Phone className="w-4 h-4 text-muted-foreground" />
+                          <div className="flex gap-2">
+                            <Input
+                              value={createForm.superAdminCountryCode}
+                              onChange={(e) => setCreateForm({ ...createForm, superAdminCountryCode: e.target.value })}
+                              className="w-20"
+                              placeholder="+1"
+                            />
+                            <Input
+                              id="superAdminPhone"
+                              value={createForm.superAdminPhone}
+                              onChange={(e) => {
+                                const phone_number = e.target.value.replace(/\D/g, '').slice(0, 15)
+                                setCreateForm({ ...createForm, superAdminPhone: phone_number })
+                              }}
+                              placeholder="1234567890"
+                              maxLength={15}
+                            />
+                          </div>
+                        </div>
                         <p className={`text-xs ${createForm.superAdminPhone.length >= 10 && createForm.superAdminPhone.length <= 15 ? 'text-green-600' : 'text-muted-foreground'}`}>
                           {createForm.superAdminPhone.length >= 10 && createForm.superAdminPhone.length <= 15 
                             ? '✓ Valid phone number format' 
                             : 'Enter phone number without country code (10-15 digits)'}
                         </p>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="superAdminCountryCode">Country Code</Label>
-                        <Input
-                          id="superAdminCountryCode"
-                          value={createForm.superAdminCountryCode}
-                          onChange={(e) => setCreateForm({ ...createForm, superAdminCountryCode: e.target.value })}
-                          placeholder="+1"
-                        />
                       </div>
                     </div>
                   </div>
