@@ -29,9 +29,11 @@ interface WebsiteSettings {
 }
 
 export function WebsiteSetupTab() {
-  const { user } = useAuth()
+  const { user, checkAuth } = useAuth()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [slugInput, setSlugInput] = useState<string | null>(null)
+  const [slugSaving, setSlugSaving] = useState(false)
   const [settings, setSettings] = useState<WebsiteSettings>({
     title: "",
     description: "",
@@ -54,6 +56,9 @@ export function WebsiteSetupTab() {
     if (clubId) {
       loadSettings()
     }
+    // initialize slug input from user club data
+    const existingSlug = (user as any)?.club?.slug || (user as any)?.club_id?.slug
+    if (existingSlug) setSlugInput(existingSlug)
   }, [clubId])
 
     const loadSettings = async () => {
@@ -190,8 +195,50 @@ export function WebsiteSetupTab() {
           <div className="flex items-center gap-2 p-3 bg-white dark:bg-gray-900 rounded-lg border">
             <Globe className="h-4 w-4 text-muted-foreground flex-shrink-0" />
             <code className="text-sm flex-1 truncate text-blue-600 dark:text-blue-400">
-              {clubId ? `${typeof window !== 'undefined' ? window.location.origin : ''}/clubs/${(user as any)?.club?.slug || (user as any)?.club_id?.slug || clubId}` : 'Loading...'}
+              {(user as any)?.club?.slug ? `${typeof window !== 'undefined' ? window.location.origin : ''}/clubs/${(user as any)?.club?.slug}` : 'Loading...'}
             </code>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 items-center">
+            <div className="md:col-span-2">
+              <Label htmlFor="slug">Custom Slug</Label>
+              <Input
+                id="slug"
+                value={slugInput || ''}
+                onChange={(e) => setSlugInput(e.target.value)}
+                placeholder="enter a custom slug (lowercase, letters, numbers, hyphens)"
+              />
+              <p className="text-sm text-muted-foreground mt-1">Only lowercase letters, numbers and hyphens are allowed.</p>
+            </div>
+            <div>
+              <Button
+                className="w-full mt-2 md:mt-6"
+                onClick={async () => {
+                  if (!clubId) return toast.error('Club id missing')
+                  const slug = (slugInput || '').trim()
+                  if (!slug) return toast.error('Please enter a slug')
+                  if (!/^[a-z0-9-]+$/.test(slug)) return toast.error('Slug must contain only lowercase letters, numbers, and hyphens')
+                  try {
+                    setSlugSaving(true)
+                    const resp = await apiClient.updateClubBasicInfo(clubId, { slug })
+                    if (resp.success) {
+                      toast.success('Slug updated successfully')
+                      // refresh auth/user so displayed club slug updates
+                      try { await checkAuth() } catch (e) { /* ignore */ }
+                    } else {
+                      toast.error(resp.error || resp.message || 'Failed to update slug')
+                    }
+                  } catch (err) {
+                    toast.error('Error updating slug')
+                  } finally {
+                    setSlugSaving(false)
+                  }
+                }}
+                disabled={slugSaving}
+              >
+                {slugSaving ? 'Saving...' : 'Update Slug'}
+              </Button>
+            </div>
           </div>
           <div className="flex gap-2">
             <Button 

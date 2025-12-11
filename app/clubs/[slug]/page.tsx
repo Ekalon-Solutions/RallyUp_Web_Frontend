@@ -173,7 +173,7 @@ export default function PublicClubPage() {
 
             {/* CTA Button */}
             <div className="pt-4">
-              <Link href={`/auth/register?club=${club?._id || slug}`}>
+              <Link href={`/clubs/?search=${club?.name}`}>
                 <Button 
                   size="lg" 
                   className="px-8"

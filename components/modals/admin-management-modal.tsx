@@ -218,8 +218,8 @@ export function AdminManagementModal({ clubId, clubName, trigger }: AdminManagem
     try {
       setAssigning(true)
       
-      // Update existing admin to assign to this club and update role
       const response = await apiClient.updateStaffForClub(clubId, admin._id, {
+        ...admin,
         role: newRole
       })
       

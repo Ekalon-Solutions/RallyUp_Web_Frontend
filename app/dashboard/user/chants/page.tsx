@@ -257,7 +257,7 @@ export default function MemberChantsPage() {
                       <SelectItem value="iframe">Embedded Content (iframe)</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Button
+{/*                   <Button
                     variant={showFavoritesOnly ? "default" : "outline"}
                     size="sm"
                     onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
@@ -265,7 +265,7 @@ export default function MemberChantsPage() {
                   >
                     <Heart className={`w-4 h-4 ${showFavoritesOnly ? 'fill-current' : ''}`} />
                     Favorites
-                  </Button>
+                  </Button> */}
                 </div>
               </div>
             </CardContent>
@@ -318,7 +318,7 @@ export default function MemberChantsPage() {
                         <Badge variant="secondary">
                           {chant.fileType}
                         </Badge>
-                        <Button
+{/*                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => toggleFavorite(chant._id)}
@@ -331,15 +331,15 @@ export default function MemberChantsPage() {
                                 : 'text-muted-foreground hover:text-red-500'
                             }`} 
                           />
-                        </Button>
-                        <Button
+                        </Button> */}
+{/*                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => handleShare(chant)}
                           className="p-1 h-6 w-6"
                         >
                           <Share2 className="w-4 h-4 text-muted-foreground hover:text-primary" />
-                        </Button>
+                        </Button> */}
                       </div>
                     </div>
                   </CardHeader>

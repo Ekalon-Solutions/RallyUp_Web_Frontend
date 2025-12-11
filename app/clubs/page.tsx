@@ -37,9 +37,10 @@ import {
   Settings,
   ExternalLink
 } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import { getApiUrl, API_ENDPOINTS } from "@/lib/config"
+import { PaymentSimulationModal } from "@/components/modals/payment-simulation-modal"
 
 interface Club {
   _id: string
@@ -94,16 +95,48 @@ export default function ClubsPage() {
   const [priceFilter, setPriceFilter] = useState("all")
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [registrationData, setRegistrationData] = useState({
-    name: "",
+    // Lightweight registration fields (expanded below)
+    username: "",
+    first_name: "",
+    last_name: "",
     email: "",
+    date_of_birth: "",
+    gender: "male",
     phone_number: "",
-    countryCode: "+1"
+    countryCode: "+91",
+    address_line1: "",
+    address_line2: "",
+    city: "",
+    state_province: "",
+    zip_code: "",
+    country: "",
+    level_name: "",
+    id_proof_type: "Aadhar",
+    id_proof_number: "",
+    // Keep legacy name for compatibility where used elsewhere
+    name: ""
   })
   const [isRegistering, setIsRegistering] = useState(false)
+  const [registrationErrors, setRegistrationErrors] = useState({ phone_number: "" })
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
+  const [pendingOrder, setPendingOrder] = useState<{
+    orderId: string
+    orderNumber: string
+    total: number
+    currency: string
+    paymentMethod: string
+  } | null>(null)
+  const [registeredToken, setRegisteredToken] = useState<string | null>(null)
   const [userMemberships, setUserMemberships] = useState<string[]>([])
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   useEffect(() => {
+    // If a `search` query param is present, pre-populate searchTerm so
+    // initial filtering happens based on the URL.
+    const initialSearch = searchParams?.get?.('search') || ''
+    if (initialSearch) setSearchTerm(initialSearch)
+
     fetchClubs()
     fetchUserMemberships()
   }, [])
@@ -202,9 +235,25 @@ export default function ClubsPage() {
     setShowClubDetails(true)
   }
 
+  const validatePhoneNumber = (phone: string): string => {
+    if (!phone) return ""
+    const phoneRegex = /^\d{10,15}$/
+    if (!phoneRegex.test(phone)) {
+      return "Phone number must be 10-15 digits"
+    }
+    return ""
+  }
+
   const handleRegistration = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedClub || !selectedPlan) return
+    // Validate phone number before proceeding
+    const phoneError = validatePhoneNumber(registrationData.phone_number)
+    setRegistrationErrors({ phone_number: phoneError })
+    if (phoneError) {
+      toast.error(phoneError)
+      return
+    }
 
     setIsRegistering(true)
     try {
@@ -216,40 +265,59 @@ export default function ClubsPage() {
         },
         body: JSON.stringify({
           ...registrationData,
-          clubId: selectedClub._id,
-          membershipPlanId: selectedPlan._id,
-          // Add membership info
-          membership: {
-            type: 'free',
-            startDate: new Date().toISOString(),
-            endDate: new Date(Date.now() + selectedPlan.duration * 30 * 24 * 60 * 60 * 1000).toISOString(), // Convert months to milliseconds
-            status: 'active',
-            paymentStatus: 'free'
-          }
-        }),
+       }),
       })
 
       const registerData = await registerResponse.json()
 
       if (registerResponse.ok) {
-        // Store the token
-        localStorage.setItem('token', registerData.token)
-        localStorage.setItem('userType', 'member')
+        // Save token temporarily (do not set in localStorage until payment succeeds)
+        setRegisteredToken(registerData.token || null)
 
-        // Show success message
-        toast.success("Welcome to the club! Your free membership is now active.")
-        
-        // Close dialog and reset form
-        setShowRegistrationDialog(false)
-        setRegistrationData({
-          name: "",
-          email: "",
-          phone_number: "",
-          countryCode: "+91"
-        })
+        // Show success message for registration
+        toast.success("User registered successfully. Proceed to payment to activate membership.")
 
-        // Redirect to dashboard
-        router.push("/dashboard/user")
+        // Prepare a temporary order and open payment modal (for paid plans)
+        if (selectedPlan && selectedPlan.price > 0) {
+          const orderId = `temp-${Date.now()}`
+          const orderNumber = `ORD-${Math.floor(Math.random() * 900000) + 100000}`
+          const total = selectedPlan.price
+          const currency = selectedPlan.currency || 'INR'
+          const paymentMethod = 'all'
+
+          setPendingOrder({ orderId, orderNumber, total, currency, paymentMethod })
+          setIsPaymentModalOpen(true)
+        } else {
+          // Free plan fallback: store token and route immediately
+          if (registerData.token) {
+            localStorage.setItem('token', registerData.token)
+            localStorage.setItem('userType', 'member')
+          }
+          // Close dialog and reset form
+          setShowRegistrationDialog(false)
+          setRegistrationData({
+            username: "",
+            first_name: "",
+            last_name: "",
+            email: "",
+            date_of_birth: "",
+            gender: "male",
+            phone_number: "",
+            countryCode: "+91",
+            address_line1: "",
+            address_line2: "",
+            city: "",
+            state_province: "",
+            zip_code: "",
+            country: "",
+            level_name: "",
+            id_proof_type: "Aadhar",
+            id_proof_number: "",
+            name: ""
+          })
+
+          router.push("/dashboard/user/my-clubs")
+        }
       } else {
         toast.error(registerData.message || "Registration failed")
       }
@@ -295,6 +363,94 @@ export default function ClubsPage() {
       case 'api': return <Zap className="w-4 h-4" />
       default: return <CheckCircle className="w-4 h-4" />
     }
+  }
+
+  const handlePaymentSuccess = async (
+    orderId: string,
+    paymentId: string,
+    razorpayOrderId: string,
+    razorpaySignature: string
+  ) => {
+    if (!selectedClub || !selectedPlan) return
+    setIsRegistering(true)
+    try {
+      // Store token now that payment succeeded
+      if (registeredToken) {
+        localStorage.setItem('token', registeredToken)
+        localStorage.setItem('userType', 'member')
+      }
+
+      // Finalize join including payment details
+      const response = await fetch(getApiUrl(API_ENDPOINTS.users.joinClubRequest), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(registeredToken ? { 'Authorization': `Bearer ${registeredToken}` } : {})
+        },
+        body: JSON.stringify({
+          clubId: selectedClub._id,
+          membershipPlanId: selectedPlan._id,
+          payment: {
+            orderId,
+            paymentId,
+            razorpayOrderId,
+            razorpaySignature
+          }
+        })
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        toast.success("Payment successful — membership activated.")
+        setShowRegistrationDialog(false)
+        setIsPaymentModalOpen(false)
+        setPendingOrder(null)
+        setRegistrationData({
+          username: "",
+          first_name: "",
+          last_name: "",
+          email: "",
+          date_of_birth: "",
+          gender: "male",
+          phone_number: "",
+          countryCode: "+91",
+          address_line1: "",
+          address_line2: "",
+          city: "",
+          state_province: "",
+          zip_code: "",
+          country: "",
+          level_name: "",
+          id_proof_type: "Aadhar",
+          id_proof_number: "",
+          name: ""
+        })
+
+        router.push("/dashboard/user/my-clubs")
+      } else {
+        toast.error(data.message || "Failed to activate membership after payment.")
+      }
+    } catch (error) {
+      // console.error("Finalize join error:", error)
+      toast.error("An error occurred while finalizing membership after payment.")
+    } finally {
+      setIsRegistering(false)
+      setIsPaymentModalOpen(false)
+      setPendingOrder(null)
+    }
+  }
+
+  const handlePaymentFailure = (
+    orderId: string,
+    paymentId: string,
+    razorpayOrderId: string,
+    razorpaySignature: string,
+    error: any
+  ) => {
+    toast.error('Payment failed or verification failed. Please try again or contact support.')
+    setIsPaymentModalOpen(false)
+    setPendingOrder(null)
   }
 
   if (loading) {
@@ -887,7 +1043,7 @@ export default function ClubsPage() {
 
       {/* Registration Dialog */}
       <Dialog open={showRegistrationDialog} onOpenChange={setShowRegistrationDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-2xl max-w-full max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg p-2">
@@ -900,49 +1056,188 @@ export default function ClubsPage() {
             </DialogDescription>
           </DialogHeader>
           
-          <form onSubmit={handleRegistration} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">Full Name</Label>
-              <Input
-                id="name"
-                value={registrationData.name}
-                onChange={(e) => setRegistrationData({ ...registrationData, name: e.target.value })}
-                required
-                className="h-12"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="email">Email Address</Label>
-              <Input
-                id="email"
-                type="email"
-                value={registrationData.email}
-                onChange={(e) => setRegistrationData({ ...registrationData, email: e.target.value })}
-                required
-                className="h-12"
-              />
-            </div>
-            
-            <div className="grid grid-cols-3 gap-2">
-              <div className="space-y-2">
-                <Label htmlFor="countryCode">Country Code</Label>
+          <div className="max-h-[70vh] overflow-y-auto pr-2">
+            <form onSubmit={handleRegistration} className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+               <div className="space-y-2">
+                <Label htmlFor="username">Username</Label>
                 <Input
-                  id="countryCode"
-                  value={registrationData.countryCode}
-                  onChange={(e) => setRegistrationData({ ...registrationData, countryCode: e.target.value })}
+                  id="username"
+                  value={registrationData.username}
+                  onChange={(e) => setRegistrationData({ ...registrationData, username: e.target.value })}
                   required
                   className="h-12"
                 />
               </div>
-              <div className="col-span-2 space-y-2">
-                <Label htmlFor="phone_number">Phone Number</Label>
+
+              <div className="space-y-2"></div>
+              <div className="space-y-2">
+                <Label htmlFor="first_name">First Name</Label>
                 <Input
-                  id="phone_number"
-                  type="tel"
-                  value={registrationData.phone_number}
-                  onChange={(e) => setRegistrationData({ ...registrationData, phone_number: e.target.value })}
+                  id="first_name"
+                  value={registrationData.first_name}
+                  onChange={(e) => setRegistrationData({ ...registrationData, first_name: e.target.value })}
                   required
+                  className="h-12"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="last_name">Last Name</Label>
+                <Input
+                  id="last_name"
+                  value={registrationData.last_name}
+                  onChange={(e) => setRegistrationData({ ...registrationData, last_name: e.target.value })}
+                  required
+                  className="h-12"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="date_of_birth">Date of Birth</Label>
+                <Input
+                  id="date_of_birth"
+                  type="date"
+                  value={registrationData.date_of_birth}
+                  onChange={(e) => setRegistrationData({ ...registrationData, date_of_birth: e.target.value })}
+                  className="h-12"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="gender">Gender</Label>
+                <select
+                  id="gender"
+                  value={registrationData.gender}
+                  onChange={(e) => setRegistrationData({ ...registrationData, gender: e.target.value })}
+                  className="w-full h-12 rounded-md border px-3"
+                >
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="non-binary">Non-binary</option>
+                </select>
+              </div>
+
+              <div className="sm:col-span-2 space-y-2">
+                <Label htmlFor="email">Email Address</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={registrationData.email}
+                  onChange={(e) => setRegistrationData({ ...registrationData, email: e.target.value })}
+                  required
+                  className="h-12"
+                />
+              </div>
+
+              <div className="col-span-2 sm:col-span-2 flex gap-2">
+                <div className="w-1/3 space-y-2">
+                  <Label htmlFor="countryCode">Country Code</Label>
+                  <Input
+                    id="countryCode"
+                    value={registrationData.countryCode}
+                    onChange={(e) => setRegistrationData({ ...registrationData, countryCode: e.target.value })}
+                    required
+                    className="h-12"
+                  />
+                </div>
+                <div className="w-2/3 space-y-2">
+                  <Label htmlFor="phone_number">Phone Number</Label>
+                  <Input
+                    id="phone_number"
+                    type="tel"
+                    value={registrationData.phone_number}
+                    onChange={(e) => setRegistrationData({ ...registrationData, phone_number: e.target.value })}
+                    required
+                    className="h-12"
+                  />
+                  {registrationErrors.phone_number && (
+                    <p className="text-destructive text-sm mt-1">{registrationErrors.phone_number}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="sm:col-span-2 space-y-2">
+                <Label htmlFor="address_line1">Address Line 1</Label>
+                <Input
+                  id="address_line1"
+                  value={registrationData.address_line1}
+                  onChange={(e) => setRegistrationData({ ...registrationData, address_line1: e.target.value })}
+                  className="h-12"
+                />
+              </div>
+
+              <div className="sm:col-span-2 space-y-2">
+                <Label htmlFor="address_line2">Address Line 2</Label>
+                <Input
+                  id="address_line2"
+                  value={registrationData.address_line2}
+                  onChange={(e) => setRegistrationData({ ...registrationData, address_line2: e.target.value })}
+                  className="h-12"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="city">City</Label>
+                <Input
+                  id="city"
+                  value={registrationData.city}
+                  onChange={(e) => setRegistrationData({ ...registrationData, city: e.target.value })}
+                  className="h-12"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="state_province">State / Province</Label>
+                <Input
+                  id="state_province"
+                  value={registrationData.state_province}
+                  onChange={(e) => setRegistrationData({ ...registrationData, state_province: e.target.value })}
+                  className="h-12"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="zip_code">ZIP / Postal Code</Label>
+                <Input
+                  id="zip_code"
+                  value={registrationData.zip_code}
+                  onChange={(e) => setRegistrationData({ ...registrationData, zip_code: e.target.value })}
+                  className="h-12"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="country">Country</Label>
+                <Input
+                  id="country"
+                  value={registrationData.country}
+                  onChange={(e) => setRegistrationData({ ...registrationData, country: e.target.value })}
+                  className="h-12"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="id_proof_type">ID Proof Type</Label>
+                <select
+                  id="id_proof_type"
+                  value={registrationData.id_proof_type}
+                  onChange={(e) => setRegistrationData({ ...registrationData, id_proof_type: e.target.value })}
+                  className="w-full h-12 rounded-md border px-3"
+                >
+                  <option value="Aadhar">Aadhar</option>
+                  <option value="Voter ID">Voter ID</option>
+                  <option value="Passport">Passport</option>
+                  <option value="Driver License">Driver License</option>
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="id_proof_number">ID Proof Number</Label>
+                <Input
+                  id="id_proof_number"
+                  value={registrationData.id_proof_number}
+                  onChange={(e) => setRegistrationData({ ...registrationData, id_proof_number: e.target.value })}
                   className="h-12"
                 />
               </div>
@@ -958,8 +1253,7 @@ export default function ClubsPage() {
                   <div className="text-sm text-muted-foreground space-y-1">
                     <div className="flex justify-between">
                       <span>Price:</span>
-                      <span className="font-semibold line-through text-gray-400 dark:text-gray-500">{formatPrice(selectedPlan.price, selectedPlan.currency)}</span>
-                      <span className="font-bold text-green-600 dark:text-green-400">FREE</span>
+                      <span className="font-semibold text-primary">{formatPrice(selectedPlan.price, selectedPlan.currency)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Duration:</span>
@@ -972,35 +1266,7 @@ export default function ClubsPage() {
                   </div>
                 </div>
 
-                {/* Payment infrastructure (disabled) */}
-                <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4 rounded-lg opacity-50 pointer-events-none">
-                  <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
-                    <DollarSign className="w-4 h-4 text-green-500" />
-                    Payment Details (Coming Soon)
-                  </h4>
-                  <div className="space-y-2">
-                    <Input
-                      disabled
-                      placeholder="Card Number"
-                      className="h-12 bg-white dark:bg-gray-700"
-                    />
-                    <div className="grid grid-cols-2 gap-2">
-                      <Input
-                        disabled
-                        placeholder="MM/YY"
-                        className="h-12 bg-white dark:bg-gray-700"
-                      />
-                      <Input
-                        disabled
-                        placeholder="CVC"
-                        className="h-12 bg-white dark:bg-gray-700"
-                      />
-                    </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Payment processing will be enabled in a future update. Currently, all memberships are free.
-                  </p>
-                </div>
+                {/* Payment section removed from UI */}
               </div>
             )}
 
@@ -1010,7 +1276,7 @@ export default function ClubsPage() {
                 disabled={isRegistering} 
                 className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
               >
-                {isRegistering ? "Joining..." : "Join Club"}
+                {isRegistering ? "Registering..." : "Register User"}
               </Button>
               <Button 
                 type="button" 
@@ -1021,8 +1287,27 @@ export default function ClubsPage() {
               </Button>
             </div>
           </form>
+          </div>
         </DialogContent>
       </Dialog>
+
+      {pendingOrder && (
+        <PaymentSimulationModal
+          isOpen={isPaymentModalOpen}
+          onClose={() => {
+            setIsPaymentModalOpen(false)
+            setPendingOrder(null)
+          }}
+          onPaymentSuccess={handlePaymentSuccess}
+          onPaymentFailure={handlePaymentFailure}
+          orderId={pendingOrder.orderId}
+          orderNumber={pendingOrder.orderNumber}
+          total={pendingOrder.total}
+          currency={pendingOrder.currency}
+          paymentMethod={pendingOrder.paymentMethod}
+        />
+      )}
+
     </div>
   )
 } 
