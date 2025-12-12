@@ -44,6 +44,7 @@ import { useTheme } from "next-themes"
 import { Sun, Moon } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { calculateUserProfileCompletion } from "@/lib/user-completion"
+import Image from "next/image"
 
 const adminNavigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -53,7 +54,7 @@ const adminNavigation = [
   { name: "Membership Cards", href: "/dashboard/membership-cards", icon: CreditCard },
   { name: "News & Updates", href: "/dashboard/content", icon: Newspaper },
   { name: "Polls", href: "/dashboard/polls", icon: Vote },
-  { name: "Our Chants", href: "/dashboard/chants", icon: Music },
+  { name: "Club Chants", href: "/dashboard/chants", icon: Music },
   { name: "Merchandise Store", href: "/dashboard/merchandise", icon: Shirt },
   { name: "Order Management", href: "/dashboard/orders", icon: ShoppingCart },
   { name: "Events & Tickets", href: "/dashboard/events", icon: Ticket },
@@ -88,7 +89,7 @@ const superAdminNavigation = [
   { name: "Membership Cards", href: "/dashboard/membership-cards", icon: CreditCard },
   { name: "News & Updates", href: "/dashboard/content", icon: Newspaper },
   { name: "Polls", href: "/dashboard/polls", icon: Vote },
-  { name: "Our Chants", href: "/dashboard/chants", icon: Music },
+  { name: "Club Chants", href: "/dashboard/chants", icon: Music },
   { name: "Merchandise Store", href: "/dashboard/merchandise", icon: Shirt },
   { name: "Order Management", href: "/dashboard/orders", icon: ShoppingCart },
   { name: "Events & Tickets", href: "/dashboard/events", icon: Ticket },
@@ -114,7 +115,7 @@ const userNavigation = [
   { name: "Leaderboard", href: "/dashboard/user/leaderboard", icon: ChartNoAxesColumn },
   { name: "News", href: "/dashboard/user/news", icon: Newspaper },
   { name: "Polls", href: "/dashboard/user/polls", icon: Vote },
-  { name: "Our Chants", href: "/dashboard/user/chants", icon: Music },
+  { name: "Club Chants", href: "/dashboard/user/chants", icon: Music },
   { name: "Merchandise", href: "/merchandise", icon: Shirt },
   { name: "My Orders", href: "/dashboard/user/orders", icon: ShoppingCart },
   { name: "Volunteer", href: "/dashboard/volunteer", icon: Heart },
@@ -222,9 +223,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           // console.log('Polls visible:', visible)
           return visible
         }
-        if (item.name === 'Our Chants') {
+        if (item.name === 'Club Chants') {
           const visible = isSectionVisible('chants')
-          // console.log('Our Chants visible:', visible)
+          // console.log('Club Chants visible:', visible)
           return visible
         }
         if (item.name === 'Members') {
@@ -245,8 +246,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const Sidebar = ({ mobile = false }: { mobile?: boolean }) => (
     <div className={cn("flex flex-col h-full", mobile ? "w-full" : "w-64")}>
       <div className="flex items-center gap-2 p-6 border-b">
-        <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-          <Shield className="w-5 h-5 text-primary-foreground" />
+        <div className="relative w-8 h-8 overflow-hidden rounded-lg bg-white">
+          <Image
+            src="/WingmanPro Logo (White BG).svg"
+            alt="Wingman Pro logo"
+            fill
+            sizes="32px"
+            className="object-contain"
+          />
         </div>
         <span className="text-xl font-bold">Wingman Pro</span>
       </div>

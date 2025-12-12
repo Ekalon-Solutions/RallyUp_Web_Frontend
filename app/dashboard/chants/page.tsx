@@ -432,7 +432,7 @@ export default function ChantsManagementPage() {
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold">Our Chants</h1>
+              <h1 className="text-3xl font-bold">Club Chants</h1>
               <p className="text-muted-foreground">Manage club chants and traditions</p>
             </div>
             <div className="flex gap-2">
@@ -762,10 +762,11 @@ export default function ChantsManagementPage() {
                           ...prev, 
                           iframeUrl: e.target.value 
                         }))}
-                        placeholder="https://example.com/embed"
+                        placeholder="https://example.com/embed or https://www.youtube.com/watch?v=..."
                       />
                       <p className="text-sm text-muted-foreground mt-1">
-                        Enter a valid URL (must start with http:// or https://)
+                        Enter a valid URL (must start with http:// or https://). 
+                        YouTube watch URLs will be automatically converted to embed format.
                       </p>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
@@ -900,10 +901,11 @@ export default function ChantsManagementPage() {
                           ...prev, 
                           iframeUrl: e.target.value 
                         }))}
-                        placeholder="https://example.com/embed"
+                        placeholder="https://example.com/embed or https://www.youtube.com/watch?v=..."
                       />
                       <p className="text-sm text-muted-foreground mt-1">
-                        Enter a valid URL (must start with http:// or https://)
+                        Enter a valid URL (must start with http:// or https://). 
+                        YouTube watch URLs will be automatically converted to embed format.
                       </p>
                     </div>
                     <div className="grid grid-cols-2 gap-4">

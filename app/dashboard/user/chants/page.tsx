@@ -224,7 +224,7 @@ export default function MemberChantsPage() {
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold">Our Chants</h1>
+              <h1 className="text-3xl font-bold">Club Chants</h1>
               <p className="text-muted-foreground">Learn and participate in traditions from all your clubs</p>
             </div>
           </div>

@@ -41,6 +41,8 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import { getApiUrl, API_ENDPOINTS } from "@/lib/config"
 import { PaymentSimulationModal } from "@/components/modals/payment-simulation-modal"
+import { SiteNavbar } from "@/components/site-navbar"
+import { SiteFooter } from "@/components/site-footer"
 
 interface Club {
   _id: string
@@ -466,6 +468,8 @@ export default function ClubsPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      <SiteNavbar brandName="Wingman Pro" />
+      
       {/* Hero Section */}
       <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600">
         <div className="absolute inset-0 bg-black/20"></div>
@@ -1308,6 +1312,7 @@ export default function ClubsPage() {
         />
       )}
 
+      <SiteFooter brandName="Wingman Pro" />
     </div>
   )
 } 

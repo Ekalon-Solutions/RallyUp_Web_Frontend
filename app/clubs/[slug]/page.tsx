@@ -302,7 +302,7 @@ export default function PublicClubPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Music className="h-5 w-5" style={{ color: primaryColor }} />
-                    Our Chants
+                    Club Chants
                   </CardTitle>
                   <CardDescription>
                     Learn and practice our club's signature chants and songs
