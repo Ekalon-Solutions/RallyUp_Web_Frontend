@@ -1,7 +1,7 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import React, { useState, useEffect, Suspense } from "react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -23,8 +23,6 @@ import {
   Search,
   Filter,
   Star,
-  Heart,
-  Share2,
   Eye,
   Clock,
   Award,
@@ -34,7 +32,6 @@ import {
   Users2,
   CalendarDays,
   Newspaper,
-  Settings,
   ExternalLink
 } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
@@ -84,7 +81,7 @@ interface MembershipPlan {
   isActive: boolean
 }
 
-export default function ClubsPage() {
+function ClubsPageContent() {
   const [clubs, setClubs] = useState<Club[]>([])
   const [filteredClubs, setFilteredClubs] = useState<Club[]>([])
   const [loading, setLoading] = useState(true)
@@ -443,13 +440,7 @@ export default function ClubsPage() {
     }
   }
 
-  const handlePaymentFailure = (
-    orderId: string,
-    paymentId: string,
-    razorpayOrderId: string,
-    razorpaySignature: string,
-    error: any
-  ) => {
+  const handlePaymentFailure = () => {
     toast.error('Payment failed or verification failed. Please try again or contact support.')
     setIsPaymentModalOpen(false)
     setPendingOrder(null)
@@ -1314,5 +1305,20 @@ export default function ClubsPage() {
 
       <SiteFooter brandName="Wingman Pro" />
     </div>
+  )
+}
+
+export default function ClubsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground text-lg">Loading clubs...</p>
+        </div>
+      </div>
+    }>
+      <ClubsPageContent />
+    </Suspense>
   )
 } 
