@@ -500,16 +500,6 @@ export default function MembershipPlansPage() {
             </div>
           </div>
 
-          {/* Debug Section - Remove this after fixing the issue */}
-          <div className="bg-muted p-4 rounded-lg border">
-            <h3 className="font-semibold mb-2 text-foreground">Debug Info</h3>
-            <div className="text-sm space-y-1 text-muted-foreground">
-              <div>Plans loaded: {plans.length}</div>
-              <div>Loading state: {isLoading ? 'Yes' : 'No'}</div>
-              <div>Token exists: {localStorage.getItem('token') ? 'Yes' : 'No'}</div>
-              <div>Last error: {plans.length === 0 && !isLoading ? 'No plans found or error occurred' : 'None'}</div>
-            </div>
-          </div>
           {/* Membership Card Preview Section */}
           <div className="border-t pt-8">
             <div className="text-center text-muted-foreground py-8">
