@@ -204,36 +204,36 @@ export default function MerchandiseManagementPage() {
 
   const fetchSettings = async () => {
     try {
-      console.log('📦 [Frontend] Fetching settings...')
+      // console.log('📦 [Frontend] Fetching settings...')
       const response = await apiClient.getMerchandiseSettings()
-      console.log('📦 [Frontend] Fetched settings response:', response)
+      // console.log('📦 [Frontend] Fetched settings response:', response)
       // The response structure is: { success: true, data: { success: true, data: { clubId, clubName, settings } } }
       // OR: { success: true, data: { clubId, clubName, settings } }
       const settingsData = response.data?.data?.settings || response.data?.settings
       if (response.success && settingsData) {
-        console.log('📦 [Frontend] Setting state with:', settingsData)
+        // console.log('📦 [Frontend] Setting state with:', settingsData)
         setSettings(settingsData)
       }
     } catch (error: any) {
-      console.error('Error fetching settings:', error)
+      // console.error('Error fetching settings:', error)
     }
   }
 
   const saveSettings = async () => {
     try {
       setSettingsLoading(true)
-      console.log('📦 [Frontend] Saving settings:', settings)
+      // console.log('📦 [Frontend] Saving settings:', settings)
       const response = await apiClient.updateMerchandiseSettings(settings)
-      console.log('📦 [Frontend] Save response:', response)
+      // console.log('📦 [Frontend] Save response:', response)
       if (response.success) {
         toast.success('Settings saved successfully')
         setShowSettings(false)
       } else {
-        console.error('📦 [Frontend] Save failed:', response.error, response.errorDetails)
+        // console.error('📦 [Frontend] Save failed:', response.error, response.errorDetails)
         toast.error(response.error || 'Failed to save settings')
       }
     } catch (error: any) {
-      console.error('📦 [Frontend] Save exception:', error)
+      // console.error('📦 [Frontend] Save exception:', error)
       toast.error('Failed to save settings')
     } finally {
       setSettingsLoading(false)

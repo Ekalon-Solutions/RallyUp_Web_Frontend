@@ -385,7 +385,7 @@ export default function UserMembershipCardPage() {
         throw new Error(response.error || 'Failed to regenerate QR code')
       }
     } catch (error) {
-      console.error('Error regenerating QR:', error)
+      // console.error('Error regenerating QR:', error)
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to regenerate QR code",
@@ -493,7 +493,7 @@ export default function UserMembershipCardPage() {
         })
       }
     } catch (err) {
-      console.error('Error fixing card:', err)
+      // console.error('Error fixing card:', err)
       toast({
         title: "Error",
         description: err instanceof Error ? err.message : "Failed to fix membership card",

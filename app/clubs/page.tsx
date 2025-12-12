@@ -182,7 +182,7 @@ function ClubsPageContent() {
       }
     } catch (error) {
       // Silently fail - user might not be logged in
-      console.log("Could not fetch user memberships:", error)
+      // console.log("Could not fetch user memberships:", error)
     }
   }
 

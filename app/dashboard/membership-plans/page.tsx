@@ -174,7 +174,7 @@ export default function MembershipPlansPage() {
       // Load plans for the initial club
       await loadPlansForClub(initialClubId)
     } catch (error) {
-      console.error('Error loading clubs:', error)
+      // console.error('Error loading clubs:', error)
       setClubs([])
       await loadPlansForClub(undefined)
     }

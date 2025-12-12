@@ -50,7 +50,7 @@ interface OrderForm {
 
 export function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutModalProps) {
   const { user } = useAuth()
-  console.log("user", user)
+  // console.log("user", user)
   const { items, totalPrice, clearCart } = useCart()
   const [loading, setLoading] = useState(false)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
@@ -91,7 +91,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutModalProps
           }
         }
       } catch (error) {
-        console.error('Error fetching merchandise settings:', error)
+        // console.error('Error fetching merchandise settings:', error)
       }
     }
     
