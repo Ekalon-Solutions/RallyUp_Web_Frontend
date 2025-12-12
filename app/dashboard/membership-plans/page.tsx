@@ -508,8 +508,8 @@ export default function MembershipPlansPage() {
               <p className="text-sm mt-2">
                 View your membership cards in the dedicated section
               </p>
-              <Button variant="outline" className="mt-4" asChild>
-                <a href="/dashboard/user/membership-card">View My Cards</a>
+              <Button variant="outline" className="mt-4" onClick={() => window.location.href = '/dashboard/user/membership-card'}>
+                View My Cards
               </Button>
             </div>
           </div>
