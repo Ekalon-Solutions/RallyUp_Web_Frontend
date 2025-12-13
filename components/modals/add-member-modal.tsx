@@ -569,14 +569,14 @@ export function AddMemberModal({ trigger, onMemberAdded }: AddMemberModalProps) 
         </div>
       )}
 
-      <div className="flex items-center space-x-2 pt-4 border-t">
+      {/* <div className="flex items-center space-x-2 pt-4 border-t">
         <Checkbox
           id="sendWelcomeEmail"
           checked={sendWelcomeEmail}
           onCheckedChange={(checked) => setSendWelcomeEmail(checked as boolean)}
         />
         <Label htmlFor="sendWelcomeEmail">Send welcome email to new member</Label>
-      </div>
+      </div> */}
     </div>
   )
 

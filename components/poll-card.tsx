@@ -247,13 +247,22 @@ export function PollCard({ poll, onVote, showResults = false }: PollCardProps) {
                 </p>
               )}
             </div>
-            <div className="flex gap-2 ml-4">
+            <div className="flex items-center gap-2 ml-4">
               <Badge className={getStatusColor(poll.status)}>
                 {poll.status}
               </Badge>
               <Badge className={getPriorityColor(poll.priority)}>
                 {poll.priority}
               </Badge>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="ml-2"
+                onClick={() => setShowResultsModal(true)}
+                aria-label="View poll results"
+              >
+                <BarChart3 className="w-4 h-4" />
+              </Button>
             </div>
           </div>
 
