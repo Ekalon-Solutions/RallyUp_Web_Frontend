@@ -108,6 +108,7 @@ export default function UserDashboardPage() {
   const [eventForPayment, setEventForPayment] = useState<Event | null>(null)
   const [attendeesForPayment, setAttendeesForPayment] = useState<any[]>([])
 
+  console.log("user:", user)
   // Get user's active club membership
   const getActiveMembership = () => {
     if (!user || user.role === 'system_owner') return null;
@@ -662,8 +663,8 @@ export default function UserDashboardPage() {
                 <div className="text-2xl font-bold">
                   {activeMembership ? (
                     <div className="flex items-center gap-2">
-                      {getPlanIcon(activeMembership.membership_level_id.name)}
-                      <span className="text-lg">{activeMembership.membership_level_id.name}</span>
+                      {getPlanIcon(activeMembership.membership_level_id?.name || "")}
+                      <span className="text-lg">{activeMembership.membership_level_id?.name || ""}</span>
                     </div>
                   ) : (
                     "No Active"

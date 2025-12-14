@@ -1,0 +1,245 @@
+"use client"
+
+import React, { useEffect, useState } from 'react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Label } from '@/components/ui/label'
+import { Input } from '@/components/ui/input'
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
+import { toast } from 'sonner'
+import { useAuth } from '@/contexts/auth-context'
+import { getApiUrl } from '@/lib/config'
+import { apiClient } from '@/lib/api'
+
+interface ImportMembersModalProps {
+  trigger?: React.ReactNode
+  onImported?: () => void
+}
+
+export function ImportMembersModal({ trigger, onImported }: ImportMembersModalProps) {
+  const [open, setOpen] = useState(false)
+  const { user } = useAuth()
+  const [plans, setPlans] = useState<any[]>([])
+  const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null)
+  const [file, setFile] = useState<File | null>(null)
+  const [processing, setProcessing] = useState(false)
+  const [results, setResults] = useState<{ success: number; failed: number; errors: string[] } | null>(null)
+
+  const clubId = (user as any)?.club?._id || (user as any)?.club_id?._id
+
+  useEffect(() => {
+    if (open && clubId) fetchPlans()
+    if (!open) {
+        setFile(null)
+        setResults(null)
+    }
+  }, [open, clubId])
+
+  const fetchPlans = async () => {
+    try {
+      const res = await apiClient.getMembershipPlans(clubId);
+      if (res.error) return
+      const data = res.data
+      setPlans(data?.data || [])
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  const handleFileChange = (f?: File) => {
+    setFile(f || null)
+    setResults(null)
+  }
+
+  const parseCSV = async (f: File) => {
+    const text = await f.text()
+    const lines = text.split(/\r?\n/).filter(Boolean)
+    if (lines.length === 0) return []
+    const headers = lines[0].split(',').map(h => h.trim())
+    const rows = lines.slice(1).map(line => {
+      const cols = line.split(',')
+      const obj: any = {}
+      headers.forEach((h, i) => { obj[h] = (cols[i] || '').trim() })
+      return obj
+    })
+    return rows
+  }
+
+  const handleImport = async () => {
+    if (!file) return toast.error('Please select a CSV file')
+    if (!plans || plans.length === 0) return toast.error('No membership plans found for this club')
+    if (!selectedPlanId) return toast.error('Please select a membership plan to assign')
+
+    setProcessing(true)
+    setResults(null)
+    const errors: string[] = []
+    let successCount = 0
+    let failCount = 0
+
+    try {
+      const rows = await parseCSV(file)
+      for (const [idx, row] of rows.entries()) {
+        // Basic mapping: expect columns email, first_name, last_name, phone_number, countryCode, username
+        const payload: any = {
+          username: row.username || row.email?.split('@')?.[0] || `user${Date.now()}${idx}`,
+          email: row.email || '',
+          first_name: row.first_name || row.firstName || '',
+          last_name: row.last_name || row.lastName || '',
+          phone_number: row.phone_number || row.phone || '',
+          countryCode: row.countryCode || row.country_code || '+91',
+          date_of_birth: row.date_of_birth || '',
+          gender: row.gender || 'male',
+          address_line1: row.address_line1 || '',
+          city: row.city || '',
+          state_province: row.state_province || row.state || '',
+          zip_code: row.zip_code || row.zip || '',
+          country: row.country || '',
+          id_proof_type: row.id_proof_type || 'Aadhar',
+          id_proof_number: row.id_proof_number || ''
+        }
+
+        try {
+          // Register user
+          const regResp = await apiClient.userRegister({ ...payload, clubId })
+          if (!regResp.success) {
+            failCount++
+            errors.push(`Row ${idx + 2}: registration failed - ${regResp.error || regResp.message || 'unknown'}`)
+            continue
+          }
+
+          const createdUser = (regResp.data && (regResp.data.user || regResp.data)) || null
+          const newUserId = createdUser?._id || regResp.data?._id
+
+          if (!newUserId) {
+            failCount++
+            errors.push(`Row ${idx + 2}: registration succeeded but user id missing`) 
+            continue
+          }
+
+          // Create membership for user
+          const plan = plans.find(p => p._id === selectedPlanId)
+          const startDate = new Date()
+          let endDate: Date | null = null
+          if (plan && plan.duration && plan.duration > 0) {
+            endDate = new Date(startDate)
+            endDate.setMonth(endDate.getMonth() + plan.duration)
+          }
+
+          const membershipData: any = {
+            user_id: newUserId,
+            membership_level_id: selectedPlanId,
+            level_name: plan?.name || '',
+            club_id: clubId,
+            start_date: startDate,
+            duration_days: plan.duration > 0 ? plan.duration * 30 : undefined,
+          }
+          if (endDate) membershipData.end_date = endDate
+
+          const memResp = await fetch(getApiUrl('/user-memberships'), {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(membershipData)
+          })
+
+          if (!memResp.ok) {
+            const err = await memResp.json().catch(() => ({}))
+            failCount++
+            errors.push(`Row ${idx + 2}: membership creation failed - ${err.message || memResp.statusText}`)
+            continue
+          }
+
+          successCount++
+        } catch (err: any) {
+          failCount++
+          errors.push(`Row ${idx + 2}: ${err.message || 'error'}`)
+        }
+      }
+
+      setResults({ success: successCount, failed: failCount, errors })
+      if (successCount > 0) {
+        toast.success(`${successCount} members imported successfully`)
+        onImported?.()
+      }
+      if (failCount > 0) {
+        toast.error(`${failCount} rows failed. See details.`)
+      }
+    } catch (err) {
+      toast.error('Failed to process file')
+    } finally {
+      setProcessing(false)
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        {trigger || <Button>Import Members in Bulk</Button>}
+      </DialogTrigger>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Import Members in Bulk</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          <div>
+            <Label>Membership Plan</Label>
+            {plans.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No membership plans found for this club. Please create one before importing.</p>
+            ) : (
+              <Select onValueChange={(v) => setSelectedPlanId(v)} value={selectedPlanId || undefined}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select a plan" />
+                </SelectTrigger>
+                <SelectContent>
+                  {plans.map(p => <SelectItem key={p._id} value={p._id}>{p.name} — {p.price} {p.currency}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+
+            <div>
+              <Label>CSV File</Label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="file"
+                  accept=".csv"
+                  onChange={(e) => handleFileChange(e.target.files ? e.target.files[0] : undefined)}
+                />
+                <a href="/sample-members.csv" download className="text-sm text-blue-600 hover:underline">
+                  Download example CSV
+                </a>
+              </div>
+              <p className="text-sm text-muted-foreground">Expected CSV headers: email, first_name, last_name, phone_number, countryCode, username (optional)</p>
+            </div>
+
+          {results && (
+            <div className="p-3 border rounded">
+              <div>Imported: {results.success}</div>
+              <div>Failed: {results.failed}</div>
+              {results.errors.length > 0 && (
+                <div className="mt-2 text-sm text-red-600">
+                  {results.errors.slice(0,10).map((e, i) => <div key={i}>{e}</div>)}
+                  {results.errors.length > 10 && <div>...and more</div>}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <DialogFooter>
+          <div className="flex gap-2 w-full">
+            <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+            <Button onClick={handleImport} disabled={processing || plans.length === 0}>
+              {processing ? 'Processing...' : 'Import'}
+            </Button>
+          </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+export default ImportMembersModal

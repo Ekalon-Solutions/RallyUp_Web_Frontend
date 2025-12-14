@@ -109,12 +109,36 @@ export default function UserPollsPage() {
     })
   }
 
+  // Determine which club IDs the current user is associated with
+  const currentUser: any = user
+  const userClubIds = new Set<string>()
+  if (currentUser?.club && currentUser.club._id) {
+    userClubIds.add(currentUser.club._id)
+  }
+  if (currentUser?.memberships && Array.isArray(currentUser.memberships)) {
+    currentUser.memberships.forEach((m: any) => {
+      const cid = m?.club_id?._id || m?.club_id
+      if (cid) userClubIds.add(cid)
+    })
+  }
+
+  const now = new Date()
+
   const filteredPolls = polls.filter(poll => {
     const matchesSearch = poll.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          poll.description?.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesCategory = categoryFilter === "all" || poll.category === categoryFilter
-    
-    return matchesSearch && matchesCategory
+
+    // Extract poll's club id (poll.club may be an object or a string)
+    const pollClubId = typeof (poll as any).club === 'string' ? (poll as any).club : (poll as any).club?._id
+
+    // Only include polls that belong to one of the user's clubs
+    const matchesClub = pollClubId ? userClubIds.has(pollClubId) : false
+
+    // Exclude polls whose endDate has passed
+    const matchesEndDate = !poll.endDate || new Date(poll.endDate) >= now
+
+    return matchesSearch && matchesCategory && matchesClub && matchesEndDate
   })
 
   // Separate polls by status

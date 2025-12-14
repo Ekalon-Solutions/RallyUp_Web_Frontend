@@ -18,6 +18,7 @@ import { Pagination, PaginationContent, PaginationItem, PaginationLink, Paginati
 import { DashboardLayout } from '@/components/dashboard-layout'
 import { ProtectedRoute } from '@/components/protected-route'
 import { AddMemberModal } from '@/components/modals/add-member-modal'
+import ImportMembersModal from '@/components/modals/import-members-modal'
 import { 
   Search, 
   Users, 
@@ -352,6 +353,16 @@ export default function MembersPage() {
                   fetchMembers()
                   toast.success("Member added successfully!")
                 }}
+              />
+              {/* Bulk import modal */}
+              <ImportMembersModal
+                trigger={
+                  <Button>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Import Members in Bulk
+                  </Button>
+                }
+                onImported={() => fetchMembers()}
               />
             </div>
           </div>
