@@ -79,13 +79,17 @@ export function PollResultsModal({ pollId, isOpen, onClose, refreshTrigger }: Po
       // Provide specific error messages based on the error
       if (error.message?.includes("Poll not found")) {
         toast.error("Poll not found or has been deleted")
-      } else if (error.message?.includes("Access denied")) {
+      } else if (error.message?.includes("Access denied") || error.message?.includes("No permission")) {
         toast.error("You don't have permission to view these poll results")
       } else if (error.message?.includes("Network")) {
         toast.error("Network error. Please check your connection and try again.")
       } else {
-        toast.error(error.message || "An error occurred while loading poll results")
+        toast.error(error.message || "Failed to load poll result. No permission to view the result")
       }
+      
+      setTimeout(() => {
+        onClose()
+      }, 2000)
     } finally {
       setLoading(false)
     }

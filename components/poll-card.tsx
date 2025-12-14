@@ -438,34 +438,31 @@ export function PollCard({ poll, onVote, showResults = false }: PollCardProps) {
                 </div>
               )}
 
-              {hasUserVoted && !canChangeVote && (
+              {/* Always show View Results button after voting or for closed polls */}
+              {(hasUserVoted || !isPollActive) && (
                 <div className="text-center">
                   <p className="text-sm text-muted-foreground mb-2">
-                    You have voted in this poll
+                    {hasUserVoted 
+                      ? "You have voted in this poll" 
+                      : `This poll is ${poll.status}`
+                    }
                   </p>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setShowResultsModal(true)}
                   >
-                    <BarChart3 className="w-4 h-4 mr-2" />
-                    View Results
-                  </Button>
-                </div>
-              )}
-
-              {!isPollActive && (
-                <div className="text-center">
-                  <p className="text-sm text-muted-foreground mb-2">
-                    This poll is {poll.status}
-                  </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowResultsModal(true)}
-                  >
-                    <Eye className="w-4 h-4 mr-2" />
-                    View Results
+                    {hasUserVoted ? (
+                      <>
+                        <BarChart3 className="w-4 h-4 mr-2" />
+                        View Results
+                      </>
+                    ) : (
+                      <>
+                        <Eye className="w-4 h-4 mr-2" />
+                        View Results
+                      </>
+                    )}
                   </Button>
                 </div>
               )}

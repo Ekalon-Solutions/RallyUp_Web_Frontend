@@ -271,7 +271,7 @@ export default function AuthPage() {
                 await login(email, "", "", false, true)
               }
             } catch (err) {
-              console.error("Backend login after email link failed:", err)
+              // console.error("Backend login after email link failed:", err)
             }
             window.localStorage.removeItem("emailForSignIn")
             window.localStorage.removeItem("emailSignInType")
@@ -279,12 +279,12 @@ export default function AuthPage() {
             router.push("/dashboard")
           })
           .catch((err) => {
-            console.error("Error completing email sign-in:", err)
+            // console.error("Error completing email sign-in:", err)
             toast.error("Failed to sign in with email link.")
           })
       }
     } catch (err) {
-      console.error("Error checking email sign-in link:", err)
+      // console.error("Error checking email sign-in link:", err)
     }
   }, [])
 
@@ -1031,7 +1031,7 @@ export default function AuthPage() {
                                 setOtpButtonLoading(false)
                                 setUserLoginResendCountdown(10)
                               } catch (err) {
-                                console.error("Error sending email sign-in link:", err)
+                                // console.error("Error sending email sign-in link:", err)
                                 toast.error("Failed to send sign-in link. Please try again.")
                               }
                             } else if (userLoginData.phone_number && userLoginData.countryCode) {
@@ -1072,7 +1072,7 @@ export default function AuthPage() {
                                       toast.success(`Sign-in link resent to ${userLoginData.email}.`)
                                       setUserLoginResendCountdown(10)
                                     } catch (err) {
-                                      console.error("Error resending email sign-in link:", err)
+                                      // console.error("Error resending email sign-in link:", err)
                                       toast.error("Failed to resend sign-in link. Please try again.")
                                     }
                                   })()
@@ -1683,7 +1683,7 @@ export default function AuthPage() {
                                 setAdminLoginOtpSent(true)
                                 setAdminLoginResendCountdown(10)
                               } catch (err) {
-                                console.error("Error sending email sign-in link:", err)
+                                // console.error("Error sending email sign-in link:", err)
                                 toast.error("Failed to send sign-in link. Please try again.")
                               }
                             } else if (adminLoginData.phone_number && adminLoginData.countryCode) {
@@ -1718,7 +1718,7 @@ export default function AuthPage() {
                                       toast.success(`Sign-in link resent to ${adminLoginData.email}.`)
                                       setAdminLoginResendCountdown(10)
                                     } catch (err) {
-                                      console.error("Error resending email sign-in link:", err)
+                                      // console.error("Error resending email sign-in link:", err)
                                       toast.error("Failed to resend sign-in link. Please try again.")
                                     }
                                   })()
@@ -2024,17 +2024,17 @@ export default function AuthPage() {
                     {!systemOwnerLoginOtpSent ? (
                       <Button 
                         onClick={() => {
-                          console.log("hey there")
-                          console.log("system ownder login data",systemOwnerLoginData)
+                          // console.log("hey there")
+                          // console.log("system ownder login data",systemOwnerLoginData)
                           ;(async () => {
-                            console.log("system ownder login data",systemOwnerLoginData)
+                            // console.log("system ownder login data",systemOwnerLoginData)
                             if (systemOwnerLoginData.email) {
                               const actionCodeSettings = {
                                 url: window.location.origin + "/login",
                                 handleCodeInApp: true,
                               }
                               try {
-                                console.log("hey email")
+                                // console.log("hey email")
                                 setOtpButtonLoading(true)
                                 await sendSignInLinkToEmail(auth, systemOwnerLoginData.email, actionCodeSettings)
                                 window.localStorage.setItem("emailForSignIn", systemOwnerLoginData.email)
@@ -2044,11 +2044,11 @@ export default function AuthPage() {
                                 setSystemOwnerLoginOtpSent(true)
                                 setSystemOwnerLoginResendCountdown(10)
                               } catch (err) {
-                                console.error("Error sending email sign-in link:", err)
+                                // console.error("Error sending email sign-in link:", err)
                                 toast.error("Failed to send sign-in link. Please try again.")
                               }
                             } else if (systemOwnerLoginData.phone_number && systemOwnerLoginData.countryCode) {
-                              console.log("hey mobile")
+                              // console.log("hey mobile")
                               setOtpButtonLoading(true)
                               await handleSystemOwnerLoginVerifyNumber()
                               setOtpButtonLoading(false)
@@ -2080,7 +2080,7 @@ export default function AuthPage() {
                                       toast.success(`Sign-in link resent to ${systemOwnerLoginData.email}.`)
                                       setSystemOwnerLoginResendCountdown(10)
                                     } catch (err) {
-                                      console.error("Error resending email sign-in link:", err)
+                                      // console.error("Error resending email sign-in link:", err)
                                       toast.error("Failed to resend sign-in link. Please try again.")
                                     }
                                   })()

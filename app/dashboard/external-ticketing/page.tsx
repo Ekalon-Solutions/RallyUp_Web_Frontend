@@ -37,7 +37,7 @@ export default function ExternalTicketingPage() {
             const role = (user as any).role;
             const userClub = (user as any).club;
 
-            console.log("User role:", user, role, userClub);
+            // console.log("User role:", user, role, userClub);
             if ((role === 'admin' || role === 'super_admin') && userClub) {
               const userClubId = typeof userClub === 'string' ? userClub : userClub._id;
               fetchedClubs = fetchedClubs.filter((c) => c._id === userClubId);

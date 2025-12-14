@@ -792,7 +792,7 @@ class ApiClient {
           endpoint = '/admin/profile';
         }
       } catch (e) {
-        console.error('Error parsing user from localStorage:', e);
+        // console.error('Error parsing user from localStorage:', e);
       }
     }
 
@@ -2551,12 +2551,12 @@ class ApiClient {
       enableShipping: boolean;
     };
   }>> {
-    console.log('📦 [API Client] updateMerchandiseSettings called with:', settings);
+    // console.log('📦 [API Client] updateMerchandiseSettings called with:', settings);
     const result = await this.request('/merchandise/admin/settings', {
       method: 'PUT',
       body: JSON.stringify(settings),
     });
-    console.log('📦 [API Client] updateMerchandiseSettings result:', result);
+    // console.log('📦 [API Client] updateMerchandiseSettings result:', result);
     return result;
   }
 

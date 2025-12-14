@@ -4,16 +4,16 @@ import { useAuth } from '@/contexts/auth-context'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 import { Building2, Users, Calendar, MapPin, CreditCard, Crown, Star, Shield } from 'lucide-react'
 import { apiClient } from '@/lib/api'
 import { toast } from 'sonner'
 import { useState } from 'react'
 
 export function MembershipStatus() {
-  const { user, refreshUser } = useAuth()
+  const { user, checkAuth } = useAuth()
   const [leaving, setLeaving] = useState(false)
-
-  // Get user's active club membership
+  
   const getActiveMembership = () => {
     if (!user || user.role === 'system_owner') return null;
     
@@ -31,14 +31,13 @@ export function MembershipStatus() {
       setLeaving(true)
       const response = await apiClient.leaveClub()
       if (response.success) {
-        toast.success('Successfully left club')
-        await refreshUser()
+        toast.success('Successfully left the club')
+        await checkAuth()
       } else {
         toast.error(response.error || 'Failed to leave club')
       }
     } catch (error) {
-      // console.error('Error leaving club:', error)
-      toast.error('Failed to leave club')
+      toast.error('An error occurred while leaving the club')
     } finally {
       setLeaving(false)
     }
@@ -203,15 +202,36 @@ export function MembershipStatus() {
           >
             <a href="/dashboard/clubs">Browse Other Clubs</a>
           </Button>
-          <Button 
-            variant="destructive" 
-            size="sm" 
-            onClick={handleLeaveClub}
-            disabled={leaving}
-            className="flex-1 sm:flex-none"
-          >
-            {leaving ? 'Leaving...' : 'Leave Club'}
-          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button 
+                variant="destructive" 
+                size="sm" 
+                className="flex-1 sm:flex-none"
+                disabled={leaving}
+              >
+                {leaving ? 'Leaving...' : 'Leave Club'}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Leave Club</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to leave {userClub.name}? This action cannot be undone and you will lose access to all club features, events, and benefits. You will need to rejoin and pay membership fees again if you want to return.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={leaving}>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleLeaveClub}
+                  disabled={leaving}
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  {leaving ? 'Leaving...' : 'Yes, Leave Club'}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       </CardContent>
     </Card>

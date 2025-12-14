@@ -164,7 +164,7 @@ export function formatLocalDate(
         return date.toLocaleString(locale, { timeZone: timezone });
     }
   } catch (error) {
-    console.error('Error formatting date:', error);
+    // console.error('Error formatting date:', error);
     return date.toLocaleString();
   }
 }
