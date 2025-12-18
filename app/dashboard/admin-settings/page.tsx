@@ -46,7 +46,7 @@ export default function AdminSettingsPage() {
               </TabsTrigger>
               <TabsTrigger value="app" className="flex items-center gap-2">
                 <Bell className="h-4 w-4" />
-                App Settingssss
+                App Settings
               </TabsTrigger>
               <TabsTrigger value="help" className="flex items-center gap-2">
                 <HelpCircle className="h-4 w-4" />

@@ -29,58 +29,75 @@ export function SiteNavbar({ brandName = "Wingman Pro" }: SiteNavbarProps) {
               priority
             />
           </div>
-          <span className="font-semibold text-slate-900 dark:text-white tracking-tight leading-tight group-hover:text-sky-600 dark:group-hover:text-sky-200 transition-colors">
+          <span className="h-10 flex items-center font-semibold text-slate-900 dark:text-white tracking-tight group-hover:text-sky-600 dark:group-hover:text-sky-200 transition-colors">
             {brandName}
           </span>
         </Link>
 
-        <nav className="hidden md:flex items-center gap-8 text-slate-700 dark:text-slate-200">
-          <Link href="/" className="hover:text-slate-900 dark:hover:text-white transition-colors">Wingman Pro</Link>
-          <Link href="/affiliations" className="hover:text-slate-900 dark:hover:text-white transition-colors">Affiliations</Link>
-          <Link href="/faqs" className="hover:text-slate-900 dark:hover:text-white transition-colors">FAQs</Link>
-          <Link href="/about" className="hover:text-slate-900 dark:hover:text-white transition-colors">About Us</Link>
+        <nav className="hidden lg:flex items-center gap-6 text-slate-700 dark:text-slate-200">
+          <Link href="/" className="h-10 flex items-center hover:text-slate-900 dark:hover:text-white transition-colors">Wingman Pro</Link>
+          <Link href="/affiliations" className="h-10 flex items-center hover:text-slate-900 dark:hover:text-white transition-colors">Affiliations</Link>
+          <Link href="/faqs" className="h-10 flex items-center hover:text-slate-900 dark:hover:text-white transition-colors">FAQs</Link>
+          <Link href="/about" className="h-10 flex items-center hover:text-slate-900 dark:hover:text-white transition-colors">About Us</Link>
         </nav>
 
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Menu"
-            className="md:hidden text-slate-700 dark:text-slate-200"
-            onClick={() => setMobileOpen(!mobileOpen)}
-          >
-            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Toggle theme"
-            className="text-slate-700 dark:text-slate-200"
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          >
-            <Sun className="h-5 w-5 dark:hidden" />
-            <Moon className="h-5 w-5 hidden dark:block" />
-          </Button>
-          <Link href="/login">
-            <Button variant="outline" className="border-slate-300 dark:border-white/20 bg-white text-slate-900 hover:bg-slate-100 dark:bg-white/5 dark:text-white dark:hover:bg-white/10">Log in</Button>
-          </Link>
-          <Link href="/clubs">
-            <Button variant="outline" className="border-slate-300 dark:border-white/20 bg-white text-slate-900 hover:bg-slate-100 dark:bg-white/5 dark:text-white dark:hover:bg-white/10">Browse Clubs</Button>
-          </Link>
-          <Link href="/contact">
-            <Button className="bg-sky-500 text-white hover:bg-sky-400 dark:bg-sky-400 dark:text-slate-900 dark:hover:bg-sky-300">Contact Us</Button>
-          </Link>
+        <div className="flex items-center gap-4">
+          <div className="hidden lg:flex items-center gap-3">
+            <Button variant="outline" asChild className="border-slate-300 dark:border-white/20 bg-white text-slate-900 hover:bg-slate-100 dark:bg-white/5 dark:text-white dark:hover:bg-white/10">
+              <Link href="/login">Log In</Link>
+            </Button>
+            <Button variant="outline" asChild className="border-slate-300 dark:border-white/20 bg-white text-slate-900 hover:bg-slate-100 dark:bg-white/5 dark:text-white dark:hover:bg-white/10">
+              <Link href="/clubs">Browse Clubs</Link>
+            </Button>
+            <Button asChild className="bg-sky-500 text-white hover:bg-sky-400 dark:bg-sky-400 dark:text-slate-900 dark:hover:bg-sky-300">
+              <Link href="/contact">Contact Us</Link>
+            </Button>
+          </div>
+
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Toggle theme"
+              className="text-slate-700 dark:text-slate-200"
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            >
+              <Sun className="h-5 w-5 dark:hidden" />
+              <Moon className="h-5 w-5 hidden dark:block" />
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Menu"
+              className="lg:hidden text-slate-700 dark:text-slate-200"
+              onClick={() => setMobileOpen(!mobileOpen)}
+            >
+              {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </Button>
+          </div>
         </div>
       </div>
 
       {mobileOpen && (
-        <div className="md:hidden border-t border-slate-200 dark:border-white/10 bg-white/90 dark:bg-slate-900/90 backdrop-blur">
-          <div className="mx-auto max-w-7xl px-4 py-4 grid gap-3 text-slate-700 dark:text-slate-200">
-            <Link href="/" onClick={() => setMobileOpen(false)} className="hover:text-slate-900 dark:hover:text-white">Wingman Pro</Link>
-            <Link href="/affiliations" onClick={() => setMobileOpen(false)} className="hover:text-slate-900 dark:hover:text-white">Affiliations</Link>
-            <Link href="/faqs" onClick={() => setMobileOpen(false)} className="hover:text-slate-900 dark:hover:text-white">FAQs</Link>
-            <Link href="/about" onClick={() => setMobileOpen(false)} className="hover:text-slate-900 dark:hover:text-white">About Us</Link>
-            <Link href="/clubs" onClick={() => setMobileOpen(false)} className="hover:text-slate-900 dark:hover:text-white">Browse Clubs</Link>
+        <div className="lg:hidden border-t border-slate-200 dark:border-white/10 bg-white/90 dark:bg-slate-900/90 backdrop-blur">
+          <div className="mx-auto max-w-7xl px-4 py-6 flex flex-col gap-4 text-slate-700 dark:text-slate-200">
+            <Link href="/" onClick={() => setMobileOpen(false)} className="hover:text-slate-900 dark:hover:text-white font-medium">Wingman Pro</Link>
+            <Link href="/affiliations" onClick={() => setMobileOpen(false)} className="hover:text-slate-900 dark:hover:text-white font-medium">Affiliations</Link>
+            <Link href="/faqs" onClick={() => setMobileOpen(false)} className="hover:text-slate-900 dark:hover:text-white font-medium">FAQs</Link>
+            <Link href="/about" onClick={() => setMobileOpen(false)} className="hover:text-slate-900 dark:hover:text-white font-medium">About Us</Link>
+            
+            <div className="border-t border-slate-200 dark:border-white/10 pt-6 flex flex-col gap-3">
+              <Button variant="outline" asChild className="w-full justify-center border-slate-300 dark:border-white/20 bg-white text-slate-900 hover:bg-slate-100 dark:bg-white/5 dark:text-white dark:hover:bg-white/10">
+                <Link href="/login" onClick={() => setMobileOpen(false)}>Log In</Link>
+              </Button>
+              <Button variant="outline" asChild className="w-full justify-center border-slate-300 dark:border-white/20 bg-white text-slate-900 hover:bg-slate-100 dark:bg-white/5 dark:text-white dark:hover:bg-white/10">
+                <Link href="/clubs" onClick={() => setMobileOpen(false)}>Browse Clubs</Link>
+              </Button>
+              <Button asChild className="w-full justify-center bg-sky-500 text-white hover:bg-sky-400 dark:bg-sky-400 dark:text-slate-900 dark:hover:bg-sky-300">
+                <Link href="/contact" onClick={() => setMobileOpen(false)}>Contact Us</Link>
+              </Button>
+            </div>
           </div>
         </div>
       )}
