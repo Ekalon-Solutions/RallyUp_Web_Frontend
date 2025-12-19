@@ -79,28 +79,55 @@ export function ImportMembersModal({ trigger, onImported }: ImportMembersModalPr
     try {
       const rows = await parseCSV(file)
       for (const [idx, row] of rows.entries()) {
-        // Basic mapping: expect columns email, first_name, last_name, phone_number, countryCode, username
+        const email = (row.email || '').trim()
+        const first_name = (row.first_name || row.firstName || '').trim()
+        const last_name = (row.last_name || row.lastName || '').trim()
+        const phone_number = (row.phone_number || row.phone || '').trim()
+        const countryCode = (row.countryCode || row.country_code || '+91').trim()
+        const username = (row.username || email?.split('@')?.[0] || `user${Date.now()}${idx}`).trim()
+        
+        if (!email) {
+          failCount++
+          errors.push(`Row ${idx + 2}: email is required`)
+          continue
+        }
+        if (!first_name) {
+          failCount++
+          errors.push(`Row ${idx + 2}: first_name is required`)
+          continue
+        }
+        if (!last_name) {
+          failCount++
+          errors.push(`Row ${idx + 2}: last_name is required`)
+          continue
+        }
+        if (!phone_number) {
+          failCount++
+          errors.push(`Row ${idx + 2}: phone_number is required`)
+          continue
+        }
+
         const payload: any = {
-          username: row.username || row.email?.split('@')?.[0] || `user${Date.now()}${idx}`,
-          email: row.email || '',
-          first_name: row.first_name || row.firstName || '',
-          last_name: row.last_name || row.lastName || '',
-          phone_number: row.phone_number || row.phone || '',
-          countryCode: row.countryCode || row.country_code || '+91',
-          date_of_birth: row.date_of_birth || '',
-          gender: row.gender || 'male',
-          address_line1: row.address_line1 || '',
-          city: row.city || '',
-          state_province: row.state_province || row.state || '',
-          zip_code: row.zip_code || row.zip || '',
-          country: row.country || '',
-          id_proof_type: row.id_proof_type || 'Aadhar',
-          id_proof_number: row.id_proof_number || ''
+          username,
+          email,
+          first_name,
+          last_name,
+          phone_number,
+          countryCode,
+          date_of_birth: (row.date_of_birth || '1990-01-01').trim(),
+          gender: (row.gender || 'male').trim(),
+          address_line1: (row.address_line1 || 'Not provided').trim(),
+          address_line2: (row.address_line2 || '').trim(),
+          city: (row.city || 'Not provided').trim(),
+          state_province: (row.state_province || row.state || 'Not provided').trim(),
+          zip_code: (row.zip_code || row.zip || '000000').trim(),
+          country: (row.country || 'India').trim(),
+          id_proof_type: (row.id_proof_type || 'Aadhar').trim(),
+          id_proof_number: (row.id_proof_number || `TEMP${Date.now()}${idx}`).trim()
         }
 
         try {
-          // Register user
-          const regResp = await apiClient.userRegister({ ...payload, clubId })
+          const regResp = await apiClient.userRegister({ ...payload, clubId } as any)
           if (!regResp.success) {
             failCount++
             errors.push(`Row ${idx + 2}: registration failed - ${regResp.error || regResp.message || 'unknown'}`)
@@ -116,7 +143,6 @@ export function ImportMembersModal({ trigger, onImported }: ImportMembersModalPr
             continue
           }
 
-          // Create membership for user
           const plan = plans.find(p => p._id === selectedPlanId)
           const startDate = new Date()
           let endDate: Date | null = null
@@ -212,7 +238,10 @@ export function ImportMembersModal({ trigger, onImported }: ImportMembersModalPr
                   Download example CSV
                 </a>
               </div>
-              <p className="text-sm text-muted-foreground">Expected CSV headers: email, first_name, last_name, phone_number, countryCode, username (optional)</p>
+              <p className="text-sm text-muted-foreground">
+                Required CSV headers: email, first_name, last_name, phone_number, countryCode<br/>
+                Optional: username, date_of_birth, gender, address_line1, city, state_province, zip_code, country, id_proof_type, id_proof_number
+              </p>
             </div>
 
           {results && (

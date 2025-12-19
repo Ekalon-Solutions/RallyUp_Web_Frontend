@@ -256,7 +256,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           />
         </div>
         <div className="flex flex-col">
-          <span className="text-xl font-black tracking-tighter leading-none">Wingman Pro</span>
+          <span className="text-xl font-black leading-none">Wingman Pro</span>
           <span className="text-[10px] font-bold text-primary uppercase tracking-[0.2em] mt-1">Platform</span>
         </div>
       </div>

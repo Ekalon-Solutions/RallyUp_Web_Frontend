@@ -30,7 +30,7 @@ export function SiteNavbar({ brandName = "Wingman Pro" }: SiteNavbarProps) {
             />
           </div>
           <div className="flex flex-col">
-            <span className="text-xl md:text-2xl font-black text-slate-900 dark:text-white tracking-tighter group-hover:text-sky-600 dark:group-hover:text-sky-200 transition-colors leading-none">
+            <span className="text-xl md:text-2xl font-black dark:text-white group-hover:text-sky-600 dark:group-hover:text-sky-200 transition-colors leading-none">
               {brandName}
             </span>
             <span className="text-[10px] font-bold text-sky-600 dark:text-sky-400 uppercase tracking-[0.2em] mt-1.5 opacity-80">Platform</span>

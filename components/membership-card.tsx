@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -36,6 +36,9 @@ export function MembershipCard({
   membershipId = null // Default value
 }: MembershipCardProps) {
   const { card, club, membershipPlan } = cardData;
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [transform, setTransform] = useState({ rotateX: 0, rotateY: 0, scale: 1 });
+  const [isHovered, setIsHovered] = useState(false);
 
   // Style configurations with customization override
   const getStyleConfig = () => {
@@ -165,19 +168,73 @@ export function MembershipCard({
     });
   };
 
+  // 3D hover effect handlers
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!cardRef.current) return;
+    
+    const card = cardRef.current;
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+    
+    const rotateX = (y - centerY) / 10;
+    const rotateY = (centerX - x) / 10;
+    
+    setTransform({
+      rotateX: -rotateX,
+      rotateY: rotateY,
+      scale: 1.05
+    });
+  };
+
+  const handleMouseLeave = () => {
+    setTransform({ rotateX: 0, rotateY: 0, scale: 1 });
+    setIsHovered(false);
+  };
+
+  const handleMouseEnter = () => {
+    setIsHovered(true);
+  };
+
   return (
     <>
       <style key="font-imports">{fontImports}</style>
-      <Card 
-        className={`w-full max-w-sm h-56 overflow-hidden ${style.bg} ${style.text} ${style.border} border-2`}
+      <div
+        ref={cardRef}
+        className="perspective-1000"
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+        onMouseEnter={handleMouseEnter}
         style={{
-          ...getFontFamilyStyle(),
-          ...(style.customColors ? {
-            background: `linear-gradient(to bottom right, ${style.customColors.primary}, ${style.customColors.secondary})`,
-            borderColor: style.customColors.primary
-          } : {})
+          perspective: '1000px',
+          transformStyle: 'preserve-3d',
         }}
       >
+        <Card 
+          className={`w-full max-w-sm h-56 overflow-hidden ${style.bg} ${style.text} ${style.border} border-2 transition-all duration-300 ease-out cursor-pointer`}
+          style={{
+            ...getFontFamilyStyle(),
+            ...(style.customColors ? {
+              background: `linear-gradient(to bottom right, ${style.customColors.primary}, ${style.customColors.secondary})`,
+              borderColor: style.customColors.primary
+            } : {}),
+            transform: `
+              perspective(1000px)
+              rotateX(${transform.rotateX}deg)
+              rotateY(${transform.rotateY}deg)
+              scale(${transform.scale})
+              translateZ(${isHovered ? '20px' : '0px'})
+            `,
+            boxShadow: isHovered 
+              ? `0 ${20 + transform.rotateX * 2}px ${40 + Math.abs(transform.rotateY) * 2}px rgba(0, 0, 0, 0.3),
+                 0 0 ${30 + Math.abs(transform.rotateY) * 3}px ${style.customColors ? style.customColors.primary + '40' : 'rgba(59, 130, 246, 0.2)'}`
+              : '0 4px 6px rgba(0, 0, 0, 0.1)',
+            filter: isHovered ? 'brightness(1.1)' : 'brightness(1)',
+          }}
+        >
       <CardContent className="p-4 h-full flex flex-col justify-between">
         {/* Header */}
         <div className="flex justify-between items-start mb-3">
@@ -238,6 +295,7 @@ export function MembershipCard({
         </div>
       </CardContent>
     </Card>
+    </div>
     </>
   );
 }

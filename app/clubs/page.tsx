@@ -473,7 +473,7 @@ function ClubsPageContent() {
                 <Building2 className="w-14 h-14 text-white" />
               </div>
             </div>
-            <h1 className="text-5xl md:text-7xl font-black tracking-tighter leading-none text-white drop-shadow-sm">
+            <h1 className="text-5xl md:text-7xl font-black leading-none text-white drop-shadow-sm">
               Join the Community
             </h1>
             <p className="text-xl md:text-2xl text-sky-50/90 max-w-3xl mx-auto font-medium leading-relaxed">

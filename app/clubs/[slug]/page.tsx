@@ -467,7 +467,7 @@ export default function PublicClubPage() {
               <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
                 <Globe className="h-5 w-5" style={{ color: primaryColor }} />
               </div>
-              <span className="font-black text-2xl tracking-tighter">RallyUp</span>
+              <span className="font-black text-2xl">RallyUp</span>
             </div>
             <p className="text-lg text-muted-foreground text-center max-w-xl leading-relaxed font-medium">
               Powering the next generation of sports communities and supporters clubs worldwide.

@@ -24,7 +24,7 @@ export function SiteFooter({ brandName = "Wingman Pro" }: SiteFooterProps) {
               />
             </div>
             <div className="flex flex-col">
-              <span className="text-xl font-black text-slate-900 dark:text-white tracking-tighter leading-none">{brandName}</span>
+              <span className="text-xl font-black text-slate-900 dark:text-white leading-none">{brandName}</span>
               <span className="text-xs font-bold text-sky-600 dark:text-sky-400 mt-1 uppercase tracking-wider">Powered by RallyUp</span>
             </div>
           </div>

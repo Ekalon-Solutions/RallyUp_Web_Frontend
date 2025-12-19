@@ -143,7 +143,7 @@ export default function DashboardPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="p-8 pt-0">
-                  <div className="text-4xl font-black tracking-tighter">{stats.activeMembers}</div>
+                  <div className="text-4xl font-black">{stats.activeMembers}</div>
                   <p className="text-sm font-bold text-muted-foreground mt-2 flex items-center gap-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
                     {stats.totalMembers} total members
@@ -159,7 +159,7 @@ export default function DashboardPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="p-8 pt-0">
-                  <div className="text-4xl font-black tracking-tighter">{stats.upcomingEvents}</div>
+                  <div className="text-4xl font-black">{stats.upcomingEvents}</div>
                   <p className="text-sm font-bold text-muted-foreground mt-2 flex items-center gap-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
                     Live match screenings & socials
@@ -175,7 +175,7 @@ export default function DashboardPage() {
                   </div>
                 </CardHeader>
                 <CardContent className="p-8 pt-0">
-                  <div className="text-4xl font-black tracking-tighter">₹{stats.storeRevenue.toLocaleString()}</div>
+                  <div className="text-4xl font-black">₹{stats.storeRevenue.toLocaleString()}</div>
                   <p className="text-sm font-bold text-muted-foreground mt-2 flex items-center gap-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse"></span>
                     Monthly merchandise sales
