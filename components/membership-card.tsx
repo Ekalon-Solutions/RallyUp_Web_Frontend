@@ -214,13 +214,14 @@ export function MembershipCard({
         }}
       >
         <Card 
-          className={`w-full max-w-sm h-56 overflow-hidden ${style.bg} ${style.text} ${style.border} border-2 transition-all duration-300 ease-out cursor-pointer`}
+          className={`w-full max-w-lg overflow-hidden ${style.bg} ${style.text} ${style.border} border-2 transition-all duration-300 ease-out cursor-pointer`}
           style={{
             ...getFontFamilyStyle(),
             ...(style.customColors ? {
               background: `linear-gradient(to bottom right, ${style.customColors.primary}, ${style.customColors.secondary})`,
               borderColor: style.customColors.primary
             } : {}),
+            aspectRatio: '1.586 / 1',
             transform: `
               perspective(1000px)
               rotateX(${transform.rotateX}deg)
