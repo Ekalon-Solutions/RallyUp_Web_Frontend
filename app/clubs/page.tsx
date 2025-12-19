@@ -40,6 +40,7 @@ import { getApiUrl, API_ENDPOINTS } from "@/lib/config"
 import { PaymentSimulationModal } from "@/components/modals/payment-simulation-modal"
 import { SiteNavbar } from "@/components/site-navbar"
 import { SiteFooter } from "@/components/site-footer"
+import { cn } from "@/lib/utils"
 
 interface Club {
   _id: string
@@ -803,26 +804,6 @@ function ClubsPageContent() {
               setPriceFilter("all")
             }}>
               Clear All Filters
-            </Button>
-          </div>
-        )}
-      </div>
-
-        {filteredClubs.length === 0 && (
-          <div className="text-center py-16">
-            <div className="bg-white rounded-full p-6 w-24 h-24 mx-auto mb-6 flex items-center justify-center">
-              <Building2 className="w-12 h-12 text-muted-foreground" />
-            </div>
-            <h3 className="text-2xl font-bold mb-2">No clubs found</h3>
-            <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-              Try adjusting your search criteria or check back later for new clubs.
-            </p>
-            <Button onClick={() => {
-              setSearchTerm("")
-              setStatusFilter("all")
-              setPriceFilter("all")
-            }}>
-              Clear Filters
             </Button>
           </div>
         )}

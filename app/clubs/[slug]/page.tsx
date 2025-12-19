@@ -480,5 +480,4 @@ export default function PublicClubPage() {
       </footer>
     </div>
   )
-  )
 }

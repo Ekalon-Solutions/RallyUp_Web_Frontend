@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Users, Calendar, ShoppingBag, MessageSquare, BadgeIcon as IdCard, Bus, Building2, Loader2 } from "lucide-react"
+import { Users, Calendar, ShoppingBag, MessageSquare, BadgeIcon as IdCard, Bus, Building2, Loader2, Zap } from "lucide-react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
 import { useAuth } from "@/contexts/auth-context"
@@ -16,6 +16,7 @@ import { VolunteerOpportunitiesWidget } from "@/components/volunteer/volunteer-o
 import { PromotionFeed } from "@/components/promotion-feed"
 import { PollsWidget } from "@/components/polls-widget"
 import { calculateUserProfileCompletion } from "@/lib/user-completion"
+import { cn } from "@/lib/utils"
 import axios from "axios"
 
 interface DashboardStats {
@@ -325,10 +326,6 @@ export default function DashboardPage() {
             </Card>
           )}
         </div>
-      </DashboardLayout>
-    </ProtectedRoute>
-  )
-}
       </DashboardLayout>
     </ProtectedRoute>
   )
