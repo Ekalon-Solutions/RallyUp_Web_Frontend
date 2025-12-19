@@ -244,68 +244,101 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   }
 
   const Sidebar = ({ mobile = false }: { mobile?: boolean }) => (
-    <div className={cn("flex flex-col h-full", mobile ? "w-full" : "w-64")}>
-      <div className="flex items-center gap-2 p-6 border-b">
-        <div className="relative w-8 h-8 overflow-hidden rounded-lg bg-white">
+    <div className={cn("flex flex-col h-full bg-card", mobile ? "w-full" : "w-72")}>
+      <div className="flex items-center gap-3 p-8 border-b">
+        <div className="relative w-10 h-10 overflow-hidden rounded-xl bg-white shadow-md border-2 ring-2 ring-primary/5">
           <Image
             src="/WingmanPro Logo (White BG).svg"
             alt="Wingman Pro logo"
             fill
-            sizes="32px"
+            sizes="40px"
             className="object-contain"
           />
         </div>
-        <span className="text-xl font-bold">Wingman Pro</span>
+        <div className="flex flex-col">
+          <span className="text-xl font-black tracking-tighter leading-none">Wingman Pro</span>
+          <span className="text-[10px] font-bold text-primary uppercase tracking-[0.2em] mt-1">Platform</span>
+        </div>
       </div>
 
-      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+      <nav className="flex-1 p-6 space-y-1.5 overflow-y-auto custom-scrollbar">
         {getNavigation().map((item) => (
           <Link
             key={item.name}
             href={item.href}
             className={cn(
-              "flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+              "flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-bold transition-all duration-200 group relative",
               pathname === item.href
-                ? "bg-primary text-primary-foreground"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted",
+                ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-[1.02]"
+                : "text-muted-foreground hover:text-foreground hover:bg-muted/80 hover:translate-x-1",
             )}
             onClick={() => mobile && setSidebarOpen(false)}
           >
-            <item.icon className="w-4 h-4 flex-shrink-0" />
+            <item.icon className={cn(
+              "w-5 h-5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110",
+              pathname === item.href ? "text-primary-foreground" : "text-muted-foreground group-hover:text-primary"
+            )} />
             <span className="truncate">{item.name}</span>
+            {pathname === item.href && (
+              <div className="absolute left-0 w-1 h-6 bg-primary-foreground rounded-r-full my-auto inset-y-0" />
+            )}
           </Link>
         ))}
       </nav>
 
-      <div className="p-4 border-t">
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <BarChart3 className="w-4 h-4" />
-            <span className="truncate">
-              Get Started: {user ? calculateUserProfileCompletion(user as any) : 0}% completed
-            </span>
+      <div className="p-6 border-t bg-muted/20">
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+              <span>Profile Completion</span>
+              <span>{user ? calculateUserProfileCompletion(user as any) : 0}%</span>
+            </div>
+            <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-primary transition-all duration-500" 
+                style={{ width: `${user ? calculateUserProfileCompletion(user as any) : 0}%` }}
+              />
+            </div>
           </div>
+          
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="w-full justify-start bg-transparent">
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-6 h-6 bg-primary rounded-full flex items-center justify-center text-xs text-primary-foreground flex-shrink-0">
+              <Button variant="outline" className="w-full h-14 px-4 justify-start bg-card border-2 hover:bg-muted/50 transition-all rounded-2xl group shadow-sm">
+                <div className="flex items-center gap-3 min-w-0 w-full">
+                  <div className="w-9 h-9 bg-primary/10 rounded-xl flex items-center justify-center text-sm font-black text-primary flex-shrink-0 ring-2 ring-primary/5 group-hover:scale-110 transition-transform">
                     {user?.name?.charAt(0)?.toUpperCase() || 'U'}
                   </div>
-                  <span className="truncate">{user?.name || 'User Account'}</span>
-                  {isAdmin && (
-                    <Shield className="w-3 h-3 text-primary" />
-                  )}
+                  <div className="flex flex-col items-start min-w-0 flex-1">
+                    <span className="text-sm font-bold truncate w-full">{user?.name || 'User Account'}</span>
+                    <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wide truncate w-full">
+                      {user?.role?.replace('_', ' ') || 'Member'}
+                    </span>
+                  </div>
+                  <Settings className="w-4 h-4 text-muted-foreground group-hover:rotate-90 transition-transform flex-shrink-0" />
                 </div>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-48">
-              <DropdownMenuItem onClick={() => (window.location.href = "/dashboard/settings")}>
-                <Settings className="w-4 h-4 mr-2" />
+            <DropdownMenuContent align="end" className="w-64 p-2 rounded-2xl shadow-2xl border-2">
+              <DropdownMenuItem 
+                onClick={() => (window.location.href = "/dashboard/user/profile")}
+                className="rounded-xl h-12 font-bold gap-3"
+              >
+                <User className="w-5 h-5 text-primary" />
+                My Profile
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={() => (window.location.href = "/dashboard/settings")}
+                className="rounded-xl h-12 font-bold gap-3"
+              >
+                <Settings className="w-5 h-5 text-primary" />
                 Settings
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={logout}>
-                <LogOut className="w-4 h-4 mr-2" />
+              <div className="my-2 border-t-2" />
+              <DropdownMenuItem 
+                onClick={logout}
+                className="rounded-xl h-12 font-bold gap-3 text-destructive focus:text-destructive focus:bg-destructive/5"
+              >
+                <LogOut className="w-5 h-5" />
                 Logout
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -316,15 +349,15 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   )
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-screen bg-background overflow-hidden">
       {/* Desktop Sidebar */}
-      <div className="hidden lg:flex lg:flex-col lg:w-64 lg:border-r">
+      <div className="hidden lg:flex lg:flex-col lg:w-72 lg:border-r bg-muted/5">
         <Sidebar />
       </div>
 
       {/* Mobile Sidebar */}
       <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-        <SheetContent side="left" className="p-0 w-64">
+        <SheetContent side="left" className="p-0 w-72">
           <Sidebar mobile />
         </SheetContent>
       </Sheet>
@@ -332,24 +365,46 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <header className="flex items-center justify-between p-4 border-b lg:px-6">
+        <header className="flex items-center justify-between p-4 border-b lg:px-8 h-16 bg-background/80 backdrop-blur-md sticky top-0 z-40">
           <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" className="lg:hidden" onClick={() => setSidebarOpen(true)}>
-              <Menu className="w-5 h-5" />
+            <Button variant="ghost" size="icon" className="lg:hidden h-10 w-10" onClick={() => setSidebarOpen(true)}>
+              <Menu className="w-6 h-6" />
               <span className="sr-only">Open sidebar</span>
             </Button>
+            
+            {/* Mobile Logo */}
+            <div className="flex items-center gap-2 lg:hidden">
+              <div className="relative w-8 h-8 overflow-hidden rounded-lg bg-white shadow-sm border">
+                <Image
+                  src="/WingmanPro Logo (White BG).svg"
+                  alt="Wingman Pro logo"
+                  fill
+                  sizes="32px"
+                  className="object-contain"
+                />
+              </div>
+              <span className="font-bold text-lg tracking-tight">Wingman Pro</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={logout}>
+          
+          <div className="flex items-center gap-3">
+            <div className="hidden sm:flex items-center gap-2 mr-2 px-3 py-1.5 rounded-full bg-muted/50 border text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              {user?.role?.replace('_', ' ') || 'Member'}
+            </div>
+            <ThemeToggle />
+            <Button variant="outline" size="sm" onClick={logout} className="h-9 px-4 font-bold border-2">
               <LogOut className="w-4 h-4 mr-2" />
               Logout
             </Button>
-            <ThemeToggle />
           </div>
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-auto p-4 lg:p-6">{children}</main>
+        <main className="flex-1 overflow-auto bg-muted/5">
+          <div className="container mx-auto p-6 md:p-8 lg:p-10 max-w-[1600px]">
+            {children}
+          </div>
+        </main>
       </div>
     </div>
   )

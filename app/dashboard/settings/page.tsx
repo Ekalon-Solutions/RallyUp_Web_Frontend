@@ -5,14 +5,25 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Badge } from "@/components/ui/badge"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
 import { useAuth } from "@/contexts/auth-context"
 import { toast } from "sonner"
-import { User, Mail, Phone, Shield, Save, Building2, MapPin, Globe } from "lucide-react"
+import { User, Mail, Phone, Shield, Save, Building2, MapPin, Globe, Loader2, CheckCircle, XCircle } from "lucide-react"
+import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth"
+import { auth } from "@/lib/firebase/config"
+import { apiClient } from "@/lib/api"
+
+declare global {
+  interface Window {
+    recaptchaVerifier: any;
+    confirmationResult: any;
+  }
+}
 
 export default function SettingsPage() {
-  const { user, updateProfile } = useAuth()
+  const { user, updateProfile, checkAuth } = useAuth()
   const [loading, setLoading] = useState(false)
   const [profileForm, setProfileForm] = useState({
     name: "",
@@ -20,6 +31,12 @@ export default function SettingsPage() {
     phone_number: "",
     countryCode: "+1"
   })
+
+  // OTP related states
+  const [showOtpInput, setShowOtpInput] = useState(false)
+  const [otp, setOtp] = useState("")
+  const [otpSent, setOtpSent] = useState(false)
+  const [isVerifying, setIsVerifying] = useState(false)
 
   useEffect(() => {
     if (user) {
@@ -31,6 +48,80 @@ export default function SettingsPage() {
       })
     }
   }, [user])
+
+  const setupRecaptcha = () => {
+    if (typeof window !== "undefined") {
+      if (!window.recaptchaVerifier) {
+        window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+          'size': 'invisible',
+        });
+      }
+      return window.recaptchaVerifier
+    }
+  }
+
+  const handleSendOTP = async () => {
+    if (!profileForm.phone_number) {
+      toast.error("Please provide a phone number first")
+      return
+    }
+
+    try {
+      setLoading(true)
+      const phoneNumber = (profileForm.countryCode.startsWith('+') ? profileForm.countryCode : '+' + profileForm.countryCode) + profileForm.phone_number
+      const verifier = setupRecaptcha()
+      const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, verifier)
+      window.confirmationResult = confirmationResult
+      setOtpSent(true)
+      setShowOtpInput(true)
+      toast.success("OTP sent to your phone number")
+    } catch (error: any) {
+      console.error("Error sending OTP:", error)
+      toast.error(error.message || "Failed to send OTP. Please check the phone number.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleVerifyOTP = async () => {
+    if (!otp || otp.length < 6) {
+      toast.error("Please enter a valid 6-digit OTP")
+      return
+    }
+
+    try {
+      setIsVerifying(true)
+      const confirmationResult = window.confirmationResult
+      if (!confirmationResult) {
+        toast.error("Session expired. Please request a new OTP.")
+        setShowOtpInput(false)
+        return
+      }
+
+      await confirmationResult.confirm(otp)
+      
+      // Call backend to update verification status
+      if (user) {
+        const result = await apiClient.verifyPhoneNumber({})
+
+        if (result.success) {
+          toast.success("Phone number verified successfully")
+          setShowOtpInput(false)
+          setOtpSent(false)
+          setOtp("")
+          // Update user state locally
+          await checkAuth()
+        } else {
+          toast.error(result.error || "Verification failed on server")
+        }
+      }
+    } catch (error) {
+      console.error("Error verifying OTP:", error)
+      toast.error("Invalid OTP. Please try again.")
+    } finally {
+      setIsVerifying(false)
+    }
+  }
 
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -168,9 +259,59 @@ export default function SettingsPage() {
                   </div>
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">Phone Verification</Label>
-                    <p className="text-sm text-muted-foreground">
-                      {user.isPhoneVerified ? "Verified" : "Not Verified"}
-                    </p>
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-center gap-2">
+                        {user.isPhoneVerified ? (
+                          <CheckCircle className="w-4 h-4 text-green-500" />
+                        ) : (
+                          <XCircle className="w-4 h-4 text-red-500" />
+                        )}
+                        <Badge variant={user.isPhoneVerified ? "default" : "secondary"}>
+                          {user.isPhoneVerified ? "Verified" : "Not Verified"}
+                        </Badge>
+                        {!user.isPhoneVerified && !showOtpInput && (
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="h-7 text-xs"
+                            onClick={handleSendOTP}
+                            disabled={loading}
+                          >
+                            {loading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null}
+                            Verify Now
+                          </Button>
+                        )}
+                      </div>
+
+                      {!user.isPhoneVerified && showOtpInput && (
+                        <div className="flex items-center gap-2 mt-1">
+                          <Input
+                            placeholder="Enter OTP"
+                            value={otp}
+                            onChange={(e) => setOtp(e.target.value)}
+                            className="h-8 w-24 text-sm"
+                            maxLength={6}
+                          />
+                          <Button 
+                            size="sm" 
+                            className="h-8 text-xs"
+                            onClick={handleVerifyOTP}
+                            disabled={isVerifying}
+                          >
+                            {isVerifying ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null}
+                            Confirm
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-8 text-xs"
+                            onClick={() => setShowOtpInput(false)}
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">Member Since</Label>
@@ -182,6 +323,8 @@ export default function SettingsPage() {
               </CardContent>
             </Card>
           </div>
+
+          <div id="recaptcha-container"></div>
 
           {/* Club Information for Admins */}
           {user.club && (user.role === 'admin' || user.role === 'super_admin' || user.role === 'system_owner') && (

@@ -458,23 +458,24 @@ function ClubsPageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-sky-50 dark:from-slate-950 dark:via-slate-900 dark:to-blue-950">
       <SiteNavbar brandName="Wingman Pro" />
       
       {/* Hero Section */}
-      <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600">
-        <div className="absolute inset-0 bg-black/20"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-          <div className="text-center text-white">
-            <div className="flex justify-center mb-6">
-              <div className="bg-white/20 backdrop-blur-sm rounded-full p-4">
-                <Building2 className="w-12 h-12 text-white" />
+      <div className="relative overflow-hidden bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-600 py-24 md:py-32">
+        <div className="absolute inset-0 bg-black/10"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,rgba(255,255,255,0.1),transparent_50%)]"></div>
+        <div className="relative max-w-7xl mx-auto px-6">
+          <div className="text-center text-white space-y-8 animate-slide-up">
+            <div className="flex justify-center mb-4">
+              <div className="bg-white/10 backdrop-blur-md rounded-[2rem] p-6 shadow-2xl ring-1 ring-white/20">
+                <Building2 className="w-14 h-14 text-white" />
               </div>
             </div>
-            <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent">
+            <h1 className="text-5xl md:text-7xl font-black tracking-tighter leading-none text-white drop-shadow-sm">
               Join the Community
             </h1>
-            <p className="text-xl md:text-2xl text-blue-100 max-w-3xl mx-auto mb-8">
+            <p className="text-xl md:text-2xl text-sky-50/90 max-w-3xl mx-auto font-medium leading-relaxed">
               Discover and join supporter clubs to connect with fellow fans, attend exclusive events, and be part of something special.
             </p>
           </div>
@@ -482,30 +483,30 @@ function ClubsPageContent() {
       </div>
 
       {/* Search and Filters */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
-          <div className="flex flex-col lg:flex-row gap-4 items-center">
+      <div className="max-w-7xl mx-auto px-6 py-12">
+        <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl p-8 md:p-10 mb-12 border-2 border-slate-100 dark:border-white/5 animate-slide-up" style={{ animationDelay: '0.1s' }}>
+          <div className="flex flex-col lg:flex-row gap-6 items-center">
             {/* Search */}
-            <div className="flex-1 w-full lg:w-auto">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <div className="flex-1 w-full">
+              <div className="relative group">
+                <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 w-6 h-6 group-focus-within:text-sky-600 transition-colors" />
                 <Input
                   placeholder="Search clubs by name, description, or location..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 h-12 text-lg"
+                  className="pl-12 h-14 text-lg border-2 rounded-2xl focus-visible:ring-sky-500/30 transition-all"
                 />
               </div>
             </div>
 
             {/* Filters */}
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-4 w-full lg:w-auto">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-40 h-12">
+                <SelectTrigger className="w-full sm:w-44 h-14 border-2 rounded-2xl font-bold">
                   <Filter className="w-4 h-4 mr-2" />
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="rounded-2xl border-2">
                   <SelectItem value="all">All Status</SelectItem>
                   <SelectItem value="active">Active</SelectItem>
                   <SelectItem value="inactive">Inactive</SelectItem>
@@ -513,41 +514,41 @@ function ClubsPageContent() {
               </Select>
 
               <Select value={priceFilter} onValueChange={setPriceFilter}>
-                <SelectTrigger className="w-40 h-12">
+                <SelectTrigger className="w-full sm:w-44 h-14 border-2 rounded-2xl font-bold">
                   <DollarSign className="w-4 h-4 mr-2" />
                   <SelectValue placeholder="Price" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="rounded-2xl border-2">
                   <SelectItem value="all">All Prices</SelectItem>
                   <SelectItem value="free">Free</SelectItem>
                   <SelectItem value="paid">Paid</SelectItem>
                 </SelectContent>
               </Select>
 
-              <div className="flex border rounded-lg overflow-hidden">
+              <div className="flex border-2 rounded-2xl overflow-hidden p-1 bg-muted/30">
                 <Button
                   variant={viewMode === "grid" ? "default" : "ghost"}
-                  size="sm"
+                  size="icon"
                   onClick={() => setViewMode("grid")}
-                  className="rounded-none"
+                  className={cn("h-11 w-11 rounded-xl transition-all", viewMode === "grid" ? "shadow-md" : "")}
                 >
                   <div className="grid grid-cols-2 gap-1 w-4 h-4">
-                    <div className="bg-current rounded-sm"></div>
-                    <div className="bg-current rounded-sm"></div>
-                    <div className="bg-current rounded-sm"></div>
-                    <div className="bg-current rounded-sm"></div>
+                    <div className="bg-current rounded-[1px]"></div>
+                    <div className="bg-current rounded-[1px]"></div>
+                    <div className="bg-current rounded-[1px]"></div>
+                    <div className="bg-current rounded-[1px]"></div>
                   </div>
                 </Button>
                 <Button
                   variant={viewMode === "list" ? "default" : "ghost"}
-                  size="sm"
+                  size="icon"
                   onClick={() => setViewMode("list")}
-                  className="rounded-none"
+                  className={cn("h-11 w-11 rounded-xl transition-all", viewMode === "list" ? "shadow-md" : "")}
                 >
                   <div className="flex flex-col gap-1 w-4 h-4">
-                    <div className="bg-current rounded-sm h-1"></div>
-                    <div className="bg-current rounded-sm h-1"></div>
-                    <div className="bg-current rounded-sm h-1"></div>
+                    <div className="bg-current rounded-[1px] h-1 w-full"></div>
+                    <div className="bg-current rounded-[1px] h-1 w-full"></div>
+                    <div className="bg-current rounded-[1px] h-1 w-full"></div>
                   </div>
                 </Button>
               </div>
@@ -555,176 +556,179 @@ function ClubsPageContent() {
           </div>
 
           {/* Results count */}
-          <div className="mt-4 text-sm text-muted-foreground">
-            Showing {filteredClubs.length} of {clubs.length} clubs
+          <div className="mt-6 flex items-center justify-between">
+            <div className="text-sm font-bold text-muted-foreground uppercase tracking-widest">
+              Showing {filteredClubs.length} of {clubs.length} clubs
+            </div>
+            {searchTerm && (
+              <Button variant="ghost" size="sm" onClick={() => setSearchTerm("")} className="font-bold text-sky-600 hover:text-sky-700">
+                Clear search
+              </Button>
+            )}
           </div>
         </div>
 
         {/* Clubs Grid/List */}
         {viewMode === "grid" ? (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 animate-slide-up" style={{ animationDelay: '0.2s' }}>
             {filteredClubs.map((club) => (
-              <Card key={club._id} className="group hover:shadow-xl transition-all duration-300 overflow-hidden border-0 shadow-lg">
-                <div className="relative">
-                  {/* Club Header */}
-                  <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-6 text-white">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <div className="bg-white/20 backdrop-blur-sm rounded-full p-3">
-                          <Building2 className="w-6 h-6" />
-                        </div>
-                        <div>
-                          <h3 className="text-xl font-bold">{club.name}</h3>
-                          <Badge className={`mt-2 ${getStatusColor(club.status)}`}>
-                            {club.status}
-                          </Badge>
-                        </div>
+              <Card key={club._id} className="group hover:shadow-2xl transition-all duration-500 overflow-hidden border-2 rounded-[2.5rem] shadow-xl flex flex-col">
+                {/* Club Header */}
+                <div className="bg-gradient-to-br from-sky-600 to-indigo-700 p-8 text-white relative overflow-hidden">
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.1),transparent_50%)]"></div>
+                  <div className="flex items-start justify-between mb-6 relative z-10">
+                    <div className="flex items-center gap-4">
+                      <div className="bg-white/20 backdrop-blur-md rounded-2xl p-3.5 shadow-inner ring-1 ring-white/20 group-hover:scale-110 transition-transform duration-500">
+                        <Building2 className="w-7 h-7" />
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-white hover:bg-white/20"
-                        onClick={() => handleViewClubDetails(club)}
-                      >
-                        <Eye className="w-4 h-4" />
-                      </Button>
+                      <Badge className={cn("px-3 py-1 font-bold uppercase tracking-wider text-[10px]", getStatusColor(club.status))}>
+                        {club.status}
+                      </Badge>
                     </div>
-                    
-                    {club.description && (
-                      <p className="text-blue-100 line-clamp-2">
-                        {club.description}
-                      </p>
-                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-white hover:bg-white/20 rounded-xl"
+                      onClick={() => handleViewClubDetails(club)}
+                    >
+                      <Eye className="w-5 h-5" />
+                    </Button>
                   </div>
-              
-                  <CardContent className="p-6 space-y-4">
-                {/* Club Info */}
-                <div className="space-y-2">
-                  {club.address && (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <MapPin className="w-4 h-4" />
-                          <span>{club.address.city}, {club.address.state}</span>
-                    </div>
-                  )}
                   
-                  {club.website && (
-                        <div className="flex items-center gap-2 text-sm">
-                          <Globe className="w-4 h-4 text-blue-600" />
-                      <a 
-                        href={club.website} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline flex items-center gap-1"
-                      >
-                        Visit Website
-                            <ExternalLink className="w-3 h-3" />
-                      </a>
-                    </div>
+                  <h3 className="text-2xl font-black tracking-tight mb-3 relative z-10 group-hover:translate-x-1 transition-transform">{club.name}</h3>
+                  
+                  {club.description && (
+                    <p className="text-sky-50/80 text-sm font-medium line-clamp-2 relative z-10">
+                      {club.description}
+                    </p>
                   )}
                 </div>
+            
+                <CardContent className="p-8 space-y-6 flex-1 flex flex-col">
+                  {/* Club Info */}
+                  <div className="grid gap-3">
+                    {club.address && (
+                      <div className="flex items-center gap-3 text-sm font-bold text-muted-foreground">
+                        <MapPin className="w-5 h-5 text-sky-600" />
+                        <span>{club.address.city}, {club.address.state}</span>
+                      </div>
+                    )}
+                    
+                    {club.website && (
+                      <div className="flex items-center gap-3 text-sm font-bold text-sky-600">
+                        <Globe className="w-5 h-5" />
+                        <a 
+                          href={club.website} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="hover:underline flex items-center gap-1"
+                        >
+                          Official Website
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      </div>
+                    )}
+                  </div>
 
-                {/* Membership Plans */}
-                <div className="space-y-3">
-                      <h4 className="font-semibold text-sm flex items-center gap-2">
-                        <Award className="w-4 h-4 text-yellow-500" />
-                        Membership Plans
-                      </h4>
+                  {/* Membership Plans */}
+                  <div className="space-y-4 mt-auto">
+                    <h4 className="font-black text-xs uppercase tracking-[0.2em] text-muted-foreground flex items-center gap-2">
+                      <Award className="w-4 h-4 text-yellow-500" />
+                      Membership Plans
+                    </h4>
+                    <div className="space-y-3">
                       {club.membershipPlans?.filter(plan => plan.isActive).slice(0, 2).map((plan) => {
                         const isJoined = isClubJoined(club._id)
                         return (
-                        <div key={plan._id} className={`border rounded-lg p-4 space-y-3 transition-colors ${isJoined ? 'border-green-300 bg-green-50/50 dark:bg-green-950/20' : 'border-gray-200 hover:border-blue-300'}`}>
-                      <div className="flex items-center justify-between">
-                            <h5 className="font-semibold text-sm flex items-center gap-2">
-                              {plan.name}
-                              {isJoined && (
-                                <Badge className="bg-green-100 text-green-800 border-green-200">
-                                  <CheckCircle className="w-3 h-3 mr-1" />
-                                  Joined
-                                </Badge>
-                              )}
-                            </h5>
-                        <span className="text-lg font-bold text-primary">
-                          {formatPrice(plan.price, plan.currency)}
-                        </span>
-                      </div>
-                          <p className="text-sm text-muted-foreground line-clamp-2">
-                        {plan.description}
-                      </p>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <Clock className="w-4 h-4" />
-                              <span>{formatDuration(plan.duration)}</span>
+                          <div key={plan._id} className={cn(
+                            "border-2 rounded-2xl p-4 transition-all duration-300",
+                            isJoined ? "border-green-200 bg-green-50/50 dark:bg-green-950/20 shadow-inner" : "border-slate-100 hover:border-sky-200 hover:bg-sky-50/30"
+                          )}>
+                            <div className="flex items-center justify-between mb-2">
+                              <h5 className="font-black text-sm flex items-center gap-2">
+                                {plan.name}
+                                {isJoined && (
+                                  <Badge className="bg-green-500 text-white border-0 text-[9px] h-4">
+                                    Joined
+                                  </Badge>
+                                )}
+                              </h5>
+                              <span className="text-lg font-black text-sky-600 dark:text-sky-400">
+                                {formatPrice(plan.price, plan.currency)}
+                              </span>
                             </div>
-                        <Button 
-                          size="sm" 
-                          onClick={() => handleJoinClub(club, plan)}
-                              disabled={isJoined}
-                              className={`flex items-center gap-1 ${isJoined ? 'opacity-50 cursor-not-allowed' : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700'}`}
-                        >
-                              {isJoined ? (
-                                <>
-                                  <CheckCircle className="w-3 h-3" />
-                                  Already Joined
-                                </>
-                              ) : (
-                                <>
-                                  Join Club
-                                  <ArrowRight className="w-3 h-3" />
-                                </>
-                              )}
-                        </Button>
-                      </div>
-                    </div>
+                            <div className="flex items-center justify-between mt-4">
+                              <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground">
+                                <Clock className="w-4 h-4" />
+                                <span>{formatDuration(plan.duration)}</span>
+                              </div>
+                              <Button 
+                                size="sm" 
+                                onClick={() => handleJoinClub(club, plan)}
+                                disabled={isJoined}
+                                className={cn(
+                                  "h-9 px-4 font-bold text-xs rounded-xl transition-all shadow-md active:scale-95",
+                                  isJoined ? "bg-green-500/10 text-green-600 hover:bg-green-500/10" : "bg-gradient-to-r from-sky-600 to-blue-700 text-white"
+                                )}
+                              >
+                                {isJoined ? (
+                                  <CheckCircle className="w-4 h-4" />
+                                ) : (
+                                  <>Join <ArrowRight className="w-3 h-3 ml-1.5" /></>
+                                )}
+                              </Button>
+                            </div>
+                          </div>
                         )
                       })}
-                      
-                      {club.membershipPlans?.filter(plan => plan.isActive).length > 2 && (
-                        <Button variant="outline" size="sm" className="w-full" onClick={() => handleViewClubDetails(club)}>
-                          View All Plans ({club.membershipPlans?.filter(plan => plan.isActive).length})
-                        </Button>
-                      )}
                     </div>
-                  </CardContent>
-                </div>
+                    
+                    {club.membershipPlans?.filter(plan => plan.isActive).length > 2 && (
+                      <Button variant="ghost" size="sm" className="w-full font-bold text-muted-foreground hover:text-sky-600 hover:bg-sky-50 rounded-xl" onClick={() => handleViewClubDetails(club)}>
+                        + {club.membershipPlans?.filter(plan => plan.isActive).length - 2} more plans
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
               </Card>
             ))}
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-6 animate-slide-up" style={{ animationDelay: '0.2s' }}>
             {filteredClubs.map((club) => (
-              <Card key={club._id} className="group hover:shadow-lg transition-all duration-300">
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-4 flex-1">
-                      <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg p-3">
-                        <Building2 className="w-8 h-8 text-white" />
+              <Card key={club._id} className="group hover:shadow-xl transition-all duration-300 border-2 rounded-[2rem] overflow-hidden shadow-lg">
+                <CardContent className="p-8">
+                  <div className="flex flex-col md:flex-row items-start justify-between gap-8">
+                    <div className="flex flex-col md:flex-row items-start gap-6 flex-1">
+                      <div className="bg-gradient-to-br from-sky-500 to-indigo-600 rounded-[1.5rem] p-5 shadow-lg group-hover:scale-105 transition-transform duration-500 ring-4 ring-sky-500/10">
+                        <Building2 className="w-10 h-10 text-white" />
                       </div>
                       
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="text-xl font-bold">{club.name}</h3>
-                          <Badge className={getStatusColor(club.status)}>
+                      <div className="flex-1 space-y-4">
+                        <div className="flex flex-wrap items-center gap-4">
+                          <h3 className="text-3xl font-black tracking-tight">{club.name}</h3>
+                          <Badge className={cn("px-3 py-1 font-bold uppercase tracking-wider text-[10px]", getStatusColor(club.status))}>
                             {club.status}
                           </Badge>
                         </div>
                         
                         {club.description && (
-                          <p className="text-muted-foreground mb-3 line-clamp-2">
+                          <p className="text-muted-foreground text-lg leading-relaxed line-clamp-2 max-w-2xl font-medium">
                             {club.description}
                           </p>
                         )}
                         
-                        <div className="flex items-center gap-6 text-sm text-muted-foreground">
+                        <div className="flex flex-wrap items-center gap-x-8 gap-y-3 text-sm font-bold text-muted-foreground">
                           {club.address && (
-                            <div className="flex items-center gap-2">
-                              <MapPin className="w-4 h-4" />
+                            <div className="flex items-center gap-2.5">
+                              <MapPin className="w-5 h-5 text-sky-600" />
                               <span>{club.address.city}, {club.address.state}</span>
                             </div>
                           )}
                           
-                          <div className="flex items-center gap-2">
-                            <Users className="w-4 h-4" />
-                            <span>{club.membershipPlans?.filter(plan => plan.isActive).length || 0} plans</span>
+                          <div className="flex items-center gap-2.5">
+                            <Users className="w-5 h-5 text-indigo-600" />
+                            <span>{club.membershipPlans?.filter(plan => plan.isActive).length || 0} active plans</span>
                           </div>
                           
                           {club.website && (
@@ -732,38 +736,42 @@ function ClubsPageContent() {
                               href={club.website} 
                               target="_blank" 
                               rel="noopener noreferrer"
-                              className="flex items-center gap-2 text-blue-600 hover:underline"
+                              className="flex items-center gap-2.5 text-sky-600 hover:underline"
                             >
-                              <Globe className="w-4 h-4" />
-                              <span>Website</span>
+                              <Globe className="w-5 h-5" />
+                              <span>Official Website</span>
                             </a>
                           )}
                         </div>
                       </div>
                     </div>
                     
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-row md:flex-col items-center gap-4 w-full md:w-auto mt-4 md:mt-0">
                       <Button
                         variant="outline"
-                        size="sm"
+                        size="lg"
+                        className="flex-1 md:w-full h-14 border-2 rounded-2xl font-bold shadow-sm"
                         onClick={() => handleViewClubDetails(club)}
                       >
-                        <Eye className="w-4 h-4 mr-2" />
-                        Details
+                        <Eye className="w-5 h-5 mr-2" />
+                        View Details
                       </Button>
                       
                       {club.membershipPlans?.filter(plan => plan.isActive).length > 0 && (() => {
                         const isJoined = isClubJoined(club._id)
                         return (
                         <Button 
-                          size="sm"
+                          size="lg"
                           onClick={() => handleJoinClub(club, club.membershipPlans?.filter(plan => plan.isActive)[0]!)}
-                            disabled={isJoined}
-                            className={isJoined ? 'opacity-50 cursor-not-allowed' : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700'}
+                          disabled={isJoined}
+                          className={cn(
+                            "flex-1 md:w-full h-14 rounded-2xl font-black shadow-xl transition-all active:scale-95",
+                            isJoined ? "bg-green-500/10 text-green-600 hover:bg-green-500/10" : "bg-gradient-to-r from-sky-600 to-indigo-700 text-white"
+                          )}
                         >
                             {isJoined ? (
                               <>
-                                <CheckCircle className="w-4 h-4 mr-2" />
+                                <CheckCircle className="w-5 h-5 mr-2" />
                                 Already Joined
                               </>
                             ) : (
@@ -776,9 +784,29 @@ function ClubsPageContent() {
                 </div>
               </CardContent>
             </Card>
-          ))}
-        </div>
+            ))}
+          </div>
         )}
+
+        {filteredClubs.length === 0 && (
+          <div className="text-center py-24 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm rounded-[3rem] border-2 border-dashed border-slate-200 dark:border-white/10 animate-scale-in">
+            <div className="bg-white dark:bg-slate-800 rounded-[2rem] p-8 w-32 h-32 mx-auto mb-8 flex items-center justify-center shadow-xl shadow-slate-200/50 dark:shadow-none ring-1 ring-slate-100 dark:ring-white/5">
+              <Building2 className="w-16 h-16 text-slate-300 dark:text-slate-600" />
+            </div>
+            <h3 className="text-3xl font-black tracking-tight mb-4">No clubs found</h3>
+            <p className="text-muted-foreground text-lg mb-10 max-w-md mx-auto font-medium">
+              We couldn't find any clubs matching your criteria. Try adjusting your search or clearing the filters.
+            </p>
+            <Button size="lg" className="h-14 px-10 rounded-2xl font-black shadow-xl" onClick={() => {
+              setSearchTerm("")
+              setStatusFilter("all")
+              setPriceFilter("all")
+            }}>
+              Clear All Filters
+            </Button>
+          </div>
+        )}
+      </div>
 
         {filteredClubs.length === 0 && (
           <div className="text-center py-16">

@@ -280,14 +280,6 @@ export function GetStartedTab() {
                 <li>FAQ and help section management</li>
               </ul>
             </div>
-
-            <div className="pt-2">
-              <Button variant="link" className="h-auto p-0" asChild>
-                <a href="/docs/product-requirements" target="_blank">
-                  View Full Product Requirements →
-                </a>
-              </Button>
-            </div>
           </div>
         </CardContent>
       </Card>

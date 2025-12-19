@@ -11,15 +11,24 @@ import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
 import { useAuth } from "@/contexts/auth-context"
 import { toast } from "sonner"
-import { User, Mail, Phone, Shield, Save, Calendar, CheckCircle, XCircle, Edit, Building2, MapPin, Globe, Users, Search, Plus, ArrowRight } from "lucide-react"
+import { User, Mail, Phone, Shield, Save, Calendar, CheckCircle, XCircle, Edit, Building2, MapPin, Globe, Users, Search, Plus, ArrowRight, Loader2 } from "lucide-react"
 import { MembershipRenewal } from "@/components/membership-renewal"
 import { useRouter } from "next/navigation"
 import { VolunteerSignUpModal } from "@/components/volunteer/volunteer-signup-modal"
 import { VolunteerProfile } from "@/lib/api"
 import { apiClient } from "@/lib/api"
+import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth"
+import { auth } from "@/lib/firebase/config"
+
+declare global {
+  interface Window {
+    recaptchaVerifier: any;
+    confirmationResult: any;
+  }
+}
 
 export default function UserProfilePage() {
-  const { user, updateProfile } = useAuth()
+  const { user, updateProfile, checkAuth } = useAuth()
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
@@ -32,6 +41,12 @@ export default function UserProfilePage() {
     countryCode: "+1"
   })
 
+  // OTP related states
+  const [showOtpInput, setShowOtpInput] = useState(false)
+  const [otp, setOtp] = useState("")
+  const [otpSent, setOtpSent] = useState(false)
+  const [isVerifying, setIsVerifying] = useState(false)
+
   useEffect(() => {
     if (user) {
       setProfileForm({
@@ -42,6 +57,80 @@ export default function UserProfilePage() {
       })
     }
   }, [user])
+
+  const setupRecaptcha = () => {
+    if (typeof window !== "undefined") {
+      if (!window.recaptchaVerifier) {
+        window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+          'size': 'invisible',
+        });
+      }
+      return window.recaptchaVerifier
+    }
+  }
+
+  const handleSendOTP = async () => {
+    if (!profileForm.phone_number) {
+      toast.error("Please provide a phone number first")
+      return
+    }
+
+    try {
+      setLoading(true)
+      const phoneNumber = (profileForm.countryCode.startsWith('+') ? profileForm.countryCode : '+' + profileForm.countryCode) + profileForm.phone_number
+      const verifier = setupRecaptcha()
+      const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, verifier)
+      window.confirmationResult = confirmationResult
+      setOtpSent(true)
+      setShowOtpInput(true)
+      toast.success("OTP sent to your phone number")
+    } catch (error: any) {
+      console.error("Error sending OTP:", error)
+      toast.error(error.message || "Failed to send OTP. Please check the phone number.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleVerifyOTP = async () => {
+    if (!otp || otp.length < 6) {
+      toast.error("Please enter a valid 6-digit OTP")
+      return
+    }
+
+    try {
+      setIsVerifying(true)
+      const confirmationResult = window.confirmationResult
+      if (!confirmationResult) {
+        toast.error("Session expired. Please request a new OTP.")
+        setShowOtpInput(false)
+        return
+      }
+
+      await confirmationResult.confirm(otp)
+      
+      // Call backend to update verification status
+      if (user) {
+        const result = await apiClient.verifyPhoneNumber({})
+
+        if (result.success) {
+          toast.success("Phone number verified successfully")
+          setShowOtpInput(false)
+          setOtpSent(false)
+          setOtp("")
+          // Update user state locally
+          await checkAuth()
+        } else {
+          toast.error(result.error || "Verification failed on server")
+        }
+      }
+    } catch (error) {
+      console.error("Error verifying OTP:", error)
+      toast.error("Invalid OTP. Please try again.")
+    } finally {
+      setIsVerifying(false)
+    }
+  }
 
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -277,15 +366,58 @@ export default function UserProfilePage() {
                         </div>
                         <div>
                           <Label className="text-sm font-medium text-muted-foreground">Phone Verification</Label>
-                          <div className="flex items-center gap-2">
-                            {user.isPhoneVerified ? (
-                              <CheckCircle className="w-4 h-4 text-green-500" />
-                            ) : (
-                              <XCircle className="w-4 h-4 text-red-500" />
+                          <div className="flex flex-col gap-2">
+                            <div className="flex items-center gap-2">
+                              {user.isPhoneVerified ? (
+                                <CheckCircle className="w-4 h-4 text-green-500" />
+                              ) : (
+                                <XCircle className="w-4 h-4 text-red-500" />
+                              )}
+                              <Badge variant={user.isPhoneVerified ? "default" : "secondary"}>
+                                {user.isPhoneVerified ? "Verified" : "Not Verified"}
+                              </Badge>
+                              {!user.isPhoneVerified && !showOtpInput && (
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="h-7 text-xs"
+                                  onClick={handleSendOTP}
+                                  disabled={loading}
+                                >
+                                  {loading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null}
+                                  Verify Now
+                                </Button>
+                              )}
+                            </div>
+
+                            {!user.isPhoneVerified && showOtpInput && (
+                              <div className="flex items-center gap-2 mt-1">
+                                <Input
+                                  placeholder="Enter 6-digit OTP"
+                                  value={otp}
+                                  onChange={(e) => setOtp(e.target.value)}
+                                  className="h-8 w-32 text-sm"
+                                  maxLength={6}
+                                />
+                                <Button 
+                                  size="sm" 
+                                  className="h-8 text-xs"
+                                  onClick={handleVerifyOTP}
+                                  disabled={isVerifying}
+                                >
+                                  {isVerifying ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null}
+                                  Confirm
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="h-8 text-xs"
+                                  onClick={() => setShowOtpInput(false)}
+                                >
+                                  Cancel
+                                </Button>
+                              </div>
                             )}
-                            <Badge variant={user.isPhoneVerified ? "default" : "secondary"}>
-                              {user.isPhoneVerified ? "Verified" : "Not Verified"}
-                            </Badge>
                           </div>
                         </div>
                       </div>
@@ -293,6 +425,8 @@ export default function UserProfilePage() {
                   )}
                 </CardContent>
               </Card>
+
+              <div id="recaptcha-container"></div>
 
               {/* Club Discovery */}
               {!user.club && (

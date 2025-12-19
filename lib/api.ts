@@ -1798,6 +1798,21 @@ class ApiClient {
     return this.request('/staff/stats');
   }
 
+  // Phone Verification APIs
+  async verifyPhoneNumber(data: {}): Promise<ApiResponse<any>> {
+    return this.request('/phone/verify', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getPhoneVerificationStatus(userId: string, role: string): Promise<ApiResponse<{
+    isPhoneVerified: boolean;
+    phone_number: string;
+  }>> {
+    return this.request(`/phone/status/${userId}?role=${role}`);
+  }
+
   // System Owner Staff Management
   async getStaffByClub(clubId: string, params?: {
     role?: string;
@@ -2633,14 +2648,9 @@ class ApiClient {
     description: string;
     contactEmail: string;
     contactPhone: string;
+    isPublished?: boolean;
     sections: {
-      news: boolean;
-      events: boolean;
-      store: boolean;
-      polls: boolean;
-      chants: boolean;
-      members: boolean;
-      merchandise: boolean;
+      [key: string]: boolean;
     };
   }): Promise<ApiResponse<any>> {
     return this.put(`/club-settings/${clubId}/website-setup`, data);

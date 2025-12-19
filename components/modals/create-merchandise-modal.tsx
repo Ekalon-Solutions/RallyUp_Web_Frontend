@@ -67,11 +67,9 @@ export function CreateMerchandiseModal({
 }: CreateMerchandiseModalProps) {
   const { user, isAdmin } = useAuth()
   const [loading, setLoading] = useState(false)
-  const [images, setImages] = useState<File[]>([])
-  const [imagePreviews, setImagePreviews] = useState<string[]>([])
+  const [imageItems, setImageItems] = useState<{file?: File, preview: string}[]>([])
   const [newTag, setNewTag] = useState("")
   
-  // Form states
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
   const [price, setPrice] = useState("")
@@ -82,11 +80,9 @@ export function CreateMerchandiseModal({
   const [isFeatured, setIsFeatured] = useState(false)
   const [tags, setTags] = useState<string[]>([])
 
-  // Reset form when modal opens/closes or when editing merchandise changes
   useEffect(() => {
     if (isOpen) {
       if (editMerchandise) {
-        // Populate form with existing merchandise data
         setName(editMerchandise.name)
         setDescription(editMerchandise.description)
         setPrice(editMerchandise.price.toString())
@@ -96,9 +92,8 @@ export function CreateMerchandiseModal({
         setIsAvailable(editMerchandise.isAvailable)
         setIsFeatured(editMerchandise.isFeatured)
         setTags(editMerchandise.tags)
-        setImagePreviews(editMerchandise.images)
+        setImageItems(editMerchandise.images.map(img => ({ preview: img })))
       } else {
-        // Reset form for new merchandise
         setName("")
         setDescription("")
         setPrice("")
@@ -108,8 +103,7 @@ export function CreateMerchandiseModal({
         setIsAvailable(true)
         setIsFeatured(false)
         setTags([])
-        setImages([])
-        setImagePreviews([])
+        setImageItems([])
       }
     }
   }, [isOpen, editMerchandise])
@@ -117,39 +111,34 @@ export function CreateMerchandiseModal({
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
     
-    // Validate file types
     const validFiles = files.filter(file => {
       if (!file.type.startsWith('image/')) {
         toast.error(`${file.name} is not an image file`)
         return false
       }
-      if (file.size > 10 * 1024 * 1024) { // 10MB limit
+      if (file.size > 10 * 1024 * 1024) {
         toast.error(`${file.name} is too large. Maximum size is 10MB`)
         return false
       }
       return true
     })
 
-    if (validFiles.length + images.length > 5) {
+    if (validFiles.length + imageItems.length > 5) {
       toast.error('Maximum 5 images allowed')
       return
     }
 
-    setImages(prev => [...prev, ...validFiles])
-    
-    // Create previews
     validFiles.forEach(file => {
       const reader = new FileReader()
       reader.onload = (e) => {
-        setImagePreviews(prev => [...prev, e.target?.result as string])
+        setImageItems(prev => [...prev, { file, preview: e.target?.result as string }])
       }
       reader.readAsDataURL(file)
     })
   }
 
   const removeImage = (index: number) => {
-    setImages(prev => prev.filter((_, i) => i !== index))
-    setImagePreviews(prev => prev.filter((_, i) => i !== index))
+    setImageItems(prev => prev.filter((_, i) => i !== index))
   }
 
   const addTag = () => {
@@ -173,7 +162,6 @@ export function CreateMerchandiseModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // Check if user is admin
     if (!isAdmin) {
       toast.error('Admin access required to create merchandise')
       onClose()
@@ -209,24 +197,27 @@ export function CreateMerchandiseModal({
       formData.append('isFeatured', isFeatured.toString())
       formData.append('tags', JSON.stringify(tags))
 
-      // Add images
-      images.forEach((image, index) => {
-        formData.append('images', image)
+      const existingImagesToKeep = imageItems
+        .filter(item => !item.file)
+        .map(item => item.preview)
+      formData.append('existingImages', JSON.stringify(existingImagesToKeep))
+
+      imageItems.forEach((item, index) => {
+        if (item.file) {
+          formData.append('images', item.file)
+        }
       })
 
       if (editMerchandise) {
-        // Update existing merchandise
         await apiClient.put(`/merchandise/admin/${editMerchandise._id}`, formData)
         toast.success('Merchandise updated successfully')
       } else {
-        // Create new merchandise
         await apiClient.post('/merchandise/admin', formData)
         toast.success('Merchandise created successfully')
       }
 
       onSuccess()
     } catch (error: any) {
-      // console.error('Error saving merchandise:', error)
       if (error?.errorDetails?.status === 401) {
         toast.error('Admin access required. Please log in as an admin.')
         onClose()
@@ -266,13 +257,11 @@ export function CreateMerchandiseModal({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Basic Information */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Basic Information</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Name */}
               <div className="space-y-2">
                 <Label htmlFor="name">Product Name *</Label>
                 <Input
@@ -284,7 +273,6 @@ export function CreateMerchandiseModal({
                 />
               </div>
 
-              {/* Description */}
               <div className="space-y-2">
                 <Label htmlFor="description">Description *</Label>
                 <Textarea
@@ -297,7 +285,6 @@ export function CreateMerchandiseModal({
                 />
               </div>
 
-              {/* Category */}
               <div className="space-y-2">
                 <Label htmlFor="category">Category *</Label>
                 <Select value={category} onValueChange={(value: any) => setCategory(value)}>
@@ -341,14 +328,12 @@ export function CreateMerchandiseModal({
             </CardContent>
           </Card>
 
-          {/* Pricing & Inventory */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Pricing & Inventory</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                {/* Price */}
                 <div className="space-y-2">
                   <Label htmlFor="price">Price *</Label>
                   <div className="relative">
@@ -366,7 +351,6 @@ export function CreateMerchandiseModal({
                   </div>
                 </div>
 
-                {/* Currency */}
                 <div className="space-y-2">
                   <Label htmlFor="currency">Currency</Label>
                   <Select value={currency} onValueChange={setCurrency}>
@@ -389,7 +373,6 @@ export function CreateMerchandiseModal({
                 </div>
               </div>
 
-              {/* Stock Quantity */}
               <div className="space-y-2">
                 <Label htmlFor="stockQuantity">Stock Quantity *</Label>
                 <Input
@@ -405,7 +388,6 @@ export function CreateMerchandiseModal({
             </CardContent>
           </Card>
 
-          {/* Images */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Product Images</CardTitle>
@@ -414,7 +396,6 @@ export function CreateMerchandiseModal({
               </p>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Image Upload */}
               <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
                 <input
                   type="file"
@@ -435,13 +416,12 @@ export function CreateMerchandiseModal({
                 </label>
               </div>
 
-              {/* Image Previews */}
-              {imagePreviews.length > 0 && (
+              {imageItems.length > 0 && (
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {imagePreviews.map((preview, index) => (
+                  {imageItems.map((item, index) => (
                     <div key={index} className="relative group">
                       <img
-                        src={preview}
+                        src={item.preview}
                         alt={`Preview ${index + 1}`}
                         className="w-full h-24 object-cover rounded-lg"
                       />
@@ -461,7 +441,6 @@ export function CreateMerchandiseModal({
             </CardContent>
           </Card>
 
-          {/* Tags */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Tags</CardTitle>
@@ -483,7 +462,6 @@ export function CreateMerchandiseModal({
                 </Button>
               </div>
 
-              {/* Display Tags */}
               {tags.length > 0 && (
                 <div className="flex flex-wrap gap-2">
                   {tags.map((tag, index) => (
@@ -505,7 +483,6 @@ export function CreateMerchandiseModal({
             </CardContent>
           </Card>
 
-          {/* Settings */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Product Settings</CardTitle>
@@ -539,7 +516,6 @@ export function CreateMerchandiseModal({
             </CardContent>
           </Card>
 
-          {/* Form Actions */}
           <div className="flex justify-end space-x-2 pt-4">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel

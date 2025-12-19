@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import React, { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
+import { Badge } from "@/components/ui/badge"
 import { Save, Globe, Eye, EyeOff, ExternalLink, Copy, Share2 } from "lucide-react"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api"
@@ -17,15 +18,8 @@ interface WebsiteSettings {
   description: string
   contactEmail: string
   contactPhone: string
-  sections: {
-    news: boolean
-    events: boolean
-    store: boolean
-    polls: boolean
-    chants: boolean
-    members: boolean
-    merchandise: boolean
-  }
+  isPublished: boolean
+  sections: Record<string, boolean>
 }
 
 export function WebsiteSetupTab() {
@@ -80,6 +74,7 @@ export function WebsiteSetupTab() {
           description: '',
           contactEmail: '',
           contactPhone: '',
+          isPublished: false,
           sections: {
             news: true,
             events: true,
@@ -188,7 +183,7 @@ export function WebsiteSetupTab() {
             Public Club Page
           </CardTitle>
           <CardDescription className="text-blue-600 dark:text-blue-400">
-            Your club's public page is live and can be shared with anyone
+            Your club's public page status: {settings.isPublished ? <Badge className="bg-green-500">Published</Badge> : <Badge variant="secondary">Not Published</Badge>}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
