@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { apiClient } from '@/lib/api';
+import { getApiUrl } from '@/lib/config';
 import { MembershipCard } from '@/components/membership-card';
 import { Upload, Save, Eye, Palette, Type, Image as ImageIcon } from 'lucide-react';
 
@@ -263,7 +264,7 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
       formData.append('image', file);
 
       // Upload to your backend
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/upload/logo`, {
+      const response = await fetch(getApiUrl('/upload/logo'), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`

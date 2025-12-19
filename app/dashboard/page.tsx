@@ -17,6 +17,7 @@ import { PromotionFeed } from "@/components/promotion-feed"
 import { PollsWidget } from "@/components/polls-widget"
 import { calculateUserProfileCompletion } from "@/lib/user-completion"
 import { cn } from "@/lib/utils"
+import { getApiUrl } from "@/lib/config"
 import axios from "axios"
 
 interface DashboardStats {
@@ -54,13 +55,13 @@ export default function DashboardPage() {
 
         // Fetch club stats
         const clubStatsResponse = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_URL}/clubs/${clubId}/stats`,
+          getApiUrl(`/clubs/${clubId}/stats`),
           { headers: { Authorization: `Bearer ${token}` } }
         )
 
         // Fetch upcoming events count
         const eventsResponse = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_URL}/events/public`,
+          getApiUrl(`/events/public`),
           { 
             headers: { Authorization: `Bearer ${token}` },
             params: { limit: 100 }
@@ -72,7 +73,7 @@ export default function DashboardPage() {
 
         // Fetch order stats for revenue
         const orderStatsResponse = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_URL}/orders/admin/stats`,
+          getApiUrl(`/orders/admin/stats`),
           { headers: { Authorization: `Bearer ${token}` } }
         ).catch(() => ({ data: { totalRevenue: 0 } }))
 
