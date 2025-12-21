@@ -7,7 +7,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
-import { Plus, CreditCard, Users, Calendar, CheckCircle, DollarSign } from "lucide-react"
+import { Plus, CreditCard, Users, Calendar, CheckCircle, Edit } from "lucide-react"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api"
 import { DashboardLayout } from "@/components/dashboard-layout"
@@ -43,6 +44,10 @@ export default function MembershipPlansPage() {
   const [selectedClubId, setSelectedClubId] = useState<string | undefined>(undefined)
   const [isCreating, setIsCreating] = useState(false)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
+  const [editingPlan, setEditingPlan] = useState<MembershipPlan | null>(null)
+  const [showEditDialog, setShowEditDialog] = useState(false)
+  const [isUpdating, setIsUpdating] = useState(false)
+  const [plansWithCards, setPlansWithCards] = useState<Set<string>>(new Set())
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -100,6 +105,11 @@ export default function MembershipPlansPage() {
           // console.log('No membership plans found')
           toast.info('No membership plans found. You can create your first plan.')
         }
+
+        // Load cards for this club to check which plans have cards
+        if (clubId) {
+          await loadPlansWithCards(clubId, plansData)
+        }
       } else {
         // console.error('Failed to load membership plans:', response.error)
         toast.error(response.error || "Failed to load membership plans")
@@ -110,6 +120,39 @@ export default function MembershipPlansPage() {
     } finally {
       setIsLoading(false)
     }
+  }
+
+  const loadPlansWithCards = async (clubId: string, plansData: MembershipPlan[]) => {
+    try {
+      // Fetch all membership cards for this club
+      const cardsResponse = await apiClient.getClubMembershipCards(clubId, {})
+      
+      if (cardsResponse.success) {
+        const cards = Array.isArray(cardsResponse.data) 
+          ? cardsResponse.data 
+          : (cardsResponse.data?.data || [])
+        
+        // Extract membership plan IDs that have template cards
+        const planIdsWithCards = new Set<string>()
+        cards.forEach((card: any) => {
+          // Check if this card has a membershipPlan (template cards have this)
+          // The structure is: { card: {...}, membershipPlan: { _id: ... }, club: {...} }
+          if (card.membershipPlan && card.membershipPlan._id) {
+            planIdsWithCards.add(card.membershipPlan._id)
+          }
+        })
+        
+        setPlansWithCards(planIdsWithCards)
+      }
+    } catch (error) {
+      // Silently fail - cards check is not critical
+      console.error('Error loading membership cards:', error)
+    }
+  }
+
+  const handleCreateCard = (planId: string) => {
+    // Navigate to membership cards page with the plan pre-selected
+    window.location.href = `/dashboard/membership-cards?planId=${planId}`
   }
 
   const loadClubsAndDefault = async () => {
@@ -238,6 +281,88 @@ export default function MembershipPlansPage() {
     if (months === 6) return "6 Months"
     if (months === 12) return "1 Year"
     return `${months} Months`
+  }
+
+  const handleEditPlan = (plan: MembershipPlan) => {
+    setEditingPlan(plan)
+    setFormData({
+      name: plan.name,
+      description: plan.description,
+      price: plan.price,
+      currency: plan.currency,
+      duration: plan.duration,
+      features: {
+        maxEvents: plan.features.maxEvents,
+        maxNews: plan.features.maxNews,
+        maxMembers: plan.features.maxMembers,
+        customBranding: plan.features.customBranding || false,
+        advancedAnalytics: plan.features.advancedAnalytics || false,
+        prioritySupport: plan.features.prioritySupport || false,
+        apiAccess: plan.features.apiAccess || false,
+        customIntegrations: plan.features.customIntegrations || false
+      }
+    })
+    setShowEditDialog(true)
+  }
+
+  const handleToggleStatus = async (planId: string, currentStatus: boolean) => {
+    try {
+      const response = await apiClient.updateMembershipPlan(planId, {
+        isActive: !currentStatus
+      })
+
+      if (response.success) {
+        toast.success(`Plan ${!currentStatus ? 'activated' : 'deactivated'} successfully!`)
+        await loadPlans()
+      } else {
+        toast.error(response.error || "Failed to update plan status")
+      }
+    } catch (error) {
+      // console.error('Error toggling plan status:', error)
+      toast.error("An error occurred while updating plan status")
+    }
+  }
+
+  const handleUpdatePlan = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingPlan) return
+
+    setIsUpdating(true)
+
+    try {
+      const response = await apiClient.updateMembershipPlan(editingPlan._id, formData)
+
+      if (response.success) {
+        toast.success("Membership plan updated successfully!")
+        setShowEditDialog(false)
+        setEditingPlan(null)
+        setFormData({
+          name: "",
+          description: "",
+          price: 0,
+          currency: "USD",
+          duration: 1,
+          features: {
+            maxEvents: 10,
+            maxNews: 5,
+            maxMembers: 100,
+            customBranding: false,
+            advancedAnalytics: false,
+            prioritySupport: false,
+            apiAccess: false,
+            customIntegrations: false
+          }
+        })
+        await loadPlans()
+      } else {
+        toast.error(response.error || "Failed to update membership plan")
+      }
+    } catch (error) {
+      // console.error('Error updating membership plan:', error)
+      toast.error("An error occurred while updating the plan")
+    } finally {
+      setIsUpdating(false)
+    }
   }
 
   if (isLoading) {
@@ -497,23 +622,208 @@ export default function MembershipPlansPage() {
                   </form>
                 </DialogContent>
               </Dialog>
+              <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Edit Membership Plan</DialogTitle>
+                    <DialogDescription>
+                      Update the membership plan details and features
+                    </DialogDescription>
+                  </DialogHeader>
+                  <form onSubmit={handleUpdatePlan} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-name">Plan Name</Label>
+                        <Input
+                          id="edit-name"
+                          value={formData.name}
+                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-price">Price</Label>
+                        <Input
+                          id="edit-price"
+                          type="number"
+                          value={formData.price}
+                          onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-description">Description</Label>
+                      <Input
+                        id="edit-description"
+                        value={formData.description}
+                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                        required
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-currency">Currency</Label>
+                        <select
+                          id="edit-currency"
+                          value={formData.currency}
+                          onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+                          className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground"
+                        >
+                          <option value="INR">INR</option>
+                          <option value="USD">USD</option>
+                          <option value="EUR">EUR</option>
+                          <option value="GBP">GBP</option>
+                          <option value="AUD">AUD</option>
+                          <option value="CAD">CAD</option>
+                          <option value="CHF">CHF</option>
+                          <option value="CNY">CNY</option>
+                          <option value="HKD">HKD</option>
+                          <option value="JPY">JPY</option>
+                          <option value="NZD">NZD</option>
+                          <option value="NOK">NOK</option>
+                          <option value="SEK">SEK</option>
+                          <option value="SGD">SGD</option>
+                          <option value="ZAR">ZAR</option>
+                          <option value="BRL">BRL</option>
+                          <option value="MXN">MXN</option>
+                          <option value="TRY">TRY</option>
+                          <option value="DKK">DKK</option>
+                          <option value="ILS">ILS</option>
+                          <option value="PLN">PLN</option>
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-duration">Duration (Months)</Label>
+                        <Input
+                          id="edit-duration"
+                          type="number"
+                          value={formData.duration}
+                          onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) || 1 })}
+                          min="1"
+                          max="120"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Duration Display</Label>
+                        <div className="px-3 py-2 text-sm text-muted-foreground">
+                          {formatDuration(formData.duration)}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="border-t pt-4">
+                      <h3 className="font-semibold mb-4 text-foreground">Plan Features</h3>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="edit-maxEvents">Max Events</Label>
+                          <Input
+                            id="edit-maxEvents"
+                            type="number"
+                            value={formData.features.maxEvents}
+                            onChange={(e) => setFormData({
+                              ...formData,
+                              features: { ...formData.features, maxEvents: parseInt(e.target.value) || 0 }
+                            })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="edit-maxNews">Max News</Label>
+                          <Input
+                            id="edit-maxNews"
+                            type="number"
+                            value={formData.features.maxNews}
+                            onChange={(e) => setFormData({
+                              ...formData,
+                              features: { ...formData.features, maxNews: parseInt(e.target.value) || 0 }
+                            })}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="edit-maxMembers">Max Members</Label>
+                          <Input
+                            id="edit-maxMembers"
+                            type="number"
+                            value={formData.features.maxMembers}
+                            onChange={(e) => setFormData({
+                              ...formData,
+                              features: { ...formData.features, maxMembers: parseInt(e.target.value) || 0 }
+                            })}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 mt-4">
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id="edit-customBranding"
+                            checked={formData.features.customBranding}
+                            onChange={(e) => setFormData({
+                              ...formData,
+                              features: { ...formData.features, customBranding: e.target.checked }
+                            })}
+                          />
+                          <Label htmlFor="edit-customBranding">Custom Branding</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id="edit-advancedAnalytics"
+                            checked={formData.features.advancedAnalytics}
+                            onChange={(e) => setFormData({
+                              ...formData,
+                              features: { ...formData.features, advancedAnalytics: e.target.checked }
+                            })}
+                          />
+                          <Label htmlFor="edit-advancedAnalytics">Advanced Analytics</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id="edit-prioritySupport"
+                            checked={formData.features.prioritySupport}
+                            onChange={(e) => setFormData({
+                              ...formData,
+                              features: { ...formData.features, prioritySupport: e.target.checked }
+                            })}
+                          />
+                          <Label htmlFor="edit-prioritySupport">Priority Support</Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id="edit-apiAccess"
+                            checked={formData.features.apiAccess}
+                            onChange={(e) => setFormData({
+                              ...formData,
+                              features: { ...formData.features, apiAccess: e.target.checked }
+                            })}
+                          />
+                          <Label htmlFor="edit-apiAccess">API Access</Label>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button type="submit" disabled={isUpdating} className="flex-1">
+                        {isUpdating ? "Updating..." : "Update Plan"}
+                      </Button>
+                      <Button type="button" variant="outline" onClick={() => {
+                        setShowEditDialog(false)
+                        setEditingPlan(null)
+                      }}>
+                        Cancel
+                      </Button>
+                    </div>
+                  </form>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
-
-          {/* Membership Card Preview Section */}
-          <div className="border-t pt-8">
-            <div className="text-center text-muted-foreground py-8">
-              <CreditCard className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p className="text-lg font-medium">Membership Card Preview</p>
-              <p className="text-sm mt-2">
-                View your membership cards in the dedicated section
-              </p>
-              <Button variant="outline" className="mt-4" onClick={() => window.location.href = '/dashboard/user/membership-card'}>
-                View My Cards
-              </Button>
-            </div>
-          </div>
-
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {plans.map((plan) => (
               <Card key={plan._id}>
@@ -599,13 +909,49 @@ export default function MembershipPlansPage() {
                       </div>
                     )}
 
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="flex-1">
-                      Edit
-                    </Button>
-                    <Button variant="outline" size="sm" className="flex-1">
-                      {plan.isActive ? "Deactivate" : "Activate"}
-                    </Button>
+                  <div className="flex gap-2 flex-col">
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex-1"
+                        onClick={() => handleEditPlan(plan)}
+                      >
+                        <Edit className="w-4 h-4 mr-2" />
+                        Edit
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="flex-1"
+                        onClick={() => handleToggleStatus(plan._id, plan.isActive)}
+                      >
+                        {plan.isActive ? "Deactivate" : "Activate"}
+                      </Button>
+                    </div>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="w-full">
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="w-full"
+                              onClick={() => handleCreateCard(plan._id)}
+                              disabled={plansWithCards.has(plan._id)}
+                            >
+                              <CreditCard className="w-4 h-4 mr-2" />
+                              Create Membership Card
+                            </Button>
+                          </span>
+                        </TooltipTrigger>
+                        {plansWithCards.has(plan._id) && (
+                          <TooltipContent>
+                            <p>This plan already has a membership card. Only one card can be created per plan.</p>
+                          </TooltipContent>
+                        )}
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
                 </CardContent>
               </Card>

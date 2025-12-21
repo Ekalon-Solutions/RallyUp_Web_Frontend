@@ -60,6 +60,11 @@ interface Club {
   }
   status: 'active' | 'inactive' | 'suspended'
   membershipPlans: MembershipPlan[]
+  memberInfo?: {
+    currentCount: number
+    maxLimit: number | null
+    isLimitReached: boolean
+  }
 }
 
 interface MembershipPlan {
@@ -288,35 +293,55 @@ function ClubsPageContent() {
           setPendingOrder({ orderId, orderNumber, total, currency, paymentMethod })
           setIsPaymentModalOpen(true)
         } else {
-          // Free plan fallback: store token and route immediately
           if (registerData.token) {
             localStorage.setItem('token', registerData.token)
             localStorage.setItem('userType', 'member')
-          }
-          // Close dialog and reset form
-          setShowRegistrationDialog(false)
-          setRegistrationData({
-            username: "",
-            first_name: "",
-            last_name: "",
-            email: "",
-            date_of_birth: "",
-            gender: "male",
-            phone_number: "",
-            countryCode: "+91",
-            address_line1: "",
-            address_line2: "",
-            city: "",
-            state_province: "",
-            zip_code: "",
-            country: "",
-            level_name: "",
-            id_proof_type: "Aadhar",
-            id_proof_number: "",
-            name: ""
-          })
+            
+            const joinResponse = await fetch(getApiUrl(API_ENDPOINTS.users.joinClubRequest), {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${registerData.token}`
+              },
+              body: JSON.stringify({
+                clubId: selectedClub._id,
+                membershipPlanId: selectedPlan._id
+              })
+            })
 
-          router.push("/dashboard/user/my-clubs")
+            const joinData = await joinResponse.json()
+
+            if (joinResponse.ok) {
+              toast.success("Successfully joined the club!")
+              setShowRegistrationDialog(false)
+              setRegistrationData({
+                username: "",
+                first_name: "",
+                last_name: "",
+                email: "",
+                date_of_birth: "",
+                gender: "male",
+                phone_number: "",
+                countryCode: "+91",
+                address_line1: "",
+                address_line2: "",
+                city: "",
+                state_province: "",
+                zip_code: "",
+                country: "",
+                level_name: "",
+                id_proof_type: "Aadhar",
+                id_proof_number: "",
+                name: ""
+              })
+              fetchClubs()
+              router.push("/dashboard/user/my-clubs")
+            } else {
+              toast.error(joinData.message || "Failed to join club after registration")
+            }
+          } else {
+            toast.error("Registration token missing")
+          }
         }
       } else {
         toast.error(registerData.message || "Registration failed")
@@ -426,7 +451,7 @@ function ClubsPageContent() {
           id_proof_number: "",
           name: ""
         })
-
+        fetchClubs()
         router.push("/dashboard/user/my-clubs")
       } else {
         toast.error(data.message || "Failed to activate membership after payment.")
@@ -640,10 +665,12 @@ function ClubsPageContent() {
                     <div className="space-y-3">
                       {club.membershipPlans?.filter(plan => plan.isActive).slice(0, 2).map((plan) => {
                         const isJoined = isClubJoined(club._id)
+                        const isLimitReached = club.memberInfo?.isLimitReached || false
+                        const isDisabled = isJoined || isLimitReached
                         return (
                           <div key={plan._id} className={cn(
                             "border-2 rounded-2xl p-4 transition-all duration-300",
-                            isJoined ? "border-green-200 bg-green-50/50 dark:bg-green-950/20 shadow-inner" : "border-slate-100 hover:border-sky-200 hover:bg-sky-50/30"
+                            isJoined ? "border-green-200 bg-green-50/50 dark:bg-green-950/20 shadow-inner" : isLimitReached ? "border-red-200 bg-red-50/50 dark:bg-red-950/20" : "border-slate-100 hover:border-sky-200 hover:bg-sky-50/30"
                           )}>
                             <div className="flex items-center justify-between mb-2">
                               <h5 className="font-black text-sm flex items-center gap-2">
@@ -653,11 +680,23 @@ function ClubsPageContent() {
                                     Joined
                                   </Badge>
                                 )}
+                                {isLimitReached && !isJoined && (
+                                  <Badge className="bg-red-500 text-white border-0 text-[9px] h-4">
+                                    Full
+                                  </Badge>
+                                )}
                               </h5>
                               <span className="text-lg font-black text-sky-600 dark:text-sky-400">
                                 {formatPrice(plan.price, plan.currency)}
                               </span>
                             </div>
+                            {isLimitReached && !isJoined && club.memberInfo && (
+                              <div className="mb-3 p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
+                                <p className="text-xs font-bold text-red-700 dark:text-red-300">
+                                  Maximum member limit reached ({club.memberInfo.currentCount}/{club.memberInfo.maxLimit})
+                                </p>
+                              </div>
+                            )}
                             <div className="flex items-center justify-between mt-4">
                               <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground">
                                 <Clock className="w-4 h-4" />
@@ -666,14 +705,16 @@ function ClubsPageContent() {
                               <Button 
                                 size="sm" 
                                 onClick={() => handleJoinClub(club, plan)}
-                                disabled={isJoined}
+                                disabled={isDisabled}
                                 className={cn(
                                   "h-9 px-4 font-bold text-xs rounded-xl transition-all shadow-md active:scale-95",
-                                  isJoined ? "bg-green-500/10 text-green-600 hover:bg-green-500/10" : "bg-gradient-to-r from-sky-600 to-blue-700 text-white"
+                                  isJoined ? "bg-green-500/10 text-green-600 hover:bg-green-500/10" : isLimitReached ? "bg-gray-300 text-gray-500 cursor-not-allowed" : "bg-gradient-to-r from-sky-600 to-blue-700 text-white"
                                 )}
                               >
                                 {isJoined ? (
                                   <CheckCircle className="w-4 h-4" />
+                                ) : isLimitReached ? (
+                                  "Club Full"
                                 ) : (
                                   <>Join <ArrowRight className="w-3 h-3 ml-1.5" /></>
                                 )}
@@ -760,25 +801,38 @@ function ClubsPageContent() {
                       
                       {club.membershipPlans?.filter(plan => plan.isActive).length > 0 && (() => {
                         const isJoined = isClubJoined(club._id)
+                        const isLimitReached = club.memberInfo?.isLimitReached || false
+                        const isDisabled = isJoined || isLimitReached
                         return (
-                        <Button 
-                          size="lg"
-                          onClick={() => handleJoinClub(club, club.membershipPlans?.filter(plan => plan.isActive)[0]!)}
-                          disabled={isJoined}
-                          className={cn(
-                            "flex-1 md:w-full h-14 rounded-2xl font-black shadow-xl transition-all active:scale-95",
-                            isJoined ? "bg-green-500/10 text-green-600 hover:bg-green-500/10" : "bg-gradient-to-r from-sky-600 to-indigo-700 text-white"
+                        <>
+                          {isLimitReached && !isJoined && club.memberInfo && (
+                            <div className="mb-2 p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
+                              <p className="text-xs font-bold text-red-700 dark:text-red-300 text-center">
+                                Maximum member limit reached ({club.memberInfo.currentCount}/{club.memberInfo.maxLimit})
+                              </p>
+                            </div>
                           )}
-                        >
+                          <Button 
+                            size="lg"
+                            onClick={() => handleJoinClub(club, club.membershipPlans?.filter(plan => plan.isActive)[0]!)}
+                            disabled={isDisabled}
+                            className={cn(
+                              "flex-1 md:w-full h-14 rounded-2xl font-black shadow-xl transition-all active:scale-95",
+                              isJoined ? "bg-green-500/10 text-green-600 hover:bg-green-500/10" : isLimitReached ? "bg-gray-300 text-gray-500 cursor-not-allowed" : "bg-gradient-to-r from-sky-600 to-indigo-700 text-white"
+                            )}
+                          >
                             {isJoined ? (
                               <>
                                 <CheckCircle className="w-5 h-5 mr-2" />
                                 Already Joined
                               </>
+                            ) : isLimitReached ? (
+                              "Club Full"
                             ) : (
                               'Join Now'
                             )}
-                        </Button>
+                          </Button>
+                        </>
                         )
                       })()}
                     </div>
@@ -842,8 +896,13 @@ function ClubsPageContent() {
                   <div className="grid gap-4 md:grid-cols-2">
                     {selectedClub.membershipPlans?.filter(plan => plan.isActive).map((plan) => {
                       const isJoined = isClubJoined(selectedClub._id)
+                      const isLimitReached = selectedClub.memberInfo?.isLimitReached || false
+                      const isDisabled = isJoined || isLimitReached
                       return (
-                      <Card key={plan._id} className={`border-2 transition-colors ${isJoined ? 'border-green-300 bg-green-50/50 dark:bg-green-950/20' : 'hover:border-blue-300'}`}>
+                      <Card key={plan._id} className={cn(
+                        "border-2 transition-colors",
+                        isJoined ? "border-green-300 bg-green-50/50 dark:bg-green-950/20" : isLimitReached ? "border-red-300 bg-red-50/50 dark:bg-red-950/20" : "hover:border-blue-300"
+                      )}>
                         <CardHeader>
                           <div className="flex items-center justify-between">
                             <CardTitle className="text-lg flex items-center gap-2">
@@ -852,6 +911,11 @@ function ClubsPageContent() {
                                 <Badge className="bg-green-100 text-green-800 border-green-200">
                                   <CheckCircle className="w-3 h-3 mr-1" />
                                   Joined
+                                </Badge>
+                              )}
+                              {isLimitReached && !isJoined && (
+                                <Badge className="bg-red-100 text-red-800 border-red-200">
+                                  Full
                                 </Badge>
                               )}
                             </CardTitle>
@@ -867,6 +931,14 @@ function ClubsPageContent() {
                         </CardHeader>
                         <CardContent className="space-y-4">
                           <p className="text-muted-foreground">{plan.description}</p>
+                          
+                          {isLimitReached && !isJoined && selectedClub.memberInfo && (
+                            <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-lg">
+                              <p className="text-sm font-bold text-red-700 dark:text-red-300">
+                                Maximum member limit reached ({selectedClub.memberInfo.currentCount}/{selectedClub.memberInfo.maxLimit})
+                              </p>
+                            </div>
+                          )}
                           
                           <div className="space-y-2">
                             <h4 className="font-semibold text-sm">Features:</h4>
@@ -905,15 +977,20 @@ function ClubsPageContent() {
                           </div>
                           
                           <Button 
-                            className={`w-full ${isJoined ? 'opacity-50 cursor-not-allowed' : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700'}`}
+                            className={cn(
+                              "w-full",
+                              isJoined || isLimitReached ? "opacity-50 cursor-not-allowed bg-gray-300 text-gray-500" : "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                            )}
                             onClick={() => handleJoinClub(selectedClub, plan)}
-                            disabled={isJoined}
+                            disabled={isDisabled}
                           >
                             {isJoined ? (
                               <>
                                 <CheckCircle className="w-4 h-4 mr-2" />
                                 Already Joined
                               </>
+                            ) : isLimitReached ? (
+                              "Club Full"
                             ) : (
                               <>
                                 Join with {plan.name}

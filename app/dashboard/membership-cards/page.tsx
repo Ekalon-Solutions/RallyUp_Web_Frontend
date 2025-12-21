@@ -654,7 +654,7 @@ export default function MembershipCardsPage() {
             <TabsList>
               <TabsTrigger value="preview">Live Preview</TabsTrigger>
               <TabsTrigger value="create">Create Card</TabsTrigger>
-              <TabsTrigger value="customize">Customize</TabsTrigger>
+              <TabsTrigger value="customize">Customize Default Card</TabsTrigger>
               <TabsTrigger value="manage">Manage Cards</TabsTrigger>
               {/* <TabsTrigger value="settings">Settings</TabsTrigger> */}
             </TabsList>
@@ -955,12 +955,11 @@ export default function MembershipCardsPage() {
             </TabsContent> */}
           </Tabs>
         </div>
-      </DashboardLayout>
 
       {/* Edit Card Modal */}
       {editingCard && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-background border rounded-lg w-full max-w-md max-h-[90vh] overflow-hidden flex flex-col">
+          <div className="bg-background border rounded-lg w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
             <div className="flex justify-between items-center mb-4 p-6 pb-4">
               <h3 className="text-lg font-semibold text-foreground">Edit Membership Card</h3>
               <Button
@@ -974,7 +973,9 @@ export default function MembershipCardsPage() {
               </Button>
             </div>
             
-            <div className="space-y-4 p-6 pt-0 overflow-y-auto flex-1">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6 pt-0 overflow-y-auto flex-1">
+              {/* Left Column - Input Fields */}
+              <div className="space-y-4">
 
 
               <div>
@@ -1086,7 +1087,7 @@ export default function MembershipCardsPage() {
                     id="customLogo"
                     type="file"
                     accept="image/*"
-                    onChange={(e) => handleCustomLogoChange(e.target.files?.[0])}
+                    onChange={(e) => handleCustomLogoChange(e.target.files?.[0] ?? null)}
                     className="mt-2"
                   />
                   
@@ -1127,33 +1128,37 @@ export default function MembershipCardsPage() {
                   )}
                 </div>
               </div>
+              </div>
 
-              {/* Live Preview in Edit Modal */}
-              <div className="pt-4 border-t">
-                <Label className="text-sm font-medium">Live Preview</Label>
-                <div className="mt-3 flex justify-center">
-                  <div className="w-full max-w-xs">
-                    <MembershipCard
-                      cardData={editingCard}
-                      cardStyle={editingCard.card.cardStyle}
-                      showLogo={editingCard.card.customization?.showLogo ?? true}
-                    />
+              {/* Right Column - Preview */}
+              <div className="lg:sticky lg:top-0 lg:self-start">
+                <div className="border rounded-lg p-6 bg-muted/20">
+                  <Label className="text-sm font-medium mb-4 block">Live Preview</Label>
+                  <div className="flex justify-center">
+                    <div className="w-full max-w-sm">
+                      <MembershipCard
+                        cardData={editingCard}
+                        cardStyle={editingCard.card.cardStyle}
+                        showLogo={editingCard.card.customization?.showLogo ?? true}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <div className="flex justify-end space-x-2 mt-6 p-6 pt-4 border-t bg-muted/20">
-              <Button variant="outline" onClick={handleCancelEdit}>
-                Cancel
-              </Button>
-              <Button onClick={handleSaveEdit} disabled={isEditing}>
-                {isEditing ? "Saving..." : "Save Changes"}
-              </Button>
+              <div className="flex justify-end space-x-2 mt-6 p-6 pt-4 border-t bg-muted/20">
+                <Button variant="outline" onClick={handleCancelEdit}>
+                  Cancel
+                </Button>
+                <Button onClick={handleSaveEdit} disabled={isEditing}>
+                  {isEditing ? "Saving..." : "Save Changes"}
+                </Button>
+              </div>
             </div>
           </div>
         </div>
-      )}
+        )}
+      </DashboardLayout>
     </ProtectedRoute>
   )
 }

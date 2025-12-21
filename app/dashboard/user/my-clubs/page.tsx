@@ -357,7 +357,7 @@ export default function MyClubsPage() {
                       <CreditCard className="h-4 w-4 mr-2" />
                       Upgrade Plans
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => router.push('/dashboard/user/membership-card')}>
+                    <Button variant="outline" size="sm" onClick={() => router.push('/dashboard/membership-cards')}>
                       <Award className="h-4 w-4 mr-2" />
                       View Membership Cards
                     </Button>

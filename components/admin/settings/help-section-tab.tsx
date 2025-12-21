@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useRef, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Save, HelpCircle, Plus, Trash2, ChevronDown, ChevronUp, Mail, Phone, MessageCircle } from "lucide-react"
 import { toast } from "sonner"
+import { useAuth } from "@/contexts/auth-context"
+import { apiClient } from "@/lib/api"
 
 interface FAQ {
   id: string
@@ -23,30 +25,85 @@ interface ContactInfo {
 }
 
 export function HelpSectionTab() {
+  const { user } = useAuth()
+  const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [faqs, setFaqs] = useState<FAQ[]>([
-    {
-      id: "1",
-      question: "How do I renew my membership?",
-      answer: "Navigate to your dashboard, select 'Browse Plans', and click on your current plan to renew. You can upgrade or downgrade based on your membership status.",
-      expanded: false
-    }
-  ])
+  const [faqs, setFaqs] = useState<FAQ[]>([])
   
   const [contactInfo, setContactInfo] = useState<ContactInfo>({
-    email: "support@rallyup.com",
-    phone: "+1 (555) 123-4567",
-    supportHours: "Monday - Friday, 9:00 AM - 6:00 PM EST"
+    email: "",
+    phone: "",
+    supportHours: ""
   })
 
+  const faqRefs = useRef<{ [key: string]: HTMLDivElement | null }>({})
+  const clubId = (user as any)?.club?._id || (user as any)?.club_id?._id
+
+  useEffect(() => {
+    if (clubId) {
+      loadSettings()
+    }
+  }, [clubId])
+
+  const loadSettings = async () => {
+    if (!clubId) return
+
+    try {
+      setLoading(true)
+      const response = await apiClient.getClubSettings(clubId)
+      
+      if (response.success && response.data) {
+        const actualData = response.data.data || response.data
+        const helpSection = actualData.helpSection || {
+          faqs: [],
+          contactInfo: {
+            email: "",
+            phone: "",
+            supportHours: ""
+          }
+        }
+
+        const loadedFAQs = helpSection.faqs.map((faq: any, index: number) => ({
+          id: `faq-${index}-${Date.now()}`,
+          question: faq.question || "",
+          answer: faq.answer || "",
+          expanded: false
+        }))
+
+        setFaqs(loadedFAQs.length > 0 ? loadedFAQs : [])
+        setContactInfo({
+          email: helpSection.contactInfo?.email || "",
+          phone: helpSection.contactInfo?.phone || "",
+          supportHours: helpSection.contactInfo?.supportHours || ""
+        })
+      }
+    } catch (error) {
+      toast.error("Failed to load help section")
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const addFAQ = () => {
+    const newId = Date.now().toString()
     const newFAQ: FAQ = {
-      id: Date.now().toString(),
+      id: newId,
       question: "",
       answer: "",
       expanded: true
     }
     setFaqs([...faqs, newFAQ])
+    
+    setTimeout(() => {
+      const element = faqRefs.current[newId]
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+        const input = element.querySelector(`#question-${newId}`) as HTMLInputElement
+        if (input) {
+          input.focus()
+        }
+      }
+    }, 100)
   }
 
   const removeFAQ = (id: string) => {
@@ -67,24 +124,56 @@ export function HelpSectionTab() {
   }
 
   const handleSave = async () => {
+    if (!clubId) {
+      toast.error("Club ID not found")
+      return
+    }
+
     try {
-      // Validate FAQs
-      const invalidFAQs = faqs.filter(faq => !faq.question.trim() || !faq.answer.trim())
+      const validFAQs = faqs.filter(faq => faq.question.trim() && faq.answer.trim())
+      const invalidFAQs = faqs.filter(faq => (!faq.question.trim() || !faq.answer.trim()) && (faq.question.trim() || faq.answer.trim()))
+      
       if (invalidFAQs.length > 0) {
-        toast.error("Please fill in all FAQ questions and answers")
+        toast.error("Please fill in all FAQ questions and answers completely")
         return
       }
 
       setSaving(true)
-      // TODO: Implement API call
-      // const response = await apiClient.updateHelpSection({ faqs, contactInfo })
-      toast.success("Help section saved successfully!")
+
+      const faqsToSave = validFAQs.map((faq, index) => ({
+        question: faq.question.trim(),
+        answer: faq.answer.trim(),
+        order: index
+      }))
+
+      const response = await apiClient.updateHelpSection(clubId, {
+        faqs: faqsToSave,
+        contactInfo: {
+          email: contactInfo.email.trim(),
+          phone: contactInfo.phone.trim(),
+          supportHours: contactInfo.supportHours.trim()
+        }
+      })
+
+      if (response.success) {
+        toast.success("Help section saved successfully!")
+        await loadSettings()
+      } else {
+        toast.error(response.error || "Failed to save help section")
+      }
     } catch (error) {
-      // console.error("Error saving help section:", error)
       toast.error("Failed to save help section")
     } finally {
       setSaving(false)
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    )
   }
 
   return (
@@ -117,8 +206,12 @@ export function HelpSectionTab() {
           ) : (
             <div className="space-y-3">
               {faqs.map((faq, index) => (
-                <Card key={faq.id} className="border-2">
-                  <CardHeader className="pb-3">
+                <div
+                  key={faq.id}
+                  ref={(el) => { faqRefs.current[faq.id] = el }}
+                >
+                  <Card className="border-2">
+                    <CardHeader className="pb-3">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 space-y-3">
                         <div className="flex items-center gap-2">
@@ -182,6 +275,7 @@ export function HelpSectionTab() {
                     </div>
                   </CardHeader>
                 </Card>
+                </div>
               ))}
             </div>
           )}

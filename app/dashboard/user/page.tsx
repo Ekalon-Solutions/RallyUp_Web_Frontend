@@ -1092,7 +1092,7 @@ export default function UserDashboardPage() {
                 <Button
                   variant="outline"
                   className="h-auto p-4 flex-col gap-2"
-                  onClick={() => window.location.href = "/dashboard/user/membership-card"}
+                  onClick={() => window.location.href = "/dashboard/membership-cards"}
                 >
                   <CreditCard className="w-6 h-6" />
                   <span>View Card</span>
