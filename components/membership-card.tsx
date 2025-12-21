@@ -240,7 +240,9 @@ export function MembershipCard({
         {/* Header */}
         <div className="flex justify-between items-start mb-3">
           <div className="flex items-center gap-2">
-            {showLogo && (card.customization?.customLogo || club.logo) && (
+            {/* Use customization.showLogo if available, otherwise use prop */}
+            {((card.customization?.showLogo !== undefined ? card.customization.showLogo : showLogo) && 
+              (card.customization?.customLogo || club.logo)) && (
               <Avatar className={getLogoSize()}>
                 <AvatarImage 
                   src={card.customization?.customLogo || club.logo} 

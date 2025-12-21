@@ -6,10 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { apiClient } from '@/lib/api';
-import { getApiUrl } from '@/lib/config';
+import { getApiUrl, getBaseUrl } from '@/lib/config';
 import { MembershipCard } from '@/components/membership-card';
 import { Upload, Save, Eye, Palette, Type, Image as ImageIcon } from 'lucide-react';
 
@@ -55,6 +56,7 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
   const [secondaryColor, setSecondaryColor] = useState('#1e40af');
   const [fontFamily, setFontFamily] = useState('Inter');
   const [logoSize, setLogoSize] = useState<'small' | 'medium' | 'large'>('medium');
+  const [showLogo, setShowLogo] = useState(true);
   const [customLogo, setCustomLogo] = useState<string | null>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
 
@@ -96,7 +98,12 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
               if (custom.secondaryColor) setSecondaryColor(custom.secondaryColor);
               if (custom.fontFamily) setFontFamily(custom.fontFamily);
               if (custom.logoSize) setLogoSize(custom.logoSize);
-              if (custom.customLogo) setCustomLogo(custom.customLogo);
+              if (custom.showLogo !== undefined) setShowLogo(custom.showLogo);
+              if (custom.customLogo) {
+                // Ensure the logo URL is properly formatted
+                const logoUrl = custom.customLogo.startsWith('http') ? custom.customLogo : `${getBaseUrl()}${custom.customLogo}`;
+                setCustomLogo(logoUrl);
+              }
               
               // Check if using preset or custom colors
               const preset = CARD_STYLES.find(s => 
@@ -277,7 +284,9 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
       }
 
       const data = await response.json();
-      setCustomLogo(data.url);
+      // Ensure the URL is properly formatted (prepend base URL if it's a relative path)
+      const logoUrl = data.url?.startsWith('http') ? data.url : `${getBaseUrl()}${data.url}`;
+      setCustomLogo(logoUrl);
       
       toast({
         title: "Success",
@@ -317,6 +326,7 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
         secondaryColor,
         fontFamily,
         logoSize,
+        showLogo,
         customLogo: customLogo || undefined
       };
 
@@ -377,6 +387,7 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
         secondaryColor,
         fontFamily,
         logoSize,
+        showLogo,
         customLogo
       }
     }
@@ -530,6 +541,21 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Show Logo Toggle */}
+              <div className="flex items-center justify-between space-x-2 p-4 border rounded-lg">
+                <div className="space-y-0.5">
+                  <Label htmlFor="showLogo">Show Club Logo</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Toggle to show or hide the club logo on membership cards
+                  </p>
+                </div>
+                <Switch
+                  id="showLogo"
+                  checked={showLogo}
+                  onCheckedChange={setShowLogo}
+                />
+              </div>
             </TabsContent>
 
             <TabsContent value="logo" className="space-y-6">
@@ -596,7 +622,7 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
                   <MembershipCard
                     cardData={previewData}
                     cardStyle={selectedStyle === 'custom' ? 'default' : selectedStyle as 'default' | 'premium' | 'vintage' | 'modern' | 'elite' | 'emerald'}
-                    showLogo={true}
+                    showLogo={showLogo}
                     userName="John Doe"
                     membershipId={previewData.card.membershipId}
                   />
@@ -616,6 +642,7 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
                 setSecondaryColor('#1e40af');
                 setFontFamily('Inter');
                 setLogoSize('medium');
+                setShowLogo(true);
                 setCustomLogo(null);
               }}
             >
