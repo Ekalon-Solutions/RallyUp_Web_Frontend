@@ -964,7 +964,7 @@ export default function AuthPage() {
                     </div>
                     
                     <div className="grid grid-cols-3 gap-2">
-                      <div className="space-y-2">
+                      <div className="space-y-2 flex flex-col justify-between">
                         <Label htmlFor="user-login-country-code" className="text-white font-medium">Country Code</Label>
                         <div className="flex items-center gap-2">
                           <Phone className="w-4 h-4 text-slate-300 flex-shrink-0" />
@@ -979,7 +979,7 @@ export default function AuthPage() {
                           />
                         </div>
                       </div>
-                      <div className="col-span-2 space-y-2">
+                      <div className="col-span-2 space-y-2 flex flex-col justify-between">
                         <Label htmlFor="user-login-phone" className="text-white font-medium">Phone Number</Label>
                         <div className="flex items-center gap-2">
                           <Phone className="w-4 h-4 text-slate-300 flex-shrink-0" />
@@ -1212,7 +1212,7 @@ export default function AuthPage() {
                         </div>
                         
                         <div className="grid grid-cols-3 gap-2">
-                          <div className="space-y-2">
+                          <div className="space-y-2 flex flex flex-col justify-between">
                             <Label htmlFor="user-country-code" className="text-white font-medium">Country Code</Label>
                             <div className="flex items-center gap-2">
                               <Phone className="w-4 h-4 text-slate-300 flex-shrink-0" />
@@ -1226,7 +1226,7 @@ export default function AuthPage() {
                               />
                             </div>
                           </div>
-                          <div className="col-span-2 space-y-2">
+                          <div className="col-span-2 space-y-2 flex flex-col justify-between">
                             <Label htmlFor="user-phone" className="text-white font-medium">Phone Number</Label>
                             <div className="flex items-center gap-2">
                               <Phone className="w-4 h-4 text-slate-300 flex-shrink-0" />
@@ -1622,7 +1622,7 @@ export default function AuthPage() {
                     </div>
                     
                     <div className="grid grid-cols-3 gap-2">
-                      <div className="space-y-2">
+                      <div className="space-y-2" flex-col justify-between>
                         <Label htmlFor="admin-login-country-code" className="text-white font-medium">Country Code</Label>
                         <div className="flex items-center gap-2">
                           <Phone className="w-4 h-4 text-slate-300 flex-shrink-0" />
@@ -1637,7 +1637,7 @@ export default function AuthPage() {
                           />
                         </div>
                       </div>
-                      <div className="col-span-2 space-y-2">
+                      <div className="col-span-2 space-y-2 flex flex-col justify-between">
                         <Label htmlFor="admin-login-phone" className="text-white font-medium">Phone Number</Label>
                         <div className="flex items-center gap-2">
                           <Phone className="w-4 h-4 text-slate-300 flex-shrink-0" />
@@ -1833,7 +1833,7 @@ export default function AuthPage() {
                     </div>
                     
                     <div className="grid grid-cols-3 gap-2">
-                      <div className="space-y-2">
+                      <div className="space-y-2 flex flex-col justify-between">
                         <Label htmlFor="admin-country-code" className="text-white font-medium">Country Code</Label>
                         <div className="flex items-center gap-2">
                           <Phone className="w-4 h-4 text-slate-300 flex-shrink-0" />
@@ -1847,7 +1847,7 @@ export default function AuthPage() {
                           />
                         </div>
                       </div>
-                      <div className="col-span-2 space-y-2">
+                      <div className="col-span-2 space-y-2 flex flex-col justify-between">
                         <Label htmlFor="admin-phone" className="text-white font-medium">Phone Number</Label>
                         <div className="flex items-center gap-2">
                           <Phone className="w-4 h-4 text-slate-300 flex-shrink-0" />
@@ -1979,7 +1979,7 @@ export default function AuthPage() {
                     </div>
                     
                     <div className="grid grid-cols-3 gap-2">
-                      <div className="space-y-2">
+                      <div className="space-y-2 flex flex-col justify-between">
                         <Label htmlFor="system-owner-login-country-code" className="text-white font-medium">Country Code</Label>
                         <div className="flex items-center gap-2">
                           <Phone className="w-4 h-4 text-slate-300 flex-shrink-0" />
@@ -1994,7 +1994,7 @@ export default function AuthPage() {
                           />
                         </div>
                       </div>
-                      <div className="col-span-2 space-y-2">
+                      <div className="col-span-2 space-y-2 flex flex-col justify-between">
                         <Label htmlFor="system-owner-login-phone" className="text-white font-medium">Phone Number</Label>
                         <div className="flex items-center gap-2">
                           <Phone className="w-4 h-4 text-slate-300 flex-shrink-0" />
@@ -2195,7 +2195,7 @@ export default function AuthPage() {
                     </div>
                     
                     <div className="grid grid-cols-3 gap-2">
-                      <div className="space-y-2">
+                      <div className="space-y-2 flex flex-col justify-between">
                         <Label htmlFor="system-owner-country-code" className="text-white font-medium">Country Code</Label>
                         <div className="flex items-center gap-2">
                           <Phone className="w-4 h-4 text-slate-300 flex-shrink-0" />
@@ -2209,7 +2209,7 @@ export default function AuthPage() {
                           />
                         </div>
                       </div>
-                      <div className="col-span-2 space-y-2">
+                      <div className="col-span-2 space-y-2 flex flex-col justify-between">
                         <Label htmlFor="system-owner-phone" className="text-white font-medium">Phone Number</Label>
                         <div className="flex items-center gap-2">
                           <Phone className="w-4 h-4 text-slate-300 flex-shrink-0" />

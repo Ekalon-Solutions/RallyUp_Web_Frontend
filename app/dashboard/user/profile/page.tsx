@@ -48,7 +48,7 @@ export default function UserProfilePage() {
   const [isVerifying, setIsVerifying] = useState(false)
 
   useEffect(() => {
-    if (user) {
+        if (user) {
       setProfileForm({
         name: user.name || "",
         email: user.email || "",
@@ -367,11 +367,11 @@ export default function UserProfilePage() {
                         <div>
                           <Label className="text-sm font-medium text-muted-foreground">Phone Verification</Label>
                           <div className="flex flex-col gap-2">
-                            <div className="flex items-center gap-2">
+                            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
                               {user.isPhoneVerified ? (
-                                <CheckCircle className="w-4 h-4 text-green-500" />
+                                <CheckCircle className="hidden sm:inline-block w-4 h-4 text-green-500" />
                               ) : (
-                                <XCircle className="w-4 h-4 text-red-500" />
+                                <XCircle className="hidden sm:inline-block w-4 h-4 text-red-500" />
                               )}
                               <Badge variant={user.isPhoneVerified ? "default" : "secondary"}>
                                 {user.isPhoneVerified ? "Verified" : "Not Verified"}

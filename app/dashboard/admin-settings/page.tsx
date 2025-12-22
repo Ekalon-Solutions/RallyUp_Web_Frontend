@@ -31,7 +31,7 @@ export default function AdminSettingsPage() {
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className="flex overflow-auto justify-start sm:justify-between w-full grid-cols-6">
               <TabsTrigger value="website" className="flex items-center gap-2">
                 <Globe className="h-4 w-4" />
                 Website

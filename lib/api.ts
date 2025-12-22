@@ -781,14 +781,14 @@ class ApiClient {
     };
   }): Promise<ApiResponse<User>> {
     const userStr = localStorage.getItem('user');
+    const userRole = JSON.parse(userStr || "{}")?.role || localStorage.getItem('userType');
     let endpoint = '/users/profile';
     
-    if (userStr) {
+    if (userRole) {
       try {
-        const user = JSON.parse(userStr);
-        if (user.role === 'system_owner') {
+        if (userRole === 'system_owner') {
           endpoint = '/system-owner/profile';
-        } else if (user.role === 'admin' || user.role === 'super_admin') {
+        } else if (userRole === 'admin' || userRole === 'super_admin') {
           endpoint = '/admin/profile';
         }
       } catch (e) {

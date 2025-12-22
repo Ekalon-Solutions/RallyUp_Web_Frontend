@@ -788,7 +788,7 @@ function ClubsPageContent() {
                       </div>
                     </div>
                     
-                    <div className="flex flex-row md:flex-col items-center gap-4 w-full md:w-auto mt-4 md:mt-0">
+                    <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto mt-4 md:mt-0">
                       <Button
                         variant="outline"
                         size="lg"
@@ -886,8 +886,8 @@ function ClubsPageContent() {
               </DialogHeader>
 
               <Tabs defaultValue="plans" className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="plans">Membership Plans</TabsTrigger>
+                <TabsList className="grid w-full grid-cols-3 h-auto">
+                  <TabsTrigger className="whitespace-normal" value="plans">Membership Plans</TabsTrigger>
                   <TabsTrigger value="info">Club Info</TabsTrigger>
                   <TabsTrigger value="features">Features</TabsTrigger>
                 </TabsList>
@@ -1150,8 +1150,7 @@ function ClubsPageContent() {
                   className="h-12"
                 />
               </div>
-
-              <div className="space-y-2"></div>
+              
               <div className="space-y-2">
                 <Label htmlFor="first_name">First Name</Label>
                 <Input
@@ -1199,7 +1198,7 @@ function ClubsPageContent() {
                 </select>
               </div>
 
-              <div className="sm:col-span-2 space-y-2">
+              <div className="space-y-2">
                 <Label htmlFor="email">Email Address</Label>
                 <Input
                   id="email"
@@ -1211,18 +1210,18 @@ function ClubsPageContent() {
                 />
               </div>
 
-              <div className="col-span-2 sm:col-span-2 flex gap-2">
-                <div className="w-1/3 space-y-2">
+              <div className="grid grid-cols-1 gap-2">
+                <div className="space-y-2">
                   <Label htmlFor="countryCode">Country Code</Label>
                   <Input
                     id="countryCode"
                     value={registrationData.countryCode}
                     onChange={(e) => setRegistrationData({ ...registrationData, countryCode: e.target.value })}
                     required
-                    className="h-12"
+                    className="h-12 w-full"
                   />
                 </div>
-                <div className="w-2/3 space-y-2">
+                <div className="space-y-2">
                   <Label htmlFor="phone_number">Phone Number</Label>
                   <Input
                     id="phone_number"
@@ -1230,7 +1229,7 @@ function ClubsPageContent() {
                     value={registrationData.phone_number}
                     onChange={(e) => setRegistrationData({ ...registrationData, phone_number: e.target.value })}
                     required
-                    className="h-12"
+                    className="h-12 w-full"
                   />
                   {registrationErrors.phone_number && (
                     <p className="text-destructive text-sm mt-1">{registrationErrors.phone_number}</p>
@@ -1238,7 +1237,7 @@ function ClubsPageContent() {
                 </div>
               </div>
 
-              <div className="sm:col-span-2 space-y-2">
+              <div className="space-y-2">
                 <Label htmlFor="address_line1">Address Line 1</Label>
                 <Input
                   id="address_line1"
@@ -1248,7 +1247,7 @@ function ClubsPageContent() {
                 />
               </div>
 
-              <div className="sm:col-span-2 space-y-2">
+              <div className="space-y-2">
                 <Label htmlFor="address_line2">Address Line 2</Label>
                 <Input
                   id="address_line2"

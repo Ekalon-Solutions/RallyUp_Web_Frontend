@@ -247,7 +247,7 @@ export function PollCard({ poll, onVote, showResults = false }: PollCardProps) {
                 </p>
               )}
             </div>
-            <div className="flex items-center gap-2 ml-4">
+            <div className="flex flex-col sm:flex-row items-center gap-2 ml-4">
               <Badge className={getStatusColor(poll.status)}>
                 {poll.status}
               </Badge>

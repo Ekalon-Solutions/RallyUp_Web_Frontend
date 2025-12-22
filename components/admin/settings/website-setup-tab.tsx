@@ -235,7 +235,7 @@ export function WebsiteSetupTab() {
               </Button>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-col sm:flex-row">
             <Button 
               onClick={copyPublicUrl}
               variant="outline"

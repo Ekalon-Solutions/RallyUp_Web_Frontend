@@ -266,9 +266,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(prevUser => ({
           ...prevUser,
           ...updatedUser,
-          name: updatedUser.first_name && updatedUser.last_name 
+          name: updatedUser.role==='user' ? (updatedUser.first_name && updatedUser.last_name
             ? `${updatedUser.first_name} ${updatedUser.last_name}`.trim()
-            : prevUser?.name || '',
+            : prevUser?.name || '') : updatedUser.name || prevUser?.name,
           phone_number: updatedUser.phone_number || prevUser?.phone_number || '',
           countryCode: updatedUser.phone_country_code || prevUser?.countryCode || '+1',
         } as any));
