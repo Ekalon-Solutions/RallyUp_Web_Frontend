@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,23 +9,11 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { 
   UserPlus, 
-  Users, 
-  Mail, 
-  Phone, 
-  Building, 
-  Star, 
-  Gift, 
   Target, 
-  CheckCircle, 
   ArrowRight,
-  ArrowLeft,
-  Send,
-  Settings,
-  Calendar,
-  MessageSquare
+  Settings
 } from "lucide-react"
 import { toast } from "sonner"
 import { getApiUrl, API_ENDPOINTS } from "@/lib/config"
@@ -38,17 +26,6 @@ interface OnboardingStep {
   isRequired: boolean
 }
 
-interface OnboardingFlow {
-  _id: string
-  name: string
-  description: string
-  steps: OnboardingStep[]
-  targetAudience: 'new_members' | 'existing_members' | 'all'
-  isActive: boolean
-  estimatedDuration: number
-  createdAt: string
-}
-
 interface OnboardingModalProps {
   isOpen: boolean
   onClose: () => void
@@ -56,10 +33,7 @@ interface OnboardingModalProps {
 }
 
 export default function OnboardingModal({ isOpen, onClose, onFlowCreated }: OnboardingModalProps) {
-  const [activeTab, setActiveTab] = useState("create")
   const [loading, setLoading] = useState(false)
-  const [flows, setFlows] = useState<OnboardingFlow[]>([])
-  const [selectedFlow, setSelectedFlow] = useState<OnboardingFlow | null>(null)
   
   // Form states
   const [flowName, setFlowName] = useState("")
@@ -89,30 +63,6 @@ export default function OnboardingModal({ isOpen, onClose, onFlowCreated }: Onbo
       isRequired: true
     }
   ])
-
-  useEffect(() => {
-    if (isOpen) {
-      fetchOnboardingFlows()
-    }
-  }, [isOpen])
-
-  const fetchOnboardingFlows = async () => {
-    try {
-      const token = localStorage.getItem('token')
-      const response = await fetch(getApiUrl(API_ENDPOINTS.onboarding.flows), {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      })
-      
-      if (response.ok) {
-        const data = await response.json()
-        setFlows(data.flows || [])
-      }
-    } catch (error) {
-      // console.error('Error fetching onboarding flows:', error)
-    }
-  }
 
   const addStep = () => {
     const newStep: OnboardingStep = {
@@ -172,7 +122,6 @@ export default function OnboardingModal({ isOpen, onClose, onFlowCreated }: Onbo
         toast.success("Onboarding flow created successfully!")
         resetForm()
         onFlowCreated?.()
-        setActiveTab("manage")
       } else {
         const data = await response.json()
         toast.error(data.message || "Failed to create onboarding flow")
@@ -215,52 +164,6 @@ export default function OnboardingModal({ isOpen, onClose, onFlowCreated }: Onbo
     ])
   }
 
-  const toggleFlowStatus = async (flowId: string, isActive: boolean) => {
-    try {
-      const token = localStorage.getItem('token')
-      const response = await fetch(getApiUrl(API_ENDPOINTS.onboarding.flows) + `/${flowId}/toggle`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ isActive }),
-      })
-
-      if (response.ok) {
-        toast.success(`Flow ${isActive ? 'activated' : 'deactivated'} successfully!`)
-        fetchOnboardingFlows()
-      }
-    } catch (error) {
-      // console.error('Error toggling flow status:', error)
-      toast.error("Failed to update flow status")
-    }
-  }
-
-  const deleteFlow = async (flowId: string) => {
-    if (!confirm("Are you sure you want to delete this onboarding flow? This action cannot be undone.")) {
-      return
-    }
-
-    try {
-      const token = localStorage.getItem('token')
-      const response = await fetch(getApiUrl(API_ENDPOINTS.onboarding.flows) + `/${flowId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      })
-
-      if (response.ok) {
-        toast.success("Onboarding flow deleted successfully!")
-        fetchOnboardingFlows()
-      }
-    } catch (error) {
-      // console.error('Error deleting flow:', error)
-      toast.error("Failed to delete flow")
-    }
-  }
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
@@ -274,14 +177,7 @@ export default function OnboardingModal({ isOpen, onClose, onFlowCreated }: Onbo
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="create">Create Flow</TabsTrigger>
-            <TabsTrigger value="manage">Manage Flows</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="create" className="space-y-6">
+        <div className="space-y-6">
             <div className="grid gap-6 md:grid-cols-2">
               {/* Basic Information */}
               <Card>
@@ -420,146 +316,7 @@ export default function OnboardingModal({ isOpen, onClose, onFlowCreated }: Onbo
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </div>
-          </TabsContent>
-
-          <TabsContent value="manage" className="space-y-4">
-            <div className="grid gap-4">
-              {flows.map((flow) => (
-                <Card key={flow._id} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <h3 className="font-semibold">{flow.name}</h3>
-                          <Badge variant={flow.isActive ? "default" : "secondary"}>
-                            {flow.isActive ? "Active" : "Inactive"}
-                          </Badge>
-                          <Badge variant="outline">
-                            {flow.targetAudience.replace('_', ' ')}
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-muted-foreground mb-2">
-                          {flow.description}
-                        </p>
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <Target className="w-4 h-4" />
-                            {flow.steps.length} steps
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Calendar className="w-4 h-4" />
-                            {flow.estimatedDuration} min
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Calendar className="w-4 h-4" />
-                            {new Date(flow.createdAt).toLocaleDateString()}
-                          </span>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant={flow.isActive ? "outline" : "default"}
-                          size="sm"
-                          onClick={() => toggleFlowStatus(flow._id, !flow.isActive)}
-                        >
-                          {flow.isActive ? "Deactivate" : "Activate"}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setSelectedFlow(flow)}
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => deleteFlow(flow._id)}
-                        >
-                          Delete
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-              
-              {flows.length === 0 && (
-                <div className="text-center py-8">
-                  <UserPlus className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No Onboarding Flows</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Create your first onboarding flow to help new members get started
-                  </p>
-                  <Button onClick={() => setActiveTab("create")}>
-                    <UserPlus className="w-4 h-4 mr-2" />
-                    Create First Flow
-                  </Button>
-                </div>
-              )}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="analytics" className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-3">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm font-medium">Total Flows</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{flows.length}</div>
-                  <p className="text-xs text-muted-foreground">
-                    Active onboarding flows
-                  </p>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm font-medium">Active Flows</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {flows.filter(f => f.isActive).length}
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Currently running
-                  </p>
-                </CardContent>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm font-medium">Avg Duration</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">
-                    {flows.length > 0 
-                      ? Math.round(flows.reduce((sum, f) => sum + f.estimatedDuration, 0) / flows.length)
-                      : 0
-                    } min
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Per flow
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-8 text-muted-foreground">
-                  <MessageSquare className="w-12 h-12 mx-auto mb-4" />
-                  <p>Analytics data will appear here as members complete onboarding flows</p>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+        </div>
       </DialogContent>
     </Dialog>
   )

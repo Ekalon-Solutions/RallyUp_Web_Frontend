@@ -244,14 +244,26 @@ export default function MyClubsPage() {
                 </Card>
               ) : (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  {Array.isArray(memberships) && memberships.map((membership) => (
+                  {Array.isArray(memberships) && memberships.map((membership) => {
+                    const club = membership?.club_id
+                    const clubName = club?.name ?? 'Unknown Club'
+                    const clubDescription = club?.description ?? 'No description available'
+                    const clubStatus = club?.status ?? 'Unknown'
+                    const clubId = club?._id
+                    const level = membership?.membership_level_id
+                    const levelName = level?.name ?? membership?.level_name ?? 'Unknown Plan'
+                    const levelDescription = level?.description ?? 'No description available'
+                    const levelPrice = level?.price ?? 0
+                    const levelCurrency = level?.currency ?? 'USD'
+
+                    return (
                     <Card key={membership._id} className="hover:shadow-lg transition-shadow">
                       <CardHeader className="pb-3">
                         <div className="flex items-start justify-between">
                           <div className="space-y-1 flex-1">
-                            <CardTitle className="text-xl">{membership.club_id.name}</CardTitle>
+                            <CardTitle className="text-xl">{clubName}</CardTitle>
                             <CardDescription className="text-sm">
-                              {membership.club_id.description}
+                              {clubDescription}
                             </CardDescription>
                           </div>
                           <div className="flex flex-col gap-2 ml-3">
@@ -264,7 +276,7 @@ export default function MyClubsPage() {
                         {/* Club Info */}
                         <div className="grid grid-cols-2 gap-3 text-sm">
                           <div className="flex items-center gap-2">
-                            <Badge variant="outline">{membership.club_id.status}</Badge>
+                            <Badge variant="outline">{clubStatus}</Badge>
                           </div>
                           <div className="flex items-center gap-2">
                             <Badge variant="secondary">{membership.level_name}</Badge>
@@ -277,30 +289,30 @@ export default function MyClubsPage() {
                             <h4 className="font-semibold text-sm">Current Plan</h4>
                             <div className="text-right">
                               <div className="font-semibold">
-                                {formatPrice(membership.membership_level_id.price, membership.membership_level_id.currency)}
+                                {formatPrice(levelPrice, levelCurrency)}
                               </div>
                             </div>
                           </div>
                           
                           <div className="space-y-1">
-                            <div className="text-sm font-medium">{membership.membership_level_id.name}</div>
-                            <div className="text-xs text-muted-foreground">{membership.membership_level_id.description}</div>
+                            <div className="text-sm font-medium">{levelName}</div>
+                            <div className="text-xs text-muted-foreground">{levelDescription}</div>
                             
                             {/* Key Features */}
-                            {membership.membership_level_id.features && (
+                            {level?.features && (
                               <div className="flex flex-wrap gap-1">
-                                {membership.membership_level_id.features.eventsAccess && (
+                                {level.features.eventsAccess && (
                                   <Badge variant="outline" className="text-xs">Events</Badge>
                                 )}
-                                {membership.membership_level_id.features.merchandiseDiscount && membership.membership_level_id.features.merchandiseDiscount > 0 && (
+                                {level.features.merchandiseDiscount && level.features.merchandiseDiscount > 0 && (
                                   <Badge variant="outline" className="text-xs">
-                                    {membership.membership_level_id.features.merchandiseDiscount}% Off Merch
+                                    {level.features.merchandiseDiscount}% Off Merch
                                   </Badge>
                                 )}
-                                {membership.membership_level_id.features.pollsParticipation && (
+                                {level.features.pollsParticipation && (
                                   <Badge variant="outline" className="text-xs">Polls</Badge>
                                 )}
-                                {membership.membership_level_id.features.specialBadge && (
+                                {level.features.specialBadge && (
                                   <Badge variant="outline" className="text-xs">Special Badge</Badge>
                                 )}
                               </div>
@@ -327,7 +339,8 @@ export default function MyClubsPage() {
                           <Button 
                             variant="outline" 
                             size="sm" 
-                            onClick={() => navigateToClub(membership.club_id._id, membership.club_id.name)}
+                            onClick={() => clubId && navigateToClub(clubId, clubName)}
+                            disabled={!clubId}
                             className="flex-1"
                           >
                             <Eye className="h-4 w-4 mr-2" />
@@ -336,7 +349,8 @@ export default function MyClubsPage() {
                         </div>
                       </CardContent>
                     </Card>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
             </>
@@ -357,7 +371,7 @@ export default function MyClubsPage() {
                       <CreditCard className="h-4 w-4 mr-2" />
                       Upgrade Plans
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => router.push('/dashboard/membership-cards')}>
+                    <Button variant="outline" size="sm" onClick={() => router.push('/dashboard/user/membership-card')}>
                       <Award className="h-4 w-4 mr-2" />
                       View Membership Cards
                     </Button>

@@ -328,7 +328,7 @@ export default function MembersPage() {
   }
 
   return (
-    <ProtectedRoute requireAdmin={true}>
+    <ProtectedRoute>
       <DashboardLayout>
         <div className="space-y-6">
           {/* Header */}

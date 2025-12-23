@@ -623,7 +623,7 @@ export default function MembershipCardsPage() {
 
   if (loading) {
     return (
-      <ProtectedRoute>
+      <ProtectedRoute requireAdmin>
         <DashboardLayout>
           <div className="p-6 space-y-6">
             <div className="flex justify-center items-center h-64">
@@ -636,7 +636,7 @@ export default function MembershipCardsPage() {
   }
 
   return (
-    <ProtectedRoute>
+    <ProtectedRoute requireAdmin>
       <DashboardLayout>
         <div className="p-6 space-y-6">
           <div className="flex justify-between items-center">

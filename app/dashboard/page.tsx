@@ -5,17 +5,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Users, Calendar, ShoppingBag, MessageSquare, BadgeIcon as IdCard, Bus, Building2, Loader2, Zap } from "lucide-react"
+import { Users, Calendar, ShoppingBag, Building2, Loader2 } from "lucide-react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
 import { useAuth } from "@/contexts/auth-context"
 import { CreateNewsModal } from "@/components/modals/create-news-modal"
-import { CreateEventModal } from "@/components/modals/create-event-modal"
 import { VolunteerQuickSignup } from "@/components/volunteer/volunteer-quick-signup"
 import { VolunteerOpportunitiesWidget } from "@/components/volunteer/volunteer-opportunities-widget"
-import { PromotionFeed } from "@/components/promotion-feed"
 import { PollsWidget } from "@/components/polls-widget"
-import { calculateUserProfileCompletion } from "@/lib/user-completion"
+import { LatestEventsWidget } from "@/components/latest-events-widget"
+import { LatestNewsWidget } from "@/components/latest-news-widget"
 import { cn } from "@/lib/utils"
 import { getApiUrl } from "@/lib/config"
 import axios from "axios"
@@ -185,20 +184,9 @@ export default function DashboardPage() {
             </div>
           ) : null}
 
-          {/* Promotion Feed */}
-          {user && 'club' in user && user.club && (
-            <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border-2 shadow-xl p-2">
-              <PromotionFeed 
-                clubId={typeof user.club === 'object' ? user.club._id : user.club} 
-                limit={3} 
-                showStats={true} 
-              />
-            </div>
-          )}
-
-          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-            {/* Volunteer Quick Signup */}
-            {user && 'club' in user && user.club && 'volunteering' in user && (
+          {/* Volunteer Quick Signup */}
+          {user && 'club' in user && user.club && 'volunteering' in user && (
+            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
               <div className="lg:col-span-2">
                 <VolunteerQuickSignup
                   onSignup={() => window.location.href = '/dashboard/volunteer'}
@@ -206,47 +194,8 @@ export default function DashboardPage() {
                   isSignedUp={user.volunteering?.isVolunteer || false}
                 />
               </div>
-            )}
-
-            {/* Quick Actions */}
-            <Card className="border-2 shadow-xl rounded-[2.5rem] overflow-hidden">
-              <CardHeader className="p-8 pb-4">
-                <CardTitle className="text-xl font-black flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                    <Zap className="w-5 h-5 text-primary" />
-                  </div>
-                  Quick Actions
-                </CardTitle>
-                <CardDescription className="font-bold text-sm uppercase tracking-widest text-muted-foreground mt-2">Shortcuts & Tasks</CardDescription>
-              </CardHeader>
-              <CardContent className="p-8 pt-4 space-y-4">
-                <Button 
-                  variant="outline" 
-                  className="w-full h-14 justify-start bg-muted/30 border-2 hover:bg-muted/50 transition-all rounded-2xl group font-bold px-6"
-                  onClick={() => window.location.href = '/dashboard/events'}
-                >
-                  <Calendar className="w-5 h-5 mr-3 text-green-600 group-hover:scale-110 transition-transform" />
-                  View Events
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="w-full h-14 justify-start bg-muted/30 border-2 hover:bg-muted/50 transition-all rounded-2xl group font-bold px-6"
-                  onClick={() => window.location.href = '/dashboard/members'}
-                >
-                  <Users className="w-5 h-5 mr-3 text-blue-600 group-hover:scale-110 transition-transform" />
-                  Manage Members
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="w-full h-14 justify-start bg-muted/30 border-2 hover:bg-muted/50 transition-all rounded-2xl group font-bold px-6"
-                  onClick={() => setShowCreateNewsModal(true)}
-                >
-                  <MessageSquare className="w-5 h-5 mr-3 text-purple-600 group-hover:scale-110 transition-transform" />
-                  Create News
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
+            </div>
+          )}
 
           {/* Volunteer Opportunities Widget */}
           {user && 'club' in user && user.club && (
@@ -261,10 +210,18 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* Polls Widget */}
+          {/* Latest Events, Latest News, Latest Polls */}
           {user && 'club' in user && user.club && (
-            <div className="rounded-[2.5rem] overflow-hidden border-2 shadow-xl bg-card p-2">
-              <PollsWidget limit={3} showCreateButton={true} />
+            <div className="grid gap-8 md:grid-cols-3">
+              <div className="rounded-[2.5rem] overflow-hidden border-2 shadow-xl bg-card p-2">
+                <LatestEventsWidget limit={3} showManageButton={true} />
+              </div>
+              <div className="rounded-[2.5rem] overflow-hidden border-2 shadow-xl bg-card p-2">
+                <LatestNewsWidget limit={3} showManageButton={true} />
+              </div>
+              <div className="rounded-[2.5rem] overflow-hidden border-2 shadow-xl bg-card p-2">
+                <PollsWidget limit={3} showCreateButton={true} />
+              </div>
             </div>
           )}
 

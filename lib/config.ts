@@ -1,12 +1,26 @@
 // Environment Configuration
+const getApiBaseUrl = () => {
+  if (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+  return 'http://localhost:5000/api';
+};
+
+const getWsBaseUrl = () => {
+  if (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_WS_URL) {
+    return process.env.NEXT_PUBLIC_WS_URL;
+  }
+  return 'ws://localhost:5000';
+};
+
 export const ENV = {
   // Change this to switch between environments
   CURRENT: 'production' as 'development' | 'production' | 'staging',
   
   // Development environment (localhost)
   development: {
-    apiBaseUrl: 'http://localhost:5000/api',
-    wsBaseUrl: 'ws://localhost:5000',
+    apiBaseUrl: getApiBaseUrl(),
+    wsBaseUrl: getWsBaseUrl(),
     environment: 'development',
     debug: true,
   },
@@ -161,6 +175,11 @@ export const API_ENDPOINTS = {
     subscribe: '/membership/subscribe',
     cancel: '/membership/cancel',
     history: '/membership/history',
+  },
+  
+  // System status endpoints
+  systemStatus: {
+    getStatus: '/system-status',
   },
   
   // Utility functions to build full URLs

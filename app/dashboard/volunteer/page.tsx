@@ -65,8 +65,9 @@ export default function VolunteerDashboard() {
 //         memberships: userProfileResponse.data?.memberships
 //       });
       
-      // Check if user has active club memberships
-      if (!userProfileResponse.success || !userProfileResponse.data?.memberships || userProfileResponse.data.memberships.length === 0) {
+      const memberships = userProfileResponse.data?.memberships || [];
+      
+      if (!userProfileResponse.success || memberships.length === 0) {
         // // console.log('❌ No club memberships found in user profile');
         setOpportunities([]);
         setError('You need to be a member of a club to see volunteer opportunities');
@@ -79,8 +80,9 @@ export default function VolunteerDashboard() {
       }
 
       // Get ALL active memberships (user can be in multiple clubs)
-      const activeMemberships = userProfileResponse.data.memberships.filter(membership =>
-        membership.status === 'active'
+      const activeMemberships = memberships.filter(
+        (membership: any) =>
+          membership?.status === 'active' && membership?.club_id?._id
       );
 
       if (activeMemberships.length === 0) {
@@ -96,7 +98,9 @@ export default function VolunteerDashboard() {
       }
 
       // Get all club IDs from active memberships
-      const clubIds = activeMemberships.map(membership => membership.club_id._id);
+      const clubIds = activeMemberships
+        .map((membership: any) => membership?.club_id?._id)
+        .filter(Boolean) as string[];
       // // console.log('🏢 Found club IDs:', clubIds);
       // console.log('🏢 Club details:', activeMemberships.map(m => ({
       //   id: m.club_id._id,

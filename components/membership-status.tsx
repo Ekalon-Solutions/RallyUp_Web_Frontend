@@ -189,7 +189,7 @@ export function MembershipStatus() {
             className="flex-1 sm:flex-none"
             asChild
           >
-            <a href="/dashboard/membership-cards">
+            <a href="/dashboard/user/membership-card">
               <CreditCard className="w-4 h-4 mr-2" />
               View Membership Card
             </a>

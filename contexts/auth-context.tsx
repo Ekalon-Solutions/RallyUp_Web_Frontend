@@ -194,11 +194,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { success: true };
       } else {
         // // console.error('Login failed:', response.error);
-        return { success: false, error: response.error || 'Login failed' };
+        const errorMessage = response.error || response.errorDetails?.type === 'network_error' 
+          ? 'Connection failed. Please check your internet connection or try again later.'
+          : 'Login failed';
+        return { success: false, error: errorMessage };
       }
     } catch (error) {
-      // // console.error('Login error:', error);
-      return { success: false, error: 'Network error occurred' };
+      const errorMessage = error instanceof Error 
+        ? (error.message.includes('fetch') || error.message.includes('network') || error.message.includes('Failed to fetch')
+          ? 'Connection failed. Please check your internet connection or try again later.'
+          : error.message)
+        : 'Network error occurred';
+      return { success: false, error: errorMessage };
     }
   };
 

@@ -252,7 +252,7 @@ export default function AuthPage() {
       if (isSignInWithEmailLink(auth, url)) {
         let email = window.localStorage.getItem("emailForSignIn")
         if (!email) {
-          email = window.prompt("Please provide your email for confirmation") || undefined
+          email = window.prompt("Please provide your email for confirmation") || null
         }
         if (!email) {
           toast.error("Email is required to complete sign-in.")
@@ -262,21 +262,28 @@ export default function AuthPage() {
         signInWithEmailLink(auth, email, url)
           .then(async (result) => {
             const signInType = window.localStorage.getItem("emailSignInType") || "user"
+            let loginResult;
             try {
               if (signInType === "user") {
-                await login(email, "", "", false)
+                loginResult = await login(email, "", "", false)
               } else if (signInType === "admin") {
-                await login(email, "", "", true)
+                loginResult = await login(email, "", "", true)
               } else if (signInType === "system") {
-                await login(email, "", "", false, true)
+                loginResult = await login(email, "", "", false, true)
               }
             } catch (err) {
-              // console.error("Backend login after email link failed:", err)
+              loginResult = { success: false, error: err instanceof Error ? err.message : 'Login failed' }
             }
+            
             window.localStorage.removeItem("emailForSignIn")
             window.localStorage.removeItem("emailSignInType")
-            toast.success("Signed in successfully via email link")
-            router.push("/dashboard")
+            
+            if (loginResult?.success) {
+              toast.success("Signed in successfully via email link")
+              router.push("/dashboard")
+            } else {
+              toast.error(loginResult?.error || "Backend login failed. Please try again.")
+            }
           })
           .catch((err) => {
             // console.error("Error completing email sign-in:", err)
@@ -325,10 +332,16 @@ export default function AuthPage() {
       if (backendResult?.success) {
         toast.success("Login successful!")
         router.push("/dashboard")
+      } else {
+        toast.error(backendResult?.error || "Login failed. Please try again.")
       }
     } catch (error) {
-      // console.error("Error verifying OTP:", error)
-      toast.error("Invalid OTP. Please try again.")
+      const errorMessage = error instanceof Error ? error.message : "Unknown error"
+      if (errorMessage.includes("auth") || errorMessage.includes("OTP") || errorMessage.includes("code")) {
+        toast.error("Invalid OTP. Please try again.")
+      } else {
+        toast.error("Login failed. Please try again.")
+      }
     }
   }
 
@@ -523,15 +536,21 @@ export default function AuthPage() {
           true
         )
 
-        if (loginResult.success) {
+        if (loginResult?.success) {
           toast.success("Admin login successful!")
+          router.push("/dashboard")
         } else {
-          toast.error("Admin login failed. Please try again.")
+          toast.error(loginResult?.error || "Admin login failed. Please try again.")
         }
       }
     } catch (error) {
       // console.error("Error verifying OTP:", error)
-      toast.error("Invalid OTP. Please try again.")
+      const errorMessage = error instanceof Error ? error.message : "Unknown error"
+      if (errorMessage.includes("auth") || errorMessage.includes("OTP") || errorMessage.includes("code")) {
+        toast.error("Invalid OTP. Please try again.")
+      } else {
+        toast.error("Login failed. Please try again.")
+      }
     }
   }
 
@@ -824,11 +843,11 @@ export default function AuthPage() {
     
     try {
       const result = await login(systemOwnerLoginData.email, systemOwnerLoginData.phone_number, systemOwnerLoginData.countryCode, false, true)
-      if (result.success) {
+      if (result?.success) {
         toast.success("System Owner login successful!")
         router.push("/dashboard")
       } else {
-        toast.error(result.error || "System Owner login failed. Please check your credentials.")
+        toast.error(result?.error || "System Owner login failed. Please check your credentials.")
       }
     } catch (error) {
       // console.error("System Owner login error:", error)
@@ -1049,7 +1068,12 @@ export default function AuthPage() {
                             }
                           })()
                         }}
-                        disabled={!userLoginData.email && (!userLoginData.phone_number || !userLoginData.countryCode) || (userLoginData.email && userLoginErrors.email) || (userLoginData.phone_number && userLoginErrors.phone_number) || otpButtonLoading}
+                        disabled={
+                          (!userLoginData.email && (!userLoginData.phone_number || !userLoginData.countryCode)) ||
+                          (userLoginData.email ? !!userLoginErrors.email : false) ||
+                          (userLoginData.phone_number ? !!userLoginErrors.phone_number : false) ||
+                          otpButtonLoading
+                        }
                         className="w-full bg-sky-400 text-slate-900 hover:bg-sky-300 h-12 text-lg font-medium"
                       >
                         {!otpButtonLoading ? "Send OTP" : "Sending OTP"}

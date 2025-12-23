@@ -43,7 +43,6 @@ import { cn } from "@/lib/utils"
 import { useTheme } from "next-themes"
 import { Sun, Moon } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { calculateUserProfileCompletion } from "@/lib/user-completion"
 import Image from "next/image"
 
 const adminNavigation = [
@@ -109,7 +108,7 @@ const userNavigation = [
   { name: "Feed", href: "/dashboard/user", icon: LayoutDashboard },
   { name: "Clubs", href: "/dashboard/user/clubs", icon: Building2 },
   { name: "My Clubs", href: "/dashboard/user/my-clubs", icon: UserCheck },
-  { name: "Members", href: "/dashboard/members", icon: Users },
+  { name: "Members", href: "/dashboard/user/members", icon: Users },
   { name: "Events", href: "/dashboard/user/events", icon: Ticket },
   { name: "Leaderboard", href: "/dashboard/user/leaderboard", icon: ChartNoAxesColumn },
   { name: "News", href: "/dashboard/user/news", icon: Newspaper },
@@ -121,7 +120,7 @@ const userNavigation = [
   { name: "Member Onboarding", href: "/dashboard/member-onboarding", icon: GraduationCap },
   { name: "External Ticketing", href: "/dashboard/user/external-ticketing", icon: ExternalLink },
   { name: "Browse Plans", href: "/dashboard/user/browse-plans", icon: CreditCard },
-  { name: "Membership Card", href: "/dashboard/membership-cards", icon: CreditCard },
+  { name: "Membership Card", href: "/dashboard/user/membership-card", icon: CreditCard },
   { name: "My Profile", href: "/dashboard/user/profile", icon: User },
   { name: "My Settings", href: "/dashboard/user-settings", icon: Settings },
   { name: "Help", href: "/dashboard/help", icon: HelpCircle },
@@ -287,19 +286,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
       <div className="p-6 border-t bg-muted/20">
         <div className="space-y-4">
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-              <span>Profile Completion</span>
-              <span>{user ? calculateUserProfileCompletion(user as any) : 0}%</span>
-            </div>
-            <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-              <div 
-                className="h-full bg-primary transition-all duration-500" 
-                style={{ width: `${user ? calculateUserProfileCompletion(user as any) : 0}%` }}
-              />
-            </div>
-          </div>
-          
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="w-full h-14 px-4 justify-start bg-card border-2 hover:bg-muted/50 transition-all rounded-2xl group shadow-sm">

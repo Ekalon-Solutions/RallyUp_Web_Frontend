@@ -85,7 +85,6 @@ function AttendanceMarker({ event, userId }: { event: Event; userId?: string }) 
   )
 }
 import { MembershipStatus } from "@/components/membership-status"
-import { PromotionFeed } from "@/components/promotion-feed"
 import { PollsWidget } from "@/components/polls-widget"
 import { useClubSettings } from "@/hooks/useClubSettings"
 
@@ -107,6 +106,17 @@ export default function UserDashboardPage() {
   const [showEventPaymentSimulationModal, setShowEventPaymentSimulationModal] = useState(false)
   const [eventForPayment, setEventForPayment] = useState<Event | null>(null)
   const [attendeesForPayment, setAttendeesForPayment] = useState<any[]>([])
+
+  const paymentEvent = eventForPayment
+    ? {
+        _id: eventForPayment._id,
+        name: eventForPayment.title,
+        price: eventForPayment.ticketPrice ?? 0,
+        ticketPrice: eventForPayment.ticketPrice,
+        earlyBirdDiscount: eventForPayment.earlyBirdDiscount,
+        currency: (eventForPayment as any)?.currency,
+      }
+    : undefined
 
   console.log("user:", user)
   // Get user's active club membership
@@ -1059,63 +1069,10 @@ export default function UserDashboardPage() {
             </Tabs>
           )}
 
-          {/* Promotion Feed - Only show if visible */}
-          {userClub && isSectionVisible('store') && (
-            <PromotionFeed
-              clubId={userClub._id}
-              limit={2}
-              showStats={false}
-            />
-          )}
-
           {/* Polls Widget - Only show if visible */}
           {userClub && isSectionVisible('polls') && (
             <PollsWidget limit={3} showCreateButton={false} />
           )}
-
-          {/* Quick Actions */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Quick Actions</CardTitle>
-              <CardDescription>Common tasks and shortcuts</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-                <Button
-                  variant="outline"
-                  className="h-auto p-4 flex-col gap-2"
-                  onClick={() => window.location.href = "/dashboard/settings"}
-                >
-                  <UserIcon className="w-6 h-6" />
-                  <span>Update Profile</span>
-                </Button>
-                <Button
-                  variant="outline"
-                  className="h-auto p-4 flex-col gap-2"
-                  onClick={() => window.location.href = "/dashboard/membership-cards"}
-                >
-                  <CreditCard className="w-6 h-6" />
-                  <span>View Card</span>
-                </Button>
-                <Button
-                  variant="outline"
-                  className="h-auto p-4 flex-col gap-2"
-                  onClick={() => window.location.href = "/dashboard/user/events"}
-                >
-                  <Calendar className="w-6 h-6" />
-                  <span>View All Events</span>
-                </Button>
-                <Button
-                  variant="outline"
-                  className="h-auto p-4 flex-col gap-2"
-                  onClick={() => window.location.href = "/dashboard/user/news"}
-                >
-                  <Newspaper className="w-6 h-6" />
-                  <span>Read News</span>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Read More News Modal */}
@@ -1141,29 +1098,34 @@ export default function UserDashboardPage() {
           }}
           onRegister={handlePerformRegistration}
         />
-        <EventCheckoutModal
-          isOpen={showEventCheckoutModal}
-          onClose={() => setShowEventCheckoutModal(false)}
-          event={eventForPayment}
-          attendees={attendeesForPayment}
-          onSuccess={handleEventCheckoutSuccess}
-        />
+        {paymentEvent && (
+          <EventCheckoutModal
+            isOpen={showEventCheckoutModal}
+            onClose={() => setShowEventCheckoutModal(false)}
+            event={paymentEvent}
+            attendees={attendeesForPayment}
+            onSuccess={handleEventCheckoutSuccess}
+            onFailure={() => setShowEventCheckoutModal(false)}
+          />
+        )}
 
-        <EventPaymentSimulationModal
-          isOpen={showEventPaymentSimulationModal}
-          onClose={() => setShowEventPaymentSimulationModal(false)}
-          event={eventForPayment}
-          attendees={attendeesForPayment}
-          onPaymentSuccess={() => {
-            setShowEventPaymentSimulationModal(false);
-            fetchData();
-            toast.success("Payment successful!");
-          }}
-          onPaymentFailure={() => {
-            setShowEventPaymentSimulationModal(false);
-            toast.error("Payment failed. Please try again.");
-          }}
-        />
+        {paymentEvent && (
+          <EventPaymentSimulationModal
+            isOpen={showEventPaymentSimulationModal}
+            onClose={() => setShowEventPaymentSimulationModal(false)}
+            event={paymentEvent}
+            attendees={attendeesForPayment}
+            onPaymentSuccess={() => {
+              setShowEventPaymentSimulationModal(false);
+              fetchData();
+              toast.success("Payment successful!");
+            }}
+            onPaymentFailure={() => {
+              setShowEventPaymentSimulationModal(false);
+              toast.error("Payment failed. Please try again.");
+            }}
+          />
+        )}
       </DashboardLayout>
     </ProtectedRoute>
   )

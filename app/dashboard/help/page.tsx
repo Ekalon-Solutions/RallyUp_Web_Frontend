@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -7,7 +8,8 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { Search, MessageCircle, Book, Video, Mail, Phone, ExternalLink } from "lucide-react"
+import { Search, MessageCircle, Book, Video, Mail, Phone, ExternalLink, RefreshCw, AlertCircle } from "lucide-react"
+import { apiClient } from "@/lib/api"
 
 const faqData = [
   {
@@ -49,7 +51,111 @@ const quickLinks = [
   // { title: "Community Forum", icon: MessageCircle, description: "Connect with other clubs" },
 ]
 
+interface ServiceStatus {
+  name: string;
+  status: 'operational' | 'degraded' | 'down' | 'checking';
+  message?: string;
+  responseTime?: number;
+}
+
 export default function HelpPage() {
+  const [systemStatus, setSystemStatus] = useState<{
+    status: 'operational' | 'degraded' | 'down';
+    services: ServiceStatus[];
+    timestamp?: string;
+  } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  const fetchSystemStatus = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await apiClient.getSystemStatus();
+      
+      if (response.success && response.data) {
+        setSystemStatus({
+          status: response.data.status,
+          services: response.data.services,
+          timestamp: response.data.timestamp
+        });
+        setLastUpdated(new Date());
+      } else {
+        setError(response.error || 'Failed to fetch system status');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch system status');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSystemStatus();
+    
+    // Refresh status every 30 seconds
+    const interval = setInterval(() => {
+      fetchSystemStatus();
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const getStatusBadgeVariant = (status: string) => {
+    switch (status) {
+      case 'operational':
+        return 'default';
+      case 'degraded':
+        return 'secondary';
+      case 'down':
+        return 'destructive';
+      default:
+        return 'outline';
+    }
+  };
+
+  const getStatusBadgeColor = (status: string) => {
+    switch (status) {
+      case 'operational':
+        return 'bg-green-500 hover:bg-green-600';
+      case 'degraded':
+        return 'bg-yellow-500 hover:bg-yellow-600';
+      case 'down':
+        return 'bg-red-500 hover:bg-red-600';
+      case 'checking':
+        return 'bg-gray-400 hover:bg-gray-500';
+      default:
+        return 'bg-gray-400 hover:bg-gray-500';
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'operational':
+        return 'Operational';
+      case 'degraded':
+        return 'Degraded';
+      case 'down':
+        return 'Down';
+      case 'checking':
+        return 'Checking...';
+      default:
+        return 'Unknown';
+    }
+  };
+
+  // Map service names to display names
+  const getDisplayName = (serviceName: string): string => {
+    const nameMap: Record<string, string> = {
+      'Database': 'Database',
+      'API Services': 'API Services',
+      'Payment Processing': 'Payment Processing',
+      'Website Hosting': 'Website Hosting'
+    };
+    return nameMap[serviceName] || serviceName;
+  };
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -172,29 +278,95 @@ export default function HelpPage() {
         {/* System Status */}
         <Card>
           <CardHeader>
-            <CardTitle>System Status</CardTitle>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>System Status</CardTitle>
+                <CardDescription>
+                  Real-time status of our services
+                  {lastUpdated && (
+                    <span className="ml-2 text-xs">
+                      (Last updated: {lastUpdated.toLocaleTimeString()})
+                    </span>
+                  )}
+                </CardDescription>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={fetchSystemStatus}
+                disabled={loading}
+                className="flex items-center gap-2"
+              >
+                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                Refresh
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-3">
-              <div className="flex items-center justify-between p-3 border rounded-lg">
-                <span className="text-sm font-medium">API Services</span>
-                <Badge variant="default" className="bg-green-500">
-                  Operational
-                </Badge>
+            {loading && !systemStatus ? (
+              <div className="flex items-center justify-center py-8">
+                <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+                <span className="ml-2 text-muted-foreground">Checking system status...</span>
               </div>
-              <div className="flex items-center justify-between p-3 border rounded-lg">
-                <span className="text-sm font-medium">Payment Processing</span>
-                <Badge variant="default" className="bg-green-500">
-                  Operational
-                </Badge>
+            ) : error ? (
+              <div className="flex items-center justify-center py-8 text-red-500">
+                <AlertCircle className="h-5 w-5 mr-2" />
+                <span>{error}</span>
               </div>
-              <div className="flex items-center justify-between p-3 border rounded-lg">
-                <span className="text-sm font-medium">Website Hosting</span>
-                <Badge variant="default" className="bg-green-500">
-                  Operational
-                </Badge>
+            ) : systemStatus ? (
+              <>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-4">
+                  {systemStatus.services.map((service) => (
+                    <div
+                      key={service.name}
+                      className="flex flex-col gap-2 p-4 border rounded-lg"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium">
+                          {getDisplayName(service.name)}
+                        </span>
+                        <Badge
+                          variant={getStatusBadgeVariant(service.status)}
+                          className={getStatusBadgeColor(service.status)}
+                        >
+                          {getStatusLabel(service.status)}
+                        </Badge>
+                      </div>
+                      {service.message && (
+                        <p className="text-xs text-muted-foreground">
+                          {service.message}
+                        </p>
+                      )}
+                      {service.responseTime !== undefined && (
+                        <p className="text-xs text-muted-foreground">
+                          Response time: {service.responseTime}ms
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                {systemStatus.status === 'down' && (
+                  <div className="mt-4 p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg">
+                    <div className="flex items-center gap-2 text-red-800 dark:text-red-200">
+                      <AlertCircle className="h-5 w-5" />
+                      <span className="font-medium">Some services are experiencing issues</span>
+                    </div>
+                  </div>
+                )}
+                {systemStatus.status === 'degraded' && (
+                  <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                    <div className="flex items-center gap-2 text-yellow-800 dark:text-yellow-200">
+                      <AlertCircle className="h-5 w-5" />
+                      <span className="font-medium">Some services are experiencing degraded performance</span>
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                No status information available
               </div>
-            </div>
+            )}
           </CardContent>
         </Card>
       </div>

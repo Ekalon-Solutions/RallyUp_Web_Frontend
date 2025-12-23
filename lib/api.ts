@@ -2769,6 +2769,20 @@ class ApiClient {
   async getCouponStats(id: string): Promise<ApiResponse<any>> {
     return this.request(`/coupons/${id}/stats`);
   }
+  
+  async getSystemStatus(): Promise<ApiResponse<{
+    success: boolean;
+    status: 'operational' | 'degraded' | 'down';
+    timestamp: string;
+    services: Array<{
+      name: string;
+      status: 'operational' | 'degraded' | 'down' | 'checking';
+      message?: string;
+      responseTime?: number;
+    }>;
+  }>> {
+    return this.get('/system-status');
+  }
 }
 
 export const apiClient = new ApiClient(API_BASE_URL);

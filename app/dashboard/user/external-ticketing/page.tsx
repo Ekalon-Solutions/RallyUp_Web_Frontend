@@ -1,35 +1,25 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
 import { useAuth } from "@/contexts/auth-context"
-import { apiClient, MembershipPlan, User } from "@/lib/api"
+import { apiClient } from "@/lib/api"
 import { toast } from "sonner"
 import { 
   Building2, 
-  Users, 
-  MapPin, 
-  Mail, 
-  Phone, 
-  Calendar, 
-  DollarSign, 
   CheckCircle, 
-  ArrowRight,
-  Crown,
-  Award,
   Clock,
   Eye,
-  Settings,
   CreditCard,
-  UserCheck,
-  Plus
+  UserCheck
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 
@@ -88,6 +78,7 @@ export default function ExternalTicketingPage() {
   }, [user])
 
   const loadUserMemberships = async () => {
+    const fallbackMemberships = Array.isArray((user as any)?.memberships) ? (user as any).memberships : []
     try {
       setIsLoading(true)
       setError(null)
@@ -102,17 +93,27 @@ export default function ExternalTicketingPage() {
         if (Array.isArray(data)) membershipData = data
         else if (data.memberships && Array.isArray(data.memberships)) membershipData = data.memberships
         else if (data.data && Array.isArray(data.data)) membershipData = data.data
-        membershipData = membershipData.filter((m) => m.membership_level_id.price>0)
-
+        // Include all memberships, even free tiers
         setMemberships(membershipData)
-      } else {
-        setError('Failed to load your club memberships')
+        return
       }
+
+      if (fallbackMemberships.length > 0) {
+        setMemberships(fallbackMemberships as UserMembership[])
+        return
+      }
+
+      setError('Failed to load your club memberships')
     } catch (err) {
       // console.error('Error loading user memberships:', err)
-      setError('Failed to load your club memberships')
-      setMemberships([])
-      toast.error('Failed to load your club memberships')
+      if (fallbackMemberships.length > 0) {
+        setMemberships(fallbackMemberships as UserMembership[])
+        setError(null)
+      } else {
+        setError('Failed to load your club memberships')
+        setMemberships([])
+        toast.error('Failed to load your club memberships')
+      }
     } finally {
       setIsLoading(false)
     }
@@ -203,133 +204,102 @@ export default function ExternalTicketingPage() {
               )}
 
               {!error && (
-                <>
-                  {!Array.isArray(memberships) || memberships.length === 0 ? (
-                    <Card>
-                      <CardContent className="text-center py-12">
-                        <div className="flex flex-col items-center space-y-4">
-                          <Building2 className="h-12 w-12 text-muted-foreground" />
-                          <div className="space-y-2">
-                            <h3 className="text-lg font-semibold">No Club Memberships</h3>
-                            <p className="text-muted-foreground max-w-md">
-                              You haven't joined any clubs yet. Explore available clubs and find communities that match your interests.
-                            </p>
-                          </div>
-                          <div className="flex gap-3">
-                            <Button onClick={() => router.push('/dashboard/user/clubs')}>
-                              <Eye className="h-4 w-4 mr-2" />
-                              Discover Clubs
-                            </Button>
-                            <Button variant="outline" onClick={navigateToPlans}>
-                              <CreditCard className="h-4 w-4 mr-2" />
-                              Browse Plans
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ) : (
-                    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                      {Array.isArray(memberships) && memberships.map((membership) => (
-                        <Card key={membership._id} className="hover:shadow-lg transition-shadow">
-                          <CardHeader className="pb-3">
-                            <div className="flex items-start justify-between">
-                              <div className="space-y-1 flex-1">
-                                <CardTitle className="text-xl">{membership.club_id.name}</CardTitle>
-                                <CardDescription className="text-sm">
-                                  {membership.club_id.description}
-                                </CardDescription>
-                              </div>
-                              <div className="flex flex-col gap-2 ml-3">
-                                {getStatusBadge(membership.status)}
-                              </div>
-                            </div>
-                          </CardHeader>
-                          
-                          <CardContent className="space-y-4">
-                            {/* Club Info */}
-                            <div className="grid grid-cols-2 gap-3 text-sm">
-                              <div className="flex items-center gap-2">
-                                <Badge variant="outline">{membership.club_id.status}</Badge>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <Badge variant="secondary">{membership.level_name}</Badge>
-                              </div>
-                            </div>
-
-                            {/* Membership Plan Info */}
-                            <div className="border-t pt-4 space-y-3">
-                              <div className="flex items-center justify-between">
-                                <h4 className="font-semibold text-sm">Current Plan</h4>
-                                <div className="text-right">
-                                  <div className="font-semibold">
-                                    {formatPrice(membership.membership_level_id.price, membership.membership_level_id.currency)}
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="rounded-md border">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Club Name</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Membership Level</TableHead>
+                            <TableHead>Price</TableHead>
+                            <TableHead>Joined Date</TableHead>
+                            <TableHead>Expires Date</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {!Array.isArray(memberships) || memberships.length === 0 ? (
+                            <TableRow>
+                              <TableCell colSpan={7} className="text-center py-12">
+                                <div className="flex flex-col items-center space-y-4">
+                                  <Building2 className="h-12 w-12 text-muted-foreground" />
+                                  <div className="space-y-2">
+                                    <h3 className="text-lg font-semibold">No Club Memberships</h3>
+                                    <p className="text-muted-foreground max-w-md">
+                                      You haven't joined any clubs yet. Explore available clubs and find communities that match your interests.
+                                    </p>
+                                  </div>
+                                  <div className="flex gap-3">
+                                    <Button onClick={() => router.push('/dashboard/user/clubs')}>
+                                      <Eye className="h-4 w-4 mr-2" />
+                                      Discover Clubs
+                                    </Button>
+                                    <Button variant="outline" onClick={navigateToPlans}>
+                                      <CreditCard className="h-4 w-4 mr-2" />
+                                      Browse Plans
+                                    </Button>
                                   </div>
                                 </div>
-                              </div>
-                              
-                              <div className="space-y-1">
-                                <div className="text-sm font-medium">{membership.membership_level_id.name}</div>
-                                <div className="text-xs text-muted-foreground">{membership.membership_level_id.description}</div>
-                                
-                                {/* Key Features */}
-                                {membership.membership_level_id.features && (
-                                  <div className="flex flex-wrap gap-1">
-                                    {membership.membership_level_id.features.eventsAccess && (
-                                      <Badge variant="outline" className="text-xs">Events</Badge>
-                                    )}
-                                    {membership.membership_level_id.features.merchandiseDiscount && membership.membership_level_id.features.merchandiseDiscount > 0 && (
-                                      <Badge variant="outline" className="text-xs">
-                                        {membership.membership_level_id.features.merchandiseDiscount}% Off Merch
-                                      </Badge>
-                                    )}
-                                    {membership.membership_level_id.features.pollsParticipation && (
-                                      <Badge variant="outline" className="text-xs">Polls</Badge>
-                                    )}
-                                    {membership.membership_level_id.features.specialBadge && (
-                                      <Badge variant="outline" className="text-xs">Special Badge</Badge>
-                                    )}
+                              </TableCell>
+                            </TableRow>
+                          ) : (
+                            memberships.map((membership) => (
+                              <TableRow key={membership._id}>
+                                <TableCell>
+                                  <div>
+                                    <div className="font-medium">{membership.club_id.name}</div>
+                                    <div className="text-sm text-muted-foreground line-clamp-1">
+                                      {membership.club_id.description}
+                                    </div>
                                   </div>
-                                )}
-                              </div>
-                            </div>
-
-                            {/* Membership Dates */}
-                            <div className="border-t pt-4 space-y-2 text-sm">
-                              <div className="flex justify-between">
-                                <span className="text-muted-foreground">Joined:</span>
-                                <span>{formatDate(membership.start_date)}</span>
-                              </div>
-                              {membership.end_date && (
-                                <div className="flex justify-between">
-                                  <span className="text-muted-foreground">Expires:</span>
-                                  <span>{formatDate(membership.end_date)}</span>
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Actions */}
-                            <div className="flex gap-2 pt-2">
-                              <Button 
-                                variant="default" 
-                                size="sm" 
-                                onClick={() => {
-                                  setRequestingFor(membership)
-                                  setRequestForm({ name: user?.name || '', phone: '', phone_country_code: (user as any)?.countryCode || '', tickets: 1, preferredDate: '', comments: '' })
-                                  setShowRequestDialog(true)
-                                }}
-                                className="flex-1"
-                              >
-                                <UserCheck className="h-4 w-4 mr-2" />
-                                Submit Request
-                              </Button>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      ))}
+                                </TableCell>
+                                <TableCell>
+                                  {getStatusBadge(membership.status)}
+                                </TableCell>
+                                <TableCell>
+                                  <div>
+                                    <div className="font-medium">{membership.level_name}</div>
+                                    <div className="text-sm text-muted-foreground">
+                                      {membership.membership_level_id.name}
+                                    </div>
+                                  </div>
+                                </TableCell>
+                                 <TableCell className="font-semibold">
+                                   {formatPrice(
+                                     membership.membership_level_id?.price ?? 0, 
+                                     membership.membership_level_id?.currency ?? 'USD'
+                                   )}
+                                </TableCell>
+                                <TableCell>
+                                  {formatDate(membership.start_date)}
+                                </TableCell>
+                                <TableCell>
+                                  {membership.end_date ? formatDate(membership.end_date) : '-'}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <Button 
+                                    variant="default" 
+                                    size="sm" 
+                                    onClick={() => {
+                                      setRequestingFor(membership)
+                                      setRequestForm({ name: user?.name || '', phone: '', phone_country_code: (user as any)?.countryCode || '', tickets: 1, preferredDate: '', comments: '' })
+                                      setShowRequestDialog(true)
+                                    }}
+                                  >
+                                    <UserCheck className="h-4 w-4 mr-2" />
+                                    Submit Request
+                                  </Button>
+                                </TableCell>
+                              </TableRow>
+                            ))
+                          )}
+                        </TableBody>
+                      </Table>
                     </div>
-                  )}
-                </>
+                  </CardContent>
+                </Card>
               )}
           
             {/* Request Dialog */}
