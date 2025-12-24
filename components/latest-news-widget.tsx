@@ -179,4 +179,3 @@ export function LatestNewsWidget({ limit = 3, showManageButton = true }: LatestN
     </Card>
   )
 }
-

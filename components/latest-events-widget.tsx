@@ -181,4 +181,3 @@ export function LatestEventsWidget({ limit = 3, showManageButton = true }: Lates
     </Card>
   )
 }
-

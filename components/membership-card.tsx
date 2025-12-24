@@ -236,9 +236,9 @@ export function MembershipCard({
             filter: isHovered ? 'brightness(1.1)' : 'brightness(1)',
           }}
         >
-      <CardContent className="p-4 h-full flex flex-col justify-between">
+      <CardContent className="p-4 h-full flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="flex justify-between items-start mb-3">
+        <div className="flex justify-between items-start mb-3 flex-shrink-0">
           <div className="flex items-center gap-2">
             {/* Use customization.showLogo if available, otherwise use prop */}
             {((card.customization?.showLogo !== undefined ? card.customization.showLogo : showLogo) && 
@@ -264,7 +264,7 @@ export function MembershipCard({
         </div>
 
         {/* User Name - Main Display (Debit Card Style) */}
-        <div className="text-center mb-4">
+        <div className="text-center mb-3 flex-shrink-0">
           <p className="font-bold text-2xl tracking-wide mb-2">
             {userName || 'Member'}
           </p>
@@ -278,13 +278,16 @@ export function MembershipCard({
         </div>
 
         {/* Plan Info - Less prominent for debit card style */}
-        <div className="text-center mb-2">
+        <div className="text-center mb-3 flex-shrink-0">
           <p className="text-xs opacity-70 mb-1">Plan</p>
           <p className="text-sm font-medium truncate">{membershipPlan.name}</p>
         </div>
 
+        {/* Spacer to push footer down */}
+        <div className="flex-grow min-h-0"></div>
+
         {/* Footer - Debit Card Style */}
-        <div className="flex justify-between items-end">
+        <div className="flex justify-between items-center mt-auto flex-shrink-0">
           <div>
             <p className="text-xs opacity-70 mb-1">Valid Thru</p>
             <p className="text-sm font-medium">{formatDate(card.expiryDate)}</p>
