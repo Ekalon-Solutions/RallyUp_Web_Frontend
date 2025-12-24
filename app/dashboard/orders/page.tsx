@@ -351,17 +351,17 @@ export default function OrdersPage() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold">Order Management</h1>
-            <p className="text-muted-foreground">Manage customer orders and fulfillment</p>
+            <h1 className="text-2xl sm:text-3xl font-bold">Order Management</h1>
+            <p className="text-muted-foreground text-sm sm:text-base">Manage customer orders and fulfillment</p>
           </div>
-          <div className="flex items-center space-x-2">
-            <Button variant="secondary" onClick={handleDownloadReport}>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+            <Button variant="secondary" onClick={handleDownloadReport} className="w-full sm:w-auto">
               <Download className="w-4 h-4 mr-2" />
               Download Report
             </Button>
-            <Button onClick={refreshOrders} disabled={refreshing}>
+            <Button onClick={refreshOrders} disabled={refreshing} className="w-full sm:w-auto">
               <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
@@ -465,20 +465,21 @@ export default function OrdersPage() {
                 <p className="text-gray-500">No orders match your current filters.</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Order #</TableHead>
-                      <TableHead>Customer</TableHead>
-                      <TableHead>Items</TableHead>
-                      <TableHead>Total</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Payment</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
+              <div className="overflow-x-auto -mx-4 sm:mx-0">
+                <div className="inline-block min-w-full align-middle px-4 sm:px-0">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="min-w-[120px]">Order #</TableHead>
+                        <TableHead className="min-w-[180px]">Customer</TableHead>
+                        <TableHead className="min-w-[100px]">Items</TableHead>
+                        <TableHead className="min-w-[100px]">Total</TableHead>
+                        <TableHead className="min-w-[120px]">Status</TableHead>
+                        <TableHead className="min-w-[120px]">Payment</TableHead>
+                        <TableHead className="min-w-[150px]">Date</TableHead>
+                        <TableHead className="text-right min-w-[100px]">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
                   <TableBody>
                     {orders.map((order) => {
                       const StatusIcon = statusConfig[order.status].icon
@@ -488,11 +489,11 @@ export default function OrdersPage() {
                             {order.orderNumber}
                           </TableCell>
                           <TableCell>
-                            <div>
-                              <div className="font-medium">
+                            <div className="min-w-[180px]">
+                              <div className="font-medium break-words">
                                 {order.customer.firstName} {order.customer.lastName}
                               </div>
-                              <div className="text-sm text-muted-foreground">
+                              <div className="text-sm text-muted-foreground break-words">
                                 {order.customer.email}
                               </div>
                             </div>
@@ -594,7 +595,8 @@ export default function OrdersPage() {
                       )
                     })}
                   </TableBody>
-                </Table>
+                  </Table>
+                </div>
               </div>
             )}
 
@@ -625,7 +627,7 @@ export default function OrdersPage() {
 
         {/* Order Details Modal */}
         <Dialog open={showOrderModal} onOpenChange={setShowOrderModal}>
-          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto w-[95vw] sm:w-full">
             <DialogHeader>
               <DialogTitle>Order Details - {selectedOrder?.orderNumber}</DialogTitle>
               <DialogDescription>
@@ -635,7 +637,7 @@ export default function OrdersPage() {
             {selectedOrder && (
               <div className="space-y-6">
                 {/* Order Info */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                   <div>
                     <h3 className="font-semibold mb-3">Order Information</h3>
                     <div className="space-y-2 text-sm">

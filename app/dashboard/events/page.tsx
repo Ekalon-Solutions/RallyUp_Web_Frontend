@@ -178,12 +178,12 @@ export default function EventsPage() {
 
           <TabsContent value="events">
             <div className="space-y-6">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
-                  <h1 className="text-3xl font-bold">Events Management</h1>
-                  <p className="text-muted-foreground">Create and manage events for your supporter group</p>
+                  <h1 className="text-2xl sm:text-3xl font-bold">Events Management</h1>
+                  <p className="text-muted-foreground text-sm sm:text-base">Create and manage events for your supporter group</p>
                 </div>
-                <Button onClick={() => setIsAddDialogOpen(true)}>
+                <Button onClick={() => setIsAddDialogOpen(true)} className="w-full sm:w-auto">
                   <Plus className="w-4 h-4 mr-2" />
                   Create Event
                 </Button>
@@ -264,17 +264,17 @@ export default function EventsPage() {
                     </Select>
                   </div>
 
-                  <div className="rounded-md border">
+                  <div className="rounded-md border overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Event</TableHead>
-                          <TableHead>Category</TableHead>
-                          <TableHead>Date & Time</TableHead>
-                          <TableHead>Location</TableHead>
-                          <TableHead>Attendance</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead className="text-right">Actions</TableHead>
+                          <TableHead className="min-w-[200px]">Event</TableHead>
+                          <TableHead className="min-w-[120px]">Category</TableHead>
+                          <TableHead className="min-w-[150px]">Date & Time</TableHead>
+                          <TableHead className="min-w-[150px]">Location</TableHead>
+                          <TableHead className="min-w-[120px]">Attendance</TableHead>
+                          <TableHead className="min-w-[100px]">Status</TableHead>
+                          <TableHead className="text-right min-w-[100px]">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -294,9 +294,9 @@ export default function EventsPage() {
                           events.map((event) => (
                             <TableRow key={event._id}>
                               <TableCell>
-                                <div>
-                                  <div className="font-medium">{event.title}</div>
-                                  <div className="text-sm text-muted-foreground line-clamp-2">
+                                <div className="min-w-[200px]">
+                                  <div className="font-medium break-words">{event.title}</div>
+                                  <div className="text-sm text-muted-foreground line-clamp-2 break-words">
                                     {event.description}
                                   </div>
                                 </div>
@@ -319,9 +319,9 @@ export default function EventsPage() {
                                 )}
                               </TableCell>
                               <TableCell>
-                                <div className="flex items-center gap-1">
-                                  <MapPin className="w-3 h-3" />
-                                  <span className="text-sm">{event.venue}</span>
+                                <div className="flex items-center gap-1 min-w-[150px]">
+                                  <MapPin className="w-3 h-3 flex-shrink-0" />
+                                  <span className="text-sm break-words">{event.venue}</span>
                                 </div>
                               </TableCell>
                               <TableCell>

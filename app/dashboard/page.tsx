@@ -101,20 +101,6 @@ export default function DashboardPage() {
               <h1 className="text-4xl font-black tracking-tight">Dashboard</h1>
               <p className="text-muted-foreground text-lg font-medium">Welcome back! Here's what's happening with your supporter group.</p>
             </div>
-            <div className="flex gap-3">
-              <Button 
-                onClick={() => setShowCreateEventModal(true)}
-                className="h-11 px-6 font-bold shadow-lg shadow-primary/20 rounded-xl transition-all active:scale-95"
-              >
-                <Calendar className="mr-2 h-5 w-5" />
-                Create Event
-              </Button>
-              <CreateNewsModal 
-                isOpen={showCreateNewsModal}
-                onClose={() => setShowCreateNewsModal(false)}
-                onSuccess={() => setShowCreateNewsModal(false)}
-              />
-            </div>
           </div>
 
           {/* Stats Grid */}
@@ -184,32 +170,6 @@ export default function DashboardPage() {
             </div>
           ) : null}
 
-          {/* Volunteer Quick Signup */}
-          {user && 'club' in user && user.club && 'volunteering' in user && (
-            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-              <div className="lg:col-span-2">
-                <VolunteerQuickSignup
-                  onSignup={() => window.location.href = '/dashboard/volunteer'}
-                  currentProfile={user.volunteering}
-                  isSignedUp={user.volunteering?.isVolunteer || false}
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Volunteer Opportunities Widget */}
-          {user && 'club' in user && user.club && (
-            <div className="rounded-[2.5rem] overflow-hidden border-2 shadow-xl bg-card">
-              <VolunteerOpportunitiesWidget
-                opportunities={[]}
-                onViewAll={() => window.location.href = '/dashboard/volunteer'}
-                onSignUp={(opportunityId, timeSlotId) => {
-                  window.location.href = `/dashboard/volunteer?signup=${opportunityId}&slot=${timeSlotId}`;
-                }}
-              />
-            </div>
-          )}
-
           {/* Latest Events, Latest News, Latest Polls */}
           {user && 'club' in user && user.club && (
             <div className="grid gap-8 md:grid-cols-3">
@@ -223,65 +183,6 @@ export default function DashboardPage() {
                 <PollsWidget limit={3} showCreateButton={true} />
               </div>
             </div>
-          )}
-
-          {/* Club Information for Admins */}
-          {user && 'club' in user && user.club && ['admin', 'super_admin', 'system_owner'].includes(user.role) && (
-            <Card className="border-2 shadow-xl rounded-[2.5rem] overflow-hidden">
-              <CardHeader className="p-8 border-b bg-muted/20">
-                <CardTitle className="text-xl font-black flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                    <Building2 className="w-5 h-5 text-primary" />
-                  </div>
-                  Club Management
-                </CardTitle>
-                <CardDescription className="font-bold text-sm uppercase tracking-widest text-muted-foreground mt-2">
-                  Key status and information
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-8">
-                <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-                  <div className="space-y-2">
-                    <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Club Name</Label>
-                    <p className="text-xl font-black tracking-tight">
-                      {typeof user.club === 'object' ? user.club.name : 'N/A'}
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Status</Label>
-                    <div>
-                      <Badge className={cn("px-4 py-1.5 font-black uppercase tracking-widest text-[10px]", typeof user.club === 'object' && user.club.status === 'active' ? "bg-green-500 text-white" : "bg-slate-500 text-white")}>
-                        {typeof user.club === 'object' ? user.club.status : 'N/A'}
-                      </Badge>
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Your Role</Label>
-                    <div>
-                      <Badge variant="outline" className="px-4 py-1.5 font-black uppercase tracking-widest text-[10px] border-2">
-                        {user.role?.replace('_', ' ')}
-                      </Badge>
-                    </div>
-                  </div>
-                  {typeof user.club === 'object' && user.club.settings && (
-                    <>
-                      <div className="space-y-2">
-                        <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Max Members</Label>
-                        <p className="text-xl font-black tracking-tight">{user.club.settings.maxMembers.toLocaleString()}</p>
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Registration</Label>
-                        <p className="text-xl font-black tracking-tight">{user.club.settings.allowPublicRegistration ? 'Enabled' : 'Disabled'}</p>
-                      </div>
-                      <div className="space-y-2">
-                        <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Approval Required</Label>
-                        <p className="text-xl font-black tracking-tight">{user.club.settings.requireApproval ? 'Yes' : 'No'}</p>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
           )}
         </div>
       </DashboardLayout>

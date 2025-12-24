@@ -224,15 +224,15 @@ export default function OnboardingDashboard() {
       <DashboardLayout>
         <div className="space-y-6">
           {/* Header */}
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Member Onboarding & Engagement</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold">Member Onboarding & Engagement</h1>
+          <p className="text-muted-foreground text-sm sm:text-base">
             Create and manage onboarding flows for your community
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button onClick={() => setShowOnboardingModal(true)}>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <Button onClick={() => setShowOnboardingModal(true)} className="w-full sm:w-auto">
             <UserPlus className="w-4 h-4 mr-2" />
             Create Onboarding Flow
           </Button>
@@ -244,20 +244,20 @@ export default function OnboardingDashboard() {
           {editingFlowId && (
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle>Edit Onboarding Flow</CardTitle>
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={resetEditing}>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <CardTitle className="text-lg sm:text-xl">Edit Onboarding Flow</CardTitle>
+                  <div className="flex gap-2 w-full sm:w-auto">
+                    <Button variant="outline" size="sm" onClick={resetEditing} className="flex-1 sm:flex-initial">
                       Cancel
                     </Button>
-                    <Button size="sm" onClick={handleUpdateFlow} disabled={updatingFlow}>
+                    <Button size="sm" onClick={handleUpdateFlow} disabled={updatingFlow} className="flex-1 sm:flex-initial">
                       {updatingFlow ? "Saving..." : "Save Changes"}
                     </Button>
                   </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="edit-name">Flow Name *</Label>
                     <Input
@@ -279,7 +279,7 @@ export default function OnboardingDashboard() {
                   </div>
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-2">
+                <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="edit-description">Description</Label>
                     <Textarea
@@ -358,9 +358,9 @@ export default function OnboardingDashboard() {
 
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Onboarding Flows</CardTitle>
-                <Button onClick={() => setShowOnboardingModal(true)}>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <CardTitle className="text-lg sm:text-xl">Onboarding Flows</CardTitle>
+                <Button onClick={() => setShowOnboardingModal(true)} className="w-full sm:w-auto">
                   <Plus className="w-4 h-4 mr-2" />
                   Create New Flow
                 </Button>
@@ -387,19 +387,20 @@ export default function OnboardingDashboard() {
                 <div className="grid gap-4">
                   {flows.map((flow) => (
                     <Card key={flow._id}>
-                      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <div className="flex-1">
-                          <h4 className="font-semibold">{flow.name}</h4>
-                          <p className="text-sm text-muted-foreground">{flow.description}</p>
+                      <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-2">
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-base sm:text-lg break-words">{flow.name}</h4>
+                          <p className="text-sm text-muted-foreground break-words">{flow.description}</p>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Badge variant={flow.isActive ? "default" : "secondary"}>
+                        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+                          <Badge variant={flow.isActive ? "default" : "secondary"} className="text-xs">
                             {flow.isActive ? "Active" : "Inactive"}
                           </Badge>
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => toggleFlowStatus(flow._id, !flow.isActive)}
+                            className="flex-1 sm:flex-initial text-xs"
                           >
                             {flow.isActive ? "Deactivate" : "Activate"}
                           </Button>
@@ -407,6 +408,7 @@ export default function OnboardingDashboard() {
                             variant="outline"
                             size="sm"
                             onClick={() => startEditingFlow(flow)}
+                            className="flex-1 sm:flex-initial text-xs"
                           >
                             Edit
                           </Button>
@@ -414,16 +416,17 @@ export default function OnboardingDashboard() {
                             variant="outline"
                             size="sm"
                             onClick={() => deleteFlow(flow._id)}
+                            className="flex-1 sm:flex-initial text-xs"
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
                       </CardHeader>
-                      <CardContent>
-                        <p>Steps: {flow.steps.length}</p>
-                        <p>Duration: {flow.estimatedDuration} minutes</p>
-                        <p>Target Audience: {flow.targetAudience}</p>
-                        <p>Created: {new Date(flow.createdAt).toLocaleDateString()}</p>
+                      <CardContent className="space-y-2 text-sm">
+                        <p className="break-words">Steps: {flow.steps.length}</p>
+                        <p className="break-words">Duration: {flow.estimatedDuration} minutes</p>
+                        <p className="break-words">Target Audience: {flow.targetAudience}</p>
+                        <p className="break-words">Created: {new Date(flow.createdAt).toLocaleDateString()}</p>
                       </CardContent>
                     </Card>
                   ))}

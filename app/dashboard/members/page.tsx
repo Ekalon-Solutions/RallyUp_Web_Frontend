@@ -334,17 +334,17 @@ export default function MembersPage() {
           {/* Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h1 className="text-3xl font-bold">Member Directory</h1>
-              <p className="text-muted-foreground">Manage and view all club members</p>
+              <h1 className="text-2xl sm:text-3xl font-bold">Member Directory</h1>
+              <p className="text-muted-foreground text-sm sm:text-base">Manage and view all club members</p>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={exportMembers}>
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              <Button variant="outline" onClick={exportMembers} className="w-full sm:w-auto">
                 <Download className="w-4 h-4 mr-2" />
                 Export
               </Button>
               <AddMemberModal 
                 trigger={
-                  <Button>
+                  <Button className="w-full sm:w-auto">
                     <Plus className="w-4 h-4 mr-2" />
                     Add Member
                   </Button>
@@ -357,7 +357,7 @@ export default function MembersPage() {
               {/* Bulk import modal */}
               <ImportMembersModal
                 trigger={
-                  <Button>
+                  <Button className="w-full sm:w-auto">
                     <Plus className="w-4 h-4 mr-2" />
                     Import Members in Bulk
                   </Button>
@@ -473,16 +473,16 @@ export default function MembersPage() {
               ) : (
                 <div className="space-y-4">
                   {members.map((member: Member) => (
-                    <div key={member._id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                      <div className="flex items-center space-x-4">
-                        <Avatar>
+                    <div key={member._id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                      <div className="flex items-center space-x-4 flex-1 min-w-0">
+                        <Avatar className="flex-shrink-0">
                           <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
                             {member.name.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
-                        <div>
-                          <div className="flex items-center space-x-2">
-                            <h3 className="font-semibold">{member.name}</h3>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="font-semibold break-words">{member.name}</h3>
                             <div className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${getStatusColor(member.isActive)}`}>
                               {member.isActive ? 'Active' : 'Inactive'}
                             </div>
@@ -490,29 +490,29 @@ export default function MembersPage() {
                               {member.isPhoneVerified ? 'Verified' : 'Unverified'}
                             </div>
                           </div>
-                          <div className="flex items-center space-x-4 text-sm text-muted-foreground mt-1">
+                          <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-sm text-muted-foreground mt-1">
                             {/* Only show contact info to admins/system owners */}
                             {(user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'system_owner') && (
                               <>
                                 <div className="flex items-center space-x-1">
-                                  <Mail className="w-3 h-3" />
-                                  <span>{member.email}</span>
+                                  <Mail className="w-3 h-3 flex-shrink-0" />
+                                  <span className="break-all">{member.email}</span>
                                 </div>
                                 <div className="flex items-center space-x-1">
-                                  <Phone className="w-3 h-3" />
-                                  <span>{formatPhoneNumber(member.phone_number, member.countryCode)}</span>
+                                  <Phone className="w-3 h-3 flex-shrink-0" />
+                                  <span className="break-words">{formatPhoneNumber(member.phone_number, member.countryCode)}</span>
                                 </div>
                               </>
                             )}
                             {member.club && (
                               <div className="flex items-center space-x-1">
-                                <Building2 className="w-3 h-3" />
-                                <span>{member.club.name}</span>
+                                <Building2 className="w-3 h-3 flex-shrink-0" />
+                                <span className="break-words">{member.club.name}</span>
                               </div>
                             )}
                           </div>
                           {member.membershipPlan && (
-                            <div className="text-xs text-muted-foreground mt-1">
+                            <div className="text-xs text-muted-foreground mt-1 break-words">
                               Plan: {member.membershipPlan.name} ({member.membershipPlan.price} {member.membershipPlan.currency})
                             </div>
                           )}
@@ -520,17 +520,17 @@ export default function MembersPage() {
                       </div>
                       {/* Only show action buttons to admins/system owners */}
                       {(user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'system_owner') && (
-                        <div className="flex items-center space-x-2">
-                          <Button variant="ghost" size="sm">
+                        <div className="flex items-center space-x-2 w-full sm:w-auto justify-end">
+                          <Button variant="ghost" size="sm" className="flex-1 sm:flex-initial">
                             <Eye className="w-4 h-4" />
                           </Button>
-                          <Button variant="ghost" size="sm" onClick={() => openEditDialog(member)}>
+                          <Button variant="ghost" size="sm" onClick={() => openEditDialog(member)} className="flex-1 sm:flex-initial">
                             <Edit className="w-4 h-4" />
                           </Button>
                           <Button 
                             variant="ghost" 
                             size="sm" 
-                            className="text-destructive hover:text-destructive"
+                            className="text-destructive hover:text-destructive flex-1 sm:flex-initial"
                             onClick={() => openDeleteDialog(member)}
                           >
                             <Trash2 className="w-4 h-4" />
@@ -590,7 +590,7 @@ export default function MembersPage() {
               setAddMode('new')
             }
           }}>
-            <DialogContent>
+            <DialogContent className="w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Add Member</DialogTitle>
                 <DialogDescription>
@@ -741,7 +741,7 @@ export default function MembersPage() {
                         <Label htmlFor="email">Email</Label>
                         <Input id="email" name="email" type="email" required />
                       </div>
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <Label htmlFor="countryCode">Country Code</Label>
                           <Input id="countryCode" name="countryCode" placeholder="+1" required />
@@ -780,7 +780,7 @@ export default function MembersPage() {
 
           {/* Edit Member Dialog */}
           <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-            <DialogContent>
+            <DialogContent className="w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Edit Member</DialogTitle>
                 <DialogDescription>
@@ -811,7 +811,7 @@ export default function MembersPage() {
                       required 
                     />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="edit-countryCode">Country Code</Label>
                       <Input 
@@ -852,7 +852,7 @@ export default function MembersPage() {
 
           {/* Delete Member Dialog */}
           <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-            <DialogContent>
+            <DialogContent className="w-[95vw] sm:w-full">
               <DialogHeader>
                 <DialogTitle>Delete Member</DialogTitle>
                 <DialogDescription>

@@ -298,17 +298,17 @@ export default function MerchandiseManagementPage() {
     <ProtectedRoute requireAdmin={true}>
       <DashboardLayout>
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold">Merchandise Management</h1>
-              <p className="text-muted-foreground">Manage your club's merchandise and products</p>
+              <h1 className="text-2xl sm:text-3xl font-bold">Merchandise Management</h1>
+              <p className="text-muted-foreground text-sm sm:text-base">Manage your club's merchandise and products</p>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setShowSettings(!showSettings)}>
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              <Button variant="outline" onClick={() => setShowSettings(!showSettings)} className="w-full sm:w-auto">
                 <Settings className="w-4 h-4 mr-2" />
                 Settings
               </Button>
-              <Button onClick={() => setIsAddDialogOpen(true)}>
+              <Button onClick={() => setIsAddDialogOpen(true)} className="w-full sm:w-auto">
                 <Plus className="w-4 h-4 mr-2" />
                 Add Product
               </Button>
@@ -530,19 +530,20 @@ export default function MerchandiseManagementPage() {
               </div>
 
               {/* Merchandise Table */}
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Product</TableHead>
-                      <TableHead>Category</TableHead>
-                      <TableHead>Price</TableHead>
-                      <TableHead>Stock</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Created</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
+              <div className="rounded-md border overflow-x-auto -mx-4 sm:mx-0">
+                <div className="inline-block min-w-full align-middle px-4 sm:px-0">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="min-w-[200px]">Product</TableHead>
+                        <TableHead className="min-w-[120px]">Category</TableHead>
+                        <TableHead className="min-w-[100px]">Price</TableHead>
+                        <TableHead className="min-w-[100px]">Stock</TableHead>
+                        <TableHead className="min-w-[120px]">Status</TableHead>
+                        <TableHead className="min-w-[120px]">Created</TableHead>
+                        <TableHead className="text-right min-w-[100px]">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
                   <TableBody>
                     {loading ? (
                       <TableRow>
@@ -576,21 +577,21 @@ export default function MerchandiseManagementPage() {
                         return (
                           <TableRow key={item._id}>
                             <TableCell>
-                              <div className="flex items-center space-x-3">
+                              <div className="flex items-center space-x-3 min-w-[200px]">
                                 {item.featuredImage ? (
                                   <img
                                     src={item.featuredImage}
                                     alt={item.name}
-                                    className="w-10 h-10 rounded object-cover"
+                                    className="w-10 h-10 rounded object-cover flex-shrink-0"
                                   />
                                 ) : (
-                                  <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center">
+                                  <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center flex-shrink-0">
                                     <ImageIcon className="w-4 h-4 text-gray-400" />
                                   </div>
                                 )}
-                                <div>
-                                  <div className="font-medium">{item.name}</div>
-                                  <div className="text-sm text-gray-500 truncate max-w-[200px]">
+                                <div className="min-w-0 flex-1">
+                                  <div className="font-medium break-words">{item.name}</div>
+                                  <div className="text-sm text-gray-500 truncate">
                                     {item.description}
                                   </div>
                                 </div>
@@ -680,7 +681,8 @@ export default function MerchandiseManagementPage() {
                       })
                     )}
                   </TableBody>
-                </Table>
+                  </Table>
+                </div>
               </div>
 
               {/* Pagination */}

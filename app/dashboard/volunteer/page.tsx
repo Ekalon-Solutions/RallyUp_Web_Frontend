@@ -521,15 +521,15 @@ export default function VolunteerDashboard() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold">Volunteer Dashboard</h1>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={fetchOpportunities}>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <h1 className="text-2xl sm:text-3xl font-bold">Volunteer Dashboard</h1>
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+            <Button variant="outline" onClick={fetchOpportunities} className="w-full sm:w-auto">
               Refresh Opportunities
             </Button>
             <Button 
               onClick={() => setIsModalOpen(true)}
-              className={!volunteerProfile ? 'bg-blue-600 hover:bg-blue-700 text-white' : ''}
+              className={`w-full sm:w-auto ${!volunteerProfile ? 'bg-blue-600 hover:bg-blue-700 text-white' : ''}`}
             >
               {volunteerProfile ? 'Update Preferences' : '🎯 Become a Volunteer'}
             </Button>
@@ -621,9 +621,9 @@ export default function VolunteerDashboard() {
                     <div className="space-y-4">
                       {opportunities.map(opportunity => (
                         <div key={opportunity._id} className="border rounded-lg p-4 text-left">
-                          <div className="flex items-center justify-between mb-2">
-                            <h3 className="font-medium">{opportunity.title}</h3>
-                            <span className={`px-2 py-1 text-xs rounded ${
+                          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-2">
+                            <h3 className="font-medium text-sm sm:text-base break-words">{opportunity.title}</h3>
+                            <span className={`px-2 py-1 text-xs rounded whitespace-nowrap ${
                               opportunity.status === 'open' ? 'bg-green-100 text-green-800' :
                               opportunity.status === 'draft' ? 'bg-gray-100 text-gray-800' :
                               opportunity.status === 'filled' ? 'bg-blue-100 text-blue-800' :
@@ -632,8 +632,8 @@ export default function VolunteerDashboard() {
                               {opportunity.status}
                             </span>
                           </div>
-                          <p className="text-sm text-muted-foreground mb-2">{opportunity.description}</p>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-sm text-muted-foreground mb-2 break-words">{opportunity.description}</p>
+                          <p className="text-xs text-muted-foreground break-words">
                             Status: {opportunity.status} • 
                             {opportunity.timeSlots?.length || 0} time slot{opportunity.timeSlots?.length !== 1 ? 's' : ''}
                           </p>

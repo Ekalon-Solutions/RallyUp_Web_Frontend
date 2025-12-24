@@ -392,14 +392,14 @@ export default function MembershipPlansPage() {
     <ProtectedRoute>
       <DashboardLayout>
         <div className="p-6 space-y-6">
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-foreground">Membership Plans</h1>
-              <p className="text-muted-foreground">Create and manage membership plans for your club</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Membership Plans</h1>
+              <p className="text-muted-foreground text-sm sm:text-base">Create and manage membership plans for your club</p>
             </div>
-            <div className="flex gap-2">
-              <div className="flex items-center space-x-2">
-                <Label>Club</Label>
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
+                <Label className="text-sm">Club</Label>
                 <select
                   value={selectedClubId}
                   onChange={(e) => {
@@ -408,7 +408,7 @@ export default function MembershipPlansPage() {
                     // reload plans for selected club
                     loadPlansForClub(id)
                   }}
-                  className="px-3 py-2 border border-input rounded-md bg-background text-foreground"
+                  className="px-3 py-2 border border-input rounded-md bg-background text-foreground w-full sm:w-auto text-sm"
                 >
                   <option value={""}>Select Club</option>
                   {clubs.map((c) => (
@@ -416,7 +416,7 @@ export default function MembershipPlansPage() {
                   ))}
                 </select>
               </div>
-              <Button variant="outline" onClick={loadPlans}>
+              <Button variant="outline" onClick={loadPlans} className="w-full sm:w-auto">
                 Refresh
               </Button>
               <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
@@ -434,7 +434,7 @@ export default function MembershipPlansPage() {
                     </DialogDescription>
                   </DialogHeader>
                   <form onSubmit={handleCreatePlan} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="name">Plan Name</Label>
                         <Input
@@ -466,7 +466,7 @@ export default function MembershipPlansPage() {
                       />
                     </div>
 
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="currency">Currency</Label>
                         <select
@@ -520,7 +520,7 @@ export default function MembershipPlansPage() {
 
                     <div className="border-t pt-4">
                       <h3 className="font-semibold mb-4 text-foreground">Plan Features</h3>
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <Label htmlFor="maxEvents">Max Events</Label>
                           <Input
@@ -559,7 +559,7 @@ export default function MembershipPlansPage() {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4 mt-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
                         <div className="flex items-center space-x-2">
                           <input
                             type="checkbox"
@@ -623,7 +623,7 @@ export default function MembershipPlansPage() {
                 </DialogContent>
               </Dialog>
               <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-                <DialogContent className="max-w-2xl">
+                <DialogContent className="max-w-2xl w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Edit Membership Plan</DialogTitle>
                     <DialogDescription>
@@ -631,7 +631,7 @@ export default function MembershipPlansPage() {
                     </DialogDescription>
                   </DialogHeader>
                   <form onSubmit={handleUpdatePlan} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="edit-name">Plan Name</Label>
                         <Input
@@ -663,7 +663,7 @@ export default function MembershipPlansPage() {
                       />
                     </div>
 
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="edit-currency">Currency</Label>
                         <select
@@ -717,7 +717,7 @@ export default function MembershipPlansPage() {
 
                     <div className="border-t pt-4">
                       <h3 className="font-semibold mb-4 text-foreground">Plan Features</h3>
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <Label htmlFor="edit-maxEvents">Max Events</Label>
                           <Input
@@ -756,7 +756,7 @@ export default function MembershipPlansPage() {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4 mt-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
                         <div className="flex items-center space-x-2">
                           <input
                             type="checkbox"
@@ -824,7 +824,7 @@ export default function MembershipPlansPage() {
               </Dialog>
             </div>
           </div>
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
             {plans.map((plan) => (
               <Card key={plan._id}>
                 <CardHeader>
@@ -909,8 +909,8 @@ export default function MembershipPlansPage() {
                       </div>
                     )}
 
-                  <div className="flex gap-2 flex-col">
-                    <div className="flex gap-2">
+                  <div className="flex flex-col gap-2">
+                    <div className="flex flex-col sm:flex-row gap-2">
                       <Button 
                         variant="outline" 
                         size="sm" 

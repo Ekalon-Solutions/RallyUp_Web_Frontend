@@ -639,12 +639,12 @@ export default function MembershipCardsPage() {
     <ProtectedRoute requireAdmin>
       <DashboardLayout>
         <div className="p-6 space-y-6">
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-foreground">Membership Cards</h1>
-              <p className="text-muted-foreground">Create and customize membership cards for your plans</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Membership Cards</h1>
+              <p className="text-muted-foreground text-sm sm:text-base">Create and customize membership cards for your plans</p>
             </div>
-            <Button variant="outline" onClick={handleRefresh} className="flex items-center gap-2">
+            <Button variant="outline" onClick={handleRefresh} className="flex items-center gap-2 w-full sm:w-auto">
               <RefreshCw className="w-4 h-4" />
               Refresh
             </Button>
@@ -702,7 +702,7 @@ export default function MembershipCardsPage() {
                             <p className="text-sm">Create your first membership card to see a preview</p>
                           </div>
                         ) : (
-                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                             {cards.map((card, index) => (
                               <div key={card?.card?._id || index} className="text-center">
                                 <p className="text-sm text-muted-foreground mb-2">{card?.membershipPlan?.name || 'Unknown Plan'}</p>
@@ -958,8 +958,8 @@ export default function MembershipCardsPage() {
 
       {/* Edit Card Modal */}
       {editingCard && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-background border rounded-lg w-full max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
+          <div className="bg-background border rounded-lg w-full max-w-6xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
             <div className="flex justify-between items-center mb-4 p-6 pb-4">
               <h3 className="text-lg font-semibold text-foreground">Edit Membership Card</h3>
               <Button
@@ -973,7 +973,7 @@ export default function MembershipCardsPage() {
               </Button>
             </div>
             
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6 pt-0 overflow-y-auto flex-1">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 p-4 sm:p-6 pt-0 overflow-y-auto flex-1">
               {/* Left Column - Input Fields */}
               <div className="space-y-4">
 
@@ -1131,11 +1131,11 @@ export default function MembershipCardsPage() {
               </div>
 
               {/* Right Column - Preview */}
-              <div className="lg:sticky lg:top-0 lg:self-start">
-                <div className="border rounded-lg p-6 bg-muted/20">
+              <div className="lg:sticky lg:top-0 lg:self-start order-first lg:order-last">
+                <div className="border rounded-lg p-4 sm:p-6 bg-muted/20">
                   <Label className="text-sm font-medium mb-4 block">Live Preview</Label>
                   <div className="flex justify-center">
-                    <div className="w-full max-w-sm">
+                    <div className="w-full max-w-xs sm:max-w-sm">
                       <MembershipCard
                         cardData={editingCard}
                         cardStyle={editingCard.card.cardStyle}
@@ -1146,11 +1146,11 @@ export default function MembershipCardsPage() {
                 </div>
               </div>
 
-              <div className="flex justify-end space-x-2 mt-6 p-6 pt-4 border-t bg-muted/20">
-                <Button variant="outline" onClick={handleCancelEdit}>
+              <div className="flex flex-col sm:flex-row justify-end gap-2 mt-6 p-4 sm:p-6 pt-4 border-t bg-muted/20">
+                <Button variant="outline" onClick={handleCancelEdit} className="w-full sm:w-auto">
                   Cancel
                 </Button>
-                <Button onClick={handleSaveEdit} disabled={isEditing}>
+                <Button onClick={handleSaveEdit} disabled={isEditing} className="w-full sm:w-auto">
                   {isEditing ? "Saving..." : "Save Changes"}
                 </Button>
               </div>

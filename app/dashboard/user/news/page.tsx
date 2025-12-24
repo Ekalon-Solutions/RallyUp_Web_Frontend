@@ -189,13 +189,13 @@ export default function UserNewsPage() {
     <ProtectedRoute>
       <DashboardLayout>
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold">News & Updates</h1>
-              <p className="text-muted-foreground">Stay informed with the latest news from your club</p>
+              <h1 className="text-2xl sm:text-3xl font-bold">News & Updates</h1>
+              <p className="text-muted-foreground text-sm sm:text-base">Stay informed with the latest news from your club</p>
             </div>
             {isAdmin && (
-              <Button onClick={handleCreateNews}>
+              <Button onClick={handleCreateNews} className="w-full sm:w-auto">
                 <Plus className="w-4 h-4 mr-2" />
                 Create News
               </Button>
@@ -278,17 +278,17 @@ export default function UserNewsPage() {
                     
                     <CardHeader>
                       <div className="flex items-start justify-between">
-                        <div className="space-y-2 flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="text-2xl">{getCategoryIcon(article.category)}</span>
-                            <CardTitle className="text-2xl">{article.title}</CardTitle>
+                        <div className="space-y-2 flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xl sm:text-2xl">{getCategoryIcon(article.category)}</span>
+                            <CardTitle className="text-xl sm:text-2xl break-words">{article.title}</CardTitle>
                           </div>
                           
                           {article.summary && (
-                            <p className="text-muted-foreground text-lg">{article.summary}</p>
+                            <p className="text-muted-foreground text-base sm:text-lg break-words">{article.summary}</p>
                           )}
                           
-                          <CardDescription className="flex items-center gap-4 flex-wrap">
+                          <CardDescription className="flex items-center gap-2 sm:gap-4 flex-wrap text-xs sm:text-sm">
                             <span className="flex items-center gap-1">
                               <User className="w-4 h-4" />
                               {article.author}
@@ -322,7 +322,7 @@ export default function UserNewsPage() {
                         
                         {/* Additional Images */}
                         {article.images.length > 1 && (
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                             {article.images.slice(0, 4).map((image, index) => (
                               <img
                                 key={index}
@@ -352,10 +352,11 @@ export default function UserNewsPage() {
                           </div>
                         )}
                         
-                        <div className="flex gap-2 flex-wrap">
+                        <div className="flex flex-col sm:flex-row gap-2">
                           <Button 
                             variant="outline" 
                             onClick={() => handleReadMore(article)}
+                            className="w-full sm:w-auto"
                           >
                             <Eye className="w-4 h-4 mr-2" />
                             Read More
@@ -363,11 +364,12 @@ export default function UserNewsPage() {
                           
                           {/* Admin Controls */}
                           {isAdmin && (
-                            <>
+                            <div className="flex flex-col sm:flex-row gap-2 flex-1 sm:flex-initial">
                               <Button 
                                 variant="outline" 
                                 size="sm"
                                 onClick={() => handleEditNews(article)}
+                                className="flex-1 sm:flex-initial"
                               >
                                 <Edit className="w-4 h-4 mr-2" />
                                 Edit
@@ -376,6 +378,7 @@ export default function UserNewsPage() {
                                 variant="outline" 
                                 size="sm"
                                 onClick={() => handleTogglePublish(article._id, article.isPublished)}
+                                className="flex-1 sm:flex-initial"
                               >
                                 {article.isPublished ? (
                                   <>
@@ -393,11 +396,12 @@ export default function UserNewsPage() {
                                 variant="destructive" 
                                 size="sm"
                                 onClick={() => handleDeleteNews(article._id)}
+                                className="flex-1 sm:flex-initial"
                               >
                                 <Trash2 className="w-4 h-4 mr-2" />
                                 Delete
                               </Button>
-                            </>
+                            </div>
                           )}
                         </div>
                       </div>
@@ -417,7 +421,7 @@ export default function UserNewsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
                 <div>
                   <div className="text-2xl font-bold">{news.length}</div>
                   <div className="text-sm text-muted-foreground">Total Articles</div>
