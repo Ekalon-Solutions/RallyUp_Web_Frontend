@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -246,6 +246,9 @@ export default function UserEventRegistrationModal({ eventId, isOpen, onClose, o
       <DialogContent className="max-w-xl">
         <DialogHeader>
           <DialogTitle className="text-lg font-semibold">Register for Event</DialogTitle>
+          <DialogDescription>
+            Complete your registration details for this event
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">

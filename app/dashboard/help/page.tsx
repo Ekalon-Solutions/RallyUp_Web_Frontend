@@ -203,11 +203,11 @@ export default function HelpPage() {
               <CardContent className="space-y-3">
                 <Button variant="outline" className="w-full justify-start bg-transparent">
                   <Mail className="w-4 h-4 mr-2" />
-                  support@wingman.tech
+                  support@wingmanpro.tech
                 </Button>
                 <Button variant="outline" className="w-full justify-start bg-transparent">
                   <Phone className="w-4 h-4 mr-2" />
-                  +91 98765 43210
+                  +91 90296 36263
                 </Button>
                 <div className="text-xs text-muted-foreground">Support hours: Mon-Fri 9AM-6PM IST</div>
               </CardContent>

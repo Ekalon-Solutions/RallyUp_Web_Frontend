@@ -48,7 +48,7 @@ export default function UserProfilePage() {
   const [isVerifying, setIsVerifying] = useState(false)
 
   useEffect(() => {
-        if (user) {
+    if (user) {
       setProfileForm({
         name: user.name || "",
         email: user.email || "",
@@ -56,6 +56,25 @@ export default function UserProfilePage() {
         countryCode: user.countryCode || "+1"
       })
     }
+  }, [user])
+
+  useEffect(() => {
+    const fetchVolunteerProfile = async () => {
+      if (!user) return
+      
+      try {
+        const profileResponse = await apiClient.getVolunteerProfile()
+        if (profileResponse.success && profileResponse.data) {
+          setVolunteerProfile(profileResponse.data)
+        } else {
+          setVolunteerProfile(null)
+        }
+      } catch (error) {
+        setVolunteerProfile(null)
+      }
+    }
+
+    fetchVolunteerProfile()
   }, [user])
 
   const setupRecaptcha = () => {
@@ -109,7 +128,6 @@ export default function UserProfilePage() {
 
       await confirmationResult.confirm(otp)
       
-      // Call backend to update verification status
       if (user) {
         const result = await apiClient.verifyPhoneNumber({})
 
@@ -118,7 +136,6 @@ export default function UserProfilePage() {
           setShowOtpInput(false)
           setOtpSent(false)
           setOtp("")
-          // Update user state locally
           await checkAuth()
         } else {
           toast.error(result.error || "Verification failed on server")
@@ -208,9 +225,17 @@ export default function UserProfilePage() {
         });
         
         if (createResponse.success) {
-          setVolunteerProfile(preferences);
+          // Fetch the updated profile to get all data
+          const updatedProfileResponse = await apiClient.getVolunteerProfile()
+          if (updatedProfileResponse.success && updatedProfileResponse.data) {
+            setVolunteerProfile(updatedProfileResponse.data)
+          } else {
+            setVolunteerProfile(preferences)
+          }
           setIsVolunteerModalOpen(false);
           toast.success("Volunteer profile created successfully");
+          // Refresh user data to update volunteering status
+          await checkAuth()
         } else {
           toast.error(createResponse.error || "Failed to create volunteer profile");
         }
@@ -229,9 +254,17 @@ export default function UserProfilePage() {
         });
         
         if (updateResponse.success) {
-          setVolunteerProfile(preferences);
+          // Fetch the updated profile to get all data
+          const updatedProfileResponse = await apiClient.getVolunteerProfile()
+          if (updatedProfileResponse.success && updatedProfileResponse.data) {
+            setVolunteerProfile(updatedProfileResponse.data)
+          } else {
+            setVolunteerProfile(preferences)
+          }
           setIsVolunteerModalOpen(false);
           toast.success("Volunteer preferences updated successfully");
+          // Refresh user data to update volunteering status
+          await checkAuth()
         } else {
           toast.error(updateResponse.error || "Failed to update volunteer preferences");
         }
@@ -541,7 +574,7 @@ export default function UserProfilePage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {user.volunteering?.isVolunteer ? (
+                {volunteerProfile?.isVolunteer || (volunteerProfile && (volunteerProfile.skills?.length > 0 || volunteerProfile.interests?.length > 0)) ? (
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <Badge variant="default" className="bg-green-100 text-green-800">
@@ -557,12 +590,12 @@ export default function UserProfilePage() {
                       </Button>
                     </div>
                     
-                    {user.volunteering.skills && user.volunteering.skills.length > 0 && (
+                    {volunteerProfile.skills && volunteerProfile.skills.length > 0 && (
                       <div className="space-y-2">
                         <Label className="text-sm font-medium text-muted-foreground">Skills</Label>
                         <div className="flex flex-wrap gap-2">
-                          {user.volunteering.skills.map((skill) => (
-                            <Badge key={skill} variant="secondary">
+                          {volunteerProfile.skills.map((skill, index) => (
+                            <Badge key={index} variant="secondary">
                               {skill}
                             </Badge>
                           ))}
@@ -570,12 +603,12 @@ export default function UserProfilePage() {
                       </div>
                     )}
                     
-                    {user.volunteering.interests && user.volunteering.interests.length > 0 && (
+                    {volunteerProfile.interests && volunteerProfile.interests.length > 0 && (
                       <div className="space-y-2">
                         <Label className="text-sm font-medium text-muted-foreground">Interests</Label>
                         <div className="flex flex-wrap gap-2">
-                          {user.volunteering.interests.map((interest) => (
-                            <Badge key={interest} variant="outline">
+                          {volunteerProfile.interests.map((interest, index) => (
+                            <Badge key={index} variant="outline">
                               {interest}
                             </Badge>
                           ))}
@@ -583,19 +616,21 @@ export default function UserProfilePage() {
                       </div>
                     )}
                     
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-muted-foreground">Availability</Label>
-                      <div className="space-y-1 text-sm">
-                        {user.volunteering.availability.weekdays && <p>✓ Weekdays</p>}
-                        {user.volunteering.availability.weekends && <p>✓ Weekends</p>}
-                        {user.volunteering.availability.evenings && <p>✓ Evenings</p>}
+                    {volunteerProfile.availability && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-muted-foreground">Availability</Label>
+                        <div className="space-y-1 text-sm">
+                          {volunteerProfile.availability.weekdays && <p>✓ Weekdays</p>}
+                          {volunteerProfile.availability.weekends && <p>✓ Weekends</p>}
+                          {volunteerProfile.availability.evenings && <p>✓ Evenings</p>}
+                        </div>
                       </div>
-                    </div>
+                    )}
                     
-                    {user.volunteering.notes && (
+                    {volunteerProfile.notes && (
                       <div className="space-y-2">
                         <Label className="text-sm font-medium text-muted-foreground">Notes</Label>
-                        <p className="text-sm">{user.volunteering.notes}</p>
+                        <p className="text-sm">{volunteerProfile.notes}</p>
                       </div>
                     )}
                   </div>

@@ -2331,7 +2331,12 @@ class ApiClient {
       text: string;
       votes: number;
       percentage: number;
-      voters: string[];
+      voters: Array<{
+        _id: string;
+        name: string;
+        email: string;
+        profile_picture?: string;
+      }>;
     }>;
   }>> {
     return this.request(`/polls/${id}/results`);

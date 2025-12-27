@@ -1,15 +1,15 @@
 "use client"
 
 import React, { useEffect, useState } from 'react'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogTrigger } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { toast } from 'sonner'
 import { useAuth } from '@/contexts/auth-context'
 import { getApiUrl } from '@/lib/config'
 import { apiClient } from '@/lib/api'
+import { triggerBlobDownload } from '@/lib/utils'
 
 interface ImportMembersModalProps {
   trigger?: React.ReactNode
@@ -49,6 +49,21 @@ export function ImportMembersModal({ trigger, onImported }: ImportMembersModalPr
   const handleFileChange = (f?: File) => {
     setFile(f || null)
     setResults(null)
+  }
+
+  const handleDownloadSample = async () => {
+    try {
+      const csvContent = `email,first_name,last_name,phone_number,countryCode,username,date_of_birth,gender,address_line1,city,state_province,zip_code,country,id_proof_type,id_proof_number
+alice.smith@example.com,Alice,Smith,9876543210,+91,alice_smith,1990-05-12,female,12 Lotus Street,Mumbai,Maharashtra,400001,India,Aadhar,1234-5678-9012
+bob.johnson@example.com,Bob,Johnson,9123456780,+91,bob_johnson,1985-11-03,male,45 River Road,Delhi,Delhi,110001,India,Passport,P1234567
+charlie.brown@example.com,Charlie,Brown,9234567890,+91,charlie_brown,1992-08-20,male,78 Park Avenue,Bangalore,Karnataka,560001,India,Aadhar,9876-5432-1098`
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+      triggerBlobDownload(blob, 'sample-members.csv')
+      toast.success('Sample CSV downloaded successfully')
+    } catch (error) {
+      toast.error('Failed to download sample CSV')
+    }
   }
 
   const parseCSV = async (f: File) => {
@@ -207,6 +222,9 @@ export function ImportMembersModal({ trigger, onImported }: ImportMembersModalPr
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Import Members in Bulk</DialogTitle>
+          <DialogDescription>
+            Upload a CSV file to import multiple members at once. All members will be assigned to the selected membership plan.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -228,17 +246,24 @@ export function ImportMembersModal({ trigger, onImported }: ImportMembersModalPr
 
             <div>
               <Label>CSV File</Label>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                 <input
                   type="file"
                   accept=".csv"
                   onChange={(e) => handleFileChange(e.target.files ? e.target.files[0] : undefined)}
+                  className="text-sm"
                 />
-                <a href="/sample-members.csv" download className="text-sm text-blue-600 hover:underline">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDownloadSample}
+                  className="text-sm"
+                >
                   Download example CSV
-                </a>
+                </Button>
               </div>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground mt-2">
                 Required CSV headers: email, first_name, last_name, phone_number, countryCode<br/>
                 Optional: username, date_of_birth, gender, address_line1, city, state_province, zip_code, country, id_proof_type, id_proof_number
               </p>

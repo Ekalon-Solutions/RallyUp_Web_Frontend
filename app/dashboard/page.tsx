@@ -27,21 +27,23 @@ interface DashboardStats {
 }
 
 export default function DashboardPage() {
-  const { user, isAdmin } = useAuth()
+  const { user, isAdmin, isLoading: authLoading } = useAuth()
   const [showCreateEventModal, setShowCreateEventModal] = useState(false)
   const [showCreateNewsModal, setShowCreateNewsModal] = useState(false)
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
   
-  // Redirect users to their appropriate dashboard
   useEffect(() => {
     if (user && !isAdmin) {
       window.location.href = "/dashboard/user"
     }
   }, [user, isAdmin])
 
-  // Fetch dashboard stats
-  useEffect(() => {
+  useEffect(() => { 
+    if (authLoading) {
+      return
+    }
+
     const fetchDashboardStats = async () => {
       if (!user || !('club' in user) || !user.club) {
         setLoading(false)
@@ -49,16 +51,15 @@ export default function DashboardPage() {
       }
 
       try {
+        setLoading(true)
         const token = localStorage.getItem('token')
         const clubId = typeof user.club === 'object' ? user.club._id : user.club
 
-        // Fetch club stats
         const clubStatsResponse = await axios.get(
           getApiUrl(`/clubs/${clubId}/stats`),
           { headers: { Authorization: `Bearer ${token}` } }
         )
 
-        // Fetch upcoming events count
         const eventsResponse = await axios.get(
           getApiUrl(`/events/public`),
           { 
@@ -70,7 +71,6 @@ export default function DashboardPage() {
           new Date(event.date) >= new Date()
         ).length || 0
 
-        // Fetch order stats for revenue
         const orderStatsResponse = await axios.get(
           getApiUrl(`/orders/admin/stats`),
           { headers: { Authorization: `Bearer ${token}` } }
@@ -83,14 +83,13 @@ export default function DashboardPage() {
           storeRevenue: orderStatsResponse.data.totalRevenue || 0
         })
       } catch (error) {
-        // console.error('Error fetching dashboard stats:', error)
       } finally {
         setLoading(false)
       }
     }
 
     fetchDashboardStats()
-  }, [user])
+  }, [user, authLoading])
 
   return (
     <ProtectedRoute>

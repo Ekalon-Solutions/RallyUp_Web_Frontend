@@ -75,7 +75,6 @@ export default function ClubExternalTicketsPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold">External Ticket Requests</h1>
-            <p className="text-muted-foreground">Club ID: {clubId}</p>
           </div>
           <div>
             <Button variant="default" onClick={exportRequests} disabled={exporting}>{exporting ? 'Exporting…' : 'Export to Excel'}</Button>

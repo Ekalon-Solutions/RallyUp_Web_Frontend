@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
@@ -22,7 +22,7 @@ interface PollResultsModalProps {
   pollId: string
   isOpen: boolean
   onClose: () => void
-  refreshTrigger?: number // Add refresh trigger
+  refreshTrigger?: number
 }
 
 interface PollResult {
@@ -67,29 +67,48 @@ export function PollResultsModal({ pollId, isOpen, onClose, refreshTrigger }: Po
     setLoading(true)
     try {
       const response = await apiClient.getPollResults(pollId)
+      
+      if (response.status === 403 || (response.error && (response.error.includes("permission") || response.error.includes("Access denied") || response.error.includes("No permission")))) {
+        toast.error("You don't have permission to view these poll results. Only poll creators, club admins, and members of the poll's club can view results.")
+        setTimeout(() => {
+          onClose()
+        }, 3000)
+        setLoading(false)
+        return
+      }
+      
       if (response.success && response.data) {
         setPoll(response.data.poll)
-        setResults(response.data.results)
+        const typedResults = response.data.results.map((result: any) => ({
+          ...result,
+          voters: Array.isArray(result.voters) ? result.voters : []
+        }))
+        setResults(typedResults)
       } else {
-        throw new Error(response.error || "Failed to load poll results")
+        if (response.status === 403) {
+          toast.error("You don't have permission to view these poll results. Only poll creators, club admins, and members of the poll's club can view results.")
+        } else {
+          throw new Error(response.error || "Failed to load poll results")
+        }
       }
     } catch (error: any) {
       // console.error("Error fetching poll results:", error)
       
-      // Provide specific error messages based on the error
-      if (error.message?.includes("Poll not found")) {
+      if (error.status === 403 || error.errorDetails?.status === 403) {
+        toast.error("You don't have permission to view these poll results. Only poll creators, club admins, and members of the poll's club can view results.")
+      } else if (error.message?.includes("Poll not found")) {
         toast.error("Poll not found or has been deleted")
       } else if (error.message?.includes("Access denied") || error.message?.includes("No permission")) {
-        toast.error("You don't have permission to view these poll results")
+        toast.error("You don't have permission to view these poll results. Only poll creators, club admins, and members of the poll's club can view results.")
       } else if (error.message?.includes("Network")) {
         toast.error("Network error. Please check your connection and try again.")
       } else {
-        toast.error(error.message || "Failed to load poll result. No permission to view the result")
+        toast.error(error.message || "Failed to load poll results")
       }
       
       setTimeout(() => {
         onClose()
-      }, 2000)
+      }, 3000)
     } finally {
       setLoading(false)
     }
@@ -127,7 +146,6 @@ export function PollResultsModal({ pollId, isOpen, onClose, refreshTrigger }: Po
         // console.error('Error sharing:', error)
       }
     } else {
-      // Fallback: copy to clipboard
       try {
         await navigator.clipboard.writeText(window.location.href)
         toast.success("Link copied to clipboard")
@@ -160,6 +178,10 @@ export function PollResultsModal({ pollId, isOpen, onClose, refreshTrigger }: Po
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Poll Results</DialogTitle>
+            <DialogDescription>Loading poll results...</DialogDescription>
+          </DialogHeader>
           <div className="flex items-center justify-center py-8">
             <div className="text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
@@ -175,6 +197,10 @@ export function PollResultsModal({ pollId, isOpen, onClose, refreshTrigger }: Po
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Poll Results</DialogTitle>
+            <DialogDescription>Failed to load poll results</DialogDescription>
+          </DialogHeader>
           <div className="text-center py-8">
             <p className="text-muted-foreground">Failed to load poll results</p>
             <Button onClick={onClose} className="mt-4">
@@ -195,11 +221,11 @@ export function PollResultsModal({ pollId, isOpen, onClose, refreshTrigger }: Po
               <DialogTitle className="text-xl font-semibold mb-2">
                 Poll Results
               </DialogTitle>
-              <h3 className="text-lg font-medium mb-2">
+              <DialogDescription className="text-base">
                 {poll.question}
-              </h3>
+              </DialogDescription>
               {poll.description && (
-                <p className="text-sm text-muted-foreground mb-3">
+                <p className="text-sm text-muted-foreground mb-3 mt-2">
                   {poll.description}
                 </p>
               )}
