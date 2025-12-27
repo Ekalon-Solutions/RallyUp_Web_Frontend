@@ -40,7 +40,7 @@ export interface User {
   volunteering?: VolunteerProfile;
   memberships?: Array<{
     _id: string;
-    club_id: {
+    club_id?: {
       _id: string;
       name: string;
       description?: string;

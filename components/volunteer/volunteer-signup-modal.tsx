@@ -1,4 +1,5 @@
 import React from 'react';
+import { Loader2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -42,14 +43,20 @@ export function VolunteerSignUpModal({
   const [preferences, setPreferences] = React.useState<VolunteerProfile>(initialPreferences);
   const [newInterest, setNewInterest] = React.useState('');
   const [newSkill, setNewSkill] = React.useState('');
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   React.useEffect(() => {
     setPreferences(initialPreferences);
   }, [initialPreferences]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(preferences);
+    try {
+      setIsSubmitting(true);
+      await onSubmit(preferences as VolunteerProfile);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const addInterest = () => {
@@ -217,7 +224,10 @@ export function VolunteerSignUpModal({
             </div>
           </div>
           <DialogFooter>
-            <Button type="submit">Save Preferences</Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              Save Preferences
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

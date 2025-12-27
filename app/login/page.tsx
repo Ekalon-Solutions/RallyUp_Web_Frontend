@@ -1028,8 +1028,16 @@ export default function AuthPage() {
                     {!userLoginOtpSent ? (
                       <Button 
                         onClick={() => {
+
                           ;(async () => {
                             if (userLoginData.email) {
+                              console.log("loggin in debug mode")
+                              const backendResult = await login(userLoginData.email, userLoginData.phone_number, userLoginData.countryCode, false)
+                                      if (backendResult?.success) {
+                                        toast.success("Login successful!")
+                                        router.push("/dashboard")
+                                        return
+                                      }
                               const emailError = validateEmail(userLoginData.email)
                               setUserLoginErrors({ ...userLoginErrors, email: emailError })
                               if (emailError) {

@@ -33,7 +33,6 @@ export function MembershipCard({
   cardStyle = 'default', 
   showLogo = true,
   userName = 'Member Name', // Default value
-  membershipId = null // Default value
 }: MembershipCardProps) {
   const { card, club, membershipPlan } = cardData;
   const cardRef = useRef<HTMLDivElement>(null);
@@ -272,7 +271,7 @@ export function MembershipCard({
            <div className="mb-2">
              <p className="text-xs opacity-80">Membership ID</p>
              <p className="text-lg font-mono tracking-widest font-semibold opacity-90">
-               {membershipId || ''}
+               {cardData.card.membershipId || ''}
              </p>
            </div>
         </div>

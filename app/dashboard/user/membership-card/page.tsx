@@ -35,7 +35,7 @@ export default function UserMembershipCardPage() {
   const [error, setError] = useState<string | null>(null)
   const [selectedCard, setSelectedCard] = useState<PublicMembershipCardDisplay | null>(null)
   const [responseInfo, setResponseInfo] = useState<any>(null)
-  const [membershipId, setMembershipId] = useState<string | null>(null)
+  // const [membershipId, setMembershipId] = useState<string | null>(null)
   const [membershipIdLoading, setMembershipIdLoading] = useState(false)
   const [membershipIdError, setMembershipIdError] = useState<string | null>(null)
   const [isDownloading, setIsDownloading] = useState(false)
@@ -76,7 +76,7 @@ export default function UserMembershipCardPage() {
   const displaySelectedCard = selectedCard;
 
   // Fetch membership ID for the user
-  const fetchMembershipId = async () => {
+/*   const fetchMembershipId = async () => {
     if (!user?._id) return;
     
     try {
@@ -127,7 +127,7 @@ export default function UserMembershipCardPage() {
       setMembershipIdLoading(false);
     }
   };
-
+ */
   // Fetch user's membership cards - MUST be before any conditional returns
   useEffect(() => {
     const fetchCards = async () => {
@@ -195,12 +195,12 @@ export default function UserMembershipCardPage() {
   }, [toast])
 
   // Fetch membership ID when user data is available
-  useEffect(() => {
+/*   useEffect(() => {
     if (user?._id) {
       fetchMembershipId();
     }
   }, [user]);
-
+ */
   // Show loading state if user data is not yet loaded
   if (!user && loading) {
     return (
@@ -631,7 +631,7 @@ export default function UserMembershipCardPage() {
                           cardStyle={displaySelectedCard.card.cardStyle}
                           showLogo={displaySelectedCard.card.customization?.showLogo ?? true}
                           userName={userName}
-                          membershipId={membershipId} // Pass the fetched membership ID
+                          // membershipId={membershipId} // Pass the fetched membership ID
                         />
                       </div>
                     </div>

@@ -24,6 +24,7 @@ import { apiClient, Event } from "@/lib/api";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/auth-context";
 import { formatLocalDate } from "@/lib/timezone";
+import { User as UserInterface } from "@/lib/api";
 import {
   Calendar,
   MapPin,
@@ -135,7 +136,7 @@ function AttendanceMarker({
 }
 
 export default function UserEventsPage() {
-  const { user } = useAuth();
+  const { user } = useAuth() as { user: UserInterface };
   // // console.log("events user:", user);
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
@@ -280,7 +281,7 @@ export default function UserEventsPage() {
   };
   
   const isEventMembersOnly = (event: Event) => {
-    return (event.memberOnly ? user?.memberships?.map(a=>a.club_id._id).includes(event.clubId || "null") || false : true)
+    return (event.memberOnly ? user?.memberships?.map(a=>a?.club_id?._id).includes(event.clubId || "null") || false : true)
   }
 
   const isEventPast = (event: Event) => {

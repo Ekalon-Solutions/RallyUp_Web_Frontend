@@ -65,6 +65,7 @@ export default function UserProfilePage() {
       try {
         const profileResponse = await apiClient.getVolunteerProfile()
         if (profileResponse.success && profileResponse.data) {
+          console.log("vol pro:", profileResponse.data)
           setVolunteerProfile(profileResponse.data)
         } else {
           setVolunteerProfile(null)
@@ -461,19 +462,43 @@ export default function UserProfilePage() {
 
               <div id="recaptcha-container"></div>
 
-              {/* Club Discovery */}
-              {!user.club && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Building2 className="w-5 h-5" />
-                      Join a Club
-                    </CardTitle>
-                    <CardDescription>
-                      Discover and join supporter clubs to connect with fellow fans
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
+              {/* Joined Clubs / Join a Club */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Building2 className="w-5 h-5" />
+                    Joined Clubs
+                  </CardTitle>
+                  <CardDescription>
+                    Your club memberships and quick actions
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {(user as any).memberships && (user as any).memberships.length > 0 ? (
+                    <div className="space-y-3">
+                      {(user as any).memberships.map((m: any) => (
+                        <div key={m._id || m.club_id?._id} className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium">{m.club_id?.name || 'Club'}</p>
+                            {m.membership_level_id && (
+                              <p className="text-xs text-muted-foreground">{m.membership_level_id.name}</p>
+                            )}
+                            {m.status && (
+                              <p className="text-xs text-muted-foreground">Status: {m.status}</p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {m.end_date && (
+                              <p className="text-sm text-muted-foreground">Expires {formatDate(m.end_date)}</p>
+                            )}
+                            <Button size="sm" variant="outline" onClick={() => router.push(`/clubs/${m.club_id?._id || ''}`)}>
+                              View
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
                     <div className="text-center py-8">
                       <Building2 className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
                       <h3 className="text-lg font-semibold mb-2">Not a member of any club yet?</h3>
@@ -486,13 +511,13 @@ export default function UserProfilePage() {
                         <ArrowRight className="w-4 h-4 ml-2" />
                       </Button>
                     </div>
-                  </CardContent>
-                </Card>
-              )}
+                  )}
+                </CardContent>
+              </Card>
             </div>
 
             {/* Club Information */}
-            {user.club && (
+            {(user as any).club && (
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -503,19 +528,19 @@ export default function UserProfilePage() {
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <Label className="text-sm font-medium text-muted-foreground">Club Name</Label>
-                    <p className="text-sm font-medium">{user.club.name}</p>
+                    <p className="text-sm font-medium">{(user as any).club.name}</p>
                   </div>
-                  {user.club.description && (
+                  {(user as any).club.description && (
                     <div className="space-y-2">
                       <Label className="text-sm font-medium text-muted-foreground">Description</Label>
-                      <p className="text-sm">{user.club.description}</p>
+                      <p className="text-sm">{(user as any).club.description}</p>
                     </div>
                   )}
-                  {user.club.website && (
+                  {(user as any).club.website && (
                     <div className="space-y-2">
                       <Label className="text-sm font-medium text-muted-foreground">Website</Label>
                       <a 
-                        href={user.club.website} 
+                        href={(user as any).club.website} 
                         target="_blank" 
                         rel="noopener noreferrer"
                         className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
@@ -525,12 +550,12 @@ export default function UserProfilePage() {
                       </a>
                     </div>
                   )}
-                  {user.club.address && (
+                  {(user as any).club.address && (
                     <div className="space-y-2">
                       <Label className="text-sm font-medium text-muted-foreground">Location</Label>
                       <p className="text-sm flex items-center gap-1">
                         <MapPin className="w-3 h-3" />
-                        {user.club.address.city}, {user.club.address.state}
+                        {(user as any).club.address.city}, {(user as any).club.address.state}
                       </p>
                     </div>
                   )}
@@ -539,23 +564,23 @@ export default function UserProfilePage() {
                     <div className="space-y-1">
                       <p className="text-sm flex items-center gap-1">
                         <Mail className="w-3 h-3" />
-                        {user.club.contactEmail}
+                        {(user as any).club.contactEmail}
                       </p>
                       <p className="text-sm flex items-center gap-1">
                         <Phone className="w-3 h-3" />
-                        {user.club.contactPhone}
+                        {(user as any).club.contactPhone}
                       </p>
                     </div>
                   </div>
                   <Separator />
                   <div className="space-y-2">
                     <Label className="text-sm font-medium text-muted-foreground">Member Since</Label>
-                    <p className="text-sm">{formatDate(user.createdAt || '')}</p>
+                    <p className="text-sm">{formatDate((user as any).createdAt || '')}</p>
                   </div>
-                  {user.membershipExpiry && (
+                  {(user as any).membershipExpiry && (
                     <div className="space-y-2">
                       <Label className="text-sm font-medium text-muted-foreground">Membership Expires</Label>
-                      <p className="text-sm">{formatDate(user.membershipExpiry)}</p>
+                      <p className="text-sm">{formatDate((user as any).membershipExpiry)}</p>
                     </div>
                   )}
                 </CardContent>
@@ -574,22 +599,8 @@ export default function UserProfilePage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {volunteerProfile?.isVolunteer || (volunteerProfile && (volunteerProfile.skills?.length > 0 || volunteerProfile.interests?.length > 0)) ? (
+                {volunteerProfile ? (
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <Badge variant="default" className="bg-green-100 text-green-800">
-                        Available for Volunteering
-                      </Badge>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => setIsVolunteerModalOpen(true)}
-                      >
-                        <Edit className="w-4 h-4 mr-2" />
-                        Update Preferences
-                      </Button>
-                    </div>
-                    
                     {volunteerProfile.skills && volunteerProfile.skills.length > 0 && (
                       <div className="space-y-2">
                         <Label className="text-sm font-medium text-muted-foreground">Skills</Label>
@@ -633,6 +644,31 @@ export default function UserProfilePage() {
                         <p className="text-sm">{volunteerProfile.notes}</p>
                       </div>
                     )}
+
+                    {(volunteerProfile as any)?.emergencyContact && ((volunteerProfile as any).emergencyContact.name || (volunteerProfile as any).emergencyContact.phone) && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-muted-foreground">Emergency Contact</Label>
+                        <div className="text-sm space-y-1">
+                          {(volunteerProfile as any).emergencyContact.name && <p>{(volunteerProfile as any).emergencyContact.name}</p>}
+                          {(volunteerProfile as any).emergencyContact.relationship && <p className="text-xs text-muted-foreground">{(volunteerProfile as any).emergencyContact.relationship}</p>}
+                          {(volunteerProfile as any).emergencyContact.phone && <p className="text-sm">{(volunteerProfile as any).emergencyContact.phone}</p>}
+                        </div>
+                      </div>
+                    )}
+
+                    {(volunteerProfile as any)?.certifications && (volunteerProfile as any).certifications.length > 0 && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-muted-foreground">Certifications</Label>
+                        <div className="space-y-1 text-sm">
+                          {(volunteerProfile as any).certifications.map((c: any, idx: number) => (
+                            <div key={idx}>
+                              <p className="font-medium">{c.name} {(c.issuingOrganization) ? `— ${c.issuingOrganization}` : ''}</p>
+                              {c.issueDate && <p className="text-xs text-muted-foreground">Issued: {new Date(c.issueDate).toLocaleDateString()}</p>}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="text-center py-6">
@@ -641,12 +677,18 @@ export default function UserProfilePage() {
                     <p className="text-muted-foreground mb-4">
                       Join the volunteer team and help make a difference in your community.
                     </p>
-                    <Button onClick={() => setIsVolunteerModalOpen(true)}>
-                      <Plus className="w-4 h-4 mr-2" />
-                      Become a Volunteer
-                    </Button>
                   </div>
                 )}
+                <div className="mt-4 flex flex-col items-center justify-end gap-2">
+                  <Button onClick={() => setIsVolunteerModalOpen(true)}>
+                    <Edit className="w-4 h-4 mr-2" />
+                    Update Preferences
+                  </Button>
+                  <Button variant="outline" onClick={() => router.push('/dashboard/volunteer')}>
+                    <Users className="w-4 h-4 mr-2" />
+                    Volunteer Dashboard
+                  </Button>
+                </div>
               </CardContent>
             </Card>
 
@@ -684,10 +726,11 @@ export default function UserProfilePage() {
           </div>
 
           {/* Membership Renewal Component */}
-          {user.club && user.membershipExpiry && (
+          {(user as any).club && (user as any).membershipExpiry && (
             <MembershipRenewal 
-              clubName={user.club.name}
-              expiryDate={user.membershipExpiry}
+              user={(user as any)}
+              membershipPlans={[]}
+              onRenewal={async () => {}}
             />
           )}
         </div>
