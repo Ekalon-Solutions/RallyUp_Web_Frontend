@@ -238,7 +238,6 @@ export const ClubSelector: React.FC<ClubSelectorProps> = ({ onClubSelect, select
                   <span className="font-medium">{membership.level_name}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <DollarSign className="h-4 w-4 text-green-500" />
                   <span>{formatPrice(membership.membership_level_id.price, membership.membership_level_id.currency)}</span>
                 </div>
                 <div className="flex items-center gap-2">

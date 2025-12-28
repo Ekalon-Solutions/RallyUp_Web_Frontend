@@ -364,19 +364,6 @@ export default function UserClubsPage() {
               <h1 className="text-3xl font-bold">Discover Clubs</h1>
               <p className="text-muted-foreground">Find and join supporter clubs to connect with fellow fans</p>
             </div>
-            <div className="flex gap-2">
-              <Button 
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-                onClick={() => {
-                  setSearchTerm("");
-                  setStatusFilter("active");
-                  setPriceFilter("all");
-                }}
-              >
-                <Search className="w-4 h-4 mr-2" />
-                Find Clubs to Join
-              </Button>
-            </div>
           </div>
 
           {/* Filters */}

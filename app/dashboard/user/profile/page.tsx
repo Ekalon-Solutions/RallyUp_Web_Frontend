@@ -491,7 +491,10 @@ export default function UserProfilePage() {
                             {m.end_date && (
                               <p className="text-sm text-muted-foreground">Expires {formatDate(m.end_date)}</p>
                             )}
-                            <Button size="sm" variant="outline" onClick={() => router.push(`/clubs/${m.club_id?._id || ''}`)}>
+                            <Button size="sm" variant="outline" onClick={() => {
+                              const clubSlug = m.club_id?.slug || m.club_id?._id || '';
+                              router.push(`/clubs/${clubSlug}`);
+                            }}>
                               View
                             </Button>
                           </div>
