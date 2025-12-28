@@ -22,7 +22,7 @@ import {
   Building2,
   Smartphone
 } from "lucide-react"
-import { useCart } from "@/contexts/cart-context"
+import { useCart, CartItem } from "@/contexts/cart-context"
 import { useAuth } from "@/contexts/auth-context"
 import { apiClient } from "@/lib/api"
 import { PaymentSimulationModal } from "./payment-simulation-modal"
@@ -32,6 +32,7 @@ interface CheckoutModalProps {
   isOpen: boolean
   onClose: () => void
   onSuccess: () => void
+  directCheckoutItems?: CartItem[]
 }
 
 interface OrderForm {
@@ -48,10 +49,13 @@ interface OrderForm {
   paymentMethod: string
 }
 
-export function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutModalProps) {
+export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems }: CheckoutModalProps) {
   const { user } = useAuth()
-  // console.log("user", user)
-  const { items, totalPrice, clearCart } = useCart()
+  const { items: cartItems, totalPrice: cartTotalPrice, clearCart } = useCart()
+  const items = directCheckoutItems || cartItems
+  const totalPrice = directCheckoutItems 
+    ? directCheckoutItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+    : cartTotalPrice
   const [loading, setLoading] = useState(false)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [createdOrder, setCreatedOrder] = useState<any>(null)
@@ -80,18 +84,16 @@ export function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutModalProps
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        // Get clubId from the first item in cart
-        const clubId = items[0]?.club?._id || items[0]?.club
+        const club = items[0]?.club
+        const clubId = typeof club === 'string' ? club : club?._id
         
         if (clubId) {
-          // Use public endpoint for regular users
           const response = await apiClient.getPublicMerchandiseSettings(clubId)
           if (response.success && response.data?.settings) {
             setMerchandiseSettings(response.data.settings)
           }
         }
       } catch (error) {
-        // console.error('Error fetching merchandise settings:', error)
       }
     }
     
@@ -121,17 +123,18 @@ export function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutModalProps
   // Auto-fill user data when modal opens or user changes
   useEffect(() => {
     if (isOpen && user) {
+      const userAny = user as any
       setOrderForm(prev => ({
         ...prev,
         firstName: prev.firstName || user?.name?.split(' ')[0] || '',
         lastName: prev.lastName || user?.name?.split(' ').slice(1).join(' ') || '',
         email: prev.email || user?.email || '',
-        phone: prev.phone || user?.phone_number || '',
-        address: prev.address || user.address_line1 + user.address_line1 || '',
-        city: prev.city || user.city || '',
-        state: prev.state || user.state_province || '',
-        zipCode: prev.zipCode || user.zip_code || '',
-        country: prev.country || user.country || '',
+        phone: prev.phone || userAny?.phone_number || '',
+        address: prev.address || userAny?.address_line1 || '',
+        city: prev.city || userAny?.city || '',
+        state: prev.state || userAny?.state_province || '',
+        zipCode: prev.zipCode || userAny?.zip_code || '',
+        country: prev.country || userAny?.country || '',
       }))
     }
   }, [isOpen, user])
@@ -184,7 +187,6 @@ export function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutModalProps
         toast.error(response.message || 'Failed to place order. Please try again.')
       }
     } catch (error) {
-      // console.error('Error placing order:', error)
       toast.error('Failed to place order. Please try again.')
     } finally {
       setLoading(false)
@@ -198,7 +200,9 @@ export function CheckoutModal({ isOpen, onClose, onSuccess }: CheckoutModalProps
       })
       
       toast.success('Payment successful! Order confirmed.')
-      clearCart()
+      if (!directCheckoutItems) {
+        clearCart()
+      }
       onSuccess()
       onClose()
     } catch (error) {

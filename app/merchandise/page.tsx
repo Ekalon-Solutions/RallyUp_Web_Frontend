@@ -27,7 +27,8 @@ import {
   ShoppingCart,
   AlertTriangle,
   Image as ImageIcon,
-  Eye
+  Eye,
+  CreditCard
 } from "lucide-react"
 
 interface Merchandise {
@@ -67,6 +68,7 @@ export default function MerchandisePage() {
   const [isProductModalOpen, setIsProductModalOpen] = useState(false)
   const [isCartModalOpen, setIsCartModalOpen] = useState(false)
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false)
+  const [directCheckoutItems, setDirectCheckoutItems] = useState<any[] | null>(null)
 
   useEffect(() => {
     fetchMerchandise()
@@ -166,6 +168,22 @@ export default function MerchandisePage() {
   const handleViewProduct = (item: Merchandise) => {
     setSelectedProduct(item)
     setIsProductModalOpen(true)
+  }
+
+  const handleBuyNow = (item: Merchandise, quantity: number = 1) => {
+    setDirectCheckoutItems([{
+      _id: item._id,
+      name: item.name,
+      price: item.price,
+      currency: item.currency,
+      quantity: quantity,
+      featuredImage: item.featuredImage,
+      stockQuantity: item.stockQuantity,
+      tags: item.tags,
+      club: item.club
+    }])
+    setIsProductModalOpen(false)
+    setIsCheckoutModalOpen(true)
   }
 
   return (
@@ -338,6 +356,13 @@ export default function MerchandisePage() {
                                 disabled={item.stockQuantity === 0}
                               >
                                 <ShoppingCart className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={() => handleBuyNow(item)}
+                                disabled={item.stockQuantity === 0}
+                              >
+                                <CreditCard className="w-4 h-4" />
                               </Button>
                             </div>
                           </div>
@@ -526,6 +551,14 @@ export default function MerchandisePage() {
                                     <ShoppingCart className="w-4 h-4 mr-1" />
                                     Add to Cart
                                   </Button>
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleBuyNow(item)}
+                                    disabled={item.stockQuantity === 0}
+                                  >
+                                    <CreditCard className="w-4 h-4 mr-1" />
+                                    Buy Now
+                                  </Button>
                                 </div>
                               </div>
                             </div>
@@ -571,6 +604,7 @@ export default function MerchandisePage() {
             setSelectedProduct(null)
           }}
           product={selectedProduct}
+          onBuyNow={handleBuyNow}
         />
 
         {/* Cart Modal */}
@@ -583,11 +617,16 @@ export default function MerchandisePage() {
         {/* Checkout Modal */}
         <CheckoutModal
           isOpen={isCheckoutModalOpen}
-          onClose={() => setIsCheckoutModalOpen(false)}
+          onClose={() => {
+            setIsCheckoutModalOpen(false)
+            setDirectCheckoutItems(null)
+          }}
           onSuccess={() => {
             toast.success('Order placed successfully!')
             setIsCheckoutModalOpen(false)
+            setDirectCheckoutItems(null)
           }}
+          directCheckoutItems={directCheckoutItems || undefined}
         />
       </div>
     </DashboardLayout>

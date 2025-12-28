@@ -19,7 +19,8 @@ import {
   CheckCircle,
   X,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  CreditCard
 } from "lucide-react"
 import { toast } from "sonner"
 import { useCart } from "@/contexts/cart-context"
@@ -50,14 +51,21 @@ interface ProductViewModalProps {
   isOpen: boolean
   onClose: () => void
   product: Merchandise | null
+  onBuyNow?: (item: Merchandise, quantity: number) => void
 }
 
-export function ProductViewModal({ isOpen, onClose, product }: ProductViewModalProps) {
+export function ProductViewModal({ isOpen, onClose, product, onBuyNow }: ProductViewModalProps) {
   const { addToCart, isInCart, getItemQuantity } = useCart()
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
   const [quantity, setQuantity] = useState(1)
 
   if (!product) return null
+
+  const handleBuyNow = () => {
+    if (onBuyNow) {
+      onBuyNow(product, quantity)
+    }
+  }
 
 
 
@@ -377,10 +385,19 @@ export function ProductViewModal({ isOpen, onClose, product }: ProductViewModalP
                 <Button
                   onClick={handleAddToCart}
                   disabled={product.stockQuantity === 0}
+                  variant="outline"
                   className="flex-1"
                 >
                   <ShoppingCart className="w-4 h-4 mr-2" />
                   Add to Cart
+                </Button>
+                <Button
+                  onClick={handleBuyNow}
+                  disabled={product.stockQuantity === 0}
+                  className="flex-1"
+                >
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  Buy Now
                 </Button>
               </div>
 
