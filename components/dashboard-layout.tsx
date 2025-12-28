@@ -101,7 +101,6 @@ const superAdminNavigation = [
   { name: "Onboarding & Promotions", href: "/dashboard/onboarding", icon: GraduationCap },
   { name: "Admin Settings", href: "/dashboard/admin-settings", icon: Settings },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
-  { name: "Help", href: "/dashboard/help", icon: HelpCircle },
 ]
 
 const userNavigation = [

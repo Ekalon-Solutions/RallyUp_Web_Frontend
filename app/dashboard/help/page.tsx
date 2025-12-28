@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -10,6 +11,7 @@ import { Badge } from "@/components/ui/badge"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Search, MessageCircle, Book, Video, Mail, Phone, ExternalLink, RefreshCw, AlertCircle } from "lucide-react"
 import { apiClient } from "@/lib/api"
+import { useAuth } from "@/contexts/auth-context"
 
 const faqData = [
   {
@@ -59,6 +61,8 @@ interface ServiceStatus {
 }
 
 export default function HelpPage() {
+  const { user } = useAuth();
+  const router = useRouter();
   const [systemStatus, setSystemStatus] = useState<{
     status: 'operational' | 'degraded' | 'down';
     services: ServiceStatus[];
@@ -67,6 +71,27 @@ export default function HelpPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  // Redirect super_admin users away from the help page
+  useEffect(() => {
+    if (user?.role === 'super_admin') {
+      router.push('/dashboard');
+    }
+  }, [user, router]);
+
+  // Don't render the page for super_admin users
+  if (user?.role === 'super_admin') {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <h3 className="text-lg font-semibold">Access Denied</h3>
+            <p className="text-muted-foreground">This page is not available for your role.</p>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   const fetchSystemStatus = async () => {
     try {
