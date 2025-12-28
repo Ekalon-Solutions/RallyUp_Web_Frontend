@@ -122,6 +122,35 @@ charlie.brown@example.com,Charlie,Brown,9234567890,+91,charlie_brown,1992-08-20,
           continue
         }
 
+        // Normalize gender to lowercase
+        const normalizeGender = (gender: string): string => {
+          const normalized = gender.toLowerCase().trim()
+          // Handle variations
+          if (normalized === 'male' || normalized === 'm') return 'male'
+          if (normalized === 'female' || normalized === 'f') return 'female'
+          if (normalized === 'non-binary' || normalized === 'nonbinary' || normalized === 'nb') return 'non-binary'
+          // Default to male if invalid
+          return 'male'
+        }
+
+        // Normalize ID proof type to match enum values
+        const normalizeIdProofType = (idProofType: string): string => {
+          const normalized = idProofType.trim()
+          // Handle Aadhar variations
+          if (/^aadha?r$/i.test(normalized)) return 'Aadhar'
+          // Handle Voter ID variations
+          if (/^voter\s*(id)?$/i.test(normalized) || normalized.toLowerCase() === 'voterid') return 'Voter ID'
+          // Handle Passport
+          if (/^passport$/i.test(normalized)) return 'Passport'
+          // Handle Driver License variations
+          if (/^driver['\s]?s?\s*(license|licence)$/i.test(normalized) || normalized.toLowerCase() === 'driving license' || normalized.toLowerCase() === 'drivers license') return 'Driver License'
+          // Default to Aadhar if invalid
+          return 'Aadhar'
+        }
+
+        const rawGender = (row.gender || 'male').trim()
+        const rawIdProofType = (row.id_proof_type || 'Aadhar').trim()
+
         const payload: any = {
           username,
           email,
@@ -130,14 +159,14 @@ charlie.brown@example.com,Charlie,Brown,9234567890,+91,charlie_brown,1992-08-20,
           phone_number,
           countryCode,
           date_of_birth: (row.date_of_birth || '1990-01-01').trim(),
-          gender: (row.gender || 'male').trim(),
+          gender: normalizeGender(rawGender),
           address_line1: (row.address_line1 || 'Not provided').trim(),
           address_line2: (row.address_line2 || '').trim(),
           city: (row.city || 'Not provided').trim(),
           state_province: (row.state_province || row.state || 'Not provided').trim(),
           zip_code: (row.zip_code || row.zip || '000000').trim(),
           country: (row.country || 'India').trim(),
-          id_proof_type: (row.id_proof_type || 'Aadhar').trim(),
+          id_proof_type: normalizeIdProofType(rawIdProofType),
           id_proof_number: (row.id_proof_number || `TEMP${Date.now()}${idx}`).trim()
         }
 

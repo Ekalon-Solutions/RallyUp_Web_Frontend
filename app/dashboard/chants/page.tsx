@@ -508,7 +508,7 @@ export default function ChantsManagementPage() {
           </Card>
 
           {/* Chants List */}
-          <div className="grid gap-4">
+          <div className="grid grid-cols-1 gap-4">
             {loading ? (
               <div className="text-center py-8">
                 <div className="text-muted-foreground">Loading chants...</div>

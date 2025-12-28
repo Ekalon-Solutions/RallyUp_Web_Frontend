@@ -48,7 +48,7 @@ import Image from "next/image"
 const adminNavigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Members", href: "/dashboard/members", icon: Users },
-  // { name: "Browse Clubs", href: "/dashboard/clubs", icon: Building2 }, // Hidden for now
+  // { name: "Browse Clubs", href: "/dashboard/user/clubs", icon: Building2 }, // Hidden for now
   { name: "Membership Plans", href: "/dashboard/membership-plans", icon: CreditCard },
   { name: "Membership Cards", href: "/dashboard/membership-cards", icon: CreditCard },
   { name: "News & Updates", href: "/dashboard/content", icon: Newspaper },
@@ -72,7 +72,7 @@ const adminNavigation = [
 const systemOwnerNavigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Club Management", href: "/dashboard/club-management", icon: Building },
-  // { name: "Browse Clubs", href: "/dashboard/clubs", icon: Building2 }, // Hidden for now
+  // { name: "Browse Clubs", href: "/dashboard/user/clubs", icon: Building2 }, // Hidden for now
   { name: "Onboarding & Promotions", href: "/dashboard/onboarding", icon: GraduationCap },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
   { name: "Help", href: "/dashboard/help", icon: HelpCircle },
@@ -81,7 +81,7 @@ const systemOwnerNavigation = [
 const superAdminNavigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Members", href: "/dashboard/members", icon: Users },
-  // { name: "Browse Clubs", href: "/dashboard/clubs", icon: Building2 }, // Hidden for now
+  // { name: "Browse Clubs", href: "/dashboard/user/clubs", icon: Building2 }, // Hidden for now
   { name: "Staff Management", href: "/dashboard/staff", icon: Shield },
   { name: "Membership Plans", href: "/dashboard/membership-plans", icon: CreditCard },
   { name: "Membership Cards", href: "/dashboard/membership-cards", icon: CreditCard },
