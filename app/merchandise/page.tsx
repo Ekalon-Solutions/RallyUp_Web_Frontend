@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -20,12 +20,9 @@ import {
   Tag, 
   Star, 
   Package,
-  Filter,
   Grid3X3,
   List,
-  Heart,
   ShoppingCart,
-  AlertTriangle,
   Image as ImageIcon,
   Eye,
   CreditCard
@@ -69,6 +66,26 @@ export default function MerchandisePage() {
   const [isCartModalOpen, setIsCartModalOpen] = useState(false)
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false)
   const [directCheckoutItems, setDirectCheckoutItems] = useState<any[] | null>(null)
+
+  const formatCurrency = (amount: number, currencyCode: string = 'USD') => {
+    const localeMap: Record<string, string> = {
+      'USD': 'en-US',
+      'INR': 'en-IN',
+      'EUR': 'en-EU',
+      'GBP': 'en-GB',
+      'CAD': 'en-CA',
+      'AUD': 'en-AU',
+      'JPY': 'ja-JP',
+      'BRL': 'pt-BR',
+      'MXN': 'es-MX',
+      'ZAR': 'en-ZA'
+    }
+    const locale = localeMap[currencyCode] || 'en-US'
+    return new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency: currencyCode
+    }).format(amount)
+  }
 
   useEffect(() => {
     fetchMerchandise()
@@ -376,7 +393,7 @@ export default function MerchandisePage() {
                               <span className="ml-1 capitalize">{item.category}</span>
                             </Badge>
                             <div className="flex items-center text-lg font-bold">
-                              ₹ {item.price.toFixed(2)}
+                              {formatCurrency(item.price, item.currency)}
                             </div>
                           </div>
                           
@@ -532,7 +549,7 @@ export default function MerchandisePage() {
                               {/* Price and Actions */}
                               <div className="flex flex-col items-end space-y-2 ml-4">
                                 <div className="flex items-center text-xl font-bold">
-                                  ₹ {item.price.toFixed(2)}
+                                  {formatCurrency(item.price, item.currency)}
                                 </div>
                                 
                                 <div className="flex space-x-2">

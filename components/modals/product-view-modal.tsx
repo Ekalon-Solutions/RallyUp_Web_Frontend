@@ -14,10 +14,8 @@ import {
   Package, 
   Tag, 
   Image as ImageIcon,
-  DollarSign,
   AlertTriangle,
   CheckCircle,
-  X,
   ChevronLeft,
   ChevronRight,
   CreditCard
@@ -60,6 +58,26 @@ export function ProductViewModal({ isOpen, onClose, product, onBuyNow }: Product
   const [quantity, setQuantity] = useState(1)
 
   if (!product) return null
+
+  const formatCurrency = (amount: number, currencyCode: string = product.currency || 'USD') => {
+    const localeMap: Record<string, string> = {
+      'USD': 'en-US',
+      'INR': 'en-IN',
+      'EUR': 'en-EU',
+      'GBP': 'en-GB',
+      'CAD': 'en-CA',
+      'AUD': 'en-AU',
+      'JPY': 'ja-JP',
+      'BRL': 'pt-BR',
+      'MXN': 'es-MX',
+      'ZAR': 'en-ZA'
+    }
+    const locale = localeMap[currencyCode] || 'en-US'
+    return new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency: currencyCode
+    }).format(amount)
+  }
 
   const handleBuyNow = () => {
     if (onBuyNow) {
@@ -128,7 +146,6 @@ export function ProductViewModal({ isOpen, onClose, product, onBuyNow }: Product
         // console.log('Error sharing:', error)
       }
     } else {
-      // Fallback: copy to clipboard
       navigator.clipboard.writeText(window.location.href)
       toast.success('Product link copied to clipboard')
     }
@@ -265,7 +282,7 @@ export function ProductViewModal({ isOpen, onClose, product, onBuyNow }: Product
 
               {/* Price */}
               <div className="flex items-center text-3xl font-bold">
-                ₹ {product.price.toFixed(2)}
+                {formatCurrency(product.price, product.currency)}
               </div>
 
               {/* Stock Status */}
