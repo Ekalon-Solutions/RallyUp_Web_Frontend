@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Shield, User, Mail, Phone, UserPlus, LogIn, Crown, Building2 } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import { SiteNavbar } from "@/components/site-navbar"
 import { SiteFooter } from "@/components/site-footer"
@@ -117,6 +117,7 @@ export default function AuthPage() {
   const [otpButtonLoading, setOtpButtonLoading] = useState(false)
   const { login, register, isAuthenticated } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   const [userLoginData, setUserLoginData] = useState({ email: "", phone_number: "", countryCode: "+91" })
   const [userRegisterData, setUserRegisterData] = useState({
@@ -244,6 +245,22 @@ export default function AuthPage() {
       router.push("/dashboard")
     }
   }, [isAuthenticated, router])
+
+  useEffect(() => {
+    const club = searchParams.get("club")
+    const tab = searchParams.get("tab")
+
+    if (tab && ["user-login", "user-register", "admin-login", "admin-register", "system-owner-login", "system-owner-register"].includes(tab)) {
+      setActiveTab(tab)
+    }
+    
+    if (club) {
+      setUserRegisterData(prev => ({
+        ...prev,
+        clubId: club
+      }))
+    }
+  }, [searchParams])
 
   useEffect(() => {
     if (typeof window === "undefined") return

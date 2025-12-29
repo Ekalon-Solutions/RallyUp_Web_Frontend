@@ -595,22 +595,6 @@ export default function VolunteerManagementPage() {
               <SelectItem value="cancelled">Cancelled</SelectItem>
             </SelectContent>
           </Select>
-          <Button 
-            onClick={() => {
-              // // console.log('🔄 Manual refresh triggered');
-              if (clubId) {
-                fetchOpportunities();
-                fetchVolunteers();
-                fetchVolunteerSignups();
-              } else {
-                // // console.log('❌ Cannot refresh: no club ID');
-              }
-            }}
-            variant="outline"
-            disabled={!clubId}
-          >
-            🔄 Refresh Data
-          </Button>
           {!clubId && (
             <div className="text-red-600 text-sm flex items-center">
               ⚠️ No club ID found - cannot fetch data
