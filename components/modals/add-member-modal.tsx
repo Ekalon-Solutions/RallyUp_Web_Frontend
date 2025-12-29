@@ -128,20 +128,17 @@ export function AddMemberModal({ trigger, onMemberAdded }: AddMemberModalProps) 
       }
     }
 
-    // Username validation
-    if (!/^[a-zA-Z0-9_]+$/.test(userData.username)) {
-      toast.error("Username can only contain letters, numbers, and underscores")
+    if (!/^[a-zA-Z0-9_.'-]+$/.test(userData.username)) {
+      toast.error("Username can only contain letters, numbers, underscores, periods, apostrophes, and hyphens")
       return false
     }
 
-    // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(userData.email)) {
       toast.error("Please enter a valid email address")
       return false
     }
 
-    // Phone validation
     if (!/^\d{10,15}$/.test(userData.phone_number)) {
       toast.error("Please enter a valid phone number (10-15 digits)")
       return false
@@ -177,7 +174,6 @@ export function AddMemberModal({ trigger, onMemberAdded }: AddMemberModalProps) 
     setIsLoading(true)
 
     try {
-      // Step 1: Create user
       // console.log('Creating user with data:', userData)
       
       const userResponse = await fetch(getApiUrl('/users/register'), {
@@ -196,9 +192,7 @@ export function AddMemberModal({ trigger, onMemberAdded }: AddMemberModalProps) 
       const userResult = await userResponse.json()
       const newUserId = userResult._id
 
-            // Step 2: Create user membership
       if (selectedPlan) {
-        // Validate that user has a club
         const clubId = user && 'club' in user ? user.club?._id : null
         if (!clubId) {
           throw new Error('User is not associated with any club')

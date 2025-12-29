@@ -385,8 +385,8 @@ function AuthPageContent() {
       return
     }
 
-    if (!/^[a-zA-Z0-9_]+$/.test(userRegisterData.username)) {
-      toast.error("Username can only contain letters, numbers, and underscores")
+    if (!/^[a-zA-Z0-9_.'-]+$/.test(userRegisterData.username)) {
+      toast.error("Username can only contain letters, numbers, underscores, periods, apostrophes, and hyphens")
       return
     }
 
@@ -1206,7 +1206,7 @@ function AuthPageContent() {
                             />
                           </div>
                           <p className="text-xs text-slate-400">
-                            Username can only contain letters, numbers, and underscores (e.g., john_doe123)
+                            Username can only contain letters, numbers, underscores, periods, apostrophes, and hyphens (e.g., john_doe123, dr.harish, heston'souza)
                           </p>
                         </div>
                         
