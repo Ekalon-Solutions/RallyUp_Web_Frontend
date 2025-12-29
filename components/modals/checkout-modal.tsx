@@ -101,8 +101,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
       fetchSettings()
     }
   }, [isOpen, items])
-
-  // Calculate shipping and tax based on settings
+  
   const calculateShipping = () => {
     if (!merchandiseSettings?.enableShipping) return 0
     if (merchandiseSettings.freeShippingThreshold && totalPrice >= merchandiseSettings.freeShippingThreshold) {
@@ -120,7 +119,28 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
   const taxAmount = calculateTax()
   const orderTotal = totalPrice + shippingCost + taxAmount
 
-  // Auto-fill user data when modal opens or user changes
+  const currency = items.length > 0 ? (items[0].currency || 'USD') : 'USD'
+
+  const formatCurrency = (amount: number, currencyCode: string = currency) => {
+    const localeMap: Record<string, string> = {
+      'USD': 'en-US',
+      'INR': 'en-IN',
+      'EUR': 'en-EU',
+      'GBP': 'en-GB',
+      'CAD': 'en-CA',
+      'AUD': 'en-AU',
+      'JPY': 'ja-JP',
+      'BRL': 'pt-BR',
+      'MXN': 'es-MX',
+      'ZAR': 'en-ZA'
+    }
+    const locale = localeMap[currencyCode] || 'en-US'
+    return new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency: currencyCode
+    }).format(amount)
+  }
+
   useEffect(() => {
     if (isOpen && user) {
       const userAny = user as any
@@ -461,7 +481,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                         </div>
                         
                         <div className="text-sm font-medium">
-                          ₹ {(item.price * item.quantity).toFixed(2)}
+                          {formatCurrency(item.price * item.quantity, item.currency || currency)}
                         </div>
                       </div>
                     ))}
@@ -476,7 +496,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                     <div className="flex justify-between">
                       <span>Subtotal:</span>
                       <span>
-                        ₹ {totalPrice.toFixed(2)}
+                        {formatCurrency(totalPrice, currency)}
                       </span>
                     </div>
                     {merchandiseSettings?.enableShipping && (
@@ -485,21 +505,21 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                         {shippingCost === 0 ? (
                           <span className="text-green-600">Free</span>
                         ) : (
-                          <span>₹ {shippingCost.toFixed(2)}</span>
+                          <span>{formatCurrency(shippingCost, currency)}</span>
                         )}
                       </div>
                     )}
                     {merchandiseSettings?.enableTax && taxAmount > 0 && (
                       <div className="flex justify-between">
                         <span>Tax ({merchandiseSettings.taxRate}%):</span>
-                        <span>₹ {taxAmount.toFixed(2)}</span>
+                        <span>{formatCurrency(taxAmount, currency)}</span>
                       </div>
                     )}
                     <Separator />
                     <div className="flex justify-between text-lg font-bold">
                       <span>Total:</span>
                       <span>
-                        ₹ {orderTotal.toFixed(2)}
+                        {formatCurrency(orderTotal, currency)}
                       </span>
                     </div>
                   </div>

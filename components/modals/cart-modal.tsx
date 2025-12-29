@@ -10,7 +10,6 @@ import {
   Plus, 
   Minus, 
   Trash2, 
-  DollarSign,
   Package,
   Image as ImageIcon,
   ShoppingBag
@@ -33,6 +32,28 @@ export function CartModal({ isOpen, onClose, onCheckout }: CartModalProps) {
     removeFromCart, 
     clearCart 
   } = useCart()
+
+  const currency = items.length > 0 ? (items[0].currency || 'USD') : 'USD'
+
+  const formatCurrency = (amount: number, currencyCode: string = currency) => {
+    const localeMap: Record<string, string> = {
+      'USD': 'en-US',
+      'INR': 'en-IN',
+      'EUR': 'en-EU',
+      'GBP': 'en-GB',
+      'CAD': 'en-CA',
+      'AUD': 'en-AU',
+      'JPY': 'ja-JP',
+      'BRL': 'pt-BR',
+      'MXN': 'es-MX',
+      'ZAR': 'en-ZA'
+    }
+    const locale = localeMap[currencyCode] || 'en-US'
+    return new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency: currencyCode
+    }).format(amount)
+  }
 
   const handleQuantityChange = (itemId: string, newQuantity: number) => {
     if (newQuantity <= 0) {
@@ -150,7 +171,7 @@ export function CartModal({ isOpen, onClose, onCheckout }: CartModalProps) {
                     
                     {/* Price */}
                     <div className="flex items-center text-lg font-bold mb-3">
-                      ₹ {item.price.toFixed(2)}
+                      {formatCurrency(item.price, item.currency || currency)}
                     </div>
 
                     {/* Quantity Controls */}
@@ -199,10 +220,10 @@ export function CartModal({ isOpen, onClose, onCheckout }: CartModalProps) {
                   {/* Item Total */}
                   <div className="text-right">
                     <div className="text-lg font-bold">
-                      ₹ {(item.price * item.quantity).toFixed(2)}
+                      {formatCurrency(item.price * item.quantity, item.currency || currency)}
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      {item.quantity} × {item.price.toFixed(2)}
+                      {item.quantity} × {formatCurrency(item.price, item.currency || currency)}
                     </div>
                   </div>
                 </div>
@@ -220,7 +241,7 @@ export function CartModal({ isOpen, onClose, onCheckout }: CartModalProps) {
               <div className="flex justify-between items-center">
                 <span className="text-lg font-semibold">Total ({totalItems} items):</span>
                 <span className="text-2xl font-bold">
-                  ₹ {totalPrice.toFixed(2)}
+                  {formatCurrency(totalPrice, currency)}
                 </span>
               </div>
 

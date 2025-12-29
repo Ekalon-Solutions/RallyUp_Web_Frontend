@@ -72,8 +72,21 @@ export function PaymentSimulationModal({
     }
   }, [toast])
 
-  const formatCurrency = (amount: number, currency: string = 'INR') => {
-    return new Intl.NumberFormat('en-IN', {
+  const formatCurrency = (amount: number, currency: string = 'USD') => {
+    const localeMap: Record<string, string> = {
+      'USD': 'en-US',
+      'INR': 'en-IN',
+      'EUR': 'en-EU',
+      'GBP': 'en-GB',
+      'CAD': 'en-CA',
+      'AUD': 'en-AU',
+      'JPY': 'ja-JP',
+      'BRL': 'pt-BR',
+      'MXN': 'es-MX',
+      'ZAR': 'en-ZA'
+    }
+    const locale = localeMap[currency] || 'en-US'
+    return new Intl.NumberFormat(locale, {
       style: 'currency',
       currency: currency
     }).format(amount)
