@@ -70,11 +70,42 @@ charlie.brown@example.com,Charlie,Brown,9234567890,+91,charlie_brown,1992-08-20,
     const text = await f.text()
     const lines = text.split(/\r?\n/).filter(Boolean)
     if (lines.length === 0) return []
-    const headers = lines[0].split(',').map(h => h.trim())
+    
+    const parseCSVLine = (line: string): string[] => {
+      const result: string[] = []
+      let current = ''
+      let inQuotes = false
+      
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i]
+        const nextChar = line[i + 1]
+        
+        if (char === '"') {
+          if (inQuotes && nextChar === '"') {
+            current += '"'
+            i++
+          } else {
+            inQuotes = !inQuotes
+          }
+        } else if (char === ',' && !inQuotes) {
+          result.push(current.trim())
+          current = ''
+        } else {
+          current += char
+        }
+      }
+      result.push(current.trim())
+      return result
+    }
+    
+    const headers = parseCSVLine(lines[0]).map(h => h.replace(/^"|"$/g, '').trim())
+    
     const rows = lines.slice(1).map(line => {
-      const cols = line.split(',')
+      const cols = parseCSVLine(line).map(col => col.replace(/^"|"$/g, '').trim())
       const obj: any = {}
-      headers.forEach((h, i) => { obj[h] = (cols[i] || '').trim() })
+      headers.forEach((h, i) => { 
+        obj[h] = (cols[i] || '').trim() 
+      })
       return obj
     })
     return rows
@@ -94,11 +125,27 @@ charlie.brown@example.com,Charlie,Brown,9234567890,+91,charlie_brown,1992-08-20,
     try {
       const rows = await parseCSV(file)
       for (const [idx, row] of rows.entries()) {
+        const convertScientificNotation = (value: string): string => {
+          if (!value) return ''
+          const trimmed = value.trim()
+          if (/^[\d.]+[eE][+-]?\d+$/.test(trimmed)) {
+            const num = parseFloat(trimmed)
+            if (!isNaN(num)) {
+              return Math.round(num).toString()
+            }
+          }
+          return trimmed
+        }
+
         const email = (row.email || '').trim()
         const first_name = (row.first_name || row.firstName || '').trim()
         const last_name = (row.last_name || row.lastName || '').trim()
-        const phone_number = (row.phone_number || row.phone || '').trim()
-        const countryCode = (row.countryCode || row.country_code || '+91').trim()
+        let phone_number = (row.phone_number || row.phone || row.phone_nu || '').trim()
+        phone_number = convertScientificNotation(phone_number)
+        phone_number = phone_number.replace(/[^\d]/g, '')
+        
+        const countryCode = (row.countryCode || row.country_code || row.countryCo || '+91').trim()
+        const normalizedCountryCode = countryCode.startsWith('+') ? countryCode : `+${countryCode}`
         const username = (row.username || email?.split('@')?.[0] || `user${Date.now()}${idx}`).trim()
         
         if (!email) {
@@ -122,34 +169,43 @@ charlie.brown@example.com,Charlie,Brown,9234567890,+91,charlie_brown,1992-08-20,
           continue
         }
 
-        // Normalize gender to lowercase
         const normalizeGender = (gender: string): string => {
           const normalized = gender.toLowerCase().trim()
-          // Handle variations
           if (normalized === 'male' || normalized === 'm') return 'male'
           if (normalized === 'female' || normalized === 'f') return 'female'
           if (normalized === 'non-binary' || normalized === 'nonbinary' || normalized === 'nb') return 'non-binary'
-          // Default to male if invalid
           return 'male'
         }
 
-        // Normalize ID proof type to match enum values
         const normalizeIdProofType = (idProofType: string): string => {
           const normalized = idProofType.trim()
-          // Handle Aadhar variations
           if (/^aadha?r$/i.test(normalized)) return 'Aadhar'
-          // Handle Voter ID variations
           if (/^voter\s*(id)?$/i.test(normalized) || normalized.toLowerCase() === 'voterid') return 'Voter ID'
-          // Handle Passport
           if (/^passport$/i.test(normalized)) return 'Passport'
-          // Handle Driver License variations
           if (/^driver['\s]?s?\s*(license|licence)$/i.test(normalized) || normalized.toLowerCase() === 'driving license' || normalized.toLowerCase() === 'drivers license') return 'Driver License'
-          // Default to Aadhar if invalid
           return 'Aadhar'
         }
 
         const rawGender = (row.gender || 'male').trim()
         const rawIdProofType = (row.id_proof_type || 'Aadhar').trim()
+
+        let zip_code = (row.zip_code || row.zip || row.zipCode || '').trim()
+        if (/^[a-zA-Z\s]+$/.test(zip_code) && zip_code.length > 5) {
+          zip_code = '000000'
+        }
+        if (zip_code.length > 10) {
+          zip_code = zip_code.substring(0, 10)
+        }
+
+        let date_of_birth = (row.date_of_birth || row.date_of_bi || '1990-01-01').trim()
+        if (/^\d+$/.test(date_of_birth)) {
+          const numValue = parseInt(date_of_birth, 10)
+          if (numValue > 0 && numValue < 100000) {
+            const excelEpoch = new Date(1899, 11, 30)
+            const date = new Date(excelEpoch.getTime() + numValue * 86400000)
+            date_of_birth = date.toISOString().split('T')[0]
+          }
+        }
 
         const payload: any = {
           username,
@@ -157,20 +213,38 @@ charlie.brown@example.com,Charlie,Brown,9234567890,+91,charlie_brown,1992-08-20,
           first_name,
           last_name,
           phone_number,
-          countryCode,
-          date_of_birth: (row.date_of_birth || '1990-01-01').trim(),
+          countryCode: normalizedCountryCode,
+          date_of_birth,
           gender: normalizeGender(rawGender),
-          address_line1: (row.address_line1 || 'Not provided').trim(),
+          address_line1: (row.address_line1 || row.address_li || 'Not provided').trim(),
           address_line2: (row.address_line2 || '').trim(),
           city: (row.city || 'Not provided').trim(),
-          state_province: (row.state_province || row.state || 'Not provided').trim(),
-          zip_code: (row.zip_code || row.zip || '000000').trim(),
+          state_province: (row.state_province || row.state_prov || row.state || 'Not provided').trim(),
+          zip_code,
           country: (row.country || 'India').trim(),
           id_proof_type: normalizeIdProofType(rawIdProofType),
-          id_proof_number: (row.id_proof_number || `TEMP${Date.now()}${idx}`).trim()
+          id_proof_number: (row.id_proof_number || row.id_proof_r || `TEMP${Date.now()}${idx}`).trim()
         }
 
         try {
+          if (!phone_number || phone_number.length < 10) {
+            failCount++
+            errors.push(`Row ${idx + 2}: Invalid phone number (${phone_number || 'empty'})`)
+            continue
+          }
+
+          if (zip_code.length > 10) {
+            failCount++
+            errors.push(`Row ${idx + 2}: Zip code too long (${zip_code.length} characters)`)
+            continue
+          }
+
+          if (/^[a-zA-Z\s]+$/.test(zip_code) && zip_code.length > 5) {
+            failCount++
+            errors.push(`Row ${idx + 2}: Zip code appears to be a state/city name: "${zip_code}"`)
+            continue
+          }
+
           const regResp = await apiClient.userRegister({ ...payload, clubId } as any)
           if (!regResp.success) {
             failCount++

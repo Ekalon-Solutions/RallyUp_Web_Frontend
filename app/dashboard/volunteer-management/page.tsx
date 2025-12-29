@@ -566,15 +566,6 @@ export default function VolunteerManagementPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold">Volunteer Management</h1>
-          <Button
-            onClick={() => setIsCreateModalOpen(true)}
-          >
-            Create Opportunity
-          </Button>
-        </div>
-
         <div className="mb-6 flex gap-4">
           <Input
             placeholder="Search..."

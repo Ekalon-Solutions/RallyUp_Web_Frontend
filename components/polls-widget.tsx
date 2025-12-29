@@ -41,7 +41,6 @@ export function PollsWidget({ limit = 3, showCreateButton = true }: PollsWidgetP
         setPolls(response.data.polls.slice(0, limit))
       }
     } catch (error) {
-      // console.error("Error fetching recent polls:", error)
     } finally {
       setLoading(false)
     }
@@ -119,45 +118,47 @@ export function PollsWidget({ limit = 3, showCreateButton = true }: PollsWidgetP
           </div>
         ) : (
           <div className="space-y-4">
-            {polls.map((poll) => (
-              <div key={poll._id} className="border rounded-lg p-3 hover:bg-muted/50 transition-colors">
-                <div className="flex items-start justify-between mb-2">
-                  <h4 className="font-medium text-sm line-clamp-2 flex-1">
-                    {poll.question}
-                  </h4>
-                  <Badge className={`ml-2 text-xs ${getStatusColor(poll.status)}`}>
-                    {poll.status}
-                  </Badge>
-                </div>
-                
-                <div className="flex items-center gap-4 text-xs text-muted-foreground mb-2">
-                  <div className="flex items-center gap-1">
-                    <Users className="w-3 h-3" />
-                    <span>{poll.totalVoters}</span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+              {polls.map((poll) => (
+                <div key={poll._id} className="border rounded-lg p-3 hover:bg-muted/50 transition-colors flex flex-col">
+                  <div className="flex items-start justify-between mb-2">
+                    <h4 className="font-medium text-sm line-clamp-2 flex-1">
+                      {poll.question}
+                    </h4>
+                    <Badge className={`ml-2 text-xs shrink-0 ${getStatusColor(poll.status)}`}>
+                      {poll.status}
+                    </Badge>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <MessageSquare className="w-3 h-3" />
-                    <span>{poll.totalVotes}</span>
+                  
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mb-2 flex-grow">
+                    <div className="flex items-center gap-1">
+                      <Users className="w-3 h-3 shrink-0" />
+                      <span>{poll.totalVoters} voters</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <MessageSquare className="w-3 h-3 shrink-0" />
+                      <span>{poll.totalVotes} votes</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Calendar className="w-3 h-3 shrink-0" />
+                      <span>{formatDate(poll.createdAt)}</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <Calendar className="w-3 h-3" />
-                    <span>{formatDate(poll.createdAt)}</span>
-                  </div>
-                </div>
 
-                <div className="flex items-center justify-between">
-                  <Badge variant="outline" className="text-xs">
-                    {poll.category}
-                  </Badge>
-                  <Button asChild size="sm" variant="ghost" className="h-6 px-2">
-                    <Link href={isAdmin ? "/dashboard/polls" : "/dashboard/user/polls"}>
-                      View
-                      <ArrowRight className="w-3 h-3 ml-1" />
-                    </Link>
-                  </Button>
+                  <div className="flex items-center justify-between mt-auto">
+                    <Badge variant="outline" className="text-xs">
+                      {poll.category}
+                    </Badge>
+                    <Button asChild size="sm" variant="ghost" className="h-6 px-2">
+                      <Link href={isAdmin ? "/dashboard/polls" : "/dashboard/user/polls"}>
+                        View
+                        <ArrowRight className="w-3 h-3 ml-1" />
+                      </Link>
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
             
             <div className="pt-2">
               <Button asChild variant="outline" size="sm" className="w-full">

@@ -33,6 +33,7 @@ import {
   Download
 } from 'lucide-react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 interface OrderItem {
   productId: string
@@ -117,7 +118,7 @@ export default function OrdersPage() {
   const [refreshing, setRefreshing] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
-  const [typeFilter, setTypeFilter] = useState<'all' | 'products' | 'events'>('all')
+  const [typeFilter, setTypeFilter] = useState<'products' | 'events'>('events')
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [eventRegistrations, setEventRegistrations] = useState<any[]>([])
@@ -139,7 +140,7 @@ export default function OrdersPage() {
     if (user?.role === 'admin' || user?.role === 'super_admin') {
       setCurrentPage(1)
       loadOrders()
-      if (typeFilter === 'all' || typeFilter === 'events') {
+      if (typeFilter === 'events') {
         loadEventRegistrations()
       }
     }
@@ -250,7 +251,7 @@ export default function OrdersPage() {
   const refreshOrders = async () => {
     setRefreshing(true)
     await loadOrders()
-    if (typeFilter === 'all' || typeFilter === 'events') {
+    if (typeFilter === 'events') {
       await loadEventRegistrations()
     }
     await loadStats()
@@ -261,7 +262,7 @@ export default function OrdersPage() {
     const params = {
       ...(searchTerm ? { search: searchTerm } : {}),
       ...(statusFilter && statusFilter !== 'all' ? { status: statusFilter } : {}),
-      ...(typeFilter && typeFilter !== 'all' ? { type: typeFilter } : {}),
+      ...(typeFilter ? { type: typeFilter } : {}),
     };
 
     try {
@@ -433,9 +434,6 @@ export default function OrdersPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{stats.totalOrders}</div>
-                <p className="text-xs text-muted-foreground">
-                  {formatCurrency(stats.totalRevenue)}
-                </p>
               </CardContent>
             </Card>
             <Card>
@@ -468,45 +466,49 @@ export default function OrdersPage() {
           </div>
         )}
 
-        {/* Filters */}
+        {/* Tabs and Filters */}
         <Card>
           <CardContent className="p-6">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  <Input
-                    placeholder="Search orders by number, customer name, or email..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
+            <Tabs value={typeFilter} onValueChange={(value) => setTypeFilter(value as 'products' | 'events')} className="w-full">
+              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between mb-4">
+                <TabsList>
+                  <TabsTrigger value="events" className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4" />
+                    Event Tickets
+                  </TabsTrigger>
+                  <TabsTrigger value="products" className="flex items-center gap-2">
+                    <Package className="w-4 h-4" />
+                    Merchandise
+                  </TabsTrigger>
+                </TabsList>
               </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-48">
-                  <SelectValue placeholder="Filter by status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  {Object.entries(statusConfig).map(([key, config]) => (
-                    <SelectItem key={key} value={key}>
-                      {config.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={typeFilter} onValueChange={(value: 'all' | 'products' | 'events') => setTypeFilter(value)}>
-                <SelectTrigger className="w-full sm:w-48">
-                  <SelectValue placeholder="Filter by type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  <SelectItem value="products">Products</SelectItem>
-                  <SelectItem value="events">Events</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex-1">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <Input
+                      placeholder={typeFilter === 'events' ? "Search event registrations by name, email, or event..." : "Search orders by number, customer name, or email..."}
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-full sm:w-48">
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    {Object.entries(statusConfig).map(([key, config]) => (
+                      <SelectItem key={key} value={key}>
+                        {config.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </Tabs>
           </CardContent>
         </Card>
 
@@ -525,7 +527,11 @@ export default function OrdersPage() {
               </div>
             ) : (typeFilter === 'events' ? eventRegistrations.length === 0 : orders.length === 0) ? (
               <div className="text-center py-8">
-                <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                {typeFilter === 'events' ? (
+                  <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                ) : (
+                  <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                )}
                 <h3 className="text-lg font-medium text-gray-900">No {typeFilter === 'events' ? 'event registrations' : 'orders'} found</h3>
                 <p className="text-gray-500">No {typeFilter === 'events' ? 'event registrations' : 'orders'} match your current filters.</p>
               </div>
@@ -546,7 +552,7 @@ export default function OrdersPage() {
                       </TableRow>
                     </TableHeader>
                   <TableBody>
-                    {(typeFilter === 'all' || typeFilter === 'products') && orders.map((order) => {
+                    {typeFilter === 'products' && orders.map((order) => {
                       const StatusIcon = statusConfig[order.status].icon
                       return (
                         <TableRow key={order._id}>
@@ -659,7 +665,7 @@ export default function OrdersPage() {
                         </TableRow>
                       )
                     })}
-                    {(typeFilter === 'all' || typeFilter === 'events') && eventRegistrations.map((reg) => {
+                    {typeFilter === 'events' && eventRegistrations.map((reg) => {
                       const regStatus = reg.status || 'confirmed'
                       const StatusIcon = regStatus === 'confirmed' ? CheckCircle : (regStatus === 'cancelled' ? XCircle : Clock)
                       return (
@@ -737,7 +743,7 @@ export default function OrdersPage() {
             )}
 
             {/* Pagination */}
-            {(typeFilter === 'all' || typeFilter === 'products') && totalPages > 1 && (
+            {typeFilter === 'products' && totalPages > 1 && (
               <div className="flex items-center justify-center space-x-2 mt-6">
                 <Button
                   variant="outline"

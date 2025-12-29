@@ -169,17 +169,16 @@ export default function DashboardPage() {
             </div>
           ) : null}
 
-          {/* Latest Events, Latest News, Latest Polls */}
           {user && 'club' in user && user.club && (
-            <div className="grid gap-8 md:grid-cols-3">
-              <div className="rounded-[2.5rem] overflow-hidden border-2 shadow-xl bg-card p-2">
-                <LatestEventsWidget limit={3} showManageButton={true} />
+            <div className="space-y-6">
+              <div className="w-full rounded-[2.5rem] overflow-hidden border-2 shadow-xl bg-card p-2">
+                <LatestEventsWidget limit={5} showManageButton={true} />
               </div>
-              <div className="rounded-[2.5rem] overflow-hidden border-2 shadow-xl bg-card p-2">
-                <LatestNewsWidget limit={3} showManageButton={true} />
+              <div className="w-full rounded-[2.5rem] overflow-hidden border-2 shadow-xl bg-card p-2">
+                <LatestNewsWidget limit={5} showManageButton={true} />
               </div>
-              <div className="rounded-[2.5rem] overflow-hidden border-2 shadow-xl bg-card p-2">
-                <PollsWidget limit={3} showCreateButton={true} />
+              <div className="w-full rounded-[2.5rem] overflow-hidden border-2 shadow-xl bg-card p-2">
+                <PollsWidget limit={5} showCreateButton={true} />
               </div>
             </div>
           )}
