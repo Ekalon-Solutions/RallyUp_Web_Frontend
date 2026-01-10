@@ -15,7 +15,7 @@ const getWsBaseUrl = () => {
 
 export const ENV = {
   // Change this to switch between environments
-  CURRENT: 'development' as 'development' | 'production' | 'staging',
+  CURRENT: 'production' as 'development' | 'production' | 'staging',
   
   // Development environment (localhost)
   development: {
