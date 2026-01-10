@@ -566,15 +566,6 @@ export default function VolunteerManagementPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold">Volunteer Management</h1>
-          <Button
-            onClick={() => setIsCreateModalOpen(true)}
-          >
-            Create Opportunity
-          </Button>
-        </div>
-
         <div className="mb-6 flex gap-4">
           <Input
             placeholder="Search..."
@@ -595,22 +586,6 @@ export default function VolunteerManagementPage() {
               <SelectItem value="cancelled">Cancelled</SelectItem>
             </SelectContent>
           </Select>
-          <Button 
-            onClick={() => {
-              // // console.log('🔄 Manual refresh triggered');
-              if (clubId) {
-                fetchOpportunities();
-                fetchVolunteers();
-                fetchVolunteerSignups();
-              } else {
-                // // console.log('❌ Cannot refresh: no club ID');
-              }
-            }}
-            variant="outline"
-            disabled={!clubId}
-          >
-            🔄 Refresh Data
-          </Button>
           {!clubId && (
             <div className="text-red-600 text-sm flex items-center">
               ⚠️ No club ID found - cannot fetch data

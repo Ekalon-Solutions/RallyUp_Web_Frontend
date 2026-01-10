@@ -14,12 +14,11 @@ import {
   Package, 
   Tag, 
   Image as ImageIcon,
-  DollarSign,
   AlertTriangle,
   CheckCircle,
-  X,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  CreditCard
 } from "lucide-react"
 import { toast } from "sonner"
 import { useCart } from "@/contexts/cart-context"
@@ -50,14 +49,41 @@ interface ProductViewModalProps {
   isOpen: boolean
   onClose: () => void
   product: Merchandise | null
+  onBuyNow?: (item: Merchandise, quantity: number) => void
 }
 
-export function ProductViewModal({ isOpen, onClose, product }: ProductViewModalProps) {
+export function ProductViewModal({ isOpen, onClose, product, onBuyNow }: ProductViewModalProps) {
   const { addToCart, isInCart, getItemQuantity } = useCart()
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
   const [quantity, setQuantity] = useState(1)
 
   if (!product) return null
+
+  const formatCurrency = (amount: number, currencyCode: string = product.currency || 'USD') => {
+    const localeMap: Record<string, string> = {
+      'USD': 'en-US',
+      'INR': 'en-IN',
+      'EUR': 'en-EU',
+      'GBP': 'en-GB',
+      'CAD': 'en-CA',
+      'AUD': 'en-AU',
+      'JPY': 'ja-JP',
+      'BRL': 'pt-BR',
+      'MXN': 'es-MX',
+      'ZAR': 'en-ZA'
+    }
+    const locale = localeMap[currencyCode] || 'en-US'
+    return new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency: currencyCode
+    }).format(amount)
+  }
+
+  const handleBuyNow = () => {
+    if (onBuyNow) {
+      onBuyNow(product, quantity)
+    }
+  }
 
 
 
@@ -120,7 +146,6 @@ export function ProductViewModal({ isOpen, onClose, product }: ProductViewModalP
         // console.log('Error sharing:', error)
       }
     } else {
-      // Fallback: copy to clipboard
       navigator.clipboard.writeText(window.location.href)
       toast.success('Product link copied to clipboard')
     }
@@ -257,7 +282,7 @@ export function ProductViewModal({ isOpen, onClose, product }: ProductViewModalP
 
               {/* Price */}
               <div className="flex items-center text-3xl font-bold">
-                ₹ {product.price.toFixed(2)}
+                {formatCurrency(product.price, product.currency)}
               </div>
 
               {/* Stock Status */}
@@ -377,10 +402,19 @@ export function ProductViewModal({ isOpen, onClose, product }: ProductViewModalP
                 <Button
                   onClick={handleAddToCart}
                   disabled={product.stockQuantity === 0}
+                  variant="outline"
                   className="flex-1"
                 >
                   <ShoppingCart className="w-4 h-4 mr-2" />
                   Add to Cart
+                </Button>
+                <Button
+                  onClick={handleBuyNow}
+                  disabled={product.stockQuantity === 0}
+                  className="flex-1"
+                >
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  Buy Now
                 </Button>
               </div>
 

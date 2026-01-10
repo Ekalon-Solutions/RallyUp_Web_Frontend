@@ -513,21 +513,6 @@ export default function BrowseMembershipPlansPage() {
               })}
             </div>
           ) : null}
-          
-          {/* Help section - always show */}
-          <Card className="bg-muted/50">
-            <CardContent className="pt-6">
-              <div className="text-center space-y-2">
-                <h3 className="font-semibold">Need Help Choosing?</h3>
-                <p className="text-sm text-muted-foreground">
-                  Not sure which plan is right for you? Contact our support team for personalized recommendations.
-                </p>
-                <Button variant="outline" size="sm">
-                  Contact Support
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
         </div>
       </DashboardLayout>
     </ProtectedRoute>

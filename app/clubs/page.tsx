@@ -712,7 +712,10 @@ function ClubsPageContent() {
                                 )}
                               >
                                 {isJoined ? (
-                                  <CheckCircle className="w-4 h-4" />
+                                  <>
+                                    <CheckCircle className="w-4 h-4 mr-1" />
+                                    Already Joined
+                                  </>
                                 ) : isLimitReached ? (
                                   "Club Full"
                                 ) : (

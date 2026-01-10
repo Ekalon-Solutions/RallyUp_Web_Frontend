@@ -114,10 +114,40 @@ export default function UserClubsPage() {
     currency: string
     paymentMethod: string
   } | null>(null)
+  const [userMemberships, setUserMemberships] = useState<string[]>([])
 
   useEffect(() => {
     fetchClubs()
-  }, [])
+    fetchUserMemberships()
+  }, [user])
+
+  const fetchUserMemberships = async () => {
+    try {
+      if (!user?._id) {
+        setUserMemberships([])
+        return
+      }
+
+      if (user && 'memberships' in user && user.memberships) {
+        const clubIds = user.memberships.map((m: any) => m.club_id?._id || m.club_id).filter(Boolean)
+        setUserMemberships(clubIds)
+        return
+      }
+
+      const response = await apiClient.get(`/users/profile`)
+      
+      if (response.success && response.data) {
+        const clubIds = response.data.user?.memberships?.map((m: any) => m.club_id?._id || m.club_id).filter(Boolean) || []
+        setUserMemberships(clubIds)
+      }
+    } catch (error) {
+      setUserMemberships([])
+    }
+  }
+
+  const isClubJoined = (clubId: string) => {
+    return userMemberships.includes(clubId)
+  }
 
   useEffect(() => {
     filterClubs()
@@ -334,62 +364,6 @@ export default function UserClubsPage() {
               <h1 className="text-3xl font-bold">Discover Clubs</h1>
               <p className="text-muted-foreground">Find and join supporter clubs to connect with fellow fans</p>
             </div>
-            <div className="flex gap-2">
-              <Button 
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-                onClick={() => {
-                  setSearchTerm("");
-                  setStatusFilter("active");
-                  setPriceFilter("all");
-                }}
-              >
-                <Search className="w-4 h-4 mr-2" />
-                Find Clubs to Join
-              </Button>
-            </div>
-          </div>
-
-          {/* Hero Section */}
-          <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 rounded-lg">
-            <div className="absolute inset-0 bg-black/20"></div>
-            <div className="relative p-8 text-center text-white">
-              <div className="flex justify-center mb-4">
-                <div className="bg-white/20 backdrop-blur-sm rounded-full p-4">
-                  <Building2 className="w-8 h-8 text-white" />
-                </div>
-              </div>
-              <h2 className="text-2xl md:text-3xl font-bold mb-4">Join the Community</h2>
-              <p className="text-lg text-blue-100 max-w-2xl mx-auto mb-6">
-                Discover supporter clubs, attend exclusive events, and connect with fellow fans. 
-                Find your perfect club and become part of something special.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button 
-                  size="lg" 
-                  className="bg-white text-blue-600 hover:bg-blue-50"
-                  onClick={() => {
-                    setSearchTerm("");
-                    setStatusFilter("active");
-                    setPriceFilter("all");
-                  }}
-                >
-                  <Search className="w-5 h-5 mr-2" />
-                  Find Clubs
-                </Button>
-                <Button 
-                  size="lg" 
-                  variant="outline" 
-                  className="border-gray-600 text-gray-900 hover:bg-gray-100 dark:border-white dark:text-white dark:hover:bg-white/10"
-                  onClick={() => {
-                    setStatusFilter("all");
-                    setPriceFilter("all");
-                  }}
-                >
-                  <Users className="w-5 h-5 mr-2" />
-                  View All Clubs
-                </Button>
-              </div>
-            </div>
           </div>
 
           {/* Filters */}
@@ -533,13 +507,25 @@ export default function UserClubsPage() {
                               </div>
                               <div className="text-right">
                                 <p className="text-sm font-medium">{formatPrice(plan.price, plan.currency)}</p>
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleJoinClub(club, plan)}
-                                  className="mt-1"
-                                >
-                                  Join
-                                </Button>
+                                {isClubJoined(club._id) ? (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => router.push(`/dashboard/user/clubs`)}
+                                    className="mt-1"
+                                  >
+                                    <CheckCircle className="w-3 h-3 mr-1" />
+                                    View Club
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleJoinClub(club, plan)}
+                                    className="mt-1"
+                                  >
+                                    Join
+                                  </Button>
+                                )}
                               </div>
                             </div>
                           ))}
@@ -568,20 +554,32 @@ export default function UserClubsPage() {
                         <Eye className="w-4 h-4 mr-2" />
                         View Details
                       </Button>
-                      <Button
-                        className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-                        size="sm"
-                        onClick={() => {
-                          if (club.membershipPlans?.length > 0) {
-                            handleJoinClub(club, club.membershipPlans[0]);
-                          } else {
-                            toast.error("No membership plans available for this club");
-                          }
-                        }}
-                      >
-                        <Plus className="w-4 h-4 mr-2" />
-                        Join Club
-                      </Button>
+                      {isClubJoined(club._id) ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => router.push(`/dashboard/user/clubs`)}
+                          className="bg-green-50 text-green-600 hover:bg-green-100"
+                        >
+                          <CheckCircle className="w-4 h-4 mr-2" />
+                          View Club
+                        </Button>
+                      ) : (
+                        <Button
+                          className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                          size="sm"
+                          onClick={() => {
+                            if (club.membershipPlans?.length > 0) {
+                              handleJoinClub(club, club.membershipPlans[0]);
+                            } else {
+                              toast.error("No membership plans available for this club");
+                            }
+                          }}
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          Join Club
+                        </Button>
+                      )}
                       {club.website && (
                         <Button
                           variant="outline"
@@ -652,13 +650,24 @@ export default function UserClubsPage() {
                                   </div>
                                 ))}
                               </div>
-                              <Button 
-                                onClick={() => handleJoinClub(selectedClub, plan)}
-                                className="w-full"
-                              >
-                                <Plus className="w-4 h-4 mr-2" />
-                                Join {plan.name}
-                              </Button>
+                              {selectedClub && isClubJoined(selectedClub._id) ? (
+                                <Button 
+                                  variant="outline"
+                                  onClick={() => router.push(`/dashboard/user/clubs`)}
+                                  className="w-full bg-green-50 text-green-600 hover:bg-green-100"
+                                >
+                                  <CheckCircle className="w-4 h-4 mr-2" />
+                                  View Club
+                                </Button>
+                              ) : (
+                                <Button 
+                                  onClick={() => handleJoinClub(selectedClub, plan)}
+                                  className="w-full"
+                                >
+                                  <Plus className="w-4 h-4 mr-2" />
+                                  Join {plan.name}
+                                </Button>
+                              )}
                             </CardContent>
                           </Card>
                         ))}

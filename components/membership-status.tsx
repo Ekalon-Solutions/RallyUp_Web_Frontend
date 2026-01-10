@@ -77,7 +77,7 @@ export function MembershipStatus() {
             You are not currently a member of any club. Browse available clubs to join one.
           </p>
           <Button asChild>
-            <a href="/dashboard/clubs">Browse Clubs</a>
+            <a href="/dashboard/user/clubs">Browse Clubs</a>
           </Button>
         </CardContent>
       </Card>
@@ -200,7 +200,7 @@ export function MembershipStatus() {
             className="flex-1 sm:flex-none"
             asChild
           >
-            <a href="/dashboard/clubs">Browse Other Clubs</a>
+            <a href="/dashboard/user/clubs">Browse Other Clubs</a>
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>

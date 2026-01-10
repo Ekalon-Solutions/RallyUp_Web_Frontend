@@ -7,11 +7,9 @@ import { Badge } from "@/components/ui/badge"
 import { 
   Download, 
   Share2, 
-  QrCode, 
   CreditCard, 
   Calendar,
   MapPin,
-  RefreshCw,
   X
 } from "lucide-react"
 import { MembershipCard } from "@/components/membership-card"
@@ -20,13 +18,6 @@ import { useToast } from "@/hooks/use-toast"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
 import { useAuth } from "@/contexts/auth-context"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
 
 
 export default function UserMembershipCardPage() {
@@ -39,9 +30,6 @@ export default function UserMembershipCardPage() {
   const [membershipIdLoading, setMembershipIdLoading] = useState(false)
   const [membershipIdError, setMembershipIdError] = useState<string | null>(null)
   const [isDownloading, setIsDownloading] = useState(false)
-  const [showQRModal, setShowQRModal] = useState(false)
-  const [isRegeneratingQR, setIsRegeneratingQR] = useState(false)
-  const [isFixingCard, setIsFixingCard] = useState(false)
   const { user } = useAuth() // Get user from auth context
   const { toast } = useToast()
 
@@ -323,78 +311,6 @@ export default function UserMembershipCardPage() {
     }
   }
 
-  const handleShowQR = () => {
-    if (selectedCard?.card.qrCode) {
-      setShowQRModal(true)
-    } else {
-      toast({
-        title: "No QR Code",
-        description: "This card doesn't have a QR code. Click 'New QR' to generate one.",
-        variant: "destructive",
-      })
-    }
-  }
-
-  const handleRegenerateQR = async () => {
-    if (!selectedCard) {
-      toast({
-        title: "Error",
-        description: "No card selected",
-        variant: "destructive",
-      })
-      return
-    }
-
-    try {
-      setIsRegeneratingQR(true)
-      
-      // Use the new user-specific endpoint
-      const response = await apiClient.regenerateMyQRCode()
-      
-      if (response.success && response.data) {
-        // Extract qrCode from potentially nested response
-        let qrCodeData = response.data;
-        if ((qrCodeData as any).data) {
-          qrCodeData = (qrCodeData as any).data;
-        }
-        
-        const newQrCode = (qrCodeData as any).qrCode;
-        
-        if (newQrCode) {
-          // Update the selected card with new QR code
-          setSelectedCard(prev => prev ? {
-            ...prev,
-            card: { ...prev.card, qrCode: newQrCode }
-          } : null)
-          
-          // Update the card in the cards list
-          setCards(prev => prev.map(card => 
-            card.card._id === selectedCard.card._id 
-              ? { ...card, card: { ...card.card, qrCode: newQrCode } }
-              : card
-          ))
-          
-          toast({
-            title: "Success",
-            description: "QR code regenerated successfully",
-          })
-        } else {
-          throw new Error('QR code not found in response')
-        }
-      } else {
-        throw new Error(response.error || 'Failed to regenerate QR code')
-      }
-    } catch (error) {
-      // console.error('Error regenerating QR:', error)
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to regenerate QR code",
-        variant: "destructive",
-      })
-    } finally {
-      setIsRegeneratingQR(false)
-    }
-  }
 
   // Debug: Show raw data for troubleshooting
   if (cards.length > 0) {
@@ -466,43 +382,6 @@ export default function UserMembershipCardPage() {
     }
   }
 
-  const handleFixMyCard = async () => {
-    try {
-      setIsFixingCard(true)
-      
-      const response = await apiClient.fixMyMembershipCard()
-      
-      if (response.success && response.data) {
-        // Handle potentially nested data
-        let cardData = response.data;
-        if ((cardData as any).data) {
-          cardData = (cardData as any).data;
-        }
-        
-        setCards([cardData])
-        setSelectedCard(cardData)
-        toast({
-          title: "Success",
-          description: (response as any).message || "Membership card fixed successfully!",
-        })
-      } else {
-        toast({
-          title: "Error",
-          description: response.error || "Failed to fix membership card",
-          variant: "destructive",
-        })
-      }
-    } catch (err) {
-      // console.error('Error fixing card:', err)
-      toast({
-        title: "Error",
-        description: err instanceof Error ? err.message : "Failed to fix membership card",
-        variant: "destructive",
-      })
-    } finally {
-      setIsFixingCard(false)
-    }
-  }
 
   // Show empty state if no cards found
   if (cards.length === 0 && !loading) {
@@ -522,10 +401,6 @@ export default function UserMembershipCardPage() {
                 <CreditCard className="w-4 h-4 mr-2" />
                 Create My Membership Card
               </Button>
-              <Button onClick={handleFixMyCard} variant="outline" className="mb-6 ml-2">
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Fix My Membership Card
-              </Button>
             </div>
           </div>
         </DashboardLayout>
@@ -542,69 +417,7 @@ export default function UserMembershipCardPage() {
               <h1 className="text-3xl font-bold text-foreground">My Membership Card</h1>
               <p className="text-muted-foreground">View and manage your digital membership card</p>
             </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={handleFixMyCard} disabled={isFixingCard}>
-                <RefreshCw className={`w-4 h-4 mr-2 ${isFixingCard ? 'animate-spin' : ''}`} />
-                {isFixingCard ? 'Fixing...' : 'Fix Card'}
-              </Button>
-              <Button variant="outline" onClick={handleShowQR}>
-                <QrCode className="w-4 h-4 mr-2" />
-                Show QR
-              </Button>
-              <Button variant="outline" onClick={handleRegenerateQR} disabled={isRegeneratingQR}>
-                <RefreshCw className={`w-4 h-4 mr-2 ${isRegeneratingQR ? 'animate-spin' : ''}`} />
-                {isRegeneratingQR ? 'Generating...' : 'New QR'}
-              </Button>
-            </div>
           </div>
-
-          {/* QR Code Modal */}
-          <Dialog open={showQRModal} onOpenChange={setShowQRModal}>
-            <DialogContent className="sm:max-w-md">
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <QrCode className="w-5 h-5" />
-                  Membership QR Code
-                </DialogTitle>
-                <DialogDescription>
-                  Scan this QR code to verify your membership
-                </DialogDescription>
-              </DialogHeader>
-              <div className="flex flex-col items-center justify-center p-6">
-                {selectedCard?.card.qrCode ? (
-                  <>
-                    <div className="bg-white p-4 rounded-lg">
-                      <img 
-                        src={selectedCard.card.qrCode} 
-                        alt="Membership QR Code"
-                        className="w-64 h-64 object-contain"
-                      />
-                    </div>
-                    <p className="mt-4 text-sm text-muted-foreground text-center">
-                      {selectedCard.club?.name || 'Your Club'} - {userName}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Card ID: {selectedCard.card.cardNumber || selectedCard.card._id}
-                    </p>
-                  </>
-                ) : (
-                  <div className="text-center text-muted-foreground py-8">
-                    <QrCode className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                    <p>No QR code available</p>
-                    <Button 
-                      onClick={() => {
-                        setShowQRModal(false)
-                        handleRegenerateQR()
-                      }}
-                      className="mt-4"
-                    >
-                      Generate QR Code
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </DialogContent>
-          </Dialog>
 
           <div className="grid gap-6 lg:grid-cols-3">
             {/* Membership Card Display */}

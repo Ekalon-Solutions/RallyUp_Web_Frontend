@@ -290,7 +290,7 @@ export default function MemberChantsPage() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 gap-6">
               {chants.map((chant) => (
                 <Card key={chant._id} className="overflow-hidden hover:shadow-lg transition-shadow">
                   <CardHeader className="pb-3">

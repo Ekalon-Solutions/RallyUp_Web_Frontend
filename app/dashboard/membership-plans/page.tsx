@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -62,7 +63,8 @@ export default function MembershipPlansPage() {
       advancedAnalytics: false,
       prioritySupport: false,
       apiAccess: false,
-      customIntegrations: false
+      customIntegrations: false,
+      premiumFeatures: "" // Free text field for premium features
     }
   })
 
@@ -253,7 +255,8 @@ export default function MembershipPlansPage() {
             advancedAnalytics: false,
             prioritySupport: false,
             apiAccess: false,
-            customIntegrations: false
+            customIntegrations: false,
+            premiumFeatures: ""
           }
         })
         loadPlans()
@@ -299,7 +302,8 @@ export default function MembershipPlansPage() {
         advancedAnalytics: plan.features.advancedAnalytics || false,
         prioritySupport: plan.features.prioritySupport || false,
         apiAccess: plan.features.apiAccess || false,
-        customIntegrations: plan.features.customIntegrations || false
+        customIntegrations: plan.features.customIntegrations || false,
+        premiumFeatures: (plan.features as any).premiumFeatures || ""
       }
     })
     setShowEditDialog(true)
@@ -350,7 +354,8 @@ export default function MembershipPlansPage() {
             advancedAnalytics: false,
             prioritySupport: false,
             apiAccess: false,
-            customIntegrations: false
+            customIntegrations: false,
+            premiumFeatures: ""
           }
         })
         await loadPlans()
@@ -559,55 +564,19 @@ export default function MembershipPlansPage() {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            id="customBranding"
-                            checked={formData.features.customBranding}
-                            onChange={(e) => setFormData({
-                              ...formData,
-                              features: { ...formData.features, customBranding: e.target.checked }
-                            })}
-                          />
-                          <Label htmlFor="customBranding">Custom Branding</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            id="advancedAnalytics"
-                            checked={formData.features.advancedAnalytics}
-                            onChange={(e) => setFormData({
-                              ...formData,
-                              features: { ...formData.features, advancedAnalytics: e.target.checked }
-                            })}
-                          />
-                          <Label htmlFor="advancedAnalytics">Advanced Analytics</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            id="prioritySupport"
-                            checked={formData.features.prioritySupport}
-                            onChange={(e) => setFormData({
-                              ...formData,
-                              features: { ...formData.features, prioritySupport: e.target.checked }
-                            })}
-                          />
-                          <Label htmlFor="prioritySupport">Priority Support</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            id="apiAccess"
-                            checked={formData.features.apiAccess}
-                            onChange={(e) => setFormData({
-                              ...formData,
-                              features: { ...formData.features, apiAccess: e.target.checked }
-                            })}
-                          />
-                          <Label htmlFor="apiAccess">API Access</Label>
-                        </div>
+                      <div className="mt-4">
+                        <Label htmlFor="premiumFeatures">Premium Features</Label>
+                        <Textarea
+                          id="premiumFeatures"
+                          value={formData.features.premiumFeatures || ""}
+                          onChange={(e) => setFormData({
+                            ...formData,
+                            features: { ...formData.features, premiumFeatures: e.target.value }
+                          })}
+                          placeholder="Enter premium features as free text (e.g., Custom Branding, Advanced Analytics, Priority Support, API Access)"
+                          className="mt-2"
+                          rows={4}
+                        />
                       </div>
                     </div>
 
@@ -756,55 +725,19 @@ export default function MembershipPlansPage() {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            id="edit-customBranding"
-                            checked={formData.features.customBranding}
-                            onChange={(e) => setFormData({
-                              ...formData,
-                              features: { ...formData.features, customBranding: e.target.checked }
-                            })}
-                          />
-                          <Label htmlFor="edit-customBranding">Custom Branding</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            id="edit-advancedAnalytics"
-                            checked={formData.features.advancedAnalytics}
-                            onChange={(e) => setFormData({
-                              ...formData,
-                              features: { ...formData.features, advancedAnalytics: e.target.checked }
-                            })}
-                          />
-                          <Label htmlFor="edit-advancedAnalytics">Advanced Analytics</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            id="edit-prioritySupport"
-                            checked={formData.features.prioritySupport}
-                            onChange={(e) => setFormData({
-                              ...formData,
-                              features: { ...formData.features, prioritySupport: e.target.checked }
-                            })}
-                          />
-                          <Label htmlFor="edit-prioritySupport">Priority Support</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            id="edit-apiAccess"
-                            checked={formData.features.apiAccess}
-                            onChange={(e) => setFormData({
-                              ...formData,
-                              features: { ...formData.features, apiAccess: e.target.checked }
-                            })}
-                          />
-                          <Label htmlFor="edit-apiAccess">API Access</Label>
-                        </div>
+                      <div className="mt-4">
+                        <Label htmlFor="edit-premiumFeatures">Premium Features</Label>
+                        <Textarea
+                          id="edit-premiumFeatures"
+                          value={formData.features.premiumFeatures || ""}
+                          onChange={(e) => setFormData({
+                            ...formData,
+                            features: { ...formData.features, premiumFeatures: e.target.value }
+                          })}
+                          placeholder="Enter premium features as free text (e.g., Custom Branding, Advanced Analytics, Priority Support, API Access)"
+                          className="mt-2"
+                          rows={4}
+                        />
                       </div>
                     </div>
 
@@ -875,36 +808,11 @@ export default function MembershipPlansPage() {
                     </div>
                   </div>
 
-                  {Object.entries(plan.features).some(([key, value]) =>
-                    key.startsWith('custom') || key.startsWith('advanced') || key.startsWith('priority') || key.startsWith('api') && value
-                  ) && (
+                  {(plan.features as any).premiumFeatures && (
                       <div className="border-t pt-4">
                         <h4 className="font-semibold text-sm mb-2 text-foreground">Premium Features</h4>
-                        <div className="space-y-1">
-                          {plan.features.customBranding && (
-                            <div className="flex items-center gap-2 text-sm">
-                              <CheckCircle className="w-4 h-4 text-green-500" />
-                              <span className="text-foreground">Custom Branding</span>
-                            </div>
-                          )}
-                          {plan.features.advancedAnalytics && (
-                            <div className="flex items-center gap-2 text-sm">
-                              <CheckCircle className="w-4 h-4 text-green-500" />
-                              <span className="text-foreground">Advanced Analytics</span>
-                            </div>
-                          )}
-                          {plan.features.prioritySupport && (
-                            <div className="flex items-center gap-2 text-sm">
-                              <CheckCircle className="w-4 h-4 text-green-500" />
-                              <span className="text-foreground">Priority Support</span>
-                            </div>
-                          )}
-                          {plan.features.apiAccess && (
-                            <div className="flex items-center gap-2 text-sm">
-                              <CheckCircle className="w-4 h-4 text-green-500" />
-                              <span className="text-foreground">API Access</span>
-                            </div>
-                          )}
+                        <div className="text-sm text-foreground whitespace-pre-line">
+                          {(plan.features as any).premiumFeatures}
                         </div>
                       </div>
                     )}

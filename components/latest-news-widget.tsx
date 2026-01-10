@@ -120,53 +120,55 @@ export function LatestNewsWidget({ limit = 3, showManageButton = true }: LatestN
           </div>
         ) : (
           <div className="space-y-4">
-            {news.map((article) => (
-              <div key={article._id} className="border rounded-lg p-3 hover:bg-muted/50 transition-colors">
-                <div className="flex items-start justify-between mb-2">
-                  <h4 className="font-medium text-sm line-clamp-2 flex-1">
-                    {article.title}
-                  </h4>
-                  <Badge variant="outline" className="ml-2 text-xs">
-                    Published
-                  </Badge>
-                </div>
-                
-                {article.content && (
-                  <p className="text-xs text-muted-foreground mb-2 line-clamp-2">
-                    {truncateText(article.content, 100)}
-                  </p>
-                )}
-                
-                <div className="flex items-center gap-4 text-xs text-muted-foreground mb-2">
-                  <div className="flex items-center gap-1">
-                    <UserIcon className="w-3 h-3" />
-                    <span>{article.author || "Admin"}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Calendar className="w-3 h-3" />
-                    <span>{formatDate(article.createdAt)}</span>
-                  </div>
-                  {article.category && (
-                    <Badge variant="secondary" className="text-xs">
-                      {article.category}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+              {news.map((article) => (
+                <div key={article._id} className="border rounded-lg p-3 hover:bg-muted/50 transition-colors flex flex-col">
+                  <div className="flex items-start justify-between mb-2">
+                    <h4 className="font-medium text-sm line-clamp-2 flex-1">
+                      {article.title}
+                    </h4>
+                    <Badge variant="outline" className="ml-2 text-xs shrink-0">
+                      Published
                     </Badge>
-                  )}
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Eye className="w-3 h-3" />
-                    <span>{article.views || 0} views</span>
                   </div>
-                  <Button asChild size="sm" variant="ghost" className="h-6 px-2">
-                    <Link href={isAdmin ? "/dashboard/content" : "/dashboard/user/news"}>
-                      View
-                      <ArrowRight className="w-3 h-3 ml-1" />
-                    </Link>
-                  </Button>
+                  
+                  {article.content && (
+                    <p className="text-xs text-muted-foreground mb-2 line-clamp-3 flex-grow">
+                      {truncateText(article.content, 100)}
+                    </p>
+                  )}
+                  
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mb-2">
+                    <div className="flex items-center gap-1">
+                      <UserIcon className="w-3 h-3 shrink-0" />
+                      <span className="truncate">{article.author || "Admin"}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Calendar className="w-3 h-3 shrink-0" />
+                      <span>{formatDate(article.createdAt)}</span>
+                    </div>
+                    {article.category && (
+                      <Badge variant="secondary" className="text-xs">
+                        {article.category}
+                      </Badge>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between mt-auto">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <Eye className="w-3 h-3" />
+                      <span>{article.views || 0} views</span>
+                    </div>
+                    <Button asChild size="sm" variant="ghost" className="h-6 px-2">
+                      <Link href={isAdmin ? "/dashboard/content" : "/dashboard/user/news"}>
+                        View
+                        <ArrowRight className="w-3 h-3 ml-1" />
+                      </Link>
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
             
             <div className="pt-2">
               <Button asChild variant="outline" size="sm" className="w-full">

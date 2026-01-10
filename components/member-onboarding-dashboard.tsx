@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -52,6 +53,7 @@ interface MemberOnboardingDashboardProps {
 }
 
 export default function MemberOnboardingDashboard({ userId, userRole }: MemberOnboardingDashboardProps) {
+  const router = useRouter()
   const [onboardingFlows, setOnboardingFlows] = useState<OnboardingFlow[]>([])
   const [activeFlow, setActiveFlow] = useState<OnboardingFlow | null>(null)
   const [currentStepIndex, setCurrentStepIndex] = useState(0)
@@ -365,7 +367,13 @@ export default function MemberOnboardingDashboard({ userId, userRole }: MemberOn
                 }
               </p>
               <Button 
-                onClick={() => setShowWelcome(false)} 
+                onClick={() => {
+                  if (userRole === 'member') {
+                    router.push('/dashboard/user')
+                  } else {
+                    setShowWelcome(false)
+                  }
+                }} 
                 variant="outline"
                 className="px-8"
                 size="lg"

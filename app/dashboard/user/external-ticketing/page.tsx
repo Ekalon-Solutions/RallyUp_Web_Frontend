@@ -155,7 +155,7 @@ export default function ExternalTicketingPage() {
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('selectedClubId', clubId)
     }
-    router.push(`/dashboard/clubs/${slug}`)
+    router.push(`/dashboard/user/clubs/${slug}`)
   }
 
   const navigateToPlans = () => {

@@ -33,6 +33,7 @@ import {
   Download
 } from 'lucide-react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 interface OrderItem {
   productId: string
@@ -117,8 +118,10 @@ export default function OrdersPage() {
   const [refreshing, setRefreshing] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [typeFilter, setTypeFilter] = useState<'products' | 'events'>('events')
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
+  const [eventRegistrations, setEventRegistrations] = useState<any[]>([])
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [showOrderModal, setShowOrderModal] = useState(false)
   const [showStatusModal, setShowStatusModal] = useState(false)
@@ -137,11 +140,14 @@ export default function OrdersPage() {
     if (user?.role === 'admin' || user?.role === 'super_admin') {
       setCurrentPage(1)
       loadOrders()
+      if (typeFilter === 'events') {
+        loadEventRegistrations()
+      }
     }
-  }, [searchTerm, statusFilter])
+  }, [searchTerm, statusFilter, typeFilter])
 
   useEffect(() => {
-    if (user?.role === 'admin' || user?.role === 'super_admin' && currentPage > 1) {
+    if ((user?.role === 'admin' || user?.role === 'super_admin') && currentPage > 1) {
       loadOrders()
     }
   }, [currentPage])
@@ -150,11 +156,11 @@ export default function OrdersPage() {
     try {
       setLoading(true)
       const params = new URLSearchParams({
-        clubId: user?.club._id || 'none',
         page: currentPage.toString(),
         limit: '10',
         ...(searchTerm && { search: searchTerm }),
-        ...(statusFilter && statusFilter !== 'all' && { status: statusFilter })
+        ...(statusFilter && statusFilter !== 'all' && { status: statusFilter }),
+        ...((user as any)?.club?._id && { clubId: (user as any).club._id })
       })
 
       const response = await apiClient.get(`/orders/admin/all?${params}`)
@@ -185,6 +191,52 @@ export default function OrdersPage() {
     }
   }
 
+  const loadEventRegistrations = async () => {
+    try {
+      const response = await apiClient.get('/events')
+      if (response.success && response.data) {
+        const events = Array.isArray(response.data) ? response.data : (response.data?.events || [])
+        // Flatten event registrations into a list
+        const registrations: any[] = []
+        events.forEach((event: any) => {
+          if (event.registrations && Array.isArray(event.registrations)) {
+            event.registrations.forEach((reg: any) => {
+              registrations.push({
+                ...reg,
+                eventId: event._id,
+                eventTitle: event.title,
+                eventStartTime: event.startTime,
+                eventVenue: event.venue,
+                eventCategory: event.category,
+                ticketPrice: event.ticketPrice,
+                currency: event.currency || 'USD',
+                type: 'event'
+              })
+            })
+          }
+        })
+        
+        // Apply filters
+        let filtered = registrations
+        if (searchTerm) {
+          filtered = filtered.filter((reg: any) => 
+            reg.userName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            reg.userEmail?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            reg.eventTitle?.toLowerCase().includes(searchTerm.toLowerCase())
+          )
+        }
+        if (statusFilter !== 'all') {
+          filtered = filtered.filter((reg: any) => reg.status === statusFilter)
+        }
+        
+        setEventRegistrations(filtered)
+      }
+    } catch (error) {
+      console.error('Error loading event registrations:', error)
+      setEventRegistrations([])
+    }
+  }
+
   const loadStats = async () => {
     try {
       const response = await apiClient.get('/orders/admin/stats')
@@ -199,6 +251,9 @@ export default function OrdersPage() {
   const refreshOrders = async () => {
     setRefreshing(true)
     await loadOrders()
+    if (typeFilter === 'events') {
+      await loadEventRegistrations()
+    }
     await loadStats()
     setRefreshing(false)
   }
@@ -207,6 +262,7 @@ export default function OrdersPage() {
     const params = {
       ...(searchTerm ? { search: searchTerm } : {}),
       ...(statusFilter && statusFilter !== 'all' ? { status: statusFilter } : {}),
+      ...(typeFilter ? { type: typeFilter } : {}),
     };
 
     try {
@@ -378,9 +434,6 @@ export default function OrdersPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{stats.totalOrders}</div>
-                <p className="text-xs text-muted-foreground">
-                  {formatCurrency(stats.totalRevenue)}
-                </p>
               </CardContent>
             </Card>
             <Card>
@@ -413,35 +466,49 @@ export default function OrdersPage() {
           </div>
         )}
 
-        {/* Filters */}
+        {/* Tabs and Filters */}
         <Card>
           <CardContent className="p-6">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex-1">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                  <Input
-                    placeholder="Search orders by number, customer name, or email..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
+            <Tabs value={typeFilter} onValueChange={(value) => setTypeFilter(value as 'products' | 'events')} className="w-full">
+              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between mb-4">
+                <TabsList>
+                  <TabsTrigger value="events" className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4" />
+                    Event Tickets
+                  </TabsTrigger>
+                  <TabsTrigger value="products" className="flex items-center gap-2">
+                    <Package className="w-4 h-4" />
+                    Merchandise
+                  </TabsTrigger>
+                </TabsList>
               </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-48">
-                  <SelectValue placeholder="Filter by status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
-                  {Object.entries(statusConfig).map(([key, config]) => (
-                    <SelectItem key={key} value={key}>
-                      {config.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="flex-1">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <Input
+                      placeholder={typeFilter === 'events' ? "Search event registrations by name, email, or event..." : "Search orders by number, customer name, or email..."}
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-full sm:w-48">
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    {Object.entries(statusConfig).map(([key, config]) => (
+                      <SelectItem key={key} value={key}>
+                        {config.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </Tabs>
           </CardContent>
         </Card>
 
@@ -458,11 +525,15 @@ export default function OrdersPage() {
               <div className="flex items-center justify-center h-32">
                 <RefreshCw className="w-6 h-6 animate-spin" />
               </div>
-            ) : orders.length === 0 ? (
+            ) : (typeFilter === 'events' ? eventRegistrations.length === 0 : orders.length === 0) ? (
               <div className="text-center py-8">
-                <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900">No orders found</h3>
-                <p className="text-gray-500">No orders match your current filters.</p>
+                {typeFilter === 'events' ? (
+                  <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                ) : (
+                  <Package className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                )}
+                <h3 className="text-lg font-medium text-gray-900">No {typeFilter === 'events' ? 'event registrations' : 'orders'} found</h3>
+                <p className="text-gray-500">No {typeFilter === 'events' ? 'event registrations' : 'orders'} match your current filters.</p>
               </div>
             ) : (
               <div className="overflow-x-auto -mx-4 sm:mx-0">
@@ -470,9 +541,9 @@ export default function OrdersPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="min-w-[120px]">Order #</TableHead>
+                        <TableHead className="min-w-[120px]">{typeFilter === 'events' ? 'Type' : 'Order #'}</TableHead>
                         <TableHead className="min-w-[180px]">Customer</TableHead>
-                        <TableHead className="min-w-[100px]">Items</TableHead>
+                        <TableHead className="min-w-[100px]">{typeFilter === 'events' ? 'Event' : 'Items'}</TableHead>
                         <TableHead className="min-w-[100px]">Total</TableHead>
                         <TableHead className="min-w-[120px]">Status</TableHead>
                         <TableHead className="min-w-[120px]">Payment</TableHead>
@@ -481,7 +552,7 @@ export default function OrdersPage() {
                       </TableRow>
                     </TableHeader>
                   <TableBody>
-                    {orders.map((order) => {
+                    {typeFilter === 'products' && orders.map((order) => {
                       const StatusIcon = statusConfig[order.status].icon
                       return (
                         <TableRow key={order._id}>
@@ -594,6 +665,77 @@ export default function OrdersPage() {
                         </TableRow>
                       )
                     })}
+                    {typeFilter === 'events' && eventRegistrations.map((reg) => {
+                      const regStatus = reg.status || 'confirmed'
+                      const StatusIcon = regStatus === 'confirmed' ? CheckCircle : (regStatus === 'cancelled' ? XCircle : Clock)
+                      return (
+                        <TableRow key={`${reg.eventId}-${reg.userId}-${reg.registrationDate}`}>
+                          <TableCell className="font-medium">
+                            Event Registration
+                          </TableCell>
+                          <TableCell>
+                            <div className="min-w-[180px]">
+                              <div className="font-medium break-words">
+                                {reg.userName || 'N/A'}
+                              </div>
+                              <div className="text-sm text-muted-foreground break-words">
+                                {reg.userEmail || 'N/A'}
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm">
+                              {reg.eventTitle || 'Event'}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="font-medium">
+                              {reg.ticketPrice ? formatCurrency(reg.ticketPrice, reg.currency || 'USD') : 'Free'}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={regStatus === 'confirmed' ? 'bg-green-100 text-green-800' : (regStatus === 'cancelled' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800')}>
+                              <StatusIcon className="w-3 h-3 mr-1" />
+                              {regStatus.charAt(0).toUpperCase() + regStatus.slice(1)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={reg.ticketPrice ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
+                              {reg.ticketPrice ? 'Paid' : 'Free'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm">
+                              {reg.registrationDate ? formatDate(typeof reg.registrationDate === 'string' ? reg.registrationDate : new Date(reg.registrationDate).toISOString()) : 'N/A'}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                <DropdownMenuItem
+                                  onClick={() => {
+                                    // View event registration details
+                                    toast({
+                                      title: "Event Registration",
+                                      description: `${reg.userName} registered for ${reg.eventTitle}`,
+                                    })
+                                  }}
+                                >
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  View Details
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
+                        </TableRow>
+                      )
+                    })}
                   </TableBody>
                   </Table>
                 </div>
@@ -601,7 +743,7 @@ export default function OrdersPage() {
             )}
 
             {/* Pagination */}
-            {totalPages > 1 && (
+            {typeFilter === 'products' && totalPages > 1 && (
               <div className="flex items-center justify-center space-x-2 mt-6">
                 <Button
                   variant="outline"

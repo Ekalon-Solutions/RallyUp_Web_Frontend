@@ -5,11 +5,13 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { toast } from 'sonner'
 import { useAuth } from '@/contexts/auth-context'
 import { getApiUrl } from '@/lib/config'
 import { apiClient } from '@/lib/api'
 import { triggerBlobDownload } from '@/lib/utils'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 interface ImportMembersModalProps {
   trigger?: React.ReactNode
@@ -23,7 +25,9 @@ export function ImportMembersModal({ trigger, onImported }: ImportMembersModalPr
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null)
   const [file, setFile] = useState<File | null>(null)
   const [processing, setProcessing] = useState(false)
-  const [results, setResults] = useState<{ success: number; failed: number; errors: string[] } | null>(null)
+  const [results, setResults] = useState<{ success: number; failed: number; errors: Array<{ row: number; error: string }> } | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
 
   const clubId = (user as any)?.club?._id || (user as any)?.club_id?._id
 
@@ -32,6 +36,7 @@ export function ImportMembersModal({ trigger, onImported }: ImportMembersModalPr
     if (!open) {
         setFile(null)
         setResults(null)
+        setCurrentPage(1)
     }
   }, [open, clubId])
 
@@ -42,7 +47,6 @@ export function ImportMembersModal({ trigger, onImported }: ImportMembersModalPr
       const data = res.data
       setPlans(data?.data || [])
     } catch (e) {
-      // ignore
     }
   }
 
@@ -70,11 +74,42 @@ charlie.brown@example.com,Charlie,Brown,9234567890,+91,charlie_brown,1992-08-20,
     const text = await f.text()
     const lines = text.split(/\r?\n/).filter(Boolean)
     if (lines.length === 0) return []
-    const headers = lines[0].split(',').map(h => h.trim())
+    
+    const parseCSVLine = (line: string): string[] => {
+      const result: string[] = []
+      let current = ''
+      let inQuotes = false
+      
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i]
+        const nextChar = line[i + 1]
+        
+        if (char === '"') {
+          if (inQuotes && nextChar === '"') {
+            current += '"'
+            i++
+          } else {
+            inQuotes = !inQuotes
+          }
+        } else if (char === ',' && !inQuotes) {
+          result.push(current.trim())
+          current = ''
+        } else {
+          current += char
+        }
+      }
+      result.push(current.trim())
+      return result
+    }
+    
+    const headers = parseCSVLine(lines[0]).map(h => h.replace(/^"|"$/g, '').trim())
+    
     const rows = lines.slice(1).map(line => {
-      const cols = line.split(',')
+      const cols = parseCSVLine(line).map(col => col.replace(/^"|"$/g, '').trim())
       const obj: any = {}
-      headers.forEach((h, i) => { obj[h] = (cols[i] || '').trim() })
+      headers.forEach((h, i) => { 
+        obj[h] = (cols[i] || '').trim() 
+      })
       return obj
     })
     return rows
@@ -87,39 +122,94 @@ charlie.brown@example.com,Charlie,Brown,9234567890,+91,charlie_brown,1992-08-20,
 
     setProcessing(true)
     setResults(null)
-    const errors: string[] = []
+    setCurrentPage(1)
+    const errors: Array<{ row: number; error: string }> = []
     let successCount = 0
     let failCount = 0
 
     try {
       const rows = await parseCSV(file)
       for (const [idx, row] of rows.entries()) {
+        const convertScientificNotation = (value: string): string => {
+          if (!value) return ''
+          const trimmed = value.trim()
+          if (/^[\d.]+[eE][+-]?\d+$/.test(trimmed)) {
+            const num = parseFloat(trimmed)
+            if (!isNaN(num)) {
+              return Math.round(num).toString()
+            }
+          }
+          return trimmed
+        }
+
         const email = (row.email || '').trim()
         const first_name = (row.first_name || row.firstName || '').trim()
         const last_name = (row.last_name || row.lastName || '').trim()
-        const phone_number = (row.phone_number || row.phone || '').trim()
-        const countryCode = (row.countryCode || row.country_code || '+91').trim()
+        let phone_number = (row.phone_number || row.phone || row.phone_nu || '').trim()
+        phone_number = convertScientificNotation(phone_number)
+        phone_number = phone_number.replace(/[^\d]/g, '')
+        
+        const countryCode = (row.countryCode || row.country_code || row.countryCo || '+91').trim()
+        const normalizedCountryCode = countryCode.startsWith('+') ? countryCode : `+${countryCode}`
         const username = (row.username || email?.split('@')?.[0] || `user${Date.now()}${idx}`).trim()
         
         if (!email) {
           failCount++
-          errors.push(`Row ${idx + 2}: email is required`)
+          errors.push({ row: idx + 2, error: 'email is required' })
           continue
         }
         if (!first_name) {
           failCount++
-          errors.push(`Row ${idx + 2}: first_name is required`)
+          errors.push({ row: idx + 2, error: 'first_name is required' })
           continue
         }
         if (!last_name) {
           failCount++
-          errors.push(`Row ${idx + 2}: last_name is required`)
+          errors.push({ row: idx + 2, error: 'last_name is required' })
           continue
         }
         if (!phone_number) {
           failCount++
-          errors.push(`Row ${idx + 2}: phone_number is required`)
+          errors.push({ row: idx + 2, error: 'phone_number is required' })
           continue
+        }
+
+        const normalizeGender = (gender: string): string => {
+          const normalized = gender.toLowerCase().trim()
+          if (normalized === 'male' || normalized === 'm') return 'male'
+          if (normalized === 'female' || normalized === 'f') return 'female'
+          if (normalized === 'non-binary' || normalized === 'nonbinary' || normalized === 'nb') return 'non-binary'
+          return 'male'
+        }
+
+        const normalizeIdProofType = (idProofType: string): string => {
+          const normalized = idProofType.trim()
+          if (/^aadha?r$/i.test(normalized)) return 'Aadhar'
+          if (/^voter\s*(id)?$/i.test(normalized) || normalized.toLowerCase() === 'voterid') return 'Voter ID'
+          if (/^passport$/i.test(normalized)) return 'Passport'
+          if (/^driver['\s]?s?\s*(license|licence)$/i.test(normalized) || normalized.toLowerCase() === 'driving license' || normalized.toLowerCase() === 'drivers license') return 'Driver License'
+          return 'Aadhar'
+        }
+
+        const rawGender = (row.gender || 'male').trim()
+        const rawIdProofType = (row.id_proof_type || 'Aadhar').trim()
+
+        let zip_code = (row.zip_code || row.zip || row.zipCode || '').trim()
+        if (/^[a-zA-Z\s]+$/.test(zip_code) && zip_code.length > 5) {
+          zip_code = '000000'
+        }
+        if (zip_code.length > 10) {
+          zip_code = zip_code.substring(0, 10)
+        }
+
+        let date_of_birth = (row.date_of_birth || row.date_of_bi || '1990-01-01').trim()
+        if (/^\d+$/.test(date_of_birth)) {
+          const numValue = parseInt(date_of_birth, 10)
+          if (numValue > 0 && numValue < 100000) {
+            const excelEpoch = new Date(1899, 11, 30)
+            const date = new Date(excelEpoch.getTime() + numValue * 86400000)
+            date_of_birth = date.toISOString().split('T')[0]
+          }
         }
 
         const payload: any = {
@@ -128,24 +218,43 @@ charlie.brown@example.com,Charlie,Brown,9234567890,+91,charlie_brown,1992-08-20,
           first_name,
           last_name,
           phone_number,
-          countryCode,
-          date_of_birth: (row.date_of_birth || '1990-01-01').trim(),
-          gender: (row.gender || 'male').trim(),
-          address_line1: (row.address_line1 || 'Not provided').trim(),
+          countryCode: normalizedCountryCode,
+          date_of_birth,
+          gender: normalizeGender(rawGender),
+          address_line1: (row.address_line1 || row.address_li || 'Not provided').trim(),
           address_line2: (row.address_line2 || '').trim(),
           city: (row.city || 'Not provided').trim(),
-          state_province: (row.state_province || row.state || 'Not provided').trim(),
-          zip_code: (row.zip_code || row.zip || '000000').trim(),
+          state_province: (row.state_province || row.state_prov || row.state || 'Not provided').trim(),
+          zip_code,
           country: (row.country || 'India').trim(),
-          id_proof_type: (row.id_proof_type || 'Aadhar').trim(),
-          id_proof_number: (row.id_proof_number || `TEMP${Date.now()}${idx}`).trim()
+          id_proof_type: normalizeIdProofType(rawIdProofType),
+          id_proof_number: (row.id_proof_number || row.id_proof_r || `TEMP${Date.now()}${idx}`).trim()
         }
 
         try {
+          if (!phone_number || phone_number.length < 10) {
+            failCount++
+            errors.push({ row: idx + 2, error: `Invalid phone number (${phone_number || 'empty'})` })
+            continue
+          }
+
+          if (zip_code.length > 10) {
+            failCount++
+            errors.push({ row: idx + 2, error: `Zip code too long (${zip_code.length} characters)` })
+            continue
+          }
+
+          if (/^[a-zA-Z\s]+$/.test(zip_code) && zip_code.length > 5) {
+            failCount++
+            errors.push({ row: idx + 2, error: `Zip code appears to be a state/city name: "${zip_code}"` })
+            continue
+          }
+
           const regResp = await apiClient.userRegister({ ...payload, clubId } as any)
           if (!regResp.success) {
             failCount++
-            errors.push(`Row ${idx + 2}: registration failed - ${regResp.error || regResp.message || 'unknown'}`)
+            const errorMsg = regResp.error || regResp.message || 'unknown'
+            errors.push({ row: idx + 2, error: errorMsg.startsWith('registration failed - ') ? errorMsg.replace('registration failed - ', '') : errorMsg })
             continue
           }
 
@@ -154,7 +263,7 @@ charlie.brown@example.com,Charlie,Brown,9234567890,+91,charlie_brown,1992-08-20,
 
           if (!newUserId) {
             failCount++
-            errors.push(`Row ${idx + 2}: registration succeeded but user id missing`) 
+            errors.push({ row: idx + 2, error: 'registration succeeded but user id missing' }) 
             continue
           }
 
@@ -188,14 +297,14 @@ charlie.brown@example.com,Charlie,Brown,9234567890,+91,charlie_brown,1992-08-20,
           if (!memResp.ok) {
             const err = await memResp.json().catch(() => ({}))
             failCount++
-            errors.push(`Row ${idx + 2}: membership creation failed - ${err.message || memResp.statusText}`)
+            errors.push({ row: idx + 2, error: `membership creation failed - ${err.message || memResp.statusText}` })
             continue
           }
 
           successCount++
         } catch (err: any) {
           failCount++
-          errors.push(`Row ${idx + 2}: ${err.message || 'error'}`)
+          errors.push({ row: idx + 2, error: err.message || 'error' })
         }
       }
 
@@ -219,7 +328,7 @@ charlie.brown@example.com,Charlie,Brown,9234567890,+91,charlie_brown,1992-08-20,
       <DialogTrigger asChild>
         {trigger || <Button>Import Members in Bulk</Button>}
       </DialogTrigger>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Import Members in Bulk</DialogTitle>
           <DialogDescription>
@@ -270,13 +379,68 @@ charlie.brown@example.com,Charlie,Brown,9234567890,+91,charlie_brown,1992-08-20,
             </div>
 
           {results && (
-            <div className="p-3 border rounded">
-              <div>Imported: {results.success}</div>
-              <div>Failed: {results.failed}</div>
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 bg-muted rounded-lg">
+                <div className="space-y-1">
+                  <div className="text-sm font-medium">Import Results</div>
+                  <div className="flex flex-wrap gap-4 text-sm">
+                    <span className="text-green-600 font-semibold">Imported: {results.success}</span>
+                    <span className="text-red-600 font-semibold">Failed: {results.failed}</span>
+                  </div>
+                </div>
+              </div>
+              
               {results.errors.length > 0 && (
-                <div className="mt-2 text-sm text-red-600">
-                  {results.errors.slice(0,10).map((e, i) => <div key={i}>{e}</div>)}
-                  {results.errors.length > 10 && <div>...and more</div>}
+                <div className="border rounded-lg overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-20">Row #</TableHead>
+                          <TableHead>Error Message</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {results.errors
+                          .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                          .map((error, i) => (
+                            <TableRow key={i}>
+                              <TableCell className="font-medium">{error.row}</TableCell>
+                              <TableCell className="text-red-600">{error.error}</TableCell>
+                            </TableRow>
+                          ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                  
+                  {results.errors.length > itemsPerPage && (
+                    <div className="flex items-center justify-between p-4 border-t">
+                      <div className="text-sm text-muted-foreground">
+                        Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, results.errors.length)} of {results.errors.length} errors
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                          disabled={currentPage === 1}
+                        >
+                          <ChevronLeft className="w-4 h-4" />
+                        </Button>
+                        <div className="text-sm">
+                          Page {currentPage} of {Math.ceil(results.errors.length / itemsPerPage)}
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(prev => Math.min(Math.ceil(results.errors.length / itemsPerPage), prev + 1))}
+                          disabled={currentPage >= Math.ceil(results.errors.length / itemsPerPage)}
+                        >
+                          <ChevronRight className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

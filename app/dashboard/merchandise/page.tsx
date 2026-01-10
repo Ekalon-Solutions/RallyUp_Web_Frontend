@@ -16,20 +16,15 @@ import {
   ShoppingBag, 
   Search, 
   Tag, 
-  User, 
-  Calendar, 
   Eye, 
   Plus, 
   Image as ImageIcon,
   Edit,
   Trash2,
   EyeOff,
-  TrendingUp,
   Filter,
-  BarChart3,
   RefreshCw,
   Package,
-  DollarSign,
   Star,
   AlertTriangle,
   Settings,
@@ -123,6 +118,26 @@ export default function MerchandiseManagementPage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [editingMerchandise, setEditingMerchandise] = useState<Merchandise | null>(null)
 
+  const formatCurrency = (amount: number, currencyCode: string = 'USD') => {
+    const localeMap: Record<string, string> = {
+      'USD': 'en-US',
+      'INR': 'en-IN',
+      'EUR': 'en-EU',
+      'GBP': 'en-GB',
+      'CAD': 'en-CA',
+      'AUD': 'en-AU',
+      'JPY': 'ja-JP',
+      'BRL': 'pt-BR',
+      'MXN': 'es-MX',
+      'ZAR': 'en-ZA'
+    }
+    const locale = localeMap[currencyCode] || 'en-US'
+    return new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency: currencyCode
+    }).format(amount)
+  }
+
   useEffect(() => {
     if (isAdmin) {
       fetchMerchandise()
@@ -131,7 +146,6 @@ export default function MerchandiseManagementPage() {
     }
   }, [page, searchTerm, categoryFilter, availabilityFilter, isAdmin])
 
-  // Check if user is admin, if not show error message
   if (!isAdmin) {
     return (
       <DashboardLayout>
@@ -605,7 +619,7 @@ export default function MerchandiseManagementPage() {
                             </TableCell>
                             <TableCell>
                               <div className="flex items-center">
-                                ₹ {item.price.toFixed(2)}
+                                {formatCurrency(item.price, item.currency)}
                               </div>
                             </TableCell>
                             <TableCell>

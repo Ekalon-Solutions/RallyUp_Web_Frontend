@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, Suspense } from "react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Shield, User, Mail, Phone, UserPlus, LogIn, Crown, Building2 } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import { SiteNavbar } from "@/components/site-navbar"
 import { SiteFooter } from "@/components/site-footer"
@@ -111,12 +111,13 @@ const setupRecaptcha = (phone_number: string) => {
   return window.recaptchaVerifier
 }
 
-export default function AuthPage() {
+function AuthPageContent() {
   const [isLoading, setIsLoading] = useState(false)
   const [activeTab, setActiveTab] = useState("user-login")
   const [otpButtonLoading, setOtpButtonLoading] = useState(false)
   const { login, register, isAuthenticated } = useAuth()
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   const [userLoginData, setUserLoginData] = useState({ email: "", phone_number: "", countryCode: "+91" })
   const [userRegisterData, setUserRegisterData] = useState({
@@ -246,6 +247,22 @@ export default function AuthPage() {
   }, [isAuthenticated, router])
 
   useEffect(() => {
+    const club = searchParams.get("club")
+    const tab = searchParams.get("tab")
+
+    if (tab && ["user-login", "user-register", "admin-login", "admin-register", "system-owner-login", "system-owner-register"].includes(tab)) {
+      setActiveTab(tab)
+    }
+    
+    if (club) {
+      setUserRegisterData(prev => ({
+        ...prev,
+        clubId: club
+      }))
+    }
+  }, [searchParams])
+
+  useEffect(() => {
     if (typeof window === "undefined") return
     const url = window.location.href
     try {
@@ -368,8 +385,8 @@ export default function AuthPage() {
       return
     }
 
-    if (!/^[a-zA-Z0-9_]+$/.test(userRegisterData.username)) {
-      toast.error("Username can only contain letters, numbers, and underscores")
+    if (!/^[a-zA-Z0-9_.'-]+$/.test(userRegisterData.username)) {
+      toast.error("Username can only contain letters, numbers, underscores, periods, apostrophes, and hyphens")
       return
     }
 
@@ -1189,7 +1206,7 @@ export default function AuthPage() {
                             />
                           </div>
                           <p className="text-xs text-slate-400">
-                            Username can only contain letters, numbers, and underscores (e.g., john_doe123)
+                            Username can only contain letters, numbers, underscores, periods, apostrophes, and hyphens (e.g., john_doe123, dr.harish, heston'souza)
                           </p>
                         </div>
                         
@@ -2347,6 +2364,21 @@ export default function AuthPage() {
       <div id="recaptcha-container"></div>
       <SiteFooter brandName="Wingman Pro" />
     </>
+  )
+}
+
+export default function AuthPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    }>
+      <AuthPageContent />
+    </Suspense>
   )
 }
 

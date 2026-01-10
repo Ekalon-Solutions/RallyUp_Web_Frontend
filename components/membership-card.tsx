@@ -284,12 +284,12 @@ export function MembershipCard({
 
 
         {/* Footer - Debit Card Style */}
-        <div className="flex justify-between items-center flex-shrink-0">
-          <div>
-            <p className="text-xs opacity-70 mb-1">Valid Thru</p>
-            <p className="text-sm font-medium">{formatDate(card.expiryDate)}</p>
+        <div className="flex justify-between items-center flex-shrink-0 gap-4 mt-auto">
+          <div className="flex-shrink-0 min-w-0">
+            <p className="text-xs opacity-70 mb-1 whitespace-nowrap">Valid Thru</p>
+            <p className="text-sm font-medium whitespace-nowrap">{formatDate(card.expiryDate)}</p>
           </div>
-          <div className="text-right">
+          <div className="text-right flex-shrink-0">
             <p className="text-xs opacity-70 mb-1">Status</p>
             <Badge variant={getStatusVariant(card.status)} className="text-xs">
               {card.status}

@@ -681,7 +681,7 @@ export default function MembershipCardsPage() {
                         <div className="text-center">
                           <h4 className="font-medium mb-3 text-foreground">Currently Editing</h4>
                           <div className="flex justify-center">
-                            <div className="w-full max-w-sm">
+                            <div className="w-full max-w-xs sm:max-w-sm">
                               <MembershipCard
                                 cardData={editingCard}
                                 cardStyle={editingCard.card.cardStyle}
@@ -707,11 +707,13 @@ export default function MembershipCardsPage() {
                               <div key={card?.card?._id || index} className="text-center">
                                 <p className="text-sm text-muted-foreground mb-2">{card?.membershipPlan?.name || 'Unknown Plan'}</p>
                                 <div className="flex justify-center">
-                                  <MembershipCard
-                                    cardData={card}
-                                    cardStyle={card?.card?.cardStyle || 'default'}
-                                    showLogo={card?.card?.customization?.showLogo ?? true}
-                                  />
+                                  <div className="w-full max-w-xs sm:max-w-sm">
+                                    <MembershipCard
+                                      cardData={card}
+                                      cardStyle={card?.card?.cardStyle || 'default'}
+                                      showLogo={card?.card?.customization?.showLogo ?? true}
+                                    />
+                                  </div>
                                 </div>
                               </div>
                             ))}

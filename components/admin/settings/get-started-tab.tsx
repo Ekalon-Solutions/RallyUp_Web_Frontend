@@ -244,45 +244,6 @@ export function GetStartedTab() {
           </div>
         </CardContent>
       </Card>
-
-      {/* Product Requirements */}
-      <Card className="border-blue-200 dark:border-blue-800">
-        <CardHeader>
-          <CardTitle className="text-blue-900 dark:text-blue-100">
-            Product Requirements Reference
-          </CardTitle>
-          <CardDescription>
-            Key features and capabilities of the RallyUp platform
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-3 text-sm">
-            <div>
-              <h4 className="font-semibold mb-2">Core Features:</h4>
-              <ul className="list-disc list-inside space-y-1 text-muted-foreground ml-2">
-                <li>Multi-tier membership management with automatic upgrades</li>
-                <li>Event creation and RSVP tracking</li>
-                <li>Merchandise store with inventory management</li>
-                <li>News feed and announcements</li>
-                <li>Polls and member engagement tools</li>
-                <li>Volunteer coordination and tracking</li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-semibold mb-2">Admin Capabilities:</h4>
-              <ul className="list-disc list-inside space-y-1 text-muted-foreground ml-2">
-                <li>Full customization of branding and design</li>
-                <li>Member and volunteer management</li>
-                <li>Content moderation and approval workflows</li>
-                <li>Analytics and reporting dashboards</li>
-                <li>Notification configuration</li>
-                <li>FAQ and help section management</li>
-              </ul>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   )
 }
