@@ -97,19 +97,26 @@ export default function MembersPage() {
   useEffect(() => {
     fetchMembers()
   }, [currentPage, searchTerm, statusFilter])
+ 
+  useEffect(() => {
+    console.log("members:", members)
+  }, [members])
+   
 
   const fetchMembers = async () => {
     try {
       setLoading(true)
-      const response = await apiClient.getMemberDirectory({
+      const response = await apiClient.getClubMemberDirectory({
         search: searchTerm || undefined,
         page: currentPage,
         limit: 20,
-        status: statusFilter
+        status: statusFilter === 'all' ? undefined : statusFilter,
+        clubId: user?.club?._id
       })
 
       if (response.success && response.data) {
-        setMembers(response.data.members)
+        console.log("members:", response.data.members)
+        setMembers(response.data.members || [])
         setPagination(response.data.pagination)
       } else {
         toast.error(response.error || 'Failed to load members')
@@ -472,8 +479,8 @@ export default function MembersPage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {members.map((member: Member) => (
-                    <div key={member._id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                  {members.map((member: Member, idx: number) => (
+                    <div key={member._id + String(idx)} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors">
                       <div className="flex items-center space-x-4 flex-1 min-w-0">
                         <Avatar className="flex-shrink-0">
                           <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">

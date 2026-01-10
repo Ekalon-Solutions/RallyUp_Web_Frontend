@@ -33,8 +33,11 @@ export function LatestEventsWidget({ limit = 3, showManageButton = true }: Lates
   const fetchRecentEvents = async () => {
     setLoading(true)
     try {
-      const response = await apiClient.getPublicEvents()
-      
+      const response = isAdmin
+        ? await apiClient.getEventsByClub()
+        : await apiClient.getPublicEvents()
+
+
       if (response.success && response.data) {
         const eventsData = Array.isArray(response.data) ? response.data : (response.data as any).events || []
         // Filter active events, sort by date (upcoming first), and limit

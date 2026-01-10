@@ -33,9 +33,16 @@ export function PollsWidget({ limit = 3, showCreateButton = true }: PollsWidgetP
   const fetchRecentPolls = async () => {
     setLoading(true)
     try {
-      const response = await apiClient.getActivePolls({
-        limit: limit + 2, // Get a few extra in case some are filtered out
-      })
+      // If authenticated admin, ask server for polls scoped to admin's club
+      const isAdminLocal = user?.role === 'admin' || user?.role === 'super_admin'
+      const response = isAdminLocal
+        ? await apiClient.getActivePollsByMyClub({
+            page: 1,
+            limit: limit + 2, // Get a few extra in case some are filtered out
+          })
+        : await apiClient.getActivePolls({
+            limit: limit + 2, // Get a few extra in case some are filtered out
+          })
       
       if (response.success && response.data) {
         setPolls(response.data.polls.slice(0, limit))

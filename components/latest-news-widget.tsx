@@ -23,6 +23,7 @@ interface LatestNewsWidgetProps {
 
 export function LatestNewsWidget({ limit = 3, showManageButton = true }: LatestNewsWidgetProps) {
   const { user } = useAuth()
+  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin'
   const [news, setNews] = useState<News[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -33,8 +34,11 @@ export function LatestNewsWidget({ limit = 3, showManageButton = true }: LatestN
   const fetchRecentNews = async () => {
     setLoading(true)
     try {
-      const response = await apiClient.getNews()
-      
+      // If user is authenticated, fetch news for their club (server uses req.user.club)
+      const response = isAdmin
+        ? await apiClient.getNewsByMyClub()
+        : await apiClient.getPublicNews()
+
       if (response.success && response.data) {
         const newsData = Array.isArray(response.data) ? response.data : (response.data as any).news || []
         const sortedNews = newsData
@@ -59,7 +63,6 @@ export function LatestNewsWidget({ limit = 3, showManageButton = true }: LatestN
     return text.substring(0, maxLength) + "..."
   }
 
-  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin'
 
   if (loading) {
     return (

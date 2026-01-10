@@ -925,6 +925,11 @@ class ApiClient {
   async getPublicNews(): Promise<ApiResponse<News[]>> {
     return this.request('/news/public');
   }
+
+  // Get news for the authenticated user's club (server determines club from `req.user`)
+  async getNewsByMyClub(): Promise<ApiResponse<News[]>> {
+    return this.request('/news/my-club');
+  }
   
   // Clubs (admin)
   async getAllClubs(params?: { page?: number; limit?: number; search?: string; status?: string }) {
@@ -989,6 +994,10 @@ class ApiClient {
   // Events APIs
   async getEvents(): Promise<ApiResponse<Event[]>> {
     return this.request('/events');
+  }
+
+  async getEventsByClub(): Promise<ApiResponse<Event[]>> {
+    return this.request(`/events/club/`);
   }
 
   async getPublicEvents(): Promise<ApiResponse<Event[]>> {
@@ -2002,6 +2011,7 @@ class ApiClient {
     search?: string;
     page?: number;
     limit?: number;
+    status?: string;
     clubId: string;
   }): Promise<ApiResponse<{
     members: User[];
@@ -2014,6 +2024,7 @@ class ApiClient {
   }>> {
     const queryParams = new URLSearchParams();
     if (params?.search) queryParams.append('search', params.search);
+    if (params?.status) queryParams.append('status', params.status);
     if (params?.page) queryParams.append('page', params.page.toString());
     if (params?.limit) queryParams.append('limit', params.limit.toString());
     if (params?.clubId) queryParams.append('clubId', params.clubId);
@@ -2233,6 +2244,28 @@ class ApiClient {
     if (params?.search) queryParams.append('search', params.search);
 
     const endpoint = `/polls/active${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    return this.request(endpoint);
+  }
+
+  // Get active polls for the authenticated user's club (server uses req.user.club)
+  async getActivePollsByMyClub(params?: {
+    page?: number;
+    limit?: number;
+    status?: 'draft' | 'active' | 'closed' | 'archived';
+    category?: 'general' | 'event' | 'feedback' | 'decision' | 'survey';
+    search?: string;
+  }): Promise<ApiResponse<{
+    polls: Poll[];
+    pagination: { page: number; limit: number; total: number; pages: number };
+  }>> {
+    const queryParams = new URLSearchParams();
+    if (params?.page) queryParams.append('page', params.page.toString());
+    if (params?.status) queryParams.append('status', params.status.toString());
+    if (params?.limit) queryParams.append('limit', params.limit.toString());
+    if (params?.category) queryParams.append('category', params.category);
+    if (params?.search) queryParams.append('search', params.search);
+
+    const endpoint = `/polls/club${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
     return this.request(endpoint);
   }
 

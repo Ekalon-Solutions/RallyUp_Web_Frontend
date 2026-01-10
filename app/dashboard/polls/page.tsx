@@ -51,7 +51,7 @@ export default function PollsManagementPage() {
   const fetchPolls = async () => {
     setLoading(true)
     try {
-      const response = await apiClient.getPolls({
+      const response = await apiClient.getActivePollsByMyClub({
         search: searchTerm || undefined,
         status: statusFilter !== "all" ? statusFilter as any : undefined,
         category: categoryFilter !== "all" ? categoryFilter as any : undefined,

@@ -85,7 +85,7 @@ export default function ContentManagementPage() {
   const loadNews = async () => {
     try {
       setLoading(true)
-      const response = await apiClient.getNews()
+      const response = await apiClient.getNewsByMyClub()
       
       if (response.success && response.data) {
         setNews(response.data.news || response.data)
