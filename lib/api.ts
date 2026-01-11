@@ -903,8 +903,8 @@ class ApiClient {
   }
 
   async deleteMembersBulk(memberIds: string[]): Promise<ApiResponse<{ message: string; deletedCount: number }>> {
-    return this.request('/admin/members/bulk', {
-      method: 'DELETE',
+    return this.request('/admin/members/bulk-delete', {
+      method: 'POST',
       body: JSON.stringify({ memberIds }),
     });
   }
