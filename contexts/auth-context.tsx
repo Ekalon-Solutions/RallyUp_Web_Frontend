@@ -151,12 +151,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, phone_number: string, countryCode: string, isAdmin = false, isSystemOwner = false): Promise<{ success: boolean; error?: string }> => {
     try {
-      // Prepare login data - only send the non-empty field
       const loginData: any = {};
       if (email && email.trim()) {
         loginData.email = email.trim();
       } else if (phone_number && phone_number.trim()) {
         loginData.phone_number = phone_number.trim();
+        if (countryCode && countryCode.trim()) {
+          loginData.countryCode = countryCode.trim();
+        }
       } else {
         return { success: false, error: 'Please provide either email or phone number' };
       }
@@ -175,15 +177,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         let userData: any;
         
         if (isSystemOwner) {
-          // For system owner login, the backend returns system owner data directly
           userData = (response.data as any).systemOwner || response.data;
           localStorage.setItem('userType', 'system_owner');
         } else if (isAdmin) {
-          // For admin login, the backend returns admin data directly
           userData = (response.data as any).admin || response.data;
-          localStorage.setItem('userType', userData.role); // 'admin' or 'super_admin'
+          localStorage.setItem('userType', userData.role);
         } else {
-          // For user login, the backend returns user data directly
           userData = (response.data as any).user || response.data;
           localStorage.setItem('userType', 'member');
         }
@@ -227,23 +226,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         let userType: string;
         
         if (isSystemOwner) {
-          // For system owner registration, the backend returns system owner data directly
           userData = (response.data as any).systemOwner || response.data;
           userType = 'system_owner';
         } else if (isAdmin) {
-          // For admin registration, the backend returns admin data directly
           userData = (response.data as any).admin || response.data;
-          userType = userData.role; // 'admin' or 'super_admin'
+          userType = userData.role;
         } else {
-          // For user registration, the backend returns user data directly
           userData = (response.data as any).user || response.data;
           userType = 'member';
         }
         
-        // Store user type in localStorage for auth checking
         localStorage.setItem('userType', userType);
         
-        // // console.log('Setting user data after registration:', userData);
         setUser(userData);
         return { success: true };
       } else {

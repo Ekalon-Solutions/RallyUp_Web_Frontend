@@ -6,7 +6,8 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { apiClient } from "@/lib/api"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { apiClient, News, Event } from "@/lib/api"
 import { 
   Globe, 
   Mail, 
@@ -21,7 +22,11 @@ import {
   Building2,
   ArrowLeft,
   Home,
-  Search
+  Search,
+  User,
+  Eye,
+  MapPin,
+  Clock
 } from "lucide-react"
 import Link from "next/link"
 
@@ -59,6 +64,10 @@ export default function PublicClubPage() {
   const [loading, setLoading] = useState(true)
   const [club, setClub] = useState<Club | null>(null)
   const [settings, setSettings] = useState<ClubSettings | null>(null)
+  const [news, setNews] = useState<News[]>([])
+  const [events, setEvents] = useState<Event[]>([])
+  const [loadingContent, setLoadingContent] = useState(false)
+  const [activeTab, setActiveTab] = useState<string>("")
 
   useEffect(() => {
     if (slug) {
@@ -70,22 +79,75 @@ export default function PublicClubPage() {
     try {
       setLoading(true)
       
-      // Load club basic info (public access) - now using slug
       const clubResponse = await apiClient.getClubById(slug, true)
       if (clubResponse.success && clubResponse.data) {
         setClub(clubResponse.data)
       }
 
-      // Load club settings (public access) - now using slug
       const settingsResponse = await apiClient.getClubSettings(slug, true)
       if (settingsResponse.success && settingsResponse.data) {
         const actualData = settingsResponse.data.data || settingsResponse.data
         setSettings(actualData)
+        
+        const websiteSetup = actualData.websiteSetup || {}
+        if (websiteSetup.sections?.news || websiteSetup.sections?.events) {
+          // Set default tab based on which sections are enabled
+          if (websiteSetup.sections?.news) {
+            setActiveTab("news")
+          } else if (websiteSetup.sections?.events) {
+            setActiveTab("events")
+          }
+          await loadContent(clubResponse.data?._id || slug, actualData)
+        }
       }
     } catch (error) {
       // console.error("Error loading club data:", error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadContent = async (clubIdOrSlug: string, settingsData?: ClubSettings) => {
+    try {
+      setLoadingContent(true)
+      
+      // Use provided settings or state settings
+      const currentSettings = settingsData || settings
+      if (!currentSettings) return
+      
+      // Try to get club ID if we have the club object
+      const clubId = club?._id || clubIdOrSlug
+      
+      const promises: Promise<any>[] = []
+      
+      if (currentSettings.websiteSetup.sections.news) {
+        promises.push(apiClient.getPublicNews(clubId))
+      }
+      
+      if (currentSettings.websiteSetup.sections.events) {
+        promises.push(apiClient.getPublicEvents(clubId))
+      }
+      
+      if (promises.length === 0) return
+      
+      const results = await Promise.all(promises)
+      
+      if (currentSettings.websiteSetup.sections.news && results[0]?.success) {
+        const newsData = Array.isArray(results[0].data) ? results[0].data : (results[0].data as any)?.news || []
+        setNews(newsData)
+      }
+      
+      if (currentSettings.websiteSetup.sections.events) {
+        const eventsIndex = currentSettings.websiteSetup.sections.news ? 1 : 0
+        if (results[eventsIndex]?.success) {
+          const eventsData = Array.isArray(results[eventsIndex].data) ? results[eventsIndex].data : (results[eventsIndex].data as any)?.events || []
+          setEvents(eventsData)
+        }
+      }
+    } catch (error) {
+      console.error("Error loading content:", error)
+    } finally {
+      setLoadingContent(false)
     }
   }
 
@@ -326,40 +388,224 @@ export default function PublicClubPage() {
             </p>
           </div>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-12">
-            {/* News Section */}
-            {websiteSetup.sections.news && (
-              <Card className="group hover:border-primary/50 transition-all duration-500 shadow-sm hover:shadow-2xl rounded-3xl overflow-hidden border-2">
-                <CardHeader className="space-y-6 p-8">
-                  <div className="w-16 h-16 rounded-[1.25rem] bg-primary/10 flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-inner">
-                    <Newspaper className="h-8 w-8" style={{ color: primaryColor }} />
-                  </div>
-                  <div className="space-y-4">
-                    <CardTitle className="text-2xl font-bold">News & Updates</CardTitle>
-                    <CardDescription className="text-lg leading-relaxed font-medium">
-                      Stay updated with the latest news, announcements, and articles from our club.
-                    </CardDescription>
-                  </div>
-                </CardHeader>
-              </Card>
-            )}
+          {/* News & Events Tabs Section */}
+          {(websiteSetup.sections.news || websiteSetup.sections.events) && (
+            <div className="space-y-8">
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="grid w-full max-w-2xl mx-auto grid-cols-2 h-14 bg-muted/50">
+                  {websiteSetup.sections.news && (
+                    <TabsTrigger 
+                      value="news" 
+                      className="text-base font-bold data-[state=active]:bg-background data-[state=active]:shadow-md"
+                      style={{ 
+                        color: activeTab === 'news' ? primaryColor : undefined 
+                      }}
+                    >
+                      <Newspaper className="h-5 w-5 mr-2" />
+                      News & Updates
+                    </TabsTrigger>
+                  )}
+                  {websiteSetup.sections.events && (
+                    <TabsTrigger 
+                      value="events"
+                      className="text-base font-bold data-[state=active]:bg-background data-[state=active]:shadow-md"
+                      style={{ 
+                        color: activeTab === 'events' ? primaryColor : undefined 
+                      }}
+                    >
+                      <Calendar className="h-5 w-5 mr-2" />
+                      Events & Activities
+                    </TabsTrigger>
+                  )}
+                </TabsList>
 
-            {/* Events Section */}
-            {websiteSetup.sections.events && (
-              <Card className="group hover:border-primary/50 transition-all duration-500 shadow-sm hover:shadow-2xl rounded-3xl overflow-hidden border-2">
-                <CardHeader className="space-y-6 p-8">
-                  <div className="w-16 h-16 rounded-[1.25rem] bg-primary/10 flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-inner">
-                    <Calendar className="h-8 w-8" style={{ color: primaryColor }} />
-                  </div>
-                  <div className="space-y-4">
-                    <CardTitle className="text-2xl font-bold">Events & Activities</CardTitle>
-                    <CardDescription className="text-lg leading-relaxed font-medium">
-                      Join exciting events, match screenings, and workshops organized by our club.
-                    </CardDescription>
-                  </div>
-                </CardHeader>
-              </Card>
-            )}
+                {websiteSetup.sections.news && (
+                  <TabsContent value="news" className="mt-8">
+                    <Card className="border-2 shadow-lg">
+                      <CardHeader>
+                        <CardTitle className="text-3xl font-bold flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                            <Newspaper className="h-6 w-6" style={{ color: primaryColor }} />
+                          </div>
+                          Latest News & Updates
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        {loadingContent ? (
+                          <div className="flex items-center justify-center py-12">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: primaryColor }} />
+                          </div>
+                        ) : news.length > 0 ? (
+                          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                            {news.map((article) => (
+                              <Card key={article._id} className="hover:shadow-lg transition-all border-2">
+                                {article.featuredImage && (
+                                  <div className="relative h-48 overflow-hidden rounded-t-lg">
+                                    <img
+                                      src={`${process.env.NEXT_PUBLIC_API_URL || ''}/uploads/news/${article.featuredImage}`}
+                                      alt={article.title}
+                                      className="w-full h-full object-cover"
+                                      onError={(e) => {
+                                        e.currentTarget.style.display = 'none'
+                                      }}
+                                    />
+                                  </div>
+                                )}
+                                <CardHeader>
+                                  <div className="flex items-center gap-2 mb-2">
+                                    {article.category && (
+                                      <Badge variant="secondary" className="text-xs">
+                                        {article.category}
+                                      </Badge>
+                                    )}
+                                    {article.priority && (
+                                      <Badge 
+                                        variant={article.priority === 'high' ? 'destructive' : 'outline'}
+                                        className="text-xs"
+                                      >
+                                        {article.priority}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <CardTitle className="text-xl line-clamp-2">{article.title}</CardTitle>
+                                  {article.summary && (
+                                    <CardDescription className="line-clamp-3 mt-2">
+                                      {article.summary}
+                                    </CardDescription>
+                                  )}
+                                </CardHeader>
+                                <CardContent>
+                                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                    <span className="flex items-center gap-1">
+                                      <User className="w-4 h-4" />
+                                      {article.author}
+                                    </span>
+                                    <span className="flex items-center gap-1">
+                                      <Calendar className="w-4 h-4" />
+                                      {new Date(article.publishedAt || article.createdAt).toLocaleDateString()}
+                                    </span>
+                                  </div>
+                                  {article.viewCount !== undefined && (
+                                    <div className="flex items-center gap-1 text-sm text-muted-foreground mt-2">
+                                      <Eye className="w-4 h-4" />
+                                      {article.viewCount} views
+                                    </div>
+                                  )}
+                                </CardContent>
+                              </Card>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center py-12">
+                            <Newspaper className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                            <p className="text-lg text-muted-foreground">No news articles available yet.</p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                )}
+
+                {websiteSetup.sections.events && (
+                  <TabsContent value="events" className="mt-8">
+                    <Card className="border-2 shadow-lg">
+                      <CardHeader>
+                        <CardTitle className="text-3xl font-bold flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                            <Calendar className="h-6 w-6" style={{ color: primaryColor }} />
+                          </div>
+                          Upcoming Events & Activities
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        {loadingContent ? (
+                          <div className="flex items-center justify-center py-12">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: primaryColor }} />
+                          </div>
+                        ) : events.length > 0 ? (
+                          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                            {events.map((event) => (
+                              <Card key={event._id} className="hover:shadow-lg transition-all border-2">
+                                <CardHeader>
+                                  <div className="flex items-start justify-between mb-2">
+                                    {event.isActive !== undefined && (
+                                      <Badge 
+                                        variant={event.isActive ? 'default' : 'secondary'}
+                                        className="text-xs"
+                                      >
+                                        {event.isActive ? 'Active' : 'Inactive'}
+                                      </Badge>
+                                    )}
+                                    {event.ticketPrice !== undefined && event.ticketPrice > 0 && (
+                                      <Badge variant="outline" className="text-xs font-bold">
+                                        ₹{event.ticketPrice}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <CardTitle className="text-xl line-clamp-2">{event.title}</CardTitle>
+                                  {event.description && (
+                                    <CardDescription className="line-clamp-3 mt-2">
+                                      {event.description}
+                                    </CardDescription>
+                                  )}
+                                </CardHeader>
+                                <CardContent className="space-y-3">
+                                  {(event.eventDate || event.startTime) && (
+                                    <div className="flex items-center gap-2 text-sm">
+                                      <Calendar className="w-4 h-4 text-muted-foreground" />
+                                      <span>{new Date(event.eventDate || event.startTime).toLocaleDateString('en-US', { 
+                                        weekday: 'long', 
+                                        year: 'numeric', 
+                                        month: 'long', 
+                                        day: 'numeric' 
+                                      })}</span>
+                                    </div>
+                                  )}
+                                  {(event.eventTime || event.startTime) && (
+                                    <div className="flex items-center gap-2 text-sm">
+                                      <Clock className="w-4 h-4 text-muted-foreground" />
+                                      <span>
+                                        {event.eventTime || new Date(event.startTime).toLocaleTimeString('en-US', {
+                                          hour: '2-digit',
+                                          minute: '2-digit'
+                                        })}
+                                      </span>
+                                    </div>
+                                  )}
+                                  {event.venue && (
+                                    <div className="flex items-center gap-2 text-sm">
+                                      <MapPin className="w-4 h-4 text-muted-foreground" />
+                                      <span className="line-clamp-1">{event.venue}</span>
+                                    </div>
+                                  )}
+                                  {event.maxAttendees && (
+                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                      <Users className="w-4 h-4" />
+                                      <span>
+                                        {event.currentAttendees || 0} / {event.maxAttendees} attendees
+                                      </span>
+                                    </div>
+                                  )}
+                                </CardContent>
+                              </Card>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center py-12">
+                            <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                            <p className="text-lg text-muted-foreground">No events available yet.</p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                )}
+              </Tabs>
+            </div>
+          )}
+
+          {/* Other Sections Grid */}
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-12">
 
             {/* Store Section */}
             {(websiteSetup.sections.store || websiteSetup.sections.merchandise) && (

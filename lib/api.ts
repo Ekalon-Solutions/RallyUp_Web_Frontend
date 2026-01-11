@@ -798,8 +798,6 @@ class ApiClient {
 
     const backendData: any = {};
     
-    // For admin and system_owner, use 'name' directly
-    // For regular users, split into first_name and last_name
     if (endpoint === '/users/profile') {
       if (data.name) {
         const nameParts = data.name.trim().split(' ');
@@ -924,21 +922,19 @@ class ApiClient {
     return this.request('/admin/members/stats');
   }
 
-  // News APIs
   async getNews(): Promise<ApiResponse<News[]>> {
     return this.request('/news');
   }
 
-  async getPublicNews(): Promise<ApiResponse<News[]>> {
-    return this.request('/news/public');
+  async getPublicNews(clubId?: string): Promise<ApiResponse<News[]>> {
+    const endpoint = clubId ? `/news/public?clubId=${clubId}` : '/news/public';
+    return this.request(endpoint);
   }
 
-  // Get news for the authenticated user's club (server determines club from `req.user`)
   async getNewsByMyClub(): Promise<ApiResponse<News[]>> {
     return this.request('/news/my-club');
   }
   
-  // Clubs (admin)
   async getAllClubs(params?: { page?: number; limit?: number; search?: string; status?: string }) {
     const query: Record<string, any> = {};
     if (params?.page) query.page = params.page;
@@ -1007,8 +1003,9 @@ class ApiClient {
     return this.request(`/events/club/`);
   }
 
-  async getPublicEvents(): Promise<ApiResponse<Event[]>> {
-    return this.request('/events/public');
+  async getPublicEvents(clubId?: string): Promise<ApiResponse<Event[]>> {
+    const endpoint = clubId ? `/events/public?clubId=${clubId}` : '/events/public';
+    return this.request(endpoint);
   }
 
   async getEventById(id: string): Promise<ApiResponse<Event>> {

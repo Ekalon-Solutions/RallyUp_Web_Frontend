@@ -11,9 +11,9 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/contexts/auth-context"
-import { apiClient } from "@/lib/api"
+import { apiClient, News, Event } from "@/lib/api"
 import { toast } from "sonner"
-import { Loader2, ExternalLink } from "lucide-react"
+import { Loader2, ExternalLink, Newspaper, Calendar, User, Eye } from "lucide-react"
 
 const navigationOptions = [
   { id: "news", label: "News", description: "Appears just below 'welcome' text near top of site" },
@@ -66,6 +66,10 @@ export default function WebsitePage() {
     motto: "",
   })
 
+  const [previewNews, setPreviewNews] = useState<News[]>([])
+  const [previewEvents, setPreviewEvents] = useState<Event[]>([])
+  const [loadingPreview, setLoadingPreview] = useState(false)
+
   const loadSettings = useCallback(async () => {
     if (!clubId) return
 
@@ -112,6 +116,56 @@ export default function WebsitePage() {
   useEffect(() => {
     loadSettings()
   }, [loadSettings])
+
+  // Load preview data when news or events sections are selected
+  useEffect(() => {
+    const loadPreviewData = async () => {
+      if (!clubId) return
+      
+      const hasNews = websiteSettings.navigation.news
+      const hasEvents = websiteSettings.navigation.events
+      
+      if (!hasNews && !hasEvents) {
+        setPreviewNews([])
+        setPreviewEvents([])
+        return
+      }
+
+      try {
+        setLoadingPreview(true)
+        const promises: Promise<any>[] = []
+        
+        if (hasNews) {
+          promises.push(apiClient.getPublicNews(clubId))
+        }
+        
+        if (hasEvents) {
+          promises.push(apiClient.getPublicEvents(clubId))
+        }
+        
+        const results = await Promise.all(promises)
+        
+        if (hasNews && results[0]?.success) {
+          const newsData = Array.isArray(results[0].data) ? results[0].data : (results[0].data as any)?.news || []
+          setPreviewNews(newsData.slice(0, 3)) // Show only first 3
+        }
+        
+        if (hasEvents) {
+          const eventsIndex = hasNews ? 1 : 0
+          if (results[eventsIndex]?.success) {
+            const eventsData = Array.isArray(results[eventsIndex].data) ? results[eventsIndex].data : (results[eventsIndex].data as any)?.events || []
+            setPreviewEvents(eventsData.slice(0, 3)) // Show only first 3
+          }
+        }
+      } catch (error) {
+        console.error("Error loading preview data:", error)
+      } finally {
+        setLoadingPreview(false)
+      }
+    }
+
+    loadPreviewData()
+  }, [clubId, websiteSettings.navigation.news, websiteSettings.navigation.events])
 
   const handleNavigationChange = (item: string, checked: boolean) => {
     setWebsiteSettings((prev) => ({
@@ -298,6 +352,116 @@ export default function WebsitePage() {
                   </div>
                 ))}
               </div>
+
+              {/* Preview Section - Show actual data for News and Events */}
+              {(websiteSettings.navigation.news || websiteSettings.navigation.events) && (
+                <div className="mt-8 pt-8 border-t space-y-6">
+                  <div>
+                    <h3 className="text-lg font-bold mb-4">Preview - Selected Sections</h3>
+                    <p className="text-sm text-muted-foreground mb-6">
+                      This is how your selected sections will appear on your website
+                    </p>
+                  </div>
+
+                  {loadingPreview ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                    </div>
+                  ) : (
+                    <div className="grid gap-6 md:grid-cols-2">
+                      {/* News Preview */}
+                      {websiteSettings.navigation.news && (
+                        <Card className="border-2">
+                          <CardHeader className="pb-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                                <Newspaper className="h-5 w-5" style={{ color: designSettings.primaryColor }} />
+                              </div>
+                              <CardTitle className="text-xl font-bold">News & Updates</CardTitle>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="space-y-4">
+                            {previewNews.length > 0 ? (
+                              previewNews.map((article) => (
+                                <div key={article._id} className="p-4 border rounded-lg hover:shadow-md transition-shadow">
+                                  <h4 className="font-semibold text-base mb-2 line-clamp-2">{article.title}</h4>
+                                  {article.summary && (
+                                    <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{article.summary}</p>
+                                  )}
+                                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                                    <span className="flex items-center gap-1">
+                                      <User className="w-3 h-3" />
+                                      {article.author}
+                                    </span>
+                                    <span className="flex items-center gap-1">
+                                      <Calendar className="w-3 h-3" />
+                                      {new Date(article.publishedAt || article.createdAt).toLocaleDateString()}
+                                    </span>
+                                    {article.viewCount !== undefined && (
+                                      <span className="flex items-center gap-1">
+                                        <Eye className="w-3 h-3" />
+                                        {article.viewCount}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              ))
+                            ) : (
+                              <p className="text-sm text-muted-foreground text-center py-4">
+                                No news articles available yet. Create news articles to see them here.
+                              </p>
+                            )}
+                          </CardContent>
+                        </Card>
+                      )}
+
+                      {/* Events Preview */}
+                      {websiteSettings.navigation.events && (
+                        <Card className="border-2">
+                          <CardHeader className="pb-4">
+                            <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                                <Calendar className="h-5 w-5" style={{ color: designSettings.primaryColor }} />
+                              </div>
+                              <CardTitle className="text-xl font-bold">Events & Activities</CardTitle>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="space-y-4">
+                            {previewEvents.length > 0 ? (
+                              previewEvents.map((event) => (
+                                <div key={event._id} className="p-4 border rounded-lg hover:shadow-md transition-shadow">
+                                  <h4 className="font-semibold text-base mb-2 line-clamp-2">{event.title}</h4>
+                                  {event.description && (
+                                    <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{event.description}</p>
+                                  )}
+                                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                                    <span className="flex items-center gap-1">
+                                      <Calendar className="w-3 h-3" />
+                                      {event.date ? new Date(event.date).toLocaleDateString() : 'TBD'}
+                                    </span>
+                                    {event.location && (
+                                      <span className="line-clamp-1">{event.location}</span>
+                                    )}
+                                  </div>
+                                  {event.ticketPrice !== undefined && event.ticketPrice > 0 && (
+                                    <Badge variant="secondary" className="mt-2">
+                                      ₹{event.ticketPrice}
+                                    </Badge>
+                                  )}
+                                </div>
+                              ))
+                            ) : (
+                              <p className="text-sm text-muted-foreground text-center py-4">
+                                No events available yet. Create events to see them here.
+                              </p>
+                            )}
+                          </CardContent>
+                        </Card>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
             </CardContent>
           </Card>
 
