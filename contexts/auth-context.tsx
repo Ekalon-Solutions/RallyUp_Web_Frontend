@@ -187,15 +187,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           localStorage.setItem('userType', 'member');
         }
         
-        // // console.log('Setting user data after login:', userData);
-        // console.log('User type:', localStorage.getItem('userType'));
         setUser(userData);
         return { success: true };
       } else {
-        // // console.error('Login failed:', response.error);
-        const errorMessage = response.error || response.errorDetails?.type === 'network_error' 
-          ? 'Connection failed. Please check your internet connection or try again later.'
-          : 'Login failed';
+        const errorMessage = response.error || response.message || 
+          (response.errorDetails?.type === 'network_error' 
+            ? 'Connection failed. Please check your internet connection or try again later.'
+            : 'Login failed. Please check your credentials and try again.');
         return { success: false, error: errorMessage };
       }
     } catch (error) {
@@ -203,7 +201,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         ? (error.message.includes('fetch') || error.message.includes('network') || error.message.includes('Failed to fetch')
           ? 'Connection failed. Please check your internet connection or try again later.'
           : error.message)
-        : 'Network error occurred';
+        : 'An unexpected error occurred. Please try again.';
       return { success: false, error: errorMessage };
     }
   };

@@ -566,7 +566,6 @@ class ApiClient {
 //       });
 
       if (!response.ok) {
-        // Enhanced error handling with more details
         const errorMessage = data.message || data.error || `HTTP error! status: ${response.status}`;
         const errorDetails = {
           status: response.status,
@@ -576,11 +575,10 @@ class ApiClient {
           ...(data.details && { details: data.details })
         };
         
-        // // console.error(`API Error for ${endpoint}:`, errorDetails);
-        
         return {
           success: false,
           error: errorMessage,
+          message: data.message,
           errorDetails,
           status: response.status
         };
