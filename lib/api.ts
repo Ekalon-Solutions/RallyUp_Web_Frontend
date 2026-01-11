@@ -906,6 +906,13 @@ class ApiClient {
     });
   }
 
+  async deleteMembersBulk(memberIds: string[]): Promise<ApiResponse<{ message: string; deletedCount: number }>> {
+    return this.request('/admin/members/bulk', {
+      method: 'DELETE',
+      body: JSON.stringify({ memberIds }),
+    });
+  }
+
   async getMemberStats(): Promise<ApiResponse<{
     totalMembers: number;
     activeMembers: number;

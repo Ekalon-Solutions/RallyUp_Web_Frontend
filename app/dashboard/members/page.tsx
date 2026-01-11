@@ -35,6 +35,7 @@ import {
   Plus,
   Check
 } from 'lucide-react'
+import { Checkbox } from '@/components/ui/checkbox'
 
 interface Member {
   _id: string
@@ -80,7 +81,10 @@ export default function MembersPage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false)
   const [selectedMember, setSelectedMember] = useState<Member | null>(null)
+  const [selectedMemberIds, setSelectedMemberIds] = useState<Set<string>>(new Set())
+  const [isSelectAll, setIsSelectAll] = useState(false)
   const [searchResults, setSearchResults] = useState<User[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
@@ -314,6 +318,56 @@ export default function MembersPage() {
     setIsDeleteDialogOpen(true)
   }
 
+  const handleSelectMember = (memberId: string) => {
+    const newSelected = new Set(selectedMemberIds)
+    if (newSelected.has(memberId)) {
+      newSelected.delete(memberId)
+    } else {
+      newSelected.add(memberId)
+    }
+    setSelectedMemberIds(newSelected)
+    setIsSelectAll(newSelected.size === members.length)
+  }
+
+  const handleSelectAll = () => {
+    if (isSelectAll) {
+      setSelectedMemberIds(new Set())
+      setIsSelectAll(false)
+    } else {
+      const allIds = new Set(members.map(m => m._id))
+      setSelectedMemberIds(allIds)
+      setIsSelectAll(true)
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    if (selectedMemberIds.size === 0) return
+
+    try {
+      const response = await apiClient.deleteMembersBulk(Array.from(selectedMemberIds))
+
+      if (response.success) {
+        toast.success(`Successfully deleted ${response.data?.deletedCount || selectedMemberIds.size} member(s)`)
+        setIsBulkDeleteDialogOpen(false)
+        setSelectedMemberIds(new Set())
+        setIsSelectAll(false)
+        fetchMembers()
+      } else {
+        toast.error(response.error || 'Failed to delete members')
+      }
+    } catch (error) {
+      toast.error('Failed to delete members')
+    }
+  }
+
+  const openBulkDeleteDialog = () => {
+    if (selectedMemberIds.size === 0) {
+      toast.error('Please select at least one member to delete')
+      return
+    }
+    setIsBulkDeleteDialogOpen(true)
+  }
+
   const exportMembers = () => {
     const csvContent = [
       ['Name', 'Email', 'Phone', 'Club', 'Membership Plan', 'Status', 'Joined Date'].join(','),
@@ -345,6 +399,12 @@ export default function MembersPage() {
               <p className="text-muted-foreground text-sm sm:text-base">Manage and view all club members</p>
             </div>
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              {(user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'system_owner') && selectedMemberIds.size > 0 && (
+                <Button variant="destructive" onClick={openBulkDeleteDialog} className="w-full sm:w-auto">
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete Selected ({selectedMemberIds.size})
+                </Button>
+              )}
               <Button variant="outline" onClick={exportMembers} className="w-full sm:w-auto">
                 <Download className="w-4 h-4 mr-2" />
                 Export
@@ -482,6 +542,12 @@ export default function MembersPage() {
                   {members.map((member: Member, idx: number) => (
                     <div key={member._id + String(idx)} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors">
                       <div className="flex items-center space-x-4 flex-1 min-w-0">
+                        {(user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'system_owner') && (
+                          <Checkbox
+                            checked={selectedMemberIds.has(member._id)}
+                            onCheckedChange={() => handleSelectMember(member._id)}
+                          />
+                        )}
                         <Avatar className="flex-shrink-0">
                           <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
                             {member.name.split(' ').map((n: string) => n[0]).join('').toUpperCase()}

@@ -12,6 +12,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Building, Settings, Users, Mail, Phone, Globe, MapPin, Save, Edit, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { getApiUrl, API_ENDPOINTS } from "@/lib/config"
+import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth"
+import { auth } from "@/lib/firebase/config"
+import { useAuth } from "@/contexts/auth-context"
+import { apiClient } from "@/lib/api"
+
+declare global {
+  interface Window {
+    recaptchaVerifier: any;
+    confirmationResult: any;
+  }
+}
 
 interface Club {
   _id: string
@@ -44,8 +55,13 @@ interface ClubManagementModalProps {
 }
 
 export default function ClubManagementModal({ isOpen, onClose, club, onClubUpdated }: ClubManagementModalProps) {
+  const { user } = useAuth()
   const [loading, setLoading] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [otpSent, setOtpSent] = useState(false)
+  const [otp, setOtp] = useState("")
+  const [resendCountdown, setResendCountdown] = useState(0)
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -115,35 +131,79 @@ export default function ClubManagementModal({ isOpen, onClose, club, onClubUpdat
     }
   }
 
-  const handleDeleteClub = async () => {
-    if (!club) return
+  useEffect(() => {
+    if (resendCountdown > 0) {
+      const timer = setTimeout(() => setResendCountdown(resendCountdown - 1), 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [resendCountdown])
 
-    if (!confirm("Are you sure you want to delete this club? This action cannot be undone.")) return
+  const handleSendOTP = async () => {
+    if (!user || !club) return
+
+    const phoneNumber = (user as any).phone_number || (user as any).phoneNumber
+    const countryCode = (user as any).countryCode || (user as any).phone_country_code || '+1'
+
+    if (!phoneNumber || !countryCode) {
+      toast.error("Phone number not found. Please update your profile.")
+      return
+    }
+
+    const phone_number = `${countryCode}${phoneNumber}`
+
+    try {
+      const recaptchaVerifier = setupRecaptcha(phone_number)
+      const confirmationResult = await signInWithPhoneNumber(auth, phone_number, recaptchaVerifier)
+
+      window.confirmationResult = confirmationResult
+      toast.success(`OTP sent to ${phone_number}`)
+      setOtpSent(true)
+      setResendCountdown(10)
+    } catch (error) {
+      toast.error("Failed to send OTP. Please try again.")
+    }
+  }
+
+  const handleDeleteClubWithOTP = async () => {
+    if (!club || !otp) {
+      toast.error("Please enter the OTP")
+      return
+    }
 
     try {
       setLoading(true)
-      const token = localStorage.getItem('token')
-      const response = await fetch(getApiUrl(API_ENDPOINTS.clubs.getById(club._id)), {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      })
+      const confirmationResult = window.confirmationResult
+      const firebaseResult = await confirmationResult.confirm(otp)
 
-      if (response.ok) {
-        toast.success("Club deleted successfully!")
-        onClose()
-        onClubUpdated?.()
-      } else {
-        toast.error("Failed to delete club")
+      if (firebaseResult.user) {
+        const response = await apiClient.deleteClub(club._id)
+
+        if (response.success) {
+          toast.success("Club deleted successfully!")
+          setIsDeleteDialogOpen(false)
+          setOtpSent(false)
+          setOtp("")
+          onClose()
+          onClubUpdated?.()
+        } else {
+          toast.error(response.error || "Failed to delete club")
+        }
       }
     } catch (error) {
-      // console.error("Delete club error:", error)
-      toast.error("An error occurred")
+      toast.error("Invalid OTP. Please try again.")
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleDeleteClub = () => {
+    if (!club) return
+    setIsDeleteDialogOpen(true)
+    handleSendOTP()
+  }
+
+  const handleResendOTP = () => {
+    handleSendOTP()
   }
 
   const getStatusColor = (status: string) => {
@@ -490,6 +550,86 @@ export default function ClubManagementModal({ isOpen, onClose, club, onClubUpdat
           </TabsContent>
         </Tabs>
       </DialogContent>
+
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Club</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this club? This action cannot be undone. Please verify with OTP.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {otpSent ? (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="otp">Enter OTP</Label>
+                  <Input
+                    id="otp"
+                    type="text"
+                    placeholder="Enter 6-digit OTP"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value)}
+                    maxLength={6}
+                  />
+                </div>
+                {resendCountdown > 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Resend OTP in {resendCountdown} seconds
+                  </p>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleResendOTP}
+                    className="w-full"
+                  >
+                    Resend OTP
+                  </Button>
+                )}
+              </>
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-sm text-muted-foreground mb-4">
+                  An OTP will be sent to your registered phone number to confirm deletion.
+                </p>
+                <Button
+                  type="button"
+                  onClick={handleSendOTP}
+                  disabled={loading}
+                  className="w-full"
+                >
+                  Send OTP
+                </Button>
+              </div>
+            )}
+          </div>
+          <div id="recaptcha-container-club-delete"></div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setIsDeleteDialogOpen(false)
+                setOtpSent(false)
+                setOtp("")
+              }}
+            >
+              Cancel
+            </Button>
+            {otpSent && (
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={handleDeleteClubWithOTP}
+                disabled={loading || !otp}
+              >
+                {loading ? "Deleting..." : "Delete Club"}
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   )
 } 

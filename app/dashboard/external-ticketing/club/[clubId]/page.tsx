@@ -5,9 +5,12 @@ import { useRouter, useParams } from 'next/navigation'
 import { DashboardLayout } from '@/components/dashboard-layout'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { apiClient, ExternalTicketRequest } from '@/lib/api'
 import { toast } from 'sonner'
 import { triggerBlobDownload } from '@/lib/utils'
+import { CheckCircle, XCircle } from 'lucide-react'
 
 export default function ClubExternalTicketsPage() {
   const params = useParams() as any
@@ -69,6 +72,14 @@ export default function ClubExternalTicketsPage() {
     }
   }
 
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    })
+  }
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
@@ -81,34 +92,99 @@ export default function ClubExternalTicketsPage() {
           </div>
         </div>
 
-        {loading ? (
-          <div>Loading requests...</div>
-        ) : (
-          <div className="grid gap-4">
-            {requests.map((r) => (
-              <Card key={r._id}>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle>{r.user_name}</CardTitle>
-                    <div className="text-sm text-muted-foreground">{new Date(r.preferred_date).toLocaleDateString()}</div>
-                  </div>
-                  <CardDescription className="text-sm">Tickets: {r.tickets} — Status: {r.status}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="mb-2">Phone: {r.phone_country_code ? `${r.phone_country_code} ${r.phone}` : r.phone}</div>
-                  {r.comments && <div className="mb-2">Comments: {r.comments}</div>}
-                  <div className="flex gap-2">
-                    {r.status !== 'fulfilled' ? (
-                      <Button variant="default" onClick={() => updateStatus(r._id, 'fulfilled')}>Mark Fulfilled</Button>
-                    ) : (
-                      <Button variant="outline" onClick={() => updateStatus(r._id, 'unfulfilled')}>Mark Unfulfilled</Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
+        <Card>
+          <CardHeader>
+            <CardTitle>Ticket Requests</CardTitle>
+            <CardDescription>
+              Manage external ticket requests for this club
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <div className="flex items-center justify-center h-32">
+                <div>Loading requests...</div>
+              </div>
+            ) : requests.length === 0 ? (
+              <div className="text-center py-8">
+                <h3 className="text-lg font-medium text-gray-900">No ticket requests found</h3>
+                <p className="text-gray-500">No ticket requests have been submitted yet.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto -mx-4 sm:mx-0">
+                <div className="inline-block min-w-full align-middle px-4 sm:px-0">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="min-w-[150px]">User Name</TableHead>
+                        <TableHead className="min-w-[120px]">Date</TableHead>
+                        <TableHead className="min-w-[100px]">Tickets</TableHead>
+                        <TableHead className="min-w-[120px]">Status</TableHead>
+                        <TableHead className="min-w-[150px]">Phone</TableHead>
+                        <TableHead className="min-w-[200px]">Comments</TableHead>
+                        <TableHead className="text-right min-w-[150px]">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {requests.map((r) => (
+                        <TableRow key={r._id}>
+                          <TableCell className="font-medium">
+                            {r.user_name}
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm">
+                              {formatDate(r.preferred_date)}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="font-medium">
+                              {r.tickets}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={r.status === 'fulfilled' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}>
+                              {r.status === 'fulfilled' ? (
+                                <>
+                                  <CheckCircle className="w-3 h-3 mr-1" />
+                                  Fulfilled
+                                </>
+                              ) : (
+                                <>
+                                  <XCircle className="w-3 h-3 mr-1" />
+                                  Unfulfilled
+                                </>
+                              )}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm">
+                              {r.phone_country_code ? `${r.phone_country_code} ${r.phone}` : r.phone}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="text-sm text-muted-foreground max-w-[200px] truncate" title={r.comments}>
+                              {r.comments || '—'}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {r.status !== 'fulfilled' ? (
+                              <Button variant="default" size="sm" onClick={() => updateStatus(r._id, 'fulfilled')}>
+                                Mark Fulfilled
+                              </Button>
+                            ) : (
+                              <Button variant="outline" size="sm" onClick={() => updateStatus(r._id, 'unfulfilled')}>
+                                Mark Unfulfilled
+                              </Button>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </DashboardLayout>
   )

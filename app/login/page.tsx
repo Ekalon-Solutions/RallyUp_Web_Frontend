@@ -1736,6 +1736,12 @@ function AuthPageContent() {
                                 toast.error("Failed to send sign-in link. Please try again.")
                               }
                             } else if (adminLoginData.phone_number && adminLoginData.countryCode) {
+                              const phoneError = validatePhoneNumber(adminLoginData.phone_number)
+                              setAdminLoginErrors({ ...adminLoginErrors, phone_number: phoneError })
+                              if (phoneError) {
+                                toast.error("Please fix the phone number validation error")
+                                return
+                              }
                               setOtpButtonLoading(true)
                               await handleAdminLoginVerifyNumber()
                               setOtpButtonLoading(false)
@@ -1744,7 +1750,12 @@ function AuthPageContent() {
                             }
                           })()
                         }}
-                        disabled={!adminLoginData.email && (!adminLoginData.phone_number || !adminLoginData.countryCode) || otpButtonLoading}
+                        disabled={
+                          (!adminLoginData.email && (!adminLoginData.phone_number || !adminLoginData.countryCode)) ||
+                          (adminLoginData.email ? !!adminLoginErrors.email : false) ||
+                          (adminLoginData.phone_number ? !!adminLoginErrors.phone_number : false) ||
+                          otpButtonLoading
+                        }
                         className="w-full bg-sky-400 text-slate-900 hover:bg-sky-300 h-12 text-lg font-medium"
                       >
                         {!otpButtonLoading ? "Send OTP" : "Sending OTP"}
