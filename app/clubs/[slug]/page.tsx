@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import { useState, useEffect } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -18,8 +18,6 @@ import {
   Vote, 
   Music, 
   Store,
-  ExternalLink,
-  Building2,
   ArrowLeft,
   Home,
   Search,
@@ -91,7 +89,6 @@ export default function PublicClubPage() {
         
         const websiteSetup = actualData.websiteSetup || {}
         if (websiteSetup.sections?.news || websiteSetup.sections?.events) {
-          // Set default tab based on which sections are enabled
           if (websiteSetup.sections?.news) {
             setActiveTab("news")
           } else if (websiteSetup.sections?.events) {
@@ -101,7 +98,6 @@ export default function PublicClubPage() {
         }
       }
     } catch (error) {
-      // console.error("Error loading club data:", error)
     } finally {
       setLoading(false)
     }
@@ -111,11 +107,9 @@ export default function PublicClubPage() {
     try {
       setLoadingContent(true)
       
-      // Use provided settings or state settings
       const currentSettings = settingsData || settings
       if (!currentSettings) return
       
-      // Try to get club ID if we have the club object
       const clubId = club?._id || clubIdOrSlug
       
       const promises: Promise<any>[] = []
@@ -248,13 +242,10 @@ export default function PublicClubPage() {
   const title = websiteSetup.title || club.name
   const description = websiteSetup.description || club.description
 
-  // Apply custom colors if set
   const primaryColor = designSettings.primaryColor || "#3b82f6"
-  const secondaryColor = designSettings.secondaryColor || "#8b5cf6"
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Hero Section */}
       <section className="relative overflow-hidden py-24 lg:py-40">
         <div 
           className="absolute inset-0 opacity-[0.04] pointer-events-none"
@@ -273,7 +264,6 @@ export default function PublicClubPage() {
         
         <div className="container mx-auto px-6 relative">
           <div className="max-w-5xl mx-auto text-center space-y-12">
-            {/* Logo */}
             {(designSettings.logo || club.logo) && (
               <div className="flex justify-center animate-scale-in">
                 <div className="relative group">
@@ -290,7 +280,6 @@ export default function PublicClubPage() {
             )}
 
             <div className="space-y-6 animate-slide-up">
-              {/* Club Name */}
               <h1 
                 className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tight leading-[1.1]"
                 style={{ color: primaryColor }}
@@ -298,7 +287,6 @@ export default function PublicClubPage() {
                 {title}
               </h1>
 
-              {/* Motto */}
               {designSettings.motto && (
                 <div className="relative inline-block px-8 py-3">
                   <div className="absolute inset-0 bg-primary/5 blur-md rounded-2xl" />
@@ -309,14 +297,12 @@ export default function PublicClubPage() {
               )}
             </div>
 
-            {/* Description */}
             {description && (
               <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed animate-slide-up" style={{ animationDelay: '0.1s' }}>
                 {description}
               </p>
             )}
 
-            {/* CTA Button */}
             <div className="pt-10 flex flex-col sm:flex-row items-center justify-center gap-6 animate-slide-up" style={{ animationDelay: '0.2s' }}>
               <Link href={`/clubs/?search=${club?.name}`} className="w-full sm:w-auto">
                 <Button 
@@ -341,7 +327,6 @@ export default function PublicClubPage() {
         </div>
       </section>
 
-      {/* Quick Stats/Info Bar */}
       <div className="border-y bg-background/80 backdrop-blur-xl sticky top-0 z-50 shadow-sm">
         <div className="container mx-auto px-6 py-5">
           <div className="flex flex-wrap items-center justify-center gap-x-16 gap-y-5 text-base font-bold">
@@ -377,7 +362,6 @@ export default function PublicClubPage() {
         </div>
       </div>
 
-      {/* Available Sections */}
       <section className="container mx-auto px-6 py-28 md:py-40">
         <div className="max-w-7xl mx-auto space-y-24">
           <div className="text-center space-y-6">
@@ -388,7 +372,6 @@ export default function PublicClubPage() {
             </p>
           </div>
 
-          {/* News & Events Tabs Section */}
           {(websiteSetup.sections.news || websiteSetup.sections.events) && (
             <div className="space-y-8">
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -604,10 +587,7 @@ export default function PublicClubPage() {
             </div>
           )}
 
-          {/* Other Sections Grid */}
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-12">
-
-            {/* Store Section */}
             {(websiteSetup.sections.store || websiteSetup.sections.merchandise) && (
               <Card className="group hover:border-primary/50 transition-all duration-500 shadow-sm hover:shadow-2xl rounded-3xl overflow-hidden border-2">
                 <CardHeader className="space-y-6 p-8">
@@ -624,7 +604,6 @@ export default function PublicClubPage() {
               </Card>
             )}
 
-            {/* Polls Section */}
             {websiteSetup.sections.polls && (
               <Card className="group hover:border-primary/50 transition-all duration-500 shadow-sm hover:shadow-2xl rounded-3xl overflow-hidden border-2">
                 <CardHeader className="space-y-6 p-8">
@@ -641,7 +620,6 @@ export default function PublicClubPage() {
               </Card>
             )}
 
-            {/* Chants Section */}
             {websiteSetup.sections.chants && (
               <Card className="group hover:border-primary/50 transition-all duration-500 shadow-sm hover:shadow-2xl rounded-3xl overflow-hidden border-2">
                 <CardHeader className="space-y-6 p-8">
@@ -658,7 +636,6 @@ export default function PublicClubPage() {
               </Card>
             )}
 
-            {/* Members Section */}
             {websiteSetup.sections.members && (
               <Card className="group hover:border-primary/50 transition-all duration-500 shadow-sm hover:shadow-2xl rounded-3xl overflow-hidden border-2">
                 <CardHeader className="space-y-6 p-8">
@@ -678,7 +655,6 @@ export default function PublicClubPage() {
         </div>
       </section>
 
-      {/* Footer CTA */}
       <section className="bg-muted/30 border-t overflow-hidden relative py-32 md:py-48">
         <div className="container mx-auto px-6 relative">
           <div className="max-w-4xl mx-auto text-center space-y-10">
@@ -705,7 +681,6 @@ export default function PublicClubPage() {
         </div>
       </section>
 
-      {/* Final Footer */}
       <footer className="border-t py-20 bg-card">
         <div className="container mx-auto px-6">
           <div className="flex flex-col items-center justify-center space-y-10">

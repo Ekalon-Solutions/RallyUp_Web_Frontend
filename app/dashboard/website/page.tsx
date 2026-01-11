@@ -101,7 +101,7 @@ export default function WebsitePage() {
             instagram: currentDesignSettings.socialMedia?.instagram || "",
           },
           matchUpdates: {
-            twitter: currentDesignSettings.socialMedia?.twitter || "", // Using twitter link as fallback
+            twitter: currentDesignSettings.socialMedia?.twitter || "",
           },
         })
       }
@@ -117,7 +117,6 @@ export default function WebsitePage() {
     loadSettings()
   }, [loadSettings])
 
-  // Load preview data when news or events sections are selected
   useEffect(() => {
     const loadPreviewData = async () => {
       if (!clubId) return
@@ -147,14 +146,14 @@ export default function WebsitePage() {
         
         if (hasNews && results[0]?.success) {
           const newsData = Array.isArray(results[0].data) ? results[0].data : (results[0].data as any)?.news || []
-          setPreviewNews(newsData.slice(0, 3)) // Show only first 3
+          setPreviewNews(newsData.slice(0, 3))
         }
         
         if (hasEvents) {
           const eventsIndex = hasNews ? 1 : 0
           if (results[eventsIndex]?.success) {
             const eventsData = Array.isArray(results[eventsIndex].data) ? results[eventsIndex].data : (results[eventsIndex].data as any)?.events || []
-            setPreviewEvents(eventsData.slice(0, 3)) // Show only first 3
+            setPreviewEvents(eventsData.slice(0, 3))
           }
         }
       } catch (error) {
@@ -180,9 +179,8 @@ export default function WebsitePage() {
     try {
       setSaving(true)
       
-      // We need to update both website setup and design settings (for social links)
       const websiteResponse = await apiClient.updateWebsiteSetup(clubId, {
-        title: (user as any)?.club?.name || "My Club", // Use club name as title
+        title: (user as any)?.club?.name || "My Club",
         description: websiteSettings.welcomeText,
         contactEmail: (user as any)?.club?.contactEmail || "",
         contactPhone: (user as any)?.club?.contactPhone || "",
@@ -283,7 +281,6 @@ export default function WebsitePage() {
         </div>
 
         <div className="grid gap-10">
-          {/* Website Info */}
           <Card className="border-2 shadow-sm">
             <CardHeader className="pb-6 border-b bg-muted/20">
               <CardTitle className="text-2xl font-bold">Website Information</CardTitle>
@@ -322,7 +319,6 @@ export default function WebsitePage() {
             </CardContent>
           </Card>
 
-          {/* Navigation */}
           <Card className="border-2 shadow-sm">
             <CardHeader className="pb-6 border-b bg-muted/20">
               <CardTitle className="text-2xl font-bold">Navigation & Sections</CardTitle>
@@ -353,7 +349,6 @@ export default function WebsitePage() {
                 ))}
               </div>
 
-              {/* Preview Section - Show actual data for News and Events */}
               {(websiteSettings.navigation.news || websiteSettings.navigation.events) && (
                 <div className="mt-8 pt-8 border-t space-y-6">
                   <div>
@@ -369,7 +364,6 @@ export default function WebsitePage() {
                     </div>
                   ) : (
                     <div className="grid gap-6 md:grid-cols-2">
-                      {/* News Preview */}
                       {websiteSettings.navigation.news && (
                         <Card className="border-2">
                           <CardHeader className="pb-4">
@@ -415,7 +409,6 @@ export default function WebsitePage() {
                         </Card>
                       )}
 
-                      {/* Events Preview */}
                       {websiteSettings.navigation.events && (
                         <Card className="border-2">
                           <CardHeader className="pb-4">
@@ -437,10 +430,10 @@ export default function WebsitePage() {
                                   <div className="flex items-center gap-4 text-xs text-muted-foreground">
                                     <span className="flex items-center gap-1">
                                       <Calendar className="w-3 h-3" />
-                                      {event.date ? new Date(event.date).toLocaleDateString() : 'TBD'}
+                                      {(event.eventDate || event.startTime) ? new Date(event.eventDate || event.startTime).toLocaleDateString() : 'TBD'}
                                     </span>
-                                    {event.location && (
-                                      <span className="line-clamp-1">{event.location}</span>
+                                    {event.venue && (
+                                      <span className="line-clamp-1">{event.venue}</span>
                                     )}
                                   </div>
                                   {event.ticketPrice !== undefined && event.ticketPrice > 0 && (
@@ -465,7 +458,6 @@ export default function WebsitePage() {
             </CardContent>
           </Card>
 
-          {/* Header & Intro */}
           <Card className="border-2 shadow-sm">
             <CardHeader className="pb-6 border-b bg-muted/20">
               <CardTitle className="text-2xl font-bold">Header, Intro & Section Breaks</CardTitle>
@@ -485,7 +477,6 @@ export default function WebsitePage() {
             </CardContent>
           </Card>
 
-          {/* Social Links */}
           <Card className="border-2 shadow-sm">
             <CardHeader className="pb-6 border-b bg-muted/20">
               <CardTitle className="text-2xl font-bold">Social Media Integration</CardTitle>
@@ -542,7 +533,6 @@ export default function WebsitePage() {
             </CardContent>
           </Card>
 
-          {/* Match Updates */}
           <Card className="border-2 shadow-sm">
             <CardHeader className="pb-6 border-b bg-muted/20">
               <CardTitle className="text-2xl font-bold">Live Match Updates</CardTitle>

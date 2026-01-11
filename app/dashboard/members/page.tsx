@@ -101,10 +101,6 @@ export default function MembersPage() {
   useEffect(() => {
     fetchMembers()
   }, [currentPage, searchTerm, statusFilter])
- 
-  useEffect(() => {
-    console.log("members:", members)
-  }, [members])
    
 
   const fetchMembers = async () => {
@@ -119,14 +115,12 @@ export default function MembersPage() {
       })
 
       if (response.success && response.data) {
-        console.log("members:", response.data.members)
         setMembers(response.data.members || [])
         setPagination(response.data.pagination)
       } else {
         toast.error(response.error || 'Failed to load members')
       }
     } catch (error) {
-      // console.error('Error fetching members:', error)
       toast.error('Error loading members')
     } finally {
       setLoading(false)
@@ -168,41 +162,29 @@ export default function MembersPage() {
   }
 
   const handleUserSearch = async (query: string): Promise<void> => {
-//     console.log('handleUserSearch - Starting search with query:', query);
-    
-    // Only search if we have at least 2 characters
     if (query.trim().length < 2) {
-      // // console.log('handleUserSearch - Query too short, clearing results');
       setSearchResults([]);
       return;
     }
 
     setIsSearching(true);
     try {
-      // // console.log('handleUserSearch - Calling API...');
       const response = await apiClient.searchUsers(query);
-      // // console.log('handleUserSearch - API Response:', response);
 
       if (response.success) {
         const users = response.data || [];
-        // // console.log('handleUserSearch - Setting search results:', users);
         setSearchResults(users);
 
-        // Update UI based on results
         if (users.length === 0) {
-          // // console.log('handleUserSearch - No users found');
           toast.info('No users found matching your search');
         } else {
-          // // console.log('handleUserSearch - Found', users.length, 'users');
           toast.success(`Found ${users.length} user${users.length === 1 ? '' : 's'}`);
         }
       } else {
-        // // console.error('handleUserSearch - Search failed:', response);
         toast.error(response.error || 'Failed to search users');
         setSearchResults([]);
       }
     } catch (error) {
-      // // console.error('handleUserSearch - Error:', error);
       toast.error('Failed to search users');
       setSearchResults([]);
     } finally {
@@ -217,19 +199,16 @@ export default function MembersPage() {
     }
 
     try {
-      // // console.log('Adding user:', selectedUser);
       const response = await apiClient.addUserToClub({
         email: selectedUser.email,
         name: selectedUser.name,
         phone_number: selectedUser.phone_number
       });
-      // // console.log('Add user response:', response);
       
       if (response.success) {
         toast.success('Member added successfully');
         setIsAddDialogOpen(false);
         fetchMembers();
-        // Reset states
         setSelectedUser(null);
         setSearchQuery('');
         setSearchResults([]);
@@ -238,7 +217,6 @@ export default function MembersPage() {
         toast.error(response.error || 'Failed to add member');
       }
     } catch (error) {
-      // // console.error('Error adding member:', error);
       toast.error('Failed to add member');
     }
   }
@@ -258,7 +236,6 @@ export default function MembersPage() {
         toast.error(response.error || 'Failed to add member')
       }
     } catch (error) {
-      // console.error('Error adding member:', error)
       toast.error('Failed to add member')
     }
   }
@@ -277,7 +254,6 @@ export default function MembersPage() {
         toast.error(response.error || 'Failed to update member')
       }
     } catch (error) {
-      // console.error('Error updating member:', error)
       toast.error('Failed to update member')
     }
   }
@@ -296,7 +272,6 @@ export default function MembersPage() {
         toast.error(response.error || 'Failed to delete member')
       }
     } catch (error) {
-      // console.error('Error deleting member:', error)
       toast.error('Failed to delete member')
     }
   }
@@ -326,7 +301,7 @@ export default function MembersPage() {
       newSelected.add(memberId)
     }
     setSelectedMemberIds(newSelected)
-    setIsSelectAll(newSelected.size === members.length)
+    setIsSelectAll(newSelected.size === members.length && members.length > 0)
   }
 
   const handleSelectAll = () => {
@@ -400,9 +375,9 @@ export default function MembersPage() {
             </div>
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
               {(user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'system_owner') && selectedMemberIds.size > 0 && (
-                <Button variant="destructive" onClick={openBulkDeleteDialog} className="w-full sm:w-auto">
+                <Button variant="destructive" onClick={openBulkDeleteDialog} className="w-full sm:w-auto shadow-md hover:shadow-lg transition-shadow">
                   <Trash2 className="w-4 h-4 mr-2" />
-                  Delete Selected ({selectedMemberIds.size})
+                  Delete Members ({selectedMemberIds.size})
                 </Button>
               )}
               <Button variant="outline" onClick={exportMembers} className="w-full sm:w-auto">
@@ -539,6 +514,18 @@ export default function MembersPage() {
                 </div>
               ) : (
                 <div className="space-y-4">
+                  {(user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'system_owner') && members.length > 0 && (
+                    <div className="flex items-center space-x-4 p-4 border-b bg-muted/30 rounded-t-lg">
+                      <Checkbox
+                        checked={isSelectAll}
+                        onCheckedChange={handleSelectAll}
+                        className="data-[state=checked]:bg-primary"
+                      />
+                      <Label className="text-sm font-semibold cursor-pointer" onClick={handleSelectAll}>
+                        Select All ({members.length} members)
+                      </Label>
+                    </div>
+                  )}
                   {members.map((member: Member, idx: number) => (
                     <div key={member._id + String(idx)} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 border rounded-lg hover:bg-muted/50 transition-colors">
                       <div className="flex items-center space-x-4 flex-1 min-w-0">
@@ -546,6 +533,7 @@ export default function MembersPage() {
                           <Checkbox
                             checked={selectedMemberIds.has(member._id)}
                             onCheckedChange={() => handleSelectMember(member._id)}
+                            className="data-[state=checked]:bg-primary"
                           />
                         )}
                         <Avatar className="flex-shrink-0">
@@ -564,7 +552,6 @@ export default function MembersPage() {
                             </div>
                           </div>
                           <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-sm text-muted-foreground mt-1">
-                            {/* Only show contact info to admins/system owners */}
                             {(user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'system_owner') && (
                               <>
                                 <div className="flex items-center space-x-1">
@@ -591,7 +578,6 @@ export default function MembersPage() {
                           )}
                         </div>
                       </div>
-                      {/* Only show action buttons to admins/system owners */}
                       {(user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'system_owner') && (
                         <div className="flex items-center space-x-2 w-full sm:w-auto justify-end">
                           <Button variant="ghost" size="sm" className="flex-1 sm:flex-initial">
@@ -603,7 +589,7 @@ export default function MembersPage() {
                           <Button 
                             variant="ghost" 
                             size="sm" 
-                            className="text-destructive hover:text-destructive flex-1 sm:flex-initial"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10 flex-1 sm:flex-initial"
                             onClick={() => openDeleteDialog(member)}
                           >
                             <Trash2 className="w-4 h-4" />
@@ -710,13 +696,6 @@ export default function MembersPage() {
                     </div>
 
                     {(() => {
-//                       console.log('Rendering search results section:', {
-//                         isSearching,
-//                         searchResults,
-//                         searchResultsLength: searchResults?.length,
-//                         searchQuery
-//                       });
-
                       if (isSearching) {
                         return (
                           <div className="space-y-2">
@@ -734,19 +713,16 @@ export default function MembersPage() {
                       }
 
                       if (searchResults && searchResults.length > 0) {
-                        // // console.log('Rendering user list with', searchResults.length, 'results');
                         return (
                           <div className="space-y-2 max-h-[300px] overflow-y-auto border rounded-lg p-2">
                             {searchResults.map((user: User) => {
-                              // // console.log('Rendering user:', user);
                               return (
                                 <div
                                   key={user._id}
                                   className={`flex items-center space-x-4 p-4 border rounded-lg cursor-pointer transition-colors ${
-                                    selectedUser?._id === user._id ? 'bg-primary/10' : 'hover:bg-muted/50'
+                                    selectedUser?._id === user._id ? 'bg-primary/10 border-primary' : 'hover:bg-muted/50'
                                   }`}
                                   onClick={() => {
-                                    // // console.log('Selecting user:', user);
                                     setSelectedUser(user);
                                     toast.success('User selected');
                                   }}
@@ -923,40 +899,88 @@ export default function MembersPage() {
             </DialogContent>
           </Dialog>
 
-          {/* Delete Member Dialog */}
           <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-            <DialogContent className="w-[95vw] sm:w-full">
+            <DialogContent className="w-[95vw] sm:w-full max-w-md">
               <DialogHeader>
-                <DialogTitle>Delete Member</DialogTitle>
-                <DialogDescription>
-                  Are you sure you want to delete this member? This action cannot be undone.
+                <DialogTitle className="text-xl font-bold text-destructive">Delete Member</DialogTitle>
+                <DialogDescription className="text-base pt-2">
+                  This action cannot be undone. This will permanently delete the member from your club.
                 </DialogDescription>
               </DialogHeader>
-              <div className="py-4">
+              <div className="py-6">
                 {selectedMember && (
-                  <div className="flex items-center space-x-4">
-                    <Avatar>
-                      <AvatarFallback className="bg-gradient-to-r from-red-500 to-pink-600 text-white">
+                  <div className="flex items-center space-x-4 p-4 bg-muted/50 rounded-lg">
+                    <Avatar className="h-12 w-12">
+                      <AvatarFallback className="bg-gradient-to-r from-red-500 to-pink-600 text-white text-lg font-bold">
                         {selectedMember.name.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
-                    <div>
-                      <h3 className="font-semibold">{selectedMember.name}</h3>
-                      <p className="text-sm text-muted-foreground">{selectedMember.email}</p>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-base break-words">{selectedMember.name}</h3>
+                      <p className="text-sm text-muted-foreground break-all">{selectedMember.email}</p>
+                      {selectedMember.phone_number && (
+                        <p className="text-sm text-muted-foreground">{formatPhoneNumber(selectedMember.phone_number, selectedMember.countryCode)}</p>
+                      )}
                     </div>
                   </div>
                 )}
               </div>
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+              <DialogFooter className="gap-2 sm:gap-0">
+                <Button type="button" variant="outline" onClick={() => setIsDeleteDialogOpen(false)} className="flex-1 sm:flex-initial">
                   Cancel
                 </Button>
                 <Button 
                   type="button" 
                   variant="destructive"
                   onClick={handleDeleteMember}
+                  className="flex-1 sm:flex-initial shadow-md hover:shadow-lg"
                 >
+                  <Trash2 className="w-4 h-4 mr-2" />
                   Delete Member
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={isBulkDeleteDialogOpen} onOpenChange={setIsBulkDeleteDialogOpen}>
+            <DialogContent className="w-[95vw] sm:w-full max-w-md">
+              <DialogHeader>
+                <DialogTitle className="text-xl font-bold text-destructive">Delete Members</DialogTitle>
+                <DialogDescription className="text-base pt-2">
+                  This action cannot be undone. This will permanently delete {selectedMemberIds.size} member{selectedMemberIds.size !== 1 ? 's' : ''} from your club.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="py-6">
+                <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <div className="flex-shrink-0">
+                      <div className="w-12 h-12 rounded-full bg-destructive/20 flex items-center justify-center">
+                        <Trash2 className="w-6 h-6 text-destructive" />
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-base text-destructive">
+                        {selectedMemberIds.size} Member{selectedMemberIds.size !== 1 ? 's' : ''} Selected
+                      </h3>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        All selected members will be permanently removed from your club directory.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <DialogFooter className="gap-2 sm:gap-0">
+                <Button type="button" variant="outline" onClick={() => setIsBulkDeleteDialogOpen(false)} className="flex-1 sm:flex-initial">
+                  Cancel
+                </Button>
+                <Button 
+                  type="button" 
+                  variant="destructive"
+                  onClick={handleBulkDelete}
+                  className="flex-1 sm:flex-initial shadow-md hover:shadow-lg"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete {selectedMemberIds.size} Member{selectedMemberIds.size !== 1 ? 's' : ''}
                 </Button>
               </DialogFooter>
             </DialogContent>
