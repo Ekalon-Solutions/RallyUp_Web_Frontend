@@ -28,7 +28,7 @@ export default function SettingsPage() {
   const [profileForm, setProfileForm] = useState({
     name: "",
     email: "",
-    phone_number: "",
+    phoneNumber: "",
     countryCode: "+1"
   })
 
@@ -43,7 +43,7 @@ export default function SettingsPage() {
       setProfileForm({
         name: user.name || "",
         email: user.email || "",
-        phone_number: user.phone_number || "",
+        phoneNumber: user.phoneNumber || "",
         countryCode: user.countryCode || "+1"
       })
     }
@@ -61,14 +61,14 @@ export default function SettingsPage() {
   }
 
   const handleSendOTP = async () => {
-    if (!profileForm.phone_number) {
+    if (!profileForm.phoneNumber) {
       toast.error("Please provide a phone number first")
       return
     }
 
     try {
       setLoading(true)
-      const phoneNumber = (profileForm.countryCode.startsWith('+') ? profileForm.countryCode : '+' + profileForm.countryCode) + profileForm.phone_number
+      const phoneNumber = (profileForm.countryCode.startsWith('+') ? profileForm.countryCode : '+' + profileForm.countryCode) + profileForm.phoneNumber
       const verifier = setupRecaptcha()
       const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, verifier)
       window.confirmationResult = confirmationResult
@@ -131,7 +131,7 @@ export default function SettingsPage() {
       const result = await updateProfile({
         name: profileForm.name,
         email: profileForm.email,
-        phone_number: profileForm.phone_number,
+        phoneNumber: profileForm.phoneNumber,
         countryCode: profileForm.countryCode
       })
 
@@ -210,8 +210,8 @@ export default function SettingsPage() {
                     <Input
                       id="phone"
                       type="tel"
-                      value={profileForm.phone_number}
-                      onChange={(e) => setProfileForm({ ...profileForm, phone_number: e.target.value })}
+                      value={profileForm.phoneNumber}
+                      onChange={(e) => setProfileForm({ ...profileForm, phoneNumber: e.target.value })}
                       required
                     />
                   </div>

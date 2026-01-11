@@ -10,7 +10,7 @@ interface AuthContextType {
   isAdmin: boolean;
   isSystemOwner: boolean;
   userRole: string | undefined;
-  login: (email: string, phone_number: string, countryCode: string, isAdmin?: boolean, isSystemOwner?: boolean) => Promise<{ success: boolean; error?: string }>;
+  login: (email: string, phoneNumber: string, countryCode: string, isAdmin?: boolean, isSystemOwner?: boolean) => Promise<{ success: boolean; error?: string }>;
   register: (userData: any, isAdmin?: boolean, isSystemOwner?: boolean) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   updateProfile: (data: any) => Promise<{ success: boolean; error?: string }>;
@@ -149,13 +149,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const login = async (email: string, phone_number: string, countryCode: string, isAdmin = false, isSystemOwner = false): Promise<{ success: boolean; error?: string }> => {
+  const login = async (email: string, phoneNumber: string, countryCode: string, isAdmin = false, isSystemOwner = false): Promise<{ success: boolean; error?: string }> => {
     try {
       const loginData: any = {};
       if (email && email.trim()) {
         loginData.email = email.trim();
-      } else if (phone_number && phone_number.trim()) {
-        loginData.phone_number = phone_number.trim();
+      } else if (phoneNumber && phoneNumber.trim()) {
+        loginData.phoneNumber = phoneNumber.trim();
         if (countryCode && countryCode.trim()) {
           loginData.countryCode = countryCode.trim();
         }
@@ -268,7 +268,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           name: updatedUser.role==='user' ? (updatedUser.first_name && updatedUser.last_name
             ? `${updatedUser.first_name} ${updatedUser.last_name}`.trim()
             : prevUser?.name || '') : updatedUser.name || prevUser?.name,
-          phone_number: updatedUser.phone_number || prevUser?.phone_number || '',
+          phoneNumber: updatedUser.phoneNumber || prevUser?.phoneNumber || '',
           countryCode: updatedUser.phone_country_code || prevUser?.countryCode || '+1',
         } as any));
         

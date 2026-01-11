@@ -102,7 +102,7 @@ export default function UserClubsPage() {
   const [registrationData, setRegistrationData] = useState({
     name: "",
     email: "",
-    phone_number: "",
+    phoneNumber: "",
     countryCode: "+1"
   })
   const [isRegistering, setIsRegistering] = useState(false)

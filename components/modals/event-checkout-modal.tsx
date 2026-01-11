@@ -216,7 +216,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
         prefill: {
           name: user?.name || '',
           email: user?.email || '',
-          contact: user?.phone_number || '',
+          contact: user?.phoneNumber || '',
         },
         theme: {
           color: '#3b82f6',

@@ -57,7 +57,7 @@ export function ImportMembersModal({ trigger, onImported }: ImportMembersModalPr
 
   const handleDownloadSample = async () => {
     try {
-      const csvContent = `email,first_name,last_name,phone_number,countryCode,username,date_of_birth,gender,address_line1,city,state_province,zip_code,country,id_proof_type,id_proof_number
+      const csvContent = `email,first_name,last_name,phoneNumber,countryCode,username,date_of_birth,gender,address_line1,city,state_province,zip_code,country,id_proof_type,id_proof_number
 alice.smith@example.com,Alice,Smith,9876543210,+91,alice_smith,1990-05-12,female,12 Lotus Street,Mumbai,Maharashtra,400001,India,Aadhar,1234-5678-9012
 bob.johnson@example.com,Bob,Johnson,9123456780,+91,bob_johnson,1985-11-03,male,45 River Road,Delhi,Delhi,110001,India,Passport,P1234567
 charlie.brown@example.com,Charlie,Brown,9234567890,+91,charlie_brown,1992-08-20,male,78 Park Avenue,Bangalore,Karnataka,560001,India,Aadhar,9876-5432-1098`
@@ -145,9 +145,9 @@ charlie.brown@example.com,Charlie,Brown,9234567890,+91,charlie_brown,1992-08-20,
         const email = (row.email || '').trim()
         const first_name = (row.first_name || row.firstName || '').trim()
         const last_name = (row.last_name || row.lastName || '').trim()
-        let phone_number = (row.phone_number || row.phone || row.phone_nu || '').trim()
-        phone_number = convertScientificNotation(phone_number)
-        phone_number = phone_number.replace(/[^\d]/g, '')
+        let phoneNumber = (row.phoneNumber || row.phone || row.phone_nu || '').trim()
+        phoneNumber = convertScientificNotation(phoneNumber)
+        phoneNumber = phoneNumber.replace(/[^\d]/g, '')
         
         const countryCode = (row.countryCode || row.country_code || row.countryCo || '+91').trim()
         const normalizedCountryCode = countryCode.startsWith('+') ? countryCode : `+${countryCode}`
@@ -168,9 +168,9 @@ charlie.brown@example.com,Charlie,Brown,9234567890,+91,charlie_brown,1992-08-20,
           errors.push({ row: idx + 2, error: 'last_name is required' })
           continue
         }
-        if (!phone_number) {
+        if (!phoneNumber) {
           failCount++
-          errors.push({ row: idx + 2, error: 'phone_number is required' })
+          errors.push({ row: idx + 2, error: 'phoneNumber is required' })
           continue
         }
 
@@ -217,7 +217,7 @@ charlie.brown@example.com,Charlie,Brown,9234567890,+91,charlie_brown,1992-08-20,
           email,
           first_name,
           last_name,
-          phone_number,
+          phoneNumber,
           countryCode: normalizedCountryCode,
           date_of_birth,
           gender: normalizeGender(rawGender),
@@ -232,9 +232,9 @@ charlie.brown@example.com,Charlie,Brown,9234567890,+91,charlie_brown,1992-08-20,
         }
 
         try {
-          if (!phone_number || phone_number.length < 10) {
+          if (!phoneNumber || phoneNumber.length < 10) {
             failCount++
-            errors.push({ row: idx + 2, error: `Invalid phone number (${phone_number || 'empty'})` })
+            errors.push({ row: idx + 2, error: `Invalid phone number (${phoneNumber || 'empty'})` })
             continue
           }
 
@@ -373,7 +373,7 @@ charlie.brown@example.com,Charlie,Brown,9234567890,+91,charlie_brown,1992-08-20,
                 </Button>
               </div>
               <p className="text-sm text-muted-foreground mt-2">
-                Required CSV headers: email, first_name, last_name, phone_number, countryCode<br/>
+                Required CSV headers: email, first_name, last_name, phoneNumber, countryCode<br/>
                 Optional: username, date_of_birth, gender, address_line1, city, state_province, zip_code, country, id_proof_type, id_proof_number
               </p>
             </div>

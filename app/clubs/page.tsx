@@ -107,7 +107,7 @@ function ClubsPageContent() {
     email: "",
     date_of_birth: "",
     gender: "male",
-    phone_number: "",
+    phoneNumber: "",
     countryCode: "+91",
     address_line1: "",
     address_line2: "",
@@ -122,7 +122,7 @@ function ClubsPageContent() {
     name: ""
   })
   const [isRegistering, setIsRegistering] = useState(false)
-  const [registrationErrors, setRegistrationErrors] = useState({ phone_number: "" })
+  const [registrationErrors, setRegistrationErrors] = useState({ phoneNumber: "" })
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
   const [pendingOrder, setPendingOrder] = useState<{
     orderId: string
@@ -253,8 +253,8 @@ function ClubsPageContent() {
     e.preventDefault()
     if (!selectedClub || !selectedPlan) return
     // Validate phone number before proceeding
-    const phoneError = validatePhoneNumber(registrationData.phone_number)
-    setRegistrationErrors({ phone_number: phoneError })
+    const phoneError = validatePhoneNumber(registrationData.phoneNumber)
+    setRegistrationErrors({ phoneNumber: phoneError })
     if (phoneError) {
       toast.error(phoneError)
       return
@@ -321,7 +321,7 @@ function ClubsPageContent() {
                 email: "",
                 date_of_birth: "",
                 gender: "male",
-                phone_number: "",
+                phoneNumber: "",
                 countryCode: "+91",
                 address_line1: "",
                 address_line2: "",
@@ -438,7 +438,7 @@ function ClubsPageContent() {
           email: "",
           date_of_birth: "",
           gender: "male",
-          phone_number: "",
+          phoneNumber: "",
           countryCode: "+91",
           address_line1: "",
           address_line2: "",
@@ -1225,17 +1225,17 @@ function ClubsPageContent() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="phone_number">Phone Number</Label>
+                  <Label htmlFor="phoneNumber">Phone Number</Label>
                   <Input
-                    id="phone_number"
+                    id="phoneNumber"
                     type="tel"
-                    value={registrationData.phone_number}
-                    onChange={(e) => setRegistrationData({ ...registrationData, phone_number: e.target.value })}
+                    value={registrationData.phoneNumber}
+                    onChange={(e) => setRegistrationData({ ...registrationData, phoneNumber: e.target.value })}
                     required
                     className="h-12 w-full"
                   />
-                  {registrationErrors.phone_number && (
-                    <p className="text-destructive text-sm mt-1">{registrationErrors.phone_number}</p>
+                  {registrationErrors.phoneNumber && (
+                    <p className="text-destructive text-sm mt-1">{registrationErrors.phoneNumber}</p>
                   )}
                 </div>
               </div>

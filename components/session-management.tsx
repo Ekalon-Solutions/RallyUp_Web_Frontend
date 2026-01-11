@@ -26,7 +26,7 @@ interface Session {
   user?: {
     name: string;
     email: string;
-    phone_number: string;
+    phoneNumber: string;
   } | null;
 }
 

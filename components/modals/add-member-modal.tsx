@@ -63,7 +63,7 @@ export function AddMemberModal({ trigger, onMemberAdded }: AddMemberModalProps) 
     last_name: "",
     date_of_birth: "",
     gender: "male" as "male" | "female" | "non-binary",
-    phone_number: "",
+    phoneNumber: "",
     countryCode: "+91",
     address_line1: "",
     address_line2: "",
@@ -117,7 +117,7 @@ export function AddMemberModal({ trigger, onMemberAdded }: AddMemberModalProps) 
   const validateUserData = () => {
     const requiredFields = [
       'username', 'email', 'first_name', 'last_name', 'date_of_birth', 
-      'gender', 'phone_number', 'address_line1', 'city', 'state_province', 
+      'gender', 'phoneNumber', 'address_line1', 'city', 'state_province', 
       'zip_code', 'country', 'id_proof_type', 'id_proof_number'
     ]
     
@@ -139,7 +139,7 @@ export function AddMemberModal({ trigger, onMemberAdded }: AddMemberModalProps) 
       return false
     }
 
-    if (!/^\d{10,15}$/.test(userData.phone_number)) {
+    if (!/^\d{10,15}$/.test(userData.phoneNumber)) {
       toast.error("Please enter a valid phone number (10-15 digits)")
       return false
     }
@@ -287,7 +287,7 @@ export function AddMemberModal({ trigger, onMemberAdded }: AddMemberModalProps) 
       last_name: "",
       date_of_birth: "",
       gender: "male",
-      phone_number: "",
+      phoneNumber: "",
       countryCode: "+91",
       address_line1: "",
       address_line2: "",
@@ -390,13 +390,13 @@ export function AddMemberModal({ trigger, onMemberAdded }: AddMemberModalProps) 
 
       <div className="grid grid-cols-2 gap-4">
         <div className="grid gap-2">
-          <Label htmlFor="phone_number">Phone Number *</Label>
+          <Label htmlFor="phoneNumber">Phone Number *</Label>
           <Input
-            id="phone_number"
+            id="phoneNumber"
             type="tel"
             placeholder="Enter phone number"
-            value={userData.phone_number}
-            onChange={(e) => handleUserDataChange("phone_number", e.target.value)}
+            value={userData.phoneNumber}
+            onChange={(e) => handleUserDataChange("phoneNumber", e.target.value)}
             required
           />
         </div>

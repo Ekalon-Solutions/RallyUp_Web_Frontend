@@ -170,7 +170,7 @@ export default function AdminVolunteerList({ clubId, currentUser }: AdminVolunte
     const rows = filteredVolunteers.map((v) => [
       `${v.user?.first_name || ''} ${v.user?.last_name || ''}`,
       v.user?.email || '',
-      v.user?.phone_number || '',
+      v.user?.phoneNumber || '',
       v.isActive ? v.status : 'inactive',
       v.skills?.join(', ') || '',
       [
@@ -368,10 +368,10 @@ export default function AdminVolunteerList({ clubId, currentUser }: AdminVolunte
                                 {volunteer.user.email}
                               </div>
                             )}
-                            {volunteer.user?.phone_number && (
+                            {volunteer.user?.phoneNumber && (
                               <div className="flex items-center text-sm text-gray-600">
                                 <Phone className="w-3 h-3 mr-1" />
-                                {volunteer.user.phone_number}
+                                {volunteer.user.phoneNumber}
                               </div>
                             )}
                           </div>
@@ -470,10 +470,10 @@ export default function AdminVolunteerList({ clubId, currentUser }: AdminVolunte
                       {selectedVolunteer.user.email}
                     </div>
                   )}
-                  {selectedVolunteer.user?.phone_number && (
+                  {selectedVolunteer.user?.phoneNumber && (
                     <div className="flex items-center text-sm">
                       <Phone className="w-4 h-4 mr-2 text-gray-400" />
-                      {selectedVolunteer.user.phone_number}
+                      {selectedVolunteer.user.phoneNumber}
                     </div>
                   )}
                 </div>

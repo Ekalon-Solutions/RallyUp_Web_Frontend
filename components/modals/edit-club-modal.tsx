@@ -190,10 +190,10 @@ export function EditClubModal({ club, trigger, onClubUpdated }: EditClubModalPro
 
   const handlePhoneChange = (value: string) => {
     // Remove any non-digit characters and limit to 15 digits
-    const phone_number = value.replace(/\D/g, '').slice(0, 15)
+    const phoneNumber = value.replace(/\D/g, '').slice(0, 15)
     setFormData(prev => ({
       ...prev,
-      contactPhone: phone_number
+      contactPhone: phoneNumber
     }))
   }
 

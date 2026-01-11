@@ -41,7 +41,7 @@ interface Member {
   _id: string
   name: string
   email: string
-  phone_number: string
+  phoneNumber: string
   countryCode: string
   isPhoneVerified: boolean
   role: string
@@ -93,7 +93,7 @@ export default function MembersPage() {
   const [editFormData, setEditFormData] = useState({
     name: '',
     email: '',
-    phone_number: '',
+    phoneNumber: '',
     countryCode: '',
     isActive: true
   })
@@ -149,8 +149,8 @@ export default function MembersPage() {
     })
   }
 
-  const formatPhoneNumber = (phone_number: string, countryCode: string): string => {
-    return `${countryCode} ${phone_number}`
+  const formatPhoneNumber = (phoneNumber: string, countryCode: string): string => {
+    return `${countryCode} ${phoneNumber}`
   }
 
   const getStatusColor = (isActive: boolean): string => {
@@ -202,7 +202,7 @@ export default function MembersPage() {
       const response = await apiClient.addUserToClub({
         email: selectedUser.email,
         name: selectedUser.name,
-        phone_number: selectedUser.phone_number
+        phoneNumber: selectedUser.phoneNumber
       });
       
       if (response.success) {
@@ -221,7 +221,7 @@ export default function MembersPage() {
     }
   }
 
-  const handleAddMember = async (data: { name: string; email: string; phone_number: string; countryCode: string }): Promise<void> => {
+  const handleAddMember = async (data: { name: string; email: string; phoneNumber: string; countryCode: string }): Promise<void> => {
     try {
       const response = await apiClient.userRegister({
         ...data,
@@ -281,7 +281,7 @@ export default function MembersPage() {
     setEditFormData({
       name: member.name,
       email: member.email,
-      phone_number: member.phone_number,
+      phoneNumber: member.phoneNumber,
       countryCode: member.countryCode,
       isActive: member.isActive
     })
@@ -349,7 +349,7 @@ export default function MembersPage() {
       ...members.map((member: Member) => [
         member.name,
         member.email,
-        formatPhoneNumber(member.phone_number, member.countryCode),
+        formatPhoneNumber(member.phoneNumber, member.countryCode),
         member.club?.name || 'N/A',
         member.membershipPlan?.name || 'N/A',
         member.isActive ? 'Active' : 'Inactive',
@@ -560,7 +560,7 @@ export default function MembersPage() {
                                 </div>
                                 <div className="flex items-center space-x-1">
                                   <Phone className="w-3 h-3 flex-shrink-0" />
-                                  <span className="break-words">{formatPhoneNumber(member.phone_number, member.countryCode)}</span>
+                                  <span className="break-words">{formatPhoneNumber(member.phoneNumber, member.countryCode)}</span>
                                 </div>
                               </>
                             )}
@@ -741,7 +741,7 @@ export default function MembersPage() {
                                       </div>
                                       <div className="flex items-center space-x-1">
                                         <Phone className="w-3 h-3" />
-                                        <span>{formatPhoneNumber(user.phone_number, user.countryCode)}</span>
+                                        <span>{formatPhoneNumber(user.phoneNumber, user.countryCode)}</span>
                                       </div>
                                     </div>
                                   </div>
@@ -777,7 +777,7 @@ export default function MembersPage() {
                     handleAddMember({
                       name: formData.get('name') as string,
                       email: formData.get('email') as string,
-                      phone_number: formData.get('phone_number') as string,
+                      phoneNumber: formData.get('phoneNumber') as string,
                       countryCode: formData.get('countryCode') as string
                     })
                   }}>
@@ -796,8 +796,8 @@ export default function MembersPage() {
                           <Input id="countryCode" name="countryCode" placeholder="+1" required />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="phone_number">Phone Number</Label>
-                          <Input id="phone_number" name="phone_number" required />
+                          <Label htmlFor="phoneNumber">Phone Number</Label>
+                          <Input id="phoneNumber" name="phoneNumber" required />
                         </div>
                       </div>
                       <DialogFooter>
@@ -871,11 +871,11 @@ export default function MembersPage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="edit-phone_number">Phone Number</Label>
+                      <Label htmlFor="edit-phoneNumber">Phone Number</Label>
                       <Input 
-                        id="edit-phone_number" 
-                        value={editFormData.phone_number}
-                        onChange={(e: ChangeEvent<HTMLInputElement>) => setEditFormData({ ...editFormData, phone_number: e.target.value })}
+                        id="edit-phoneNumber" 
+                        value={editFormData.phoneNumber}
+                        onChange={(e: ChangeEvent<HTMLInputElement>) => setEditFormData({ ...editFormData, phoneNumber: e.target.value })}
                         required 
                       />
                     </div>
@@ -918,8 +918,8 @@ export default function MembersPage() {
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-base break-words">{selectedMember.name}</h3>
                       <p className="text-sm text-muted-foreground break-all">{selectedMember.email}</p>
-                      {selectedMember.phone_number && (
-                        <p className="text-sm text-muted-foreground">{formatPhoneNumber(selectedMember.phone_number, selectedMember.countryCode)}</p>
+                      {selectedMember.phoneNumber && (
+                        <p className="text-sm text-muted-foreground">{formatPhoneNumber(selectedMember.phoneNumber, selectedMember.countryCode)}</p>
                       )}
                     </div>
                   </div>

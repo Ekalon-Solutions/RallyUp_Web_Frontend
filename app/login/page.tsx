@@ -97,14 +97,14 @@ const generateOTP = () => {
   return Math.floor(100000 + Math.random() * 900000).toString()
 }
 
-const setupRecaptcha = (phone_number: string) => {
+const setupRecaptcha = (phoneNumber: string) => {
 
   if (!window.recaptchaVerifier) {
     window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
       'size': 'invisible',
       'callback': (response: any) => {
         // reCAPTCHA solved, allow signInWithPhoneNumber.
-        // console.log("reCAPTCHA solved for phone number:", phone_number)
+        // console.log("reCAPTCHA solved for phone number:", phoneNumber)
       }
     });
   }
@@ -119,7 +119,7 @@ function AuthPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  const [userLoginData, setUserLoginData] = useState({ email: "", phone_number: "", countryCode: "+91" })
+  const [userLoginData, setUserLoginData] = useState({ email: "", phoneNumber: "", countryCode: "+91" })
   const [userRegisterData, setUserRegisterData] = useState({
     username: "",
     email: "",
@@ -127,7 +127,7 @@ function AuthPageContent() {
     last_name: "",
     date_of_birth: "",
     gender: "male" as "male" | "female" | "non-binary",
-    phone_number: "",
+    phoneNumber: "",
     countryCode: "+91",
     address_line1: "",
     address_line2: "",
@@ -142,22 +142,22 @@ function AuthPageContent() {
     membershipPlanId: ""
   })
 
-  const [adminLoginData, setAdminLoginData] = useState({ email: "", phone_number: "", countryCode: "+91" })
+  const [adminLoginData, setAdminLoginData] = useState({ email: "", phoneNumber: "", countryCode: "+91" })
   const [adminRegisterData, setAdminRegisterData] = useState({
     first_name: "",
     last_name: "",
     email: "",
-    phone_number: "",
+    phoneNumber: "",
     countryCode: "+91",
     adminCode: ""
   })
 
-  const [systemOwnerLoginData, setSystemOwnerLoginData] = useState({ email: "", phone_number: "", countryCode: "+91" })
+  const [systemOwnerLoginData, setSystemOwnerLoginData] = useState({ email: "", phoneNumber: "", countryCode: "+91" })
   const [systemOwnerRegisterData, setSystemOwnerRegisterData] = useState({
     first_name: "",
     last_name: "",
     email: "",
-    phone_number: "",
+    phoneNumber: "",
     countryCode: "+91",
     accessKey: ""
   })
@@ -185,18 +185,18 @@ function AuthPageContent() {
   const [adminRegisterResendCountdown, setAdminRegisterResendCountdown] = useState(0)
   const [systemOwnerRegisterResendCountdown, setSystemOwnerRegisterResendCountdown] = useState(0)
 
-  const [userLoginErrors, setUserLoginErrors] = useState({ email: "", phone_number: "" })
+  const [userLoginErrors, setUserLoginErrors] = useState({ email: "", phoneNumber: "" })
   const [userRegisterErrors, setUserRegisterErrors] = useState({
     email: "",
-    phone_number: "",
+    phoneNumber: "",
     date_of_birth: "",
     zip_code: "",
     id_proof_number: ""
   })
-  const [adminLoginErrors, setAdminLoginErrors] = useState({ email: "", phone_number: "" })
-  const [adminRegisterErrors, setAdminRegisterErrors] = useState({ email: "", phone_number: "" })
-  const [systemOwnerLoginErrors, setSystemOwnerLoginErrors] = useState({ email: "", phone_number: "" })
-  const [systemOwnerRegisterErrors, setSystemOwnerRegisterErrors] = useState({ email: "", phone_number: "" })
+  const [adminLoginErrors, setAdminLoginErrors] = useState({ email: "", phoneNumber: "" })
+  const [adminRegisterErrors, setAdminRegisterErrors] = useState({ email: "", phoneNumber: "" })
+  const [systemOwnerLoginErrors, setSystemOwnerLoginErrors] = useState({ email: "", phoneNumber: "" })
+  const [systemOwnerRegisterErrors, setSystemOwnerRegisterErrors] = useState({ email: "", phoneNumber: "" })
 
   useEffect(() => {
     if (userLoginResendCountdown > 0) {
@@ -332,7 +332,7 @@ function AuthPageContent() {
           toast.error(`[DEBUG MODE] Invalid OTP. Use: ${DEBUG_OTP}`)
           return
         }
-        const backendResult = await login(userLoginData.email, userLoginData.phone_number, userLoginData.countryCode, false)
+        const backendResult = await login(userLoginData.email, userLoginData.phoneNumber, userLoginData.countryCode, false)
         if (backendResult?.success) {
           toast.success("Login successful!")
           router.push("/dashboard")
@@ -344,7 +344,7 @@ function AuthPageContent() {
       const firebaseResult = await confirmationResult.confirm(userLoginOtp)
       let backendResult;
       if (firebaseResult.user) {
-        backendResult = await login(userLoginData.email, userLoginData.phone_number, userLoginData.countryCode, false)
+        backendResult = await login(userLoginData.email, userLoginData.phoneNumber, userLoginData.countryCode, false)
       }
       if (backendResult?.success) {
         toast.success("Login successful!")
@@ -366,21 +366,21 @@ function AuthPageContent() {
     if (isLoading) return
 
     const emailError = validateEmail(userRegisterData.email)
-    const phoneError = validatePhoneNumber(userRegisterData.phone_number)
+    const phoneError = validatePhoneNumber(userRegisterData.phoneNumber)
     const dobError = validateDOB(userRegisterData.date_of_birth)
     const zipError = validateZipCode(userRegisterData.zip_code, userRegisterData.country)
     const idProofError = userRegisterData.id_proof_type === "Aadhar" ? validateAadhar(userRegisterData.id_proof_number) : ""
 
     setUserRegisterErrors({
       email: emailError,
-      phone_number: phoneError,
+      phoneNumber: phoneError,
       date_of_birth: dobError,
       zip_code: zipError,
       id_proof_number: idProofError
     })
 
     if (!userRegisterData.username || !userRegisterData.email || !userRegisterData.first_name || 
-        !userRegisterData.last_name || !userRegisterData.phone_number || !userRegisterData.countryCode) {
+        !userRegisterData.last_name || !userRegisterData.phoneNumber || !userRegisterData.countryCode) {
       toast.error("Please fill in all required fields")
       return
     }
@@ -404,7 +404,7 @@ function AuthPageContent() {
         last_name: userRegisterData.last_name,
         date_of_birth: userRegisterData.date_of_birth,
         gender: userRegisterData.gender,
-        phone_number: userRegisterData.phone_number,
+        phoneNumber: userRegisterData.phoneNumber,
         countryCode: userRegisterData.countryCode,
         address_line1: userRegisterData.address_line1,
         address_line2: userRegisterData.address_line2,
@@ -428,7 +428,7 @@ function AuthPageContent() {
           last_name: "",
           date_of_birth: "",
           gender: "male" as "male" | "female" | "non-binary",
-          phone_number: "",
+          phoneNumber: "",
           countryCode: "+91",
           address_line1: "",
           address_line2: "",
@@ -530,7 +530,7 @@ function AuthPageContent() {
         }
         const loginResult = await login(
           adminLoginData.email,
-          adminLoginData.phone_number,
+          adminLoginData.phoneNumber,
           adminLoginData.countryCode,
           true
         )
@@ -548,7 +548,7 @@ function AuthPageContent() {
       if (result.user) {
         const loginResult = await login(
           adminLoginData.email,
-          adminLoginData.phone_number,
+          adminLoginData.phoneNumber,
           adminLoginData.countryCode,
           true
         )
@@ -572,16 +572,16 @@ function AuthPageContent() {
   }
 
   const handleUserVerifyNumber = async () => {
-    if (!userRegisterData.phone_number || !userRegisterData.countryCode) {
+    if (!userRegisterData.phoneNumber || !userRegisterData.countryCode) {
       toast.error("Please provide a valid phone number and country code.")
       return
     }
 
-    const phone_number = `${userRegisterData.countryCode}${userRegisterData.phone_number}`
+    const phoneNumber = `${userRegisterData.countryCode}${userRegisterData.phoneNumber}`
 
 /*     if (isDevelopment()) {
       debugLog("Debug mode: Skipping Firebase OTP verification for user registration")
-      toast.success(`[DEBUG MODE] OTP sent to ${phone_number}. Use code: ${DEBUG_OTP}`)
+      toast.success(`[DEBUG MODE] OTP sent to ${phoneNumber}. Use code: ${DEBUG_OTP}`)
       setUserOtpSent(true)
       setUserOtp(DEBUG_OTP)
       setUserRegisterResendCountdown(10)
@@ -589,12 +589,12 @@ function AuthPageContent() {
     }
  */
     try {
-      const recaptchaVerifier = setupRecaptcha(phone_number)
+      const recaptchaVerifier = setupRecaptcha(phoneNumber)
       // console.log("recaptchaVerifier", recaptchaVerifier)
-      const confirmationResult = await signInWithPhoneNumber(auth, phone_number, recaptchaVerifier)
+      const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier)
 
       window.confirmationResult = confirmationResult
-      toast.success(`OTP sent to ${phone_number}`)
+      toast.success(`OTP sent to ${phoneNumber}`)
       setUserOtpSent(true)
       setUserRegisterResendCountdown(10)
     } catch (error) {
@@ -604,16 +604,16 @@ function AuthPageContent() {
   }
 
   const handleAdminVerifyNumber = async () => {
-    if (!adminRegisterData.phone_number || !adminRegisterData.countryCode) {
+    if (!adminRegisterData.phoneNumber || !adminRegisterData.countryCode) {
       toast.error("Please provide a valid phone number and country code.")
       return
     }
 
-    const phone_number = `${adminRegisterData.countryCode}${adminRegisterData.phone_number}`
+    const phoneNumber = `${adminRegisterData.countryCode}${adminRegisterData.phoneNumber}`
 
 /*     if (isDevelopment()) {
       debugLog("Debug mode: Skipping Firebase OTP verification for admin registration")
-      toast.success(`[DEBUG MODE] OTP sent to ${phone_number}. Use code: ${DEBUG_OTP}`)
+      toast.success(`[DEBUG MODE] OTP sent to ${phoneNumber}. Use code: ${DEBUG_OTP}`)
       setAdminOtpSent(true)
       setAdminOtp(DEBUG_OTP)
       setAdminRegisterResendCountdown(10)
@@ -621,11 +621,11 @@ function AuthPageContent() {
     }
  */
     try {
-      const recaptchaVerifier = setupRecaptcha(phone_number)
-      const confirmationResult = await signInWithPhoneNumber(auth, phone_number, recaptchaVerifier)
+      const recaptchaVerifier = setupRecaptcha(phoneNumber)
+      const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier)
 
       window.confirmationResult = confirmationResult
-      toast.success(`OTP sent to ${phone_number}`)
+      toast.success(`OTP sent to ${phoneNumber}`)
       setAdminOtpSent(true)
       setAdminRegisterResendCountdown(10)
     } catch (error) {
@@ -635,16 +635,16 @@ function AuthPageContent() {
   }
 
   const handleSystemOwnerVerifyNumber = async () => {
-    if (!systemOwnerRegisterData.phone_number || !systemOwnerRegisterData.countryCode) {
+    if (!systemOwnerRegisterData.phoneNumber || !systemOwnerRegisterData.countryCode) {
       toast.error("Please provide a valid phone number and country code.")
       return
     }
 
-    const phone_number = `${systemOwnerRegisterData.countryCode}${systemOwnerRegisterData.phone_number}`
+    const phoneNumber = `${systemOwnerRegisterData.countryCode}${systemOwnerRegisterData.phoneNumber}`
 
 /*     if (isDevelopment()) {
       debugLog("Debug mode: Skipping Firebase OTP verification for system owner registration")
-      toast.success(`[DEBUG MODE] OTP sent to ${phone_number}. Use code: ${DEBUG_OTP}`)
+      toast.success(`[DEBUG MODE] OTP sent to ${phoneNumber}. Use code: ${DEBUG_OTP}`)
       setSystemOwnerOtpSent(true)
       setSystemOwnerOtp(DEBUG_OTP)
       setSystemOwnerRegisterResendCountdown(10)
@@ -652,11 +652,11 @@ function AuthPageContent() {
     }
  */
     try {
-      const recaptchaVerifier = setupRecaptcha(phone_number)
-      const confirmationResult = await signInWithPhoneNumber(auth, phone_number, recaptchaVerifier)
+      const recaptchaVerifier = setupRecaptcha(phoneNumber)
+      const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier)
 
       window.confirmationResult = confirmationResult
-      toast.success(`OTP sent to ${phone_number}`)
+      toast.success(`OTP sent to ${phoneNumber}`)
       setSystemOwnerOtpSent(true)
       setSystemOwnerRegisterResendCountdown(10)
     } catch (error) {
@@ -666,16 +666,16 @@ function AuthPageContent() {
   }
 
   const handleUserLoginVerifyNumber = async () => {
-    if (!userLoginData.phone_number || !userLoginData.countryCode) {
+    if (!userLoginData.phoneNumber || !userLoginData.countryCode) {
       toast.error("Please provide a valid phone number and country code.")
       return
     }
 
-    const phone_number = `${userLoginData.countryCode}${userLoginData.phone_number}`
+    const phoneNumber = `${userLoginData.countryCode}${userLoginData.phoneNumber}`
 
 /*     if (isDevelopment()) {
       debugLog("Debug mode: Skipping Firebase OTP verification")
-      toast.success(`[DEBUG MODE] OTP sent to ${phone_number}. Use code: ${DEBUG_OTP}`)
+      toast.success(`[DEBUG MODE] OTP sent to ${phoneNumber}. Use code: ${DEBUG_OTP}`)
       setUserLoginOtpSent(true)
       setUserLoginOtp(DEBUG_OTP)
       setUserLoginResendCountdown(10)
@@ -683,11 +683,11 @@ function AuthPageContent() {
     }
  */
     try {
-      const recaptchaVerifier = setupRecaptcha(phone_number)
+      const recaptchaVerifier = setupRecaptcha(phoneNumber)
       // console.log("recaptchaVerifier", recaptchaVerifier)
-      const confirmationResult = await signInWithPhoneNumber(auth, phone_number, recaptchaVerifier)
+      const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier)
       window.confirmationResult = confirmationResult
-      toast.success(`OTP sent to ${phone_number}`)
+      toast.success(`OTP sent to ${phoneNumber}`)
       setUserLoginOtpSent(true)
       setUserLoginResendCountdown(10)
     } catch (error) {
@@ -697,16 +697,16 @@ function AuthPageContent() {
   }
 
   const handleAdminLoginVerifyNumber = async () => {
-    if (!adminLoginData.phone_number || !adminLoginData.countryCode) {
+    if (!adminLoginData.phoneNumber || !adminLoginData.countryCode) {
       toast.error("Please provide a valid phone number and country code.")
       return
     }
 
-    const phone_number = `${adminLoginData.countryCode}${adminLoginData.phone_number}`
+    const phoneNumber = `${adminLoginData.countryCode}${adminLoginData.phoneNumber}`
 
 /*     if (isDevelopment()) {
       debugLog("Debug mode: Skipping Firebase OTP verification for admin")
-      toast.success(`[DEBUG MODE] OTP sent to ${phone_number}. Use code: ${DEBUG_OTP}`)
+      toast.success(`[DEBUG MODE] OTP sent to ${phoneNumber}. Use code: ${DEBUG_OTP}`)
       setAdminLoginOtpSent(true)
       setAdminLoginOtp(DEBUG_OTP)
       setAdminLoginResendCountdown(10)
@@ -714,10 +714,10 @@ function AuthPageContent() {
     }
  */
     try {
-      const recaptchaVerifier = setupRecaptcha(phone_number)
-      const confirmationResult = await signInWithPhoneNumber(auth, phone_number, recaptchaVerifier)
+      const recaptchaVerifier = setupRecaptcha(phoneNumber)
+      const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier)
       window.confirmationResult = confirmationResult
-      toast.success(`OTP sent to ${phone_number}`)
+      toast.success(`OTP sent to ${phoneNumber}`)
       setAdminLoginOtpSent(true)
       setAdminLoginResendCountdown(10)
     } catch (error) {
@@ -727,16 +727,16 @@ function AuthPageContent() {
   }
 
   const handleSystemOwnerLoginVerifyNumber = async () => {
-    if (!systemOwnerLoginData.phone_number || !systemOwnerLoginData.countryCode) {
+    if (!systemOwnerLoginData.phoneNumber || !systemOwnerLoginData.countryCode) {
       toast.error("Please provide a valid phone number and country code.")
       return
     }
 
-    const phone_number = `${systemOwnerLoginData.countryCode}${systemOwnerLoginData.phone_number}`
+    const phoneNumber = `${systemOwnerLoginData.countryCode}${systemOwnerLoginData.phoneNumber}`
     
 /*     if (isDevelopment()) {
       debugLog("Debug mode: Skipping Firebase OTP verification for system owner")
-      toast.success(`[DEBUG MODE] OTP sent to ${phone_number}. Use code: ${DEBUG_OTP}`)
+      toast.success(`[DEBUG MODE] OTP sent to ${phoneNumber}. Use code: ${DEBUG_OTP}`)
       setSystemOwnerLoginOtpSent(true)
       setSystemOwnerLoginOtp(DEBUG_OTP)
       setSystemOwnerLoginResendCountdown(10)
@@ -744,10 +744,10 @@ function AuthPageContent() {
     }
  */
     try {
-      const recaptchaVerifier = setupRecaptcha(phone_number)
-      const confirmationResult = await signInWithPhoneNumber(auth, phone_number, recaptchaVerifier)
+      const recaptchaVerifier = setupRecaptcha(phoneNumber)
+      const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier)
       window.confirmationResult = confirmationResult
-      toast.success(`OTP sent to ${phone_number}`)
+      toast.success(`OTP sent to ${phoneNumber}`)
       setSystemOwnerLoginOtpSent(true)
       setSystemOwnerLoginResendCountdown(10)
     } catch (error) {
@@ -760,8 +760,8 @@ function AuthPageContent() {
     if (userLoginData.email) {
       toast.success(`OTP resent to ${userLoginData.email}. Code: ${generatedLoginOtp}`)
       setUserLoginResendCountdown(10)
-    } else if (userLoginData.phone_number && userLoginData.countryCode) {
-      toast.success(`OTP resent to ${userLoginData.countryCode}${userLoginData.phone_number}. Code: ${generatedLoginOtp}`)
+    } else if (userLoginData.phoneNumber && userLoginData.countryCode) {
+      toast.success(`OTP resent to ${userLoginData.countryCode}${userLoginData.phoneNumber}. Code: ${generatedLoginOtp}`)
       setUserLoginResendCountdown(10)
     }
   }
@@ -770,8 +770,8 @@ function AuthPageContent() {
     if (adminLoginData.email) {
       toast.success(`OTP resent to ${adminLoginData.email}. Code: ${generatedLoginOtp}`)
       setAdminLoginResendCountdown(10)
-    } else if (adminLoginData.phone_number && adminLoginData.countryCode) {
-      toast.success(`OTP resent to ${adminLoginData.countryCode}${adminLoginData.phone_number}. Code: ${generatedLoginOtp}`)
+    } else if (adminLoginData.phoneNumber && adminLoginData.countryCode) {
+      toast.success(`OTP resent to ${adminLoginData.countryCode}${adminLoginData.phoneNumber}. Code: ${generatedLoginOtp}`)
       setAdminLoginResendCountdown(10)
     }
   }
@@ -780,24 +780,24 @@ function AuthPageContent() {
     if (systemOwnerLoginData.email) {
       toast.success(`OTP resent to ${systemOwnerLoginData.email}. Code: ${generatedLoginOtp}`)
       setSystemOwnerLoginResendCountdown(10)
-    } else if (systemOwnerLoginData.phone_number && systemOwnerLoginData.countryCode) {
-      toast.success(`OTP resent to ${systemOwnerLoginData.countryCode}${systemOwnerLoginData.phone_number}. Code: ${generatedLoginOtp}`)
+    } else if (systemOwnerLoginData.phoneNumber && systemOwnerLoginData.countryCode) {
+      toast.success(`OTP resent to ${systemOwnerLoginData.countryCode}${systemOwnerLoginData.phoneNumber}. Code: ${generatedLoginOtp}`)
       setSystemOwnerLoginResendCountdown(10)
     }
   }
 
   const handleUserRegisterResendOTP = () => {
-    toast.success(`OTP resent to ${userRegisterData.countryCode}${userRegisterData.phone_number}. Code: ${generatedOtp}`)
+    toast.success(`OTP resent to ${userRegisterData.countryCode}${userRegisterData.phoneNumber}. Code: ${generatedOtp}`)
     setUserRegisterResendCountdown(10)
   }
 
   const handleAdminRegisterResendOTP = () => {
-    toast.success(`OTP resent to ${adminRegisterData.countryCode}${adminRegisterData.phone_number}. Code: ${generatedOtp}`)
+    toast.success(`OTP resent to ${adminRegisterData.countryCode}${adminRegisterData.phoneNumber}. Code: ${generatedOtp}`)
     setAdminRegisterResendCountdown(10)
   }
 
   const handleSystemOwnerRegisterResendOTP = () => {
-    toast.success(`OTP resent to ${systemOwnerRegisterData.countryCode}${systemOwnerRegisterData.phone_number}. Code: ${generatedOtp}`)
+    toast.success(`OTP resent to ${systemOwnerRegisterData.countryCode}${systemOwnerRegisterData.phoneNumber}. Code: ${generatedOtp}`)
     setSystemOwnerRegisterResendCountdown(10)
   }
 
@@ -823,7 +823,7 @@ function AuthPageContent() {
         first_name: adminRegisterData.first_name,
         last_name: adminRegisterData.last_name,
         email: adminRegisterData.email,
-        phone_number: adminRegisterData.phone_number,
+        phoneNumber: adminRegisterData.phoneNumber,
         countryCode: adminRegisterData.countryCode,
         adminCode: adminRegisterData.adminCode
       }, true)
@@ -859,7 +859,7 @@ function AuthPageContent() {
     setIsLoading(true)
     
     try {
-      const result = await login(systemOwnerLoginData.email, systemOwnerLoginData.phone_number, systemOwnerLoginData.countryCode, false, true)
+      const result = await login(systemOwnerLoginData.email, systemOwnerLoginData.phoneNumber, systemOwnerLoginData.countryCode, false, true)
       if (result?.success) {
         toast.success("System Owner login successful!")
         router.push("/dashboard")
@@ -896,7 +896,7 @@ function AuthPageContent() {
         first_name: systemOwnerRegisterData.first_name,
         last_name: systemOwnerRegisterData.last_name,
         email: systemOwnerRegisterData.email,
-        phone_number: systemOwnerRegisterData.phone_number,
+        phoneNumber: systemOwnerRegisterData.phoneNumber,
         countryCode: systemOwnerRegisterData.countryCode,
         accessKey: systemOwnerRegisterData.accessKey
       }, false, true)
@@ -977,7 +977,7 @@ function AuthPageContent() {
                           value={userLoginData.email}
                           onChange={(e) => {
                             const email = e.target.value
-                            setUserLoginData({ ...userLoginData, email, phone_number: "", countryCode: "+91" })
+                            setUserLoginData({ ...userLoginData, email, phoneNumber: "", countryCode: "+91" })
                             setUserLoginErrors({ ...userLoginErrors, email: validateEmail(email) })
                           }}
                           onBlur={(e) => {
@@ -1023,21 +1023,21 @@ function AuthPageContent() {
                             id="user-login-phone"
                             type="tel"
                             placeholder="Enter your phone number"
-                            value={userLoginData.phone_number}
+                            value={userLoginData.phoneNumber}
                             onChange={(e) => {
                               const phone = e.target.value.replace(/\D/g, "")
-                              setUserLoginData({ ...userLoginData, phone_number: phone, email: "" })
-                              setUserLoginErrors({ ...userLoginErrors, phone_number: validatePhoneNumber(phone) })
+                              setUserLoginData({ ...userLoginData, phoneNumber: phone, email: "" })
+                              setUserLoginErrors({ ...userLoginErrors, phoneNumber: validatePhoneNumber(phone) })
                             }}
                             onBlur={(e) => {
-                              setUserLoginErrors({ ...userLoginErrors, phone_number: validatePhoneNumber(e.target.value) })
+                              setUserLoginErrors({ ...userLoginErrors, phoneNumber: validatePhoneNumber(e.target.value) })
                             }}
                             disabled={!!userLoginData.email}
-                            className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 disabled:opacity-50 disabled:cursor-not-allowed focus:ring-2 focus:ring-sky-400 ${userLoginErrors.phone_number ? "border-red-500" : ""}`}
+                            className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 disabled:opacity-50 disabled:cursor-not-allowed focus:ring-2 focus:ring-sky-400 ${userLoginErrors.phoneNumber ? "border-red-500" : ""}`}
                           />
                         </div>
-                        {userLoginErrors.phone_number && (
-                          <p className="text-red-400 text-sm">{userLoginErrors.phone_number}</p>
+                        {userLoginErrors.phoneNumber && (
+                          <p className="text-red-400 text-sm">{userLoginErrors.phoneNumber}</p>
                         )}
                       </div>
                     </div>
@@ -1049,7 +1049,7 @@ function AuthPageContent() {
                           ;(async () => {
                             if (userLoginData.email) {
                               console.log("loggin in debug mode")
-                              const backendResult = await login(userLoginData.email, userLoginData.phone_number, userLoginData.countryCode, false)
+                              const backendResult = await login(userLoginData.email, userLoginData.phoneNumber, userLoginData.countryCode, false)
                                       if (backendResult?.success) {
                                         toast.success("Login successful!")
                                         router.push("/dashboard")
@@ -1078,9 +1078,9 @@ function AuthPageContent() {
                                 // console.error("Error sending email sign-in link:", err)
                                 toast.error("Failed to send sign-in link. Please try again.")
                               }
-                            } else if (userLoginData.phone_number && userLoginData.countryCode) {
-                              const phoneError = validatePhoneNumber(userLoginData.phone_number)
-                              setUserLoginErrors({ ...userLoginErrors, phone_number: phoneError })
+                            } else if (userLoginData.phoneNumber && userLoginData.countryCode) {
+                              const phoneError = validatePhoneNumber(userLoginData.phoneNumber)
+                              setUserLoginErrors({ ...userLoginErrors, phoneNumber: phoneError })
                               if (phoneError) {
                                 toast.error("Please fix the phone number validation error")
                                 return
@@ -1094,9 +1094,9 @@ function AuthPageContent() {
                           })()
                         }}
                         disabled={
-                          (!userLoginData.email && (!userLoginData.phone_number || !userLoginData.countryCode)) ||
+                          (!userLoginData.email && (!userLoginData.phoneNumber || !userLoginData.countryCode)) ||
                           (userLoginData.email ? !!userLoginErrors.email : false) ||
-                          (userLoginData.phone_number ? !!userLoginErrors.phone_number : false) ||
+                          (userLoginData.phoneNumber ? !!userLoginErrors.phoneNumber : false) ||
                           otpButtonLoading
                         }
                         className="w-full bg-sky-400 text-slate-900 hover:bg-sky-300 h-12 text-lg font-medium"
@@ -1283,20 +1283,20 @@ function AuthPageContent() {
                                 id="user-phone"
                                 type="tel"
                                 placeholder="Enter your phone number"
-                                value={userRegisterData.phone_number}
+                                value={userRegisterData.phoneNumber}
                                 onChange={(e) => {
                                   const phone = e.target.value.replace(/\D/g, "")
-                                  setUserRegisterData({ ...userRegisterData, phone_number: phone })
-                                  setUserRegisterErrors({ ...userRegisterErrors, phone_number: validatePhoneNumber(phone) })
+                                  setUserRegisterData({ ...userRegisterData, phoneNumber: phone })
+                                  setUserRegisterErrors({ ...userRegisterErrors, phoneNumber: validatePhoneNumber(phone) })
                                 }}
                                 onBlur={(e) => {
-                                  setUserRegisterErrors({ ...userRegisterErrors, phone_number: validatePhoneNumber(e.target.value) })
+                                  setUserRegisterErrors({ ...userRegisterErrors, phoneNumber: validatePhoneNumber(e.target.value) })
                                 }}
-                                className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 ${userRegisterErrors.phone_number ? "border-red-500" : ""}`}
+                                className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 ${userRegisterErrors.phoneNumber ? "border-red-500" : ""}`}
                               />
                             </div>
-                            {userRegisterErrors.phone_number && (
-                              <p className="text-red-400 text-sm">{userRegisterErrors.phone_number}</p>
+                            {userRegisterErrors.phoneNumber && (
+                              <p className="text-red-400 text-sm">{userRegisterErrors.phoneNumber}</p>
                             )}
                           </div>
                         </div>
@@ -1585,7 +1585,7 @@ function AuthPageContent() {
                           type="button" 
                           variant="outline" 
                           onClick={handleUserVerifyNumber}
-                          disabled={userOtpSent || !userRegisterData.phone_number || !userRegisterData.countryCode}
+                          disabled={userOtpSent || !userRegisterData.phoneNumber || !userRegisterData.countryCode}
                           className="flex-1 border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-11"
                         >
                           {userOtpSent ? "OTP Sent ✓" : "Verify Number"}
@@ -1648,7 +1648,7 @@ function AuthPageContent() {
                           value={adminLoginData.email}
                           onChange={(e) => {
                             const email = e.target.value
-                            setAdminLoginData({ ...adminLoginData, email, phone_number: "", countryCode: "+91" })
+                            setAdminLoginData({ ...adminLoginData, email, phoneNumber: "", countryCode: "+91" })
                             setAdminLoginErrors({ ...adminLoginErrors, email: validateEmail(email) })
                           }}
                           onBlur={(e) => {
@@ -1694,21 +1694,21 @@ function AuthPageContent() {
                             id="admin-login-phone"
                             type="tel"
                             placeholder="Enter admin phone number"
-                            value={adminLoginData.phone_number}
+                            value={adminLoginData.phoneNumber}
                             onChange={(e) => {
                               const phone = e.target.value.replace(/\D/g, "")
-                              setAdminLoginData({ ...adminLoginData, phone_number: phone, email: "" })
-                              setAdminLoginErrors({ ...adminLoginErrors, phone_number: validatePhoneNumber(phone) })
+                              setAdminLoginData({ ...adminLoginData, phoneNumber: phone, email: "" })
+                              setAdminLoginErrors({ ...adminLoginErrors, phoneNumber: validatePhoneNumber(phone) })
                             }}
                             onBlur={(e) => {
-                              setAdminLoginErrors({ ...adminLoginErrors, phone_number: validatePhoneNumber(e.target.value) })
+                              setAdminLoginErrors({ ...adminLoginErrors, phoneNumber: validatePhoneNumber(e.target.value) })
                             }}
                             disabled={!!adminLoginData.email}
-                            className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 disabled:opacity-50 disabled:cursor-not-allowed focus:ring-2 focus:ring-sky-400 ${adminLoginErrors.phone_number ? "border-red-500" : ""}`}
+                            className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 disabled:opacity-50 disabled:cursor-not-allowed focus:ring-2 focus:ring-sky-400 ${adminLoginErrors.phoneNumber ? "border-red-500" : ""}`}
                           />
                         </div>
-                        {adminLoginErrors.phone_number && (
-                          <p className="text-red-400 text-sm">{adminLoginErrors.phone_number}</p>
+                        {adminLoginErrors.phoneNumber && (
+                          <p className="text-red-400 text-sm">{adminLoginErrors.phoneNumber}</p>
                         )}
                       </div>
                     </div>
@@ -1735,9 +1735,9 @@ function AuthPageContent() {
                                 // console.error("Error sending email sign-in link:", err)
                                 toast.error("Failed to send sign-in link. Please try again.")
                               }
-                            } else if (adminLoginData.phone_number && adminLoginData.countryCode) {
-                              const phoneError = validatePhoneNumber(adminLoginData.phone_number)
-                              setAdminLoginErrors({ ...adminLoginErrors, phone_number: phoneError })
+                            } else if (adminLoginData.phoneNumber && adminLoginData.countryCode) {
+                              const phoneError = validatePhoneNumber(adminLoginData.phoneNumber)
+                              setAdminLoginErrors({ ...adminLoginErrors, phoneNumber: phoneError })
                               if (phoneError) {
                                 toast.error("Please fix the phone number validation error")
                                 return
@@ -1751,9 +1751,9 @@ function AuthPageContent() {
                           })()
                         }}
                         disabled={
-                          (!adminLoginData.email && (!adminLoginData.phone_number || !adminLoginData.countryCode)) ||
+                          (!adminLoginData.email && (!adminLoginData.phoneNumber || !adminLoginData.countryCode)) ||
                           (adminLoginData.email ? !!adminLoginErrors.email : false) ||
-                          (adminLoginData.phone_number ? !!adminLoginErrors.phone_number : false) ||
+                          (adminLoginData.phoneNumber ? !!adminLoginErrors.phoneNumber : false) ||
                           otpButtonLoading
                         }
                         className="w-full bg-sky-400 text-slate-900 hover:bg-sky-300 h-12 text-lg font-medium"
@@ -1915,20 +1915,20 @@ function AuthPageContent() {
                             id="admin-phone"
                             type="tel"
                             placeholder="Enter phone number"
-                            value={adminRegisterData.phone_number}
+                            value={adminRegisterData.phoneNumber}
                             onChange={(e) => {
                               const phone = e.target.value.replace(/\D/g, "")
-                              setAdminRegisterData({ ...adminRegisterData, phone_number: phone })
-                              setAdminRegisterErrors({ ...adminRegisterErrors, phone_number: validatePhoneNumber(phone) })
+                              setAdminRegisterData({ ...adminRegisterData, phoneNumber: phone })
+                              setAdminRegisterErrors({ ...adminRegisterErrors, phoneNumber: validatePhoneNumber(phone) })
                             }}
                             onBlur={(e) => {
-                              setAdminRegisterErrors({ ...adminRegisterErrors, phone_number: validatePhoneNumber(e.target.value) })
+                              setAdminRegisterErrors({ ...adminRegisterErrors, phoneNumber: validatePhoneNumber(e.target.value) })
                             }}
-                            className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 ${adminRegisterErrors.phone_number ? "border-red-500" : ""}`}
+                            className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 ${adminRegisterErrors.phoneNumber ? "border-red-500" : ""}`}
                           />
                         </div>
-                        {adminRegisterErrors.phone_number && (
-                          <p className="text-red-400 text-sm">{adminRegisterErrors.phone_number}</p>
+                        {adminRegisterErrors.phoneNumber && (
+                          <p className="text-red-400 text-sm">{adminRegisterErrors.phoneNumber}</p>
                         )}
                       </div>
                     </div>
@@ -1939,7 +1939,7 @@ function AuthPageContent() {
                         type="button" 
                         variant="outline" 
                         onClick={handleAdminVerifyNumber}
-                        disabled={adminOtpSent || !adminRegisterData.phone_number || !adminRegisterData.countryCode}
+                        disabled={adminOtpSent || !adminRegisterData.phoneNumber || !adminRegisterData.countryCode}
                         className="flex-1 border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-11"
                       >
                         {adminOtpSent ? "OTP Sent ✓" : "Verify Number"}
@@ -2016,7 +2016,7 @@ function AuthPageContent() {
                           value={systemOwnerLoginData.email}
                           onChange={(e) => {
                             const email = e.target.value
-                            setSystemOwnerLoginData({ ...systemOwnerLoginData, email, phone_number: "", countryCode: "+91" })
+                            setSystemOwnerLoginData({ ...systemOwnerLoginData, email, phoneNumber: "", countryCode: "+91" })
                             setSystemOwnerLoginErrors({ ...systemOwnerLoginErrors, email: validateEmail(email) })
                           }}
                           onBlur={(e) => {
@@ -2062,21 +2062,21 @@ function AuthPageContent() {
                             id="system-owner-login-phone"
                             type="tel"
                             placeholder="Enter your phone number"
-                            value={systemOwnerLoginData.phone_number}
+                            value={systemOwnerLoginData.phoneNumber}
                             onChange={(e) => {
                               const phone = e.target.value.replace(/\D/g, "")
-                              setSystemOwnerLoginData({ ...systemOwnerLoginData, phone_number: phone, email: "" })
-                              setSystemOwnerLoginErrors({ ...systemOwnerLoginErrors, phone_number: validatePhoneNumber(phone) })
+                              setSystemOwnerLoginData({ ...systemOwnerLoginData, phoneNumber: phone, email: "" })
+                              setSystemOwnerLoginErrors({ ...systemOwnerLoginErrors, phoneNumber: validatePhoneNumber(phone) })
                             }}
                             onBlur={(e) => {
-                              setSystemOwnerLoginErrors({ ...systemOwnerLoginErrors, phone_number: validatePhoneNumber(e.target.value) })
+                              setSystemOwnerLoginErrors({ ...systemOwnerLoginErrors, phoneNumber: validatePhoneNumber(e.target.value) })
                             }}
                             disabled={!!systemOwnerLoginData.email}
-                            className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 disabled:opacity-50 disabled:cursor-not-allowed focus:ring-2 focus:ring-sky-400 ${systemOwnerLoginErrors.phone_number ? "border-red-500" : ""}`}
+                            className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 disabled:opacity-50 disabled:cursor-not-allowed focus:ring-2 focus:ring-sky-400 ${systemOwnerLoginErrors.phoneNumber ? "border-red-500" : ""}`}
                           />
                         </div>
-                        {systemOwnerLoginErrors.phone_number && (
-                          <p className="text-red-400 text-sm">{systemOwnerLoginErrors.phone_number}</p>
+                        {systemOwnerLoginErrors.phoneNumber && (
+                          <p className="text-red-400 text-sm">{systemOwnerLoginErrors.phoneNumber}</p>
                         )}
                       </div>
                     </div>
@@ -2107,7 +2107,7 @@ function AuthPageContent() {
                                 // console.error("Error sending email sign-in link:", err)
                                 toast.error("Failed to send sign-in link. Please try again.")
                               }
-                            } else if (systemOwnerLoginData.phone_number && systemOwnerLoginData.countryCode) {
+                            } else if (systemOwnerLoginData.phoneNumber && systemOwnerLoginData.countryCode) {
                               // console.log("hey mobile")
                               setOtpButtonLoading(true)
                               await handleSystemOwnerLoginVerifyNumber()
@@ -2117,7 +2117,7 @@ function AuthPageContent() {
                             }
                           })()
                         }}
-                        disabled={!systemOwnerLoginData.email && (!systemOwnerLoginData.phone_number || !systemOwnerLoginData.countryCode) || otpButtonLoading}
+                        disabled={!systemOwnerLoginData.email && (!systemOwnerLoginData.phoneNumber || !systemOwnerLoginData.countryCode) || otpButtonLoading}
                         className="w-full bg-sky-400 text-slate-900 hover:bg-sky-300 h-12 text-lg font-medium"
                       >
                         {!otpButtonLoading ? "Send OTP" : "Sending OTP"}
@@ -2277,20 +2277,20 @@ function AuthPageContent() {
                             id="system-owner-phone"
                             type="tel"
                             placeholder="Enter phone number"
-                            value={systemOwnerRegisterData.phone_number}
+                            value={systemOwnerRegisterData.phoneNumber}
                             onChange={(e) => {
                                 const phone = e.target.value.replace(/\D/g, "")
-                              setSystemOwnerRegisterData({ ...systemOwnerRegisterData, phone_number: phone })
-                              setSystemOwnerRegisterErrors({ ...systemOwnerRegisterErrors, phone_number: validatePhoneNumber(phone) })
+                              setSystemOwnerRegisterData({ ...systemOwnerRegisterData, phoneNumber: phone })
+                              setSystemOwnerRegisterErrors({ ...systemOwnerRegisterErrors, phoneNumber: validatePhoneNumber(phone) })
                             }}
                             onBlur={(e) => {
-                              setSystemOwnerRegisterErrors({ ...systemOwnerRegisterErrors, phone_number: validatePhoneNumber(e.target.value) })
+                              setSystemOwnerRegisterErrors({ ...systemOwnerRegisterErrors, phoneNumber: validatePhoneNumber(e.target.value) })
                             }}
-                            className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 ${systemOwnerRegisterErrors.phone_number ? "border-red-500" : ""}`}
+                            className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 ${systemOwnerRegisterErrors.phoneNumber ? "border-red-500" : ""}`}
                           />
                         </div>
-                        {systemOwnerRegisterErrors.phone_number && (
-                          <p className="text-red-400 text-sm">{systemOwnerRegisterErrors.phone_number}</p>
+                        {systemOwnerRegisterErrors.phoneNumber && (
+                          <p className="text-red-400 text-sm">{systemOwnerRegisterErrors.phoneNumber}</p>
                         )}
                       </div>
                     </div>
@@ -2301,7 +2301,7 @@ function AuthPageContent() {
                         type="button" 
                         variant="outline" 
                         onClick={handleSystemOwnerVerifyNumber}
-                        disabled={systemOwnerOtpSent || !systemOwnerRegisterData.phone_number || !systemOwnerRegisterData.countryCode}
+                        disabled={systemOwnerOtpSent || !systemOwnerRegisterData.phoneNumber || !systemOwnerRegisterData.countryCode}
                         className="flex-1 border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-11"
                       >
                         {systemOwnerOtpSent ? "OTP Sent ✓" : "Verify Number"}

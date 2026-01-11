@@ -149,7 +149,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
         firstName: prev.firstName || user?.name?.split(' ')[0] || '',
         lastName: prev.lastName || user?.name?.split(' ').slice(1).join(' ') || '',
         email: prev.email || user?.email || '',
-        phone: prev.phone || userAny?.phone_number || '',
+        phone: prev.phone || userAny?.phoneNumber || '',
         address: prev.address || userAny?.address_line1 || '',
         city: prev.city || userAny?.city || '',
         state: prev.state || userAny?.state_province || '',

@@ -119,7 +119,7 @@ interface CreateClubForm {
   superAdminCountryCode: string
 }
 
-const setupRecaptcha = (phone_number: string) => {
+const setupRecaptcha = (phoneNumber: string) => {
   if (!window.recaptchaVerifier) {
     window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container-club-delete', {
       'size': 'invisible',
@@ -327,22 +327,28 @@ export default function ClubManagementPage() {
   const handleSendOTP = async () => {
     if (!user || !selectedClubId) return
 
-    const phoneNumber = (user as any).phone_number || (user as any).phoneNumber
+    const phoneNumber = (user as any).phoneNumber || (user as any).phoneNumber
     const countryCode = (user as any).countryCode || (user as any).phone_country_code || '+1'
 
-    if (!phoneNumber || !countryCode) {
-      toast.error("Phone number not found. Please update your profile.")
+    if (!phoneNumber || phoneNumber.trim() === '') {
+      const userType = (user as any).role === 'system_owner' ? 'system owner' : 'admin'
+      toast.error(`Phone number not found in your ${userType} profile. Please update your profile with a phone number to delete clubs.`)
       return
     }
 
-    const phone_number = `${countryCode}${phoneNumber}`
+    if (!countryCode || countryCode.trim() === '') {
+      toast.error("Country code not found. Please update your profile with a valid country code.")
+      return
+    }
+
+    const fullPhoneNumber = `${countryCode}${phoneNumber}`
 
     try {
-      const recaptchaVerifier = setupRecaptcha(phone_number)
-      const confirmationResult = await signInWithPhoneNumber(auth, phone_number, recaptchaVerifier)
+      const recaptchaVerifier = setupRecaptcha(fullPhoneNumber)
+      const confirmationResult = await signInWithPhoneNumber(auth, fullPhoneNumber, recaptchaVerifier)
 
       window.confirmationResult = confirmationResult
-      toast.success(`OTP sent to ${phone_number}`)
+      toast.success(`OTP sent to ${fullPhoneNumber}`)
       setOtpSent(true)
       setResendCountdown(10)
     } catch (error) {
@@ -564,8 +570,8 @@ export default function ClubManagementPage() {
                               value={createForm.contactPhone}
                               onChange={(e) => {
                                 // Remove any non-digit characters and limit to 15 digits
-                                const phone_number = e.target.value.replace(/\D/g, '').slice(0, 15)
-                                setCreateForm({ ...createForm, contactPhone: phone_number })
+                                const phoneNumber = e.target.value.replace(/\D/g, '').slice(0, 15)
+                                setCreateForm({ ...createForm, contactPhone: phoneNumber })
                               }}
                               placeholder="1234567890"
                               maxLength={15}
@@ -685,8 +691,8 @@ export default function ClubManagementPage() {
                               id="superAdminPhone"
                               value={createForm.superAdminPhone}
                               onChange={(e) => {
-                                const phone_number = e.target.value.replace(/\D/g, '').slice(0, 15)
-                                setCreateForm({ ...createForm, superAdminPhone: phone_number })
+                                const phoneNumber = e.target.value.replace(/\D/g, '').slice(0, 15)
+                                setCreateForm({ ...createForm, superAdminPhone: phoneNumber })
                               }}
                               placeholder="1234567890"
                               maxLength={15}
