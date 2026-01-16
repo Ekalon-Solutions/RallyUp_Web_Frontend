@@ -250,21 +250,40 @@ charlie.brown@example.com,Charlie,Brown,9234567890,+91,charlie_brown,1992-08-20,
             continue
           }
 
-          const regResp = await apiClient.userRegister({ ...payload, clubId } as any)
-          if (!regResp.success) {
-            failCount++
-            const errorMsg = regResp.error || regResp.message || 'unknown'
-            errors.push({ row: idx + 2, error: errorMsg.startsWith('registration failed - ') ? errorMsg.replace('registration failed - ', '') : errorMsg })
-            continue
+          let existingUser = null
+          let userId = null
+
+          try {
+            const findUserResp = await apiClient.findUserByEmailOrPhone({
+              email: email,
+              phoneNumber: phoneNumber,
+              countryCode: normalizedCountryCode
+            })
+
+            if (findUserResp.success && findUserResp.data?.user) {
+              existingUser = findUserResp.data.user
+              userId = existingUser._id
+            }
+          } catch (err) {
           }
 
-          const createdUser = (regResp.data && (regResp.data.user || regResp.data)) || null
-          const newUserId = createdUser?._id || regResp.data?._id
+          if (!userId) {
+            const regResp = await apiClient.userRegister({ ...payload, clubId } as any)
+            if (!regResp.success) {
+              failCount++
+              const errorMsg = regResp.error || regResp.message || 'unknown'
+              errors.push({ row: idx + 2, error: errorMsg.startsWith('registration failed - ') ? errorMsg.replace('registration failed - ', '') : errorMsg })
+              continue
+            }
 
-          if (!newUserId) {
-            failCount++
-            errors.push({ row: idx + 2, error: 'registration succeeded but user id missing' }) 
-            continue
+            const createdUser = (regResp.data && (regResp.data.user || regResp.data)) || null
+            userId = createdUser?._id || regResp.data?._id
+
+            if (!userId) {
+              failCount++
+              errors.push({ row: idx + 2, error: 'registration succeeded but user id missing' }) 
+              continue
+            }
           }
 
           const plan = plans.find(p => p._id === selectedPlanId)
@@ -276,7 +295,7 @@ charlie.brown@example.com,Charlie,Brown,9234567890,+91,charlie_brown,1992-08-20,
           }
 
           const membershipData: any = {
-            user_id: newUserId,
+            user_id: userId,
             membership_level_id: selectedPlanId,
             level_name: plan?.name || '',
             club_id: clubId,
@@ -296,8 +315,14 @@ charlie.brown@example.com,Charlie,Brown,9234567890,+91,charlie_brown,1992-08-20,
 
           if (!memResp.ok) {
             const err = await memResp.json().catch(() => ({}))
-            failCount++
-            errors.push({ row: idx + 2, error: `membership creation failed - ${err.message || memResp.statusText}` })
+            const errorMessage = err.message || memResp.statusText || 'Unknown error'
+            
+            if (errorMessage.includes('already has an active membership')) {
+              successCount++
+            } else {
+              failCount++
+              errors.push({ row: idx + 2, error: `membership creation failed - ${errorMessage}` })
+            }
             continue
           }
 

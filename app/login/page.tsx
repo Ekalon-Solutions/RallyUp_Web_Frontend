@@ -115,9 +115,10 @@ function AuthPageContent() {
   const [isLoading, setIsLoading] = useState(false)
   const [activeTab, setActiveTab] = useState("user-login")
   const [otpButtonLoading, setOtpButtonLoading] = useState(false)
-  const { login, register, isAuthenticated } = useAuth()
+  const { login, register, isAuthenticated, user } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
+
 
   const [userLoginData, setUserLoginData] = useState({ email: "", phoneNumber: "", countryCode: "+91" })
   const [userRegisterData, setUserRegisterData] = useState({
@@ -241,10 +242,19 @@ function AuthPageContent() {
   }, [systemOwnerRegisterResendCountdown])
 
   useEffect(() => {
-    if (isAuthenticated) {
-      router.push("/dashboard")
+    if (isAuthenticated && user) {
+      const userAny = user as any
+      const memberships = userAny.memberships || []
+      const activeMemberships = memberships.filter((m: any) => m.status === 'active')
+      const uniqueClubIds = new Set<string>()
+      activeMemberships.forEach((membership: any) => {
+        const clubId = membership.club_id?._id || membership.club_id
+        if (clubId) uniqueClubIds.add(clubId)
+      })
+      const redirectPath = uniqueClubIds.size > 1 ? "/splash" : "/dashboard"
+      router.push(redirectPath)
     }
-  }, [isAuthenticated, router])
+  }, [isAuthenticated, user, router])
 
   useEffect(() => {
     const club = searchParams.get("club")
@@ -297,7 +307,6 @@ function AuthPageContent() {
             
             if (loginResult?.success) {
               toast.success("Signed in successfully via email link")
-              router.push("/dashboard")
             } else {
               toast.error(loginResult?.error || "Backend login failed. Please try again.")
             }
@@ -348,7 +357,6 @@ function AuthPageContent() {
       }
       if (backendResult?.success) {
         toast.success("Login successful!")
-        router.push("/dashboard")
       } else {
         toast.error(backendResult?.error || "Login failed. Please try again.")
       }

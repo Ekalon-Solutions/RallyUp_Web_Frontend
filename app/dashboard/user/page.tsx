@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useMemo } from "react"
+import Image from "next/image"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -106,6 +107,7 @@ export default function UserDashboardPage() {
   const [showEventPaymentSimulationModal, setShowEventPaymentSimulationModal] = useState(false)
   const [eventForPayment, setEventForPayment] = useState<Event | null>(null)
   const [attendeesForPayment, setAttendeesForPayment] = useState<any[]>([])
+  const [showLogo, setShowLogo] = useState(true)
 
   const paymentEvent = eventForPayment
     ? {
@@ -160,9 +162,13 @@ export default function UserDashboardPage() {
   }
 
   useEffect(() => {
-    // console.log('User dashboard - User object:', user)
-    // console.log('Active membership:', activeMembership)
-    // console.log('User club:', userClub)
+    const timer = setTimeout(() => {
+      setShowLogo(false)
+    }, 2000)
+    return () => clearTimeout(timer)
+  }, [])
+
+  useEffect(() => {
     fetchData()
   }, [user, activeMembership, userClub])
 
@@ -631,6 +637,29 @@ export default function UserDashboardPage() {
     <ProtectedRoute>
       <DashboardLayout>
         <div className="space-y-6">
+          <div className={`fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm transition-opacity duration-1000 ease-in-out pointer-events-none ${showLogo ? 'opacity-100' : 'opacity-0'}`}>
+            <div className={`relative w-32 h-32 md:w-40 md:h-40 transition-all duration-1000 ease-in-out ${showLogo ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
+              {userClub?.logo ? (
+                <Image
+                  src={userClub.logo}
+                  alt={userClub.name || "Club logo"}
+                  fill
+                  sizes="160px"
+                  className="object-contain"
+                  priority
+                />
+              ) : (
+                <Image
+                  src="/WingmanPro Logo (White BG).svg"
+                  alt="Wingman Pro logo"
+                  fill
+                  sizes="160px"
+                  className="object-contain"
+                  priority
+                />
+              )}
+            </div>
+          </div>
           <div>
             <h1 className="text-3xl font-bold">Welcome, {getUserDisplayName()}!</h1>
             <p className="text-muted-foreground">Stay updated with the latest events and news from your supporter group</p>

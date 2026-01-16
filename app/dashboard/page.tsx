@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
+import Image from "next/image"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
@@ -32,12 +33,20 @@ export default function DashboardPage() {
   const [showCreateNewsModal, setShowCreateNewsModal] = useState(false)
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
+  const [showLogo, setShowLogo] = useState(true)
   
   useEffect(() => {
     if (user && !isAdmin) {
       window.location.href = "/dashboard/user"
     }
   }, [user, isAdmin])
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowLogo(false)
+    }, 2000)
+    return () => clearTimeout(timer)
+  }, [])
 
   useEffect(() => { 
     if (authLoading) {
@@ -91,10 +100,37 @@ export default function DashboardPage() {
     fetchDashboardStats()
   }, [user, authLoading])
 
+  const userAny = user as any
+  const clubLogo = userAny?.club?.logo || (userAny?.memberships?.[0]?.club_id?.logo)
+  const clubName = userAny?.club?.name || (userAny?.memberships?.[0]?.club_id?.name)
+
   return (
     <ProtectedRoute>
       <DashboardLayout>
         <div className="max-w-7xl mx-auto space-y-10">
+          <div className={`fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm transition-opacity duration-1000 ease-in-out pointer-events-none ${showLogo ? 'opacity-100' : 'opacity-0'}`}>
+            <div className={`relative w-32 h-32 md:w-40 md:h-40 transition-all duration-1000 ease-in-out ${showLogo ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
+              {clubLogo ? (
+                <Image
+                  src={clubLogo}
+                  alt={clubName || "Club logo"}
+                  fill
+                  sizes="160px"
+                  className="object-contain"
+                  priority
+                />
+              ) : (
+                <Image
+                  src="/WingmanPro Logo (White BG).svg"
+                  alt="Wingman Pro logo"
+                  fill
+                  sizes="160px"
+                  className="object-contain"
+                  priority
+                />
+              )}
+            </div>
+          </div>
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b">
             <div className="space-y-2">
               <h1 className="text-4xl font-black tracking-tight">Dashboard</h1>

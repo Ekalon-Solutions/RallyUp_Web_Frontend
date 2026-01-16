@@ -10,6 +10,8 @@ interface AuthContextType {
   isAdmin: boolean;
   isSystemOwner: boolean;
   userRole: string | undefined;
+  activeClubId: string | null;
+  setActiveClubId: (clubId: string | null) => void;
   login: (email: string, phoneNumber: string, countryCode: string, isAdmin?: boolean, isSystemOwner?: boolean) => Promise<{ success: boolean; error?: string }>;
   register: (userData: any, isAdmin?: boolean, isSystemOwner?: boolean) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
@@ -22,13 +24,26 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | Admin | SystemOwner | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeClubId, setActiveClubIdState] = useState<string | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     const userType = localStorage.getItem('userType');
-    // // console.log('Initial auth check - Token:', token, 'UserType:', userType);
+    const savedClubId = localStorage.getItem('activeClubId');
+    if (savedClubId) {
+      setActiveClubIdState(savedClubId);
+    }
     checkAuth();
   }, []);
+
+  const setActiveClubId = (clubId: string | null) => {
+    setActiveClubIdState(clubId);
+    if (clubId) {
+      localStorage.setItem('activeClubId', clubId);
+    } else {
+      localStorage.removeItem('activeClubId');
+    }
+  };
 
   const checkAuth = async () => {
     try {
@@ -41,11 +56,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return;
       }
 
-      // Check userType from localStorage to determine which endpoint to try first
       let profileResponse = null;
       
       if (userType === 'admin') {
-        // Try admin profile first
         try {
           // console.log('Trying admin profile (from userType)...');
           const adminResponse = await apiClient.adminProfile();
@@ -59,7 +72,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // // console.log('Admin profile failed, falling back to discovery');
         }
       } else if (userType === 'system_owner') {
-        // Try system owner profile first
         try {
           // console.log('Trying system owner profile (from userType)...');
           const systemOwnerResponse = await apiClient.systemOwnerProfile();
@@ -88,8 +100,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
 
-      // If userType wasn't set or the primary check failed, try discovery in order: user -> admin -> system owner
-      // Start with user profile since most users are regular users
       try {
         // console.log('Trying user profile (discovery)...');
         const userResponse = await apiClient.userProfile();
@@ -103,8 +113,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (error) {
         // Silently continue to next check
       }
-
-      // Try admin profile
       try {
         // console.log('Trying admin profile (discovery)...');
         const adminResponse = await apiClient.adminProfile();
@@ -116,10 +124,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return;
         }
       } catch (error) {
-        // Silently continue to next check
       }
-
-      // Try system owner profile
       try {
         // console.log('Trying system owner profile (discovery)...');
         const systemOwnerResponse = await apiClient.systemOwnerProfile();
@@ -131,11 +136,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return;
         }
       } catch (error) {
-        // Silently continue
       }
-
-      // If all fail, clear token and user
-      // // console.log('All profile checks failed, clearing auth');
+      
       localStorage.removeItem('token');
       localStorage.removeItem('userType');
       setUser(null);
@@ -249,10 +251,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => {
-    // // console.log('Logging out...');
     localStorage.removeItem('token');
     localStorage.removeItem('userType');
+    localStorage.removeItem('activeClubId');
     setUser(null);
+    setActiveClubIdState(null);
     window.location.href = '/';
   };
 
@@ -290,6 +293,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isAdmin: user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'system_owner',
     isSystemOwner: user?.role === 'system_owner',
     userRole: user?.role,
+    activeClubId,
+    setActiveClubId,
     login,
     register,
     logout,

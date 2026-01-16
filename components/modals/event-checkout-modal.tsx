@@ -12,6 +12,8 @@ import {
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
+import { MemberValidationModal } from "./member-validation-modal"
+import { useRouter } from "next/navigation"
 
 declare global {
   interface Window {
@@ -38,10 +40,14 @@ interface EventCheckoutModalProps {
 
 export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCode, onSuccess, onFailure }: EventCheckoutModalProps) {
   const { user } = useAuth()
+  const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [couponDiscount, setCouponDiscount] = useState(0)
   const [couponName, setCouponName] = useState("")
   const [scriptLoaded, setScriptLoaded] = useState(false)
+  const [showMemberValidation, setShowMemberValidation] = useState(false)
+  const [memberValidated, setMemberValidated] = useState(false)
+  const [eventData, setEventData] = useState<any>(null)
 
   useEffect(() => {
     // Load Razorpay script
@@ -62,6 +68,23 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
       }
     }
   }, [isOpen, scriptLoaded])
+
+  // Fetch event data to get clubId
+  useEffect(() => {
+    const fetchEventData = async () => {
+      if (event?._id && isOpen && !eventData) {
+        try {
+          const response = await apiClient.getEventById(String(event._id))
+          if (response.success && response.data) {
+            setEventData(response.data)
+          }
+        } catch (error) {
+          console.error("Error fetching event data:", error)
+        }
+      }
+    }
+    fetchEventData()
+  }, [event?._id, isOpen, eventData])
 
   useEffect(() => {
     const validateCoupon = async () => {
@@ -100,6 +123,12 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
 
     if (!event?._id) {
       toast.error("Event information is missing")
+      return
+    }
+
+    // For non-authenticated users, show member validation first
+    if (!user && !memberValidated) {
+      setShowMemberValidation(true)
       return
     }
 
@@ -396,6 +425,29 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
           )}
         </Button>
       </DialogContent>
+
+      {/* Member Validation Modal */}
+      {eventData?.clubId && (
+        <MemberValidationModal
+          isOpen={showMemberValidation}
+          onClose={() => setShowMemberValidation(false)}
+          clubId={eventData.clubId}
+          onMemberFound={() => {
+            router.push('/login')
+            onClose()
+          }}
+          onNonMemberContinue={() => {
+            setMemberValidated(true)
+            setShowMemberValidation(false)
+            // Retry payment
+            handlePayment()
+          }}
+          onBecomeMember={() => {
+            router.push(`/register?club=${eventData.clubId}`)
+            onClose()
+          }}
+        />
+      )}
     </Dialog>
   )
 }

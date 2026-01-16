@@ -491,7 +491,9 @@ export interface ExternalTicketRequest {
   tickets: number;
   preferred_date: string;
   comments?: string;
-  status: 'unfulfilled' | 'fulfilled';
+  status: 'fulfilled' | 'rejected' | 'on_hold' | 'pending' | 'cancelled_by_member' | 'unfulfilled';
+  fixture_id?: Event | string;
+  competition?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -1030,26 +1032,55 @@ class ApiClient {
     return this.request(`/external-tickets/${id}`);
   }
 
-  async listExternalTicketRequestsForClub(clubId: string, params?: { status?: string; page?: number; limit?: number }) {
+  async listExternalTicketRequestsForClub(clubId: string, params?: { 
+    status?: string; 
+    fixtureId?: string; 
+    competition?: string; 
+    page?: number; 
+    limit?: number 
+  }) {
     const query: Record<string, any> = {};
     if (params?.status) query.status = params.status;
+    if (params?.fixtureId) query.fixtureId = params.fixtureId;
+    if (params?.competition) query.competition = params.competition;
     if (params?.page) query.page = params.page;
     if (params?.limit) query.limit = params.limit;
     return this.request(`/external-tickets/club/${clubId}` + (Object.keys(query).length ? `?${new URLSearchParams(query as any).toString()}` : ''));
   }
 
-  async updateExternalTicketRequestStatus(id: string, status: 'unfulfilled' | 'fulfilled') {
+  async updateExternalTicketRequestStatus(id: string, status: 'fulfilled' | 'rejected' | 'on_hold' | 'pending' | 'cancelled_by_member' | 'unfulfilled') {
     return this.request(`/external-tickets/${id}/status`, {
       method: 'PUT',
       body: JSON.stringify({ status }),
     });
   }
 
+  async bulkUpdateExternalTicketRequestStatus(ids: string[], status: 'fulfilled' | 'rejected' | 'on_hold' | 'pending' | 'cancelled_by_member' | 'unfulfilled') {
+    return this.request('/external-tickets/bulk/status', {
+      method: 'PUT',
+      body: JSON.stringify({ ids, status }),
+    });
+  }
+
+  async exportExternalTicketRequests(clubId: string, params?: { 
+    status?: string; 
+    fixtureId?: string; 
+    competition?: string; 
+    format?: 'csv' | 'xlsx' 
+  }) {
+    const query: Record<string, any> = {};
+    if (params?.status) query.status = params.status;
+    if (params?.fixtureId) query.fixtureId = params.fixtureId;
+    if (params?.competition) query.competition = params.competition;
+    if (params?.format) query.format = params.format;
+    return this.downloadFile(`/external-tickets/club/${clubId}/export` + (Object.keys(query).length ? `?${new URLSearchParams(query as any).toString()}` : ''));
+  }
+
   async createEvent(data: {
     title: string;
     category: string;
-    startTime: string; // ISO date string
-    endTime?: string; // ISO date string (optional)
+    startTime: string;
+    endTime?: string;
     venue: string;
     description: string;
     maxAttendees?: number;
@@ -1058,8 +1089,8 @@ class ApiClient {
     memberOnly: boolean;
     clubId?: string;
     awayDayEvent: boolean;
-    bookingStartTime?: string; // ISO date string
-    bookingEndTime?: string; // ISO date string
+    bookingStartTime?: string;
+    bookingEndTime?: string;
     earlyBirdDiscount?: any;
     memberDiscount?: any;
     groupDiscount?: any;
@@ -1073,8 +1104,8 @@ class ApiClient {
   async updateEvent(id: string, data: {
     title?: string;
     category?: string;
-    startTime?: string; // ISO date string
-    endTime?: string; // ISO date string (optional)
+    startTime?: string;
+    endTime?: string;
     venue?: string;
     description?: string;
     maxAttendees?: number;
@@ -1103,8 +1134,6 @@ class ApiClient {
     });
   }
 
-  // Event Registration APIs
-  // Accepts optional notes and an attendees array: [{ name, phone }]
   async registerForEvent(eventId: string, notes?: string, attendees?: Array<{ name: string; phone: string }>, couponCode?: string | null, orderID?: string, paymentID?: string, signature?: string): Promise<ApiResponse<{ message: string; event: Event }>> {
     return this.request(`/events/${eventId}/register`, {
       method: 'POST',
@@ -1155,7 +1184,6 @@ class ApiClient {
     return this.request('/events/my-registrations');
   }
 
-  // Leaderboard
   async getLeaderboard(): Promise<ApiResponse<{
     leaderboard: Array<{
       userId: string;
@@ -1177,7 +1205,6 @@ class ApiClient {
     });
   }
 
-  // Volunteer Management (Updated for new structure)
   async getVolunteers(params?: {
     club?: string;
     skills?: string[];
@@ -1253,7 +1280,6 @@ class ApiClient {
     });
   }
 
-  // Alias for registerForVolunteerOpportunity (for backward compatibility)
   async signUpForVolunteerOpportunity(opportunityId: string, timeSlotId: string, volunteerData?: {
     notes?: string;
     emergencyContact?: string;
@@ -1269,8 +1295,6 @@ class ApiClient {
     });
   }
 
-
-
   async getVolunteerSignupsForOpportunity(opportunityId: string): Promise<ApiResponse<{
     opportunityId: string;
     opportunityTitle: string;
@@ -1284,7 +1308,6 @@ class ApiClient {
     return this.request(`/volunteer/opportunities/${opportunityId}/signups`);
   }
 
-  // Admin Volunteer Assignment APIs
   async assignVolunteerToOpportunity(data: {
     opportunityId: string;
     timeSlotId: string;
@@ -1330,8 +1353,6 @@ class ApiClient {
     });
   }
 
-  // Volunteer Profile Management (Legacy - use new volunteer profile methods instead)
-
   async getVolunteerHistory(params?: {
     page?: number;
     limit?: number;
@@ -1365,7 +1386,6 @@ class ApiClient {
     return this.request(endpoint);
   }
 
-  // Volunteer Skills and Training
   async getAvailableSkills(): Promise<ApiResponse<string[]>> {
     return this.request('/volunteer/skills');
   }
@@ -1386,12 +1406,10 @@ class ApiClient {
     return this.request(endpoint);
   }
 
-  // Get volunteer profile for the current user
   async getVolunteerProfile(): Promise<ApiResponse<VolunteerProfile>> {
     return this.request('/volunteer/volunteer-profile');
   }
 
-  // Create volunteer profile for the current user
   async createVolunteerProfile(data: {
     interests: string[];
     availability: {
@@ -1964,6 +1982,17 @@ class ApiClient {
     phoneNumber: string;
   }): Promise<ApiResponse<{ message: string; user: User }>> {
     return this.request('/users/join-club', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async findUserByEmailOrPhone(data: {
+    email?: string;
+    phoneNumber?: string;
+    countryCode?: string;
+  }): Promise<ApiResponse<{ user: { _id: string; email: string; phoneNumber: string; first_name: string; last_name: string; name: string } }>> {
+    return this.request('/users/find-by-credentials', {
       method: 'POST',
       body: JSON.stringify(data)
     });
@@ -2822,6 +2851,24 @@ class ApiClient {
     }>;
   }>> {
     return this.get('/system-status');
+  }
+
+  async validateMemberStatus(data: {
+    clubId: string;
+    email?: string;
+    mobileNumber?: string;
+    countryCode?: string;
+  }): Promise<ApiResponse<{
+    isMember: boolean;
+    userId?: string;
+    membershipStatus?: 'active' | 'expired' | 'cancelled' | 'pending';
+    membershipEndDate?: string;
+    message?: string;
+  }>> {
+    return this.request('/member-validation/validate', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   }
 }
 
