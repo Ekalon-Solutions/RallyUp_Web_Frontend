@@ -284,6 +284,20 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
       <div className="p-6 border-t bg-muted/20">
         <div className="space-y-4">
+          {/* Club Name Display */}
+          {(() => {
+            const userAny = user as any
+            const clubName = userAny?.club?.name || (userAny?.memberships?.[0]?.club_id?.name)
+            if (clubName) {
+              return (
+                <div className="px-3 py-2 rounded-xl bg-primary/5 border border-primary/10">
+                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Selected Club</p>
+                  <p className="text-sm font-bold text-foreground truncate">{clubName}</p>
+                </div>
+              )
+            }
+            return null
+          })()}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="w-full h-14 px-4 justify-start bg-card border-2 hover:bg-muted/50 transition-all rounded-2xl group shadow-sm">

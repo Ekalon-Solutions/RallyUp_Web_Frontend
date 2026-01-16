@@ -33,7 +33,8 @@ export default function DashboardPage() {
   const [showCreateNewsModal, setShowCreateNewsModal] = useState(false)
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
-  const [showLogo, setShowLogo] = useState(true)
+  const [showLogo, setShowLogo] = useState(false)
+  const [logoFadeIn, setLogoFadeIn] = useState(false)
   
   useEffect(() => {
     if (user && !isAdmin) {
@@ -42,11 +43,22 @@ export default function DashboardPage() {
   }, [user, isAdmin])
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowLogo(false)
-    }, 2000)
-    return () => clearTimeout(timer)
-  }, [])
+    const hasSeenDashboardLogo = localStorage.getItem('hasSeenDashboardLogo')
+    
+    if (!hasSeenDashboardLogo && user) {
+      setShowLogo(true)
+      setTimeout(() => {
+        setLogoFadeIn(true)
+      }, 50)
+      
+      const fadeOutTimer = setTimeout(() => {
+        setShowLogo(false)
+        localStorage.setItem('hasSeenDashboardLogo', 'true')
+      }, 2000)
+      
+      return () => clearTimeout(fadeOutTimer)
+    }
+  }, [user])
 
   useEffect(() => { 
     if (authLoading) {
@@ -109,7 +121,7 @@ export default function DashboardPage() {
       <DashboardLayout>
         <div className="max-w-7xl mx-auto space-y-10">
           <div className={`fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm transition-opacity duration-1000 ease-in-out pointer-events-none ${showLogo ? 'opacity-100' : 'opacity-0'}`}>
-            <div className={`relative w-32 h-32 md:w-40 md:h-40 transition-all duration-1000 ease-in-out ${showLogo ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
+            <div className={`relative w-32 h-32 md:w-40 md:h-40 transition-all duration-1000 ease-in-out ${logoFadeIn && showLogo ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
               {clubLogo ? (
                 <Image
                   src={clubLogo}
