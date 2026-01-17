@@ -141,27 +141,36 @@ export default function MembershipCardsPage() {
               
               setCards(validCards)
             } else {
-              // Handle API error response
-              const errorMessage = cardsResponse.error || 'Failed to fetch membership cards';
-              // // console.error('Membership cards API error:', cardsResponse);
+              const errorDetails = (cardsResponse as any).errorDetails || {}
+              const errorMessage = cardsResponse.error || 'Unknown error occurred'
+              const statusCode = errorDetails.statusCode || (cardsResponse as any).statusCode || 'Unknown'
+              const clubIdValue = clubResponse.data?.club?._id || 'Unknown'
+              setError(errorMessage)
               toast({
-                title: "Error",
-                description: errorMessage,
+                title: "Error Loading Membership Cards",
+                description: `Failed to fetch membership cards for club (ID: ${clubIdValue}): ${errorMessage}. Status: ${statusCode}. ${errorDetails.message ? `Details: ${errorDetails.message}.` : ''} Please check your authentication and try again.`,
                 variant: "destructive",
-              });
+              })
             }
         } else {
-          setError('No club found for this user')
+          const errorMsg = 'No club found for this admin account. Please ensure your account is associated with a club before managing membership cards.'
+          setError(errorMsg)
+          toast({
+            title: "Club Not Found",
+            description: errorMsg,
+            variant: "destructive",
+          })
         }
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to fetch initial data';
-        setError(errorMessage);
+      } catch (err: any) {
+        const errorMessage = err?.message || 'Network error or server unavailable'
+        const errorDetails = err?.response?.data || {}
+        const statusCode = err?.response?.status || 'Unknown'
+        setError(errorMessage)
         toast({
-          title: "Error",
-          description: errorMessage,
+          title: "Error Loading Initial Data",
+          description: `Failed to fetch initial data (club and membership cards): ${errorMessage}. Status: ${statusCode}. ${errorDetails.message ? `Details: ${errorDetails.message}.` : ''} Please check your internet connection and try again.`,
           variant: "destructive",
-        });
-        // // console.error('Initial data fetch error:', err);
+        })
       } finally {
         setLoading(false)
       }
@@ -269,47 +278,58 @@ export default function MembershipCardsPage() {
         }
       }
 
+      const planName = membershipPlans.find(p => p._id === selectedPlanId)?.name || 'Unknown Plan'
+      
       const response = await apiClient.createMembershipCard(cardData)
       
       if (response.success && response.data) {
-        // The API returns { success, data: { card, club, membershipPlan } }
-        // So response.data is already the correct structure
-        const newCard = response.data;
+        const newCard = response.data
         
-        // Validate the card structure before adding
         if (newCard && newCard.card && newCard.club && newCard.membershipPlan) {
           setCards(prev => [newCard, ...prev])
           
           toast({
-            title: "Card created",
-            description: "Membership card created successfully",
+            title: "Membership Card Created Successfully",
+            description: `Membership card for plan "${planName}" has been created successfully. Card number: ${newCard.card.cardNumber}. The card is now available for members with this membership plan.`,
           })
           
           setSelectedPlanId("")
           setPreviewUrl(null)
           setSelectedFile(null)
         } else {
-          // // console.error('Invalid card structure received:', newCard);
+          const missingFields = []
+          if (!newCard?.card) missingFields.push('card data')
+          if (!newCard?.club) missingFields.push('club data')
+          if (!newCard?.membershipPlan) missingFields.push('membership plan data')
           toast({
-            title: "Error",
-            description: "Received invalid card structure from server",
+            title: "Invalid Card Structure Received",
+            description: `Received invalid membership card structure from server for plan "${planName}". Missing: ${missingFields.join(', ')}. Please try refreshing and creating the card again.`,
             variant: "destructive",
           })
         }
       } else {
-        // Show the specific error from the backend
+        const errorDetails = (response as any).errorDetails || {}
+        const errorMessage = response.error || 'Unknown error occurred'
+        const statusCode = errorDetails.statusCode || (response as any).statusCode || 'Unknown'
+        const validationErrors = errorDetails.errors || errorDetails.validationErrors || []
+        const validationMsg = validationErrors.length > 0 ? ` Validation errors: ${validationErrors.join(', ')}.` : ''
         toast({
-          title: "Error",
-          description: response.error || 'Failed to create membership card',
+          title: "Failed to Create Membership Card",
+          description: `Failed to create membership card for plan "${planName}" (Plan ID: ${selectedPlanId}): ${errorMessage}. Status: ${statusCode}.${validationMsg} ${errorDetails.message ? `Details: ${errorDetails.message}.` : ''} Please check the plan details and try again.`,
           variant: "destructive",
         })
         return
       }
-    } catch (error) {
-      // console.error('Error creating membership card:', error)
+    } catch (error: any) {
+      const planName = membershipPlans.find(p => p._id === selectedPlanId)?.name || 'Unknown Plan'
+      const errorMessage = error?.message || 'Network error or server unavailable'
+      const errorDetails = error?.response?.data || {}
+      const statusCode = error?.response?.status || 'Unknown'
+      const validationErrors = errorDetails.errors || []
+      const validationMsg = validationErrors.length > 0 ? ` Validation errors: ${validationErrors.join(', ')}.` : ''
       toast({
-        title: "Error",
-        description: "Failed to create membership card",
+        title: "Error Creating Membership Card",
+        description: `Failed to create membership card for plan "${planName}" (Plan ID: ${selectedPlanId}) due to: ${errorMessage}. Status: ${statusCode}.${validationMsg} ${errorDetails.message ? `Details: ${errorDetails.message}.` : ''} Please check your connection and try again.`,
         variant: "destructive",
       })
     } finally {
@@ -319,21 +339,33 @@ export default function MembershipCardsPage() {
 
   const handleDeleteCard = async (cardId: string) => {
     try {
+      const cardToDelete = cards.find(c => c.card._id === cardId)
+      const planName = cardToDelete?.membershipPlan?.name || 'Unknown Plan'
+      const cardNumber = cardToDelete?.card?.cardNumber || 'Unknown'
+      
       const response = await apiClient.deleteMembershipCard(cardId)
       
       if (response.success) {
         setCards(prev => prev.filter(card => card.card._id !== cardId))
         toast({
-          title: "Success",
-          description: "Membership card deleted successfully",
+          title: "Membership Card Deleted Successfully",
+          description: `Membership card for plan "${planName}" (Card number: ${cardNumber}) has been deleted successfully. The card is no longer available.`,
         })
       } else {
-        throw new Error(response.error || 'Failed to delete card')
+        const errorDetails = (response as any).errorDetails || {}
+        const errorMessage = response.error || 'Unknown error occurred'
+        const statusCode = errorDetails.statusCode || (response as any).statusCode || 'Unknown'
+        throw new Error(`Failed to delete card: ${errorMessage} (Status: ${statusCode})`)
       }
-    } catch (error) {
+    } catch (error: any) {
+      const cardToDelete = cards.find(c => c.card._id === cardId)
+      const planName = cardToDelete?.membershipPlan?.name || 'Unknown Plan'
+      const errorMessage = error?.message || 'Network error or server unavailable'
+      const errorDetails = error?.response?.data || {}
+      const statusCode = error?.response?.status || 'Unknown'
       toast({
-        title: "Error",
-        description: "Failed to delete membership card",
+        title: "Failed to Delete Membership Card",
+        description: `Failed to delete membership card for plan "${planName}" (Card ID: ${cardId}): ${errorMessage}. Status: ${statusCode}. ${errorDetails.message ? `Details: ${errorDetails.message}.` : ''} Please try again.`,
         variant: "destructive",
       })
     }
@@ -375,11 +407,23 @@ export default function MembershipCardsPage() {
           )
           
           setCards(validCards)
+        } else {
+          const errorDetails = (cardsResponse as any).errorDetails || {}
+          const errorMessage = cardsResponse.error || 'Unknown error occurred'
+          const statusCode = errorDetails.statusCode || (cardsResponse as any).statusCode || 'Unknown'
+          toast({
+            title: "Error Refreshing Membership Cards",
+            description: `Failed to refresh membership cards for club (ID: ${clubId}): ${errorMessage}. Status: ${statusCode}. ${errorDetails.message ? `Details: ${errorDetails.message}.` : ''} Please try again.`,
+            variant: "destructive",
+          })
         }
-      } catch (err) {
+      } catch (err: any) {
+        const errorMessage = err?.message || 'Network error or server unavailable'
+        const errorDetails = err?.response?.data || {}
+        const statusCode = err?.response?.status || 'Unknown'
         toast({
-          title: "Error",
-          description: "Failed to refresh data",
+          title: "Error Refreshing Data",
+          description: `Failed to refresh membership cards and plans for club (ID: ${clubId || 'Unknown'}) due to: ${errorMessage}. Status: ${statusCode}. ${errorDetails.message ? `Details: ${errorDetails.message}.` : ''} Please check your connection and try again.`,
           variant: "destructive",
         })
       } finally {
@@ -390,26 +434,37 @@ export default function MembershipCardsPage() {
 
   const handleRegenerateQR = async (cardId: string) => {
     try {
+      const cardToUpdate = cards.find(c => c.card._id === cardId)
+      const planName = cardToUpdate?.membershipPlan?.name || 'Unknown Plan'
+      const cardNumber = cardToUpdate?.card?.cardNumber || 'Unknown'
+      
       const response = await apiClient.regenerateQRCode(cardId)
       
       if (response.success) {
-        // Update the card in the list with new QR code
         setCards(prev => prev.map(card => 
           card.card._id === cardId 
             ? { ...card, card: { ...card.card, qrCode: response.data?.qrCode } }
             : card
         ))
         toast({
-          title: "Success",
-          description: "QR code regenerated successfully",
+          title: "QR Code Regenerated Successfully",
+          description: `QR code for membership card "${cardNumber}" (Plan: "${planName}") has been regenerated successfully. The new QR code is now active.`,
         })
       } else {
-        throw new Error(response.error || 'Failed to regenerate QR code')
+        const errorDetails = (response as any).errorDetails || {}
+        const errorMessage = response.error || 'Unknown error occurred'
+        const statusCode = errorDetails.statusCode || (response as any).statusCode || 'Unknown'
+        throw new Error(`Failed to regenerate QR code: ${errorMessage} (Status: ${statusCode})`)
       }
-    } catch (error) {
+    } catch (error: any) {
+      const cardToUpdate = cards.find(c => c.card._id === cardId)
+      const planName = cardToUpdate?.membershipPlan?.name || 'Unknown Plan'
+      const errorMessage = error?.message || 'Network error or server unavailable'
+      const errorDetails = error?.response?.data || {}
+      const statusCode = error?.response?.status || 'Unknown'
       toast({
-        title: "Error",
-        description: "Failed to regenerate QR code",
+        title: "Failed to Regenerate QR Code",
+        description: `Failed to regenerate QR code for membership card (Card ID: ${cardId}, Plan: "${planName}"): ${errorMessage}. Status: ${statusCode}. ${errorDetails.message ? `Details: ${errorDetails.message}.` : ''} Please try again.`,
         variant: "destructive",
       })
     }
@@ -465,50 +520,59 @@ export default function MembershipCardsPage() {
         }
       };
 
-      const response = await apiClient.updateMembershipCard(editingCard.card._id, updateData);
+      const planName = editingCard.membershipPlan?.name || 'Unknown Plan'
+      const cardNumber = editingCard.card.cardNumber || 'Unknown'
+      
+      const response = await apiClient.updateMembershipCard(editingCard.card._id, updateData)
       
       if (response.success && response.data) {
-        // Debug: Log the response structure
-        // // console.log('Update response:', response);
-        // // console.log('Response data:', response.data);
-        
-        // Update the card in the list with the new data
         setCards(prev => prev.map(card => {
           if (card.card._id === editingCard.card._id) {
-            // If the response has the full card structure, use it
             if (response.data.card && response.data.membershipPlan) {
-              return response.data;
+              return response.data
             }
-            // Otherwise, merge the updated fields with the existing card
             return {
               ...card,
               card: {
                 ...card.card,
                 ...updateData
               }
-            };
+            }
           }
-          return card;
-        }));
+          return card
+        }))
         
+        const statusText = updateData.status ? ` Status: ${updateData.status}.` : ''
+        const accessLevelText = updateData.accessLevel ? ` Access level: ${updateData.accessLevel}.` : ''
         toast({
-          title: "Success",
-          description: "Membership card updated successfully",
-        });
+          title: "Membership Card Updated Successfully",
+          description: `Membership card "${cardNumber}" for plan "${planName}" has been updated successfully.${statusText}${accessLevelText} All changes have been saved.`,
+        })
         
-        setEditingCard(null); // Close modal
+        setEditingCard(null)
       } else {
-        throw new Error(response.error || 'Failed to update card');
+        const errorDetails = (response as any).errorDetails || {}
+        const errorMessage = response.error || 'Unknown error occurred'
+        const statusCode = errorDetails.statusCode || (response as any).statusCode || 'Unknown'
+        const validationErrors = errorDetails.errors || errorDetails.validationErrors || []
+        const validationMsg = validationErrors.length > 0 ? ` Validation errors: ${validationErrors.join(', ')}.` : ''
+        throw new Error(`Failed to update card: ${errorMessage} (Status: ${statusCode})${validationMsg}`)
       }
-    } catch (error) {
-      // // console.error('Update error:', error);
+    } catch (error: any) {
+      const planName = editingCard?.membershipPlan?.name || 'Unknown Plan'
+      const cardNumber = editingCard?.card?.cardNumber || 'Unknown'
+      const errorMessage = error?.message || 'Network error or server unavailable'
+      const errorDetails = error?.response?.data || {}
+      const statusCode = error?.response?.status || 'Unknown'
+      const validationErrors = errorDetails.errors || []
+      const validationMsg = validationErrors.length > 0 ? ` Validation errors: ${validationErrors.join(', ')}.` : ''
       toast({
-        title: "Error",
-        description: "Failed to update membership card",
+        title: "Failed to Update Membership Card",
+        description: `Failed to update membership card "${cardNumber}" for plan "${planName}" (Card ID: ${editingCard?.card._id}): ${errorMessage}. Status: ${statusCode}.${validationMsg} ${errorDetails.message ? `Details: ${errorDetails.message}.` : ''} Please check your changes and try again.`,
         variant: "destructive",
-      });
+      })
     } finally {
-      setIsEditing(false);
+      setIsEditing(false)
     }
   };
 

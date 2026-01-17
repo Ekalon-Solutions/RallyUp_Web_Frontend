@@ -94,31 +94,29 @@ export default function MembershipPlansPage() {
       }
 
       const response = await apiClient.getMembershipPlans(clubId)
-      // console.log('Membership plans response:', response)
 
       if (response.success) {
-        // Handle both direct array response and nested data response
         const respAny: any = response
         const plansData = Array.isArray(respAny.data) ? respAny.data : (respAny.data?.data || [])
-        // console.log('Processed plans data:', plansData)
         setPlans(plansData)
 
         if (plansData.length === 0) {
-          // console.log('No membership plans found')
-          toast.info('No membership plans found. You can create your first plan.')
+          toast.info('No membership plans found for this club. Click "Create Plan" to add your first membership plan.')
         }
 
-        // Load cards for this club to check which plans have cards
         if (clubId) {
           await loadPlansWithCards(clubId, plansData)
         }
       } else {
-        // console.error('Failed to load membership plans:', response.error)
-        toast.error(response.error || "Failed to load membership plans")
+        const errorDetails = (response as any).errorDetails || {}
+        const errorMessage = response.error || 'Unknown error occurred'
+        const statusCode = errorDetails.statusCode || (response as any).statusCode || 'Unknown'
+        toast.error(`Failed to load membership plans: ${errorMessage}. Status: ${statusCode}. Please check your authentication and try again.`)
       }
-    } catch (error) {
-      // console.error('Error loading membership plans:', error)
-      toast.error("Failed to load membership plans")
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Network error or server unavailable'
+      const errorDetails = error?.response?.data || error?.response || {}
+      toast.error(`Failed to load membership plans due to: ${errorMessage}. ${errorDetails.message ? `Details: ${errorDetails.message}` : ''} Please check your internet connection and try again.`)
     } finally {
       setIsLoading(false)
     }
@@ -126,7 +124,6 @@ export default function MembershipPlansPage() {
 
   const loadPlansWithCards = async (clubId: string, plansData: MembershipPlan[]) => {
     try {
-      // Fetch all membership cards for this club
       const cardsResponse = await apiClient.getClubMembershipCards(clubId, {})
       
       if (cardsResponse.success) {
@@ -134,11 +131,8 @@ export default function MembershipPlansPage() {
           ? cardsResponse.data 
           : (cardsResponse.data?.data || [])
         
-        // Extract membership plan IDs that have template cards
         const planIdsWithCards = new Set<string>()
         cards.forEach((card: any) => {
-          // Check if this card has a membershipPlan (template cards have this)
-          // The structure is: { card: {...}, membershipPlan: { _id: ... }, club: {...} }
           if (card.membershipPlan && card.membershipPlan._id) {
             planIdsWithCards.add(card.membershipPlan._id)
           }
@@ -147,13 +141,11 @@ export default function MembershipPlansPage() {
         setPlansWithCards(planIdsWithCards)
       }
     } catch (error) {
-      // Silently fail - cards check is not critical
       console.error('Error loading membership cards:', error)
     }
   }
 
   const handleCreateCard = (planId: string) => {
-    // Navigate to membership cards page with the plan pre-selected
     window.location.href = `/dashboard/membership-cards?planId=${planId}`
   }
 
@@ -162,23 +154,18 @@ export default function MembershipPlansPage() {
       let clubsList: Array<{ _id: string; name: string }> = []
       let initialClubId: string | undefined = undefined
 
-      // For admin/super_admin, get clubs they have access to
       const userRole = user?.role
       const userAny = user as any
 
       if (userRole === 'system_owner') {
-        // System owner can see all clubs
         const clubsResp = await apiClient.getPublicClubs()
         clubsList = clubsResp.success ? (clubsResp.data?.clubs || []) : []
         initialClubId = clubsList.length > 0 ? clubsList[0]._id : undefined
       } else if (userRole === 'admin' || userRole === 'super_admin') {
-        // Admin/Super admin - check for their assigned club or memberships
         if (userAny?.club?._id) {
-          // Has direct club property
           clubsList = [{ _id: userAny.club._id, name: userAny.club.name }]
           initialClubId = userAny.club._id
         } else if (userAny?.memberships && Array.isArray(userAny.memberships)) {
-          // Has memberships array
           clubsList = userAny.memberships
             .filter((m: any) => m.club_id && m.status === 'active')
             .map((m: any) => ({
@@ -188,7 +175,6 @@ export default function MembershipPlansPage() {
           initialClubId = clubsList.length > 0 ? clubsList[0]._id : undefined
         }
 
-        // If still no clubs, try the getAdminClub API
         if (clubsList.length === 0) {
           try {
             const adminClubResp = await apiClient.getAdminClub()
@@ -197,11 +183,9 @@ export default function MembershipPlansPage() {
               initialClubId = adminClubResp.data.club._id
             }
           } catch (err) {
-            // Ignore error
           }
         }
       } else {
-        // Regular user - get clubs from their memberships
         if (userAny?.memberships && Array.isArray(userAny.memberships)) {
           clubsList = userAny.memberships
             .filter((m: any) => m.club_id && m.status === 'active')
@@ -215,8 +199,7 @@ export default function MembershipPlansPage() {
 
       setClubs(clubsList)
       setSelectedClubId(initialClubId)
-
-      // Load plans for the initial club
+      
       await loadPlansForClub(initialClubId)
     } catch (error) {
       // console.error('Error loading clubs:', error)
@@ -236,10 +219,28 @@ export default function MembershipPlansPage() {
         return
       }
 
+      if (!formData.name || formData.name.trim().length === 0) {
+        toast.error('Plan name is required. Please enter a valid plan name before creating the membership plan.')
+        setIsCreating(false)
+        return
+      }
+
+      if (formData.price < 0) {
+        toast.error('Price cannot be negative. Please enter a valid price (0 or greater) for the membership plan.')
+        setIsCreating(false)
+        return
+      }
+
+      if (formData.duration < 1 || formData.duration > 120) {
+        toast.error('Duration must be between 1 and 120 months. Please enter a valid duration for the membership plan.')
+        setIsCreating(false)
+        return
+      }
+
       const response = await (apiClient as any).createMembershipPlan({ ...formData, clubId: selectedClubId })
 
       if (response.success) {
-        toast.success("Membership plan created successfully!")
+        toast.success(`Membership plan "${formData.name}" created successfully with price ${formData.currency} ${formData.price} for ${formData.duration} month(s).`)
         setShowCreateDialog(false)
         setFormData({
           name: "",
@@ -261,11 +262,19 @@ export default function MembershipPlansPage() {
         })
         loadPlans()
       } else {
-        toast.error(response.error || "Failed to create membership plan")
+        const errorDetails = response.errorDetails || {}
+        const errorMessage = response.error || 'Unknown error occurred'
+        const validationErrors = errorDetails.errors || errorDetails.validationErrors || []
+        const validationMsg = validationErrors.length > 0 ? ` Validation errors: ${validationErrors.join(', ')}.` : ''
+        toast.error(`Failed to create membership plan "${formData.name}": ${errorMessage}.${validationMsg} Please check all required fields and try again.`)
       }
-    } catch (error) {
-      // console.error('Error creating membership plan:', error)
-      toast.error("An error occurred while creating the plan")
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Network error or server unavailable'
+      const errorDetails = error?.response?.data || {}
+      const statusCode = error?.response?.status || 'Unknown'
+      const validationErrors = errorDetails.errors || []
+      const validationMsg = validationErrors.length > 0 ? ` Validation errors: ${validationErrors.join(', ')}.` : ''
+      toast.error(`Failed to create membership plan "${formData.name}" due to: ${errorMessage}. Status: ${statusCode}.${validationMsg} Please check your input and try again.`)
     } finally {
       setIsCreating(false)
     }
@@ -311,19 +320,33 @@ export default function MembershipPlansPage() {
 
   const handleToggleStatus = async (planId: string, currentStatus: boolean) => {
     try {
+      const plan = plans.find(p => p._id === planId)
+      const planName = plan?.name || 'Unknown Plan'
+      const newStatus = !currentStatus ? 'activated' : 'deactivated'
+
       const response = await apiClient.updateMembershipPlan(planId, {
         isActive: !currentStatus
       })
 
       if (response.success) {
-        toast.success(`Plan ${!currentStatus ? 'activated' : 'deactivated'} successfully!`)
+        toast.success(`Membership plan "${planName}" has been ${newStatus} successfully. ${newStatus === 'activated' ? 'The plan is now available for members to purchase.' : 'The plan is now hidden and cannot be purchased.'}`)
         await loadPlans()
       } else {
-        toast.error(response.error || "Failed to update plan status")
+        const errorDetails = (response as any).errorDetails || {}
+        const errorMessage = response.error || 'Unknown error occurred'
+        const statusCode = (errorDetails as any).statusCode || (response as any).statusCode || 'Unknown'
+        const detailsMsg = (errorDetails as any).message || (errorDetails as any).details || ''
+        toast.error(`Failed to ${!currentStatus ? 'activate' : 'deactivate'} membership plan "${planName}" (ID: ${planId}): ${errorMessage}. Status: ${statusCode}. ${detailsMsg ? `Details: ${detailsMsg}.` : ''} Please try again.`)
       }
-    } catch (error) {
-      // console.error('Error toggling plan status:', error)
-      toast.error("An error occurred while updating plan status")
+    } catch (error: any) {
+      const plan = plans.find(p => p._id === planId)
+      const planName = plan?.name || 'Unknown Plan'
+      const newStatus = !currentStatus ? 'activate' : 'deactivate'
+      const errorMessage = error?.message || 'Network error or server unavailable'
+      const errorDetails = error?.response?.data || {}
+      const statusCode = error?.response?.status || 'Unknown'
+      const detailsMsg = (errorDetails as any)?.message || (errorDetails as any)?.details || ''
+      toast.error(`Failed to ${newStatus} membership plan "${planName}" (ID: ${planId}) due to: ${errorMessage}. Status: ${statusCode}. ${detailsMsg ? `Details: ${detailsMsg}.` : ''} Please check your connection and try again.`)
     }
   }
 
@@ -334,10 +357,28 @@ export default function MembershipPlansPage() {
     setIsUpdating(true)
 
     try {
+      if (!formData.name || formData.name.trim().length === 0) {
+        toast.error('Plan name is required. Please enter a valid plan name before updating the membership plan.')
+        setIsUpdating(false)
+        return
+      }
+
+      if (formData.price < 0) {
+        toast.error('Price cannot be negative. Please enter a valid price (0 or greater) for the membership plan.')
+        setIsUpdating(false)
+        return
+      }
+
+      if (formData.duration < 1 || formData.duration > 120) {
+        toast.error('Duration must be between 1 and 120 months. Please enter a valid duration for the membership plan.')
+        setIsUpdating(false)
+        return
+      }
+
       const response = await apiClient.updateMembershipPlan(editingPlan._id, formData)
 
       if (response.success) {
-        toast.success("Membership plan updated successfully!")
+        toast.success(`Membership plan "${formData.name}" updated successfully with new price ${formData.currency} ${formData.price} and duration ${formData.duration} month(s).`)
         setShowEditDialog(false)
         setEditingPlan(null)
         setFormData({
@@ -360,11 +401,21 @@ export default function MembershipPlansPage() {
         })
         await loadPlans()
       } else {
-        toast.error(response.error || "Failed to update membership plan")
+        const errorDetails = (response as any).errorDetails || {}
+        const errorMessage = response.error || 'Unknown error occurred'
+        const statusCode = (errorDetails as any).statusCode || (response as any).statusCode || 'Unknown'
+        const validationErrors = (errorDetails as any).errors || (errorDetails as any).validationErrors || []
+        const validationMsg = validationErrors.length > 0 ? ` Validation errors: ${validationErrors.join(', ')}.` : ''
+        const detailsMsg = (errorDetails as any).message || (errorDetails as any).details || ''
+        toast.error(`Failed to update membership plan "${formData.name}" (ID: ${editingPlan._id}): ${errorMessage}. Status: ${statusCode}.${validationMsg} ${detailsMsg ? `Details: ${detailsMsg}.` : ''} Please check all fields and try again.`)
       }
-    } catch (error) {
-      // console.error('Error updating membership plan:', error)
-      toast.error("An error occurred while updating the plan")
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Network error or server unavailable'
+      const errorDetails = error?.response?.data || {}
+      const statusCode = error?.response?.status || 'Unknown'
+      const validationErrors = errorDetails.errors || []
+      const validationMsg = validationErrors.length > 0 ? ` Validation errors: ${validationErrors.join(', ')}.` : ''
+      toast.error(`Failed to update membership plan "${formData.name}" (ID: ${editingPlan._id}) due to: ${errorMessage}. Status: ${statusCode}.${validationMsg} Please check your input and try again.`)
     } finally {
       setIsUpdating(false)
     }

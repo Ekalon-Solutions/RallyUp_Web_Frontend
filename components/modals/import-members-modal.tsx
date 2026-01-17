@@ -271,8 +271,13 @@ charlie.brown@example.com,Charlie,Brown,9234567890,+91,charlie_brown,1992-08-20,
             const regResp = await apiClient.userRegister({ ...payload, clubId } as any)
             if (!regResp.success) {
               failCount++
-              const errorMsg = regResp.error || regResp.message || 'unknown'
-              errors.push({ row: idx + 2, error: errorMsg.startsWith('registration failed - ') ? errorMsg.replace('registration failed - ', '') : errorMsg })
+              const errorDetails = (regResp as any).errorDetails || {}
+              const errorMsg = regResp.error || regResp.message || 'Unknown registration error'
+              const statusCode = errorDetails.statusCode || (regResp as any).statusCode || 'Unknown'
+              const validationErrors = errorDetails.errors || errorDetails.validationErrors || []
+              const validationMsg = validationErrors.length > 0 ? ` Validation errors: ${validationErrors.join(', ')}.` : ''
+              const cleanError = errorMsg.startsWith('registration failed - ') ? errorMsg.replace('registration failed - ', '') : errorMsg
+              errors.push({ row: idx + 2, error: `User registration failed for ${email}: ${cleanError}. Status: ${statusCode}.${validationMsg} ${errorDetails.message ? `Details: ${errorDetails.message}.` : ''}` })
               continue
             }
 
@@ -281,12 +286,18 @@ charlie.brown@example.com,Charlie,Brown,9234567890,+91,charlie_brown,1992-08-20,
 
             if (!userId) {
               failCount++
-              errors.push({ row: idx + 2, error: 'registration succeeded but user id missing' }) 
+              errors.push({ row: idx + 2, error: `User registration succeeded for ${email} but user ID is missing from server response. Please contact support with this error.` })
               continue
             }
           }
 
           const plan = plans.find(p => p._id === selectedPlanId)
+          if (!plan) {
+            failCount++
+            errors.push({ row: idx + 2, error: `Selected membership plan (ID: ${selectedPlanId}) not found. The plan may have been deleted. Please select a different plan and try again.` })
+            continue
+          }
+
           const startDate = new Date()
           let endDate: Date | null = null
           if (plan && plan.duration && plan.duration > 0) {
@@ -316,12 +327,16 @@ charlie.brown@example.com,Charlie,Brown,9234567890,+91,charlie_brown,1992-08-20,
           if (!memResp.ok) {
             const err = await memResp.json().catch(() => ({}))
             const errorMessage = err.message || memResp.statusText || 'Unknown error'
+            const statusCode = memResp.status || 'Unknown'
+            const errorDetails = err.errorDetails || err.details || {}
+            const validationErrors = errorDetails.errors || errorDetails.validationErrors || []
+            const validationMsg = validationErrors.length > 0 ? ` Validation errors: ${validationErrors.join(', ')}.` : ''
             
             if (errorMessage.includes('already has an active membership')) {
               successCount++
             } else {
               failCount++
-              errors.push({ row: idx + 2, error: `membership creation failed - ${errorMessage}` })
+              errors.push({ row: idx + 2, error: `Membership creation failed for user ${email} (Plan: "${plan.name}"): ${errorMessage}. Status: ${statusCode}.${validationMsg} ${errorDetails.message ? `Details: ${errorDetails.message}.` : ''} Please check the membership plan and user details.` })
             }
             continue
           }
@@ -329,7 +344,12 @@ charlie.brown@example.com,Charlie,Brown,9234567890,+91,charlie_brown,1992-08-20,
           successCount++
         } catch (err: any) {
           failCount++
-          errors.push({ row: idx + 2, error: err.message || 'error' })
+          const errorMessage = err?.message || 'Unknown error occurred'
+          const errorDetails = err?.response?.data || err?.data || {}
+          const statusCode = err?.response?.status || err?.status || 'Unknown'
+          const validationErrors = errorDetails.errors || []
+          const validationMsg = validationErrors.length > 0 ? ` Validation errors: ${validationErrors.join(', ')}.` : ''
+          errors.push({ row: idx + 2, error: `Error processing row ${idx + 2} for ${email || 'unknown email'}: ${errorMessage}. Status: ${statusCode}.${validationMsg} ${errorDetails.message ? `Details: ${errorDetails.message}.` : ''} Please check the row data and try again.` })
         }
       }
 
