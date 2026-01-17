@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { apiClient, News, Event } from "@/lib/api"
+import { getNewsImageUrl } from "@/lib/config"
 import { 
   Globe, 
   Mail, 
@@ -425,7 +426,7 @@ export default function PublicClubPage() {
                                 {article.featuredImage && (
                                   <div className="relative h-48 overflow-hidden rounded-t-lg">
                                     <img
-                                      src={`${process.env.NEXT_PUBLIC_API_URL || ''}/uploads/news/${article.featuredImage}`}
+                                      src={getNewsImageUrl(article.featuredImage)}
                                       alt={article.title}
                                       className="w-full h-full object-cover"
                                       onError={(e) => {

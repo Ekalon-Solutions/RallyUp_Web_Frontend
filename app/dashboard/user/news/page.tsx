@@ -13,7 +13,7 @@ import NewsReadMoreModal from "@/components/modals/news-readmore-modal"
 import { apiClient, News } from "@/lib/api"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
-import { getBaseUrl } from "@/lib/config"
+import { getNewsImageUrl } from "@/lib/config"
 import { 
   Newspaper, 
   Search, 
@@ -261,7 +261,7 @@ export default function UserNewsPage() {
                     {article.featuredImage && (
                       <div className="relative h-48 overflow-hidden">
                         <img
-                          src={`${getBaseUrl()}/uploads/news/${article.featuredImage}`}
+                          src={getNewsImageUrl(article.featuredImage)}
                           alt={article.title}
                           className="w-full h-full object-cover"
                         />
@@ -326,7 +326,7 @@ export default function UserNewsPage() {
                             {article.images.slice(0, 4).map((image, index) => (
                               <img
                                 key={index}
-                                src={`${getBaseUrl()}/uploads/news/${image}`}
+                                src={getNewsImageUrl(image)}
                                 alt={`${article.title} - Image ${index + 1}`}
                                 className="w-full h-20 object-cover rounded-lg"
                               />

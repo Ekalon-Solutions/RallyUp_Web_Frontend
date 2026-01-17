@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Calendar, User, Eye, Tag, Building } from 'lucide-react'
 import { News } from '@/lib/api'
-import { getBaseUrl } from '@/lib/config'
+import { getNewsImageUrl } from '@/lib/config'
 
 interface NewsReadMoreModalProps {
   news: News | null
@@ -62,7 +62,7 @@ export default function NewsReadMoreModal({ news, isOpen, onClose }: NewsReadMor
               {news.featuredImage && (
                 <div className="relative">
                   <img
-                    src={`${getBaseUrl()}/uploads/news/${news.featuredImage}`}
+                    src={getNewsImageUrl(news.featuredImage)}
                     alt={news.title}
                     className="w-full h-64 object-cover rounded-lg"
                   />
@@ -147,23 +147,26 @@ export default function NewsReadMoreModal({ news, isOpen, onClose }: NewsReadMor
                   <CardContent className="pt-6">
                     <h3 className="text-lg font-semibold mb-4 text-foreground">Images</h3>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                      {news.images.map((image, index) => (
-                        <div key={index} className="relative group">
-                          <img
-                            src={`${getBaseUrl()}/uploads/news/${image}`}
-                            alt={`${news.title} - Image ${index + 1}`}
-                            className="w-full h-32 object-cover rounded-lg cursor-pointer transition-transform group-hover:scale-105"
-                            onClick={() => {
-                              window.open(`${getBaseUrl()}/uploads/news/${image}`, '_blank')
-                            }}
-                          />
+                      {news.images.map((image, index) => {
+                        const imageUrl = getNewsImageUrl(image);
+                        return (
+                          <div key={index} className="relative group">
+                            <img
+                              src={imageUrl}
+                              alt={`${news.title} - Image ${index + 1}`}
+                              className="w-full h-32 object-cover rounded-lg cursor-pointer transition-transform group-hover:scale-105"
+                              onClick={() => {
+                                window.open(imageUrl, '_blank')
+                              }}
+                            />
                           <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 rounded-lg flex items-center justify-center">
                             <span className="text-white opacity-0 group-hover:opacity-100 text-sm font-medium">
                               Click to enlarge
                             </span>
                           </div>
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </CardContent>
                 </Card>

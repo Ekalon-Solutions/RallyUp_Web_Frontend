@@ -1,4 +1,3 @@
-// Environment Configuration
 const getApiBaseUrl = () => {
   if (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL) {
     return process.env.NEXT_PUBLIC_API_URL;
@@ -14,10 +13,8 @@ const getWsBaseUrl = () => {
 };
 
 export const ENV = {
-  // Change this to switch between environments
   CURRENT: 'production' as 'development' | 'production' | 'staging',
   
-  // Development environment (localhost)
   development: {
     apiBaseUrl: getApiBaseUrl(),
     wsBaseUrl: getWsBaseUrl(),
@@ -25,7 +22,6 @@ export const ENV = {
     debug: true,
   },
   
-  // Production environment (deployment)
   production: {
     apiBaseUrl: 'https://wingmanpro.tech/api',
     wsBaseUrl: 'wss://teplworkspace.com/rallyApi',
@@ -33,7 +29,6 @@ export const ENV = {
     debug: false,
   },
   
-  // Staging environment (if needed)
   staging: {
     apiBaseUrl: 'https://wingmanpro.tech/api',
     wsBaseUrl: 'wss://teplworkspace.com/rallyApi',
@@ -42,20 +37,9 @@ export const ENV = {
   }
 };
 
-// Get current environment config
 export const currentConfig = ENV[ENV.CURRENT];
 
-// Debug: Log the current configuration
-if (typeof window !== 'undefined') {
-  // // console.log('🔧 [CONFIG] Current Environment:', ENV.CURRENT);
-  // // console.log('🔧 [CONFIG] API Base URL:', currentConfig.apiBaseUrl);
-  // // console.log('🔧 [CONFIG] WebSocket URL:', currentConfig.wsBaseUrl);
-  // // console.log('🔧 [CONFIG] Debug Mode:', currentConfig.debug);
-}
-
-// API Endpoints - All endpoints will use the base URL from config
 export const API_ENDPOINTS = {
-  // User endpoints
   users: {
     register: '/users/register',
     login: '/users/login',
@@ -66,7 +50,6 @@ export const API_ENDPOINTS = {
     resendOTP: '/users/resend-otp',
   },
   
-  // Admin endpoints
   admin: {
     login: '/admin/login',
     profile: '/admin/profile',
@@ -75,7 +58,6 @@ export const API_ENDPOINTS = {
     resendOTP: '/admin/resend-otp',
   },
   
-  // System Owner endpoints
   systemOwner: {
     login: '/system-owner/login',
     create: '/system-owner/create',
@@ -85,7 +67,6 @@ export const API_ENDPOINTS = {
     resendOTP: '/system-owner/resend-otp',
   },
   
-  // Club endpoints
   clubs: {
     public: '/clubs/public',
     create: '/clubs/create',
@@ -97,7 +78,6 @@ export const API_ENDPOINTS = {
     leave: '/clubs/leave',
   },
   
-  // Staff endpoints
   staff: {
     getAll: '/staff',
     getByClub: (clubId: string) => `/staff/club/${clubId}`,
@@ -107,7 +87,6 @@ export const API_ENDPOINTS = {
     delete: (clubId: string, staffId: string) => `/staff/club/${clubId}/${staffId}`,
   },
   
-  // Volunteer endpoints
   volunteer: {
     opportunities: '/volunteer/opportunities',
     signups: '/volunteer/signups',
@@ -117,7 +96,6 @@ export const API_ENDPOINTS = {
     update: '/volunteer/profile/update',
   },
   
-  // Onboarding endpoints
   onboarding: {
     flows: '/onboarding/flows',
     userFlows: '/onboarding/user-flows',
@@ -126,7 +104,6 @@ export const API_ENDPOINTS = {
     analytics: '/onboarding/analytics',
   },
   
-  // User Onboarding Progress endpoints
   onboardingProgress: {
     myProgress: '/onboarding/progress/my-progress',
     myProgressForFlow: (flowId: string) => `/onboarding/progress/my-progress/${flowId}`,
@@ -136,7 +113,6 @@ export const API_ENDPOINTS = {
     flowStats: (flowId: string) => `/onboarding/progress/flow/${flowId}/stats`,
   },
   
-  // Promotional content endpoints
   promotions: {
     getAll: '/promotions',
     active: '/promotions/active',
@@ -151,7 +127,6 @@ export const API_ENDPOINTS = {
     conversion: (id: string) => `/promotions/${id}/conversion`,
   },
   
-  // Event endpoints
   events: {
     create: '/events/create',
     update: '/events/update',
@@ -162,14 +137,12 @@ export const API_ENDPOINTS = {
     unpublish: '/events/unpublish',
   },
   
-  // Content endpoints
   content: {
     news: '/content/news',
     announcements: '/content/announcements',
     pages: '/content/pages',
   },
   
-  // Membership endpoints
   membership: {
     plans: '/membership/plans',
     subscribe: '/membership/subscribe',
@@ -177,36 +150,37 @@ export const API_ENDPOINTS = {
     history: '/membership/history',
   },
   
-  // System status endpoints
   systemStatus: {
     getStatus: '/system-status',
   },
   
-  // Utility functions to build full URLs
   buildUrl: (endpoint: string) => `${currentConfig.apiBaseUrl}${endpoint}`,
   buildWsUrl: (endpoint: string) => `${currentConfig.wsBaseUrl}${endpoint}`,
 };
 
-// Helper function to get full API URL
 export const getApiUrl = (endpoint: string) => `${currentConfig.apiBaseUrl}${endpoint}`;
 
-// Helper function to get full WebSocket URL
 export const getWsUrl = (endpoint: string) => `${currentConfig.wsBaseUrl}${endpoint}`;
 
-// Helper function to get base URL without /api (for static files, uploads, etc.)
 export const getBaseUrl = () => currentConfig.apiBaseUrl.replace('/api', '');
 
-// Environment detection helpers
+export const getNewsImageUrl = (imagePath: string | undefined | null): string => {
+  if (!imagePath) return '';
+  
+  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+    return imagePath;
+  }
+  return `${getBaseUrl()}/uploads/news/${imagePath}`;
+};
+
 export const isDevelopment = () => ENV.CURRENT === 'development';
 export const isProduction = () => ENV.CURRENT === 'production';
 export const isStaging = () => ENV.CURRENT === 'staging';
 
-// Debug logging (only in development/staging)
 export const debugLog = (message: string, data?: any) => {
   if (currentConfig.debug) {
     // console.log(`[${ENV.CURRENT.toUpperCase()}] ${message}`, data || '');
   }
 };
 
-// Export current config for easy access
 export default currentConfig;
