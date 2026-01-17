@@ -28,6 +28,7 @@ import { MembershipCard } from "@/components/membership-card"
 import { MembershipCardCustomizer } from "@/components/admin/membership-card-customizer"
 import { apiClient, PublicMembershipCardDisplay, CreateMembershipCardRequest } from "@/lib/api"
 import { useToast } from "@/hooks/use-toast"
+import { getBaseUrl, getApiUrl } from "@/lib/config"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
 
@@ -475,8 +476,23 @@ export default function MembershipCardsPage() {
       
       if (customLogoFile) {
         try {
-          const base64 = await convertFileToBase64(customLogoFile!);
-          customLogoUrl = base64;
+          const formData = new FormData();
+          formData.append('image', customLogoFile);
+
+          const uploadResponse = await fetch(getApiUrl('/upload/logo'), {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            body: formData
+          });
+
+          if (!uploadResponse.ok) {
+            throw new Error('Upload failed');
+          }
+
+          const uploadData = await uploadResponse.json();
+          customLogoUrl = uploadData.url?.startsWith('http') ? uploadData.url : `${getBaseUrl()}${uploadData.url}`;
           
           setEditingCard(prev => prev ? {
             ...prev,
@@ -489,10 +505,10 @@ export default function MembershipCardsPage() {
             }
           } : null);
         } catch (error) {
-          // // console.error('Error converting logo to base64:', error);
+          // console.error('Error uploading logo:', error);
           toast({
             title: "Error",
-            description: "Failed to process logo file",
+            description: "Failed to upload logo file",
             variant: "destructive",
           });
           return;
@@ -1175,9 +1191,17 @@ export default function MembershipCardsPage() {
                       <Label className="text-sm text-muted-foreground">Current Logo</Label>
                       <div className="mt-2 flex items-center space-x-3">
                         <img
-                          src={editingCard.card.customization.customLogo}
+                          src={editingCard.card.customization.customLogo.startsWith('http') || editingCard.card.customization.customLogo.startsWith('data:') 
+                            ? editingCard.card.customization.customLogo 
+                            : `${getBaseUrl()}${editingCard.card.customization.customLogo}`}
                           alt="Current custom logo"
                           className="w-16 h-16 object-cover rounded border"
+                          onError={(e) => {
+                            const customLogo = editingCard.card.customization?.customLogo;
+                            if (customLogo && !customLogo.startsWith('http') && !customLogo.startsWith('data:')) {
+                              e.currentTarget.src = `${getBaseUrl()}${customLogo}`;
+                            }
+                          }}
                         />
                         <Button
                           variant="outline"

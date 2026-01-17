@@ -4,18 +4,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { 
-  CreditCard, 
-  Calendar, 
-  MapPin, 
-  Crown,
-  QrCode,
-  BarChart3
-} from 'lucide-react';
 import { PublicMembershipCardDisplay, apiClient } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
+import { getBaseUrl } from '@/lib/config';
 
-// Add Google Fonts for customization
 const fontImports = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto:wght@400;500;700&family=Open+Sans:wght@400;600;700&family=Montserrat:wght@400;500;600;700&display=swap');
 `;
@@ -24,24 +16,22 @@ interface MembershipCardProps {
   cardData: PublicMembershipCardDisplay;
   cardStyle?: 'default' | 'premium' | 'vintage' | 'modern' | 'elite' | 'emerald';
   showLogo?: boolean;
-  userName?: string; // User's name to display on the card (replaces card number)
-  membershipId?: string | null; // User's membership ID from API
+  userName?: string;
+  membershipId?: string | null;
 }
 
 export function MembershipCard({ 
   cardData, 
   cardStyle = 'default', 
   showLogo = true,
-  userName = 'Member Name', // Default value
+  userName = 'Member Name',
 }: MembershipCardProps) {
   const { card, club, membershipPlan } = cardData;
   const cardRef = useRef<HTMLDivElement>(null);
   const [transform, setTransform] = useState({ rotateX: 0, rotateY: 0, scale: 1 });
   const [isHovered, setIsHovered] = useState(false);
 
-  // Style configurations with customization override
   const getStyleConfig = () => {
-    // Always check for custom colors first - admin customization takes priority
     if (card.customization?.primaryColor && card.customization?.secondaryColor) {
       return {
         bg: `bg-gradient-to-br`,
@@ -55,7 +45,6 @@ export function MembershipCard({
       };
     }
 
-    // Fallback to preset styles only if no custom colors are set
     switch (cardStyle) {
       case 'premium':
         return {
@@ -110,7 +99,6 @@ export function MembershipCard({
 
   const style = getStyleConfig();
 
-  // Get font family from customization or use default
   const getFontFamily = () => {
     if (card.customization?.fontFamily) {
       switch (card.customization.fontFamily) {
@@ -135,7 +123,6 @@ export function MembershipCard({
     return { fontFamily: 'Inter, sans-serif' };
   };
 
-  // Get logo size from customization
   const getLogoSize = () => {
     if (card.customization?.logoSize) {
       switch (card.customization.logoSize) {
@@ -147,7 +134,6 @@ export function MembershipCard({
     return 'w-8 h-8';
   };
 
-  // Status badge variant
   const getStatusVariant = (status: string) => {
     switch (status) {
       case 'active': return 'default';
@@ -158,7 +144,6 @@ export function MembershipCard({
     }
   };
 
-  // Format dates
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
@@ -167,7 +152,6 @@ export function MembershipCard({
     });
   };
 
-  // 3D hover effect handlers
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!cardRef.current) return;
     
@@ -244,7 +228,14 @@ export function MembershipCard({
               (card.customization?.customLogo || club.logo)) && (
               <Avatar className={getLogoSize()}>
                 <AvatarImage 
-                  src={card.customization?.customLogo || club.logo} 
+                  src={(() => {
+                    const logoUrl = card.customization?.customLogo || club.logo;
+                    if (!logoUrl) return '';
+                    if (logoUrl.startsWith('http') || logoUrl.startsWith('data:')) {
+                      return logoUrl;
+                    }
+                    return `${getBaseUrl()}${logoUrl}`;
+                  })()} 
                   alt={club.name} 
                 />
                 <AvatarFallback 
@@ -303,7 +294,6 @@ export function MembershipCard({
   );
 }
 
-// Preview component for admins to see different card styles
 export function MembershipCardPreview() {
   const [cards, setCards] = useState<PublicMembershipCardDisplay[]>([])
   const [loading, setLoading] = useState(true)
