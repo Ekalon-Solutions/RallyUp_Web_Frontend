@@ -82,6 +82,10 @@ export default function SplashPage() {
           return
         }
 
+        if (clubsList.length > 1) {
+          return
+        }
+
         if (activeClubId && clubsList.some(c => c._id === activeClubId)) {
           router.push('/dashboard')
           return

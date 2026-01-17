@@ -38,7 +38,7 @@ import {
   ChartNoAxesColumn,
 } from "lucide-react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { useTheme } from "next-themes"
 import { Sun, Moon } from "lucide-react"
@@ -48,7 +48,7 @@ import Image from "next/image"
 const adminNavigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Members", href: "/dashboard/members", icon: Users },
-  // { name: "Browse Clubs", href: "/dashboard/user/clubs", icon: Building2 }, // Hidden for now
+  // { name: "Browse Clubs", href: "/dashboard/user/clubs", icon: Building2 },
   { name: "Membership Plans", href: "/dashboard/membership-plans", icon: CreditCard },
   { name: "Membership Cards", href: "/dashboard/membership-cards", icon: CreditCard },
   { name: "News & Updates", href: "/dashboard/content", icon: Newspaper },
@@ -72,7 +72,7 @@ const adminNavigation = [
 const systemOwnerNavigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Club Management", href: "/dashboard/club-management", icon: Building },
-  // { name: "Browse Clubs", href: "/dashboard/user/clubs", icon: Building2 }, // Hidden for now
+  // { name: "Browse Clubs", href: "/dashboard/user/clubs", icon: Building2 },
   { name: "Onboarding & Promotions", href: "/dashboard/onboarding", icon: GraduationCap },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
   { name: "Help", href: "/dashboard/help", icon: HelpCircle },
@@ -81,7 +81,7 @@ const systemOwnerNavigation = [
 const superAdminNavigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Members", href: "/dashboard/members", icon: Users },
-  // { name: "Browse Clubs", href: "/dashboard/user/clubs", icon: Building2 }, // Hidden for now
+  // { name: "Browse Clubs", href: "/dashboard/user/clubs", icon: Building2 },
   { name: "Staff Management", href: "/dashboard/staff", icon: Shield },
   { name: "Membership Plans", href: "/dashboard/membership-plans", icon: CreditCard },
   { name: "Membership Cards", href: "/dashboard/membership-cards", icon: CreditCard },
@@ -151,6 +151,7 @@ function ThemeToggle() {
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const pathname = usePathname()
+  const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { user, logout, isAdmin, activeClubId } = useAuth()
   
@@ -197,43 +198,33 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     const isRegularUser = !user.role || user.role === 'member'
     
     if (isRegularUser && clubId) {
-      // console.log('Filtering navigation for regular user...')
       const filtered = nav.filter(item => {
-        // Map navigation items to section visibility settings
         if (item.name === 'News') {
           const visible = isSectionVisible('news')
-          // console.log('News visible:', visible)
           return visible
         }
         if (item.name === 'Events') {
           const visible = isSectionVisible('events')
-          // console.log('Events visible:', visible)
           return visible
         }
         if (item.name === 'Merchandise' || item.name === 'Merchandise Store') {
           const visible = isSectionVisible('merchandise')
-          // console.log('Merchandise visible:', visible)
           return visible
         }
         if (item.name === 'Polls') {
           const visible = isSectionVisible('polls')
-          // console.log('Polls visible:', visible)
           return visible
         }
         if (item.name === 'Club Chants') {
           const visible = isSectionVisible('chants')
-          // console.log('Club Chants visible:', visible)
           return visible
         }
         if (item.name === 'Members') {
           const visible = isSectionVisible('members')
-          // console.log('Members visible:', visible)
           return visible
         }
-        // Always show other items
         return true
       })
-      // console.log('Filtered navigation:', filtered)
       return filtered
     }
     
@@ -314,9 +305,24 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             const settingsLogo = settings ? ((settings as any).designSettings?.logo) : undefined
             const displayLogo = settingsLogo || clubLogo
             
+            const activeMemberships = userAny?.memberships?.filter((m: any) => m.status === 'active') || []
+            const uniqueClubIds = new Set<string>()
+            activeMemberships.forEach((m: any) => {
+              const clubId = m.club_id?._id || m.club_id
+              if (clubId) uniqueClubIds.add(clubId)
+            })
+            const hasMultipleClubs = uniqueClubIds.size > 1
+            
             if (clubName) {
               return (
-                <div className="px-3 py-2 rounded-xl bg-primary/5 border border-primary/10">
+                <div 
+                  className={cn(
+                    "px-3 py-2 rounded-xl bg-primary/5 border border-primary/10",
+                    hasMultipleClubs && "cursor-pointer hover:bg-primary/10 transition-colors"
+                  )}
+                  onClick={hasMultipleClubs ? () => router.push('/splash') : undefined}
+                  title={hasMultipleClubs ? "Click to switch club" : undefined}
+                >
                   <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Selected Club</p>
                   <div className="flex items-center gap-2">
                     {displayLogo && (
@@ -331,6 +337,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                       </div>
                     )}
                     <p className="text-sm font-bold text-foreground truncate">{clubName}</p>
+                    {hasMultipleClubs && (
+                      <span className="text-xs text-muted-foreground ml-auto">↗</span>
+                    )}
                   </div>
                 </div>
               )

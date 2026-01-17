@@ -53,15 +53,12 @@ export default function MemberChantsPage() {
     try {
       setLoading(true);
       
-      // Get all club IDs the user is a member of
       const clubIds: string[] = [];
       
-      // For admin users, use their assigned club
       if ((user as any).club?._id) {
         clubIds.push((user as any).club._id);
       }
       
-      // For users with memberships, get all clubs they're a member of
       const userMemberships = (user as any).memberships || [];
       userMemberships.forEach((membership: any) => {
         const clubId = membership.club_id?._id || membership.club_id;
@@ -77,11 +74,10 @@ export default function MemberChantsPage() {
         return;
       }
       
-      // Fetch chants from all clubs
       const allChantsPromises = clubIds.map(clubId => {
         const params: any = {
-          page: 1, // Get all pages for now, we'll handle pagination later
-          limit: 100 // Increase limit to get more chants per club
+          page: 1,
+          limit: 100
         };
         
         if (selectedFileType !== 'all') {
@@ -97,7 +93,6 @@ export default function MemberChantsPage() {
       
       const responses = await Promise.all(allChantsPromises);
       
-      // Combine all chants from all clubs
       let allChants: Chant[] = [];
       responses.forEach(response => {
         if (response.success && response.data) {
@@ -105,15 +100,12 @@ export default function MemberChantsPage() {
         }
       });
       
-      // Sort by creation date (newest first)
       allChants.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       
-      // Filter favorites if enabled
       if (showFavoritesOnly) {
         allChants = allChants.filter(chant => favorites.has(chant._id));
       }
       
-      // Handle pagination on the frontend
       const itemsPerPage = 12;
       const startIndex = (currentPage - 1) * itemsPerPage;
       const endIndex = startIndex + itemsPerPage;
@@ -123,7 +115,7 @@ export default function MemberChantsPage() {
       setTotalPages(Math.ceil(allChants.length / itemsPerPage));
       
     } catch (error) {
-      // // console.error('Error fetching chants:', error);
+      // console.error('Error fetching chants:', error);
       toast({
         title: "Error",
         description: "Failed to fetch chants",
@@ -177,10 +169,9 @@ export default function MemberChantsPage() {
           url: window.location.href
         });
       } catch (error) {
-        // // console.log('Error sharing:', error);
+        // console.log('Error sharing:', error);
       }
     } else {
-      // Fallback: copy to clipboard
       navigator.clipboard.writeText(`${chant.title} - ${window.location.href}`);
       toast({
         title: "Link copied!",
@@ -193,7 +184,6 @@ export default function MemberChantsPage() {
     setIsMuted(!isMuted);
   };
 
-  // Check if user has any club memberships
   const hasClubMembership = React.useMemo(() => {
     if (!user) return false;
     const userMemberships = (user as any).memberships || [];
