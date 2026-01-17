@@ -277,24 +277,38 @@ export function EventRegistrationModal({
 
   const getCategoryIcon = (category: string) => {
     switch (category) {
-      case 'match-screening': return '📺'
-      case 'away-day': return '🚌'
-      case 'social': return '🎉'
-      case 'fundraising': return '💰'
-      case 'meeting': return '🤝'
-      case 'community-outreach': return '🌍'
+      case 'screenings': return '📺'
+      case 'footy-meets': return '⚽'
+      case 'tournaments': return '🏆'
+      case 'auctions': return '🔨'
+      case 'club-events': return '🎪'
+      case 'social-events': return '🎉'
+      case 'csr-events': return '🤝'
+      case 'watch-parties': return '📺'
+      case 'travel-days': return '🚌'
+      case 'workshops': return '🎓'
+      case 'general-meeting': return '👥'
+      case 'matchday': return '⚽'
+      case 'others': return '📅'
       default: return '📅'
     }
   }
 
   const getCategoryColor = (category: string) => {
     switch (category) {
-      case 'match-screening': return 'bg-blue-100 text-blue-800'
-      case 'away-day': return 'bg-green-100 text-green-800'
-      case 'social': return 'bg-purple-100 text-purple-800'
-      case 'fundraising': return 'bg-yellow-100 text-yellow-800'
-      case 'meeting': return 'bg-gray-100 text-gray-800'
-      case 'community-outreach': return 'bg-orange-100 text-orange-800'
+      case 'screenings': return 'bg-blue-100 text-blue-800'
+      case 'footy-meets': return 'bg-green-100 text-green-800'
+      case 'tournaments': return 'bg-yellow-100 text-yellow-800'
+      case 'auctions': return 'bg-orange-100 text-orange-800'
+      case 'club-events': return 'bg-purple-100 text-purple-800'
+      case 'social-events': return 'bg-pink-100 text-pink-800'
+      case 'csr-events': return 'bg-teal-100 text-teal-800'
+      case 'watch-parties': return 'bg-indigo-100 text-indigo-800'
+      case 'travel-days': return 'bg-emerald-100 text-emerald-800'
+      case 'workshops': return 'bg-amber-100 text-amber-800'
+      case 'general-meeting': return 'bg-gray-100 text-gray-800'
+      case 'matchday': return 'bg-red-100 text-red-800'
+      case 'others': return 'bg-slate-100 text-slate-800'
       default: return 'bg-gray-100 text-gray-800'
     }
   }

@@ -244,12 +244,19 @@ export default function EventsPage() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="all">All Categories</SelectItem>
-                        <SelectItem value="match-screening">Match Screening</SelectItem>
-                        <SelectItem value="away-day">Away Day Travel</SelectItem>
-                        <SelectItem value="social">Social Event</SelectItem>
-                        <SelectItem value="fundraising">Fundraising</SelectItem>
-                        <SelectItem value="meeting">Club Meeting</SelectItem>
-                        <SelectItem value="community-outreach">Community Outreach</SelectItem>
+                        <SelectItem value="screenings">📺 Screenings</SelectItem>
+                        <SelectItem value="footy-meets">⚽ Footy Meets</SelectItem>
+                        <SelectItem value="tournaments">🏆 Tournaments</SelectItem>
+                        <SelectItem value="auctions">🔨 Auctions</SelectItem>
+                        <SelectItem value="club-events">🎪 Club Events</SelectItem>
+                        <SelectItem value="social-events">🎉 Social Events</SelectItem>
+                        <SelectItem value="csr-events">🤝 CSR Events</SelectItem>
+                        <SelectItem value="watch-parties">📺 Watch Parties</SelectItem>
+                        <SelectItem value="travel-days">🚌 Travel Days</SelectItem>
+                        <SelectItem value="workshops">🎓 Workshops</SelectItem>
+                        <SelectItem value="general-meeting">👥 General Meeting</SelectItem>
+                        <SelectItem value="matchday">⚽ Matchday</SelectItem>
+                        <SelectItem value="others">📅 Others</SelectItem>
                       </SelectContent>
                     </Select>
                     <Select value={statusFilter} onValueChange={setStatusFilter}>
