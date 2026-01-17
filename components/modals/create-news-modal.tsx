@@ -31,7 +31,7 @@ export function CreateNewsModal({ isOpen, onClose, onSuccess, editNews }: Create
   const [priority, setPriority] = useState(editNews?.priority || "medium")
   const [isPublished, setIsPublished] = useState(editNews?.isPublished || false)
   const [images, setImages] = useState<File[]>([])
-  const [featuredImage, setFeaturedImage] = useState<number>(0) // Index of featured image
+  const [featuredImage, setFeaturedImage] = useState<number>(0)
   const [loading, setLoading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -55,14 +55,12 @@ export function CreateNewsModal({ isOpen, onClose, onSuccess, editNews }: Create
       formData.append("priority", priority)
       formData.append("isPublished", isPublished.toString())
       
-      // Add images
       images.forEach((image, index) => {
         formData.append("images", image)
       })
       
-      // Set featured image (first image by default, or selected one)
       if (images.length > 0) {
-        formData.append("featuredImage", images[featuredImage]?.name || images[0].name)
+        formData.append("featuredImageIndex", featuredImage.toString())
       }
 
       let response
@@ -111,7 +109,6 @@ export function CreateNewsModal({ isOpen, onClose, onSuccess, editNews }: Create
 
     setImages(prev => [...prev, ...imageFiles])
     
-    // Set first image as featured if none selected
     if (images.length === 0 && imageFiles.length > 0) {
       setFeaturedImage(0)
     }
@@ -121,11 +118,10 @@ export function CreateNewsModal({ isOpen, onClose, onSuccess, editNews }: Create
     const newImages = images.filter((_, i) => i !== index)
     setImages(newImages)
     
-    // Update featured image if removed
     if (featuredImage === index) {
-      setFeaturedImage(0) // Set to first remaining image
+      setFeaturedImage(0)
     } else if (featuredImage > index) {
-      setFeaturedImage(featuredImage - 1) // Adjust index for remaining images
+      setFeaturedImage(featuredImage - 1)
     }
   }
 
