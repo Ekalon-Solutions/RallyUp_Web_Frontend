@@ -8,13 +8,14 @@ import { Button } from "@/components/ui/button"
 import { useAuth } from "@/contexts/auth-context"
 import { ProtectedRoute } from "@/components/protected-route"
 import { Building2, Loader2 } from "lucide-react"
-import { getApiUrl } from "@/lib/config"
+import { apiClient } from "@/lib/api"
 
 interface Club {
   _id: string
   name: string
   logo?: string
   description?: string
+  settingsLogo?: string
 }
 
 export default function SplashPage() {
@@ -45,12 +46,30 @@ export default function SplashPage() {
               _id: clubId,
               name: membership.club_id?.name || 'Unknown Club',
               logo: membership.club_id?.logo,
-              description: membership.club_id?.description
+              description: membership.club_id?.description,
+              settingsLogo: undefined
             })
           }
         })
 
-        setClubs(clubsList)
+        const clubsWithSettings = await Promise.all(
+          clubsList.map(async (club) => {
+            try {
+              const settingsResponse = await apiClient.getClubSettings(club._id)
+              if (settingsResponse.success && settingsResponse.data) {
+                const actualData = settingsResponse.data.data || settingsResponse.data
+                const designSettings = actualData.designSettings
+                if (designSettings?.logo) {
+                  return { ...club, settingsLogo: designSettings.logo }
+                }
+              }
+            } catch (error) {
+            }
+            return club
+          })
+        )
+
+        setClubs(clubsWithSettings)
 
         if (clubsList.length === 0) {
           router.push('/dashboard')
@@ -104,14 +123,24 @@ export default function SplashPage() {
         <div className="w-full max-w-4xl">
           <div className="text-center mb-8">
             <div className="mx-auto mb-6 relative w-20 h-20 md:w-24 md:h-24">
-              <Image
-                src="/WingmanPro Logo (White BG).svg"
-                alt="Wingman Pro logo"
-                fill
-                sizes="96px"
-                className="object-contain"
-                priority
-              />
+              {(() => {
+                const logoToUse = clubs.length === 1 && (clubs[0].settingsLogo || clubs[0].logo)
+                  ? (clubs[0].settingsLogo || clubs[0].logo || "/WingmanPro Logo (White BG).svg")
+                  : "/WingmanPro Logo (White BG).svg"
+                const altText = clubs.length === 1 && clubs[0].name
+                  ? `${clubs[0].name} logo`
+                  : "Wingman Pro logo"
+                return (
+                  <Image
+                    src={logoToUse}
+                    alt={altText}
+                    fill
+                    sizes="96px"
+                    className="object-contain"
+                    priority
+                  />
+                )
+              })()}
             </div>
             <h1 className="text-3xl md:text-4xl font-black tracking-tight mb-2">
               Select Your Club
@@ -130,9 +159,9 @@ export default function SplashPage() {
               >
                 <CardContent className="p-6 flex flex-col items-center text-center space-y-4">
                   <div className="relative w-24 h-24 md:w-28 md:h-28 rounded-2xl bg-muted flex items-center justify-center overflow-hidden border-2 border-border group-hover:border-primary transition-all duration-300 group-hover:scale-105">
-                    {club.logo ? (
+                    {club.settingsLogo || club.logo ? (
                       <Image
-                        src={club.logo}
+                        src={club.settingsLogo || club.logo || ""}
                         alt={club.name}
                         fill
                         sizes="112px"

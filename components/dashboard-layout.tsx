@@ -152,12 +152,21 @@ function ThemeToggle() {
 export function DashboardLayout({ children }: DashboardLayoutProps) {
   const pathname = usePathname()
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const { user, logout, isAdmin } = useAuth()
+  const { user, logout, isAdmin, activeClubId } = useAuth()
   
-  // Get user's club ID for settings
   const getUserClubId = () => {
     if (!user || user.role === 'system_owner') return undefined
     const userWithMemberships = user as any
+    
+    if (activeClubId) {
+      const activeMembership = userWithMemberships.memberships?.find(
+        (m: any) => (m.club_id?._id || m.club_id) === activeClubId && m.status === 'active'
+      )
+      if (activeMembership) {
+        return activeClubId
+      }
+    }
+
     const activeMembership = userWithMemberships.memberships?.find((m: any) => m.status === 'active')
     return activeMembership?.club_id?._id
   }
@@ -165,16 +174,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const clubId = getUserClubId()
   const { isSectionVisible, settings } = useClubSettings(clubId)
   
-  // Apply design settings (colors, fonts) dynamically
   useDesignSettings(clubId)
   
-  // Debug logging
-  // console.log('Dashboard Layout - User object:', user)
-  // console.log('Dashboard Layout - Club ID:', clubId)
-  // console.log('Dashboard Layout - Settings:', settings)
-  // console.log('Dashboard Layout - User role:', user?.role)
-
-  // Get navigation based on user role
   const getNavigation = () => {
     if (!user) return userNavigation
     
@@ -287,12 +288,50 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           {/* Club Name Display */}
           {(() => {
             const userAny = user as any
-            const clubName = userAny?.club?.name || (userAny?.memberships?.[0]?.club_id?.name)
+            let clubName: string | undefined
+            let clubLogo: string | undefined
+            
+            if (activeClubId) {
+              const activeMembership = userAny?.memberships?.find(
+                (m: any) => (m.club_id?._id || m.club_id) === activeClubId && m.status === 'active'
+              )
+              if (activeMembership?.club_id) {
+                clubName = activeMembership.club_id.name
+                clubLogo = activeMembership.club_id.logo
+              }
+            }
+            
+            if (!clubName) {
+              clubName = userAny?.club?.name
+              clubLogo = userAny?.club?.logo
+            }
+            if (!clubName) {
+              const firstMembership = userAny?.memberships?.find((m: any) => m.status === 'active')
+              clubName = firstMembership?.club_id?.name
+              clubLogo = firstMembership?.club_id?.logo
+            }
+            
+            const settingsLogo = settings ? ((settings as any).designSettings?.logo) : undefined
+            const displayLogo = settingsLogo || clubLogo
+            
             if (clubName) {
               return (
                 <div className="px-3 py-2 rounded-xl bg-primary/5 border border-primary/10">
                   <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Selected Club</p>
-                  <p className="text-sm font-bold text-foreground truncate">{clubName}</p>
+                  <div className="flex items-center gap-2">
+                    {displayLogo && (
+                      <div className="relative w-6 h-6 rounded-md overflow-hidden flex-shrink-0">
+                        <Image
+                          src={displayLogo}
+                          alt={clubName}
+                          fill
+                          sizes="24px"
+                          className="object-cover"
+                        />
+                      </div>
+                    )}
+                    <p className="text-sm font-bold text-foreground truncate">{clubName}</p>
+                  </div>
                 </div>
               )
             }

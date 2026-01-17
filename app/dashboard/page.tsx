@@ -2,23 +2,17 @@
 
 import React, { useState, useEffect } from "react"
 import Image from "next/image"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Users, Calendar, ShoppingBag, Building2, Loader2 } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Users, Calendar, ShoppingBag, Loader2 } from "lucide-react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
 import { useAuth } from "@/contexts/auth-context"
-import { CreateNewsModal } from "@/components/modals/create-news-modal"
-import { VolunteerQuickSignup } from "@/components/volunteer/volunteer-quick-signup"
-import { VolunteerOpportunitiesWidget } from "@/components/volunteer/volunteer-opportunities-widget"
 import { PollsWidget } from "@/components/polls-widget"
 import { LatestEventsWidget } from "@/components/latest-events-widget"
 import { LatestNewsWidget } from "@/components/latest-news-widget"
-import { cn } from "@/lib/utils"
 import { getApiUrl } from "@/lib/config"
 import axios from "axios"
+import { useClubSettings } from "@/hooks/useClubSettings"
 
 interface DashboardStats {
   totalMembers: number
@@ -28,9 +22,7 @@ interface DashboardStats {
 }
 
 export default function DashboardPage() {
-  const { user, isAdmin, isLoading: authLoading } = useAuth()
-  const [showCreateEventModal, setShowCreateEventModal] = useState(false)
-  const [showCreateNewsModal, setShowCreateNewsModal] = useState(false)
+  const { user, isAdmin, isLoading: authLoading, activeClubId } = useAuth()
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [showLogo, setShowLogo] = useState(false)
@@ -66,7 +58,7 @@ export default function DashboardPage() {
     }
 
     const fetchDashboardStats = async () => {
-      if (!user || !('club' in user) || !user.club) {
+      if (!user) {
         setLoading(false)
         return
       }
@@ -74,7 +66,8 @@ export default function DashboardPage() {
       try {
         setLoading(true)
         const token = localStorage.getItem('token')
-        const clubId = typeof user.club === 'object' ? user.club._id : user.club
+        const userAny = user as any
+        
 
         const clubStatsResponse = await axios.get(
           getApiUrl(`/clubs/${clubId}/stats`),
@@ -111,10 +104,59 @@ export default function DashboardPage() {
 
     fetchDashboardStats()
   }, [user, authLoading])
-
-  const userAny = user as any
-  const clubLogo = userAny?.club?.logo || (userAny?.memberships?.[0]?.club_id?.logo)
-  const clubName = userAny?.club?.name || (userAny?.memberships?.[0]?.club_id?.name)
+  
+  const getClubInfo = () => {
+    const userAny = user as any
+    let clubLogo: string | undefined
+    let clubName: string | undefined
+    
+    if (activeClubId) {
+      const activeMembership = userAny?.memberships?.find(
+        (m: any) => (m.club_id?._id || m.club_id) === activeClubId && m.status === 'active'
+      )
+      if (activeMembership?.club_id) {
+        clubLogo = activeMembership.club_id.logo
+        clubName = activeMembership.club_id.name
+      }
+    }
+    
+    if (!clubName && userAny?.club) {
+      clubLogo = userAny.club.logo
+      clubName = userAny.club.name
+    }
+    
+    if (!clubName) {
+      const firstMembership = userAny?.memberships?.find((m: any) => m.status === 'active')
+      clubLogo = firstMembership?.club_id?.logo
+      clubName = firstMembership?.club_id?.name
+    }
+    
+    return { clubLogo, clubName }
+  }
+  
+  const { clubLogo, clubName } = getClubInfo()
+  
+  const getUserClubId = () => {
+    if (!user || user.role === 'system_owner') return undefined
+    const userAny = user as any
+    
+    if (activeClubId) {
+      return activeClubId
+    }
+    
+    if (userAny?.club?._id) {
+      return userAny.club._id
+    }
+    
+    const firstMembership = userAny?.memberships?.find((m: any) => m.status === 'active')
+    return firstMembership?.club_id?._id || firstMembership?.club_id
+  }
+  
+  const clubId = getUserClubId()
+  const { settings: clubSettings } = useClubSettings(clubId)
+  
+  const settingsLogo = clubSettings ? ((clubSettings as any).designSettings?.logo) : undefined
+  const displayLogo = settingsLogo || clubLogo
 
   return (
     <ProtectedRoute>
@@ -122,9 +164,9 @@ export default function DashboardPage() {
         <div className="max-w-7xl mx-auto space-y-10">
           <div className={`fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm transition-opacity duration-1000 ease-in-out pointer-events-none ${showLogo ? 'opacity-100' : 'opacity-0'}`}>
             <div className={`relative w-32 h-32 md:w-40 md:h-40 transition-all duration-1000 ease-in-out ${logoFadeIn && showLogo ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
-              {clubLogo ? (
+              {displayLogo ? (
                 <Image
-                  src={clubLogo}
+                  src={displayLogo}
                   alt={clubName || "Club logo"}
                   fill
                   sizes="160px"
@@ -217,7 +259,7 @@ export default function DashboardPage() {
             </div>
           ) : null}
 
-          {user && 'club' in user && user.club && (
+          {user && (clubName || ('club' in user && user.club)) && (
             <div className="space-y-6">
               <div className="w-full rounded-[2.5rem] overflow-hidden border-2 shadow-xl bg-card p-2">
                 <LatestEventsWidget limit={5} showManageButton={true} />

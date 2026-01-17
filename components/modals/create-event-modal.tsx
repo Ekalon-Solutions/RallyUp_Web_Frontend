@@ -81,7 +81,6 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
     bookingStartTime: "",
     bookingEndTime: "",
     currency: "INR",
-    // Discount fields
     earlyBirdEnabled: false,
     earlyBirdType: "percentage" as "percentage" | "fixed",
     earlyBirdValue: "",
@@ -101,21 +100,15 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
   const [clubs, setClubs] = useState<Array<{ _id: string; name: string }>>([])
 
   useEffect(() => {
-    // Get clubs list for the members-only dropdown
-    // Only show clubs that the current user (admin) has access to
     let mounted = true
     
     async function fetchClubs() {
       try {
-        // For admins, they can only access their assigned club
-        // For super_admin or system_owner, they can access all clubs
         const userRole = user?.role
         
         if (userRole === 'admin' || userRole === 'super_admin') {
-          // Admin: only show their assigned club
           const adminUser = user as any
           if (adminUser?.club) {
-            // Admin has a single club assigned
             const adminClub = adminUser.club
             if (mounted) {
               setClubs([{ _id: adminClub._id, name: adminClub.name }])
@@ -124,7 +117,6 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
           }
         }
         
-        // System owner or fallback: fetch all clubs
         if (userRole === 'system_owner') {
           const res: any = await apiClient.getPublicClubs()
           if (mounted && res?.data) {
@@ -133,7 +125,6 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
           }
         }
       } catch (err) {
-        // console.error('Failed to load clubs for event modal', err)
       }
     }
 
@@ -141,16 +132,14 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
     return () => { mounted = false }
   }, [isOpen, user])
 
-  // Reset form when modal opens/closes or when editing
   useEffect(() => {
     if (isOpen) {
-      setErrors({}) // Clear errors when modal opens
+      setErrors({})
       if (editEvent) {
-        // Calculate default booking times based on event start time
         setFormData({
           title: editEvent.title,
           category: editEvent.category,
-          startTime: utcToDatetimeLocal(editEvent.startTime), // Convert UTC to local timezone
+          startTime: utcToDatetimeLocal(editEvent.startTime),
           endTime: editEvent.endTime ? utcToDatetimeLocal(editEvent.endTime) : "",
           venue: editEvent.venue,
           description: editEvent.description,
@@ -162,7 +151,6 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
           awayDayEvent: editEvent.awayDayEvent,
           bookingStartTime: editEvent.bookingStartTime ? utcToDatetimeLocal(editEvent.bookingStartTime) : "",
           bookingEndTime: editEvent.bookingEndTime ? utcToDatetimeLocal(editEvent.bookingEndTime) : "",
-          // Discount fields
           earlyBirdEnabled: editEvent.earlyBirdDiscount?.enabled || false,
           earlyBirdType: editEvent.earlyBirdDiscount?.type || "percentage",
           earlyBirdValue: editEvent.earlyBirdDiscount?.value?.toString() || "",
@@ -179,12 +167,11 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
           groupDiscountMinQty: editEvent.groupDiscount?.minQuantity?.toString() || "2",
         })
       } else {
-        // Set default values for new event
         const now = new Date()
-        const defaultStartTime = new Date(now.getTime() + 24 * 60 * 60 * 1000) // Tomorrow
-        const defaultEndTime = new Date(defaultStartTime.getTime() + 2 * 60 * 60 * 1000) // +2 hours
-        const defaultBookingStart = new Date(now.getTime() + 1 * 60 * 60 * 1000) // 1 hour from now
-        const defaultBookingEnd = new Date(defaultStartTime.getTime() - 1 * 60 * 60 * 1000) // 1 hour before event
+        const defaultStartTime = new Date(now.getTime() + 24 * 60 * 60 * 1000)
+        const defaultEndTime = new Date(defaultStartTime.getTime() + 2 * 60 * 60 * 1000)
+        const defaultBookingStart = new Date(now.getTime() + 1 * 60 * 60 * 1000)
+        const defaultBookingEnd = new Date(defaultStartTime.getTime() - 1 * 60 * 60 * 1000)
 
         setFormData({
           title: "",
@@ -201,7 +188,6 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
           awayDayEvent: false,
           bookingStartTime: toDatetimeLocalString(defaultBookingStart),
           bookingEndTime: toDatetimeLocalString(defaultBookingEnd),
-          // Discount fields
           earlyBirdEnabled: false,
           earlyBirdType: "percentage",
           earlyBirdValue: "",
@@ -224,7 +210,6 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {}
 
-    // Title validation
     if (!formData.title.trim()) {
       newErrors.title = "Event title is required"
     } else if (formData.title.trim().length < 3) {
@@ -233,7 +218,6 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
       newErrors.title = "Event title cannot exceed 200 characters"
     }
 
-    // Start time validation
     if (!formData.startTime) {
       newErrors.startTime = "Start time is required"
     } else {
@@ -244,7 +228,6 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
       }
     }
 
-    // End time validation
     if (formData.endTime) {
       const startTime = new Date(formData.startTime)
       const endTime = new Date(formData.endTime)
@@ -253,31 +236,26 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
       }
     }
 
-    // Venue validation
     if (!formData.venue.trim()) {
       newErrors.venue = "Venue is required"
     } else if (formData.venue.trim().length < 5) {
       newErrors.venue = "Venue must be at least 5 characters long"
     }
 
-    // Description validation
     if (!formData.description.trim()) {
       newErrors.description = "Event description is required"
     } else if (formData.description.trim().length < 10) {
       newErrors.description = "Event description must be at least 10 characters long"
     }
 
-    // Max attendees validation
     if (formData.maxAttendees && parseInt(formData.maxAttendees) < 1) {
       newErrors.maxAttendees = "Maximum attendees must be at least 1"
     }
 
-    // Ticket price validation
     if (formData.ticketPrice && parseFloat(formData.ticketPrice) < 0) {
       newErrors.ticketPrice = "Ticket price cannot be negative"
     }
 
-    // Booking time validation
     if (formData.bookingStartTime && formData.bookingEndTime) {
       const bookingStart = new Date(formData.bookingStartTime)
       const bookingEnd = new Date(formData.bookingEndTime)
@@ -286,12 +264,10 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
       }
     }
 
-    // If members-only, ensure a club is selected
     if (formData.memberOnly && !formData.clubId) {
       newErrors.clubId = "Please select a club for members-only events"
     }
 
-    // Early bird discount validation
     if (formData.earlyBirdEnabled) {
       if (!formData.earlyBirdValue || parseFloat(formData.earlyBirdValue) <= 0) {
         newErrors.earlyBirdValue = "Early bird discount value must be greater than 0"
@@ -319,7 +295,6 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
       }
     }
 
-    // Member discount validation
     if (formData.memberDiscountEnabled) {
       if (!formData.memberDiscountValue || parseFloat(formData.memberDiscountValue) <= 0) {
         newErrors.memberDiscountValue = "Member discount value must be greater than 0"
@@ -329,7 +304,6 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
       }
     }
 
-    // Group discount validation
     if (formData.groupDiscountEnabled) {
       if (!formData.groupDiscountValue || parseFloat(formData.groupDiscountValue) <= 0) {
         newErrors.groupDiscountValue = "Group discount value must be greater than 0"
@@ -349,10 +323,8 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    // Clear previous errors
     setErrors({})
 
-    // Validate form before submission
     if (!validateForm()) {
       toast.error("Please fix the errors in the form")
       return
@@ -397,8 +369,6 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
           minQuantity: parseInt(formData.groupDiscountMinQty)
         } : { enabled: false, type: 'percentage', value: 0, minQuantity: 2 }
       }
-      // console.log("eventData to submit:", eventData)
-      // Use API client to create/update event
       let response
       if (editEvent) {
         response = await apiClient.updateEvent(editEvent._id, eventData)
@@ -411,7 +381,6 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
         onSuccess()
         onClose()
       } else {
-        // Handle specific backend validation errors
         if (response.error && response.error.includes('validation')) {
           toast.error("Please check your form inputs and try again")
         } else {
@@ -420,8 +389,6 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
       }
     } catch (error) {
       // console.error("Error saving event:", error)
-
-      // Provide user-friendly error messages
       let errorMessage = "An error occurred while saving the event"
 
       if (error instanceof Error) {

@@ -96,9 +96,6 @@ export function CreatePollModal({ isOpen, onClose, onSuccess, editPoll }: Create
         throw new Error(response.error || "Failed to save poll")
       }
     } catch (error: any) {
-      // console.error("Error saving poll:", error)
-      
-      // Provide specific error messages based on the error
       if (error.message?.includes("Access denied") || error.message?.includes("Unauthorized")) {
         toast.error("You don't have permission to create or edit polls")
       } else if (error.message?.includes("Club")) {
