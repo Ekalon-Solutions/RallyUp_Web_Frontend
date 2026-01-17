@@ -72,86 +72,76 @@ export default function MembershipCardsPage() {
     });
   };
 
-  // Fetch user's club and membership plans
+  const fetchCards = useCallback(async (targetClubId: string) => {
+    try {
+      const cardsResponse = await apiClient.getClubMembershipCards(targetClubId)
+      
+      if (cardsResponse.success && cardsResponse.data) {
+        let cardsData: any[] = []
+        if (Array.isArray(cardsResponse.data)) {
+          cardsData = cardsResponse.data
+        } else if (cardsResponse.data.data && Array.isArray(cardsResponse.data.data)) {
+          cardsData = cardsResponse.data.data
+        }
+        
+        const validCards = cardsData.filter(card => {
+          if (card && card.success && card.data) {
+            return false
+          }
+          
+          const isValid = card && 
+            card.card && 
+            card.card._id && 
+            typeof card.card._id === 'string' &&
+            card.card.cardStyle &&
+            card.club &&
+            card.membershipPlan
+          
+          return isValid
+        })
+        
+        setCards(validCards)
+      } else {
+        const errorDetails = (cardsResponse as any).errorDetails || {}
+        const errorMessage = cardsResponse.error || 'Unknown error occurred'
+        const statusCode = errorDetails.statusCode || (cardsResponse as any).statusCode || 'Unknown'
+        setError(errorMessage)
+        toast({
+          title: "Error Loading Membership Cards",
+          description: `Failed to fetch membership cards for club (ID: ${targetClubId}): ${errorMessage}. Status: ${statusCode}. ${errorDetails.message ? `Details: ${errorDetails.message}.` : ''} Please check your authentication and try again.`,
+          variant: "destructive",
+        })
+      }
+    } catch (err: any) {
+      const errorMessage = err?.message || 'Network error or server unavailable'
+      const errorDetails = err?.response?.data || {}
+      const statusCode = err?.response?.status || 'Unknown'
+      setError(errorMessage)
+      toast({
+        title: "Error Fetching Cards",
+        description: `Failed to fetch membership cards for club (ID: ${targetClubId}): ${errorMessage}. Status: ${statusCode}. ${errorDetails.message ? `Details: ${errorDetails.message}.` : ''} Please check your connection and try again.`,
+        variant: "destructive",
+      })
+    }
+  }, [toast])
+
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
         setLoading(true)
         
-        // Get user's club context
         const clubResponse = await apiClient.getAdminClub()
         if (clubResponse.success && clubResponse.data?.club?._id) {
-          setClubId(clubResponse.data.club._id)
+          const currentClubId = clubResponse.data.club._id
+          setClubId(currentClubId)
           
-          // Fetch membership plans for this club
-          const plansResponse = await apiClient.getMembershipPlans(clubResponse.data.club._id)
+          const plansResponse = await apiClient.getMembershipPlans(currentClubId)
           if (plansResponse.success && plansResponse.data) {
             const plansData = Array.isArray(plansResponse.data) ? plansResponse.data : (plansResponse.data?.data || [])
             setMembershipPlans(plansData)
           }
           
-                      // Fetch existing membership cards
-            const cardsResponse = await apiClient.getClubMembershipCards(clubResponse.data.club._id)
-            
-            if (cardsResponse.success && cardsResponse.data) {
-              // Handle both array and nested data structure
-              let cardsData: any[] = []
-              if (Array.isArray(cardsResponse.data)) {
-                cardsData = cardsResponse.data
-              } else if (cardsResponse.data.data && Array.isArray(cardsResponse.data.data)) {
-                cardsData = cardsResponse.data.data
-              }
-              
-              // console.log('Fetched membership cards:', cardsData)
-              
-              // Filter out any invalid cards - ensure card structure is valid
-              const validCards = cardsData.filter(card => {
-                // Skip API response wrappers that might have slipped through
-                if (card && card.success && card.data) {
-//                   console.warn('Found API response wrapper instead of card data:', card);
-                  return false;
-                }
-                
-                const isValid = card && 
-                  card.card && 
-                  card.card._id && 
-                  typeof card.card._id === 'string' &&
-                  card.card.cardStyle && // Ensure cardStyle exists
-                  card.club && // Ensure club exists
-                  card.membershipPlan; // Ensure membershipPlan exists
-                
-                if (!isValid) {
-                  // // console.warn('Invalid card structure found:', card);
-                }
-                
-                return isValid;
-              })
-              
-              // console.log('Valid cards after filtering:', validCards)
-              // console.log(`Filtered out ${cardsData.length - validCards.length} invalid cards`)
-              
-              if (validCards.length === 0 && cardsData.length > 0) {
-//                 console.error('All cards were filtered out due to invalid structure. Raw data:', cardsData);
-                toast({
-                  title: "Warning",
-                  description: "No valid membership cards found. Some cards may have invalid data structure.",
-                  variant: "destructive",
-                });
-              }
-              
-              setCards(validCards)
-            } else {
-              const errorDetails = (cardsResponse as any).errorDetails || {}
-              const errorMessage = cardsResponse.error || 'Unknown error occurred'
-              const statusCode = errorDetails.statusCode || (cardsResponse as any).statusCode || 'Unknown'
-              const clubIdValue = clubResponse.data?.club?._id || 'Unknown'
-              setError(errorMessage)
-              toast({
-                title: "Error Loading Membership Cards",
-                description: `Failed to fetch membership cards for club (ID: ${clubIdValue}): ${errorMessage}. Status: ${statusCode}. ${errorDetails.message ? `Details: ${errorDetails.message}.` : ''} Please check your authentication and try again.`,
-                variant: "destructive",
-              })
-            }
+          await fetchCards(currentClubId)
         } else {
           const errorMsg = 'No club found for this admin account. Please ensure your account is associated with a club before managing membership cards.'
           setError(errorMsg)
@@ -177,7 +167,7 @@ export default function MembershipCardsPage() {
     }
 
     fetchInitialData()
-  }, [toast])
+  }, [toast, fetchCards])
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -262,11 +252,10 @@ export default function MembershipCardsPage() {
     try {
       setIsCreating(true)
       
-      // Create new membership card for the plan
       const cardData: CreateMembershipCardRequest = {
         membershipPlanId: selectedPlanId,
         clubId: clubId,
-        cardStyle: 'default', // Always use default style for new cards
+        cardStyle: 'default',
         accessLevel: 'basic',
         customization: {
           primaryColor: customization.primaryColor,
@@ -283,29 +272,17 @@ export default function MembershipCardsPage() {
       const response = await apiClient.createMembershipCard(cardData)
       
       if (response.success && response.data) {
-        const newCard = response.data
+        toast({
+          title: "Membership Card Created Successfully",
+          description: `Membership card for plan "${planName}" has been created successfully. Refreshing card list...`,
+        })
         
-        if (newCard && newCard.card && newCard.club && newCard.membershipPlan) {
-          setCards(prev => [newCard, ...prev])
-          
-          toast({
-            title: "Membership Card Created Successfully",
-            description: `Membership card for plan "${planName}" has been created successfully. Card number: ${newCard.card.cardNumber}. The card is now available for members with this membership plan.`,
-          })
-          
-          setSelectedPlanId("")
-          setPreviewUrl(null)
-          setSelectedFile(null)
-        } else {
-          const missingFields = []
-          if (!newCard?.card) missingFields.push('card data')
-          if (!newCard?.club) missingFields.push('club data')
-          if (!newCard?.membershipPlan) missingFields.push('membership plan data')
-          toast({
-            title: "Invalid Card Structure Received",
-            description: `Received invalid membership card structure from server for plan "${planName}". Missing: ${missingFields.join(', ')}. Please try refreshing and creating the card again.`,
-            variant: "destructive",
-          })
+        setSelectedPlanId("")
+        setPreviewUrl(null)
+        setSelectedFile(null)
+        
+        if (clubId) {
+          await fetchCards(clubId)
         }
       } else {
         const errorDetails = (response as any).errorDetails || {}
@@ -318,7 +295,6 @@ export default function MembershipCardsPage() {
           description: `Failed to create membership card for plan "${planName}" (Plan ID: ${selectedPlanId}): ${errorMessage}. Status: ${statusCode}.${validationMsg} ${errorDetails.message ? `Details: ${errorDetails.message}.` : ''} Please check the plan details and try again.`,
           variant: "destructive",
         })
-        return
       }
     } catch (error: any) {
       const planName = membershipPlans.find(p => p._id === selectedPlanId)?.name || 'Unknown Plan'
@@ -471,8 +447,23 @@ export default function MembershipCardsPage() {
   }
 
   const handleEditCard = (card: PublicMembershipCardDisplay) => {
-    setEditingCard(card);
-  };
+    const cardCopy = {
+      ...card,
+      card: {
+        ...card.card,
+        customization: card.card.customization ? {
+          ...card.card.customization
+        } : {
+          primaryColor: '#3b82f6',
+          secondaryColor: '#1e40af',
+          fontFamily: 'Inter',
+          logoSize: 'medium' as const,
+          showLogo: true
+        }
+      }
+    }
+    setEditingCard(cardCopy)
+  }
 
   const handleSaveEdit = async () => {
     if (!editingCard) return;
@@ -480,16 +471,13 @@ export default function MembershipCardsPage() {
     try {
       setIsEditing(true);
       
-      // Handle custom logo upload if there's a new logo file
       let customLogoUrl = editingCard.card.customization?.customLogo;
       
       if (customLogoFile) {
         try {
-          // Convert file to base64 for local storage
           const base64 = await convertFileToBase64(customLogoFile!);
           customLogoUrl = base64;
           
-          // Update the editing card with the new logo
           setEditingCard(prev => prev ? {
             ...prev,
             card: {
@@ -582,17 +570,21 @@ export default function MembershipCardsPage() {
     setCustomLogoPreview(null);
   };
 
-  // Memoized handlers to prevent infinite loops
   const handlePrimaryColorChange = useCallback((newColor: string) => {
     setEditingCard(prev => {
       if (!prev) return null;
+      const existingCustomization = prev.card.customization
       return {
         ...prev,
         card: {
           ...prev.card,
           customization: {
-            ...prev.card.customization,
-            primaryColor: newColor
+            primaryColor: newColor,
+            secondaryColor: existingCustomization?.secondaryColor || '#1e40af',
+            fontFamily: existingCustomization?.fontFamily || 'Inter',
+            logoSize: (existingCustomization?.logoSize || 'medium') as 'small' | 'medium' | 'large',
+            showLogo: existingCustomization?.showLogo ?? true,
+            ...(existingCustomization?.customLogo && { customLogo: existingCustomization.customLogo })
           }
         }
       };
@@ -602,13 +594,18 @@ export default function MembershipCardsPage() {
   const handleSecondaryColorChange = useCallback((newColor: string) => {
     setEditingCard(prev => {
       if (!prev) return null;
+      const existingCustomization = prev.card.customization
       return {
         ...prev,
         card: {
           ...prev.card,
           customization: {
-            ...prev.card.customization,
-            secondaryColor: newColor
+            primaryColor: existingCustomization?.primaryColor || '#3b82f6',
+            secondaryColor: newColor,
+            fontFamily: existingCustomization?.fontFamily || 'Inter',
+            logoSize: (existingCustomization?.logoSize || 'medium') as 'small' | 'medium' | 'large',
+            showLogo: existingCustomization?.showLogo ?? true,
+            ...(existingCustomization?.customLogo && { customLogo: existingCustomization.customLogo })
           }
         }
       };
@@ -622,7 +619,7 @@ export default function MembershipCardsPage() {
       if (!prev) return null;
       return {
         ...prev,
-        card: { ...prev.card, status: value }
+        card: { ...prev.card, status: value as 'active' | 'expired' | 'pending' | 'suspended' }
       };
     });
   }, []);
@@ -632,7 +629,7 @@ export default function MembershipCardsPage() {
       if (!prev) return null;
       return {
         ...prev,
-        card: { ...prev.card, accessLevel: value }
+        card: { ...prev.card, accessLevel: value as 'basic' | 'premium' | 'vip' }
       };
     });
   }, []);
@@ -640,13 +637,18 @@ export default function MembershipCardsPage() {
   const handleFontFamilyChange = useCallback((value: string) => {
     setEditingCard(prev => {
       if (!prev) return null;
+      const existingCustomization = prev.card.customization
       return {
         ...prev,
         card: {
           ...prev.card,
           customization: {
-            ...prev.card.customization,
-            fontFamily: value
+            primaryColor: existingCustomization?.primaryColor || '#3b82f6',
+            secondaryColor: existingCustomization?.secondaryColor || '#1e40af',
+            fontFamily: value,
+            logoSize: (existingCustomization?.logoSize || 'medium') as 'small' | 'medium' | 'large',
+            showLogo: existingCustomization?.showLogo ?? true,
+            ...(existingCustomization?.customLogo && { customLogo: existingCustomization.customLogo })
           }
         }
       };
@@ -656,13 +658,18 @@ export default function MembershipCardsPage() {
   const handleLogoSizeChange = useCallback((value: string) => {
     setEditingCard(prev => {
       if (!prev) return null;
+      const existingCustomization = prev.card.customization
       return {
         ...prev,
         card: {
           ...prev.card,
           customization: {
-            ...prev.card.customization,
-            logoSize: value
+            primaryColor: existingCustomization?.primaryColor || '#3b82f6',
+            secondaryColor: existingCustomization?.secondaryColor || '#1e40af',
+            fontFamily: existingCustomization?.fontFamily || 'Inter',
+            logoSize: value as 'small' | 'medium' | 'large',
+            showLogo: existingCustomization?.showLogo ?? true,
+            ...(existingCustomization?.customLogo && { customLogo: existingCustomization.customLogo })
           }
         }
       };
@@ -672,13 +679,18 @@ export default function MembershipCardsPage() {
   const handleShowLogoChange = useCallback((checked: boolean) => {
     setEditingCard(prev => {
       if (!prev) return null;
+      const existingCustomization = prev.card.customization
       return {
         ...prev,
         card: {
           ...prev.card,
           customization: {
-            ...prev.card.customization,
-            showLogo: checked
+            primaryColor: existingCustomization?.primaryColor || '#3b82f6',
+            secondaryColor: existingCustomization?.secondaryColor || '#1e40af',
+            fontFamily: existingCustomization?.fontFamily || 'Inter',
+            logoSize: (existingCustomization?.logoSize || 'medium') as 'small' | 'medium' | 'large',
+            showLogo: checked,
+            ...(existingCustomization?.customLogo && { customLogo: existingCustomization.customLogo })
           }
         }
       };

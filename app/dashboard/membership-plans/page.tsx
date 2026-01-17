@@ -64,12 +64,11 @@ export default function MembershipPlansPage() {
       prioritySupport: false,
       apiAccess: false,
       customIntegrations: false,
-      premiumFeatures: "" // Free text field for premium features
+      premiumFeatures: ""
     }
   })
 
   useEffect(() => {
-    // Load clubs and then plans when user is available
     if (user) {
       loadClubsAndDefault()
     }
@@ -82,9 +81,7 @@ export default function MembershipPlansPage() {
   const loadPlansForClub = async (clubId?: string) => {
     try {
       setIsLoading(true)
-      // console.log('Loading membership plans...')
-
-      // Check if user is authenticated
+      
       const token = localStorage.getItem('token')
       if (!token) {
         // console.error('No authentication token found')
@@ -199,7 +196,7 @@ export default function MembershipPlansPage() {
 
       setClubs(clubsList)
       setSelectedClubId(initialClubId)
-      
+
       await loadPlansForClub(initialClubId)
     } catch (error) {
       // console.error('Error loading clubs:', error)
