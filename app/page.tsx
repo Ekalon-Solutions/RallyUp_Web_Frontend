@@ -21,7 +21,7 @@ function Hero() {
         <div className="absolute inset-0 bg-gradient-to-br from-sky-50 via-blue-50/50 to-indigo-50 dark:from-slate-950 dark:via-blue-950/30 dark:to-indigo-950/20 animate-gradient" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,#38bdf840,transparent_40%),radial-gradient(circle_at_80%_20%,#60a5fa40,transparent_40%),radial-gradient(circle_at_50%_80%,#3b82f640,transparent_45%)] animate-pulse-glow" />
         <div className="absolute inset-0 bg-[radial-gradient(#ffffff22_1px,transparent_1px)] [background-size:20px_20px] opacity-20 dark:opacity-10" />
-        
+
         {/* Sports-themed floating elements */}
         <div className="absolute top-20 left-10 w-20 h-20 opacity-20 animate-float">
           <Trophy className="w-full h-full text-sky-400 rotate-12" />
@@ -56,7 +56,7 @@ function Hero() {
                 with Intelligent Sports Club Management Software.
               </span>
             </h1>
-            
+
             {/* Enhanced Description with Shimmer */}
             <p className="text-slate-600 dark:text-slate-300 text-lg sm:text-xl leading-relaxed relative overflow-hidden animate-slide-up max-w-2xl" style={{ animationDelay: '0.2s' }}>
               <span className="relative z-10">
@@ -64,12 +64,12 @@ function Hero() {
               </span>
               <span className="absolute inset-0 animate-shimmer bg-gradient-to-r from-transparent via-white/20 to-transparent" />
             </p>
-            
+
             {/* Enhanced Buttons with Hover Effects */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-4 animate-slide-up" style={{ animationDelay: '0.4s' }}>
               <Link href="/contact" className="flex-1 sm:flex-initial">
-                <Button 
-                  size="lg" 
+                <Button
+                  size="lg"
                   className="w-full sm:w-auto h-14 px-8 bg-gradient-to-r from-sky-600 to-blue-600 dark:from-sky-500 dark:to-blue-500 text-white hover:from-sky-500 hover:to-blue-500 dark:hover:from-sky-400 dark:hover:to-blue-400 text-lg font-bold shadow-xl hover:shadow-sky-500/25 transform hover:scale-105 transition-all duration-300 relative overflow-hidden group"
                 >
                   <span className="relative z-10 flex items-center justify-center gap-2">
@@ -80,16 +80,16 @@ function Hero() {
                 </Button>
               </Link>
               <Link href="#features" className="flex-1 sm:flex-initial">
-                <Button 
-                  size="lg" 
-                  variant="outline" 
+                <Button
+                  size="lg"
+                  variant="outline"
                   className="w-full sm:w-auto h-14 px-8 border-2 border-slate-300 dark:border-white/20 bg-white/80 backdrop-blur-sm text-slate-900 hover:bg-white dark:bg-white/5 dark:text-white dark:hover:bg-white/10 text-lg font-bold shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300"
                 >
                   Explore Features
                 </Button>
               </Link>
             </div>
-            
+
             {/* Enhanced Feature Badges */}
             <div className="flex flex-wrap items-center gap-3 pt-6 text-sm text-slate-600 dark:text-slate-300 animate-slide-up" style={{ animationDelay: '0.6s' }}>
               <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/60 dark:bg-white/5 backdrop-blur-sm border border-slate-200/50 dark:border-white/10 hover:bg-white dark:hover:bg-white/10 transition-all duration-300">
@@ -135,7 +135,7 @@ function ProblemSolution() {
     { old: '"Best Guess" decision making', new: "AI-Driven Club Growth Insights" },
     { old: "Static, boring emails", new: "Gamified Member Engagement Tools" },
   ]
-  
+
   return (
     <section className="mx-auto max-w-7xl px-4 py-20 md:py-28 lg:py-32 relative" id="problem">
       {/* Background Decoration */}
@@ -157,7 +157,7 @@ function ProblemSolution() {
           </p>
         </div>
       </div>
-      
+
       <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 max-w-6xl mx-auto relative z-10">
         <div className="space-y-6">
           <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-8 text-center flex items-center justify-center gap-3">
@@ -166,8 +166,8 @@ function ProblemSolution() {
           </h3>
           <div className="grid gap-4">
             {comparisons.map((item, i) => (
-              <Card 
-                key={i} 
+              <Card
+                key={i}
                 className="bg-gradient-to-br from-red-50 to-orange-50 border-2 border-red-200/60 dark:from-red-950/20 dark:to-orange-950/10 dark:border-red-900/30 hover:shadow-xl hover:scale-[1.02] transition-all duration-300 animate-scale-in"
                 style={{ animationDelay: `${i * 0.1}s` }}
               >
@@ -179,7 +179,7 @@ function ProblemSolution() {
             ))}
           </div>
         </div>
-        
+
         <div className="space-y-6">
           <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-8 text-center flex items-center justify-center gap-3">
             <CheckCircle2 className="h-7 w-7 text-green-500 animate-bounce-subtle" />
@@ -187,8 +187,8 @@ function ProblemSolution() {
           </h3>
           <div className="grid gap-4">
             {comparisons.map((item, i) => (
-              <Card 
-                key={i} 
+              <Card
+                key={i}
                 className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200/60 dark:from-green-950/20 dark:to-emerald-950/10 dark:border-green-900/30 hover:shadow-xl hover:scale-[1.02] transition-all duration-300 animate-scale-in relative overflow-hidden group"
                 style={{ animationDelay: `${i * 0.1}s` }}
               >
@@ -245,7 +245,7 @@ function CoreFeatures() {
       bgGradient: "from-orange-50 to-red-50 dark:from-orange-950/20 dark:to-red-950/20"
     }
   ]
-  
+
   return (
     <section className="mx-auto max-w-7xl px-4 py-20 md:py-28 lg:py-32 relative" id="features">
       {/* Animated Background Elements */}
@@ -288,43 +288,43 @@ function CoreFeatures() {
             iconGradientClass = "from-orange-500 to-red-600"
           }
           return (
-            <Card 
-              key={i} 
+            <Card
+              key={i}
               className={`bg-gradient-to-br ${bgGradientClass} border-2 border-slate-200 dark:border-white/10 hover:shadow-2xl hover:scale-105 transition-all duration-500 group relative overflow-hidden animate-scale-in flex flex-col`}
               style={{ animationDelay: `${i * 0.2}s` }}
             >
               {/* Shine Effect */}
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
-              
+
               <CardHeader className="relative z-10 p-6 md:p-8">
                 <div className={`h-16 w-16 rounded-2xl bg-gradient-to-br ${iconGradientClass} flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300`}>
                   {React.createElement(feature.icon, { className: "h-8 w-8 text-white" })}
                 </div>
-              <CardTitle className="text-slate-900 dark:text-white text-2xl mb-4 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-sky-600 group-hover:to-blue-600 group-hover:bg-clip-text transition-all duration-300 font-bold">
-                {feature.title}
-              </CardTitle>
-              <p className="text-slate-600 dark:text-slate-300 text-base leading-relaxed">{feature.desc}</p>
-            </CardHeader>
-            <CardContent className="relative z-10 p-6 md:p-8 pt-0 md:pt-0 mt-auto">
-              <ul className="space-y-4">
-                {feature.points.map((point, j) => {
-                  let iconColor = "text-sky-600 dark:text-sky-400"
-                  if (i === 0) iconColor = "text-purple-600 dark:text-purple-400"
-                  if (i === 1) iconColor = "text-sky-600 dark:text-sky-400"
-                  if (i === 2) iconColor = "text-orange-600 dark:text-orange-400"
-                  return (
-                    <li 
-                      key={j} 
-                      className="flex items-start gap-3 text-sm md:text-base text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition-colors duration-300"
-                    >
-                      <CheckCircle2 className={`h-5 w-5 ${iconColor} flex-shrink-0 mt-0.5 animate-pulse`} />
-                      <span className="font-medium leading-snug">{point}</span>
-                    </li>
-                  )
-                })}
-              </ul>
-            </CardContent>
-          </Card>
+                <CardTitle className="text-slate-900 dark:text-white text-2xl mb-4 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-sky-600 group-hover:to-blue-600 group-hover:bg-clip-text transition-all duration-300 font-bold">
+                  {feature.title}
+                </CardTitle>
+                <p className="text-slate-600 dark:text-slate-300 text-base leading-relaxed">{feature.desc}</p>
+              </CardHeader>
+              <CardContent className="relative z-10 p-6 md:p-8 pt-0 md:pt-0 mt-auto">
+                <ul className="space-y-4">
+                  {feature.points.map((point, j) => {
+                    let iconColor = "text-sky-600 dark:text-sky-400"
+                    if (i === 0) iconColor = "text-purple-600 dark:text-purple-400"
+                    if (i === 1) iconColor = "text-sky-600 dark:text-sky-400"
+                    if (i === 2) iconColor = "text-orange-600 dark:text-orange-400"
+                    return (
+                      <li
+                        key={j}
+                        className="flex items-start gap-3 text-sm md:text-base text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition-colors duration-300"
+                      >
+                        <CheckCircle2 className={`h-5 w-5 ${iconColor} flex-shrink-0 mt-0.5 animate-pulse`} />
+                        <span className="font-medium leading-snug">{point}</span>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </CardContent>
+            </Card>
           )
         })}
       </div>
@@ -356,16 +356,16 @@ function WhyWingmanPro() {
       delay: "0.4s"
     }
   ]
-  
+
   return (
     <section className="mx-auto max-w-7xl px-4 py-20 md:py-28 lg:py-32 relative overflow-hidden">
       {/* Enhanced Gradient Background */}
       <div className="absolute inset-0 bg-gradient-to-br from-sky-50 via-blue-50 to-indigo-50 dark:from-sky-950/20 dark:via-blue-950/20 dark:to-indigo-950/20 rounded-[2rem] md:rounded-[3rem] animate-gradient" />
-      
+
       {/* Animated Orbs */}
       <div className="absolute top-0 left-0 w-64 h-64 bg-sky-400/20 dark:bg-sky-600/10 rounded-full blur-3xl animate-float" />
       <div className="absolute bottom-0 right-0 w-64 h-64 bg-blue-400/20 dark:bg-blue-600/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '1.5s' }} />
-      
+
       {/* Sports Icons Floating */}
       <div className="absolute top-10 right-10 w-16 h-16 opacity-10 animate-rotate-slow">
         <Trophy className="w-full h-full text-sky-500" />
@@ -400,33 +400,33 @@ function WhyWingmanPro() {
           </p>
         </div>
       </div>
-      
+
       <div className="grid md:grid-cols-3 gap-8 md:gap-10 lg:gap-8 relative z-10">
         {differentiators.map((item, i) => {
           let gradientClass = "from-blue-500 to-cyan-600"
           if (i === 1) gradientClass = "from-purple-500 to-pink-600"
           else if (i === 2) gradientClass = "from-orange-500 to-red-600"
           return (
-            <Card 
-              key={i} 
+            <Card
+              key={i}
               className="bg-white/80 dark:bg-slate-900/50 backdrop-blur-sm border-2 border-slate-200 dark:border-white/10 text-center hover:shadow-2xl hover:scale-105 transition-all duration-500 group relative overflow-hidden animate-scale-in flex flex-col"
               style={{ animationDelay: item.delay }}
             >
               {/* Gradient Overlay on Hover */}
               <div className={`absolute inset-0 bg-gradient-to-br ${gradientClass} opacity-0 group-hover:opacity-10 transition-opacity duration-500`} />
-              
+
               <CardHeader className="relative z-10 p-8">
                 <div className={`h-24 w-24 rounded-3xl bg-gradient-to-br ${gradientClass} flex items-center justify-center mx-auto mb-6 shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300`}>
                   {React.createElement(item.icon, { className: "h-12 w-12 text-white" })}
                 </div>
-              <CardTitle className="text-slate-900 dark:text-white text-2xl group-hover:bg-gradient-to-r group-hover:from-sky-600 group-hover:to-blue-600 group-hover:bg-clip-text group-hover:text-transparent transition-all duration-300 font-bold">
-                {item.title}
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="relative z-10 px-8 pb-8 pt-0 mt-auto">
-              <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-base md:text-lg">{item.desc}</p>
-            </CardContent>
-          </Card>
+                <CardTitle className="text-slate-900 dark:text-white text-2xl group-hover:bg-gradient-to-r group-hover:from-sky-600 group-hover:to-blue-600 group-hover:bg-clip-text group-hover:text-transparent transition-all duration-300 font-bold">
+                  {item.title}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="relative z-10 px-8 pb-8 pt-0 mt-auto">
+                <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-base md:text-lg">{item.desc}</p>
+              </CardContent>
+            </Card>
           )
         })}
       </div>
@@ -440,7 +440,7 @@ function TechPromise() {
     { icon: Lock, text: "Bank-Level Data Encryption", gradient: "from-green-400 to-emerald-500" },
     { icon: Smartphone, text: "Mobile-First Responsive Design", gradient: "from-blue-400 to-cyan-500" }
   ]
-  
+
   return (
     <section className="mx-auto max-w-7xl px-4 py-20 md:py-28 lg:py-32 relative">
       {/* Background Pattern */}
@@ -456,17 +456,17 @@ function TechPromise() {
           Whether you have 50 members or 50,000, our enterprise-grade infrastructure scales with you.
         </p>
       </div>
-      
+
       <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto relative z-10">
         {promises.map((item, i) => (
-          <Card 
-            key={i} 
+          <Card
+            key={i}
             className={`bg-gradient-to-br from-slate-50 to-sky-50 border-2 border-slate-200 dark:from-slate-900/50 dark:to-blue-900/30 dark:border-white/10 text-center hover:shadow-2xl hover:scale-105 transition-all duration-500 group relative overflow-hidden animate-scale-in`}
             style={{ animationDelay: `${i * 0.15}s` }}
           >
             {/* Animated Gradient Border */}
             <div className={`absolute inset-0 bg-gradient-to-br ${item.gradient} opacity-0 group-hover:opacity-20 transition-opacity duration-500`} />
-            
+
             <CardContent className="p-8 md:p-10 relative z-10">
               <div className={`h-20 w-20 rounded-2xl bg-gradient-to-br ${item.gradient} flex items-center justify-center mx-auto mb-6 shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300`}>
                 {React.createElement(item.icon, { className: "h-10 w-10 text-white" })}
@@ -489,7 +489,7 @@ function FinalCTA() {
       <div className="absolute inset-0 rounded-[2.5rem] md:rounded-[3.5rem] overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-sky-500 via-blue-600 to-indigo-600 dark:from-sky-600 dark:via-blue-700 dark:to-indigo-700 animate-gradient" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(255,255,255,0.1),transparent_50%)]" />
-        
+
         {/* Floating Elements */}
         <div className="absolute top-10 left-10 w-20 h-20 opacity-20 animate-float">
           <Trophy className="w-full h-full text-white" />
@@ -511,8 +511,8 @@ function FinalCTA() {
         </p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-6 animate-slide-up" style={{ animationDelay: '0.4s' }}>
           <Link href="/contact" className="w-full sm:w-auto">
-            <Button 
-              size="lg" 
+            <Button
+              size="lg"
               className="w-full h-16 px-10 bg-white text-sky-700 hover:bg-slate-100 text-xl font-bold shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 relative overflow-hidden group rounded-2xl"
             >
               <span className="relative z-10 flex items-center justify-center gap-3">
@@ -523,10 +523,10 @@ function FinalCTA() {
             </Button>
           </Link>
           <Link href="/clubs" className="w-full sm:w-auto">
-            <Button 
-              size="lg" 
-              variant="outline" 
-              className="w-full h-16 px-10 border-2 border-white text-white hover:bg-white hover:text-sky-700 text-xl font-bold backdrop-blur-sm shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 rounded-2xl"
+            <Button
+              size="lg"
+              variant="outline"
+              className="w-full h-16 px-10 border-2 border-white text-white bg-transparent hover:bg-white hover:text-sky-700 text-xl font-bold backdrop-blur-sm shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 rounded-2xl"
             >
               Join Waiting List
             </Button>
