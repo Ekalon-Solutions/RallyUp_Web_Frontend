@@ -100,7 +100,6 @@ function ClubsPageContent() {
   const [priceFilter, setPriceFilter] = useState("all")
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [registrationData, setRegistrationData] = useState({
-    // Lightweight registration fields (expanded below)
     username: "",
     first_name: "",
     last_name: "",
@@ -118,7 +117,6 @@ function ClubsPageContent() {
     level_name: "",
     id_proof_type: "Aadhar",
     id_proof_number: "",
-    // Keep legacy name for compatibility where used elsewhere
     name: ""
   })
   const [isRegistering, setIsRegistering] = useState(false)
@@ -137,8 +135,6 @@ function ClubsPageContent() {
   const searchParams = useSearchParams()
 
   useEffect(() => {
-    // If a `search` query param is present, pre-populate searchTerm so
-    // initial filtering happens based on the URL.
     const initialSearch = searchParams?.get?.('search') || ''
     if (initialSearch) setSearchTerm(initialSearch)
 
@@ -157,7 +153,6 @@ function ClubsPageContent() {
       const data = await response.json()
       
       if (response.ok) {
-        // Cast API response to local Club[] to satisfy local UI types
         setClubs((data.clubs || []) as unknown as Club[])
       } else {
         toast.error("Failed to load clubs")
@@ -187,7 +182,6 @@ function ClubsPageContent() {
         setUserMemberships(clubIds)
       }
     } catch (error) {
-      // Silently fail - user might not be logged in
       // console.log("Could not fetch user memberships:", error)
     }
   }
@@ -199,7 +193,6 @@ function ClubsPageContent() {
   const filterClubs = () => {
     let filtered = clubs
 
-    // Search filter
     if (searchTerm) {
       filtered = filtered.filter(club =>
         club.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -208,12 +201,9 @@ function ClubsPageContent() {
       )
     }
 
-    // Status filter
     if (statusFilter !== "all") {
       filtered = filtered.filter(club => club.status === statusFilter)
     }
-
-    // Price filter
     if (priceFilter !== "all") {
       filtered = filtered.filter(club => {
         const plans = club.membershipPlans?.filter(plan => plan.isActive) || []
@@ -392,13 +382,11 @@ function ClubsPageContent() {
     if (!selectedClub || !selectedPlan) return
     setIsRegistering(true)
     try {
-      // Store token now that payment succeeded
       if (registeredToken) {
         localStorage.setItem('token', registeredToken)
         localStorage.setItem('userType', 'member')
       }
 
-      // Finalize join including payment details
       const response = await fetch(getApiUrl(API_ENDPOINTS.users.joinClubRequest), {
         method: 'POST',
         headers: {

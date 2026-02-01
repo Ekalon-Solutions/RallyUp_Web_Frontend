@@ -28,8 +28,6 @@ import {
   Save, 
   X,
   Mail,
-  Phone,
-  Globe,
   MapPin
 } from 'lucide-react'
 
@@ -110,7 +108,6 @@ export function EditClubModal({ club, trigger, onClubUpdated }: EditClubModalPro
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    // Validate required fields
     if (!formData.name.trim()) {
       toast.error('Club name is required')
       return
@@ -126,14 +123,12 @@ export function EditClubModal({ club, trigger, onClubUpdated }: EditClubModalPro
       return
     }
 
-    // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(formData.contactEmail)) {
       toast.error('Please enter a valid email address')
       return
     }
 
-    // Validate slug if provided: URL-safe
     if (formData.slug) {
       const slugValue = formData.slug.trim()
       const slugRegex = /^[a-z0-9-]+$/
@@ -144,7 +139,6 @@ export function EditClubModal({ club, trigger, onClubUpdated }: EditClubModalPro
       formData.slug = slugValue
     }
 
-    // Validate phone number format (9-15 digits)
     const phoneRegex = /^\d{9,15}$/
     if (!phoneRegex.test(formData.contactPhone.replace(/\D/g, ''))) {
       toast.error('Phone number must be 9-15 digits')

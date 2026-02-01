@@ -173,7 +173,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   }
   
   const clubId = getUserClubId()
-  const { isSectionVisible, settings } = useClubSettings(clubId)
+  const { isSectionVisible, settings, loading: settingsLoading } = useClubSettings(clubId)
   
   useDesignSettings(clubId)
   
@@ -198,30 +198,30 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     const isRegularUser = !user.role || user.role === 'member'
     
     if (isRegularUser && clubId) {
+      const canShowSection = (section: Parameters<typeof isSectionVisible>[0]) => {
+        // Avoid sidebar flicker: until we *know* the settings, don't render optional links.
+        if (settingsLoading && !settings) return false
+        return isSectionVisible(section)
+      }
+
       const filtered = nav.filter(item => {
         if (item.name === 'News') {
-          const visible = isSectionVisible('news')
-          return visible
+          return canShowSection('news')
         }
         if (item.name === 'Events') {
-          const visible = isSectionVisible('events')
-          return visible
+          return canShowSection('events')
         }
         if (item.name === 'Merchandise' || item.name === 'Merchandise Store') {
-          const visible = isSectionVisible('merchandise')
-          return visible
+          return canShowSection('merchandise')
         }
         if (item.name === 'Polls') {
-          const visible = isSectionVisible('polls')
-          return visible
+          return canShowSection('polls')
         }
         if (item.name === 'Club Chants') {
-          const visible = isSectionVisible('chants')
-          return visible
+          return canShowSection('chants')
         }
         if (item.name === 'Members') {
-          const visible = isSectionVisible('members')
-          return visible
+          return canShowSection('members')
         }
         return true
       })

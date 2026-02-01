@@ -110,8 +110,16 @@ export default function ClubMembersPage() {
       if (response.success && response.data) {
         // console.log('Members data:', response.data.members)
         // console.log('Pagination data:', response.data.pagination)
-        setMembers(response.data.members as ClubMember[])
-        setPagination(response.data.pagination)
+        const nextMembers = (response.data.members as ClubMember[]) || []
+        const nextPagination = response.data.pagination
+        
+        if (nextPagination?.pages > 0 && currentPage > nextPagination.pages) {
+          setCurrentPage(nextPagination.pages)
+          return
+        }
+
+        setMembers(nextMembers)
+        if (nextPagination) setPagination(nextPagination)
       } else {
         // console.error('API error:', response.error)
         toast.error(response.error || 'Failed to load club members')

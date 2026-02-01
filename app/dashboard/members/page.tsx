@@ -83,6 +83,7 @@ export default function MembersPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false)
+  const [isDeleteAllDialogOpen, setIsDeleteAllDialogOpen] = useState(false)
   const [selectedMember, setSelectedMember] = useState<Member | null>(null)
   const [selectedMemberIds, setSelectedMemberIds] = useState<Set<string>>(new Set())
   const [isSelectAll, setIsSelectAll] = useState(false)
@@ -384,6 +385,34 @@ export default function MembersPage() {
     setIsBulkDeleteDialogOpen(true)
   }
 
+  const openDeleteAllDialog = () => {
+    if ((pagination?.total || 0) === 0) {
+      toast.error('No members to delete')
+      return
+    }
+    setIsDeleteAllDialogOpen(true)
+  }
+
+  const handleDeleteAllMembers = async () => {
+    try {
+      const response = await apiClient.deleteAllClubMembers()
+
+      if (response.success) {
+        const deletedCount = response.data?.deletedCount ?? 0
+        toast.success(`Successfully deleted ${deletedCount} member(s)`)
+        setIsDeleteAllDialogOpen(false)
+        setSelectedMemberIds(new Set())
+        setIsSelectAll(false)
+        setCurrentPage(1)
+        fetchMembers()
+      } else {
+        toast.error(response.error || 'Failed to delete all members')
+      }
+    } catch (error) {
+      toast.error('Failed to delete all members')
+    }
+  }
+
   const exportMembers = () => {
     const csvContent = [
       ['Name', 'Email', 'Phone', 'Club', 'Membership Plan', 'Status', 'Joined Date'].join(','),
@@ -415,6 +444,12 @@ export default function MembersPage() {
               <p className="text-muted-foreground text-sm sm:text-base">Manage and view all club members</p>
             </div>
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              {(user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'system_owner') && (pagination?.total || 0) > 0 && (
+                <Button variant="destructive" onClick={openDeleteAllDialog} className="w-full sm:w-auto shadow-md hover:shadow-lg transition-shadow">
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete All Members ({pagination.total})
+                </Button>
+              )}
               {(user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'system_owner') && selectedMemberIds.size > 0 && (
                 <Button variant="destructive" onClick={openBulkDeleteDialog} className="w-full sm:w-auto shadow-md hover:shadow-lg transition-shadow">
                   <Trash2 className="w-4 h-4 mr-2" />
@@ -1022,6 +1057,50 @@ export default function MembersPage() {
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
                   Delete Member
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={isDeleteAllDialogOpen} onOpenChange={setIsDeleteAllDialogOpen}>
+            <DialogContent className="w-[95vw] sm:w-full max-w-md">
+              <DialogHeader>
+                <DialogTitle className="text-xl font-bold text-destructive">Delete All Members</DialogTitle>
+                <DialogDescription className="text-base pt-2">
+                  This action cannot be undone. This will permanently delete all members from your club directory.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="py-6">
+                <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <div className="flex-shrink-0">
+                      <div className="w-12 h-12 rounded-full bg-destructive/20 flex items-center justify-center">
+                        <Trash2 className="w-6 h-6 text-destructive" />
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-base text-destructive">
+                        {pagination.total} Member{pagination.total !== 1 ? 's' : ''} Will Be Deleted
+                      </h3>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        All members currently in your directory will be permanently deleted.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <DialogFooter className="gap-2 sm:gap-0">
+                <Button type="button" variant="outline" onClick={() => setIsDeleteAllDialogOpen(false)} className="flex-1 sm:flex-initial">
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={handleDeleteAllMembers}
+                  className="flex-1 sm:flex-initial shadow-md hover:shadow-lg"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete All Members
                 </Button>
               </DialogFooter>
             </DialogContent>

@@ -911,6 +911,12 @@ class ApiClient {
     });
   }
 
+  async deleteAllClubMembers(): Promise<ApiResponse<{ message: string; deletedCount: number }>> {
+    return this.request('/admin/members/delete-all', {
+      method: 'POST'
+    });
+  }
+
   async getMemberStats(): Promise<ApiResponse<{
     totalMembers: number;
     activeMembers: number;
