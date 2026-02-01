@@ -1,7 +1,6 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { useSearchParams } from "next/navigation"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -53,8 +52,7 @@ interface Merchandise {
 
 export default function MerchandisePage() {
   const { addToCart } = useCart()
-  const searchParams = useSearchParams()
-  const clubId = searchParams?.get("clubId") || ""
+  const [clubId, setClubId] = useState<string | null>(null)
   const [merchandise, setMerchandise] = useState<Merchandise[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -69,6 +67,12 @@ export default function MerchandisePage() {
   const [isCartModalOpen, setIsCartModalOpen] = useState(false)
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false)
   const [directCheckoutItems, setDirectCheckoutItems] = useState<any[] | null>(null)
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const id = new URLSearchParams(window.location.search).get("clubId") || ""
+    setClubId(id)
+  }, [])
 
   const formatCurrency = (amount: number, currencyCode: string = 'USD') => {
     const localeMap: Record<string, string> = {
@@ -91,6 +95,7 @@ export default function MerchandisePage() {
   }
 
   useEffect(() => {
+    if (clubId === null) return
     fetchMerchandise()
   }, [page, searchTerm, categoryFilter, sortBy, showFeaturedOnly, clubId])
 
@@ -112,13 +117,9 @@ export default function MerchandisePage() {
       if (response.data) {
         let items = response.data.merchandise || []
         
-        // Debug: Log the first item to see the structure
         if (items.length > 0) {
-          // console.log('First merchandise item:', items[0])
-          // console.log('Tags:', items[0].tags, 'Type:', typeof items[0].tags)
         }
         
-        // Sort items
         switch (sortBy) {
           case 'price-low':
             items.sort((a: Merchandise, b: Merchandise) => a.price - b.price)
@@ -139,7 +140,6 @@ export default function MerchandisePage() {
         setTotalPages(response.data.pagination?.pages || 1)
       }
     } catch (error) {
-      // console.error('Error fetching merchandise:', error)
       toast.error('Failed to load merchandise')
     } finally {
       setLoading(false)
