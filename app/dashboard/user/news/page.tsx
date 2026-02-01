@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { Suspense, useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -30,7 +30,7 @@ import {
   TrendingUp
 } from "lucide-react"
 
-export default function UserNewsPage() {
+function UserNewsPageInner() {
   const { user } = useAuth()
   const searchParams = useSearchParams()
   const [news, setNews] = useState<News[]>([])
@@ -89,7 +89,8 @@ export default function UserNewsPage() {
       const response = await apiClient.getNewsByUserClub()
 
       if (response.success && response.data) {
-        setNews(response.data.news || response.data)
+        const data: any = response.data
+        setNews(Array.isArray(data) ? data : (data?.news || []))
       } else {
         toast.error("Failed to fetch news")
       }
@@ -500,3 +501,11 @@ export default function UserNewsPage() {
     </ProtectedRoute>
   )
 } 
+
+export default function UserNewsPage() {
+  return (
+    <Suspense fallback={<div className="p-6">Loading...</div>}>
+      <UserNewsPageInner />
+    </Suspense>
+  )
+}

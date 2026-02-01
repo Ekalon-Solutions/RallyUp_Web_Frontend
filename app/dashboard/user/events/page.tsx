@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -131,7 +131,7 @@ function AttendanceMarker({
   );
 }
 
-export default function UserEventsPage() {
+function UserEventsPageInner() {
   const { user } = useAuth() as { user: UserInterface };
   const searchParams = useSearchParams();
   const [events, setEvents] = useState<Event[]>([]);
@@ -223,6 +223,10 @@ export default function UserEventsPage() {
     if (!payload || !payload.eventId) return;
 
     const event = events.find((e) => e._id === payload.eventId);
+    if (!event) {
+      toast.error("Event not found. Please refresh and try again.");
+      return;
+    }
     if (true) {
       if (payload.couponCode) {
         setCouponForPayment({ code: payload.couponCode, discount: 0 });
@@ -230,7 +234,7 @@ export default function UserEventsPage() {
         setCouponForPayment(null);
       }
       setShowEventCheckoutModal(true);
-      setEventForPayment({ ...event, price: event.ticketPrice } as Event & {
+      setEventForPayment({ ...event, price: event.ticketPrice ?? 0 } as Event & {
         price: number;
       });
       setAttendeesForPayment(
@@ -864,34 +868,37 @@ export default function UserEventsPage() {
         <EventCheckoutModal
           isOpen={showEventCheckoutModal}
           onClose={() => setShowEventCheckoutModal(false)}
-          event={eventForPayment}
+          event={
+            eventForPayment
+              ? {
+                  _id: (eventForPayment as any)._id,
+                  name: (eventForPayment as any).title || (eventForPayment as any).name || "Event",
+                  price: (eventForPayment as any).ticketPrice ?? (eventForPayment as any).price ?? 0,
+                  ticketPrice: (eventForPayment as any).ticketPrice,
+                  earlyBirdDiscount: (eventForPayment as any).earlyBirdDiscount,
+                  currency: (eventForPayment as any).currency,
+                }
+              : undefined
+          }
           attendees={attendeesForPayment}
           couponCode={couponForPayment?.code}
           onSuccess={() => {
             setShowEventCheckoutModal(false);
             fetchEvents();
             toast.success("Payment successful!");
-            // setShowEventPaymentSimulationModal(true);
           }}
           onFailure={()=> {
             toast.error("Payment failed. Please try again.");
           }}
         />
-
-{/*         <EventPaymentSimulationModal
-          isOpen={showEventPaymentSimulationModal}
-          onClose={() => setShowEventPaymentSimulationModal(false)}
-          event={eventForPayment}
-          attendees={attendeesForPayment}
-          couponCode={couponForPayment?.code}
-          onPaymentSuccess={() => {
-            setShowEventPaymentSimulationModal(false);
-          }}
-          onPaymentFailure={() => {
-            setShowEventPaymentSimulationModal(false);
-          }}
-        /> 
-*/}
     </ProtectedRoute>
+  );
+}
+
+export default function UserEventsPage() {
+  return (
+    <Suspense fallback={<div className="p-6">Loading...</div>}>
+      <UserEventsPageInner />
+    </Suspense>
   );
 }

@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect } from "react"
+import React, { Suspense, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Bell, LogIn } from "lucide-react"
 
@@ -10,7 +10,7 @@ import { SiteNavbar } from "@/components/site-navbar"
 import { SiteFooter } from "@/components/site-footer"
 import { useAuth } from "@/contexts/auth-context"
 
-export default function NotificationPreferencesLandingPage() {
+function NotificationPreferencesLandingPageInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { isAuthenticated, isLoading } = useAuth()
@@ -55,6 +55,14 @@ export default function NotificationPreferencesLandingPage() {
       </main>
       <SiteFooter />
     </div>
+  )
+}
+
+export default function NotificationPreferencesLandingPage() {
+  return (
+    <Suspense fallback={<div className="p-6">Loading...</div>}>
+      <NotificationPreferencesLandingPageInner />
+    </Suspense>
   )
 }
 
