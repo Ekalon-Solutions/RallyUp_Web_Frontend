@@ -242,9 +242,9 @@ function ClubsPageContent() {
 
   const validatePhoneNumber = (phone: string): string => {
     if (!phone) return ""
-    const phoneRegex = /^\d{10,15}$/
+    const phoneRegex = /^\d{9,15}$/
     if (!phoneRegex.test(phone)) {
-      return "Phone number must be 10-15 digits"
+      return "Phone number must be 9-15 digits"
     }
     return ""
   }
@@ -252,7 +252,6 @@ function ClubsPageContent() {
   const handleRegistration = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedClub || !selectedPlan) return
-    // Validate phone number before proceeding
     const phoneError = validatePhoneNumber(registrationData.phoneNumber)
     setRegistrationErrors({ phoneNumber: phoneError })
     if (phoneError) {
@@ -262,8 +261,7 @@ function ClubsPageContent() {
 
     setIsRegistering(true)
     try {
-      // First, register the user
-              const registerResponse = await fetch(getApiUrl(API_ENDPOINTS.users.register), {
+        const registerResponse = await fetch(getApiUrl(API_ENDPOINTS.users.register), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -276,13 +274,8 @@ function ClubsPageContent() {
       const registerData = await registerResponse.json()
 
       if (registerResponse.ok) {
-        // Save token temporarily (do not set in localStorage until payment succeeds)
         setRegisteredToken(registerData.token || null)
-
-        // Show success message for registration
         toast.success("User registered successfully. Proceed to payment to activate membership.")
-
-        // Prepare a temporary order and open payment modal (for paid plans)
         if (selectedPlan && selectedPlan.price > 0) {
           const orderId = `temp-${Date.now()}`
           const orderNumber = `ORD-${Math.floor(Math.random() * 900000) + 100000}`

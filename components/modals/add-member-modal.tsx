@@ -139,8 +139,8 @@ export function AddMemberModal({ trigger, onMemberAdded }: AddMemberModalProps) 
       return false
     }
 
-    if (!/^\d{10,15}$/.test(userData.phoneNumber)) {
-      toast.error("Please enter a valid phone number (10-15 digits)")
+    if (!/^\d{9,15}$/.test(userData.phoneNumber)) {
+      toast.error("Please enter a valid phone number (9-15 digits)")
       return false
     }
 

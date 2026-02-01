@@ -232,7 +232,7 @@ charlie.brown@example.com,Charlie,Brown,9234567890,+91,charlie_brown,1992-08-20,
         }
 
         try {
-          if (!phoneNumber || phoneNumber.length < 10) {
+          if (!phoneNumber || phoneNumber.length < 9 || phoneNumber.length > 15) {
             failCount++
             errors.push({ row: idx + 2, error: `Invalid phone number (${phoneNumber || 'empty'})` })
             continue
