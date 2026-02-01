@@ -22,7 +22,6 @@ export function TimePickerCompact({
   disabled = false,
   className = "" 
 }: TimePickerCompactProps) {
-  // Generate time options in 15-minute intervals
   const generateTimeOptions = () => {
     const times: string[] = []
     for (let hour = 1; hour <= 12; hour++) {

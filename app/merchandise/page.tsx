@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
+import { useSearchParams } from "next/navigation"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -52,6 +53,8 @@ interface Merchandise {
 
 export default function MerchandisePage() {
   const { addToCart } = useCart()
+  const searchParams = useSearchParams()
+  const clubId = searchParams?.get("clubId") || ""
   const [merchandise, setMerchandise] = useState<Merchandise[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -89,7 +92,7 @@ export default function MerchandisePage() {
 
   useEffect(() => {
     fetchMerchandise()
-  }, [page, searchTerm, categoryFilter, sortBy, showFeaturedOnly])
+  }, [page, searchTerm, categoryFilter, sortBy, showFeaturedOnly, clubId])
 
   const fetchMerchandise = async () => {
     try {
@@ -102,6 +105,7 @@ export default function MerchandisePage() {
              if (searchTerm) params.append('search', searchTerm)
        if (categoryFilter && categoryFilter !== 'all') params.append('category', categoryFilter)
        if (showFeaturedOnly) params.append('featured', 'true')
+       if (clubId) params.append('clubId', clubId)
 
       const response = await apiClient.get(`/merchandise/public?${params}`)
       

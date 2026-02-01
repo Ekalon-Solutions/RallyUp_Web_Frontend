@@ -1,13 +1,7 @@
-import { getApiUrl, API_ENDPOINTS } from './config';
+import { getApiUrl } from './config';
 import { triggerBlobDownload } from './utils';
 
-// Legacy support - will be removed after migration
 const API_BASE_URL = getApiUrl('');
-
-// Debug: Log the API base URL being used
-if (typeof window !== 'undefined') {
-  // // console.log('🔧 [API CLIENT] Initialized with base URL:', API_BASE_URL);
-}
 
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -166,8 +160,8 @@ export interface Event {
   _id: string;
   title: string;
   category: string;
-  startTime: string; // ISO date string from backend
-  endTime?: string; // ISO date string from backend (optional)
+  startTime: string;
+  endTime?: string;
   venue: string;
   description: string;
   bookingStartTime: string;
@@ -313,7 +307,6 @@ export interface Club {
   updatedAt: string;
 }
 
-// Membership Card Interfaces
 export interface MembershipCard {
   _id: string;
   cardNumber: string;
@@ -336,7 +329,7 @@ export interface MembershipCard {
   barcode?: string;
   isDigitalCard: boolean;
   isPhysicalCard: boolean;
-  membershipId?: string | null; // User's membership ID (e.g., UM-2024-123456ABC)
+  membershipId?: string | null;
   customization?: {
     primaryColor: string;
     secondaryColor: string;
@@ -478,7 +471,7 @@ export interface Poll {
   priority: 'low' | 'medium' | 'high';
   createdAt: string;
   updatedAt: string;
-  userVotes?: string[]; // User's votes (added by API)
+  userVotes?: string[];
 }
 
 export interface ExternalTicketRequest {
@@ -509,13 +502,8 @@ class ApiClient {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<ApiResponse<T>> {
-    // Remove double slashes when concatenating baseURL and endpoint
     const url = `${this.baseURL}${endpoint}`.replace(/([^:]\/)\/+/g, "$1");
     const token = this.getToken();
-    // // console.log(`🔧 [API REQUEST] Full URL: ${url}`);
-    // // console.log(`API request to ${endpoint} with token:`, token ? 'exists' : 'missing');
-
-    // Determine if we should set Content-Type header
     const isFormData = options.body instanceof FormData;
     
     const headers: Record<string, string> = {
@@ -526,12 +514,10 @@ class ApiClient {
       headers['Authorization'] = `Bearer ${token}`;
     }
     
-    // Only set Content-Type for non-FormData requests
     if (!isFormData) {
       headers['Content-Type'] = 'application/json';
     }
     
-    // Merge with any existing headers from options
     if (options.headers) {
       Object.assign(headers, options.headers);
     }
@@ -542,15 +528,9 @@ class ApiClient {
       ...options,
     };
 
-    // Debug headers
-    // // console.log('🔍 Request headers:', config.headers);
-    // // console.log('🔍 Token exists:', !!token);
-    // // console.log('🔍 Authorization header:', headers['Authorization']);
-
     try {
       const response = await fetch(url, config);
       
-      // Handle non-JSON responses (like HTML error pages)
       let data;
       const contentType = response.headers.get('content-type');
       if (contentType && contentType.includes('application/json')) {
@@ -560,13 +540,6 @@ class ApiClient {
         data = { message: text || `HTTP ${response.status} error` };
       }
       
-      // // console.log(`API ${endpoint} response:`, {
-//         status: response.status, 
-//         statusText: response.statusText,
-//         data,
-//         url: response.url 
-//       });
-
       if (!response.ok) {
         const errorMessage = data.message || data.error || `HTTP error! status: ${response.status}`;
         const errorDetails = {
@@ -591,7 +564,6 @@ class ApiClient {
         data,
       };
     } catch (error) {
-      // // console.error('API request failed:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Network error',
@@ -607,13 +579,11 @@ class ApiClient {
   private getToken(): string | null {
     if (typeof window !== 'undefined') {
       const token = localStorage.getItem('token');
-      // // console.log('🔑 Getting token from localStorage:', token ? 'exists' : 'missing');
       return token;
     }
     return null;
   }
 
-  // Generic HTTP methods
   async get<T = any>(endpoint: string, options?: { params?: Record<string, any> }): Promise<ApiResponse<T>> {
     let url = endpoint;
     if (options?.params) {
@@ -700,7 +670,6 @@ class ApiClient {
     return this.request<T>(endpoint, requestOptions);
   }
 
-  // Authentication APIs
   async adminRegister(data: {
     name: string;
     email: string;
@@ -729,7 +698,6 @@ class ApiClient {
     return this.request('/admin/profile');
   }
 
-  // Admin attendance logging (called from attendance landing page)
   async adminLogAttendance(data: { registrationId?: string | null; attendeeId?: string | null;}): Promise<ApiResponse<any>> {
     return this.request('/events/admin/attendance', {
       method: 'POST',
@@ -813,7 +781,6 @@ class ApiClient {
         backendData.phone_country_code = data.countryCode;
       }
     } else {
-      // For admin and system_owner
       if (data.name !== undefined) {
         backendData.name = data.name;
       }
@@ -1000,7 +967,6 @@ class ApiClient {
     return this.request(endpoint);
   }
 
-  // Events APIs
   async getEvents(): Promise<ApiResponse<Event[]>> {
     return this.request('/events');
   }
@@ -1015,11 +981,14 @@ class ApiClient {
     return this.request(endpoint);
   }
 
+  async getPublicEventById(id: string): Promise<ApiResponse<Event>> {
+    return this.request(`/events/public/${id}`);
+  }
+
   async getEventById(id: string): Promise<ApiResponse<Event>> {
     return this.request(`/events/${id}`);
   }
 
-  // External ticketing APIs
   async createExternalTicketRequest(data: {
     clubId: string;
     userName: string;
@@ -1145,6 +1114,23 @@ class ApiClient {
     return this.request(`/events/${eventId}/register`, {
       method: 'POST',
       body: JSON.stringify({ notes, attendees, couponCode, orderID, paymentID, signature }),
+    });
+  }
+
+  async registerForPublicEvent(eventId: string, data: {
+    registrantName: string;
+    registrantEmail?: string;
+    registrantPhone?: string;
+    notes?: string;
+    attendees?: Array<{ name: string; phone: string }>;
+    couponCode?: string | null;
+    orderID?: string;
+    paymentID?: string;
+    signature?: string;
+  }): Promise<ApiResponse<{ message: string; event: Event }>> {
+    return this.request(`/events/public/${eventId}/register`, {
+      method: 'POST',
+      body: JSON.stringify(data),
     });
   }
 
@@ -1433,7 +1419,6 @@ class ApiClient {
     });
   }
 
-  // Update volunteer profile for the current user
   async updateVolunteerProfile(data: {
     interests?: string[];
     availability?: {
@@ -1456,7 +1441,6 @@ class ApiClient {
     });
   }
 
-  // Volunteer Communication
   async sendVolunteerNotification(volunteerIds: string[], message: string, priority: 'low' | 'medium' | 'high' = 'medium'): Promise<ApiResponse<{ message: string; sentCount: number }>> {
     return this.request('/volunteer/notifications/send', {
       method: 'POST',
@@ -1498,7 +1482,6 @@ class ApiClient {
     });
   }
 
-  // Volunteer Reports and Analytics
   async getVolunteerReport(params: {
     startDate: string;
     endDate: string;
@@ -1531,7 +1514,6 @@ class ApiClient {
     return this.request(endpoint);
   }
 
-  // Generic binary/file download helper that reuses token and headers
   async downloadFile(endpoint: string, options?: { params?: Record<string, any> }): Promise<{ success: boolean; blob?: Blob; filename?: string; error?: string }> {
     try {
       let url = endpoint;
@@ -1574,12 +1556,11 @@ class ApiClient {
       const blob = await response.blob();
       return { success: true, blob, filename: filename || undefined };
     } catch (error: any) {
-      // // console.error('downloadFile error', error);
+      // console.error('downloadFile error', error);
       return { success: false, error: error?.message || 'Download failed' };
     }
   }
 
-  // High-level helper for downloading the orders report and triggering browser download
   async downloadOrdersReport(params?: Record<string, any>): Promise<{ success: boolean; error?: string }> {
     try {
       const result = await this.downloadFile('/orders/admin/report', { params });
@@ -1592,12 +1573,11 @@ class ApiClient {
 
       return { success: true };
     } catch (error: any) {
-      // // console.error('downloadOrdersReport error', error);
+      // console.error('downloadOrdersReport error', error);
       return { success: false, error: error?.message || 'Failed to download orders report' };
     }
   }
 
-  // Download the authenticated user's orders report
   async downloadMyOrdersReport(params?: Record<string, any>): Promise<{ success: boolean; error?: string }> {
     try {
       const result = await this.downloadFile('/orders/my-orders/report', { params });
@@ -1610,12 +1590,11 @@ class ApiClient {
 
       return { success: true };
     } catch (error: any) {
-      // // console.error('downloadMyOrdersReport error', error);
+      // console.error('downloadMyOrdersReport error', error);
       return { success: false, error: error?.message || 'Failed to download my orders report' };
     }
   }
 
-  // Club Management APIs
   async createClub(data: {
     name: string;
     description?: string;
@@ -1669,7 +1648,6 @@ class ApiClient {
     const endpoint = isPublic ? `/clubs/${id}/public` : `/clubs/${id}`;
     
     if (isPublic) {
-      // For public access, make request without requiring auth token
       const url = `${this.baseURL}${endpoint}`;
       const response = await fetch(url, {
         headers: {
@@ -1708,7 +1686,7 @@ class ApiClient {
     contactInfo?: string;
     slug?: string;
   }): Promise<ApiResponse<{ message: string; club: Club }>> {
-    // // console.log('🔵 PATCH /clubs/' + id + '/basic-info', data);
+    // console.log('🔵 PATCH /clubs/' + id + '/basic-info', data);
     return this.patch(`/clubs/${id}/basic-info`, data);
   }
 
@@ -1722,7 +1700,6 @@ class ApiClient {
     return this.request(`/clubs/${id}/stats`);
   }
 
-  // Membership Plan APIs
   async createMembershipPlan(data: {
     name: string;
     description: string;
@@ -1759,7 +1736,6 @@ class ApiClient {
     });
   }
 
-  // Admin-only: Assign membership plan to a user
   async assignMembershipPlan(planId: string, userId: string): Promise<ApiResponse<{ message: string; user: User }>> {
     return this.request(`/membership-plans/${planId}/assign`, {
       method: 'POST',
@@ -1767,7 +1743,6 @@ class ApiClient {
     });
   }
 
-  // User-facing: Subscribe to a membership plan (with auto-upgrade)
   async subscribeMembershipPlan(planId: string): Promise<ApiResponse<{ 
     message: string; 
     data: { 
@@ -1780,7 +1755,6 @@ class ApiClient {
     });
   }
 
-  // Staff Management APIs
   async createAdmin(data: {
     name: string;
     email: string;
@@ -1834,7 +1808,6 @@ class ApiClient {
     return this.request('/staff/stats');
   }
 
-  // Phone Verification APIs
   async verifyPhoneNumber(data: {}): Promise<ApiResponse<any>> {
     return this.request('/phone/verify', {
       method: 'POST',
@@ -1849,7 +1822,6 @@ class ApiClient {
     return this.request(`/phone/status/${userId}?role=${role}`);
   }
 
-  // System Owner Staff Management
   async getStaffByClub(clubId: string, params?: {
     role?: string;
     page?: number;
@@ -1902,7 +1874,6 @@ class ApiClient {
     });
   }
 
-  // System Owner Management
   async systemOwnerRegister(data: {
     name: string;
     email: string;
@@ -1931,7 +1902,6 @@ class ApiClient {
     return this.request('/system-owner/profile');
   }
 
-  // Club-related APIs for users and admins
   async getUserClub(): Promise<ApiResponse<{
     club: Club;
     membershipPlan?: string;
@@ -1946,16 +1916,10 @@ class ApiClient {
     return this.request('/admin/club');
   }
 
-  // Member Directory APIs
   async searchUsers(query: string): Promise<ApiResponse<User[]>> {
-    // // console.log('API searchUsers - Query:', query);
     const endpoint = `/users/search?q=${encodeURIComponent(query)}`;
     const response = await this.request<any>(endpoint);
-    // // console.log('API searchUsers - Raw response:', response);
-
-    // Handle the case where the data is directly in the response
     const users = response.success ? (Array.isArray(response.data) ? response.data : []) : [];
-    // // console.log('API searchUsers - Processed users:', users);
 
     return {
       success: response.success,
@@ -1964,17 +1928,11 @@ class ApiClient {
     };
   }
 
-  // Admin Search API (System Owner only)
   async searchAdmins(query: string): Promise<ApiResponse<Admin[]>> {
-    // // console.log('API searchAdmins - Query:', query);
     const endpoint = `/admin/search?q=${encodeURIComponent(query)}`;
     const response = await this.request<any>(endpoint);
-    // // console.log('API searchAdmins - Raw response:', response);
-
-    // Handle the nested response structure
     const responseData = response.data || response;
     const admins = responseData.success ? (Array.isArray(responseData.data) ? responseData.data : []) : [];
-    // // console.log('API searchAdmins - Processed admins:', admins);
 
     return {
       success: responseData.success,
@@ -2111,12 +2069,10 @@ class ApiClient {
     return this.request('/users/memberships');
   }
 
-  // Debug method - remove after fixing
   async debugVolunteers(): Promise<ApiResponse<any>> {
     return this.request('/volunteer/debug-volunteers');
   }
 
-  // Membership Card APIs
   async getMyMembershipCards(): Promise<ApiResponse<PublicMembershipCardDisplay[]>> {
     return this.request('/membership-cards/my-cards');
   }
@@ -2221,7 +2177,6 @@ class ApiClient {
     });
   }
 
-  // Regenerate QR code for user's own membership card
   async regenerateMyQRCode(): Promise<ApiResponse<{ qrCode: string }>> {
     return this.request(`/membership-cards/my-card/regenerate-qr`, {
       method: 'POST',
@@ -2238,7 +2193,24 @@ class ApiClient {
     return this.request(`/clubs/${clubId}/members`);
   }
 
-  // Poll APIs
+  async getPublicPolls(params?: {
+    clubId?: string;
+    page?: number;
+    limit?: number;
+    category?: 'general' | 'event' | 'feedback' | 'decision' | 'survey';
+    search?: string;
+  }): Promise<ApiResponse<{
+    polls: Poll[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      pages: number;
+    };
+  }>> {
+    return this.get('/polls/public', { params });
+  }
+
   async getPolls(params?: {
     page?: number;
     limit?: number;
@@ -2289,7 +2261,6 @@ class ApiClient {
     return this.request(endpoint);
   }
 
-  // Get active polls for the authenticated user's club (server uses req.user.club)
   async getActivePollsByMyClub(params?: {
     page?: number;
     limit?: number;
@@ -2434,8 +2405,23 @@ class ApiClient {
     return this.request(endpoint);
   }
 
-  // Chants API methods
-  // Get all chants from all user's clubs
+  async getPublicChants(params: {
+    clubId: string;
+    fileType?: 'text' | 'image' | 'audio' | 'iframe';
+    page?: number;
+    limit?: number;
+    search?: string;
+  }): Promise<ApiResponse<{
+    chants: Chant[];
+    pagination: {
+      current: number;
+      pages: number;
+      total: number;
+    };
+  }>> {
+    return this.get('/chants/public', { params });
+  }
+
   async getAllUserChants(params?: {
     fileType?: 'text' | 'image' | 'audio';
     page?: number;
@@ -2511,7 +2497,6 @@ class ApiClient {
     return this.request(`/chants/club/${clubId}`, {
       method: 'POST',
       body: formData,
-      // Don't set headers - let the request method handle Authorization and Content-Type
     });
   }
 
@@ -2538,7 +2523,6 @@ class ApiClient {
     return this.request(`/chants/${id}`, {
       method: 'PUT',
       body: formData,
-      // Don't set headers - let the request method handle Authorization and Content-Type
     });
   }
 
@@ -2561,7 +2545,6 @@ class ApiClient {
     return this.request(`/chants/club/${clubId}/stats`);
   }
 
-  // Merchandise APIs
   async getMerchandise(params?: {
     page?: number;
     limit?: number;
@@ -2702,12 +2685,10 @@ class ApiClient {
     return this.get(`/merchandise/public/settings/${clubId}`);
   }
 
-  // Club Settings APIs
   async getClubSettings(clubId: string, isPublic: boolean = false): Promise<ApiResponse<any>> {
     const endpoint = isPublic ? `/club-settings/${clubId}/public` : `/club-settings/${clubId}`;
     
     if (isPublic) {
-      // For public access, make request without requiring auth token
       const url = `${this.baseURL}${endpoint}`;
       const response = await fetch(url, {
         headers: {
@@ -2754,7 +2735,7 @@ class ApiClient {
     memberCount?: number;
     isVisible: boolean;
   }>): Promise<ApiResponse<any>> {
-    // // console.log('🔵 PUT /club-settings/' + clubId + '/group-listings', listings);
+    // console.log('🔵 PUT /club-settings/' + clubId + '/group-listings', listings);
     return this.put(`/club-settings/${clubId}/group-listings`, { listings });
   }
 
@@ -2806,7 +2787,6 @@ class ApiClient {
     return this.put(`/club-settings/${clubId}/help-section`, data);
   }
 
-  // Coupon APIs
   async getCoupons(): Promise<ApiResponse<{ coupons: any[] }>> {
     return this.request('/coupons');
   }

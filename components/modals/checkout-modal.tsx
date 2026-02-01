@@ -208,7 +208,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
         notes: orderForm.notes
       }
 
-      const response = await apiClient.post('/orders', orderData)
+      const response = await apiClient.post(user ? '/orders' : '/orders/public', orderData)
       
       if (response.success && response.data) {
         const order = response.data.data
@@ -583,7 +583,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
           }}
           onBecomeMember={() => {
             const clubId = typeof items[0]?.club === 'string' ? items[0].club : items[0]?.club?._id
-            router.push(`/register?club=${clubId}`)
+            router.push(`/membership-plans?clubId=${clubId}`)
             onClose()
           }}
         />

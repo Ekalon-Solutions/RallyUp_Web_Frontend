@@ -21,13 +21,10 @@ export default function BrowseMembershipPlansPage() {
   const { user, checkAuth } = useAuth()
 
   useEffect(() => {
-    // console.log('BrowsePlansPage: Initial load, waiting for ClubSelector')
   }, [])
 
   useEffect(() => {
-    // console.log('BrowsePlansPage: selectedClubId changed to:', selectedClubId)
     if (selectedClubId) {
-      // Reset current membership when club changes
       setCurrentMembership(null)
       loadCurrentMembership(selectedClubId)
       loadPlans(selectedClubId)
@@ -44,19 +41,12 @@ export default function BrowseMembershipPlansPage() {
 
   const loadCurrentMembership = async (clubId: string) => {
     try {
-      // console.log('🔍 Loading current membership for clubId:', clubId)
-      // Get current user's active membership for this club from auth context
       if (user && 'memberships' in user && user.memberships) {
-        // console.log('All user memberships:', user.memberships)
         
-        // Find all memberships for this club
         const clubMemberships = user.memberships.filter((m: any) => 
           m.club_id?._id === clubId && m.status === 'active'
         )
         
-        // console.log('Club memberships found:', clubMemberships)
-        
-        // If multiple memberships for same club, take the most recent one (latest start_date)
         let membership = null
         if (clubMemberships.length > 0) {
           membership = clubMemberships.reduce((latest: any, current: any) => {
@@ -66,11 +56,9 @@ export default function BrowseMembershipPlansPage() {
           })
         }
         
-        // console.log('✅ Selected current membership for club:', membership)
         setCurrentMembership(membership)
       }
     } catch (error) {
-      // console.error('Error loading current membership:', error)
     }
   }
 
@@ -78,25 +66,19 @@ export default function BrowseMembershipPlansPage() {
     try {
       setIsLoading(true)
       
-      // console.log('🔍 Loading plans for club:', clubId || 'auto-detect')
       
       const response = await apiClient.getMembershipPlans(clubId)
-      // console.log('User membership plans response:', response)
       
       if (response.success && response.data) {
         const plansData = Array.isArray(response.data) ? response.data : ((response.data as any)?.data || [])
-        // Filter only active plans and sort by price (ascending)
         const activePlans = plansData
           .filter((plan: any) => plan.isActive)
           .sort((a: any, b: any) => a.price - b.price)
-        // console.log('Active plans sorted by price:', activePlans)
         setPlans(activePlans)
       } else {
-        // console.error('Failed to load membership plans:', response.error)
         toast.error(response.error || "Failed to load membership plans")
       }
     } catch (error) {
-      // console.error('Error loading membership plans:', error)
       toast.error("Failed to load membership plans")
     } finally {
       setIsLoading(false)
@@ -112,7 +94,6 @@ export default function BrowseMembershipPlansPage() {
     try {
       setIsAssigning(planId)
       
-      // Use the new subscribe endpoint
       const response = await apiClient.subscribeMembershipPlan(planId)
       
       if (response.success) {
@@ -121,10 +102,8 @@ export default function BrowseMembershipPlansPage() {
           : "Membership plan selected successfully!"
         toast.success(message)
         
-        // Refresh auth context to get updated memberships
         await checkAuth()
         
-        // Reload plans and current membership
         if (selectedClubId) {
           await loadPlans(selectedClubId)
           await loadCurrentMembership(selectedClubId)
@@ -133,7 +112,6 @@ export default function BrowseMembershipPlansPage() {
         toast.error(response.error || "Failed to select membership plan")
       }
     } catch (error) {
-      // console.error('Error subscribing to membership plan:', error)
       toast.error("Failed to select membership plan")
     } finally {
       setIsAssigning(null)
@@ -198,98 +176,66 @@ export default function BrowseMembershipPlansPage() {
   }
 
   const getMostPopularPlan = () => {
-    // Simple logic: middle-priced plan is most popular
     if (plans.length <= 2) return null
     const sortedByPrice = [...plans].sort((a, b) => a.price - b.price)
     return sortedByPrice[Math.floor(sortedByPrice.length / 2)]?._id
   }
 
-  // Determine if a plan is an upgrade
   const isUpgradePlan = (plan: MembershipPlan) => {
     if (!currentMembership?.membership_level_id) return false
     const currentPlan = currentMembership.membership_level_id
     return plan.price > currentPlan.price
   }
 
-  // Determine if a plan is a downgrade
   const isDowngradePlan = (plan: MembershipPlan) => {
     if (!currentMembership?.membership_level_id) return false
     const currentPlan = currentMembership.membership_level_id
     return plan.price < currentPlan.price
   }
 
-  // Check if membership is expired or about to expire
   const isMembershipExpired = () => {
     if (!currentMembership?.end_date) {
-      // console.log('❌ No end_date found in currentMembership')
       return false
     }
     const endDate = new Date(currentMembership.end_date)
     const now = new Date()
     const isExpired = endDate <= now
-    // console.log('⏰ Membership expiry check:', {
-//       endDate: endDate.toISOString(),
-//       now: now.toISOString(),
-//       isExpired
-//     })
     return isExpired
   }
 
-  // Determine if this is the user's current plan
   const isCurrentPlan = (plan: MembershipPlan) => {
     if (!currentMembership?.membership_level_id) return false
     const isCurrent = currentMembership.membership_level_id._id === plan._id
-    // console.log('🎯 Is current plan?', {
-//       planId: plan._id,
-//       planName: plan.name,
-//       currentPlanId: currentMembership.membership_level_id._id,
-//       isCurrent
-//     })
     return isCurrent
   }
 
-  // Determine if a plan should be disabled
   const isPlanDisabled = (plan: MembershipPlan) => {
     if (isCurrentPlan(plan)) {
-      // console.log('🚫 Plan disabled - is current plan:', plan.name)
       return true
     }
     
     const expired = isMembershipExpired()
     const isDowngrade = isDowngradePlan(plan)
     
-    // If membership is active (not expired)
     if (currentMembership && !expired) {
-      // Only allow upgrades during active membership
       const disabled = isDowngrade
-      // console.log('🔒 Active membership check:', {
-//         planName: plan.name,
-//         isDowngrade,
-//         disabled,
-//         reason: disabled ? 'Downgrade not allowed during active membership' : 'Upgrade allowed'
-//       })
       return disabled
     }
     
-    // If expired or no membership, allow all plans
-    // console.log('✅ Plan enabled:', plan.name, 'Membership expired or no membership')
     return false
   }
 
-  // Get button text based on plan status
   const getButtonText = (plan: MembershipPlan) => {
     if (isCurrentPlan(plan)) {
       return 'Your Current Plan'
     }
     
     if (currentMembership && !isMembershipExpired()) {
-      // Active membership - only show upgrade
       if (isUpgradePlan(plan)) {
         return 'Upgrade to This Plan'
       }
-      return 'Upgrade Required' // For downgrade plans
+      return 'Upgrade Required'
     } else {
-      // Expired or no membership - can upgrade or downgrade
       if (isUpgradePlan(plan)) {
         return 'Upgrade to This Plan'
       } else if (isDowngradePlan(plan)) {

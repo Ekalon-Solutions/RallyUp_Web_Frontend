@@ -33,11 +33,10 @@ export interface ClubSettings {
 
 let cachedSettings: ClubSettings | null = null
 let cacheTime: number = 0
-const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
+const CACHE_DURATION = 5 * 60 * 1000
 
 export async function getClubSettings(clubId: string, forceRefresh = false): Promise<ClubSettings | null> {
   try {
-    // Return cached settings if available and not expired
     if (!forceRefresh && cachedSettings && (Date.now() - cacheTime < CACHE_DURATION)) {
       return cachedSettings
     }
@@ -50,7 +49,6 @@ export async function getClubSettings(clubId: string, forceRefresh = false): Pro
     }
     return null
   } catch (error) {
-    // console.error('Error fetching club settings:', error)
     return null
   }
 }

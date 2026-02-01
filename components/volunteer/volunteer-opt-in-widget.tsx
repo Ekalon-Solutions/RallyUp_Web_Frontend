@@ -26,7 +26,6 @@ export function VolunteerOptInWidget({ currentUser, clubId, onProfileUpdate }: V
   const [showModal, setShowModal] = useState(false);
   const { toast } = useToast();
 
-  // Fetch current volunteer status
   useEffect(() => {
     fetchVolunteerProfile();
   }, [currentUser]);
@@ -48,10 +47,10 @@ export function VolunteerOptInWidget({ currentUser, clubId, onProfileUpdate }: V
           setIsVolunteer(data.volunteer.isActive !== false);
         }
       } else if (response.status !== 404) {
-        // // console.error('Error fetching volunteer profile');
+        // console.error('Error fetching volunteer profile');
       }
     } catch (error) {
-      // // console.error('Error:', error);
+      // console.error('Error:', error);
     } finally {
       setInitialLoading(false);
     }
@@ -59,12 +58,10 @@ export function VolunteerOptInWidget({ currentUser, clubId, onProfileUpdate }: V
 
   const handleOptToggle = async (checked: boolean) => {
     if (checked && !volunteerProfile) {
-      // User wants to opt-in but has no profile - show modal
       setShowModal(true);
       return;
     }
 
-    // Update existing profile's active status
     try {
       setLoading(true);
       const response = await fetch(`${config.apiBaseUrl}/volunteer/volunteer-profile`, {
@@ -95,7 +92,7 @@ export function VolunteerOptInWidget({ currentUser, clubId, onProfileUpdate }: V
         throw new Error('Failed to update volunteer status');
       }
     } catch (error) {
-      // // console.error('Error updating volunteer status:', error);
+      // console.error('Error updating volunteer status:', error);
       toast({
         title: "Error",
         description: "Failed to update volunteer status. Please try again.",
@@ -141,7 +138,7 @@ export function VolunteerOptInWidget({ currentUser, clubId, onProfileUpdate }: V
         throw new Error('Failed to create volunteer profile');
       }
     } catch (error) {
-      // // console.error('Error creating volunteer profile:', error);
+      // console.error('Error creating volunteer profile:', error);
       toast({
         title: "Error",
         description: "Failed to create volunteer profile. Please try again.",

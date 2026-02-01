@@ -75,7 +75,6 @@ export function useClubSettings(clubId?: string) {
           }
         }
       } catch (error) {
-        // console.error('Error loading club settings:', error)
       } finally {
         setLoading(false)
       }
@@ -86,7 +85,6 @@ export function useClubSettings(clubId?: string) {
 
   const isSectionVisible = (section: WebsiteSectionKey) => {
     const value = settings?.websiteSetup?.sections?.[section]
-    // Normalize weird values (e.g. "false" string) without breaking "default visible" behavior.
     if (typeof value === "boolean") return value
     if (typeof value === "string") {
       const v = value.trim().toLowerCase()

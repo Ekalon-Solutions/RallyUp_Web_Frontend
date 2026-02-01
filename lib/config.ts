@@ -179,7 +179,6 @@ export const isStaging = () => ENV.CURRENT === 'staging';
 
 export const debugLog = (message: string, data?: any) => {
   if (currentConfig.debug) {
-    // console.log(`[${ENV.CURRENT.toUpperCase()}] ${message}`, data || '');
   }
 };
 

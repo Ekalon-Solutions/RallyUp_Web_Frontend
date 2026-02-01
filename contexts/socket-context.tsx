@@ -39,8 +39,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children, token 
       return;
     }
 
-    // Create socket connection
-    const socketBaseUrl = config.apiBaseUrl.replace('/api', ''); // Remove /api for socket connection
+    const socketBaseUrl = config.apiBaseUrl.replace('/api', '');
     const socketInstance = io(socketBaseUrl, {
       auth: {
         token: token,
@@ -49,41 +48,34 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children, token 
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
-      transports: ['websocket', 'polling'], // Ensure compatibility
+      transports: ['websocket', 'polling'],
     });
 
-    // Connection event handlers
     socketInstance.on('connect', () => {
-      // // console.log('Socket connected:', socketInstance.id);
       setIsConnected(true);
       setConnectionError(null);
     });
 
     socketInstance.on('disconnect', (reason) => {
-      // // console.log('Socket disconnected:', reason);
       setIsConnected(false);
     });
 
     socketInstance.on('connect_error', (error) => {
-      // // console.error('Socket connection error:', error);
       setConnectionError(error.message || 'Connection failed');
       setIsConnected(false);
     });
 
     socketInstance.on('reconnect', (attemptNumber) => {
-      // // console.log('Socket reconnected after', attemptNumber, 'attempts');
       setIsConnected(true);
       setConnectionError(null);
     });
 
     socketInstance.on('reconnect_error', (error) => {
-      // // console.error('Socket reconnection error:', error);
       setConnectionError(`Reconnection failed: ${error.message || 'Unknown error'}`);
     });
 
     setSocket(socketInstance);
 
-    // Cleanup on unmount
     return () => {
       if (socketInstance) {
         socketInstance.disconnect();

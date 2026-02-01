@@ -27,7 +27,6 @@ export function TimeInput({
   const [minutes, setMinutes] = useState('')
   const [period, setPeriod] = useState<'AM' | 'PM'>('AM')
 
-  // Parse the current value when component mounts or value changes
   useEffect(() => {
     if (value) {
       const timeRegex = /^(\d{1,2}):(\d{2})\s?(AM|PM|am|pm)$/
@@ -38,14 +37,12 @@ export function TimeInput({
         setPeriod(match[3].toUpperCase() as 'AM' | 'PM')
       }
     } else {
-      // Set default time if no value provided
       setHours('12')
       setMinutes('00')
       setPeriod('PM')
     }
   }, [value])
 
-  // Update the parent value when local state changes
   useEffect(() => {
     if (hours && minutes) {
       const formattedTime = `${hours}:${minutes.padStart(2, '0')} ${period}`
@@ -79,7 +76,6 @@ export function TimeInput({
     setPeriod(newPeriod as 'AM' | 'PM')
   }
 
-  // Predefined common times for quick selection
   const commonTimes = [
     '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM',
     '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM',
@@ -99,7 +95,6 @@ export function TimeInput({
         </Label>
       )}
       
-      {/* Manual Time Input */}
       <div className="flex items-center gap-2 p-3 border rounded-lg bg-background">
         <div className="flex items-center gap-1 flex-1">
           <Input
@@ -140,7 +135,6 @@ export function TimeInput({
         </div>
       </div>
 
-      {/* Quick Time Selection */}
       <div className="space-y-2">
         <Label className="text-xs text-muted-foreground">Quick Select:</Label>
         <div className="flex flex-wrap gap-1">

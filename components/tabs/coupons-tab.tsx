@@ -66,7 +66,6 @@ export function CouponsTab() {
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [eligibilityFilter, setEligibilityFilter] = useState<string>("all")
 
-  // Modal states
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null)
   const [deletingCoupon, setDeletingCoupon] = useState<Coupon | null>(null)
@@ -152,20 +151,17 @@ export function CouponsTab() {
   }
 
   const filteredCoupons = coupons.filter(coupon => {
-    // Search filter
     const matchesSearch = searchTerm === "" || 
       coupon.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       coupon.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
       coupon.description.toLowerCase().includes(searchTerm.toLowerCase())
 
-    // Status filter
     const matchesStatus = statusFilter === "all" || 
       (statusFilter === "active" && coupon.isActive) ||
       (statusFilter === "inactive" && !coupon.isActive) ||
       (statusFilter === "expired" && new Date(coupon.endTime) < new Date()) ||
       (statusFilter === "upcoming" && new Date(coupon.startTime) > new Date())
 
-    // Eligibility filter
     const matchesEligibility = eligibilityFilter === "all" || coupon.eligibility === eligibilityFilter
 
     return matchesSearch && matchesStatus && matchesEligibility

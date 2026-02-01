@@ -7,8 +7,10 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { apiClient, News, Event } from "@/lib/api"
+import { apiClient, News, Event, Poll, Chant } from "@/lib/api"
 import { getNewsImageUrl } from "@/lib/config"
+import UserEventRegistrationModal from "@/components/modals/user-event-registration-modal"
+import { EventCheckoutModal } from "@/components/modals/event-checkout-modal"
 import { 
   Globe, 
   Mail, 
@@ -65,8 +67,17 @@ export default function PublicClubPage() {
   const [settings, setSettings] = useState<ClubSettings | null>(null)
   const [news, setNews] = useState<News[]>([])
   const [events, setEvents] = useState<Event[]>([])
+  const [polls, setPolls] = useState<Poll[]>([])
+  const [chants, setChants] = useState<Chant[]>([])
+  const [merchandise, setMerchandise] = useState<any[]>([])
   const [loadingContent, setLoadingContent] = useState(false)
   const [activeTab, setActiveTab] = useState<string>("")
+
+  const [showEventRegistrationModal, setShowEventRegistrationModal] = useState(false)
+  const [eventForRegistration, setEventForRegistration] = useState<Event | null>(null)
+  const [showEventCheckoutModal, setShowEventCheckoutModal] = useState(false)
+  const [attendeesForPayment, setAttendeesForPayment] = useState<any[]>([])
+  const [couponCodeForPayment, setCouponCodeForPayment] = useState<string | undefined>(undefined)
 
   useEffect(() => {
     if (slug) {
@@ -89,12 +100,17 @@ export default function PublicClubPage() {
         setSettings(actualData)
         
         const websiteSetup = actualData.websiteSetup || {}
-        if (websiteSetup.sections?.news || websiteSetup.sections?.events) {
-          if (websiteSetup.sections?.news) {
-            setActiveTab("news")
-          } else if (websiteSetup.sections?.events) {
-            setActiveTab("events")
-          }
+        const storeEnabled = Boolean(websiteSetup.sections?.store || websiteSetup.sections?.merchandise)
+        const firstTab =
+          (websiteSetup.sections?.news && "news") ||
+          (websiteSetup.sections?.events && "events") ||
+          (storeEnabled && "store") ||
+          (websiteSetup.sections?.polls && "polls") ||
+          (websiteSetup.sections?.chants && "chants") ||
+          ""
+
+        if (firstTab) {
+          setActiveTab(firstTab)
           await loadContent(clubResponse.data?._id || slug, actualData)
         }
       }
@@ -113,32 +129,50 @@ export default function PublicClubPage() {
       
       const clubId = club?._id || clubIdOrSlug
       
-      const promises: Promise<any>[] = []
-      
-      if (currentSettings.websiteSetup.sections.news) {
-        promises.push(apiClient.getPublicNews(clubId))
-      }
-      
-      if (currentSettings.websiteSetup.sections.events) {
-        promises.push(apiClient.getPublicEvents(clubId))
-      }
-      
-      if (promises.length === 0) return
-      
-      const results = await Promise.all(promises)
-      
-      if (currentSettings.websiteSetup.sections.news && results[0]?.success) {
-        const newsData = Array.isArray(results[0].data) ? results[0].data : (results[0].data as any)?.news || []
-        setNews(newsData)
-      }
-      
-      if (currentSettings.websiteSetup.sections.events) {
-        const eventsIndex = currentSettings.websiteSetup.sections.news ? 1 : 0
-        if (results[eventsIndex]?.success) {
-          const eventsData = Array.isArray(results[eventsIndex].data) ? results[eventsIndex].data : (results[eventsIndex].data as any)?.events || []
-          setEvents(eventsData)
+      const sections = currentSettings.websiteSetup.sections || ({} as any)
+      const storeEnabled = Boolean(sections.store || sections.merchandise)
+
+      const requests: Record<string, Promise<any>> = {}
+
+      if (sections.news) requests.news = apiClient.getPublicNews(clubId)
+      if (sections.events) requests.events = apiClient.getPublicEvents(clubId)
+      if (storeEnabled) requests.store = apiClient.getPublicMerchandise({ clubId, limit: 12 })
+      if (sections.polls) requests.polls = apiClient.getPublicPolls({ clubId, limit: 20 })
+      if (sections.chants) requests.chants = apiClient.getPublicChants({ clubId, limit: 20 })
+
+      const entries = Object.entries(requests)
+      if (entries.length === 0) return
+
+      const results = await Promise.all(entries.map(([, p]) => p))
+      entries.forEach(([key], idx) => {
+        const res = results[idx]
+        if (!res?.success) return
+
+        if (key === "news") {
+          const newsData = Array.isArray(res.data) ? res.data : (res.data as any)?.news || []
+          setNews(newsData)
         }
-      }
+
+        if (key === "events") {
+          const eventsData = Array.isArray(res.data) ? res.data : (res.data as any)?.events || []
+          setEvents((eventsData || []).filter((e: any) => !e?.memberOnly))
+        }
+
+        if (key === "store") {
+          const merch = (res.data as any)?.merchandise || []
+          setMerchandise(merch)
+        }
+
+        if (key === "polls") {
+          const pollsData = (res.data as any)?.polls || []
+          setPolls(pollsData)
+        }
+
+        if (key === "chants") {
+          const chantsData = (res.data as any)?.chants || []
+          setChants(chantsData)
+        }
+      })
     } catch (error) {
       console.error("Error loading content:", error)
     } finally {
@@ -373,14 +407,19 @@ export default function PublicClubPage() {
             </p>
           </div>
 
-          {(websiteSetup.sections.news || websiteSetup.sections.events) && (
+          {(websiteSetup.sections.news ||
+            websiteSetup.sections.events ||
+            websiteSetup.sections.polls ||
+            websiteSetup.sections.chants ||
+            websiteSetup.sections.store ||
+            websiteSetup.sections.merchandise) && (
             <div className="space-y-8">
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full max-w-2xl mx-auto grid-cols-2 h-14 bg-muted/50">
+                <TabsList className="flex flex-wrap w-full max-w-4xl mx-auto gap-2 h-auto bg-muted/50 p-2">
                   {websiteSetup.sections.news && (
                     <TabsTrigger 
                       value="news" 
-                      className="text-base font-bold data-[state=active]:bg-background data-[state=active]:shadow-md"
+                      className="text-base font-bold data-[state=active]:bg-background data-[state=active]:shadow-md px-4 py-3"
                       style={{ 
                         color: activeTab === 'news' ? primaryColor : undefined 
                       }}
@@ -392,13 +431,49 @@ export default function PublicClubPage() {
                   {websiteSetup.sections.events && (
                     <TabsTrigger 
                       value="events"
-                      className="text-base font-bold data-[state=active]:bg-background data-[state=active]:shadow-md"
+                      className="text-base font-bold data-[state=active]:bg-background data-[state=active]:shadow-md px-4 py-3"
                       style={{ 
                         color: activeTab === 'events' ? primaryColor : undefined 
                       }}
                     >
                       <Calendar className="h-5 w-5 mr-2" />
                       Events & Activities
+                    </TabsTrigger>
+                  )}
+                  {(websiteSetup.sections.store || websiteSetup.sections.merchandise) && (
+                    <TabsTrigger
+                      value="store"
+                      className="text-base font-bold data-[state=active]:bg-background data-[state=active]:shadow-md px-4 py-3"
+                      style={{
+                        color: activeTab === "store" ? primaryColor : undefined,
+                      }}
+                    >
+                      <Store className="h-5 w-5 mr-2" />
+                      Merchandise Store
+                    </TabsTrigger>
+                  )}
+                  {websiteSetup.sections.polls && (
+                    <TabsTrigger
+                      value="polls"
+                      className="text-base font-bold data-[state=active]:bg-background data-[state=active]:shadow-md px-4 py-3"
+                      style={{
+                        color: activeTab === "polls" ? primaryColor : undefined,
+                      }}
+                    >
+                      <Vote className="h-5 w-5 mr-2" />
+                      Polls & Voting
+                    </TabsTrigger>
+                  )}
+                  {websiteSetup.sections.chants && (
+                    <TabsTrigger
+                      value="chants"
+                      className="text-base font-bold data-[state=active]:bg-background data-[state=active]:shadow-md px-4 py-3"
+                      style={{
+                        color: activeTab === "chants" ? primaryColor : undefined,
+                      }}
+                    >
+                      <Music className="h-5 w-5 mr-2" />
+                      Club Chants
                     </TabsTrigger>
                   )}
                 </TabsList>
@@ -570,6 +645,17 @@ export default function PublicClubPage() {
                                       </span>
                                     </div>
                                   )}
+
+                                  <Button
+                                    className="w-full mt-2"
+                                    style={{ backgroundColor: primaryColor, color: "white" }}
+                                    onClick={() => {
+                                      setEventForRegistration(event)
+                                      setShowEventRegistrationModal(true)
+                                    }}
+                                  >
+                                    {event.ticketPrice && event.ticketPrice > 0 ? "Buy Tickets" : "Register"}
+                                  </Button>
                                 </CardContent>
                               </Card>
                             ))}
@@ -584,60 +670,188 @@ export default function PublicClubPage() {
                     </Card>
                   </TabsContent>
                 )}
+
+                {(websiteSetup.sections.store || websiteSetup.sections.merchandise) && (
+                  <TabsContent value="store" className="mt-8">
+                    <Card className="border-2 shadow-lg">
+                      <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                        <CardTitle className="text-3xl font-bold flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                            <Store className="h-6 w-6" style={{ color: primaryColor }} />
+                          </div>
+                          Merchandise Store
+                        </CardTitle>
+                        {club?._id && (
+                          <Link href={`/merchandise?clubId=${club._id}`}>
+                            <Button variant="outline" className="border-2 font-bold">
+                              Shop All
+                            </Button>
+                          </Link>
+                        )}
+                      </CardHeader>
+                      <CardContent>
+                        {loadingContent ? (
+                          <div className="flex items-center justify-center py-12">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: primaryColor }} />
+                          </div>
+                        ) : merchandise.length > 0 ? (
+                          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                            {merchandise.map((item: any) => (
+                              <Card key={item._id} className="hover:shadow-lg transition-all border-2 overflow-hidden">
+                                {item.featuredImage && (
+                                  <div className="relative h-44 overflow-hidden">
+                                    <img src={item.featuredImage} alt={item.name} className="w-full h-full object-cover" />
+                                  </div>
+                                )}
+                                <CardHeader>
+                                  <div className="flex items-start justify-between gap-3">
+                                    <CardTitle className="text-lg line-clamp-2">{item.name}</CardTitle>
+                                    {typeof item.price === "number" && (
+                                      <Badge variant="outline" className="text-xs font-bold shrink-0">
+                                        {item.currency || "USD"} {item.price}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  {item.description && (
+                                    <CardDescription className="line-clamp-3 mt-2">{item.description}</CardDescription>
+                                  )}
+                                </CardHeader>
+                              </Card>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center py-12">
+                            <Store className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                            <p className="text-lg text-muted-foreground">No merchandise available yet.</p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                )}
+
+                {websiteSetup.sections.polls && (
+                  <TabsContent value="polls" className="mt-8">
+                    <Card className="border-2 shadow-lg">
+                      <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                        <CardTitle className="text-3xl font-bold flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                            <Vote className="h-6 w-6" style={{ color: primaryColor }} />
+                          </div>
+                          Polls & Voting
+                        </CardTitle>
+                        <Link href="/login">
+                          <Button variant="outline" className="border-2 font-bold">
+                            Login to Vote
+                          </Button>
+                        </Link>
+                      </CardHeader>
+                      <CardContent>
+                        {loadingContent ? (
+                          <div className="flex items-center justify-center py-12">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: primaryColor }} />
+                          </div>
+                        ) : polls.length > 0 ? (
+                          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                            {polls.map((poll) => (
+                              <Card key={poll._id} className="hover:shadow-lg transition-all border-2">
+                                <CardHeader>
+                                  <CardTitle className="text-lg line-clamp-2">{poll.question}</CardTitle>
+                                  {poll.description && (
+                                    <CardDescription className="line-clamp-3 mt-2">{poll.description}</CardDescription>
+                                  )}
+                                </CardHeader>
+                                <CardContent className="text-sm text-muted-foreground">
+                                  <div className="flex items-center justify-between">
+                                    <span>{poll.totalVotes || 0} votes</span>
+                                    <Badge variant="secondary" className="text-xs capitalize">
+                                      {poll.category || "general"}
+                                    </Badge>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center py-12">
+                            <Vote className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                            <p className="text-lg text-muted-foreground">No active polls available yet.</p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                )}
+
+                {websiteSetup.sections.chants && (
+                  <TabsContent value="chants" className="mt-8">
+                    <Card className="border-2 shadow-lg">
+                      <CardHeader>
+                        <CardTitle className="text-3xl font-bold flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                            <Music className="h-6 w-6" style={{ color: primaryColor }} />
+                          </div>
+                          Club Chants
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        {loadingContent ? (
+                          <div className="flex items-center justify-center py-12">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: primaryColor }} />
+                          </div>
+                        ) : chants.length > 0 ? (
+                          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                            {chants.map((chant) => (
+                              <Card key={chant._id} className="hover:shadow-lg transition-all border-2 overflow-hidden">
+                                <CardHeader>
+                                  <CardTitle className="text-lg line-clamp-2">{chant.title}</CardTitle>
+                                  {chant.description && (
+                                    <CardDescription className="line-clamp-3 mt-2">{chant.description}</CardDescription>
+                                  )}
+                                </CardHeader>
+                                <CardContent className="space-y-3">
+                                  {chant.fileType === "text" && chant.content && (
+                                    <div className="text-sm whitespace-pre-wrap text-muted-foreground line-clamp-6">
+                                      {chant.content}
+                                    </div>
+                                  )}
+                                  {chant.fileType === "image" && chant.fileUrl && (
+                                    <img src={chant.fileUrl} alt={chant.title} className="w-full rounded-md border" />
+                                  )}
+                                  {chant.fileType === "audio" && chant.fileUrl && (
+                                    <audio controls src={chant.fileUrl} className="w-full" />
+                                  )}
+                                  {chant.fileType === "iframe" && chant.iframeUrl && (
+                                    <div className="w-full overflow-hidden rounded-md border">
+                                      <iframe
+                                        src={chant.iframeUrl}
+                                        width={chant.iframeWidth || "100%"}
+                                        height={chant.iframeHeight || "400"}
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                        allowFullScreen
+                                      />
+                                    </div>
+                                  )}
+                                </CardContent>
+                              </Card>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center py-12">
+                            <Music className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                            <p className="text-lg text-muted-foreground">No chants available yet.</p>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                )}
               </Tabs>
             </div>
           )}
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-12">
-            {(websiteSetup.sections.store || websiteSetup.sections.merchandise) && (
-              <Card className="group hover:border-primary/50 transition-all duration-500 shadow-sm hover:shadow-2xl rounded-3xl overflow-hidden border-2">
-                <CardHeader className="space-y-6 p-8">
-                  <div className="w-16 h-16 rounded-[1.25rem] bg-primary/10 flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-inner">
-                    <Store className="h-8 w-8" style={{ color: primaryColor }} />
-                  </div>
-                  <div className="space-y-4">
-                    <CardTitle className="text-2xl font-bold">Merchandise Store</CardTitle>
-                    <CardDescription className="text-lg leading-relaxed font-medium">
-                      Get your hands on official club merchandise and exclusive supporter gear.
-                    </CardDescription>
-                  </div>
-                </CardHeader>
-              </Card>
-            )}
-
-            {websiteSetup.sections.polls && (
-              <Card className="group hover:border-primary/50 transition-all duration-500 shadow-sm hover:shadow-2xl rounded-3xl overflow-hidden border-2">
-                <CardHeader className="space-y-6 p-8">
-                  <div className="w-16 h-16 rounded-[1.25rem] bg-primary/10 flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-inner">
-                    <Vote className="h-8 w-8" style={{ color: primaryColor }} />
-                  </div>
-                  <div className="space-y-4">
-                    <CardTitle className="text-2xl font-bold">Polls & Voting</CardTitle>
-                    <CardDescription className="text-lg leading-relaxed font-medium">
-                      Have your say in club decisions and share your opinions through community polls.
-                    </CardDescription>
-                  </div>
-                </CardHeader>
-              </Card>
-            )}
-
-            {websiteSetup.sections.chants && (
-              <Card className="group hover:border-primary/50 transition-all duration-500 shadow-sm hover:shadow-2xl rounded-3xl overflow-hidden border-2">
-                <CardHeader className="space-y-6 p-8">
-                  <div className="w-16 h-16 rounded-[1.25rem] bg-primary/10 flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-inner">
-                    <Music className="h-8 w-8" style={{ color: primaryColor }} />
-                  </div>
-                  <div className="space-y-4">
-                    <CardTitle className="text-2xl font-bold">Club Chants</CardTitle>
-                    <CardDescription className="text-lg leading-relaxed font-medium">
-                      Learn the signature chants and anthems that make our match days legendary.
-                    </CardDescription>
-                  </div>
-                </CardHeader>
-              </Card>
-            )}
-
-            {websiteSetup.sections.members && (
+          {websiteSetup.sections.members && (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-12">
               <Card className="group hover:border-primary/50 transition-all duration-500 shadow-sm hover:shadow-2xl rounded-3xl overflow-hidden border-2">
                 <CardHeader className="space-y-6 p-8">
                   <div className="w-16 h-16 rounded-[1.25rem] bg-primary/10 flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-inner">
@@ -651,8 +865,8 @@ export default function PublicClubPage() {
                   </div>
                 </CardHeader>
               </Card>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </section>
 
@@ -665,7 +879,7 @@ export default function PublicClubPage() {
               priority event booking, and a global network of passionate fans.
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-6 pt-10">
-              <Link href={`/register?club=${club?._id || slug}`} className="w-full sm:w-auto">
+              <Link href={`/membership-plans?clubId=${club?._id || slug}`} className="w-full sm:w-auto">
                 <Button 
                   size="lg"
                   className="w-full sm:px-16 h-20 text-2xl font-black shadow-2xl hover:scale-105 transition-all rounded-[2rem]"
@@ -694,6 +908,52 @@ export default function PublicClubPage() {
           </div>
         </div>
       </footer>
+
+      <UserEventRegistrationModal
+        eventId={eventForRegistration?._id || null}
+        isOpen={showEventRegistrationModal}
+        onClose={() => {
+          setShowEventRegistrationModal(false)
+        }}
+        ticketPrice={eventForRegistration?.ticketPrice || 0}
+        event={eventForRegistration}
+        onRegister={(payload) => {
+          setAttendeesForPayment(payload.attendees || [])
+          setCouponCodeForPayment(payload.couponCode)
+          setShowEventCheckoutModal(true)
+        }}
+      />
+
+      <EventCheckoutModal
+        isOpen={showEventCheckoutModal}
+        onClose={() => {
+          setShowEventCheckoutModal(false)
+          setEventForRegistration(null)
+          setAttendeesForPayment([])
+          setCouponCodeForPayment(undefined)
+        }}
+        event={
+          eventForRegistration
+            ? {
+                _id: eventForRegistration._id,
+                name: eventForRegistration.title,
+                price: eventForRegistration.ticketPrice || 0,
+                ticketPrice: eventForRegistration.ticketPrice || 0,
+                earlyBirdDiscount: (eventForRegistration as any).earlyBirdDiscount,
+                currency: (eventForRegistration as any).currency || "INR",
+              }
+            : undefined
+        }
+        attendees={attendeesForPayment}
+        couponCode={couponCodeForPayment}
+        onSuccess={() => {
+          if (club?._id) {
+            loadContent(club._id)
+          }
+        }}
+        onFailure={() => {
+        }}
+      />
     </div>
   )
 }

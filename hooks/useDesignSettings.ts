@@ -3,12 +3,9 @@
 import { useEffect } from 'react'
 import { useClubSettings } from './useClubSettings'
 
-// Convert hex color to HSL format for CSS variables
 function hexToHSL(hex: string): string {
-  // Remove the # if present
   hex = hex.replace(/^#/, '')
   
-  // Parse the hex values
   const r = parseInt(hex.substring(0, 2), 16) / 255
   const g = parseInt(hex.substring(2, 4), 16) / 255
   const b = parseInt(hex.substring(4, 6), 16) / 255
@@ -46,30 +43,20 @@ export function useDesignSettings(clubId?: string) {
       const designSettings = actualData.designSettings
 
       if (designSettings) {
-        // console.log('Applying design settings:', designSettings)
-        
-        // Apply primary color as HSL
         if (designSettings.primaryColor) {
           const primaryHSL = hexToHSL(designSettings.primaryColor)
           document.documentElement.style.setProperty('--primary', primaryHSL)
-          // console.log('Applied primary color:', designSettings.primaryColor, '→', primaryHSL)
         }
 
-        // Apply secondary color as HSL
         if (designSettings.secondaryColor) {
           const secondaryHSL = hexToHSL(designSettings.secondaryColor)
           document.documentElement.style.setProperty('--secondary', secondaryHSL)
-          // console.log('Applied secondary color:', designSettings.secondaryColor, '→', secondaryHSL)
         }
 
-        // Apply font family
         if (designSettings.fontFamily) {
           document.documentElement.style.setProperty('--font-sans', designSettings.fontFamily)
           document.body.style.fontFamily = designSettings.fontFamily
-          // console.log('Applied font family:', designSettings.fontFamily)
         }
-
-        // console.log('✅ Design settings applied successfully')
       }
     }
   }, [settings])

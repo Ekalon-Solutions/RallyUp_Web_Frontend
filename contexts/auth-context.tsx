@@ -134,7 +134,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // console.log('System owner profile failed, falling back to discovery');
         }
       } else if (userType === 'member' || userType === 'user') {
-        // Try user profile first
         try {
           // console.log('Trying user profile (from userType)...');
           const userResponse = await apiClient.userProfile();
@@ -160,7 +159,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return;
         }
       } catch (error) {
-        // Silently continue to next check
       }
       try {
         // console.log('Trying admin profile (discovery)...');

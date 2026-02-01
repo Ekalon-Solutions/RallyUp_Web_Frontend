@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useEffect, useState } from "react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -12,9 +12,30 @@ import { DesignSettingsTab } from "@/components/admin/settings/design-settings-t
 import { AppSettingsTab } from "@/components/admin/settings/app-settings-tab"
 import { HelpSectionTab } from "@/components/admin/settings/help-section-tab"
 import { GetStartedTab } from "@/components/admin/settings/get-started-tab"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 
 export default function AdminSettingsPage() {
   const [activeTab, setActiveTab] = useState("website")
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+
+  const normalizeTab = (raw: string | null) => {
+    if (!raw) return null
+    
+    if (raw === "app-settings") return "app"
+    if (raw === "get-started") return "guide"
+
+    const allowedTabs = new Set(["website", "directory", "design", "app", "help", "guide"])
+    return allowedTabs.has(raw) ? raw : null
+  }
+
+  useEffect(() => {
+    const nextTab = normalizeTab(searchParams.get("tab"))
+    if (nextTab && nextTab !== activeTab) {
+      setActiveTab(nextTab)
+    }
+  }, [activeTab, searchParams])
 
   return (
     <ProtectedRoute requireAdmin>
@@ -30,7 +51,17 @@ export default function AdminSettingsPage() {
             </p>
           </div>
 
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+          <Tabs
+            value={activeTab}
+            onValueChange={(nextTab) => {
+              setActiveTab(nextTab)
+
+              const params = new URLSearchParams(searchParams.toString())
+              params.set("tab", nextTab)
+              router.replace(`${pathname}?${params.toString()}`)
+            }}
+            className="space-y-4"
+          >
             <TabsList className="flex overflow-auto justify-start sm:justify-between w-full grid-cols-6">
               <TabsTrigger value="website" className="flex items-center gap-2">
                 <Globe className="h-4 w-4" />

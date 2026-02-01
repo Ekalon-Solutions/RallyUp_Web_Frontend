@@ -52,7 +52,6 @@ export const useMessaging = ({
   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
   const [isTyping, setIsTyping] = useState(false);
 
-  // Join/leave conversation room
   useEffect(() => {
     if (!socket || !connectionId) return;
 
@@ -63,7 +62,6 @@ export const useMessaging = ({
     };
   }, [socket, connectionId]);
 
-  // Listen for new messages
   useEffect(() => {
     if (!socket) return;
 
@@ -80,27 +78,23 @@ export const useMessaging = ({
     };
   }, [socket, onNewMessage]);
 
-  // Listen for typing indicators
   useEffect(() => {
     if (!socket) return;
 
     const handleUserTyping = (data: TypingUser) => {
-      if (data.userId === currentUserId) return; // Don't show own typing
+      if (data.userId === currentUserId) return;
 
       setTypingUsers(prev => {
         if (data.isTyping) {
           const existingIndex = prev.findIndex(user => user.userId === data.userId);
           if (existingIndex >= 0) {
-            // Update existing typing user
             const updated = [...prev];
             updated[existingIndex] = data;
             return updated;
           } else {
-            // Add new typing user
             return [...prev, data];
           }
         } else {
-          // Remove typing user
           return prev.filter(user => user.userId !== data.userId);
         }
       });
@@ -113,7 +107,6 @@ export const useMessaging = ({
     };
   }, [socket, currentUserId]);
 
-  // Listen for message read status
   useEffect(() => {
     if (!socket) return;
 
@@ -130,7 +123,6 @@ export const useMessaging = ({
     };
   }, [socket, onMessagesRead]);
 
-  // Typing indicators
   const startTyping = useCallback((userName: string) => {
     if (!socket || !connectionId || isTyping) return;
 
@@ -145,7 +137,6 @@ export const useMessaging = ({
     socket.emit('typing-stop', { connectionId });
   }, [socket, connectionId, isTyping]);
 
-  // Mark messages as read
   const markMessagesAsRead = useCallback(() => {
     if (!socket || !connectionId) return;
 
@@ -162,7 +153,6 @@ export const useMessaging = ({
   };
 };
 
-// Hook for connection notifications
 export const useConnectionNotifications = (currentUserId: string) => {
   const { socket } = useSocket();
   const { toast } = useToast();

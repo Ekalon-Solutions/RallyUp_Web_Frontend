@@ -93,7 +93,7 @@ export default function AdminVolunteerList({ clubId, currentUser }: AdminVolunte
         throw new Error('Failed to fetch volunteers');
       }
     } catch (error) {
-      // // console.error('Error fetching volunteers:', error);
+      // console.error('Error fetching volunteers:', error);
       toast({
         title: 'Error',
         description: 'Failed to load volunteers. Please try again.',
@@ -107,7 +107,6 @@ export default function AdminVolunteerList({ clubId, currentUser }: AdminVolunte
   const filterVolunteers = () => {
     let filtered = [...volunteers];
 
-    // Search filter
     if (searchTerm) {
       const search = searchTerm.toLowerCase();
       filtered = filtered.filter((volunteer) => {
@@ -118,7 +117,6 @@ export default function AdminVolunteerList({ clubId, currentUser }: AdminVolunte
       });
     }
 
-    // Status filter
     if (statusFilter !== 'all') {
       if (statusFilter === 'active') {
         filtered = filtered.filter((v) => v.isActive);
@@ -129,7 +127,6 @@ export default function AdminVolunteerList({ clubId, currentUser }: AdminVolunte
       }
     }
 
-    // Availability filter
     if (availabilityFilter !== 'all') {
       filtered = filtered.filter((v) => {
         if (availabilityFilter === 'weekdays') return v.availability?.weekdays;
@@ -216,7 +213,6 @@ export default function AdminVolunteerList({ clubId, currentUser }: AdminVolunte
   return (
     <>
       <div className="space-y-6">
-        {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
             <CardContent className="pt-6">
