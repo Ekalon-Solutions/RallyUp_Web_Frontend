@@ -229,7 +229,6 @@ export default function PollsManagementPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="draft">Draft</SelectItem>
             <SelectItem value="active">Active</SelectItem>
             <SelectItem value="closed">Closed</SelectItem>
             <SelectItem value="archived">Archived</SelectItem>

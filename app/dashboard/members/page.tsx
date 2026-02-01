@@ -71,6 +71,7 @@ export default function MembersPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
+  const [verificationFilter, setVerificationFilter] = useState<'all' | 'verified' | 'unverified'>('all')
   const [currentPage, setCurrentPage] = useState(1)
   const [pagination, setPagination] = useState({
     page: 1,
@@ -102,7 +103,7 @@ export default function MembersPage() {
 
   useEffect(() => {
     fetchMembers()
-  }, [currentPage, searchTerm, statusFilter])
+  }, [currentPage, searchTerm, statusFilter, verificationFilter])
    
 
   const fetchMembers = async () => {
@@ -113,6 +114,7 @@ export default function MembersPage() {
         page: currentPage,
         limit: pagination.limit,
         status: statusFilter === 'all' ? undefined : statusFilter,
+        verification: verificationFilter === 'all' ? undefined : verificationFilter,
         clubId: (user as any)?.club?._id
       })
 
@@ -157,6 +159,11 @@ export default function MembersPage() {
 
   const handleStatusFilter = (value: string): void => {
     setStatusFilter(value as 'all' | 'active' | 'inactive')
+    setCurrentPage(1)
+  }
+
+  const handleVerificationFilter = (value: string): void => {
+    setVerificationFilter(value as 'all' | 'verified' | 'unverified')
     setCurrentPage(1)
   }
 
@@ -569,6 +576,18 @@ export default function MembersPage() {
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="w-full sm:w-56">
+                  <Select value={verificationFilter} onValueChange={handleVerificationFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Filter by verification" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All (Verified + Unverified)</SelectItem>
+                      <SelectItem value="verified">Verified Only</SelectItem>
+                      <SelectItem value="unverified">Unverified Only</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4 text-sm text-muted-foreground">
@@ -579,7 +598,7 @@ export default function MembersPage() {
                     ? 'Showing 0 results'
                     : `Showing ${(currentPage - 1) * pagination.limit + 1}-${(currentPage - 1) * pagination.limit + members.length} of ${pagination.total} results`}
                 </div>
-                {(searchTerm || statusFilter !== 'all') && (
+                {(searchTerm || statusFilter !== 'all' || verificationFilter !== 'all') && (
                   <div>
                     Total in directory: {metadata.total}
                   </div>

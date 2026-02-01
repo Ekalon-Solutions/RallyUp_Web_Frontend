@@ -48,7 +48,6 @@ export default function ContentManagementPage() {
   const [showReadMoreModal, setShowReadMoreModal] = useState(false)
   const [selectedNewsForReadMore, setSelectedNewsForReadMore] = useState<News | null>(null)
 
-  // Simple initial load effect
   useEffect(() => {
     if (user?.role === 'admin' || user?.role === 'super_admin') {
       loadNews()
@@ -56,7 +55,6 @@ export default function ContentManagementPage() {
     }
   }, [user?.role])
 
-  // Simple filter effect
   useEffect(() => {
     if (user?.role === 'admin' || user?.role === 'super_admin') {
       setCurrentPage(1)
@@ -64,7 +62,6 @@ export default function ContentManagementPage() {
     }
   }, [categoryFilter, priorityFilter])
 
-  // Simple search effect with delay
   useEffect(() => {
     if (user?.role === 'admin' || user?.role === 'super_admin') {
       const timer = setTimeout(() => {
@@ -75,7 +72,6 @@ export default function ContentManagementPage() {
     }
   }, [searchTerm])
 
-  // Simple page change effect
   useEffect(() => {
     if (user?.role === 'admin' || user?.role === 'super_admin' && currentPage > 1) {
       loadNews()
@@ -93,11 +89,9 @@ export default function ContentManagementPage() {
           setTotalPages(response.data.pagination.pages)
         }
       } else {
-        // console.error("Failed to fetch news:", response.error)
         toast.error("Failed to fetch news")
       }
     } catch (error) {
-      // console.error("Error fetching news:", error)
       toast.error("Error fetching news")
     } finally {
       setLoading(false)
@@ -111,7 +105,6 @@ export default function ContentManagementPage() {
         setStats(response.data)
       }
     } catch (error) {
-      // console.error("Error fetching stats:", error)
     }
   }
 
@@ -145,7 +138,6 @@ export default function ContentManagementPage() {
         toast.error(response.error || "Failed to delete news article")
       }
     } catch (error) {
-      // console.error("Error deleting news:", error)
       toast.error("Error deleting news article")
     }
   }
@@ -161,7 +153,6 @@ export default function ContentManagementPage() {
         toast.error(response.error || "Failed to update publish status")
       }
     } catch (error) {
-      // console.error("Error updating publish status:", error)
       toast.error("Error updating publish status")
     }
   }
@@ -365,7 +356,6 @@ export default function ContentManagementPage() {
             </CardContent>
           </Card>
 
-          {/* News Articles */}
           <div className="space-y-4">
             {loading ? (
               <div className="flex items-center justify-center h-64">
@@ -400,7 +390,6 @@ export default function ContentManagementPage() {
                           alt={article.title}
                           className="w-full h-full object-cover"
                           onError={(e) => {
-//                             console.error('Failed to load featured image:', article.featuredImage);
                             e.currentTarget.style.display = 'none';
                           }}
                         />
@@ -469,7 +458,6 @@ export default function ContentManagementPage() {
                                 alt={`${article.title} - Image ${index + 1}`}
                                 className="w-full h-20 object-cover rounded-lg"
                                 onError={(e) => {
-                                  // // console.error('Failed to load image:', image);
                                   e.currentTarget.style.display = 'none';
                                 }}
                               />

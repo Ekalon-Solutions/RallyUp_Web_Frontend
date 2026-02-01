@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useRef } from "react"
+import React, { useEffect, useState, useRef } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -27,13 +27,52 @@ export function CreateNewsModal({ isOpen, onClose, onSuccess, editNews }: Create
   const [summary, setSummary] = useState(editNews?.summary || "")
   const [tags, setTags] = useState<string[]>(editNews?.tags || [])
   const [tagInput, setTagInput] = useState("")
-  const [category, setCategory] = useState(editNews?.category || "general")
-  const [priority, setPriority] = useState(editNews?.priority || "medium")
+  const [category, setCategory] = useState<string>(editNews?.category || "general")
+  const [priority, setPriority] = useState<string>(editNews?.priority || "medium")
   const [isPublished, setIsPublished] = useState(editNews?.isPublished || false)
   const [images, setImages] = useState<File[]>([])
   const [featuredImage, setFeaturedImage] = useState<number>(0)
   const [loading, setLoading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const resetForm = () => {
+    setTitle("")
+    setContent("")
+    setSummary("")
+    setTags([])
+    setTagInput("")
+    setCategory("general")
+    setPriority("medium")
+    setIsPublished(false)
+    setImages([])
+    setFeaturedImage(0)
+  }
+
+  useEffect(() => {
+    if (!isOpen) {
+      setLoading(false)
+      resetForm()
+      return
+    }
+
+    if (editNews) {
+      setTitle(editNews.title || "")
+      setContent(editNews.content || "")
+      setSummary(editNews.summary || "")
+      setTags(editNews.tags || [])
+      setTagInput("")
+      setCategory(editNews.category || "general")
+      setPriority(editNews.priority || "medium")
+      setIsPublished(Boolean(editNews.isPublished))
+      setImages([])
+      setFeaturedImage(0)
+      setLoading(false)
+      return
+    }
+
+    resetForm()
+    setLoading(false)
+  }, [editNews, isOpen])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -73,8 +112,6 @@ export function CreateNewsModal({ isOpen, onClose, onSuccess, editNews }: Create
       if (response.success) {
         toast.success(response.message || "News article saved successfully")
         onSuccess()
-        onClose()
-        resetForm()
       } else {
         toast.error(response.error || "Failed to save news article")
       }
@@ -84,18 +121,6 @@ export function CreateNewsModal({ isOpen, onClose, onSuccess, editNews }: Create
     } finally {
       setLoading(false)
     }
-  }
-
-  const resetForm = () => {
-    setTitle("")
-    setContent("")
-    setSummary("")
-    setTags([])
-    setCategory("general")
-    setPriority("medium")
-    setIsPublished(false)
-    setImages([])
-    setFeaturedImage(0)
   }
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -144,7 +169,12 @@ export function CreateNewsModal({ isOpen, onClose, onSuccess, editNews }: Create
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose()
+      }}
+    >
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>

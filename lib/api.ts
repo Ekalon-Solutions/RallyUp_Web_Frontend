@@ -2076,6 +2076,7 @@ class ApiClient {
     page?: number;
     limit?: number;
     status?: string;
+    verification?: 'verified' | 'unverified';
     clubId: string;
   }): Promise<ApiResponse<{
     members: User[];
@@ -2095,6 +2096,7 @@ class ApiClient {
     const queryParams = new URLSearchParams();
     if (params?.search) queryParams.append('search', params.search);
     if (params?.status) queryParams.append('status', params.status);
+    if (params?.verification) queryParams.append('verification', params.verification);
     if (params?.page) queryParams.append('page', params.page.toString());
     if (params?.limit) queryParams.append('limit', params.limit.toString());
     if (params?.clubId) queryParams.append('clubId', params.clubId);
