@@ -144,10 +144,10 @@ export function EditClubModal({ club, trigger, onClubUpdated }: EditClubModalPro
       formData.slug = slugValue
     }
 
-    // Validate phone number format (10-15 digits)
-    const phoneRegex = /^\d{10,15}$/
+    // Validate phone number format (9-15 digits)
+    const phoneRegex = /^\d{9,15}$/
     if (!phoneRegex.test(formData.contactPhone.replace(/\D/g, ''))) {
-      toast.error('Phone number must be 10-15 digits')
+      toast.error('Phone number must be 9-15 digits')
       return
     }
 
@@ -316,10 +316,10 @@ export function EditClubModal({ club, trigger, onClubUpdated }: EditClubModalPro
                   maxLength={15}
                   required
                 />
-                <p className={`text-xs ${formData.contactPhone.length >= 10 && formData.contactPhone.length <= 15 ? 'text-green-600' : 'text-muted-foreground'}`}>
-                  {formData.contactPhone.length >= 10 && formData.contactPhone.length <= 15 
+                <p className={`text-xs ${formData.contactPhone.length >= 9 && formData.contactPhone.length <= 15 ? 'text-green-600' : 'text-muted-foreground'}`}>
+                  {formData.contactPhone.length >= 9 && formData.contactPhone.length <= 15 
                     ? '✓ Valid phone number format' 
-                    : 'Enter phone number without country code (10-15 digits)'}
+                    : 'Enter phone number without country code (9-15 digits)'}
                 </p>
               </div>
             </div>

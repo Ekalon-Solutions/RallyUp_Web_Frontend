@@ -12,27 +12,14 @@ import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/contexts/auth-context"
 import { apiClient, News, Event } from "@/lib/api"
+import {
+  WEBSITE_SECTION_OPTIONS,
+  isWebsiteOptionEnabled,
+  sanitizeWebsiteSections,
+  setWebsiteOptionEnabled,
+} from "@/lib/websiteSections"
 import { toast } from "sonner"
 import { Loader2, ExternalLink, Newspaper, Calendar, User, Eye } from "lucide-react"
-
-const navigationOptions = [
-  { id: "news", label: "News", description: "Appears just below 'welcome' text near top of site" },
-  { id: "events", label: "Events", description: "Recommended. Populate your events for the season" },
-  { id: "where-we-meet", label: "Where we meet", description: "Show meeting locations and venues" },
-  { id: "about", label: "About", description: "Recommended. Anchors to top of 'About' section" },
-  { id: "tickets", label: "Tickets", description: "Show upcoming events and ticket sales" },
-  { id: "membership", label: "Membership", description: "Can show invitation to join or full registration form" },
-  { id: "leadership", label: "Leadership", description: "Display club leadership and bios" },
-  { id: "community", label: "Community", description: "Community features and social content" },
-  { id: "store", label: "Store", description: "Recommended if you will have merchandise throughout the season" },
-  { id: "gallery", label: "Gallery", description: "Photo gallery from events and activities" },
-  { id: "fixtures", label: "Match Fixtures", description: "Upcoming match schedule" },
-  { id: "away-days", label: "Away Day Info", description: "Travel and accommodation for away matches" },
-  { id: "member-stories", label: "Member Stories", description: "Share stories from club members" },
-  { id: "chants", label: "Chants & Songs", description: "Club anthems and supporter chants" },
-  { id: "sponsors", label: "Sponsors", description: "Showcase sponsors and partners" },
-  { id: "match-day", label: "Match Day Info", description: "Info about upcoming match days" },
-]
 
 export default function WebsitePage() {
   const { user } = useAuth()
@@ -93,7 +80,7 @@ export default function WebsitePage() {
         setWebsiteSettings({
           published: websiteSetup.isPublished || false,
           url: clubSlug ? `${window.location.origin}/clubs/${clubSlug}` : "",
-          navigation: websiteSetup.sections || {},
+          navigation: sanitizeWebsiteSections(websiteSetup.sections || {}),
           welcomeText: websiteSetup.description || "",
           socialLinks: {
             facebook: currentDesignSettings.socialMedia?.facebook || "",
@@ -166,10 +153,12 @@ export default function WebsitePage() {
     loadPreviewData()
   }, [clubId, websiteSettings.navigation.news, websiteSettings.navigation.events])
 
-  const handleNavigationChange = (item: string, checked: boolean) => {
+  const handleOptionChange = (optionId: string, checked: boolean) => {
+    const option = WEBSITE_SECTION_OPTIONS.find((o) => o.id === optionId)
+    if (!option) return
     setWebsiteSettings((prev) => ({
       ...prev,
-      navigation: { ...prev.navigation, [item]: checked },
+      navigation: setWebsiteOptionEnabled(prev.navigation, option, checked),
     }))
   }
 
@@ -185,7 +174,7 @@ export default function WebsitePage() {
         contactEmail: (user as any)?.club?.contactEmail || "",
         contactPhone: (user as any)?.club?.contactPhone || "",
         isPublished: websiteSettings.published,
-        sections: websiteSettings.navigation,
+        sections: sanitizeWebsiteSections(websiteSettings.navigation),
       })
 
       const designResponse = await apiClient.updateDesignSettings(clubId, {
@@ -223,7 +212,7 @@ export default function WebsitePage() {
         contactEmail: (user as any)?.club?.contactEmail || "",
         contactPhone: (user as any)?.club?.contactPhone || "",
         isPublished: true,
-        sections: websiteSettings.navigation,
+        sections: sanitizeWebsiteSections(websiteSettings.navigation),
       })
 
       if (response.success) {
@@ -329,13 +318,13 @@ export default function WebsitePage() {
             </CardHeader>
             <CardContent className="p-8">
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {navigationOptions.map((option) => (
+                {WEBSITE_SECTION_OPTIONS.map((option) => (
                   <div key={option.id} className="relative flex items-start space-x-4 p-4 rounded-xl border-2 bg-card hover:bg-muted/30 transition-all hover:border-primary/30 group">
                     <div className="flex items-center h-6">
                       <Checkbox
                         id={option.id}
-                        checked={websiteSettings.navigation[option.id] || false}
-                        onCheckedChange={(checked) => handleNavigationChange(option.id, checked as boolean)}
+                        checked={isWebsiteOptionEnabled(websiteSettings.navigation, option)}
+                        onCheckedChange={(checked) => handleOptionChange(option.id, checked as boolean)}
                         className="h-5 w-5"
                       />
                     </div>

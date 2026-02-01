@@ -92,8 +92,8 @@ export function EventRegistrationModal({
       } else {
         // Remove all non-digit characters for validation
         const phoneDigits = attendee.phone.replace(/[^0-9]/g, '')
-        if (phoneDigits.length < 10) {
-          attendeeErrors.phone = "Phone must be at least 10 digits"
+        if (phoneDigits.length < 9 || phoneDigits.length > 15) {
+          attendeeErrors.phone = "Phone must be 9-15 digits"
           hasError = true
         }
       }

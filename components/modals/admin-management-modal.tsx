@@ -95,7 +95,6 @@ export function AdminManagementModal({ clubId, clubName, trigger }: AdminManagem
   const fetchAdmins = async () => {
     try {
       setLoading(true)
-      // Use the system owner endpoint for getting staff by club
       const response = await apiClient.getStaffByClub(clubId, { role: 'admin' })
       
       if (response.success && response.data) {
@@ -115,29 +114,25 @@ export function AdminManagementModal({ clubId, clubName, trigger }: AdminManagem
     try {
       setCreating(true)
       
-      // Validate required fields
       if (!createForm.name || !createForm.email || !createForm.phoneNumber) {
         toast.error('Please fill in all required fields')
         return
       }
 
-      // Validate admin name (not just spaces)
       if (!createForm.name.trim()) {
         toast.error('Admin name cannot be empty')
         return
       }
 
-      // Validate email format
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
       if (!emailRegex.test(createForm.email)) {
         toast.error('Please enter a valid email address')
         return
       }
 
-      // Validate phone number format (10-15 digits)
-      const phoneRegex = /^\d{10,15}$/
+      const phoneRegex = /^\d{9,15}$/
       if (!phoneRegex.test(createForm.phoneNumber)) {
-        toast.error('Phone number must be 10-15 digits')
+        toast.error('Phone number must be 9-15 digits')
         return
       }
 
@@ -201,7 +196,6 @@ export function AdminManagementModal({ clubId, clubName, trigger }: AdminManagem
       const response = await apiClient.searchAdmins(query)
       
       if (response.success && response.data) {
-        // Show all admins but mark which ones are already assigned to this club
         setSearchResults(response.data)
       } else {
         setSearchResults([])
@@ -247,7 +241,7 @@ export function AdminManagementModal({ clubId, clubName, trigger }: AdminManagem
       } else {
         setSearchResults([])
       }
-    }, 300) // Debounce search
+    }, 300)
 
     return () => clearTimeout(timeoutId)
   }, [searchQuery, admins])
@@ -448,17 +442,16 @@ export function AdminManagementModal({ clubId, clubName, trigger }: AdminManagem
                          id="adminPhone"
                          value={createForm.phoneNumber}
                          onChange={(e) => {
-                           // Remove any non-digit characters and limit to 15 digits
                            const phoneNumber = e.target.value.replace(/\D/g, '').slice(0, 15)
                            setCreateForm({ ...createForm, phoneNumber })
                          }}
                          placeholder="1234567890"
                          maxLength={15}
                        />
-                       <p className={`text-xs ${createForm.phoneNumber.length >= 10 && createForm.phoneNumber.length <= 15 ? 'text-green-600' : 'text-muted-foreground'}`}>
-                         {createForm.phoneNumber.length >= 10 && createForm.phoneNumber.length <= 15 
+                       <p className={`text-xs ${createForm.phoneNumber.length >= 9 && createForm.phoneNumber.length <= 15 ? 'text-green-600' : 'text-muted-foreground'}`}>
+                         {createForm.phoneNumber.length >= 9 && createForm.phoneNumber.length <= 15 
                            ? '✓ Valid phone number format' 
-                           : 'Enter phone number without country code (10-15 digits)'}
+                           : 'Enter phone number without country code (9-15 digits)'}
                        </p>
                      </div>
                     <div className="space-y-2">

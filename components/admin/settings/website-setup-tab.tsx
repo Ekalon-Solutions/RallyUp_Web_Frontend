@@ -12,6 +12,13 @@ import { Save, Globe, Eye, EyeOff, ExternalLink, Copy, Share2 } from "lucide-rea
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
+import {
+  DEFAULT_WEBSITE_SECTIONS,
+  WEBSITE_SECTION_OPTIONS,
+  isWebsiteOptionEnabled,
+  sanitizeWebsiteSections,
+  setWebsiteOptionEnabled,
+} from "@/lib/websiteSections"
 
 interface WebsiteSettings {
   title: string
@@ -33,14 +40,9 @@ export function WebsiteSetupTab() {
     description: "",
     contactEmail: "",
     contactPhone: "",
+    isPublished: false,
     sections: {
-      news: true,
-      events: true,
-      store: true,
-      polls: true,
-      chants: true,
-      members: true,
-      merchandise: true,
+      ...DEFAULT_WEBSITE_SECTIONS,
     },
   })
 
@@ -75,17 +77,15 @@ export function WebsiteSetupTab() {
           contactEmail: '',
           contactPhone: '',
           isPublished: false,
-          sections: {
-            news: true,
-            events: true,
-            store: true,
-            polls: true,
-            chants: true,
-            members: true,
-            merchandise: true,
-          }
+          sections: { ...DEFAULT_WEBSITE_SECTIONS }
         }
-        setSettings(websiteSetup)
+        setSettings({
+          ...websiteSetup,
+          sections: {
+            ...DEFAULT_WEBSITE_SECTIONS,
+            ...sanitizeWebsiteSections(websiteSetup.sections),
+          },
+        })
         // console.log("Loaded websiteSetup:", websiteSetup)
       } else {
         // console.warn("Invalid response format:", response)
@@ -132,14 +132,14 @@ export function WebsiteSetupTab() {
     }
   }
 
-  const toggleSection = (section: keyof WebsiteSettings["sections"]) => {
-    setSettings({
-      ...settings,
-      sections: {
-        ...settings.sections,
-        [section]: !settings.sections[section],
-      },
-    })
+  const toggleOption = (optionId: string) => {
+    const option = WEBSITE_SECTION_OPTIONS.find((o) => o.id === optionId)
+    if (!option) return
+    const currentlyEnabled = isWebsiteOptionEnabled(settings.sections, option)
+    setSettings((prev) => ({
+      ...prev,
+      sections: setWebsiteOptionEnabled(prev.sections, option, !currentlyEnabled),
+    }))
   }
 
   const copyPublicUrl = () => {
@@ -328,30 +328,32 @@ export function WebsiteSetupTab() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {Object.entries(settings.sections).map(([key, value]) => (
-            <div key={key} className="flex items-center justify-between py-2">
+          {WEBSITE_SECTION_OPTIONS.map((option) => {
+            const enabled = isWebsiteOptionEnabled(settings.sections, option)
+            return (
+            <div key={option.id} className="flex items-center justify-between py-2">
               <div className="flex items-center gap-3">
-                {value ? (
+                {enabled ? (
                   <Eye className="h-4 w-4 text-green-600" />
                 ) : (
                   <EyeOff className="h-4 w-4 text-gray-400" />
                 )}
                 <div>
-                  <Label htmlFor={key} className="text-base font-medium capitalize cursor-pointer">
-                    {key}
+                  <Label htmlFor={option.id} className="text-base font-medium cursor-pointer">
+                    {option.label}
                   </Label>
                   <p className="text-sm text-muted-foreground">
-                    {value ? "Visible to members" : "Hidden from members"}
+                    {enabled ? "Visible on public site" : "Hidden on public site"}
                   </p>
                 </div>
               </div>
               <Switch
-                id={key}
-                checked={value}
-                onCheckedChange={() => toggleSection(key as keyof WebsiteSettings["sections"])}
+                id={option.id}
+                checked={enabled}
+                onCheckedChange={() => toggleOption(option.id)}
               />
             </div>
-          ))}
+          )})}
         </CardContent>
       </Card>
 

@@ -223,7 +223,6 @@ export default function ClubManagementPage() {
       setCreating(true)
       setCreateErrors({})
 
-      // Validate slug: required and URL-safe (lowercase letters, numbers, hyphens)
       const slugValue = (createForm.slug || '').trim()
       const slugRegex = /^[a-z0-9-]+$/
       if (!slugValue) {
@@ -238,23 +237,19 @@ export default function ClubManagementPage() {
         setCreating(false)
         return
       }
-      // normalize
       createForm.slug = slugValue
       
-      // Validate required fields
       if (!createForm.name || !createForm.contactEmail || !createForm.contactPhone || 
           !createForm.superAdminEmail || !createForm.superAdminPhone) {
         toast.error('Please fill in all required fields')
         return
       }
 
-      // Validate club name (not just spaces)
       if (!createForm.name.trim()) {
         toast.error('Club name cannot be empty')
         return
       }
 
-      // Validate email format
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
       if (!emailRegex.test(createForm.contactEmail)) {
         toast.error('Please enter a valid contact email address')
@@ -265,14 +260,13 @@ export default function ClubManagementPage() {
         return
       }
 
-      // Validate phone number format (10-15 digits)
-      const phoneRegex = /^\d{10,15}$/
+      const phoneRegex = /^\d{9,15}$/
       if (!phoneRegex.test(createForm.contactPhone)) {
-        toast.error('Contact phone number must be 10-15 digits')
+        toast.error('Contact phone number must be 9-15 digits')
         return
       }
       if (!phoneRegex.test(createForm.superAdminPhone)) {
-        toast.error('Super admin phone number must be 10-15 digits')
+        toast.error('Super admin phone number must be 9-15 digits')
         return
       }
 
@@ -569,7 +563,6 @@ export default function ClubManagementPage() {
                               id="contactPhone"
                               value={createForm.contactPhone}
                               onChange={(e) => {
-                                // Remove any non-digit characters and limit to 15 digits
                                 const phoneNumber = e.target.value.replace(/\D/g, '').slice(0, 15)
                                 setCreateForm({ ...createForm, contactPhone: phoneNumber })
                               }}
@@ -578,10 +571,10 @@ export default function ClubManagementPage() {
                             />
                           </div>
                         </div>
-                        <p className={`text-xs ${createForm.contactPhone.length >= 10 && createForm.contactPhone.length <= 15 ? 'text-green-600' : 'text-muted-foreground'}`}>
-                          {createForm.contactPhone.length >= 10 && createForm.contactPhone.length <= 15 
+                        <p className={`text-xs ${createForm.contactPhone.length >= 9 && createForm.contactPhone.length <= 15 ? 'text-green-600' : 'text-muted-foreground'}`}>
+                          {createForm.contactPhone.length >= 9 && createForm.contactPhone.length <= 15 
                             ? '✓ Valid phone number format' 
-                            : 'Enter phone number without country code (10-15 digits)'}
+                            : 'Enter phone number without country code (9-15 digits)'}
                         </p>
                       </div>
                     </div>
@@ -699,10 +692,10 @@ export default function ClubManagementPage() {
                             />
                           </div>
                         </div>
-                        <p className={`text-xs ${createForm.superAdminPhone.length >= 10 && createForm.superAdminPhone.length <= 15 ? 'text-green-600' : 'text-muted-foreground'}`}>
-                          {createForm.superAdminPhone.length >= 10 && createForm.superAdminPhone.length <= 15 
+                        <p className={`text-xs ${createForm.superAdminPhone.length >= 9 && createForm.superAdminPhone.length <= 15 ? 'text-green-600' : 'text-muted-foreground'}`}>
+                          {createForm.superAdminPhone.length >= 9 && createForm.superAdminPhone.length <= 15 
                             ? '✓ Valid phone number format' 
-                            : 'Enter phone number without country code (10-15 digits)'}
+                            : 'Enter phone number without country code (9-15 digits)'}
                         </p>
                       </div>
                     </div>

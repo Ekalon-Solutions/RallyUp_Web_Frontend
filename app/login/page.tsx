@@ -30,9 +30,9 @@ const validateEmail = (email: string): string => {
 
 const validatePhoneNumber = (phone: string): string => {
   if (!phone) return ""
-  const phoneRegex = /^\d{10,15}$/
+  const phoneRegex = /^\d{9,15}$/
   if (!phoneRegex.test(phone)) {
-    return "Phone number must be 10-15 digits"
+    return "Phone number must be 9-15 digits"
   }
   return ""
 }
