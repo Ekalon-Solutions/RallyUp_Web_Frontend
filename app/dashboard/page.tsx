@@ -57,6 +57,8 @@ export default function DashboardPage() {
       return
     }
 
+    let noClubTimer: ReturnType<typeof setTimeout> | undefined
+
     const resolveClubId = () => {
       if (!user || user.role === 'system_owner') return undefined
       const userAny = user as any
@@ -78,7 +80,9 @@ export default function DashboardPage() {
 
       const clubId = resolveClubId()
       if (!clubId) {
-        setLoading(false)
+        setStats(null)
+        setLoading(true)
+        noClubTimer = setTimeout(() => setLoading(false), 2500)
         return
       }
 
@@ -126,6 +130,10 @@ export default function DashboardPage() {
     }
 
     fetchDashboardStats()
+
+    return () => {
+      if (noClubTimer) clearTimeout(noClubTimer)
+    }
   }, [user, authLoading, activeClubId])
   
   const getClubInfo = () => {
