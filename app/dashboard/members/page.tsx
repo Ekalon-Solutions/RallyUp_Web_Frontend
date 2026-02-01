@@ -78,7 +78,7 @@ export default function MembersPage() {
     total: 0,
     pages: 0
   })
-  const [metadata, setMetadata] = useState({ total: 0, active: 0, verified: 0 })
+  const [metadata, setMetadata] = useState({ total: 0, active: 0, verified: 0, thisMonth: 0 })
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
@@ -111,24 +111,35 @@ export default function MembersPage() {
       const response = await apiClient.getClubMemberDirectory({
         search: searchTerm || undefined,
         page: currentPage,
-        // limit: 20,
+        limit: pagination.limit,
         status: statusFilter === 'all' ? undefined : statusFilter,
-        clubId: user?.club?._id
+        clubId: (user as any)?.club?._id
       })
 
       if (response.success && response.data) {
-        setMembers(response.data.members || [])
-        const respPagination = response.data.pagination || { page: 1, limit: 20, total: 0, pages: 0 }
-        const metaTotal = response.data.metadata?.total ?? respPagination.total ?? 0
-        const limitVal = respPagination.limit || pagination.limit
-        const totalCount = (searchTerm && typeof respPagination.total === 'number') ? respPagination.total : metaTotal
+        const nextMembers = (response.data.members as unknown as Member[]) || []
+        setMembers(nextMembers)
+
+        setSelectedMemberIds(new Set())
+        setIsSelectAll(false)
+
+        const respPagination = response.data.pagination || { page: currentPage, limit: pagination.limit, total: 0, pages: 0 }
+        const safeLimit = respPagination.limit || pagination.limit
+        const safeTotal = typeof respPagination.total === 'number' ? respPagination.total : 0
+        const safePages =
+          typeof respPagination.pages === 'number'
+            ? respPagination.pages
+            : (safeLimit > 0 ? Math.ceil(safeTotal / safeLimit) : 0)
+
         setPagination({
           page: respPagination.page || 1,
-          limit: limitVal,
-          total: totalCount,
-          pages: Math.max(1, Math.ceil(totalCount / limitVal))
+          limit: safeLimit,
+          total: safeTotal,
+          pages: safePages
         })
-        setMetadata(response.data.metadata || { total: 0, active: 0, verified: 0 })
+
+        setCurrentPage(respPagination.page || 1)
+        setMetadata(response.data.metadata || { total: 0, active: 0, verified: 0, thisMonth: 0 })
       } else {
         toast.error(response.error || 'Failed to load members')
       }
@@ -267,7 +278,7 @@ export default function MembersPage() {
     try {
       const response = await apiClient.userRegister({
         ...data,
-        clubId: user?.club?._id,
+        clubId: (user as any)?.club?._id,
       })
 
       if (response.success) {
@@ -386,7 +397,7 @@ export default function MembersPage() {
   }
 
   const openDeleteAllDialog = () => {
-    if ((pagination?.total || 0) === 0) {
+    if ((metadata?.total || 0) === 0) {
       toast.error('No members to delete')
       return
     }
@@ -444,10 +455,10 @@ export default function MembersPage() {
               <p className="text-muted-foreground text-sm sm:text-base">Manage and view all club members</p>
             </div>
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-              {(user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'system_owner') && (pagination?.total || 0) > 0 && (
+              {(user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'system_owner') && (metadata?.total || 0) > 0 && (
                 <Button variant="destructive" onClick={openDeleteAllDialog} className="w-full sm:w-auto shadow-md hover:shadow-lg transition-shadow">
                   <Trash2 className="w-4 h-4 mr-2" />
-                  Delete All Members ({pagination.total})
+                  Delete All Members ({metadata.total})
                 </Button>
               )}
               {(user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'system_owner') && selectedMemberIds.size > 0 && (
@@ -521,12 +532,7 @@ export default function MembersPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-purple-600">
-                  {members.filter((m: Member) => {
-                    const memberDate = new Date(m.createdAt)
-                    const now = new Date()
-                    return memberDate.getMonth() === now.getMonth() && 
-                           memberDate.getFullYear() === now.getFullYear()
-                  }).length}
+                  {metadata.thisMonth}
                 </div>
               </CardContent>
             </Card>
@@ -565,48 +571,22 @@ export default function MembersPage() {
                 </div>
               </div>
 
-              {/* Members List */}
-              {pagination.pages > 1 && (
-                <div className="flex justify-end mb-4">
-                  <Pagination>
-                    <PaginationContent>
-                      <PaginationItem>
-                        <PaginationPrevious 
-                          onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
-                          className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                        />
-                      </PaginationItem>
-                              {pagesToShow.map((p) => {
-                                if (typeof p === 'number') {
-                                  return (
-                                    <PaginationItem key={`top-page-${p}`}>
-                                      <PaginationLink
-                                        onClick={() => handlePageChange(p)}
-                                        isActive={currentPage === p}
-                                        className="cursor-pointer"
-                                      >
-                                        {p}
-                                      </PaginationLink>
-                                    </PaginationItem>
-                                  )
-                                }
-
-                                return (
-                                  <PaginationItem key={`top-${p}`}>
-                                    <span className="px-3 py-2 text-muted-foreground select-none">...</span>
-                                  </PaginationItem>
-                                )
-                              })}
-                      <PaginationItem>
-                        <PaginationNext 
-                          onClick={() => handlePageChange(Math.min(pagination.pages, currentPage + 1))}
-                          className={currentPage === pagination.pages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                        />
-                      </PaginationItem>
-                    </PaginationContent>
-                  </Pagination>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4 text-sm text-muted-foreground">
+                <div>
+                  {loading
+                    ? 'Loading results...'
+                    : members.length === 0
+                    ? 'Showing 0 results'
+                    : `Showing ${(currentPage - 1) * pagination.limit + 1}-${(currentPage - 1) * pagination.limit + members.length} of ${pagination.total} results`}
                 </div>
-              )}
+                {(searchTerm || statusFilter !== 'all') && (
+                  <div>
+                    Total in directory: {metadata.total}
+                  </div>
+                )}
+              </div>
+
+              {/* Members List */}
               {loading ? (
                 <div className="space-y-4">
                   {[...Array(5)].map((_, i) => (
@@ -635,7 +615,7 @@ export default function MembersPage() {
                         className="data-[state=checked]:bg-primary"
                       />
                       <Label className="text-sm font-semibold cursor-pointer" onClick={handleSelectAll}>
-                        Select All ({members.length} members)
+                        Select all on this page ({members.length})
                       </Label>
                     </div>
                   )}
@@ -721,7 +701,7 @@ export default function MembersPage() {
                     <PaginationContent>
                       <PaginationItem>
                         <PaginationPrevious 
-                          onClick={() => handlePageChange(currentPage - 1)}
+                          onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
                           className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
                         />
                       </PaginationItem>
@@ -748,7 +728,7 @@ export default function MembersPage() {
                       })}
                       <PaginationItem>
                         <PaginationNext 
-                          onClick={() => handlePageChange(currentPage + 1)}
+                          onClick={() => handlePageChange(Math.min(pagination.pages, currentPage + 1))}
                           className={currentPage === pagination.pages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
                         />
                       </PaginationItem>
@@ -1080,7 +1060,7 @@ export default function MembersPage() {
                     </div>
                     <div className="flex-1">
                       <h3 className="font-semibold text-base text-destructive">
-                        {pagination.total} Member{pagination.total !== 1 ? 's' : ''} Will Be Deleted
+                        {metadata.total} Member{metadata.total !== 1 ? 's' : ''} Will Be Deleted
                       </h3>
                       <p className="text-sm text-muted-foreground mt-1">
                         All members currently in your directory will be permanently deleted.

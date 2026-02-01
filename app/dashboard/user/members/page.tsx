@@ -57,6 +57,7 @@ export default function ClubMembersPage() {
     total: 0,
     pages: 0
   })
+  const [metadata, setMetadata] = useState({ total: 0, active: 0, verified: 0, thisMonth: 0 })
 
   useEffect(() => {
     // console.log('User data in ClubMembersPage:', user)
@@ -112,7 +113,8 @@ export default function ClubMembersPage() {
         // console.log('Pagination data:', response.data.pagination)
         const nextMembers = (response.data.members as ClubMember[]) || []
         const nextPagination = response.data.pagination
-        
+        const nextMetadata = (response.data as any)?.metadata
+
         if (nextPagination?.pages > 0 && currentPage > nextPagination.pages) {
           setCurrentPage(nextPagination.pages)
           return
@@ -120,6 +122,14 @@ export default function ClubMembersPage() {
 
         setMembers(nextMembers)
         if (nextPagination) setPagination(nextPagination)
+        if (nextMetadata) {
+          setMetadata({
+            total: typeof nextMetadata.total === 'number' ? nextMetadata.total : 0,
+            active: typeof nextMetadata.active === 'number' ? nextMetadata.active : 0,
+            verified: typeof nextMetadata.verified === 'number' ? nextMetadata.verified : 0,
+            thisMonth: typeof nextMetadata.thisMonth === 'number' ? nextMetadata.thisMonth : 0
+          })
+        }
       } else {
         // console.error('API error:', response.error)
         toast.error(response.error || 'Failed to load club members')
@@ -206,7 +216,7 @@ export default function ClubMembersPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-green-600">
-                  {members.filter(m => m.isPhoneVerified).length}
+                  {metadata.verified}
                 </div>
               </CardContent>
             </Card>

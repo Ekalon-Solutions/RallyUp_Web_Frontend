@@ -2057,6 +2057,7 @@ class ApiClient {
       total: number;
       active: number;
       verified: number;
+      thisMonth: number;
     };
     pagination: {
       page: number;
@@ -2073,11 +2074,9 @@ class ApiClient {
     if (params?.clubId) queryParams.append('clubId', params.clubId);
 
     const endpoint = `/users/club-directory${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-    console.log("gcmd params:", params, "endpoint:", endpoint);
     return this.request(endpoint);
   }
 
-  // Get membership ID for a user in a specific club
   async getUserMembershipId(userId: string, clubId: string): Promise<ApiResponse<{
     membershipId: string;
     status: string;
@@ -2087,8 +2086,7 @@ class ApiClient {
   }>> {
     return this.request(`/users/membership-id/${userId}/${clubId}`);
   }
-
-  // Get all memberships for the current user
+  
   async getUserMemberships(): Promise<ApiResponse<Array<{
     _id: string;
     club_id: {
@@ -2649,7 +2647,17 @@ class ApiClient {
     };
   }>> {
     // console.log('📦 [API Client] updateMerchandiseSettings called with:', settings);
-    const result = await this.request('/merchandise/admin/settings', {
+    const result = await this.request<{
+      clubId: string;
+      clubName: string;
+      settings: {
+        shippingCost: number;
+        freeShippingThreshold: number;
+        taxRate: number;
+        enableTax: boolean;
+        enableShipping: boolean;
+      };
+    }>('/merchandise/admin/settings', {
       method: 'PUT',
       body: JSON.stringify(settings),
     });
