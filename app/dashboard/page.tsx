@@ -57,8 +57,27 @@ export default function DashboardPage() {
       return
     }
 
+    const resolveClubId = () => {
+      if (!user || user.role === 'system_owner') return undefined
+      const userAny = user as any
+
+      if (activeClubId) return activeClubId
+
+      if (userAny?.club?._id) return userAny.club._id
+      if (userAny?.club && typeof userAny.club === 'string') return userAny.club
+
+      const firstMembership = userAny?.memberships?.find((m: any) => m.status === 'active')
+      return firstMembership?.club_id?._id || firstMembership?.club_id
+    }
+
     const fetchDashboardStats = async () => {
       if (!user) {
+        setLoading(false)
+        return
+      }
+
+      const clubId = resolveClubId()
+      if (!clubId) {
         setLoading(false)
         return
       }
@@ -66,8 +85,6 @@ export default function DashboardPage() {
       try {
         setLoading(true)
         const token = localStorage.getItem('token')
-        const userAny = user as any
-        
 
         const clubStatsResponse = await axios.get(
           getApiUrl(`/clubs/${clubId}/stats`),
@@ -97,13 +114,19 @@ export default function DashboardPage() {
           storeRevenue: orderStatsResponse.data.totalRevenue || 0
         })
       } catch (error) {
+        setStats({
+          totalMembers: 0,
+          activeMembers: 0,
+          upcomingEvents: 0,
+          storeRevenue: 0
+        })
       } finally {
         setLoading(false)
       }
     }
 
     fetchDashboardStats()
-  }, [user, authLoading])
+  }, [user, authLoading, activeClubId])
   
   const getClubInfo = () => {
     const userAny = user as any

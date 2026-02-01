@@ -56,7 +56,7 @@ export async function getClubSettings(clubId: string, forceRefresh = false): Pro
 }
 
 export function isSectionVisible(settings: ClubSettings | null, section: string): boolean {
-  if (!settings) return true // Default to visible if no settings
+  if (!settings) return true
   return settings.websiteSetup?.sections?.[section as keyof typeof settings.websiteSetup.sections] !== false
 }
 
