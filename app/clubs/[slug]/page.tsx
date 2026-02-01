@@ -79,6 +79,9 @@ export default function PublicClubPage() {
   const [attendeesForPayment, setAttendeesForPayment] = useState<any[]>([])
   const [couponCodeForPayment, setCouponCodeForPayment] = useState<string | undefined>(undefined)
 
+  const encodeSearchParam = (value: string) =>
+    encodeURIComponent(value).replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`)
+
   useEffect(() => {
     if (slug) {
       loadClubData()
@@ -278,6 +281,7 @@ export default function PublicClubPage() {
   const description = websiteSetup.description || club.description
 
   const primaryColor = designSettings.primaryColor || "#3b82f6"
+  const clubSearchHref = club?.name ? `/clubs?search=${encodeSearchParam(club.name)}` : "/clubs"
 
   return (
     <div className="min-h-screen bg-background">
@@ -339,7 +343,7 @@ export default function PublicClubPage() {
             )}
 
             <div className="pt-10 flex flex-col sm:flex-row items-center justify-center gap-6 animate-slide-up" style={{ animationDelay: '0.2s' }}>
-              <Link href={`/clubs/?search=${club?.name}`} className="w-full sm:w-auto">
+              <Link href={clubSearchHref} className="w-full sm:w-auto">
                 <Button 
                   size="lg" 
                   className="w-full sm:px-12 h-16 text-xl font-bold shadow-xl hover:shadow-primary/25 transition-all rounded-2xl group"
@@ -879,7 +883,7 @@ export default function PublicClubPage() {
               priority event booking, and a global network of passionate fans.
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-6 pt-10">
-              <Link href={`/membership-plans?clubId=${club?._id || slug}`} className="w-full sm:w-auto">
+              <Link href={clubSearchHref} className="w-full sm:w-auto">
                 <Button 
                   size="lg"
                   className="w-full sm:px-16 h-20 text-2xl font-black shadow-2xl hover:scale-105 transition-all rounded-[2rem]"

@@ -43,6 +43,9 @@ export default function MembershipPlansClient({ clubId }: { clubId: string }) {
   const [loading, setLoading] = useState(false)
   const [club, setClub] = useState<PublicClubWithPlans | null>(null)
 
+  const encodeSearchParam = (value: string) =>
+    encodeURIComponent(value).replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`)
+
   useEffect(() => {
     const load = async () => {
       if (!clubId) return
@@ -198,7 +201,7 @@ export default function MembershipPlansClient({ clubId }: { clubId: string }) {
                         Join flow continues on Clubs page
                       </div>
 
-                      <Link href={`/clubs?search=${encodeURIComponent(club.name)}`} className="block">
+                      <Link href={`/clubs?search=${encodeSearchParam(club.name)}`} className="block">
                         <Button className="w-full">Continue to Join</Button>
                       </Link>
                     </CardContent>

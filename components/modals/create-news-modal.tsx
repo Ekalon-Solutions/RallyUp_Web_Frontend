@@ -8,10 +8,11 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
-import { X, Upload, Image as ImageIcon, Plus, Trash2 } from "lucide-react"
+import { X, Upload, Plus, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { apiClient, News } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
+import { getNewsImageUrl } from "@/lib/config"
 
 interface CreateNewsModalProps {
   isOpen: boolean
@@ -30,8 +31,9 @@ export function CreateNewsModal({ isOpen, onClose, onSuccess, editNews }: Create
   const [category, setCategory] = useState<string>(editNews?.category || "general")
   const [priority, setPriority] = useState<string>(editNews?.priority || "medium")
   const [isPublished, setIsPublished] = useState(editNews?.isPublished || false)
+  const [existingImages, setExistingImages] = useState<string[]>(editNews?.images || [])
   const [images, setImages] = useState<File[]>([])
-  const [featuredImage, setFeaturedImage] = useState<number>(0)
+  const [featuredImageIndex, setFeaturedImageIndex] = useState<number>(0)
   const [loading, setLoading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -44,8 +46,9 @@ export function CreateNewsModal({ isOpen, onClose, onSuccess, editNews }: Create
     setCategory("general")
     setPriority("medium")
     setIsPublished(false)
+    setExistingImages([])
     setImages([])
-    setFeaturedImage(0)
+    setFeaturedImageIndex(0)
   }
 
   useEffect(() => {
@@ -64,8 +67,12 @@ export function CreateNewsModal({ isOpen, onClose, onSuccess, editNews }: Create
       setCategory(editNews.category || "general")
       setPriority(editNews.priority || "medium")
       setIsPublished(Boolean(editNews.isPublished))
+      const nextExistingImages = Array.isArray((editNews as any).images) ? ((editNews as any).images as string[]) : []
+      setExistingImages(nextExistingImages)
       setImages([])
-      setFeaturedImage(0)
+      const featured = (editNews as any).featuredImage as string | undefined
+      const idx = featured ? nextExistingImages.findIndex((u) => String(u) === String(featured)) : -1
+      setFeaturedImageIndex(idx >= 0 ? idx : 0)
       setLoading(false)
       return
     }
@@ -97,9 +104,11 @@ export function CreateNewsModal({ isOpen, onClose, onSuccess, editNews }: Create
       images.forEach((image, index) => {
         formData.append("images", image)
       })
-      
-      if (images.length > 0) {
-        formData.append("featuredImageIndex", featuredImage.toString())
+
+      const totalImagesForFeatured = (editNews ? existingImages.length + images.length : images.length)
+      if (totalImagesForFeatured > 0) {
+        const safeIndex = Math.min(Math.max(featuredImageIndex, 0), totalImagesForFeatured - 1)
+        formData.append("featuredImageIndex", safeIndex.toString())
       }
 
       let response
@@ -116,7 +125,6 @@ export function CreateNewsModal({ isOpen, onClose, onSuccess, editNews }: Create
         toast.error(response.error || "Failed to save news article")
       }
     } catch (error) {
-      // console.error("Error saving news:", error)
       toast.error("An error occurred while saving the news article")
     } finally {
       setLoading(false)
@@ -134,19 +142,20 @@ export function CreateNewsModal({ isOpen, onClose, onSuccess, editNews }: Create
 
     setImages(prev => [...prev, ...imageFiles])
     
-    if (images.length === 0 && imageFiles.length > 0) {
-      setFeaturedImage(0)
+    if (existingImages.length === 0 && images.length === 0 && imageFiles.length > 0) {
+      setFeaturedImageIndex(0)
     }
   }
 
   const removeImage = (index: number) => {
     const newImages = images.filter((_, i) => i !== index)
     setImages(newImages)
-    
-    if (featuredImage === index) {
-      setFeaturedImage(0)
-    } else if (featuredImage > index) {
-      setFeaturedImage(featuredImage - 1)
+
+    const removedCombinedIndex = existingImages.length + index
+    if (featuredImageIndex === removedCombinedIndex) {
+      setFeaturedImageIndex(0)
+    } else if (featuredImageIndex > removedCombinedIndex) {
+      setFeaturedImageIndex(featuredImageIndex - 1)
     }
   }
 
@@ -322,42 +331,82 @@ export function CreateNewsModal({ isOpen, onClose, onSuccess, editNews }: Create
             </div>
 
             {/* Image Preview */}
-            {images.length > 0 && (
+            {(existingImages.length > 0 || images.length > 0) && (
               <div className="space-y-4">
-                <Label>Uploaded Images</Label>
+                <Label>{editNews ? "Images (existing + newly uploaded)" : "Uploaded Images"}</Label>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {images.map((image, index) => (
-                    <div key={index} className="relative group">
-                      <img
-                        src={URL.createObjectURL(image)}
-                        alt={`Preview ${index + 1}`}
-                        className="w-full h-32 object-cover rounded-lg"
-                      />
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => removeImage(index)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                      <div className="absolute top-2 left-2">
-                        <input
-                          type="radio"
-                          name="featuredImage"
-                          value={index}
-                          checked={featuredImage === index}
-                          onChange={() => setFeaturedImage(index)}
-                          className="mr-2"
+                  {existingImages.map((imageUrl, existingIdx) => {
+                    const combinedIdx = existingIdx
+                    const src = getNewsImageUrl(imageUrl)
+                    return (
+                      <div key={`existing-${existingIdx}-${imageUrl}`} className="relative group">
+                        <img
+                          src={src}
+                          alt={`Existing image ${existingIdx + 1}`}
+                          className="w-full h-32 object-cover rounded-lg"
                         />
-                        <span className="text-xs text-white bg-black/70 px-2 py-1 rounded">
-                          Featured
-                        </span>
+                        <div className="absolute top-2 left-2">
+                          <input
+                            type="radio"
+                            name="featuredImage"
+                            value={combinedIdx}
+                            checked={featuredImageIndex === combinedIdx}
+                            onChange={() => setFeaturedImageIndex(combinedIdx)}
+                            className="mr-2"
+                          />
+                          <span className="text-xs text-white bg-black/70 px-2 py-1 rounded">
+                            Featured
+                          </span>
+                        </div>
+                        <div className="absolute bottom-2 left-2">
+                          <span className="text-[10px] text-white bg-black/70 px-2 py-1 rounded">
+                            Existing
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
+
+                  {images.map((image, newIdx) => {
+                    const combinedIdx = existingImages.length + newIdx
+                    return (
+                      <div key={`new-${newIdx}`} className="relative group">
+                        <img
+                          src={URL.createObjectURL(image)}
+                          alt={`Preview ${newIdx + 1}`}
+                          className="w-full h-32 object-cover rounded-lg"
+                        />
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => removeImage(newIdx)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                        <div className="absolute top-2 left-2">
+                          <input
+                            type="radio"
+                            name="featuredImage"
+                            value={combinedIdx}
+                            checked={featuredImageIndex === combinedIdx}
+                            onChange={() => setFeaturedImageIndex(combinedIdx)}
+                            className="mr-2"
+                          />
+                          <span className="text-xs text-white bg-black/70 px-2 py-1 rounded">
+                            Featured
+                          </span>
+                        </div>
+                        <div className="absolute bottom-2 left-2">
+                          <span className="text-[10px] text-white bg-black/70 px-2 py-1 rounded">
+                            New
+                          </span>
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
             )}

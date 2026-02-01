@@ -422,214 +422,218 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="style" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="style">
-                <Palette className="w-4 h-4 mr-2" />
-                Style
-              </TabsTrigger>
-              <TabsTrigger value="logo">
-                <ImageIcon className="w-4 h-4 mr-2" />
-                Logo
-              </TabsTrigger>
-              <TabsTrigger value="preview">
-                <Eye className="w-4 h-4 mr-2" />
-                Preview
-              </TabsTrigger>
-            </TabsList>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Left: Editor */}
+            <div>
+              <Tabs defaultValue="style" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="style">
+                    <Palette className="w-4 h-4 mr-2" />
+                    Style
+                  </TabsTrigger>
+                  <TabsTrigger value="logo">
+                    <ImageIcon className="w-4 h-4 mr-2" />
+                    Logo
+                  </TabsTrigger>
+                </TabsList>
 
-            <TabsContent value="style" className="space-y-6">
-              {/* Card Style Presets */}
-              <div className="space-y-3">
-                <Label>Card Style Preset</Label>
-                <Select value={selectedStyle} onValueChange={handleStyleChange}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CARD_STYLES.map((style) => (
-                      <SelectItem key={style.value} value={style.value}>
-                        {style.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+                <TabsContent value="style" className="space-y-6">
+                  {/* Card Style Presets */}
+                  <div className="space-y-3">
+                    <Label>Card Style Preset</Label>
+                    <Select value={selectedStyle} onValueChange={handleStyleChange}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CARD_STYLES.map((style) => (
+                          <SelectItem key={style.value} value={style.value}>
+                            {style.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              {/* Custom Colors */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="primaryColor">Primary Color</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="primaryColor"
-                      type="color"
-                      value={primaryColor}
-                      onChange={(e) => {
-                        setPrimaryColor(e.target.value);
-                        setSelectedStyle('custom');
-                      }}
-                      className="w-20 h-10"
-                    />
-                    <Input
-                      type="text"
-                      value={primaryColor}
-                      onChange={(e) => {
-                        setPrimaryColor(e.target.value);
-                        setSelectedStyle('custom');
-                      }}
-                      className="flex-1"
+                  {/* Custom Colors */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="primaryColor">Primary Color</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="primaryColor"
+                          type="color"
+                          value={primaryColor}
+                          onChange={(e) => {
+                            setPrimaryColor(e.target.value);
+                            setSelectedStyle('custom');
+                          }}
+                          className="w-20 h-10"
+                        />
+                        <Input
+                          type="text"
+                          value={primaryColor}
+                          onChange={(e) => {
+                            setPrimaryColor(e.target.value);
+                            setSelectedStyle('custom');
+                          }}
+                          className="flex-1"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="secondaryColor">Secondary Color</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          id="secondaryColor"
+                          type="color"
+                          value={secondaryColor}
+                          onChange={(e) => {
+                            setSecondaryColor(e.target.value);
+                            setSelectedStyle('custom');
+                          }}
+                          className="w-20 h-10"
+                        />
+                        <Input
+                          type="text"
+                          value={secondaryColor}
+                          onChange={(e) => {
+                            setSecondaryColor(e.target.value);
+                            setSelectedStyle('custom');
+                          }}
+                          className="flex-1"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Font Family */}
+                  <div className="space-y-3">
+                    <Label>Font Family</Label>
+                    <Select value={fontFamily} onValueChange={setFontFamily}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {FONT_FAMILIES.map((font) => (
+                          <SelectItem key={font.value} value={font.value}>
+                            {font.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Logo Size */}
+                  <div className="space-y-3">
+                    <Label>Logo Size</Label>
+                    <Select value={logoSize} onValueChange={(value) => setLogoSize(value as 'small' | 'medium' | 'large')}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {LOGO_SIZES.map((size) => (
+                          <SelectItem key={size.value} value={size.value}>
+                            {size.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Show Logo Toggle */}
+                  <div className="flex items-center justify-between space-x-2 p-4 border rounded-lg">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="showLogo">Show Club Logo</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Toggle to show or hide the club logo on membership cards
+                      </p>
+                    </div>
+                    <Switch
+                      id="showLogo"
+                      checked={showLogo}
+                      onCheckedChange={setShowLogo}
                     />
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="secondaryColor">Secondary Color</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="secondaryColor"
-                      type="color"
-                      value={secondaryColor}
-                      onChange={(e) => {
-                        setSecondaryColor(e.target.value);
-                        setSelectedStyle('custom');
-                      }}
-                      className="w-20 h-10"
-                    />
-                    <Input
-                      type="text"
-                      value={secondaryColor}
-                      onChange={(e) => {
-                        setSecondaryColor(e.target.value);
-                        setSelectedStyle('custom');
-                      }}
-                      className="flex-1"
-                    />
+                </TabsContent>
+
+                <TabsContent value="logo" className="space-y-6">
+                  <div className="space-y-4">
+                    <div>
+                      <Label>Custom Logo</Label>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Upload a custom logo for your membership cards (max 2MB)
+                      </p>
+                    </div>
+
+                    {customLogo && (
+                      <div className="flex items-center justify-center p-4 border rounded-lg">
+                        <img 
+                          src={customLogo} 
+                          alt="Custom logo" 
+                          className="max-w-[200px] max-h-[200px] object-contain"
+                        />
+                      </div>
+                    )}
+
+                    <div className="flex gap-2">
+                      <Input
+                        id="logo-upload"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleLogoUpload}
+                        disabled={uploadingLogo}
+                        className="hidden"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => document.getElementById('logo-upload')?.click()}
+                        disabled={uploadingLogo}
+                        className="flex-1"
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        {uploadingLogo ? 'Uploading...' : 'Upload Logo'}
+                      </Button>
+                      {customLogo && (
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          onClick={() => setCustomLogo(null)}
+                        >
+                          Remove
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </div>
+                </TabsContent>
+              </Tabs>
+            </div>
 
-              {/* Font Family */}
-              <div className="space-y-3">
-                <Label>Font Family</Label>
-                <Select value={fontFamily} onValueChange={setFontFamily}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {FONT_FAMILIES.map((font) => (
-                      <SelectItem key={font.value} value={font.value}>
-                        {font.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Logo Size */}
-              <div className="space-y-3">
-                <Label>Logo Size</Label>
-                <Select value={logoSize} onValueChange={(value) => setLogoSize(value as 'small' | 'medium' | 'large')}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {LOGO_SIZES.map((size) => (
-                      <SelectItem key={size.value} value={size.value}>
-                        {size.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Show Logo Toggle */}
-              <div className="flex items-center justify-between space-x-2 p-4 border rounded-lg">
-                <div className="space-y-0.5">
-                  <Label htmlFor="showLogo">Show Club Logo</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Toggle to show or hide the club logo on membership cards
-                  </p>
-                </div>
-                <Switch
-                  id="showLogo"
-                  checked={showLogo}
-                  onCheckedChange={setShowLogo}
-                />
-              </div>
-            </TabsContent>
-
-            <TabsContent value="logo" className="space-y-6">
-              <div className="space-y-4">
-                <div>
-                  <Label>Custom Logo</Label>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Upload a custom logo for your membership cards (max 2MB)
-                  </p>
-                </div>
-
-                {customLogo && (
-                  <div className="flex items-center justify-center p-4 border rounded-lg">
-                    <img 
-                      src={customLogo} 
-                      alt="Custom logo" 
-                      className="max-w-[200px] max-h-[200px] object-contain"
-                    />
-                  </div>
-                )}
-
-                <div className="flex gap-2">
-                  <Input
-                    id="logo-upload"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleLogoUpload}
-                    disabled={uploadingLogo}
-                    className="hidden"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => document.getElementById('logo-upload')?.click()}
-                    disabled={uploadingLogo}
-                    className="flex-1"
-                  >
-                    <Upload className="w-4 h-4 mr-2" />
-                    {uploadingLogo ? 'Uploading...' : 'Upload Logo'}
-                  </Button>
-                  {customLogo && (
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      onClick={() => setCustomLogo(null)}
-                    >
-                      Remove
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </TabsContent>
-
-            <TabsContent value="preview" className="space-y-6">
-              <div className="space-y-4">
-                <div>
-                  <h3 className="text-lg font-semibold mb-2">Live Preview</h3>
+            {/* Right: Preview */}
+            <div className="lg:sticky lg:top-6 lg:self-start">
+              <div className="border rounded-lg p-4 sm:p-6 bg-muted/20">
+                <div className="mb-4">
+                  <h3 className="text-lg font-semibold">Live Preview</h3>
                   <p className="text-sm text-muted-foreground">
                     This is how the card will appear to members
                   </p>
                 </div>
 
-                <div className="flex justify-center py-8 bg-muted/30 rounded-lg">
-                  <MembershipCard
-                    cardData={previewData}
-                    cardStyle={selectedStyle === 'custom' ? 'default' : selectedStyle as 'default' | 'premium' | 'vintage' | 'modern' | 'elite' | 'emerald'}
-                    showLogo={showLogo}
-                    userName="John Doe"
-                    membershipId={previewData.card.membershipId}
-                  />
+                <div className="flex justify-center">
+                  <div className="w-full max-w-xs sm:max-w-sm">
+                    <MembershipCard
+                      cardData={previewData}
+                      cardStyle={selectedStyle === 'custom' ? 'default' : selectedStyle as 'default' | 'premium' | 'vintage' | 'modern' | 'elite' | 'emerald'}
+                      showLogo={showLogo}
+                      userName="John Doe"
+                      membershipId={previewData.card.membershipId}
+                    />
+                  </div>
                 </div>
               </div>
-            </TabsContent>
-          </Tabs>
+            </div>
+          </div>
 
           {/* Save Button */}
           <div className="flex justify-end gap-2 mt-6 pt-6 border-t">
