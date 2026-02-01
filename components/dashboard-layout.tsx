@@ -17,13 +17,9 @@ import {
   Ticket,
   Globe,
   ExternalLink,
-  MessageSquare,
-  BarChart3,
   Shield,
   Newspaper,
   Shirt,
-  Calendar,
-  Bus,
   LayoutDashboard,
   User,
   Building,
@@ -44,6 +40,7 @@ import { useTheme } from "next-themes"
 import { Sun, Moon } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import Image from "next/image"
+import { NotificationCenterModal } from "@/components/modals/notification-center-modal"
 
 const adminNavigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -199,7 +196,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     
     if (isRegularUser && clubId) {
       const canShowSection = (section: Parameters<typeof isSectionVisible>[0]) => {
-        // Avoid sidebar flicker: until we *know* the settings, don't render optional links.
         if (settingsLoading && !settings) return false
         return isSectionVisible(section)
       }
@@ -436,6 +432,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             <div className="hidden sm:flex items-center gap-2 mr-2 px-3 py-1.5 rounded-full bg-muted/50 border text-xs font-bold text-muted-foreground uppercase tracking-wider">
               {user?.role?.replace('_', ' ') || 'Member'}
             </div>
+            <NotificationCenterModal />
             <ThemeToggle />
             <Button variant="outline" size="sm" onClick={logout} className="h-9 px-4 font-bold border-2">
               <LogOut className="w-4 h-4 mr-2" />

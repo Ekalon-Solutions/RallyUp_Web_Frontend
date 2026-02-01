@@ -32,6 +32,17 @@ export interface User {
   membershipExpiry?: string;
   isActive?: boolean;
   volunteering?: VolunteerProfile;
+  notificationPreferences?: {
+    events: boolean;
+    membershipRenewals: boolean;
+    membershipExpiry: boolean;
+    newMerchandise: boolean;
+    pollResults: boolean;
+    newsUpdates: boolean;
+    orders?: boolean;
+    refunds?: boolean;
+    ticketStatus?: boolean;
+  };
   memberships?: Array<{
     _id: string;
     club_id?: {
@@ -68,6 +79,17 @@ export interface Admin {
   club?: Club;
   isActive?: boolean;
   volunteering?: VolunteerProfile;
+  notificationPreferences?: {
+    events: boolean;
+    membershipRenewals: boolean;
+    membershipExpiry: boolean;
+    newMerchandise: boolean;
+    pollResults: boolean;
+    newsUpdates: boolean;
+    orders?: boolean;
+    refunds?: boolean;
+    ticketStatus?: boolean;
+  };
   memberships?: Array<{
     _id: string;
     club_id: {
@@ -104,6 +126,23 @@ export interface SystemOwner {
   isActive?: boolean;
   createdAt?: string;
   updatedAt?: string;
+}
+
+export interface NotificationCTA {
+  label: string;
+  url: string;
+}
+
+export interface InAppNotification {
+  _id: string;
+  type: string;
+  title: string;
+  message: string;
+  cta?: NotificationCTA;
+  metadata?: any;
+  readAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 
@@ -746,6 +785,9 @@ class ApiClient {
       newMerchandise?: boolean;
       pollResults?: boolean;
       newsUpdates?: boolean;
+      orders?: boolean;
+      refunds?: boolean;
+      ticketStatus?: boolean;
     };
   }): Promise<ApiResponse<User>> {
     const userStr = localStorage.getItem('user');
@@ -816,9 +858,35 @@ class ApiClient {
       newMerchandise: boolean;
       pollResults: boolean;
       newsUpdates: boolean;
+      orders?: boolean;
+      refunds?: boolean;
+      ticketStatus?: boolean;
     };
   }>> {
     return this.request('/users/profile');
+  }
+
+  async getMyNotifications(params?: {
+    page?: number;
+    limit?: number;
+    unreadOnly?: boolean;
+  }): Promise<ApiResponse<{
+    notifications: InAppNotification[];
+    pagination: { page: number; limit: number; total: number; pages: number };
+  }>> {
+    return this.get('/notifications', { params });
+  }
+
+  async getUnreadNotificationsCount(): Promise<ApiResponse<{ unreadCount: number }>> {
+    return this.get('/notifications/unread-count');
+  }
+
+  async markInAppNotificationRead(notificationId: string): Promise<ApiResponse<{ success: boolean }>> {
+    return this.post(`/notifications/${notificationId}/read`);
+  }
+
+  async markAllInAppNotificationsRead(): Promise<ApiResponse<{ success: boolean; modifiedCount: number }>> {
+    return this.post('/notifications/read-all');
   }
   
   async getMembers(params?: {

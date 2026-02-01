@@ -22,7 +22,10 @@ export default function UserSettingsPage() {
     membershipExpiry: true,
     newMerchandise: true,
     pollResults: true,
-    newsUpdates: true
+    newsUpdates: true,
+    orders: true,
+    refunds: true,
+    ticketStatus: true,
   })
 
   useEffect(() => {
@@ -192,6 +195,48 @@ export default function UserSettingsPage() {
                     id="newsUpdates"
                     checked={preferences.newsUpdates}
                     onCheckedChange={() => handleToggle('newsUpdates')}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="ticketStatus">Ticket Status</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Updates when your event registration/ticket status changes
+                    </p>
+                  </div>
+                  <Switch
+                    id="ticketStatus"
+                    checked={preferences.ticketStatus}
+                    onCheckedChange={() => handleToggle('ticketStatus')}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="orders">Orders</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Updates about your merchandise orders and deliveries
+                    </p>
+                  </div>
+                  <Switch
+                    id="orders"
+                    checked={preferences.orders}
+                    onCheckedChange={() => handleToggle('orders')}
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="refunds">Refunds</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Updates about refund requests and refund status
+                    </p>
+                  </div>
+                  <Switch
+                    id="refunds"
+                    checked={preferences.refunds}
+                    onCheckedChange={() => handleToggle('refunds')}
                   />
                 </div>
               </div>

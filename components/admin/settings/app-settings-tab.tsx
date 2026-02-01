@@ -18,6 +18,9 @@ interface NotificationSettings {
   newMerchandise: boolean
   pollResults: boolean
   newsUpdates: boolean
+  orders?: boolean
+  refunds?: boolean
+  ticketStatus?: boolean
 }
 
 interface AppSettings {
@@ -39,7 +42,10 @@ export function AppSettingsTab() {
       membershipExpiry: true,
       newMerchandise: true,
       pollResults: false,
-      newsUpdates: true
+      newsUpdates: true,
+      orders: true,
+      refunds: true,
+      ticketStatus: true,
     },
     appRules: "",
     maintenanceMode: false,
@@ -71,7 +77,10 @@ export function AppSettingsTab() {
             membershipExpiry: true,
             newMerchandise: true,
             pollResults: false,
-            newsUpdates: true
+            newsUpdates: true,
+            orders: true,
+            refunds: true,
+            ticketStatus: true,
           },
           appRules: ""
         }
@@ -258,6 +267,54 @@ export function AppSettingsTab() {
                 id="newsUpdates"
                 checked={settings.notifications.newsUpdates}
                 onCheckedChange={() => handleNotificationToggle("newsUpdates")}
+              />
+            </div>
+
+            <div className="flex items-center justify-between py-2">
+              <div className="space-y-0.5">
+                <Label htmlFor="ticketStatus" className="text-base font-medium">
+                  Ticket Status
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Notify members when their event registration/ticket status changes
+                </p>
+              </div>
+              <Switch
+                id="ticketStatus"
+                checked={!!settings.notifications.ticketStatus}
+                onCheckedChange={() => handleNotificationToggle("ticketStatus")}
+              />
+            </div>
+
+            <div className="flex items-center justify-between py-2">
+              <div className="space-y-0.5">
+                <Label htmlFor="orders" className="text-base font-medium">
+                  Orders
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Notify members about order creation and order status changes
+                </p>
+              </div>
+              <Switch
+                id="orders"
+                checked={!!settings.notifications.orders}
+                onCheckedChange={() => handleNotificationToggle("orders")}
+              />
+            </div>
+
+            <div className="flex items-center justify-between py-2">
+              <div className="space-y-0.5">
+                <Label htmlFor="refunds" className="text-base font-medium">
+                  Refunds
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Notify members about refund requests and refund status changes
+                </p>
+              </div>
+              <Switch
+                id="refunds"
+                checked={!!settings.notifications.refunds}
+                onCheckedChange={() => handleNotificationToggle("refunds")}
               />
             </div>
           </div>

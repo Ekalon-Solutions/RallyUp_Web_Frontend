@@ -15,8 +15,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
 import { 
-  Search, 
-  Filter, 
+  Search,
   RefreshCw, 
   Eye, 
   Package, 
@@ -24,9 +23,6 @@ import {
   CheckCircle, 
   XCircle, 
   Clock,
-  DollarSign,
-  User,
-  MapPin,
   Calendar,
   MoreHorizontal,
   Edit,
@@ -155,12 +151,13 @@ export default function OrdersPage() {
   const loadOrders = async () => {
     try {
       setLoading(true)
+      const shouldScopeToClub = user?.role === 'admin'
       const params = new URLSearchParams({
         page: currentPage.toString(),
         limit: '10',
         ...(searchTerm && { search: searchTerm }),
         ...(statusFilter && statusFilter !== 'all' && { status: statusFilter }),
-        ...((user as any)?.club?._id && { clubId: (user as any).club._id })
+        ...(shouldScopeToClub && (user as any)?.club?._id && { clubId: (user as any).club._id })
       })
 
       const response = await apiClient.get(`/orders/admin/all?${params}`)
@@ -239,7 +236,12 @@ export default function OrdersPage() {
 
   const loadStats = async () => {
     try {
-      const response = await apiClient.get('/orders/admin/stats')
+      const shouldScopeToClub = user?.role === 'admin'
+      const params = new URLSearchParams({
+        ...(shouldScopeToClub && (user as any)?.club?._id && { clubId: (user as any).club._id })
+      })
+
+      const response = await apiClient.get(`/orders/admin/stats${params.toString() ? `?${params}` : ''}`)
       if (response.success && response.data) {
         setStats(response.data.data?.overview || null)
       }
@@ -259,10 +261,12 @@ export default function OrdersPage() {
   }
 
   const handleDownloadReport = async () => {
+    const shouldScopeToClub = user?.role === 'admin'
     const params = {
       ...(searchTerm ? { search: searchTerm } : {}),
       ...(statusFilter && statusFilter !== 'all' ? { status: statusFilter } : {}),
       ...(typeFilter ? { type: typeFilter } : {}),
+      ...(shouldScopeToClub && (user as any)?.club?._id ? { clubId: (user as any).club._id } : {}),
     };
 
     try {

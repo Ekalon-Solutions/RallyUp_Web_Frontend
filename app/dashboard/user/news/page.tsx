@@ -14,14 +14,14 @@ import { apiClient, News } from "@/lib/api"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
 import { getNewsImageUrl } from "@/lib/config"
+import { useSearchParams } from "next/navigation"
 import { 
   Newspaper, 
   Search, 
   Tag, 
   User, 
   Calendar, 
-  Eye, 
-  BookOpen, 
+  Eye,
   Plus, 
   Image as ImageIcon,
   Edit,
@@ -32,6 +32,7 @@ import {
 
 export default function UserNewsPage() {
   const { user } = useAuth()
+  const searchParams = useSearchParams()
   const [news, setNews] = useState<News[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -42,14 +43,42 @@ export default function UserNewsPage() {
   const [isAdmin, setIsAdmin] = useState(false)
   const [showReadMoreModal, setShowReadMoreModal] = useState(false)
   const [selectedNewsForReadMore, setSelectedNewsForReadMore] = useState<News | null>(null)
+  const [handledDeepLinkNewsId, setHandledDeepLinkNewsId] = useState<string | null>(null)
 
   useEffect(() => {
     fetchNews()
     checkUserRole()
   }, [])
+  
+  useEffect(() => {
+    const newsId = searchParams.get("newsId")
+    if (!newsId) return
+    if (handledDeepLinkNewsId === newsId) return
+    if (loading) return
+
+    const found = news.find((n) => String(n._id) === String(newsId))
+    const openFound = (n: News) => {
+      setSelectedNewsForReadMore(n)
+      setShowReadMoreModal(true)
+      setHandledDeepLinkNewsId(newsId)
+    }
+
+    if (found) {
+      openFound(found)
+      return
+    }
+
+    ;(async () => {
+      const res = await apiClient.getNewsById(newsId)
+      if (res.success && res.data) {
+        openFound(res.data as any)
+      } else {
+        setHandledDeepLinkNewsId(newsId)
+      }
+    })()
+  }, [handledDeepLinkNewsId, loading, news, searchParams])
 
   const checkUserRole = () => {
-    // Check if user is admin or super_admin
     const adminRoles = ['admin', 'super_admin']
     setIsAdmin(adminRoles.includes(user?.role || ''))
   }
@@ -57,17 +86,14 @@ export default function UserNewsPage() {
   const fetchNews = async () => {
     try {
       setLoading(true)
-      // Use club-specific news endpoint
       const response = await apiClient.getNewsByUserClub()
 
       if (response.success && response.data) {
         setNews(response.data.news || response.data)
       } else {
-        // console.error("Failed to fetch news:", response.error)
         toast.error("Failed to fetch news")
       }
     } catch (error) {
-      // console.error("Error fetching news:", error)
       toast.error("Error fetching news")
     } finally {
       setLoading(false)
@@ -98,7 +124,6 @@ export default function UserNewsPage() {
         toast.error(response.error || "Failed to delete news article")
       }
     } catch (error) {
-      // console.error("Error deleting news:", error)
       toast.error("Error deleting news article")
     }
   }
@@ -118,7 +143,6 @@ export default function UserNewsPage() {
         toast.error(response.error || "Failed to update publish status")
       }
     } catch (error) {
-      // console.error("Error updating publish status:", error)
       toast.error("Error updating publish status")
     }
   }
@@ -172,7 +196,6 @@ export default function UserNewsPage() {
   })
 
   const sortedNews = filteredNews.sort((a, b) => {
-    // Sort by priority first, then by published date
     const priorityOrder = { high: 3, medium: 2, low: 1 }
     const priorityDiff = (priorityOrder[b.priority as keyof typeof priorityOrder] || 1) - 
                         (priorityOrder[a.priority as keyof typeof priorityOrder] || 1)
