@@ -204,7 +204,7 @@ export default function UserEventsPage() {
     if (!payload || !payload.eventId) return;
 
     const event = events.find((e) => e._id === payload.eventId);
-    if (event?.ticketPrice) {
+    if (true) {
       // Calculate discount if coupon was applied
       let discountAmount = 0;
       if (payload.couponCode) {

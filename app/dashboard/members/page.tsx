@@ -78,6 +78,7 @@ export default function MembersPage() {
     total: 0,
     pages: 0
   })
+  const [metadata, setMetadata] = useState({ total: 0, active: 0, verified: 0 })
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
@@ -109,14 +110,24 @@ export default function MembersPage() {
       const response = await apiClient.getClubMemberDirectory({
         search: searchTerm || undefined,
         page: currentPage,
-        limit: 20,
+        // limit: 20,
         status: statusFilter === 'all' ? undefined : statusFilter,
         clubId: user?.club?._id
       })
 
       if (response.success && response.data) {
         setMembers(response.data.members || [])
-        setPagination(response.data.pagination)
+        const respPagination = response.data.pagination || { page: 1, limit: 20, total: 0, pages: 0 }
+        const metaTotal = response.data.metadata?.total ?? respPagination.total ?? 0
+        const limitVal = respPagination.limit || pagination.limit
+        const totalCount = (searchTerm && typeof respPagination.total === 'number') ? respPagination.total : metaTotal
+        setPagination({
+          page: respPagination.page || 1,
+          limit: limitVal,
+          total: totalCount,
+          pages: Math.max(1, Math.ceil(totalCount / limitVal))
+        })
+        setMetadata(response.data.metadata || { total: 0, active: 0, verified: 0 })
       } else {
         toast.error(response.error || 'Failed to load members')
       }
@@ -140,6 +151,36 @@ export default function MembersPage() {
   const handlePageChange = (page: number): void => {
     setCurrentPage(page)
   }
+
+  const getVisiblePages = (totalPages: number, current: number, maxVisible = 7) => {
+    if (totalPages <= 1) return [1]
+    if (totalPages <= maxVisible) return Array.from({ length: totalPages }, (_, i) => i + 1)
+
+    const pages: (number | string)[] = []
+    pages.push(1)
+
+    let start = Math.max(2, current - 2)
+    let end = Math.min(totalPages - 1, current + 2)
+
+    if (current <= 3) {
+      start = 2
+      end = Math.min(5, totalPages - 1)
+    }
+
+    if (current >= totalPages - 2) {
+      start = Math.max(2, totalPages - 4)
+      end = totalPages - 1
+    }
+
+    if (start > 2) pages.push('left-ellipsis')
+    for (let p = start; p <= end; p++) pages.push(p)
+    if (end < totalPages - 1) pages.push('right-ellipsis')
+
+    pages.push(totalPages)
+    return pages
+  }
+
+  const pagesToShow = getVisiblePages(pagination.pages, currentPage)
 
   const formatDate = (dateString: string): string => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -417,7 +458,7 @@ export default function MembersPage() {
                 <Users className="h-4 w-4 text-blue-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{pagination.total}</div>
+                <div className="text-2xl font-bold">{metadata.total}</div>
               </CardContent>
             </Card>
             <Card>
@@ -426,9 +467,7 @@ export default function MembersPage() {
                 <Shield className="h-4 w-4 text-green-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-green-600">
-                  {members.filter((m: Member) => m.isActive).length}
-                </div>
+                <div className="text-2xl font-bold text-green-600">{metadata.active}</div>
               </CardContent>
             </Card>
             <Card>
@@ -437,9 +476,7 @@ export default function MembersPage() {
                 <Mail className="h-4 w-4 text-blue-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-blue-600">
-                  {members.filter((m: Member) => m.isPhoneVerified).length}
-                </div>
+                <div className="text-2xl font-bold text-blue-600">{metadata.verified}</div>
               </CardContent>
             </Card>
             <Card>
@@ -494,6 +531,47 @@ export default function MembersPage() {
               </div>
 
               {/* Members List */}
+              {pagination.pages > 1 && (
+                <div className="flex justify-end mb-4">
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious 
+                          onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+                          className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                        />
+                      </PaginationItem>
+                              {pagesToShow.map((p) => {
+                                if (typeof p === 'number') {
+                                  return (
+                                    <PaginationItem key={`top-page-${p}`}>
+                                      <PaginationLink
+                                        onClick={() => handlePageChange(p)}
+                                        isActive={currentPage === p}
+                                        className="cursor-pointer"
+                                      >
+                                        {p}
+                                      </PaginationLink>
+                                    </PaginationItem>
+                                  )
+                                }
+
+                                return (
+                                  <PaginationItem key={`top-${p}`}>
+                                    <span className="px-3 py-2 text-muted-foreground select-none">...</span>
+                                  </PaginationItem>
+                                )
+                              })}
+                      <PaginationItem>
+                        <PaginationNext 
+                          onClick={() => handlePageChange(Math.min(pagination.pages, currentPage + 1))}
+                          className={currentPage === pagination.pages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                </div>
+              )}
               {loading ? (
                 <div className="space-y-4">
                   {[...Array(5)].map((_, i) => (
@@ -612,17 +690,24 @@ export default function MembersPage() {
                           className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
                         />
                       </PaginationItem>
-                      {[...Array(pagination.pages)].map((_, i) => {
-                        const page = i + 1
+                      {pagesToShow.map((p) => {
+                        if (typeof p === 'number') {
+                          return (
+                            <PaginationItem key={`bottom-page-${p}`}>
+                              <PaginationLink
+                                onClick={() => handlePageChange(p)}
+                                isActive={currentPage === p}
+                                className="cursor-pointer"
+                              >
+                                {p}
+                              </PaginationLink>
+                            </PaginationItem>
+                          )
+                        }
+
                         return (
-                          <PaginationItem key={page}>
-                            <PaginationLink
-                              onClick={() => handlePageChange(page)}
-                              isActive={currentPage === page}
-                              className="cursor-pointer"
-                            >
-                              {page}
-                            </PaginationLink>
+                          <PaginationItem key={`bottom-${p}`}>
+                            <span className="px-3 py-2 text-muted-foreground select-none">...</span>
                           </PaginationItem>
                         )
                       })}

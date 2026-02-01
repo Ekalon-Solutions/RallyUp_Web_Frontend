@@ -999,8 +999,9 @@ class ApiClient {
     return this.request('/events');
   }
 
-  async getEventsByClub(): Promise<ApiResponse<Event[]>> {
-    return this.request(`/events/club/`);
+  async getEventsByClub(clubId?: string): Promise<ApiResponse<Event[]>> {
+    const endpoint = `/events/${clubId}`;
+    return this.request(endpoint);
   }
 
   async getPublicEvents(clubId?: string): Promise<ApiResponse<Event[]>> {
@@ -2046,6 +2047,11 @@ class ApiClient {
     clubId: string;
   }): Promise<ApiResponse<{
     members: User[];
+    metadata: {
+      total: number;
+      active: number;
+      verified: number;
+    };
     pagination: {
       page: number;
       limit: number;
@@ -2061,6 +2067,7 @@ class ApiClient {
     if (params?.clubId) queryParams.append('clubId', params.clubId);
 
     const endpoint = `/users/club-directory${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    console.log("gcmd params:", params, "endpoint:", endpoint);
     return this.request(endpoint);
   }
 

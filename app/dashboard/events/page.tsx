@@ -49,7 +49,7 @@ export default function EventsPage() {
     try {
       setLoading(true)
       // If admin and has a club, fetch events for that club only
-      const response = await apiClient.getEventsByClub()
+      const response = await apiClient.getEventsByClub(user?.club?._id)
 
       if (response.success && response.data) {
         let filteredEvents = response.data
