@@ -18,9 +18,11 @@ import { useAuth } from "@/contexts/auth-context"
 import { useCallback, useEffect, useState } from "react"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { CouponsTab } from "@/components/tabs/coupons-tab";
+import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 
 export default function EventsPage() {
   const { isAdmin, user } = useAuth()
+  const clubId = useRequiredClubId()
   const [events, setEvents] = useState<Event[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -43,13 +45,17 @@ export default function EventsPage() {
     if (user && !isAdmin) {
       fetchUserRegistrations()
     }
-  }, [currentPage, searchTerm, categoryFilter, statusFilter, user, isAdmin])
+  }, [currentPage, searchTerm, categoryFilter, statusFilter, user, isAdmin, clubId])
 
   const fetchEvents = async () => {
     try {
       setLoading(true)
-      // If admin and has a club, fetch events for that club only
-      const response = await apiClient.getEventsByClub(user?.club?._id)
+      if (!clubId) {
+        setEvents([])
+        setLoading(false)
+        return
+      }
+      const response = await apiClient.getEventsByClub(clubId)
 
       if (response.success && response.data) {
         let filteredEvents = response.data

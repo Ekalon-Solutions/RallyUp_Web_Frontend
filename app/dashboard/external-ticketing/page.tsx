@@ -12,10 +12,11 @@ import { toast } from 'sonner'
 import { triggerBlobDownload } from '@/lib/utils'
 import { CheckCircle, XCircle } from 'lucide-react'
 import { ProtectedRoute } from '@/components/protected-route'
+import { useRequiredClubId } from '@/hooks/useRequiredClubId'
 
 export default function ExternalTicketingPage() {
   const { user } = useAuth()
-  const clubId = (user as any)?.club?._id || (user as any)?.club_id?._id
+  const clubId = useRequiredClubId()
   const [requests, setRequests] = useState<ExternalTicketRequest[]>([])
   const [loading, setLoading] = useState(false)
   const [exporting, setExporting] = useState(false)

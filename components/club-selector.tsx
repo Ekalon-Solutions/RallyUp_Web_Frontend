@@ -157,10 +157,6 @@ export const ClubSelector: React.FC<ClubSelectorProps> = ({ onClubSelect, select
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground">You are not a member of any clubs yet.</p>
-          <Button className="mt-4" onClick={() => window.location.href = '/dashboard/user/clubs'}>
-            <Plus className="h-4 w-4 mr-2" />
-            Browse Clubs
-          </Button>
         </CardContent>
       </Card>
     )

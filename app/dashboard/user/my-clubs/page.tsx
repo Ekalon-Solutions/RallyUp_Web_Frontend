@@ -230,11 +230,7 @@ export default function MyClubsPage() {
                         </p>
                       </div>
                       <div className="flex gap-3">
-                        <Button onClick={() => router.push('/dashboard/user/clubs')}>
-                          <Eye className="h-4 w-4 mr-2" />
-                          Discover Clubs
-                        </Button>
-                        <Button variant="outline" onClick={navigateToPlans}>
+                        <Button onClick={navigateToPlans}>
                           <CreditCard className="h-4 w-4 mr-2" />
                           Browse Plans
                         </Button>
@@ -363,10 +359,6 @@ export default function MyClubsPage() {
                 <div className="text-center space-y-4">
                   <h3 className="font-semibold">Quick Actions</h3>
                   <div className="flex flex-wrap justify-center gap-3">
-                    <Button variant="outline" size="sm" onClick={() => router.push('/dashboard/user/clubs')}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Join More Clubs
-                    </Button>
                     <Button variant="outline" size="sm" onClick={navigateToPlans}>
                       <CreditCard className="h-4 w-4 mr-2" />
                       Upgrade Plans

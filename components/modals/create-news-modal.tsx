@@ -13,6 +13,7 @@ import { toast } from "sonner"
 import { apiClient, News } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
 import { getNewsImageUrl } from "@/lib/config"
+import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 
 interface CreateNewsModalProps {
   isOpen: boolean
@@ -23,6 +24,7 @@ interface CreateNewsModalProps {
 
 export function CreateNewsModal({ isOpen, onClose, onSuccess, editNews }: CreateNewsModalProps) {
   const { user } = useAuth()
+  const clubId = useRequiredClubId()
   const [title, setTitle] = useState(editNews?.title || "")
   const [content, setContent] = useState(editNews?.content || "")
   const [summary, setSummary] = useState(editNews?.summary || "")
@@ -93,6 +95,14 @@ export function CreateNewsModal({ isOpen, onClose, onSuccess, editNews }: Create
 
     try {
       const formData = new FormData()
+      if (!editNews && !clubId) {
+        toast.error("Please select a club")
+        setLoading(false)
+        return
+      }
+      if (clubId) {
+        formData.append("clubId", clubId)
+      }
       formData.append("title", title)
       formData.append("content", content)
       formData.append("summary", summary)

@@ -26,6 +26,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { formatLocalDate } from "@/lib/timezone";
 import { User as UserInterface } from "@/lib/api";
 import { useSearchParams } from "next/navigation";
+import { useRequiredClubId } from "@/hooks/useRequiredClubId";
 import {
   Calendar,
   MapPin,
@@ -133,6 +134,7 @@ function AttendanceMarker({
 
 function UserEventsPageInner() {
   const { user } = useAuth() as { user: UserInterface };
+  const clubId = useRequiredClubId();
   const searchParams = useSearchParams();
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
@@ -157,7 +159,7 @@ function UserEventsPageInner() {
 
   useEffect(() => {
     fetchEvents();
-  }, []);
+  }, [clubId]);
 
   useEffect(() => {
     const eventId = searchParams.get("eventId");
@@ -190,10 +192,18 @@ function UserEventsPageInner() {
   const fetchEvents = async () => {
     try {
       setLoading(true);
-      const response = await apiClient.getPublicEvents();
+      if (!clubId) {
+        setEvents([]);
+        setLoading(false);
+        return;
+      }
+
+      const response = await apiClient.getPublicEvents(clubId);
 
       if (response.success && response.data) {
-        setEvents(response.data);
+        const data: any = response.data;
+        const eventsData = Array.isArray(data) ? data : (data?.events || []);
+        setEvents(eventsData);
       } else {
         toast.error("Failed to fetch events");
       }

@@ -23,6 +23,7 @@ import { Users, Eye, XCircle } from 'lucide-react';
 import { VolunteerDetailsModal } from '@/components/modals/volunteer-details-modal';
 import { AssignVolunteerModal } from '@/components/modals/assign-volunteer-modal';
 import { UnassignVolunteerModal } from '@/components/modals/unassign-volunteer-modal';
+import { useRequiredClubId } from '@/hooks/useRequiredClubId';
 
 interface OpportunityFormProps {
   onSubmit: (opportunity: any) => void;
@@ -33,13 +34,7 @@ interface OpportunityFormProps {
 
 function OpportunityForm({ onSubmit, onCancel, initialData, mode }: OpportunityFormProps) {
   const { user } = useAuth();
-  const [clubId, setClubId] = React.useState<string>('');
-  
-  React.useEffect(() => {
-    if (user && 'club' in user && user.club && typeof user.club === 'object' && '_id' in user.club) {
-      setClubId(user.club._id);
-    }
-  }, [user]);
+  const clubId = useRequiredClubId();
 
   const [formData, setFormData] = React.useState(() => {
     if (initialData) {
@@ -97,7 +92,7 @@ function OpportunityForm({ onSubmit, onCancel, initialData, mode }: OpportunityF
         <div className="p-3 bg-muted rounded-lg">
           <Label className="text-sm font-medium">Club</Label>
           <p className="text-sm text-muted-foreground">
-            {user && 'club' in user && user.club && typeof user.club === 'object' && '_id' in user.club && 'name' in user.club ? user.club.name : 'Club'}
+            {clubId}
           </p>
         </div>
       )}
@@ -251,25 +246,7 @@ export default function VolunteerManagementPage() {
   const [selectedTimeSlot, setSelectedTimeSlot] = React.useState<string | null>(null);
   const { toast } = useToast();
 
-  const clubId = React.useMemo(() => {
-    if (!user || user.role === 'system_owner') return null;
-    
-    const userMemberships = (user as any).memberships || [];
-    const activeMembership = userMemberships.find((m: any) => m.status === 'active');
-    if (activeMembership?.club_id?._id) {
-      return activeMembership.club_id._id;
-    }
-    
-    if ((user as any).club?._id) {
-      return (user as any).club._id;
-    }
-    
-    if (userMemberships.length > 0 && userMemberships[0]?.club_id?._id) {
-      return userMemberships[0].club_id._id;
-    }
-    
-    return null;
-  }, [user]);
+  const clubId = useRequiredClubId();
 
   React.useEffect(() => {
     if (clubId) {
@@ -724,7 +701,6 @@ export default function VolunteerManagementPage() {
 
           <TabsContent value="volunteers">
             <div className="space-y-4">
-              {/* Volunteer Statistics */}
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <div className="rounded-lg border p-4">
                   <div className="text-2xl font-bold">{volunteers.length}</div>
@@ -750,7 +726,6 @@ export default function VolunteerManagementPage() {
                 </div>
               </div>
 
-              {/* Volunteer List */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-medium">Volunteer Directory</h3>
@@ -864,7 +839,6 @@ export default function VolunteerManagementPage() {
             </div>
           </TabsContent>
 
-          {/* Volunteer Signups Tab */}
           <TabsContent value="signups">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
@@ -888,7 +862,6 @@ export default function VolunteerManagementPage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {/* Signups Summary */}
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <div className="rounded-lg border p-4">
                       <div className="text-2xl font-bold">{volunteerSignups.length}</div>
@@ -914,7 +887,6 @@ export default function VolunteerManagementPage() {
                     </div>
                   </div>
 
-                  {/* Signups List */}
                   <div className="space-y-4">
                     <h4 className="text-lg font-medium">Recent Signups</h4>
                     {volunteerSignups.map((signup, index) => (
@@ -1051,7 +1023,6 @@ export default function VolunteerManagementPage() {
           </DialogContent>
         </Dialog>
 
-        {/* Volunteer Signups Modal */}
         {showSignupsModal && selectedOpportunity && (
           <Dialog open={showSignupsModal} onOpenChange={setShowSignupsModal}>
             <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
@@ -1070,7 +1041,6 @@ export default function VolunteerManagementPage() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {/* Signups Summary */}
                     <div className="grid gap-4 sm:grid-cols-3">
                       <div className="rounded-lg border p-3">
                         <div className="text-xl font-bold">{opportunitySignups.length}</div>
@@ -1090,7 +1060,6 @@ export default function VolunteerManagementPage() {
                       </div>
                     </div>
 
-                    {/* Signups List */}
                     <div className="space-y-3">
                       <h4 className="text-lg font-medium">Volunteer Details</h4>
                       {opportunitySignups.map((signup, index) => (
@@ -1171,7 +1140,6 @@ export default function VolunteerManagementPage() {
           </Dialog>
         )}
 
-        {/* Volunteer Details Modal */}
         <VolunteerDetailsModal
           volunteer={selectedVolunteer}
           isOpen={showVolunteerDetailsModal}
@@ -1181,7 +1149,6 @@ export default function VolunteerManagementPage() {
           }}
         />
 
-        {/* Assignment Modals */}
         <AssignVolunteerModal
           opportunity={selectedOpportunity}
           timeSlotId={selectedTimeSlot}

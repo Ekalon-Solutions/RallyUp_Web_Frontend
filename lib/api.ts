@@ -326,6 +326,8 @@ export interface Club {
   website?: string;
   contactEmail: string;
   contactPhone: string;
+  is_deleted?: boolean;
+  deletedAt?: string;
   address?: {
     street: string;
     city: string;
@@ -659,9 +661,6 @@ class ApiClient {
   }
 
   async put<T = any>(endpoint: string, data?: any, options?: { headers?: Record<string, string> }): Promise<ApiResponse<T>> {
-    // console.log(`🔵 PUT ${endpoint}`)
-    // console.log("📤 Data being sent:", JSON.stringify(data, null, 2))
-    
     const requestOptions: RequestInit = {
       method: 'PUT',
     };
@@ -802,7 +801,6 @@ class ApiClient {
           endpoint = '/admin/profile';
         }
       } catch (e) {
-        // console.error('Error parsing user from localStorage:', e);
       }
     }
 
@@ -963,8 +961,23 @@ class ApiClient {
     return this.request('/admin/members/stats');
   }
 
-  async getNews(): Promise<ApiResponse<News[]>> {
-    return this.request('/news');
+  async getNews(params?: {
+    clubId?: string;
+    category?: string;
+    priority?: string;
+    search?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<ApiResponse<{
+    news: News[];
+    pagination?: {
+      page: number;
+      limit: number;
+      total: number;
+      pages: number;
+    };
+  }>> {
+    return this.get('/news', { params });
   }
 
   async getPublicNews(clubId?: string): Promise<ApiResponse<News[]>> {
@@ -986,8 +999,9 @@ class ApiClient {
     return this.request(`/clubs${qs}`);
   }
 
-  async getNewsByUserClub(): Promise<ApiResponse<News[]>> {
-    return this.request('/news/my-club');
+  async getNewsByUserClub(clubId?: string): Promise<ApiResponse<any>> {
+    const endpoint = clubId ? `/news/my-club?clubId=${encodeURIComponent(clubId)}` : '/news/my-club';
+    return this.request(endpoint);
   }
 
   async getNewsById(id: string): Promise<ApiResponse<News>> {
@@ -1624,7 +1638,6 @@ class ApiClient {
       const blob = await response.blob();
       return { success: true, blob, filename: filename || undefined };
     } catch (error: any) {
-      // console.error('downloadFile error', error);
       return { success: false, error: error?.message || 'Download failed' };
     }
   }
@@ -1641,7 +1654,6 @@ class ApiClient {
 
       return { success: true };
     } catch (error: any) {
-      // console.error('downloadOrdersReport error', error);
       return { success: false, error: error?.message || 'Failed to download orders report' };
     }
   }
@@ -1658,7 +1670,6 @@ class ApiClient {
 
       return { success: true };
     } catch (error: any) {
-      // console.error('downloadMyOrdersReport error', error);
       return { success: false, error: error?.message || 'Failed to download my orders report' };
     }
   }
@@ -1741,6 +1752,42 @@ class ApiClient {
     return this.request(endpoint);
   }
 
+  async generateClubDeletionOTP(params: {
+    clubId: string;
+    action: 'delete' | 'restore';
+  }): Promise<ApiResponse<{
+    success: boolean;
+    message: string;
+    expiresIn: number;
+    otpToken: string;
+    otp?: string;
+  }>> {
+    return this.post('/auth/otp-generate', params);
+  }
+
+  async deleteClubWithOTP(params: {
+    clubId: string;
+    otpToken: string;
+    otp?: string;
+  }): Promise<ApiResponse<{
+    success: boolean;
+    message: string;
+  }>> {
+    return this.post('/clubs/delete', params);
+  }
+
+  async restoreClubWithOTP(params: {
+    clubId: string;
+    otpToken: string;
+    otp?: string;
+  }): Promise<ApiResponse<{
+    success: boolean;
+    message: string;
+    club?: Club;
+  }>> {
+    return this.post('/clubs/restore', params);
+  }
+
   async updateClub(id: string, data: any): Promise<ApiResponse<{ message: string; club: Club }>> {
     return this.request(`/clubs/${id}`, {
       method: 'PUT',
@@ -1754,7 +1801,6 @@ class ApiClient {
     contactInfo?: string;
     slug?: string;
   }): Promise<ApiResponse<{ message: string; club: Club }>> {
-    // console.log('🔵 PATCH /clubs/' + id + '/basic-info', data);
     return this.patch(`/clubs/${id}/basic-info`, data);
   }
 
@@ -2151,9 +2197,10 @@ class ApiClient {
     return this.request('/membership-cards/my-club-cards');
   }
 
-  async createMyMembershipCard(): Promise<ApiResponse<PublicMembershipCardDisplay>> {
+  async createMyMembershipCard(clubId?: string): Promise<ApiResponse<PublicMembershipCardDisplay>> {
     return this.request('/membership-cards/create-my-card', {
       method: 'POST',
+      body: clubId ? JSON.stringify({ clubId }) : undefined
     });
   }
 
@@ -2282,6 +2329,7 @@ class ApiClient {
   }
 
   async getPolls(params?: {
+    clubId?: string;
     page?: number;
     limit?: number;
     status?: 'draft' | 'active' | 'closed' | 'archived';
@@ -2297,6 +2345,7 @@ class ApiClient {
     };
   }>> {
     const queryParams = new URLSearchParams();
+    if (params?.clubId) queryParams.append('clubId', params.clubId);
     if (params?.page) queryParams.append('page', params.page.toString());
     if (params?.limit) queryParams.append('limit', params.limit.toString());
     if (params?.status) queryParams.append('status', params.status);
@@ -2308,6 +2357,7 @@ class ApiClient {
   }
 
   async getActivePolls(params?: {
+    clubId?: string;
     page?: number;
     limit?: number;
     category?: 'general' | 'event' | 'feedback' | 'decision' | 'survey';
@@ -2322,6 +2372,7 @@ class ApiClient {
     };
   }>> {
     const queryParams = new URLSearchParams();
+    if (params?.clubId) queryParams.append('clubId', params.clubId);
     if (params?.page) queryParams.append('page', params.page.toString());
     if (params?.limit) queryParams.append('limit', params.limit.toString());
     if (params?.category) queryParams.append('category', params.category);
@@ -2357,6 +2408,7 @@ class ApiClient {
   }
 
   async createPoll(data: {
+    clubId?: string;
     question: string;
     description?: string;
     options: string[];
@@ -2654,7 +2706,7 @@ class ApiClient {
     return this.patch(`/merchandise/admin/${id}/toggle-availability`);
   }
 
-  async getMerchandiseStats(): Promise<ApiResponse<{
+  async getMerchandiseStats(params?: { clubId?: string }): Promise<ApiResponse<{
     totalMerchandise: number;
     availableMerchandise: number;
     featuredMerchandise: number;
@@ -2665,10 +2717,10 @@ class ApiClient {
       count: number;
     }>;
   }>> {
-    return this.get('/merchandise/admin/stats');
+    return this.get('/merchandise/admin/stats', { params });
   }
 
-  async getMerchandiseSettings(): Promise<ApiResponse<{
+  async getMerchandiseSettings(clubId?: string): Promise<ApiResponse<{
     clubId: string;
     clubName: string;
     settings: {
@@ -2679,7 +2731,7 @@ class ApiClient {
       enableShipping: boolean;
     };
   }>> {
-    return this.get('/merchandise/admin/settings');
+    return this.get('/merchandise/admin/settings', { params: clubId ? { clubId } : undefined });
   }
 
   async updateMerchandiseSettings(settings: {
@@ -2688,7 +2740,7 @@ class ApiClient {
     taxRate?: number;
     enableTax?: boolean;
     enableShipping?: boolean;
-  }): Promise<ApiResponse<{
+  }, clubId?: string): Promise<ApiResponse<{
     clubId: string;
     clubName: string;
     settings: {
@@ -2699,7 +2751,6 @@ class ApiClient {
       enableShipping: boolean;
     };
   }>> {
-    // console.log('📦 [API Client] updateMerchandiseSettings called with:', settings);
     const result = await this.request<{
       clubId: string;
       clubName: string;
@@ -2712,9 +2763,8 @@ class ApiClient {
       };
     }>('/merchandise/admin/settings', {
       method: 'PUT',
-      body: JSON.stringify(settings),
+      body: JSON.stringify(clubId ? { ...settings, clubId } : settings),
     });
-    // console.log('📦 [API Client] updateMerchandiseSettings result:', result);
     return result;
   }
 
@@ -2805,7 +2855,6 @@ class ApiClient {
     memberCount?: number;
     isVisible: boolean;
   }>): Promise<ApiResponse<any>> {
-    // console.log('🔵 PUT /club-settings/' + clubId + '/group-listings', listings);
     return this.put(`/club-settings/${clubId}/group-listings`, { listings });
   }
 

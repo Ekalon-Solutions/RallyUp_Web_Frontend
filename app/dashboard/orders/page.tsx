@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
+import { useRequiredClubId } from '@/hooks/useRequiredClubId'
 import { 
   Search,
   RefreshCw, 
@@ -107,6 +108,7 @@ const paymentStatusConfig = {
 
 export default function OrdersPage() {
   const { user } = useAuth()
+  const clubId = useRequiredClubId()
   const { toast } = useToast()
   const [orders, setOrders] = useState<Order[]>([])
   const [stats, setStats] = useState<OrderStats | null>(null)
@@ -130,7 +132,7 @@ export default function OrdersPage() {
       loadOrders()
       loadStats()
     }
-  }, [user?.role])
+  }, [user?.role, clubId])
 
   useEffect(() => {
     if (user?.role === 'admin' || user?.role === 'super_admin') {
@@ -140,25 +142,30 @@ export default function OrdersPage() {
         loadEventRegistrations()
       }
     }
-  }, [searchTerm, statusFilter, typeFilter])
+  }, [searchTerm, statusFilter, typeFilter, clubId])
 
   useEffect(() => {
     if ((user?.role === 'admin' || user?.role === 'super_admin') && currentPage > 1) {
       loadOrders()
     }
-  }, [currentPage])
+  }, [currentPage, clubId])
 
   const loadOrders = async () => {
     try {
       setLoading(true)
-      const shouldScopeToClub = user?.role === 'admin'
+      if (!clubId) {
+        setOrders([])
+        setTotalPages(1)
+        setLoading(false)
+        return
+      }
       const params = new URLSearchParams({
         page: currentPage.toString(),
         limit: '10',
         ...(searchTerm && { search: searchTerm }),
         ...(statusFilter && statusFilter !== 'all' && { status: statusFilter }),
-        ...(shouldScopeToClub && (user as any)?.club?._id && { clubId: (user as any).club._id })
       })
+      params.append('clubId', clubId)
 
       const response = await apiClient.get(`/orders/admin/all?${params}`)
       if (response.success && response.data) {
@@ -190,9 +197,14 @@ export default function OrdersPage() {
 
   const loadEventRegistrations = async () => {
     try {
-      const response = await apiClient.get('/events')
+      if (!clubId) {
+        setEventRegistrations([])
+        return
+      }
+      const response = await apiClient.getEventsByClub(clubId)
       if (response.success && response.data) {
-        const events = Array.isArray(response.data) ? response.data : (response.data?.events || [])
+        const data: any = response.data
+        const events = Array.isArray(data) ? data : (data?.events || [])
         // Flatten event registrations into a list
         const registrations: any[] = []
         events.forEach((event: any) => {
@@ -236,10 +248,11 @@ export default function OrdersPage() {
 
   const loadStats = async () => {
     try {
-      const shouldScopeToClub = user?.role === 'admin'
-      const params = new URLSearchParams({
-        ...(shouldScopeToClub && (user as any)?.club?._id && { clubId: (user as any).club._id })
-      })
+      if (!clubId) {
+        setStats(null)
+        return
+      }
+      const params = new URLSearchParams({ clubId })
 
       const response = await apiClient.get(`/orders/admin/stats${params.toString() ? `?${params}` : ''}`)
       if (response.success && response.data) {
@@ -261,12 +274,11 @@ export default function OrdersPage() {
   }
 
   const handleDownloadReport = async () => {
-    const shouldScopeToClub = user?.role === 'admin'
     const params = {
       ...(searchTerm ? { search: searchTerm } : {}),
       ...(statusFilter && statusFilter !== 'all' ? { status: statusFilter } : {}),
       ...(typeFilter ? { type: typeFilter } : {}),
-      ...(shouldScopeToClub && (user as any)?.club?._id ? { clubId: (user as any).club._id } : {}),
+      ...(clubId ? { clubId } : {}),
     };
 
     try {

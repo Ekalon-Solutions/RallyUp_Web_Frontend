@@ -11,9 +11,11 @@ import config from '@/lib/config';
 
 import { DashboardLayout } from '@/components/dashboard-layout';
 import { useAuth } from '@/contexts/auth-context';
+import { useRequiredClubId } from '@/hooks/useRequiredClubId';
 
 export default function VolunteerDashboard() {
   const { user } = useAuth();
+  const clubId = useRequiredClubId();
   const [opportunities, setOpportunities] = React.useState<VolunteerOpportunity[]>([]);
 
   const [volunteerProfile, setVolunteerProfile] = React.useState<any>(null);
@@ -45,8 +47,10 @@ export default function VolunteerDashboard() {
     // // console.log('🔍 Starting to fetch opportunities...');
     // // console.log('🔍 User object from auth:', user);
     
-    if (!user?._id) {
-      // // console.log('⚠️ User not loaded yet, skipping fetch');
+    if (!user?._id) return;
+    if (!clubId) {
+      setOpportunities([]);
+      setError('Please select a club to see volunteer opportunities');
       return;
     }
     
@@ -54,111 +58,14 @@ export default function VolunteerDashboard() {
     setError(null);
     
     try {
-      // Get user's profile to get club info
-      // // console.log('📱 Fetching user profile...');
-      const userProfileResponse = await apiClient.userProfile();
-      // // console.log('👤 User profile response:', {
-//         success: userProfileResponse.success,
-//         hasData: !!userProfileResponse.data,
-//         hasMemberships: !!userProfileResponse.data?.memberships,
-//         userData: userProfileResponse.data,
-//         memberships: userProfileResponse.data?.memberships
-//       });
-      
-      const memberships = userProfileResponse.data?.memberships || [];
-      
-      if (!userProfileResponse.success || memberships.length === 0) {
-        // // console.log('❌ No club memberships found in user profile');
-        setOpportunities([]);
-        setError('You need to be a member of a club to see volunteer opportunities');
-        toast({
-          title: 'No Club Access',
-          description: 'You need to be a member of a club to see volunteer opportunities',
-          variant: 'default',
-        });
-        return;
+      const opportunitiesResponse = await apiClient.getVolunteerOpportunities({ club: clubId });
+      let clubOpportunities: VolunteerOpportunity[] = [];
+      if ((opportunitiesResponse.data as any)?.opportunities && Array.isArray((opportunitiesResponse.data as any).opportunities)) {
+        clubOpportunities = (opportunitiesResponse.data as any).opportunities as VolunteerOpportunity[];
+      } else if (Array.isArray(opportunitiesResponse.data)) {
+        clubOpportunities = opportunitiesResponse.data as VolunteerOpportunity[];
       }
-
-      // Get ALL active memberships (user can be in multiple clubs)
-      const activeMemberships = memberships.filter(
-        (membership: any) =>
-          membership?.status === 'active' && membership?.club_id?._id
-      );
-
-      if (activeMemberships.length === 0) {
-        // // console.log('❌ No active club memberships found');
-        setOpportunities([]);
-        setError('You need to have an active club membership to see volunteer opportunities');
-        toast({
-          title: 'No Active Membership',
-          description: 'You need to have an active club membership to see volunteer opportunities',
-          variant: 'default',
-        });
-        return;
-      }
-
-      // Get all club IDs from active memberships
-      const clubIds = activeMemberships
-        .map((membership: any) => membership?.club_id?._id)
-        .filter(Boolean) as string[];
-      // // console.log('🏢 Found club IDs:', clubIds);
-      // console.log('🏢 Club details:', activeMemberships.map(m => ({
-      //   id: m.club_id._id,
-      //   name: m.club_id.name
-      // })));
-      
-      // Fetch opportunities for ALL user's clubs
-      // // console.log('🔍 Fetching opportunities for all clubs:', clubIds);
-      
-      // Fetch opportunities for each club and combine them
-      const allOpportunitiesPromises = clubIds.map(clubId => 
-        apiClient.getVolunteerOpportunities({ club: clubId })
-      );
-      
-      const allResponses = await Promise.all(allOpportunitiesPromises);
-      // // console.log('📋 All Opportunities API responses:', allResponses);
-
-      // Combine all opportunities from all clubs
-      let combinedOpportunities: VolunteerOpportunity[] = [];
-      
-      allResponses.forEach((opportunitiesResponse, index) => {
-        // // console.log(`📋 Response ${index + 1} for club ${clubIds[index]}:`, {
-//           success: opportunitiesResponse.success,
-//           hasData: !!opportunitiesResponse.data,
-//           error: opportunitiesResponse.error,
-//           clubId: clubIds[index]
-//         });
-        
-        if (!opportunitiesResponse.success) {
-          // // console.log(`❌ Failed to fetch opportunities for club ${clubIds[index]}:`, opportunitiesResponse.error);
-          return; // Skip this club but continue with others
-        }
-        
-        // The API returns { opportunities: VolunteerOpportunity[], pagination: {...} }
-        let clubOpportunities: VolunteerOpportunity[] = [];
-        if ((opportunitiesResponse.data as any)?.opportunities && Array.isArray((opportunitiesResponse.data as any).opportunities)) {
-          clubOpportunities = (opportunitiesResponse.data as any).opportunities as VolunteerOpportunity[];
-        } else if (Array.isArray(opportunitiesResponse.data)) {
-          clubOpportunities = opportunitiesResponse.data as VolunteerOpportunity[];
-        }
-        
-        combinedOpportunities = [...combinedOpportunities, ...clubOpportunities];
-      });
-      
-      // console.log('✅ Combined opportunities from all clubs:', {
-      //   totalCount: combinedOpportunities.length,
-      //   clubsCount: clubIds.length,
-      //   clubIds: clubIds,
-      //   opportunities: combinedOpportunities.map(o => ({
-      //     id: o._id,
-      //     title: o.title,
-      //     club: o.club,
-      //     status: o.status,
-      //     timeSlots: o.timeSlots?.length || 0
-      //   }))
-      // });
-
-      setOpportunities(combinedOpportunities);
+      setOpportunities(clubOpportunities);
       setError(null);
       
       // Fetch volunteer profiles for all clubs to get all profile IDs
@@ -205,7 +112,7 @@ export default function VolunteerDashboard() {
     } finally {
       setLoading(false);
     }
-  }, [toast, user]); // Add user as dependency
+  }, [toast, user, clubId]); // Add user as dependency
 
   React.useEffect(() => {
     // // console.log('🔄 Effect triggered - fetching opportunities and volunteer profile');

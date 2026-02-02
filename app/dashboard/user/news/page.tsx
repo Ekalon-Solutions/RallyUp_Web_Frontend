@@ -15,6 +15,7 @@ import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
 import { getNewsImageUrl } from "@/lib/config"
 import { useSearchParams } from "next/navigation"
+import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { 
   Newspaper, 
   Search, 
@@ -32,6 +33,7 @@ import {
 
 function UserNewsPageInner() {
   const { user } = useAuth()
+  const clubId = useRequiredClubId()
   const searchParams = useSearchParams()
   const [news, setNews] = useState<News[]>([])
   const [loading, setLoading] = useState(true)
@@ -48,7 +50,7 @@ function UserNewsPageInner() {
   useEffect(() => {
     fetchNews()
     checkUserRole()
-  }, [])
+  }, [clubId])
   
   useEffect(() => {
     const newsId = searchParams.get("newsId")
@@ -86,7 +88,13 @@ function UserNewsPageInner() {
   const fetchNews = async () => {
     try {
       setLoading(true)
-      const response = await apiClient.getNewsByUserClub()
+      if (!clubId) {
+        setNews([])
+        setLoading(false)
+        return
+      }
+
+      const response = await apiClient.getNewsByUserClub(clubId)
 
       if (response.success && response.data) {
         const data: any = response.data

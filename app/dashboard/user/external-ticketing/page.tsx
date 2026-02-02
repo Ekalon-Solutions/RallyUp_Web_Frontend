@@ -22,6 +22,7 @@ import {
   UserCheck
 } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 
 interface Club {
   _id: string
@@ -61,6 +62,7 @@ interface UserMembership {
 
 export default function ExternalTicketingPage() {
   const { user } = useAuth()
+  const clubId = useRequiredClubId()
   const router = useRouter()
   const [memberships, setMemberships] = useState<UserMembership[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -75,7 +77,7 @@ export default function ExternalTicketingPage() {
     if (user) {
       loadUserMemberships()
     }
-  }, [user])
+  }, [user, clubId])
 
   const loadUserMemberships = async () => {
     const fallbackMemberships = Array.isArray((user as any)?.memberships) ? (user as any).memberships : []
@@ -94,12 +96,18 @@ export default function ExternalTicketingPage() {
         else if (data.memberships && Array.isArray(data.memberships)) membershipData = data.memberships
         else if (data.data && Array.isArray(data.data)) membershipData = data.data
         // Include all memberships, even free tiers
-        setMemberships(membershipData)
+        const filtered = clubId
+          ? membershipData.filter((m: any) => String(m?.club_id?._id || m?.club_id) === String(clubId))
+          : membershipData
+        setMemberships(filtered as any)
         return
       }
 
       if (fallbackMemberships.length > 0) {
-        setMemberships(fallbackMemberships as UserMembership[])
+        const filtered = clubId
+          ? fallbackMemberships.filter((m: any) => String(m?.club_id?._id || m?.club_id) === String(clubId))
+          : fallbackMemberships
+        setMemberships(filtered as UserMembership[])
         return
       }
 
@@ -151,11 +159,10 @@ export default function ExternalTicketingPage() {
     const slug = clubName 
       ? clubName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
       : 'club'
-    // Store club ID in sessionStorage to avoid exposing it in URL
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('selectedClubId', clubId)
     }
-    router.push(`/dashboard/user/clubs/${slug}`)
+    router.push(`/dashboard/clubs/${slug}`)
   }
 
   const navigateToPlans = () => {
@@ -232,10 +239,6 @@ export default function ExternalTicketingPage() {
                                     </p>
                                   </div>
                                   <div className="flex gap-3">
-                                    <Button onClick={() => router.push('/dashboard/user/clubs')}>
-                                      <Eye className="h-4 w-4 mr-2" />
-                                      Discover Clubs
-                                    </Button>
                                     <Button variant="outline" onClick={navigateToPlans}>
                                       <CreditCard className="h-4 w-4 mr-2" />
                                       Browse Plans
@@ -312,7 +315,6 @@ export default function ExternalTicketingPage() {
                 <form className="space-y-4" onSubmit={async (e) => {
                   e.preventDefault()
                   if (!requestingFor) return
-                  // Validate form before submitting
                   const errors: { [key: string]: string } = {}
                   const phoneRegex = /^\+?[0-9\s\-()]{7,20}$/
                   const countryCodeRegex = /^\+?[0-9]{1,6}$/

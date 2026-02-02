@@ -102,7 +102,6 @@ const superAdminNavigation = [
 
 const userNavigation = [
   { name: "Feed", href: "/dashboard/user", icon: LayoutDashboard },
-  { name: "Clubs", href: "/dashboard/user/clubs", icon: Building2 },
   { name: "My Clubs", href: "/dashboard/user/my-clubs", icon: UserCheck },
   { name: "Members", href: "/dashboard/user/members", icon: Users },
   { name: "Events", href: "/dashboard/user/events", icon: Ticket },

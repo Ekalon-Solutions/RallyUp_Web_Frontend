@@ -10,34 +10,30 @@ import { apiClient, MembershipPlan } from "@/lib/api"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
 import { useAuth } from "@/contexts/auth-context"
-import { ClubSelector } from "@/components/club-selector"
+import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 
 export default function BrowseMembershipPlansPage() {
   const [plans, setPlans] = useState<MembershipPlan[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isAssigning, setIsAssigning] = useState<string | null>(null)
-  const [selectedClubId, setSelectedClubId] = useState<string>("")
   const [currentMembership, setCurrentMembership] = useState<any>(null)
   const { user, checkAuth } = useAuth()
+  const clubId = useRequiredClubId()
 
   useEffect(() => {
   }, [])
 
   useEffect(() => {
-    if (selectedClubId) {
+    if (clubId) {
       setCurrentMembership(null)
-      loadCurrentMembership(selectedClubId)
-      loadPlans(selectedClubId)
+      loadCurrentMembership(clubId)
+      loadPlans(clubId)
     } else {
       setIsLoading(false)
       setPlans([])
       setCurrentMembership(null)
     }
-  }, [selectedClubId, user])
-
-  const handleClubSelect = (clubId: string) => {
-    setSelectedClubId(clubId)
-  }
+  }, [clubId, user])
 
   const loadCurrentMembership = async (clubId: string) => {
     try {
@@ -104,9 +100,9 @@ export default function BrowseMembershipPlansPage() {
         
         await checkAuth()
         
-        if (selectedClubId) {
-          await loadPlans(selectedClubId)
-          await loadCurrentMembership(selectedClubId)
+        if (clubId) {
+          await loadPlans(clubId)
+          await loadCurrentMembership(clubId)
         }
       } else {
         toast.error(response.error || "Failed to select membership plan")
@@ -271,11 +267,22 @@ export default function BrowseMembershipPlansPage() {
             </p>
           </div>
 
-          {/* Club Selector */}
-          <ClubSelector 
-            onClubSelect={handleClubSelect}
-            selectedClubId={selectedClubId}
-          />
+          {!clubId && !isLoading && (
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center space-y-2">
+                  <Building2 className="mx-auto h-8 w-8 text-muted-foreground" />
+                  <h3 className="text-lg font-semibold">Select a Club</h3>
+                  <p className="text-muted-foreground">
+                    Please select a club to view available membership plans.
+                  </p>
+                  <div className="pt-2">
+                    <Button onClick={() => (window.location.href = "/splash")}>Go to Club Selection</Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Display current membership info */}
           {currentMembership && (
@@ -317,23 +324,7 @@ export default function BrowseMembershipPlansPage() {
             </Card>
           )}
 
-          {/* Display message when no club is selected */}
-          {!selectedClubId && !isLoading && (
-            <Card>
-              <CardContent className="pt-6">
-                <div className="text-center space-y-2">
-                  <Building2 className="mx-auto h-8 w-8 text-muted-foreground" />
-                  <h3 className="text-lg font-semibold">Select a Club</h3>
-                  <p className="text-muted-foreground">
-                    Choose a club from your memberships above to view available membership plans.
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Plans section - only show when club is selected */}
-          {selectedClubId && plans.length === 0 && !isLoading ? (
+          {clubId && plans.length === 0 && !isLoading ? (
             <Card>
               <CardContent className="pt-6">
                 <div className="text-center space-y-2">
@@ -345,7 +336,7 @@ export default function BrowseMembershipPlansPage() {
                 </div>
               </CardContent>
             </Card>
-          ) : selectedClubId && plans.length > 0 ? (
+          ) : clubId && plans.length > 0 ? (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {plans.map((plan) => {
                 const isPopular = plan._id === getMostPopularPlan()

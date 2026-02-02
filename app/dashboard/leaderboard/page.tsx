@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input'
 import { Loader2, Trophy, Medal, Award, Calendar, Star, RefreshCw } from 'lucide-react'
 import { apiClient } from '@/lib/api'
 import { toast } from 'sonner'
+import { useRequiredClubId } from '@/hooks/useRequiredClubId'
 
 interface LeaderboardEntry {
   userId: string
@@ -24,6 +25,7 @@ interface LeaderboardEntry {
 }
 
 export default function AdminLeaderboardPage() {
+  const clubId = useRequiredClubId()
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [editedPoints, setEditedPoints] = useState<Record<string, string>>({})
@@ -32,10 +34,16 @@ export default function AdminLeaderboardPage() {
   const fetchLeaderboard = useCallback(async () => {
     try {
       setLoading(true)
+      if (!clubId) {
+        setLeaderboard([])
+        setEditedPoints({})
+        setLoading(false)
+        return
+      }
       const response = await apiClient.getLeaderboard()
 
       if (response.success && response.data) {
-        const entries = response.data.leaderboard || []
+        const entries = (response.data.leaderboard || []).filter((e: any) => String(e?.club || '') === String(clubId))
         setLeaderboard(entries)
 
         const pointsMap: Record<string, string> = {}
@@ -52,7 +60,7 @@ export default function AdminLeaderboardPage() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [clubId])
 
   const getInitials = (name?: string) => {
     if (!name) return '??'

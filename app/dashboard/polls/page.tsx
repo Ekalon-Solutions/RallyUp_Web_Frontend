@@ -24,6 +24,7 @@ import {
 import { toast } from "sonner"
 import { apiClient, Poll } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
+import { useSelectedClubId } from "@/hooks/useSelectedClubId"
 import { CreatePollModal } from "@/components/modals/create-poll-modal"
 import { PollResultsModal } from "@/components/modals/poll-results-modal"
 import {
@@ -35,6 +36,7 @@ import {
 
 export default function PollsManagementPage() {
   const { user } = useAuth()
+  const clubId = useSelectedClubId()
   const [polls, setPolls] = useState<Poll[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -46,15 +48,24 @@ export default function PollsManagementPage() {
 
   useEffect(() => {
     fetchPolls()
-  }, [])
+  }, [clubId])
 
   const fetchPolls = async () => {
     setLoading(true)
     try {
-      const response = await apiClient.getActivePollsByMyClub({
+      if (!clubId) {
+        setPolls([])
+        setLoading(false)
+        return
+      }
+
+      const response = await apiClient.getPolls({
+        clubId,
         search: searchTerm || undefined,
         status: statusFilter !== "all" ? statusFilter as any : undefined,
         category: categoryFilter !== "all" ? categoryFilter as any : undefined,
+        page: 1,
+        limit: 200
       })
       
       if (response.success && response.data) {
@@ -63,9 +74,6 @@ export default function PollsManagementPage() {
         throw new Error(response.error || "Failed to load polls")
       }
     } catch (error: any) {
-      // console.error("Error fetching polls:", error)
-      
-      // Provide specific error messages based on the error
       if (error.message?.includes("Access denied") || error.message?.includes("Unauthorized")) {
         toast.error("You don't have permission to view polls")
       } else if (error.message?.includes("Network") || error.message?.includes("fetch")) {
@@ -102,9 +110,6 @@ export default function PollsManagementPage() {
         throw new Error(response.error || "Failed to delete poll")
       }
     } catch (error: any) {
-      // console.error("Error deleting poll:", error)
-      
-      // Provide specific error messages based on the error
       if (error.message?.includes("Poll not found")) {
         toast.error("Poll not found or has already been deleted")
       } else if (error.message?.includes("Access denied")) {
@@ -127,9 +132,6 @@ export default function PollsManagementPage() {
         throw new Error(response.error || `Failed to ${status} poll`)
       }
     } catch (error: any) {
-      // console.error(`Error updating poll status:`, error)
-      
-      // Provide specific error messages based on the error
       if (error.message?.includes("Poll not found")) {
         toast.error("Poll not found or has been deleted")
       } else if (error.message?.includes("Access denied")) {
@@ -212,7 +214,6 @@ export default function PollsManagementPage() {
         </Button>
       </div>
 
-      {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
@@ -249,7 +250,6 @@ export default function PollsManagementPage() {
         </Select>
       </div>
 
-      {/* Polls Grid */}
       {filteredPolls.length === 0 ? (
         <div className="text-center py-12">
           <div className="text-muted-foreground mb-4">
@@ -387,7 +387,6 @@ export default function PollsManagementPage() {
         </div>
       )}
 
-        {/* Modals */}
         {showCreateModal && (
           <CreatePollModal
             isOpen={showCreateModal}

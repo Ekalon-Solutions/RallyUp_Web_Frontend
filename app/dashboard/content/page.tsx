@@ -14,6 +14,7 @@ import { apiClient, News } from "@/lib/api"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
 import { getNewsImageUrl } from "@/lib/config"
+import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { 
   Newspaper, 
   Search, 
@@ -34,6 +35,7 @@ import {
 
 export default function ContentManagementPage() {
   const { user } = useAuth()
+  const clubId = useRequiredClubId()
   const [news, setNews] = useState<News[]>([])
   const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
@@ -53,14 +55,14 @@ export default function ContentManagementPage() {
       loadNews()
       loadStats()
     }
-  }, [user?.role])
+  }, [user?.role, clubId])
 
   useEffect(() => {
     if (user?.role === 'admin' || user?.role === 'super_admin') {
       setCurrentPage(1)
       loadNews()
     }
-  }, [categoryFilter, priorityFilter])
+  }, [categoryFilter, priorityFilter, clubId])
 
   useEffect(() => {
     if (user?.role === 'admin' || user?.role === 'super_admin') {
@@ -70,23 +72,39 @@ export default function ContentManagementPage() {
       }, 300)
       return () => clearTimeout(timer)
     }
-  }, [searchTerm])
+  }, [searchTerm, clubId])
 
   useEffect(() => {
-    if (user?.role === 'admin' || user?.role === 'super_admin' && currentPage > 1) {
+    if ((user?.role === 'admin' || user?.role === 'super_admin') && currentPage > 1) {
       loadNews()
     }
-  }, [currentPage])
+  }, [currentPage, clubId])
 
   const loadNews = async () => {
     try {
       setLoading(true)
-      const response = await apiClient.getNewsByMyClub()
+      if (!clubId) {
+        setNews([])
+        setTotalPages(1)
+        setLoading(false)
+        return
+      }
+
+      const response = await apiClient.getNews({
+        clubId,
+        category: categoryFilter || undefined,
+        priority: priorityFilter || undefined,
+        search: searchTerm || undefined,
+        page: currentPage,
+        limit: 20
+      })
       
       if (response.success && response.data) {
-        setNews(response.data.news || response.data)
-        if (response.data.pagination) {
-          setTotalPages(response.data.pagination.pages)
+        const data: any = response.data
+        const items = Array.isArray(data) ? data : (data?.news || [])
+        setNews(items)
+        if (data?.pagination) {
+          setTotalPages(data.pagination.pages)
         }
       } else {
         toast.error("Failed to fetch news")
@@ -100,7 +118,11 @@ export default function ContentManagementPage() {
 
   const loadStats = async () => {
     try {
-      const response = await apiClient.getNewsStats()
+      if (!clubId) {
+        setStats(null)
+        return
+      }
+      const response = await apiClient.getNewsStats(clubId)
       if (response.success) {
         setStats(response.data)
       }

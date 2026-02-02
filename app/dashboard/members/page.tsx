@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/auth-context'
 import { apiClient, User } from '@/lib/api'
 import { toast } from 'sonner'
 import { triggerBlobDownload } from '@/lib/utils'
+import { useRequiredClubId } from '@/hooks/useRequiredClubId'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
@@ -67,6 +68,7 @@ interface Member {
 
 export default function MembersPage() {
   const { user } = useAuth()
+  const clubId = useRequiredClubId()
   const [members, setMembers] = useState<Member[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -103,19 +105,26 @@ export default function MembersPage() {
 
   useEffect(() => {
     fetchMembers()
-  }, [currentPage, searchTerm, statusFilter, verificationFilter])
+  }, [currentPage, searchTerm, statusFilter, verificationFilter, clubId])
    
 
   const fetchMembers = async () => {
     try {
       setLoading(true)
+      if (!clubId) {
+        setMembers([])
+        setPagination({ page: 1, limit: 20, total: 0, pages: 0 })
+        setMetadata({ total: 0, active: 0, verified: 0, thisMonth: 0 })
+        setLoading(false)
+        return
+      }
       const response = await apiClient.getClubMemberDirectory({
         search: searchTerm || undefined,
         page: currentPage,
         limit: pagination.limit,
         status: statusFilter === 'all' ? undefined : statusFilter,
         verification: verificationFilter === 'all' ? undefined : verificationFilter,
-        clubId: (user as any)?.club?._id
+        clubId
       })
 
       if (response.success && response.data) {
@@ -283,9 +292,13 @@ export default function MembersPage() {
 
   const handleAddMember = async (data: { name: string; email: string; phoneNumber: string; countryCode: string }): Promise<void> => {
     try {
+      if (!clubId) {
+        toast.error('Please select a club first')
+        return
+      }
       const response = await apiClient.userRegister({
         ...data,
-        clubId: (user as any)?.club?._id,
+        clubId,
       })
 
       if (response.success) {

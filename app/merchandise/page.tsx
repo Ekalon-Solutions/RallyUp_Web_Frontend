@@ -14,6 +14,7 @@ import { CartIcon } from "@/components/cart-icon"
 import { apiClient } from "@/lib/api"
 import { toast } from "sonner"
 import { useCart } from "@/contexts/cart-context"
+import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { 
   ShoppingBag, 
   Search, 
@@ -52,6 +53,7 @@ interface Merchandise {
 
 export default function MerchandisePage() {
   const { addToCart } = useCart()
+  const selectedClubId = useRequiredClubId()
   const [clubId, setClubId] = useState<string | null>(null)
   const [merchandise, setMerchandise] = useState<Merchandise[]>([])
   const [loading, setLoading] = useState(true)
@@ -70,9 +72,9 @@ export default function MerchandisePage() {
 
   useEffect(() => {
     if (typeof window === "undefined") return
-    const id = new URLSearchParams(window.location.search).get("clubId") || ""
-    setClubId(id)
-  }, [])
+    const fromQuery = new URLSearchParams(window.location.search).get("clubId") || ""
+    setClubId(selectedClubId || (fromQuery ? fromQuery : null))
+  }, [selectedClubId])
 
   const formatCurrency = (amount: number, currencyCode: string = 'USD') => {
     const localeMap: Record<string, string> = {
@@ -98,6 +100,12 @@ export default function MerchandisePage() {
     if (clubId === null) return
     fetchMerchandise()
   }, [page, searchTerm, categoryFilter, sortBy, showFeaturedOnly, clubId])
+
+  useEffect(() => {
+    if (clubId !== null) return
+    setMerchandise([])
+    setLoading(false)
+  }, [clubId])
 
   const fetchMerchandise = async () => {
     try {
@@ -205,6 +213,26 @@ export default function MerchandisePage() {
     }])
     setIsProductModalOpen(false)
     setIsCheckoutModalOpen(true)
+  }
+
+  if (!clubId) {
+    return (
+      <DashboardLayout>
+        <div className="space-y-6">
+          <Card>
+            <CardContent className="py-10 text-center space-y-3">
+              <h2 className="text-xl font-semibold">No club selected</h2>
+              <p className="text-muted-foreground">
+                Please select a club to browse merchandise.
+              </p>
+              <Button onClick={() => (window.location.href = "/splash")}>
+                Go to Club Selection
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </DashboardLayout>
+    )
   }
 
   return (
