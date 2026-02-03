@@ -52,7 +52,6 @@ export function WebsiteSetupTab() {
     if (clubId) {
       loadSettings()
     }
-    // initialize slug input from user club data
     const existingSlug = (user as any)?.club?.slug || (user as any)?.club_id?.slug
     if (existingSlug) setSlugInput(existingSlug)
   }, [clubId])
@@ -63,12 +62,6 @@ export function WebsiteSetupTab() {
     try {
       setLoading(true)
       const response = await apiClient.getClubSettings(clubId)
-      // console.log("Club settings response:", response)
-      // console.log("Full response structure:", JSON.stringify(response, null, 2))
-      
-      // Backend returns { success: true, data: settings }
-      // API client wraps it as { success: true, data: { success: true, data: settings } }
-      // So we need response.data.data.websiteSetup
       if (response.success && response.data) {
         const actualData = response.data.data || response.data
         const websiteSetup = actualData.websiteSetup || {
@@ -86,13 +79,10 @@ export function WebsiteSetupTab() {
             ...sanitizeWebsiteSections(websiteSetup.sections),
           },
         })
-        // console.log("Loaded websiteSetup:", websiteSetup)
       } else {
-        // console.warn("Invalid response format:", response)
         toast.error("Failed to load settings - invalid response")
       }
     } catch (error) {
-      // console.error("Error loading settings:", error)
       toast.error("Failed to load settings")
     } finally {
       setLoading(false)
@@ -109,13 +99,8 @@ export function WebsiteSetupTab() {
 
     try {
       setSaving(true)
-      // console.log("=== SAVE ATTEMPT ===")
-      // console.log("Club ID:", clubId)
-      // console.log("Settings to save:", JSON.stringify(settings, null, 2))
       
       const response = await apiClient.updateWebsiteSetup(clubId, settings)
-      // console.log("=== SAVE RESPONSE ===")
-      // console.log("Full response:", response)
       
       if (response.success) {
         toast.success("Website settings saved successfully!")
@@ -130,7 +115,6 @@ export function WebsiteSetupTab() {
         toast.error(response.message || "Failed to save settings")
       }
     } catch (error) {
-      // console.error("Error saving settings:", error)
       toast.error("Failed to save settings")
     } finally {
       setSaving(false)
@@ -150,7 +134,6 @@ export function WebsiteSetupTab() {
   const copyPublicUrl = () => {
     if (!clubId) return
     
-    // Get club slug from user object
     const clubSlug = (user as any)?.club?.slug || (user as any)?.club_id?.slug
     const identifier = clubSlug || clubId
     
@@ -162,7 +145,6 @@ export function WebsiteSetupTab() {
   const openPublicPage = () => {
     if (!clubId) return
     
-    // Get club slug from user object
     const clubSlug = (user as any)?.club?.slug || (user as any)?.club_id?.slug
     const identifier = clubSlug || clubId
     
@@ -223,8 +205,7 @@ export function WebsiteSetupTab() {
                     const resp = await apiClient.updateClubBasicInfo(clubId, { slug })
                     if (resp.success) {
                       toast.success('Slug updated successfully')
-                      // refresh auth/user so displayed club slug updates
-                      try { await checkAuth() } catch (e) { /* ignore */ }
+                      try { await checkAuth() } catch (e) {}
                     } else {
                       toast.error(resp.error || resp.message || 'Failed to update slug')
                     }
@@ -278,7 +259,6 @@ export function WebsiteSetupTab() {
               id="title"
               value={settings.title}
               onChange={(e) => {
-                // console.log("Title changed to:", e.target.value)
                 setSettings({ ...settings, title: e.target.value })
               }}
               placeholder="Enter your club name"
@@ -291,7 +271,6 @@ export function WebsiteSetupTab() {
               id="description"
               value={settings.description}
               onChange={(e) => {
-                // console.log("Description changed to:", e.target.value)
                 setSettings({ ...settings, description: e.target.value })
               }}
               placeholder="Brief description of your club"

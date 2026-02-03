@@ -491,7 +491,7 @@ export default function AdminExternalTicketsPage() {
                               </TableCell>
                               <TableCell>
                                 <div className="text-sm">
-                                  {r.phone_country_code ? `${r.phone_country_code} ${r.phone}` : r.phone}
+                                  {r.countryCode ? `${r.countryCode} ${r.phone}` : r.phone}
                                 </div>
                               </TableCell>
                               <TableCell>

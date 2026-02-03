@@ -69,7 +69,7 @@ export default function ExternalTicketingPage() {
   const [error, setError] = useState<string | null>(null)
   const [showRequestDialog, setShowRequestDialog] = useState(false)
   const [requestingFor, setRequestingFor] = useState<UserMembership | null>(null)
-  const [requestForm, setRequestForm] = useState({ name: '', phone: '', phone_country_code: '', tickets: 1, preferredDate: '', comments: '' })
+  const [requestForm, setRequestForm] = useState({ name: '', phone: '', countryCode: '', tickets: 1, preferredDate: '', comments: '' })
   const [isSubmittingRequest, setIsSubmittingRequest] = useState(false)
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({})
 
@@ -287,7 +287,7 @@ export default function ExternalTicketingPage() {
                                     size="sm" 
                                     onClick={() => {
                                       setRequestingFor(membership)
-                                      setRequestForm({ name: user?.name || '', phone: '', phone_country_code: (user as any)?.countryCode || '', tickets: 1, preferredDate: '', comments: '' })
+                                      setRequestForm({ name: user?.name || '', phone: '', countryCode: (user as any)?.countryCode || '', tickets: 1, preferredDate: '', comments: '' })
                                       setShowRequestDialog(true)
                                     }}
                                   >
@@ -325,8 +325,8 @@ export default function ExternalTicketingPage() {
                   if (!requestForm.phone || !phoneRegex.test(requestForm.phone)) {
                     errors.phone = 'Please enter a valid phone number'
                   }
-                  if (requestForm.phone_country_code && !countryCodeRegex.test(requestForm.phone_country_code)) {
-                    errors.phone_country_code = 'Please enter a valid country code (e.g. +44)'
+                  if (requestForm.countryCode && !countryCodeRegex.test(requestForm.countryCode)) {
+                    errors.countryCode = 'Please enter a valid country code (e.g. +44)'
                   }
                   if (!requestForm.tickets || Number(requestForm.tickets) < 1) {
                     errors.tickets = 'Please request at least 1 ticket'
@@ -355,7 +355,7 @@ export default function ExternalTicketingPage() {
                       clubId: requestingFor.club_id._id,
                       userName: requestForm.name,
                       phone: requestForm.phone,
-                      phone_country_code: requestForm.phone_country_code,
+                      countryCode: requestForm.countryCode,
                       tickets: requestForm.tickets,
                       preferredDate: requestForm.preferredDate,
                       comments: requestForm.comments,
@@ -383,11 +383,11 @@ export default function ExternalTicketingPage() {
                   <div>
                     <Label>Phone</Label>
                     <div className="flex gap-2">
-                      <Input name="phone_country_code" placeholder="+1" style={{width: '100px'}} value={requestForm.phone_country_code} onChange={(e) => setRequestForm({...requestForm, phone_country_code: e.target.value})} />
+                      <Input name="countryCode" placeholder="+1" style={{width: '100px'}} value={requestForm.countryCode} onChange={(e) => setRequestForm({...requestForm, countryCode: e.target.value})} />
                       <Input name="phone" value={requestForm.phone} onChange={(e) => setRequestForm({...requestForm, phone: e.target.value})} />
                     </div>
                     {formErrors.phone && <div className="text-destructive text-sm mt-1">{formErrors.phone}</div>}
-                    {formErrors.phone_country_code && <div className="text-destructive text-sm mt-1">{formErrors.phone_country_code}</div>}
+                    {formErrors.countryCode && <div className="text-destructive text-sm mt-1">{formErrors.countryCode}</div>}
                   </div>
                   <div>
                     <Label>Number of Tickets</Label>

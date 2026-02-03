@@ -197,7 +197,7 @@ export function UnassignVolunteerModal({
                               </span>
                               <span className="flex items-center gap-1">
                                 <Phone className="w-3 h-3" />
-                                {volunteer.user ? `${volunteer.user.phone_country_code} ${volunteer.user.phoneNumber}` : 'No phone'}
+                                {volunteer.user ? `${volunteer.user.countryCode} ${volunteer.user.phoneNumber}` : 'No phone'}
                               </span>
                             </div>
                           </div>

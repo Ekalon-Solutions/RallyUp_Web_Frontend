@@ -471,7 +471,7 @@ export default function VolunteerManagementPage() {
 
   const getVolunteerContactInfo = (volunteer: Volunteer | undefined) => {
     if (!volunteer || !volunteer.user) return 'No contact info';
-    return `${volunteer.user.phone_country_code || ''} ${volunteer.user.phoneNumber || ''}`.trim() || 'No contact info';
+    return `${volunteer.user.countryCode || ''} ${volunteer.user.phoneNumber || ''}`.trim() || 'No contact info';
   };
 
   return (

@@ -427,10 +427,14 @@ export default function VolunteerDashboard() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <h1 className="text-2xl sm:text-3xl font-bold">Volunteer Dashboard</h1>
-          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+      <div className="w-full max-w-5xl mx-auto space-y-6">
+        {/* Centered page header */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+          <div className="w-full sm:w-auto">
+            <h1 className="text-2xl sm:text-3xl font-bold">Volunteer Dashboard</h1>
+            <p className="text-muted-foreground text-sm sm:text-base mt-1">Browse and sign up for volunteer opportunities</p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto justify-center sm:justify-end">
             <Button variant="outline" onClick={fetchOpportunities} className="w-full sm:w-auto">
               Refresh Opportunities
             </Button>
@@ -444,19 +448,19 @@ export default function VolunteerDashboard() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList>
+          <TabsList className="grid w-full max-w-md mx-auto grid-cols-2">
             <TabsTrigger value="available">Available Opportunities</TabsTrigger>
             <TabsTrigger value="my-opportunities">My Opportunities</TabsTrigger>
           </TabsList>
 
-          {/* Status Message */}
-          <div className="text-center py-4">
+          {/* Status Message - centered */}
+          <div className="text-center py-4 flex flex-col items-center">
             {loading ? (
               <p className="text-sm text-muted-foreground">Loading volunteer opportunities...</p>
             ) : error ? (
               <p className="text-sm text-red-600">{error}</p>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-2 w-full max-w-xl mx-auto">
                 <p className="text-sm text-muted-foreground">
                   {opportunities.length === 0 
                     ? "No volunteer opportunities found" 
@@ -464,7 +468,7 @@ export default function VolunteerDashboard() {
                   }
                 </p>
                 {user && !volunteerProfile && (
-                  <div className="p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
+                  <div className="p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg text-left mx-auto max-w-xl">
                     <div className="flex items-center gap-3">
                       <div className="text-2xl">🎯</div>
                       <div>
@@ -482,20 +486,20 @@ export default function VolunteerDashboard() {
 
           <TabsContent value="available" className="space-y-4">
             {loading ? (
-              <div className="text-center py-8">
+              <div className="text-center py-8 flex flex-col items-center">
                 <p className="text-muted-foreground mb-2">
                   Loading volunteer opportunities...
                 </p>
               </div>
             ) : error ? (
-              <div className="text-center py-8">
+              <div className="text-center py-8 flex flex-col items-center">
                 <p className="text-muted-foreground mb-2">
                   {error}
                 </p>
               </div>
             ) : availableOpportunities.length === 0 ? (
-              <div className="text-center py-8">
-                <div className="bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 p-4 rounded-lg mb-4">
+              <div className="text-center py-8 flex flex-col items-center">
+                <div className="bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 p-4 rounded-lg mb-4 max-w-xl mx-auto w-full text-left">
                   <p className="text-yellow-800 dark:text-yellow-200 mb-2">
                     {opportunities.length === 0 
                       ? "No volunteer opportunities found for your club."
@@ -503,7 +507,7 @@ export default function VolunteerDashboard() {
                   }
                   </p>
                   {opportunities.length > 0 && (
-                    <div className="text-sm text-left mt-3">
+                    <div className="text-sm mt-3">
                       <p className="font-semibold mb-2">Opportunity Details:</p>
                       {opportunities.map(opp => (
                         <div key={opp._id} className="bg-white dark:bg-gray-900 p-2 mb-2 rounded">
@@ -515,19 +519,19 @@ export default function VolunteerDashboard() {
                     </div>
                   )}
                 </div>
-                <p className="text-muted-foreground">
+                <p className="text-muted-foreground max-w-xl mx-auto">
                   {opportunities.length === 0 
                     ? "Check with your club admin about upcoming volunteer opportunities."
                     : "Check back later or contact your club admin."}
                 </p>
                 {opportunities.length > 0 && (
-                  <div className="space-y-4">
+                  <div className="space-y-4 max-w-xl mx-auto w-full text-left mt-4">
                     <p className="text-sm text-muted-foreground">
                       There are {opportunities.length} total opportunities:
                     </p>
                     <div className="space-y-4">
                       {opportunities.map(opportunity => (
-                        <div key={opportunity._id} className="border rounded-lg p-4 text-left">
+                        <div key={opportunity._id} className="border rounded-lg p-4">
                           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-2">
                             <h3 className="font-medium text-sm sm:text-base break-words">{opportunity.title}</h3>
                             <span className={`px-2 py-1 text-xs rounded whitespace-nowrap ${
@@ -551,40 +555,46 @@ export default function VolunteerDashboard() {
                 )}
               </div>
             ) : (
-              availableOpportunities.map((opportunity: VolunteerOpportunity) => (
-                <VolunteerOpportunityCard
-                  key={opportunity._id}
-                  opportunity={opportunity}
-                  onSignUp={handleSignUp}
-                  currentVolunteerId={allVolunteerProfileIds.find(profileId => 
-                    opportunity.timeSlots.some((slot: any) => 
-                      slot.volunteersAssigned.includes(profileId)
-                    )
-                  )}
-                  signingUp={signingUp}
-                />
-              ))
+              <div className="space-y-4 w-full">
+                {availableOpportunities.map((opportunity: VolunteerOpportunity) => (
+                  <VolunteerOpportunityCard
+                    key={opportunity._id}
+                    opportunity={opportunity}
+                    onSignUp={handleSignUp}
+                    currentVolunteerId={allVolunteerProfileIds.find(profileId => 
+                      opportunity.timeSlots.some((slot: any) => 
+                        slot.volunteersAssigned.includes(profileId)
+                      )
+                    )}
+                    signingUp={signingUp}
+                  />
+                ))}
+              </div>
             )}
           </TabsContent>
 
           <TabsContent value="my-opportunities" className="space-y-4">
             {myOpportunities.length === 0 ? (
-              <p className="text-center text-muted-foreground">
-                You haven't signed up for any volunteer opportunities yet.
-              </p>
+              <div className="text-center py-8 flex flex-col items-center">
+                <p className="text-muted-foreground max-w-md">
+                  You haven't signed up for any volunteer opportunities yet.
+                </p>
+              </div>
             ) : (
-              myOpportunities.map((opportunity: VolunteerOpportunity) => (
-                <VolunteerOpportunityCard
-                  key={opportunity._id}
-                  opportunity={opportunity}
-                  onWithdraw={handleWithdraw}
-                  currentVolunteerId={allVolunteerProfileIds.find(profileId => 
-                    opportunity.timeSlots.some((slot: any) => 
-                      slot.volunteersAssigned.includes(profileId)
-                    )
-                  )}
-                />
-              ))
+              <div className="space-y-4 w-full">
+                {myOpportunities.map((opportunity: VolunteerOpportunity) => (
+                  <VolunteerOpportunityCard
+                    key={opportunity._id}
+                    opportunity={opportunity}
+                    onWithdraw={handleWithdraw}
+                    currentVolunteerId={allVolunteerProfileIds.find(profileId => 
+                      opportunity.timeSlots.some((slot: any) => 
+                        slot.volunteersAssigned.includes(profileId)
+                      )
+                    )}
+                  />
+                ))}
+              </div>
             )}
           </TabsContent>
         </Tabs>

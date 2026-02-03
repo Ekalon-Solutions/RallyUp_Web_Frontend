@@ -64,6 +64,7 @@ export interface User {
     start_date: string;
     end_date?: string;
   }>;
+  profilePicture?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -90,6 +91,7 @@ export interface Admin {
     refunds?: boolean;
     ticketStatus?: boolean;
   };
+  profilePicture?: string;
   memberships?: Array<{
     _id: string;
     club_id: {
@@ -124,6 +126,7 @@ export interface SystemOwner {
   isPhoneVerified: boolean;
   role: 'system_owner';
   isActive?: boolean;
+  profilePicture?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -261,7 +264,7 @@ export interface Volunteer {
     last_name: string;
     email: string;
     phoneNumber: string;
-    phone_country_code: string;
+    countryCode: string;
   };
   club: {
     _id: string;
@@ -521,7 +524,7 @@ export interface ExternalTicketRequest {
   user_id?: User;
   user_name: string;
   phone: string;
-  phone_country_code?: string;
+  countryCode?: string;
   tickets: number;
   preferred_date: string;
   comments?: string;
@@ -777,6 +780,7 @@ class ApiClient {
     email?: string;
     phoneNumber?: string;
     countryCode?: string;
+    profilePicture?: string;
     notificationPreferences?: {
       events?: boolean;
       membershipRenewals?: boolean;
@@ -818,7 +822,7 @@ class ApiClient {
       }
       
       if (data.countryCode !== undefined) {
-        backendData.phone_country_code = data.countryCode;
+        backendData.countryCode = data.countryCode;
       }
     } else {
       if (data.name !== undefined) {
@@ -837,7 +841,11 @@ class ApiClient {
     if (data.email !== undefined) {
       backendData.email = data.email;
     }
-    
+
+    if (data.profilePicture !== undefined) {
+      backendData.profilePicture = data.profilePicture;
+    }
+
     if (data.notificationPreferences !== undefined) {
       backendData.notificationPreferences = data.notificationPreferences;
     }
@@ -845,6 +853,15 @@ class ApiClient {
     return this.request(endpoint, {
       method: 'PUT',
       body: JSON.stringify(backendData),
+    });
+  }
+
+  async uploadProfilePicture(file: File): Promise<ApiResponse<{ url: string; filename: string }>> {
+    const formData = new FormData();
+    formData.append('image', file);
+    return this.request('/upload/profile-picture', {
+      method: 'POST',
+      body: formData,
     });
   }
 
@@ -1075,7 +1092,7 @@ class ApiClient {
     clubId: string;
     userName: string;
     phone: string;
-    phone_country_code?: string;
+    countryCode?: string;
     tickets?: number;
     preferredDate: string;
     comments?: string;

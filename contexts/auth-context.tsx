@@ -337,7 +337,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             ? `${updatedUser.first_name} ${updatedUser.last_name}`.trim()
             : prevUser?.name || '') : updatedUser.name || prevUser?.name,
           phoneNumber: updatedUser.phoneNumber || prevUser?.phoneNumber || '',
-          countryCode: updatedUser.phone_country_code || prevUser?.countryCode || '+1',
+          countryCode: updatedUser.countryCode || prevUser?.countryCode || '+1',
         } as any));
         
         return { success: true };

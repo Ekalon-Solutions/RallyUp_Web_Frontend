@@ -93,7 +93,7 @@ export default function UserEventRegistrationModal({ eventId, isOpen, onClose, o
         try {
           const userName = (user as any).name || `${(user as any).first_name || ''} ${(user as any).last_name || ''}`.trim()
           const userPhone = (user as any).phoneNumber || (user as any).phoneNumber || (user as any).phone || ''
-          const userCode = (user as any).phone_country_code || ''
+          const userCode = (user as any).countryCode || ''
           if (!copy[0].name && userName) copy[0].name = userName
           if (!copy[0].phone && userPhone) copy[0].phone = userPhone
           if (!copy[0].phoneCode && userCode) copy[0].phoneCode = userCode

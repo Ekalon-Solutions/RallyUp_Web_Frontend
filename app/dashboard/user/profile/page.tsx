@@ -11,7 +11,8 @@ import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
 import { useAuth } from "@/contexts/auth-context"
 import { toast } from "sonner"
-import { User, Mail, Phone, Shield, Save, Calendar, CheckCircle, XCircle, Edit, Building2, MapPin, Globe, Users, Search, Plus, ArrowRight, Loader2 } from "lucide-react"
+import { User, Mail, Phone, Shield, Save, Calendar, CheckCircle, XCircle, Edit, Building2, MapPin, Globe, Users, Search, Plus, ArrowRight, Loader2, Camera } from "lucide-react"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { MembershipRenewal } from "@/components/membership-renewal"
 import { useRouter } from "next/navigation"
 import { VolunteerSignUpModal } from "@/components/volunteer/volunteer-signup-modal"
@@ -46,6 +47,8 @@ export default function UserProfilePage() {
   const [otp, setOtp] = useState("")
   const [otpSent, setOtpSent] = useState(false)
   const [isVerifying, setIsVerifying] = useState(false)
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
+  const fileInputRef = React.useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (user) {
@@ -65,7 +68,6 @@ export default function UserProfilePage() {
       try {
         const profileResponse = await apiClient.getVolunteerProfile()
         if (profileResponse.success && profileResponse.data) {
-          console.log("vol pro:", profileResponse.data)
           setVolunteerProfile(profileResponse.data)
         } else {
           setVolunteerProfile(null)
@@ -186,6 +188,45 @@ export default function UserProfilePage() {
 
   const handleDiscoverClubs = () => {
     router.push('/clubs')
+  }
+
+  const getInitials = (name: string) => {
+    const parts = (name || "").trim().split(/\s+/)
+    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+    if (parts[0]) return parts[0].slice(0, 2).toUpperCase()
+    return "?"
+  }
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const allowed = ["image/jpeg", "image/png", "image/gif", "image/webp"]
+    if (!allowed.includes(file.type)) {
+      toast.error("Please choose a JPEG, PNG, GIF, or WebP image")
+      return
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Image must be smaller than 2MB")
+      return
+    }
+    setUploadingPhoto(true)
+    apiClient.uploadProfilePicture(file).then((res) => {
+      if (res.success && res.data?.url) {
+        updateProfile({ profilePicture: res.data.url }).then((updateResult) => {
+          if (updateResult.success) {
+            checkAuth()
+            toast.success("Profile picture updated")
+          } else {
+            toast.error(updateResult.error || "Failed to update profile")
+          }
+        })
+      } else {
+        toast.error(res.error || "Failed to upload photo")
+      }
+    }).finally(() => {
+      setUploadingPhoto(false)
+      e.target.value = ""
+    })
   }
 
   const handleVolunteerPreferencesSubmit = async (preferences: VolunteerProfile) => {
@@ -323,6 +364,33 @@ export default function UserProfilePage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
+                  <div className="flex items-center gap-4 mb-6">
+                    <Avatar className="h-24 w-24">
+                      <AvatarImage src={(user as { profilePicture?: string }).profilePicture} alt={user.name} />
+                      <AvatarFallback className="text-2xl bg-muted">
+                        {getInitials(user.name || "")}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="space-y-2">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/jpeg,image/png,image/gif,image/webp"
+                        className="hidden"
+                        onChange={handlePhotoChange}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={uploadingPhoto}
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        {uploadingPhoto ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Camera className="w-4 h-4 mr-2" />}
+                        {user?.profilePicture ? "Change photo" : "Upload photo"}
+                      </Button>
+                    </div>
+                  </div>
                   {isEditing ? (
                     <form onSubmit={handleProfileUpdate} className="space-y-4">
                       <div className="grid grid-cols-2 gap-4">
