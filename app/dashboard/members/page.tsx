@@ -35,6 +35,8 @@ import {
   Plus,
   Check
 } from 'lucide-react'
+import { Award } from 'lucide-react'
+import AdjustPointsModal from '@/components/modals/adjust-points-modal'
 import { Checkbox } from '@/components/ui/checkbox'
 
 interface Member {
@@ -83,6 +85,9 @@ export default function MembersPage() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false)
+  const [isAdjustPointsOpen, setIsAdjustPointsOpen] = useState(false)
+  const [adjustMemberId, setAdjustMemberId] = useState<string | null>(null)
+  const [adjustMemberClub, setAdjustMemberClub] = useState<string | null>(null)
   const [selectedMember, setSelectedMember] = useState<Member | null>(null)
   const [selectedMemberIds, setSelectedMemberIds] = useState<Set<string>>(new Set())
   const [isSelectAll, setIsSelectAll] = useState(false)
@@ -672,6 +677,18 @@ export default function MembersPage() {
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setAdjustMemberId(member._id)
+                              setAdjustMemberClub(user?.club?._id || null)
+                              setIsAdjustPointsOpen(true)
+                            }}
+                            className="flex-1 sm:flex-initial"
+                          >
+                            <Award className="w-4 h-4" />
+                          </Button>
                         </div>
                       )}
                     </div>
@@ -911,6 +928,18 @@ export default function MembersPage() {
               )}
             </DialogContent>
           </Dialog>
+
+          <AdjustPointsModal
+            isOpen={isAdjustPointsOpen}
+            onClose={() => {
+              setIsAdjustPointsOpen(false)
+              setAdjustMemberId(null)
+              setAdjustMemberClub(null)
+            }}
+            memberId={adjustMemberId}
+            clubId={adjustMemberClub}
+            onSuccess={() => fetchMembers()}
+          />
 
           {/* Edit Member Dialog */}
           <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>

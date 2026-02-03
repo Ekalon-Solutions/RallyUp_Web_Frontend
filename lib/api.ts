@@ -882,6 +882,11 @@ class ApiClient {
     return this.request(`/admin/members/${id}`);
   }
 
+  async getMemberPoints(id: string, clubId?: string): Promise<ApiResponse<{ points: number; entries?: any[] }>> {
+    const endpoint = `/users/members/${id}/points${clubId ? `?clubId=${encodeURIComponent(clubId)}` : ''}`;
+    return this.request(endpoint);
+  }
+
   async updateMember(id: string, data: {
     name?: string;
     email?: string;
@@ -1000,7 +1005,7 @@ class ApiClient {
   }
 
   async getEventsByClub(clubId?: string): Promise<ApiResponse<Event[]>> {
-    const endpoint = `/events/${clubId}`;
+    const endpoint = '/events/club/';
     return this.request(endpoint);
   }
 
@@ -2873,6 +2878,13 @@ class ApiClient {
     message?: string;
   }>> {
     return this.request('/member-validation/validate', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async adjustMemberPoints(memberId: string, data: { points: number; reason?: string; mode?: 'add' | 'subtract'; clubId?: string }): Promise<ApiResponse<{ member: any; leaderboardEntry: any }>> {
+    return this.request(`/users/members/${memberId}/points`, {
       method: 'POST',
       body: JSON.stringify(data),
     });

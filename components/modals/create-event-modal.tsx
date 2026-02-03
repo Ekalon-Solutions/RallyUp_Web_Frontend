@@ -344,7 +344,7 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
         ticketPrice: parseFloat(formData.ticketPrice) || 0,
         requiresTicket: formData.requiresTicket,
         memberOnly: formData.memberOnly,
-        clubId: formData.memberOnly ? (formData.clubId || undefined) : undefined,
+        clubId: formData.clubId,
         awayDayEvent: formData.awayDayEvent,
         bookingStartTime: formData.bookingStartTime ? new Date(formData.bookingStartTime).toISOString() : undefined,
         bookingEndTime: formData.bookingEndTime ? new Date(formData.bookingEndTime).toISOString() : undefined,
