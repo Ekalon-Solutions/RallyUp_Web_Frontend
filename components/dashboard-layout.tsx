@@ -51,7 +51,7 @@ const adminNavigation = [
   { name: "News & Updates", href: "/dashboard/content", icon: Newspaper },
   { name: "Polls", href: "/dashboard/polls", icon: Vote },
   { name: "Club Chants", href: "/dashboard/chants", icon: Music },
-  { name: "Merchandise Store", href: "/dashboard/merchandise", icon: Shirt },
+  { name: "Merchandise", href: "/dashboard/merchandise", icon: Shirt },
   { name: "Order Management", href: "/dashboard/orders", icon: ShoppingCart },
   { name: "Events & Tickets", href: "/dashboard/events", icon: Ticket },
   { name: "Leaderboard", href: "/dashboard/leaderboard", icon: ChartNoAxesColumn },
@@ -85,7 +85,7 @@ const superAdminNavigation = [
   { name: "News & Updates", href: "/dashboard/content", icon: Newspaper },
   { name: "Polls", href: "/dashboard/polls", icon: Vote },
   { name: "Club Chants", href: "/dashboard/chants", icon: Music },
-  { name: "Merchandise Store", href: "/dashboard/merchandise", icon: Shirt },
+  { name: "Merchandise", href: "/dashboard/merchandise", icon: Shirt },
   { name: "Order Management", href: "/dashboard/orders", icon: ShoppingCart },
   { name: "Events & Tickets", href: "/dashboard/events", icon: Ticket },
   { name: "Leaderboard", href: "/dashboard/leaderboard", icon: ChartNoAxesColumn },
@@ -206,8 +206,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         if (item.name === 'Events') {
           return canShowSection('events')
         }
-        if (item.name === 'Merchandise' || item.name === 'Merchandise Store') {
-          return canShowSection('merchandise')
+        if (item.name === 'Merchandise') {
+          return canShowSection('merchandise') || canShowSection('store')
         }
         if (item.name === 'Polls') {
           return canShowSection('polls')

@@ -119,7 +119,12 @@ export function WebsiteSetupTab() {
       
       if (response.success) {
         toast.success("Website settings saved successfully!")
-        // Reload settings to confirm save
+        if (typeof window !== "undefined") {
+          try {
+            window.sessionStorage.removeItem(`clubSettings:${clubId}`)
+          } catch {
+          }
+        }
         await loadSettings()
       } else {
         toast.error(response.message || "Failed to save settings")

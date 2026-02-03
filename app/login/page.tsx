@@ -256,6 +256,14 @@ function AuthPageContent() {
       }
 
       const userAny = user as any
+      const isAdmin = userAny.role === 'admin' || userAny.role === 'super_admin'
+      const adminHasClub = !!(userAny.club?._id || userAny.club)
+
+      if (isAdmin && adminHasClub) {
+        router.push('/splash')
+        return
+      }
+
       const memberships = userAny.memberships || []
       const activeMemberships = memberships.filter((m: any) => m.status === 'active')
       const uniqueClubIds = new Set<string>()

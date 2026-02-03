@@ -49,8 +49,8 @@ export const WEBSITE_SECTION_OPTIONS: readonly WebsiteSectionOption[] = [
   },
   {
     id: "store",
-    label: "Merchandise Store",
-    description: "Show merchandise/store section on the public site.",
+    label: "Merchandise",
+    description: "Show merchandise section on the public site.",
     keys: ["store", "merchandise"],
   },
 ] as const

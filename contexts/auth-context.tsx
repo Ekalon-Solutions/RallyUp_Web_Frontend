@@ -21,16 +21,21 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+function getInitialActiveClubId(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("activeClubId");
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | Admin | SystemOwner | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeClubId, setActiveClubIdState] = useState<string | null>(null);
+  const [activeClubId, setActiveClubIdState] = useState<string | null>(getInitialActiveClubId);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     const userType = localStorage.getItem('userType');
     const savedClubId = localStorage.getItem('activeClubId');
-    if (savedClubId) {
+    if (savedClubId && savedClubId !== activeClubId) {
       setActiveClubIdState(savedClubId);
     }
     checkAuth();

@@ -33,6 +33,9 @@ interface PaymentSimulationModalProps {
   tax?: number
   currency: string
   paymentMethod: string
+  dialogTitle?: string
+  dialogDescription?: string
+  payButtonLabel?: string
 }
 
 export function PaymentSimulationModal({ 
@@ -47,7 +50,10 @@ export function PaymentSimulationModal({
   shippingCost,
   tax,
   currency,
-  paymentMethod
+  paymentMethod,
+  dialogTitle,
+  dialogDescription,
+  payButtonLabel,
 }: PaymentSimulationModalProps) {
   const { toast } = useToast()
   const [processing, setProcessing] = useState(false)
@@ -262,10 +268,10 @@ export function PaymentSimulationModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CreditCard className="w-5 h-5" />
-            Complete Payment
+            {dialogTitle ?? "Complete Payment"}
           </DialogTitle>
           <DialogDescription>
-            Secure payment powered by Razorpay
+            {dialogDescription ?? "Secure payment powered by Razorpay"}
           </DialogDescription>
         </DialogHeader>
 
@@ -345,7 +351,7 @@ export function PaymentSimulationModal({
             ) : (
               <div className="flex items-center gap-2">
                 <CreditCard className="w-4 h-4" />
-                Pay {formatCurrency(total, currency)}
+                {payButtonLabel ?? `Pay ${formatCurrency(total, currency)}`}
               </div>
             )}
           </Button>

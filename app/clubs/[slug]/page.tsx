@@ -453,7 +453,7 @@ export default function PublicClubPage() {
                       }}
                     >
                       <Store className="h-5 w-5 mr-2" />
-                      Merchandise Store
+                      Merchandise
                     </TabsTrigger>
                   )}
                   {websiteSetup.sections.polls && (
@@ -683,7 +683,7 @@ export default function PublicClubPage() {
                           <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
                             <Store className="h-6 w-6" style={{ color: primaryColor }} />
                           </div>
-                          Merchandise Store
+                          Merchandise
                         </CardTitle>
                         {club?._id && (
                           <Link href={`/merchandise?clubId=${club._id}`}>

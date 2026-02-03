@@ -46,6 +46,7 @@ export const API_ENDPOINTS = {
     profile: '/users/profile',
     update: '/users/update',
     joinClubRequest: '/users/join-club-request',
+    checkExistingUserPlan: '/users/check-existing-user-plan',
     verifyPhone: '/users/verify-phone',
     resendOTP: '/users/resend-otp',
   },
