@@ -1,6 +1,5 @@
 "use client";
 import React from 'react';
-import { VolunteerOpportunityCard } from '@/components/volunteer/volunteer-opportunity-card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -20,10 +19,11 @@ import { apiClient, VolunteerOpportunity, Volunteer } from '@/lib/api';
 import { useAuth } from '@/contexts/auth-context';
 import { DashboardLayout } from '@/components/dashboard-layout';
 import { Badge } from '@/components/ui/badge';
-import { Users, Eye, Calendar, Clock, MapPin, Star, XCircle } from 'lucide-react';
+import { Users, Eye, XCircle } from 'lucide-react';
 import { VolunteerDetailsModal } from '@/components/modals/volunteer-details-modal';
 import { AssignVolunteerModal } from '@/components/modals/assign-volunteer-modal';
 import { UnassignVolunteerModal } from '@/components/modals/unassign-volunteer-modal';
+import { useRequiredClubId } from '@/hooks/useRequiredClubId';
 
 interface OpportunityFormProps {
   onSubmit: (opportunity: any) => void;
@@ -34,14 +34,7 @@ interface OpportunityFormProps {
 
 function OpportunityForm({ onSubmit, onCancel, initialData, mode }: OpportunityFormProps) {
   const { user } = useAuth();
-  const [clubId, setClubId] = React.useState<string>('');
-  
-  React.useEffect(() => {
-    // Get the club ID from the user object
-    if (user && 'club' in user && user.club && typeof user.club === 'object' && '_id' in user.club) {
-      setClubId(user.club._id);
-    }
-  }, [user]);
+  const clubId = useRequiredClubId();
 
   const [formData, setFormData] = React.useState(() => {
     if (initialData) {
@@ -73,8 +66,6 @@ function OpportunityForm({ onSubmit, onCancel, initialData, mode }: OpportunityF
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // // console.log('Form submitted with data:', formData);
-    // // console.log('Club ID:', clubId);
     
     if (!clubId) {
       alert('Club information not available. Please contact your administrator.');
@@ -92,7 +83,6 @@ function OpportunityForm({ onSubmit, onCancel, initialData, mode }: OpportunityF
         volunteersAssigned: []
       }]
     };
-    // // console.log('Submitting opportunity:', opportunity);
     onSubmit(opportunity);
   };
 
@@ -102,7 +92,7 @@ function OpportunityForm({ onSubmit, onCancel, initialData, mode }: OpportunityF
         <div className="p-3 bg-muted rounded-lg">
           <Label className="text-sm font-medium">Club</Label>
           <p className="text-sm text-muted-foreground">
-            {user && 'club' in user && user.club && typeof user.club === 'object' && '_id' in user.club && 'name' in user.club ? user.club.name : 'Club'}
+            {clubId}
           </p>
         </div>
       )}
@@ -234,7 +224,6 @@ export default function VolunteerManagementPage() {
   const { user, logout } = useAuth();
   
   React.useEffect(() => {
-    // // console.log('Current user:', user);
   }, [user]);
   const [opportunities, setOpportunities] = React.useState<VolunteerOpportunity[]>([]);
   const [volunteers, setVolunteers] = React.useState<Volunteer[]>([]);
@@ -252,109 +241,52 @@ export default function VolunteerManagementPage() {
   const [selectedVolunteer, setSelectedVolunteer] = React.useState<Volunteer | null>(null);
   const [showVolunteerDetailsModal, setShowVolunteerDetailsModal] = React.useState(false);
   
-  // Assignment modal states
   const [showAssignModal, setShowAssignModal] = React.useState(false);
   const [showUnassignModal, setShowUnassignModal] = React.useState(false);
   const [selectedTimeSlot, setSelectedTimeSlot] = React.useState<string | null>(null);
   const { toast } = useToast();
 
-  const clubId = React.useMemo(() => {
-    if (!user || user.role === 'system_owner') return null;
-    
-    // First try to get club from memberships (new structure)
-    const userMemberships = (user as any).memberships || [];
-    const activeMembership = userMemberships.find((m: any) => m.status === 'active');
-    if (activeMembership?.club_id?._id) {
-      // // console.log('🔍 Found club ID from active membership:', activeMembership.club_id._id);
-      return activeMembership.club_id._id;
-    }
-    
-    // Fallback: try to get club from old club field (for backward compatibility)
-    if ((user as any).club?._id) {
-      // console.log('🔍 Found club ID from old club field:', (user as any).club._id);
-      return (user as any).club._id;
-    }
-    
-    // If still no club, try to find any membership (even if not active)
-    if (userMemberships.length > 0 && userMemberships[0]?.club_id?._id) {
-      // // console.log('🔍 Found club ID from first membership:', userMemberships[0].club_id._id);
-      return userMemberships[0].club_id._id;
-    }
-    
-    // console.log('❌ No club ID found for user:', {
-    //   role: user.role,
-    //   hasMemberships: !!userMemberships.length,
-    //   memberships: userMemberships,
-    //   oldClub: (user as any).club
-    // });
-    return null;
-  }, [user]);
+  const clubId = useRequiredClubId();
 
-  // Debug effect to log when clubId changes
   React.useEffect(() => {
-    // // console.log('🔍 Club ID changed:', clubId);
     if (clubId) {
-      // // console.log('✅ Club ID found, will fetch data');
     } else {
-      // // console.log('❌ No club ID, cannot fetch data');
     }
   }, [clubId]);
 
   const fetchOpportunities = React.useCallback(async () => {
     if (!clubId) {
-      // // console.log('❌ Cannot fetch opportunities: no club ID');
       return;
     }
     
-    // // console.log('🔍 Fetching opportunities for club:', clubId);
     try {
       const response = await apiClient.getVolunteerOpportunities({ club: clubId });
-      // // console.log('📋 Opportunities API response:', response);
       
       if (response.success) {
-        // Handle both array and object with opportunities property
         const opportunities = Array.isArray(response.data) ? response.data : ((response.data as any)?.opportunities || []);
-        // // console.log('✅ Processed opportunities:', opportunities);
         setOpportunities(opportunities);
       } else {
-        // // console.error('❌ Failed to fetch opportunities:', response.error);
         setOpportunities([]);
       }
     } catch (error) {
-      // // console.error('❌ Error fetching opportunities:', error);
       setOpportunities([]);
     }
   }, [clubId]);
 
   const fetchVolunteers = React.useCallback(async () => {
     if (!clubId) {
-      // // console.log('❌ Cannot fetch volunteers: no club ID');
       return;
     }
     
-    // // console.log('🔍 Fetching volunteers for club:', clubId);
     try {
       const response = await apiClient.getVolunteers({ club: clubId });
-      // // console.log('👥 Volunteers API response:', response);
       
       if (response.success) {
-        // // console.log('✅ Processed volunteers:', response.data);
-        // Log the structure of the first volunteer to understand the data format
-        if (response.data && response.data.length > 0) {
-          // console.log('🔍 First volunteer structure:', {
-          //   id: response.data[0]._id,
-          //   hasUser: !!response.data[0].user,
-          //   userFields: response.data[0].user ? Object.keys(response.data[0].user) : 'No user object',
-          //   userData: response.data[0].user
-          // });
-        }
         setVolunteers(response.data || []);
       } else {
-        // // console.error('❌ Failed to fetch volunteers:', response.error);
         setVolunteers([]);
       }
     } catch (error) {
-      // // console.error('❌ Error fetching volunteers:', error);
       setVolunteers([]);
     }
   }, [clubId]);
@@ -365,23 +297,18 @@ export default function VolunteerManagementPage() {
     try {
       setLoading(true);
       
-      // Fetch all opportunities for the club
       const opportunitiesResponse = await apiClient.getVolunteerOpportunities({ club: clubId });
       if (!opportunitiesResponse.success) return;
       
-      // Handle both array and object with opportunities property
       const clubOpportunities = Array.isArray(opportunitiesResponse.data) ? 
         opportunitiesResponse.data : ((opportunitiesResponse.data as any)?.opportunities || []);
       
-      // Collect all signups from all opportunities
       const allSignups: any[] = [];
       
       for (const opportunity of clubOpportunities) {
         if (opportunity.timeSlots) {
           for (const timeSlot of opportunity.timeSlots) {
             if (timeSlot.volunteersAssigned && timeSlot.volunteersAssigned.length > 0) {
-              // For now, we'll just show the volunteer IDs since we don't have a getUserById method
-              // In a real implementation, you'd want to fetch volunteer details
               for (const volunteerId of timeSlot.volunteersAssigned) {
                 allSignups.push({
                   opportunityId: opportunity._id,
@@ -389,9 +316,9 @@ export default function VolunteerManagementPage() {
                   timeSlotId: timeSlot._id,
                   startTime: timeSlot.startTime,
                   endTime: timeSlot.endTime,
-                  date: opportunity.createdAt, // Use createdAt instead of date
+                  date: opportunity.createdAt,
                   volunteerId: volunteerId,
-                  status: 'confirmed' // Default status
+                  status: 'confirmed'
                 });
               }
             }
@@ -401,33 +328,25 @@ export default function VolunteerManagementPage() {
       
       setVolunteerSignups(allSignups);
     } catch (error) {
-      // // console.error('Error fetching volunteer signups:', error);
     } finally {
       setLoading(false);
     }
   }, [clubId]);
 
   const fetchOpportunitySignups = React.useCallback(async (opportunityId: string) => {
-    // // console.log('🔍 Frontend: fetchOpportunitySignups called with ID:', opportunityId);
     try {
-      // // console.log('🔍 Frontend: Calling API getVolunteerSignupsForOpportunity...');
       const response = await apiClient.getVolunteerSignupsForOpportunity(opportunityId);
-      // // console.log('🔍 Frontend: API response:', response);
       if (response.success) {
-        // // console.log('🔍 Frontend: Setting signups:', response.data);
         setOpportunitySignups(response.data || []);
       } else {
-        // // console.error('Failed to fetch opportunity signups:', response.error);
         setOpportunitySignups([]);
       }
     } catch (error) {
-      // // console.error('Error fetching opportunity signups:', error);
       setOpportunitySignups([]);
     }
   }, []);
 
   const handleViewSignups = React.useCallback((opportunity: VolunteerOpportunity) => {
-    // // console.log('🔍 Frontend: handleViewSignups called for opportunity:', opportunity._id);
     setSelectedOpportunity(opportunity);
     fetchOpportunitySignups(opportunity._id);
     setShowSignupsModal(true);
@@ -436,10 +355,8 @@ export default function VolunteerManagementPage() {
   React.useEffect(() => {
     fetchOpportunities();
     fetchVolunteers();
-    // Don't call fetchVolunteerSignups here to avoid infinite loop
   }, [fetchOpportunities, fetchVolunteers]);
 
-  // Separate useEffect for volunteer signups
   React.useEffect(() => {
     if (clubId) {
       fetchVolunteerSignups();
@@ -466,7 +383,6 @@ export default function VolunteerManagementPage() {
         });
       }
     } catch (error) {
-      // // console.error('Error creating opportunity:', error);
       toast({
         title: 'Error',
         description: 'Failed to create volunteer opportunity',
@@ -496,7 +412,6 @@ export default function VolunteerManagementPage() {
         });
       }
     } catch (error) {
-      // // console.error('Error updating opportunity:', error);
       toast({
         title: 'Error',
         description: 'Failed to update volunteer opportunity',
@@ -524,7 +439,6 @@ export default function VolunteerManagementPage() {
         });
       }
     } catch (error) {
-      // // console.error('Error deleting opportunity:', error);
       toast({
         title: 'Error',
         description: 'Failed to delete volunteer opportunity',
@@ -541,7 +455,6 @@ export default function VolunteerManagementPage() {
   }), [opportunities, searchTerm, statusFilter]);
 
   const filteredVolunteers = React.useMemo(() => volunteers.filter((volunteer) => {
-    // Safely access user properties with fallbacks
     const userName = volunteer.user?.first_name && volunteer.user?.last_name ? 
                     `${volunteer.user.first_name} ${volunteer.user.last_name}` : 
                     'Unknown User';
@@ -551,16 +464,14 @@ export default function VolunteerManagementPage() {
            userEmail.toLowerCase().includes(searchTerm.toLowerCase());
   }), [volunteers, searchTerm]);
 
-  // Helper function to safely get volunteer display name
   const getVolunteerDisplayName = (volunteer: Volunteer | undefined) => {
     if (!volunteer || !volunteer.user) return 'Unknown User';
     return `${volunteer.user.first_name || ''} ${volunteer.user.last_name || ''}`.trim() || 'Unknown User';
   };
 
-  // Helper function to safely get volunteer contact info
   const getVolunteerContactInfo = (volunteer: Volunteer | undefined) => {
     if (!volunteer || !volunteer.user) return 'No contact info';
-    return `${volunteer.user.phone_country_code || ''} ${volunteer.user.phoneNumber || ''}`.trim() || 'No contact info';
+    return `${volunteer.user.countryCode || ''} ${volunteer.user.phoneNumber || ''}`.trim() || 'No contact info';
   };
 
   return (
@@ -600,7 +511,6 @@ export default function VolunteerManagementPage() {
             <TabsTrigger value="signups">Volunteer Signups</TabsTrigger>
           </TabsList>
 
-          {/* Status Indicators */}
           <div className="flex gap-4 text-sm text-muted-foreground">
             <div>📋 Opportunities: {opportunities.length}</div>
             <div>👥 Volunteers: {volunteers.length}</div>
@@ -617,7 +527,6 @@ export default function VolunteerManagementPage() {
                 </Button>
               </div>
 
-              {/* Opportunities List */}
               <div className="space-y-4">
                 {filteredOpportunities.length === 0 ? (
                   <div className="text-center py-8">
@@ -658,13 +567,10 @@ export default function VolunteerManagementPage() {
                             size="sm"
                             onClick={() => {
                               setSelectedOpportunity(opportunity);
-                              // Show time slot selector first
                               if (opportunity.timeSlots.length === 1) {
                                 setSelectedTimeSlot(opportunity.timeSlots[0]._id);
                                 setShowAssignModal(true);
                               } else {
-                                // For multiple time slots, we'll need to show a selector
-                                // For now, just show the first one
                                 setSelectedTimeSlot(opportunity.timeSlots[0]._id);
                                 setShowAssignModal(true);
                               }
@@ -678,13 +584,10 @@ export default function VolunteerManagementPage() {
                             size="sm"
                             onClick={() => {
                               setSelectedOpportunity(opportunity);
-                              // Show time slot selector first
                               if (opportunity.timeSlots.length === 1) {
                                 setSelectedTimeSlot(opportunity.timeSlots[0]._id);
                                 setShowUnassignModal(true);
                               } else {
-                                // For multiple time slots, we'll need to show a selector
-                                // For now, just show the first one
                                 setSelectedTimeSlot(opportunity.timeSlots[0]._id);
                                 setShowUnassignModal(true);
                               }
@@ -713,7 +616,6 @@ export default function VolunteerManagementPage() {
                         </div>
                       </div>
 
-                      {/* Time Slots with Signup Information */}
                       <div className="space-y-3">
                         <h5 className="text-sm font-medium">Time Slots & Signups</h5>
                         {opportunity.timeSlots.map((timeSlot) => {
@@ -743,13 +645,11 @@ export default function VolunteerManagementPage() {
                                 </div>
                               </div>
                               
-                              {/* Show volunteer details if any are signed up */}
                               {signupCount > 0 && (
                                 <div className="mt-2">
                                   <p className="text-xs text-muted-foreground mb-1">Volunteers:</p>
                                   <div className="flex flex-wrap gap-1">
                                     {timeSlot.volunteersAssigned.map((volunteerId) => {
-                                      // Find the volunteer details from the volunteers list
                                       const volunteer = volunteers.find(v => v._id === volunteerId);
                                       return volunteer && volunteer.user ? (
                                         <span
@@ -801,7 +701,6 @@ export default function VolunteerManagementPage() {
 
           <TabsContent value="volunteers">
             <div className="space-y-4">
-              {/* Volunteer Statistics */}
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <div className="rounded-lg border p-4">
                   <div className="text-2xl font-bold">{volunteers.length}</div>
@@ -827,7 +726,6 @@ export default function VolunteerManagementPage() {
                 </div>
               </div>
 
-              {/* Volunteer List */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-lg font-medium">Volunteer Directory</h3>
@@ -838,15 +736,9 @@ export default function VolunteerManagementPage() {
                       onClick={async () => {
                         try {
                           const response = await apiClient.debugVolunteers();
-                          // // console.log('🔍 Debug volunteers response:', response);
                           if (response.success) {
-                            // // console.log('🔍 Total volunteers:', response.data.total);
-                            // // console.log('🔍 Volunteers with filters:', response.data.withFilters);
-                            // // console.log('🔍 All volunteers:', response.data.allVolunteers);
-                            // // console.log('🔍 Filtered volunteers:', response.data.filteredVolunteers);
                           }
                         } catch (error) {
-                          // // console.error('🔍 Debug error:', error);
                         }
                       }}
                     >
@@ -947,7 +839,6 @@ export default function VolunteerManagementPage() {
             </div>
           </TabsContent>
 
-          {/* Volunteer Signups Tab */}
           <TabsContent value="signups">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
@@ -971,7 +862,6 @@ export default function VolunteerManagementPage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {/* Signups Summary */}
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <div className="rounded-lg border p-4">
                       <div className="text-2xl font-bold">{volunteerSignups.length}</div>
@@ -997,7 +887,6 @@ export default function VolunteerManagementPage() {
                     </div>
                   </div>
 
-                  {/* Signups List */}
                   <div className="space-y-4">
                     <h4 className="text-lg font-medium">Recent Signups</h4>
                     {volunteerSignups.map((signup, index) => (
@@ -1087,7 +976,6 @@ export default function VolunteerManagementPage() {
         <Dialog 
           open={isCreateModalOpen} 
           onOpenChange={(open) => {
-            // // console.log('Dialog onOpenChange called with:', open);
             setIsCreateModalOpen(open);
           }}
         >
@@ -1135,7 +1023,6 @@ export default function VolunteerManagementPage() {
           </DialogContent>
         </Dialog>
 
-        {/* Volunteer Signups Modal */}
         {showSignupsModal && selectedOpportunity && (
           <Dialog open={showSignupsModal} onOpenChange={setShowSignupsModal}>
             <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
@@ -1154,7 +1041,6 @@ export default function VolunteerManagementPage() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {/* Signups Summary */}
                     <div className="grid gap-4 sm:grid-cols-3">
                       <div className="rounded-lg border p-3">
                         <div className="text-xl font-bold">{opportunitySignups.length}</div>
@@ -1174,7 +1060,6 @@ export default function VolunteerManagementPage() {
                       </div>
                     </div>
 
-                    {/* Signups List */}
                     <div className="space-y-3">
                       <h4 className="text-lg font-medium">Volunteer Details</h4>
                       {opportunitySignups.map((signup, index) => (
@@ -1255,7 +1140,6 @@ export default function VolunteerManagementPage() {
           </Dialog>
         )}
 
-        {/* Volunteer Details Modal */}
         <VolunteerDetailsModal
           volunteer={selectedVolunteer}
           isOpen={showVolunteerDetailsModal}
@@ -1265,7 +1149,6 @@ export default function VolunteerManagementPage() {
           }}
         />
 
-        {/* Assignment Modals */}
         <AssignVolunteerModal
           opportunity={selectedOpportunity}
           timeSlotId={selectedTimeSlot}
@@ -1276,7 +1159,7 @@ export default function VolunteerManagementPage() {
           }}
           onVolunteerAssigned={() => {
             fetchVolunteers();
-            fetchOpportunities(); // Refresh opportunities to show updated assignments
+            fetchOpportunities();
           }}
         />
 
@@ -1290,7 +1173,7 @@ export default function VolunteerManagementPage() {
           }}
           onVolunteerUnassigned={() => {
             fetchVolunteers();
-            fetchOpportunities(); // Refresh opportunities to show updated assignments
+            fetchOpportunities();
           }}
         />
       </div>

@@ -27,6 +27,7 @@ import {
 } from 'lucide-react'
 import { ProtectedRoute } from '@/components/protected-route'
 import { Label } from '@/components/ui/label'
+import { useRequiredClubId } from '@/hooks/useRequiredClubId'
 
 const STATUS_OPTIONS = [
   { value: '', label: 'All Statuses' },
@@ -73,7 +74,7 @@ const STATUS_COLORS: Record<string, { bg: string; text: string; icon: React.Reac
 
 export default function AdminExternalTicketsPage() {
   const { user, isAdmin } = useAuth()
-  const clubId = (user as any)?.club?._id || (user as any)?.club_id?._id
+  const clubId = useRequiredClubId()
   const [requests, setRequests] = useState<ExternalTicketRequest[]>([])
   const [events, setEvents] = useState<Event[]>([])
   const [loading, setLoading] = useState(false)
@@ -134,7 +135,7 @@ export default function AdminExternalTicketsPage() {
   const fetchEvents = async () => {
     if (!clubId) return
     try {
-      const resp = await apiClient.getEventsByClub()
+      const resp = await apiClient.getEventsByClub(clubId)
       if (resp.success && resp.data) {
         setEvents(resp.data || [])
       }
@@ -490,7 +491,7 @@ export default function AdminExternalTicketsPage() {
                               </TableCell>
                               <TableCell>
                                 <div className="text-sm">
-                                  {r.phone_country_code ? `${r.phone_country_code} ${r.phone}` : r.phone}
+                                  {r.countryCode ? `${r.countryCode} ${r.phone}` : r.phone}
                                 </div>
                               </TableCell>
                               <TableCell>

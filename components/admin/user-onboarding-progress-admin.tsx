@@ -32,6 +32,7 @@ import {
 import { getApiUrl } from "@/lib/config"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
+import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 
 interface OnboardingProgress {
   _id: string
@@ -60,6 +61,7 @@ interface OnboardingFlow {
 
 export default function UserOnboardingProgressAdmin() {
   const { user } = useAuth()
+  const clubId = useRequiredClubId()
   const [progressData, setProgressData] = useState<OnboardingProgress[]>([])
   const [flows, setFlows] = useState<OnboardingFlow[]>([])
   const [loading, setLoading] = useState(false)
@@ -70,12 +72,13 @@ export default function UserOnboardingProgressAdmin() {
   useEffect(() => {
     fetchFlows()
     fetchProgressData()
-  }, [])
+  }, [clubId])
 
   const fetchFlows = async () => {
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch(getApiUrl('/onboarding/flows'), {
+      const url = clubId ? `${getApiUrl('/onboarding/flows')}?club=${encodeURIComponent(clubId)}` : getApiUrl('/onboarding/flows')
+      const response = await fetch(url, {
         headers: {
           "Authorization": `Bearer ${token}`,
         },
@@ -86,7 +89,6 @@ export default function UserOnboardingProgressAdmin() {
         setFlows(data.flows || [])
       }
     } catch (error) {
-      // console.error("Error fetching flows:", error)
     }
   }
 
@@ -94,7 +96,8 @@ export default function UserOnboardingProgressAdmin() {
     setLoading(true)
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch(getApiUrl('/onboarding/progress/all'), {
+      const url = clubId ? `${getApiUrl('/onboarding/progress/all')}?club=${encodeURIComponent(clubId)}` : getApiUrl('/onboarding/progress/all')
+      const response = await fetch(url, {
         headers: {
           "Authorization": `Bearer ${token}`,
         },
@@ -107,7 +110,6 @@ export default function UserOnboardingProgressAdmin() {
         toast.error("Failed to fetch user progress data")
       }
     } catch (error) {
-      // console.error("Error fetching progress:", error)
       toast.error("Error loading user progress")
     } finally {
       setLoading(false)
@@ -115,7 +117,6 @@ export default function UserOnboardingProgressAdmin() {
   }
 
   const filteredData = progressData.filter(progress => {
-    // Skip entries without required data
     if (!progress.user || !progress.onboardingFlow) return false
     
     const matchesSearch = 
@@ -144,15 +145,13 @@ export default function UserOnboardingProgressAdmin() {
 
   const calculateProgress = (progress: OnboardingProgress) => {
     if (!progress.onboardingFlow) return 0
-    // This is a simplified calculation. In reality, you'd need to fetch the flow details
-    // to know the total number of steps
     return progress.status === 'completed' ? 100 : 
            progress.status === 'in_progress' ? 50 : 0
   }
 
   const exportToCSV = () => {
     const csvData = filteredData
-      .filter(p => p.user && p.onboardingFlow) // Additional safety check
+      .filter(p => p.user && p.onboardingFlow)
       .map(p => ({
         'User Name': `${p.user.first_name} ${p.user.last_name}`,
         'Email': p.user.email,
@@ -191,7 +190,6 @@ export default function UserOnboardingProgressAdmin() {
 
   return (
     <div className="space-y-6">
-      {/* Statistics Cards */}
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -237,7 +235,6 @@ export default function UserOnboardingProgressAdmin() {
         </Card>
       </div>
 
-      {/* Filters and Search */}
       <Card>
         <CardHeader>
           <CardTitle>User Onboarding Progress</CardTitle>
@@ -291,7 +288,6 @@ export default function UserOnboardingProgressAdmin() {
             </Button>
           </div>
 
-          {/* Progress Table */}
           {loading ? (
             <div className="text-center py-8">Loading...</div>
           ) : filteredData.length === 0 ? (
@@ -349,7 +345,6 @@ export default function UserOnboardingProgressAdmin() {
                           size="sm" 
                           variant="ghost"
                           onClick={() => {
-                            // View detailed progress
                             toast.info("View detailed progress (to be implemented)")
                           }}
                         >

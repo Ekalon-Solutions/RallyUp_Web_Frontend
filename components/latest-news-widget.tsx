@@ -13,6 +13,7 @@ import {
 } from "lucide-react"
 import { apiClient, News } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
+import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import Link from "next/link"
 import { formatLocalDate } from "@/lib/timezone"
 
@@ -23,21 +24,31 @@ interface LatestNewsWidgetProps {
 
 export function LatestNewsWidget({ limit = 3, showManageButton = true }: LatestNewsWidgetProps) {
   const { user } = useAuth()
+  const clubId = useRequiredClubId()
   const isAdmin = user?.role === 'admin' || user?.role === 'super_admin'
   const [news, setNews] = useState<News[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     fetchRecentNews()
-  }, [])
+  }, [clubId, isAdmin, limit])
 
   const fetchRecentNews = async () => {
     setLoading(true)
     try {
-      // If user is authenticated, fetch news for their club (server uses req.user.club)
+      if (!clubId) {
+        setNews([])
+        setLoading(false)
+        return
+      }
+
       const response = isAdmin
-        ? await apiClient.getNewsByMyClub()
-        : await apiClient.getPublicNews()
+        ? await apiClient.getNews({
+            clubId,
+            page: 1,
+            limit: 50
+          })
+        : await apiClient.getPublicNews(clubId)
 
       if (response.success && response.data) {
         const newsData = Array.isArray(response.data) ? response.data : (response.data as any).news || []

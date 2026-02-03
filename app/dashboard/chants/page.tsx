@@ -32,6 +32,7 @@ import {
   Globe
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { useRequiredClubId } from '@/hooks/useRequiredClubId';
 
 interface ChantFormData {
   title: string;
@@ -70,44 +71,7 @@ export default function ChantsManagementPage() {
     iframeHeight: '600px'
   });
 
-  const clubId = React.useMemo(() => {
-    if (!user || user.role === 'system_owner') return null;
-    
-    // console.log('🔍 Debugging user object for club ID:', {
-    //   role: user.role,
-    //   user: user,
-    //   club: (user as any).club,
-    //   memberships: (user as any).memberships
-    // });
-    
-    // First try to get club from memberships (new structure)
-    const userMemberships = (user as any).memberships || [];
-    const activeMembership = userMemberships.find((m: any) => m.status === 'active');
-    if (activeMembership?.club_id?._id) {
-      // // console.log('🔍 Found club ID from active membership:', activeMembership.club_id._id);
-      return activeMembership.club_id._id;
-    }
-    
-    // Fallback: try to get club from old club field (for backward compatibility)
-    if ((user as any).club?._id) {
-      // console.log('🔍 Found club ID from old club field:', (user as any).club._id);
-      return (user as any).club._id;
-    }
-    
-    // If still no club, try to find any membership (even if not active)
-    if (userMemberships.length > 0 && userMemberships[0]?.club_id?._id) {
-      // // console.log('🔍 Found club ID from first membership:', userMemberships[0].club_id._id);
-      return userMemberships[0].club_id._id;
-    }
-    
-    // console.log('❌ No club ID found for user:', {
-    //   role: user.role,
-    //   hasMemberships: !!userMemberships.length,
-    //   memberships: userMemberships,
-    //   oldClub: (user as any).club
-    // });
-    return null;
-  }, [user]);
+  const clubId = useRequiredClubId();
 
   useEffect(() => {
     if (clubId) {

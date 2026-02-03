@@ -34,19 +34,16 @@ const CartContext = createContext<CartContextType | undefined>(undefined)
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([])
 
-  // Load cart from localStorage on mount
   useEffect(() => {
     const savedCart = localStorage.getItem('rallyup-cart')
     if (savedCart) {
       try {
         setItems(JSON.parse(savedCart))
       } catch (error) {
-        // console.error('Error loading cart from localStorage:', error)
       }
     }
   }, [])
 
-  // Save cart to localStorage whenever items change
   useEffect(() => {
     localStorage.setItem('rallyup-cart', JSON.stringify(items))
   }, [items])
@@ -59,10 +56,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const existingItem = prevItems.find(item => item._id === newItem._id)
       
       if (existingItem) {
-        // Check if adding more would exceed stock
         const newQuantity = existingItem.quantity + 1
         if (newQuantity > newItem.stockQuantity) {
-          return prevItems // Don't add if would exceed stock
+          return prevItems
         }
         
         return prevItems.map(item =>
@@ -71,7 +67,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
             : item
         )
       } else {
-        // Add new item
         return [...prevItems, { ...newItem, quantity: 1 }]
       }
     })
@@ -91,7 +86,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const item = prevItems.find(item => item._id === itemId)
       if (!item) return prevItems
 
-      // Don't allow quantity to exceed stock
       const newQuantity = Math.min(quantity, item.stockQuantity)
       
       return prevItems.map(item =>

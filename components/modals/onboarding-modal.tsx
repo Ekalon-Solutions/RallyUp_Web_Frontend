@@ -17,6 +17,7 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 import { getApiUrl, API_ENDPOINTS } from "@/lib/config"
+import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 
 interface OnboardingStep {
   id: string
@@ -34,8 +35,8 @@ interface OnboardingModalProps {
 
 export default function OnboardingModal({ isOpen, onClose, onFlowCreated }: OnboardingModalProps) {
   const [loading, setLoading] = useState(false)
+  const clubId = useRequiredClubId()
   
-  // Form states
   const [flowName, setFlowName] = useState("")
   const [flowDescription, setFlowDescription] = useState("")
   const [targetAudience, setTargetAudience] = useState<'new_members' | 'existing_members' | 'all'>('new_members')
@@ -98,6 +99,11 @@ export default function OnboardingModal({ isOpen, onClose, onFlowCreated }: Onbo
 
     setLoading(true)
     try {
+      if (!clubId) {
+        toast.error("Please select a club")
+        setLoading(false)
+        return
+      }
       const token = localStorage.getItem('token')
       const response = await fetch(getApiUrl(API_ENDPOINTS.onboarding.flows), {
         method: 'POST',
@@ -108,6 +114,7 @@ export default function OnboardingModal({ isOpen, onClose, onFlowCreated }: Onbo
         body: JSON.stringify({
           name: flowName,
           description: flowDescription,
+          club: clubId,
           targetAudience,
           estimatedDuration,
           steps: steps.map(step => ({
@@ -127,7 +134,6 @@ export default function OnboardingModal({ isOpen, onClose, onFlowCreated }: Onbo
         toast.error(data.message || "Failed to create onboarding flow")
       }
     } catch (error) {
-      // console.error('Error creating onboarding flow:', error)
       toast.error("An error occurred while creating the flow")
     } finally {
       setLoading(false)
@@ -179,7 +185,6 @@ export default function OnboardingModal({ isOpen, onClose, onFlowCreated }: Onbo
 
         <div className="space-y-6">
             <div className="grid gap-6 md:grid-cols-2">
-              {/* Basic Information */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -239,7 +244,6 @@ export default function OnboardingModal({ isOpen, onClose, onFlowCreated }: Onbo
                 </CardContent>
               </Card>
 
-              {/* Steps Management */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">

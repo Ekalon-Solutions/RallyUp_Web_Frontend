@@ -15,7 +15,6 @@ import { SiteNavbar } from "@/components/site-navbar"
 import { SiteFooter } from "@/components/site-footer"
 import { RecaptchaVerifier, signInWithPhoneNumber, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink } from "firebase/auth"
 import { auth } from "@/lib/firebase/config"
-import { isDevelopment, debugLog } from "@/lib/config"
 
 const DEBUG_OTP = "123456"
 
@@ -243,7 +242,28 @@ function AuthPageContent() {
 
   useEffect(() => {
     if (isAuthenticated && user) {
+      const nextParam = searchParams.get("next")
+      const isSafeNext =
+        typeof nextParam === "string" &&
+        nextParam.startsWith("/") &&
+        !nextParam.startsWith("//") &&
+        !nextParam.toLowerCase().startsWith("/\\") &&
+        !nextParam.includes("://")
+
+      if (isSafeNext) {
+        router.push(nextParam)
+        return
+      }
+
       const userAny = user as any
+      const isAdmin = userAny.role === 'admin' || userAny.role === 'super_admin'
+      const adminHasClub = !!(userAny.club?._id || userAny.club)
+
+      if (isAdmin && adminHasClub) {
+        router.push('/splash')
+        return
+      }
+
       const memberships = userAny.memberships || []
       const activeMemberships = memberships.filter((m: any) => m.status === 'active')
       const uniqueClubIds = new Set<string>()
@@ -254,7 +274,7 @@ function AuthPageContent() {
       const redirectPath = uniqueClubIds.size > 1 ? "/splash" : "/dashboard"
       router.push(redirectPath)
     }
-  }, [isAuthenticated, user, router])
+  }, [isAuthenticated, user, router, searchParams])
 
   useEffect(() => {
     const club = searchParams.get("club")

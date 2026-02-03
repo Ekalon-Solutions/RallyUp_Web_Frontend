@@ -21,16 +21,21 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+function getInitialActiveClubId(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("activeClubId");
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | Admin | SystemOwner | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [activeClubId, setActiveClubIdState] = useState<string | null>(null);
+  const [activeClubId, setActiveClubIdState] = useState<string | null>(getInitialActiveClubId);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     const userType = localStorage.getItem('userType');
     const savedClubId = localStorage.getItem('activeClubId');
-    if (savedClubId) {
+    if (savedClubId && savedClubId !== activeClubId) {
       setActiveClubIdState(savedClubId);
     }
     checkAuth();
@@ -45,11 +50,60 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const deriveActiveClubIdFromUser = (u: any): string | null => {
+    if (!u) return null;
+    if (u?.club?._id) return u.club._id;
+    if (typeof u?.club === 'string') return u.club;
+
+    const memberships = Array.isArray(u?.memberships) ? u.memberships : [];
+    const activeMembership = memberships.find((m: any) => m?.status === 'active');
+    const clubId = activeMembership?.club_id?._id || activeMembership?.club_id;
+    return clubId || null;
+  };
+
+  const hydrateUserProfile = async (opts: {
+    isAdmin: boolean;
+    isSystemOwner: boolean;
+    fallbackUserData: any;
+  }): Promise<User | Admin | SystemOwner> => {
+    const { isAdmin, isSystemOwner, fallbackUserData } = opts;
+
+    try {
+      let profileResponse:
+        | Awaited<ReturnType<typeof apiClient.userProfile>>
+        | Awaited<ReturnType<typeof apiClient.adminProfile>>
+        | Awaited<ReturnType<typeof apiClient.systemOwnerProfile>>;
+
+      if (isSystemOwner) {
+        profileResponse = await apiClient.systemOwnerProfile();
+      } else if (isAdmin) {
+        profileResponse = await apiClient.adminProfile();
+      } else {
+        profileResponse = await apiClient.userProfile();
+      }
+
+      if (profileResponse?.success && profileResponse.data) {
+        const clubId = deriveActiveClubIdFromUser(profileResponse.data as any);
+        if (clubId && !activeClubId) {
+          setActiveClubId(clubId);
+        }
+        return profileResponse.data as any;
+      }
+    } catch {
+    }
+
+    const clubId = deriveActiveClubIdFromUser(fallbackUserData);
+    if (clubId && !activeClubId) {
+      setActiveClubId(clubId);
+    }
+    return fallbackUserData as any;
+  };
+
   const checkAuth = async () => {
     try {
       const token = localStorage.getItem('token');
       const userType = localStorage.getItem('userType');
-      // // console.log('Checking auth with token:', token ? 'exists' : 'missing', 'UserType:', userType);
+      // console.log('Checking auth with token:', token ? 'exists' : 'missing', 'UserType:', userType);
       
       if (!token) {
         setIsLoading(false);
@@ -63,40 +117,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // console.log('Trying admin profile (from userType)...');
           const adminResponse = await apiClient.adminProfile();
           if (adminResponse.success && adminResponse.data) {
-            // // console.log('Setting user from admin profile:', adminResponse.data);
+            // console.log('Setting user from admin profile:', adminResponse.data);
             setUser(adminResponse.data);
             setIsLoading(false);
             return;
           }
         } catch (error) {
-          // // console.log('Admin profile failed, falling back to discovery');
+          // console.log('Admin profile failed, falling back to discovery');
         }
       } else if (userType === 'system_owner') {
         try {
           // console.log('Trying system owner profile (from userType)...');
           const systemOwnerResponse = await apiClient.systemOwnerProfile();
           if (systemOwnerResponse.success && systemOwnerResponse.data) {
-            // // console.log('Setting user from system owner profile:', systemOwnerResponse.data);
+            // console.log('Setting user from system owner profile:', systemOwnerResponse.data);
             setUser(systemOwnerResponse.data);
             setIsLoading(false);
             return;
           }
         } catch (error) {
-          // // console.log('System owner profile failed, falling back to discovery');
+          // console.log('System owner profile failed, falling back to discovery');
         }
       } else if (userType === 'member' || userType === 'user') {
-        // Try user profile first
         try {
           // console.log('Trying user profile (from userType)...');
           const userResponse = await apiClient.userProfile();
           if (userResponse.success && userResponse.data) {
-            // // console.log('Setting user from user profile:', userResponse.data);
+            // console.log('Setting user from user profile:', userResponse.data);
             setUser(userResponse.data);
             setIsLoading(false);
             return;
           }
         } catch (error) {
-          // // console.log('User profile failed, falling back to discovery');
+          // console.log('User profile failed, falling back to discovery');
         }
       }
 
@@ -104,20 +157,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // console.log('Trying user profile (discovery)...');
         const userResponse = await apiClient.userProfile();
         if (userResponse.success && userResponse.data) {
-          // // console.log('Setting user from user profile:', userResponse.data);
+          // console.log('Setting user from user profile:', userResponse.data);
           setUser(userResponse.data);
           localStorage.setItem('userType', 'member');
           setIsLoading(false);
           return;
         }
       } catch (error) {
-        // Silently continue to next check
       }
       try {
         // console.log('Trying admin profile (discovery)...');
         const adminResponse = await apiClient.adminProfile();
         if (adminResponse.success && adminResponse.data) {
-          // // console.log('Setting user from admin profile:', adminResponse.data);
+          // console.log('Setting user from admin profile:', adminResponse.data);
           setUser(adminResponse.data);
           localStorage.setItem('userType', adminResponse.data.role);
           setIsLoading(false);
@@ -129,7 +181,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // console.log('Trying system owner profile (discovery)...');
         const systemOwnerResponse = await apiClient.systemOwnerProfile();
         if (systemOwnerResponse.success && systemOwnerResponse.data) {
-          // // console.log('Setting user from system owner profile:', systemOwnerResponse.data);
+          // console.log('Setting user from system owner profile:', systemOwnerResponse.data);
           setUser(systemOwnerResponse.data);
           localStorage.setItem('userType', 'system_owner');
           setIsLoading(false);
@@ -142,7 +194,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.removeItem('userType');
       setUser(null);
     } catch (error) {
-      // // console.error('Auth check failed:', error);
+      // console.error('Auth check failed:', error);
       localStorage.removeItem('token');
       localStorage.removeItem('userType');
       setUser(null);
@@ -175,7 +227,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (response.success && response.data) {
-        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('token', (response.data as any).token);
         let userData: any;
         
         if (isSystemOwner) {
@@ -190,6 +242,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         
         setUser(userData);
+        const hydrated = await hydrateUserProfile({
+          isAdmin,
+          isSystemOwner,
+          fallbackUserData: userData
+        });
+        setUser(hydrated);
         return { success: true };
       } else {
         const errorMessage = response.error || response.message || 
@@ -220,32 +278,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (response.success && response.data) {
-        localStorage.setItem('token', response.data.token);
-        let userData;
+        localStorage.setItem('token', (response.data as any).token);
+        let createdUserData;
         
         let userType: string;
         
         if (isSystemOwner) {
-          userData = (response.data as any).systemOwner || response.data;
+          createdUserData = (response.data as any).systemOwner || response.data;
           userType = 'system_owner';
         } else if (isAdmin) {
-          userData = (response.data as any).admin || response.data;
-          userType = userData.role;
+          createdUserData = (response.data as any).admin || response.data;
+          userType = createdUserData.role;
         } else {
-          userData = (response.data as any).user || response.data;
+          createdUserData = (response.data as any).user || response.data;
           userType = 'member';
         }
         
         localStorage.setItem('userType', userType);
         
-        setUser(userData);
+        setUser(createdUserData);
+        const hydrated = await hydrateUserProfile({
+          isAdmin,
+          isSystemOwner,
+          fallbackUserData: createdUserData
+        });
+        setUser(hydrated);
         return { success: true };
       } else {
-        // // console.error('Registration failed:', response.error);
+        // console.error('Registration failed:', response.error);
         return { success: false, error: response.error || 'Registration failed' };
       }
     } catch (error) {
-      // // console.error('Registration error:', error);
+      // console.error('Registration error:', error);
       return { success: false, error: 'Network error occurred' };
     }
   };
@@ -273,16 +337,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             ? `${updatedUser.first_name} ${updatedUser.last_name}`.trim()
             : prevUser?.name || '') : updatedUser.name || prevUser?.name,
           phoneNumber: updatedUser.phoneNumber || prevUser?.phoneNumber || '',
-          countryCode: updatedUser.phone_country_code || prevUser?.countryCode || '+1',
+          countryCode: updatedUser.countryCode || prevUser?.countryCode || '+1',
         } as any));
         
         return { success: true };
       } else {
-        // // console.error('Profile update failed:', response.error);
+        // console.error('Profile update failed:', response.error);
         return { success: false, error: response.error || 'Profile update failed' };
       }
     } catch (error) {
-      // // console.error('Profile update error:', error);
+      // console.error('Profile update error:', error);
       return { success: false, error: 'Network error occurred' };
     }
   };
@@ -303,7 +367,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     checkAuth,
   };
 
-  // // console.log('Auth context value:', { user, isAdmin: user?.role === 'admin', userRole: user?.role });
+  // console.log('Auth context value:', { user, isAdmin: user?.role === 'admin', userRole: user?.role });
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

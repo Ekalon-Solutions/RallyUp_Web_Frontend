@@ -57,6 +57,8 @@ export default function DashboardPage() {
       return
     }
 
+    let noClubTimer: ReturnType<typeof setTimeout> | undefined
+
     const resolveClubId = () => {
       if (!user || user.role === 'system_owner') return undefined
       const userAny = user as any
@@ -78,7 +80,9 @@ export default function DashboardPage() {
 
       const clubId = resolveClubId()
       if (!clubId) {
-        setLoading(false)
+        setStats(null)
+        setLoading(true)
+        noClubTimer = setTimeout(() => setLoading(false), 2500)
         return
       }
 
@@ -126,6 +130,10 @@ export default function DashboardPage() {
     }
 
     fetchDashboardStats()
+
+    return () => {
+      if (noClubTimer) clearTimeout(noClubTimer)
+    }
   }, [user, authLoading, activeClubId])
   
   const getClubInfo = () => {
@@ -184,7 +192,7 @@ export default function DashboardPage() {
   return (
     <ProtectedRoute>
       <DashboardLayout>
-        <div className="max-w-7xl mx-auto space-y-10">
+        <div className="space-y-6">
           <div className={`fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm transition-opacity duration-1000 ease-in-out pointer-events-none ${showLogo ? 'opacity-100' : 'opacity-0'}`}>
             <div className={`relative w-32 h-32 md:w-40 md:h-40 transition-all duration-1000 ease-in-out ${logoFadeIn && showLogo ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
               {displayLogo ? (
@@ -208,75 +216,59 @@ export default function DashboardPage() {
               )}
             </div>
           </div>
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b">
-            <div className="space-y-2">
-              <h1 className="text-4xl font-black tracking-tight">Dashboard</h1>
-              <p className="text-muted-foreground text-lg font-medium">Welcome back! Here's what's happening with your supporter group.</p>
+          {/* Header - consistent with other admin sections */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold">Dashboard</h1>
+              <p className="text-muted-foreground text-sm sm:text-base">Welcome back! Here's what's happening with your supporter group.</p>
             </div>
           </div>
 
           {/* Stats Grid */}
           {loading ? (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
               {[1, 2, 3].map((i) => (
-                <Card key={i} className="border-2 shadow-sm rounded-3xl">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-                    <CardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground">Loading...</CardTitle>
-                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                <Card key={i}>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                    <CardTitle className="text-sm font-medium">Loading...</CardTitle>
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-black">--</div>
+                    <div className="text-2xl font-bold">--</div>
                   </CardContent>
                 </Card>
               ))}
             </div>
           ) : stats ? (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              <Card className="border-2 shadow-xl rounded-[2rem] overflow-hidden group hover:border-blue-500/50 transition-all duration-500">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 p-8">
-                  <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">Active Members</CardTitle>
-                  <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-500 shadow-inner">
-                    <Users className="h-6 w-6 text-blue-600" />
-                  </div>
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Active Members</CardTitle>
+                  <Users className="h-4 w-4 text-blue-600" />
                 </CardHeader>
-                <CardContent className="p-8 pt-0">
-                  <div className="text-4xl font-black">{stats.activeMembers}</div>
-                  <p className="text-sm font-bold text-muted-foreground mt-2 flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
-                    {stats.totalMembers} total members
-                  </p>
+                <CardContent>
+                  <div className="text-2xl font-bold text-blue-600">{stats.activeMembers}</div>
+                  <p className="text-xs text-muted-foreground mt-1">{stats.totalMembers} total members</p>
                 </CardContent>
               </Card>
-              
-              <Card className="border-2 shadow-xl rounded-[2rem] overflow-hidden group hover:border-green-500/50 transition-all duration-500">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 p-8">
-                  <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">Upcoming Events</CardTitle>
-                  <div className="w-12 h-12 rounded-2xl bg-green-500/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-500 shadow-inner">
-                    <Calendar className="h-6 w-6 text-green-600" />
-                  </div>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Upcoming Events</CardTitle>
+                  <Calendar className="h-4 w-4 text-green-600" />
                 </CardHeader>
-                <CardContent className="p-8 pt-0">
-                  <div className="text-4xl font-black">{stats.upcomingEvents}</div>
-                  <p className="text-sm font-bold text-muted-foreground mt-2 flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-                    Live match screenings & socials
-                  </p>
+                <CardContent>
+                  <div className="text-2xl font-bold text-green-600">{stats.upcomingEvents}</div>
+                  <p className="text-xs text-muted-foreground mt-1">Live match screenings & socials</p>
                 </CardContent>
               </Card>
-
-              <Card className="border-2 shadow-xl rounded-[2rem] overflow-hidden group hover:border-purple-500/50 transition-all duration-500">
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4 p-8">
-                  <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground">Store Revenue</CardTitle>
-                  <div className="w-12 h-12 rounded-2xl bg-purple-500/10 flex items-center justify-center group-hover:scale-110 transition-transform duration-500 shadow-inner">
-                    <ShoppingBag className="h-6 w-6 text-purple-600" />
-                  </div>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Store Revenue</CardTitle>
+                  <ShoppingBag className="h-4 w-4 text-purple-600" />
                 </CardHeader>
-                <CardContent className="p-8 pt-0">
-                  <div className="text-4xl font-black">₹{stats.storeRevenue.toLocaleString()}</div>
-                  <p className="text-sm font-bold text-muted-foreground mt-2 flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-purple-500 animate-pulse"></span>
-                    Monthly merchandise sales
-                  </p>
+                <CardContent>
+                  <div className="text-2xl font-bold text-purple-600">₹{stats.storeRevenue.toLocaleString()}</div>
+                  <p className="text-xs text-muted-foreground mt-1">Monthly merchandise sales</p>
                 </CardContent>
               </Card>
             </div>

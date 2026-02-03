@@ -35,7 +35,7 @@ interface UserEventRegistrationModalProps {
   onClose: () => void
   onRegister?: (payload: { eventId: string; attendees: Attendee[]; couponCode?: string }) => void
   ticketPrice?: number
-  event?: any // Full event object to access member discount info
+  event?: any
 }
 
 export default function UserEventRegistrationModal({ eventId, isOpen, onClose, onRegister, ticketPrice = 0, event }: UserEventRegistrationModalProps) {
@@ -43,19 +43,15 @@ export default function UserEventRegistrationModal({ eventId, isOpen, onClose, o
   const [ticketCount, setTicketCount] = useState<number>(1)
   const [attendees, setAttendees] = useState<Attendee[]>([{ name: '', phone: '', phoneCode: '', open: true }])
   
-  // Coupon states
   const [couponCode, setCouponCode] = useState("")
   const [validatingCoupon, setValidatingCoupon] = useState(false)
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null)
   
-  // Calculate member discount
   const isMember = user && (user as any).membershipStatus === 'active'
   
-  // Calculate early bird discount (check if it's members-only)
   const calculateEarlyBirdDiscount = () => {
     if (!event?.earlyBirdDiscount?.enabled) return 0
     
-    // If early bird is members-only and user is not a member, no discount
     if (event.earlyBirdDiscount.membersOnly && !isMember) return 0
     
     const now = new Date()
@@ -74,7 +70,6 @@ export default function UserEventRegistrationModal({ eventId, isOpen, onClose, o
   const earlyBirdDiscount = calculateEarlyBirdDiscount()
   const priceAfterEarlyBird = Math.max(ticketPrice - earlyBirdDiscount, 0)
   
-  // Member discount applies on top of early bird
   const memberDiscount = event?.memberDiscount?.enabled && isMember
     ? event.memberDiscount.type === 'percentage'
       ? (priceAfterEarlyBird * event.memberDiscount.value) / 100
@@ -85,7 +80,6 @@ export default function UserEventRegistrationModal({ eventId, isOpen, onClose, o
   const priceAfterMemberDiscount = Math.max(priceAfterEarlyBird - memberDiscount, 0)
 
   useEffect(() => {
-    // keep attendees in sync with ticketCount and prefill primary attendee when available
     setAttendees(prev => {
       const copy = [...prev]
       if (ticketCount > copy.length) {
@@ -95,24 +89,21 @@ export default function UserEventRegistrationModal({ eventId, isOpen, onClose, o
       }
       if (copy[0]) copy[0].open = true
 
-      // Prefill primary attendee from signed-in user when modal is opening
       if (isOpen && user && copy[0]) {
         try {
           const userName = (user as any).name || `${(user as any).first_name || ''} ${(user as any).last_name || ''}`.trim()
           const userPhone = (user as any).phoneNumber || (user as any).phoneNumber || (user as any).phone || ''
-          const userCode = (user as any).phone_country_code || ''
+          const userCode = (user as any).countryCode || ''
           if (!copy[0].name && userName) copy[0].name = userName
           if (!copy[0].phone && userPhone) copy[0].phone = userPhone
           if (!copy[0].phoneCode && userCode) copy[0].phoneCode = userCode
         } catch (e) {
-          // ignore
         }
       }
 
       return copy
     })
     
-    // Reset coupon when modal closes
     if (!isOpen) {
       setCouponCode("")
       setAppliedCoupon(null)
@@ -168,25 +159,28 @@ export default function UserEventRegistrationModal({ eventId, isOpen, onClose, o
       a.phoneFull = `${code}${p}`
     }
 
-    // Apply coupon if one is being used
     let couponToApply = null
     if (appliedCoupon && priceAfterMemberDiscount > 0) {
-      try {
-        const applyResponse = await apiClient.applyCoupon(
-          appliedCoupon.code,
-          eventId,
-          priceAfterMemberDiscount * ticketCount
-        )
-        
-        if (applyResponse.success) {
-          couponToApply = appliedCoupon.code
-        } else {
-          toast.error(applyResponse.error || "Failed to apply coupon")
+      if (!user) {
+        couponToApply = appliedCoupon.code
+      } else {
+        try {
+          const applyResponse = await apiClient.applyCoupon(
+            appliedCoupon.code,
+            eventId,
+            priceAfterMemberDiscount * ticketCount
+          )
+          
+          if (applyResponse.success) {
+            couponToApply = appliedCoupon.code
+          } else {
+            toast.error(applyResponse.error || "Failed to apply coupon")
+            return
+          }
+        } catch (error) {
+          toast.error("Failed to apply coupon")
           return
         }
-      } catch (error) {
-        toast.error("Failed to apply coupon")
-        return
       }
     }
 
@@ -211,7 +205,6 @@ export default function UserEventRegistrationModal({ eventId, isOpen, onClose, o
 
     setValidatingCoupon(true)
     try {
-      // Use price after member discount for coupon validation
       const totalPrice = priceAfterMemberDiscount * ticketCount
       const response = await apiClient.validateCoupon(
         couponCode.toUpperCase(),
@@ -227,7 +220,6 @@ export default function UserEventRegistrationModal({ eventId, isOpen, onClose, o
         toast.error(response.error || "Invalid coupon code")
       }
     } catch (error) {
-      // console.error("Error validating coupon:", error)
       setAppliedCoupon(null)
       toast.error("Failed to validate coupon")
     } finally {

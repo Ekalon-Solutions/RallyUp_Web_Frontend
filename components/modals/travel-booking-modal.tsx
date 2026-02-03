@@ -42,9 +42,7 @@ export function TravelBookingModal({ trigger }: TravelBookingModalProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    // console.log("Creating travel booking:", formData)
     setOpen(false)
-    // Reset form
     setFormData({
       destination: "",
       match: "",

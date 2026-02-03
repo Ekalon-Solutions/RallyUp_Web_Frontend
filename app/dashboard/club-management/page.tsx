@@ -322,7 +322,7 @@ export default function ClubManagementPage() {
     if (!user || !selectedClubId) return
 
     const phoneNumber = (user as any).phoneNumber || (user as any).phoneNumber
-    const countryCode = (user as any).countryCode || (user as any).phone_country_code || '+1'
+    const countryCode = (user as any).countryCode || '+1'
 
     if (!phoneNumber || phoneNumber.trim() === '') {
       const userType = (user as any).role === 'system_owner' ? 'system owner' : 'admin'

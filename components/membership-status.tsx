@@ -74,11 +74,8 @@ export function MembershipStatus() {
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground mb-4">
-            You are not currently a member of any club. Browse available clubs to join one.
+            You are not currently a member of any club. Please contact your club admin or support to get access.
           </p>
-          <Button asChild>
-            <a href="/dashboard/user/clubs">Browse Clubs</a>
-          </Button>
         </CardContent>
       </Card>
     )
@@ -193,14 +190,6 @@ export function MembershipStatus() {
               <CreditCard className="w-4 h-4 mr-2" />
               View Membership Card
             </a>
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="flex-1 sm:flex-none"
-            asChild
-          >
-            <a href="/dashboard/user/clubs">Browse Other Clubs</a>
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>

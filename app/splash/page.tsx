@@ -33,7 +33,8 @@ export default function SplashPage() {
         setIsLoading(true)
         const userAny = user as any
         const memberships = userAny.memberships || []
-        
+        const isAdmin = userAny.role === 'admin' || userAny.role === 'super_admin'
+
         const activeMemberships = memberships.filter((m: any) => m.status === 'active')
         const uniqueClubIds = new Set<string>()
         const clubsList: Club[] = []
@@ -51,6 +52,21 @@ export default function SplashPage() {
             })
           }
         })
+
+        if (clubsList.length === 0 && isAdmin && (userAny.club?._id || userAny.club)) {
+          const club = userAny.club
+          const clubId = club._id || club
+          if (clubId && !uniqueClubIds.has(clubId)) {
+            uniqueClubIds.add(clubId)
+            clubsList.push({
+              _id: clubId,
+              name: typeof club === 'object' ? (club.name || 'Unknown Club') : 'Unknown Club',
+              logo: typeof club === 'object' ? club.logo : undefined,
+              description: typeof club === 'object' ? club.description : undefined,
+              settingsLogo: undefined
+            })
+          }
+        }
 
         const clubsWithSettings = await Promise.all(
           clubsList.map(async (club) => {
@@ -76,9 +92,14 @@ export default function SplashPage() {
           return
         }
 
-        if (clubsList.length === 1 && !activeClubId) {
+        if (clubsList.length === 1 && !activeClubId && !isAdmin) {
           setActiveClubId(clubsList[0]._id)
           router.push('/dashboard')
+          return
+        }
+
+        if (clubsList.length === 1 && isAdmin) {
+          if (!activeClubId) setActiveClubId(clubsList[0]._id)
           return
         }
 
@@ -128,11 +149,15 @@ export default function SplashPage() {
           <div className="text-center mb-8">
             <div className="mx-auto mb-6 relative w-20 h-20 md:w-24 md:h-24">
               {(() => {
-                const logoToUse = clubs.length === 1 && (clubs[0].settingsLogo || clubs[0].logo)
-                  ? (clubs[0].settingsLogo || clubs[0].logo || "/WingmanPro Logo (White BG).svg")
-                  : "/WingmanPro Logo (White BG).svg"
-                const altText = clubs.length === 1 && clubs[0].name
-                  ? `${clubs[0].name} logo`
+                const selectedClubForLogo = activeClubId
+                  ? clubs.find((c) => c._id === activeClubId)
+                  : clubs.length === 1
+                    ? clubs[0]
+                    : null
+                const clubLogo = selectedClubForLogo?.settingsLogo || selectedClubForLogo?.logo
+                const logoToUse = clubLogo ?? "/WingmanPro Logo (White BG).svg"
+                const altText = selectedClubForLogo?.name
+                  ? `${selectedClubForLogo.name} logo`
                   : "Wingman Pro logo"
                 return (
                   <Image

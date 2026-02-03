@@ -100,7 +100,6 @@ function ClubsPageContent() {
   const [priceFilter, setPriceFilter] = useState("all")
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [registrationData, setRegistrationData] = useState({
-    // Lightweight registration fields (expanded below)
     username: "",
     first_name: "",
     last_name: "",
@@ -118,7 +117,6 @@ function ClubsPageContent() {
     level_name: "",
     id_proof_type: "Aadhar",
     id_proof_number: "",
-    // Keep legacy name for compatibility where used elsewhere
     name: ""
   })
   const [isRegistering, setIsRegistering] = useState(false)
@@ -137,14 +135,50 @@ function ClubsPageContent() {
   const searchParams = useSearchParams()
 
   useEffect(() => {
-    // If a `search` query param is present, pre-populate searchTerm so
-    // initial filtering happens based on the URL.
     const initialSearch = searchParams?.get?.('search') || ''
     if (initialSearch) setSearchTerm(initialSearch)
 
     fetchClubs()
     fetchUserMemberships()
   }, [])
+
+  useEffect(() => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null
+    let pending: { clubId: string; membershipPlanId: string } | null = null
+    try {
+      const raw = typeof window !== "undefined" ? sessionStorage.getItem("clubs_pending_join") : null
+      if (raw) pending = JSON.parse(raw) as { clubId: string; membershipPlanId: string }
+    } catch (_) {}
+    if (!token || !pending) return
+
+    sessionStorage.removeItem("clubs_pending_join")
+    const clubId = pending.clubId
+    const membershipPlanId = pending.membershipPlanId
+
+    const completePendingJoin = async () => {
+      try {
+        const res = await fetch(getApiUrl(API_ENDPOINTS.users.joinClubRequest), {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ clubId, membershipPlanId }),
+        })
+        const data = await res.json()
+        if (res.ok) {
+          toast.success("Successfully joined the club!")
+          fetchClubs()
+          router.push("/dashboard/user/my-clubs")
+        } else {
+          toast.error(data.message || "Failed to join club.")
+        }
+      } catch (_) {
+        toast.error("Failed to complete club join.")
+      }
+    }
+    completePendingJoin()
+  }, [router])
 
   useEffect(() => {
     filterClubs()
@@ -157,7 +191,6 @@ function ClubsPageContent() {
       const data = await response.json()
       
       if (response.ok) {
-        // Cast API response to local Club[] to satisfy local UI types
         setClubs((data.clubs || []) as unknown as Club[])
       } else {
         toast.error("Failed to load clubs")
@@ -187,7 +220,6 @@ function ClubsPageContent() {
         setUserMemberships(clubIds)
       }
     } catch (error) {
-      // Silently fail - user might not be logged in
       // console.log("Could not fetch user memberships:", error)
     }
   }
@@ -199,7 +231,6 @@ function ClubsPageContent() {
   const filterClubs = () => {
     let filtered = clubs
 
-    // Search filter
     if (searchTerm) {
       filtered = filtered.filter(club =>
         club.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -208,12 +239,9 @@ function ClubsPageContent() {
       )
     }
 
-    // Status filter
     if (statusFilter !== "all") {
       filtered = filtered.filter(club => club.status === statusFilter)
     }
-
-    // Price filter
     if (priceFilter !== "all") {
       filtered = filtered.filter(club => {
         const plans = club.membershipPlans?.filter(plan => plan.isActive) || []
@@ -337,7 +365,37 @@ function ClubsPageContent() {
           }
         }
       } else {
-        toast.error(registerData.message || "Registration failed")
+        const isExistingEmail = registerData.message === "Email already exists"
+        const isExistingPhone = registerData.message === "A user with this phone number and country code already exists"
+        if (isExistingEmail || isExistingPhone) {
+          // Don't show error; check if the requested membership plan exists for this club
+          const checkResponse = await fetch(getApiUrl(API_ENDPOINTS.users.checkExistingUserPlan), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: registrationData.email,
+              phoneNumber: registrationData.phoneNumber,
+              countryCode: registrationData.countryCode || "+91",
+              clubId: selectedClub._id,
+              membershipPlanId: selectedPlan._id,
+            }),
+          })
+          const checkData = await checkResponse.json()
+          if (checkResponse.ok && checkData.planValid) {
+            toast.info("An account with this email or phone already exists. Please log in to join this club.")
+            try {
+              sessionStorage.setItem(
+                "clubs_pending_join",
+                JSON.stringify({ clubId: selectedClub._id, membershipPlanId: selectedPlan._id })
+              )
+            } catch (_) {}
+            router.push("/login?redirect=/clubs")
+          } else {
+            toast.error(checkData.message || "This membership plan is no longer available for this club.")
+          }
+        } else {
+          toast.error(registerData.message || "Registration failed")
+        }
       }
     } catch (error) {
       // console.error("Registration error:", error)
@@ -392,13 +450,11 @@ function ClubsPageContent() {
     if (!selectedClub || !selectedPlan) return
     setIsRegistering(true)
     try {
-      // Store token now that payment succeeded
       if (registeredToken) {
         localStorage.setItem('token', registeredToken)
         localStorage.setItem('userType', 'member')
       }
 
-      // Finalize join including payment details
       const response = await fetch(getApiUrl(API_ENDPOINTS.users.joinClubRequest), {
         method: 'POST',
         headers: {
@@ -1126,10 +1182,22 @@ function ClubsPageContent() {
               <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg p-2">
                 <Users className="w-5 h-5 text-white" />
               </div>
-              Join {selectedClub?.name}
+              {selectedPlan?.price ? "Register & Pay — Join " + selectedClub?.name : "Register & Join — " + selectedClub?.name}
             </DialogTitle>
-            <DialogDescription>
-              Complete your registration to join the club with the {selectedPlan?.name} plan.
+            <DialogDescription className="space-y-1">
+              {selectedPlan?.price ? (
+                <>
+                  <span className="block font-medium">Step 1: Register</span>
+                  <span className="block text-muted-foreground">We create your account first.</span>
+                  <span className="block font-medium mt-2">Step 2: Pay</span>
+                  <span className="block text-muted-foreground">Then you pay to activate your membership with the {selectedPlan?.name} plan.</span>
+                </>
+              ) : (
+                <>
+                  <span className="block font-medium">Step 1: Register</span>
+                  <span className="block text-muted-foreground">We create your account first, then you join the club with the {selectedPlan?.name} plan (free).</span>
+                </>
+              )}
             </DialogDescription>
           </DialogHeader>
           
@@ -1352,7 +1420,9 @@ function ClubsPageContent() {
                 disabled={isRegistering} 
                 className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
               >
-                {isRegistering ? "Registering..." : "Register User"}
+                {isRegistering
+                  ? (selectedPlan?.price ? "Registering, then Pay…" : "Registering…")
+                  : (selectedPlan?.price ? "Register & Pay" : "Register & Join")}
               </Button>
               <Button 
                 type="button" 
@@ -1381,6 +1451,9 @@ function ClubsPageContent() {
           total={pendingOrder.total}
           currency={pendingOrder.currency}
           paymentMethod={pendingOrder.paymentMethod}
+          dialogTitle="Pay Now — Complete Your Membership"
+          dialogDescription="You're registered. Complete payment to activate your membership."
+          payButtonLabel={`Pay ${formatPrice(pendingOrder.total, pendingOrder.currency)} Now`}
         />
       )}
 

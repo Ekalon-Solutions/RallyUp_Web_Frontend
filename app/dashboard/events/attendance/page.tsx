@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState } from 'react'
+import React, { Suspense, useEffect, useState } from 'react'
 import { ProtectedRoute } from '@/components/protected-route'
 import { DashboardLayout } from '@/components/dashboard-layout'
 import { useSearchParams } from 'next/navigation'
@@ -16,7 +16,7 @@ interface AttendeeInfo {
   phone: string
 }
 
-export default function AttendanceLandingPage() {
+function AttendanceLandingPageInner() {
   const searchParams = useSearchParams()
   const registrationId = searchParams.get('registrationId')
   const attendeeId = searchParams.get('attendeeId')
@@ -28,7 +28,6 @@ export default function AttendanceLandingPage() {
     const fetchAttendeeInfo = async () => {
       if (!registrationId || !attendeeId) return
 
-      // First, fetch the registration to get attendee info
       try {
         const regResponse = await apiClient.getRegistrationById(registrationId)
         if (regResponse.success && regResponse.data?.registration) {
@@ -44,8 +43,6 @@ export default function AttendanceLandingPage() {
           }
         }
       } catch (error) {
-        // console.error('Error fetching registration info:', error)
-        // Continue even if we can't fetch attendee info
       }
     }
 
@@ -59,13 +56,11 @@ export default function AttendanceLandingPage() {
 
       setState('loading')
       
-      // Fetch attendee info first
       await fetchAttendeeInfo()
       
       try {
         const response = await apiClient.adminLogAttendance({registrationId, attendeeId})
         
-        // If response includes registration data, update attendee info
         if (response.success && response.data?.registration) {
           const registration = response.data.registration
           const attendee = (registration.attendees || []).find(
@@ -83,16 +78,13 @@ export default function AttendanceLandingPage() {
           const errorMsg = response.error || response.message || 'Failed to mark attendance'
           setErrorMessage(errorMsg)
           
-          // Get status code from response
           const statusCode = response.status || response.errorDetails?.status
           
-          // Check if it's an "already marked" error
           if (errorMsg.toLowerCase().includes('already marked') || 
               errorMsg.toLowerCase().includes('already attended')) {
             setState('already_marked')
             toast.error(errorMsg)
           } else if (statusCode === 500 || errorMsg.toLowerCase().includes('server error')) {
-            // Check if it's a server error (500)
             setState('server_error')
             toast.error('Server error occurred while marking attendance')
           } else {
@@ -105,11 +97,9 @@ export default function AttendanceLandingPage() {
         setState('success')
         toast.success(response.data?.message || 'Attendance marked successfully')
       } catch (error: any) {
-        // console.error('Error calling attendance API', error)
         const errorMsg = error?.message || error?.error || error?.errorDetails?.details || 'An unexpected error occurred'
         setErrorMessage(errorMsg)
         
-        // Check if it's a 500 error
         const statusCode = error?.status || error?.statusCode || error?.errorDetails?.status
         if (statusCode === 500 || errorMsg.toLowerCase().includes('server error')) {
           setState('server_error')
@@ -302,5 +292,13 @@ export default function AttendanceLandingPage() {
         </div>
       </DashboardLayout>
     </ProtectedRoute>
+  )
+}
+
+export default function AttendanceLandingPage() {
+  return (
+    <Suspense fallback={<div className="p-6">Loading...</div>}>
+      <AttendanceLandingPageInner />
+    </Suspense>
   )
 }

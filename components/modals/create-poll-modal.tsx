@@ -14,6 +14,7 @@ import { toast } from "sonner"
 import { apiClient, Poll } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
 import { utcToDatetimeLocal } from "@/lib/timezone"
+import { useSelectedClubId } from "@/hooks/useSelectedClubId"
 
 interface CreatePollModalProps {
   isOpen: boolean
@@ -24,6 +25,7 @@ interface CreatePollModalProps {
 
 export function CreatePollModal({ isOpen, onClose, onSuccess, editPoll }: CreatePollModalProps) {
   const { user } = useAuth()
+  const clubId = useSelectedClubId()
   const [question, setQuestion] = useState(editPoll?.question || "")
   const [description, setDescription] = useState(editPoll?.description || "")
   const [options, setOptions] = useState<string[]>(
@@ -52,6 +54,11 @@ export function CreatePollModal({ isOpen, onClose, onSuccess, editPoll }: Create
       return
     }
 
+    if (!editPoll && !clubId) {
+      toast.error("Please select a club to create a poll")
+      return
+    }
+
     const validOptions = options.filter(opt => opt.trim())
     if (validOptions.length < 2) {
       toast.error("Poll must have at least 2 options")
@@ -66,7 +73,7 @@ export function CreatePollModal({ isOpen, onClose, onSuccess, editPoll }: Create
     setLoading(true)
 
     try {
-      const data = {
+      const data: any = {
         question: question.trim(),
         description: description.trim() || undefined,
         options: validOptions,
@@ -84,6 +91,7 @@ export function CreatePollModal({ isOpen, onClose, onSuccess, editPoll }: Create
       if (editPoll) {
         response = await apiClient.updatePoll(editPoll._id, data)
       } else {
+        data.clubId = clubId
         response = await apiClient.createPoll(data)
       }
 
@@ -182,7 +190,6 @@ export function CreatePollModal({ isOpen, onClose, onSuccess, editPoll }: Create
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Question */}
           <div className="space-y-2">
             <Label htmlFor="question">Poll Question *</Label>
             <Input
@@ -194,7 +201,6 @@ export function CreatePollModal({ isOpen, onClose, onSuccess, editPoll }: Create
             />
           </div>
 
-          {/* Description */}
           <div className="space-y-2">
             <Label htmlFor="description">Description</Label>
             <Textarea
@@ -210,7 +216,6 @@ export function CreatePollModal({ isOpen, onClose, onSuccess, editPoll }: Create
             </div>
           </div>
 
-          {/* Options */}
           <div className="space-y-2">
             <Label>Poll Options *</Label>
             <div className="space-y-3">
@@ -258,7 +263,6 @@ export function CreatePollModal({ isOpen, onClose, onSuccess, editPoll }: Create
             </div>
           </div>
 
-          {/* Poll Settings */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
@@ -290,7 +294,7 @@ export function CreatePollModal({ isOpen, onClose, onSuccess, editPoll }: Create
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="category">Category</Label>
-                <Select value={category} onValueChange={setCategory}>
+                <Select value={category} onValueChange={(value) => setCategory(value as any)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -306,7 +310,7 @@ export function CreatePollModal({ isOpen, onClose, onSuccess, editPoll }: Create
 
               <div className="space-y-2">
                 <Label htmlFor="priority">Priority</Label>
-                <Select value={priority} onValueChange={setPriority}>
+                <Select value={priority} onValueChange={(value) => setPriority(value as any)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -320,7 +324,6 @@ export function CreatePollModal({ isOpen, onClose, onSuccess, editPoll }: Create
             </div>
           </div>
 
-          {/* Date Settings */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="startDate">Start Date (Optional)</Label>
@@ -351,7 +354,6 @@ export function CreatePollModal({ isOpen, onClose, onSuccess, editPoll }: Create
             </div>
           </div>
 
-          {/* Tags */}
           <div className="space-y-2">
             <Label htmlFor="tags">Tags</Label>
             <div className="flex gap-2">
@@ -384,7 +386,6 @@ export function CreatePollModal({ isOpen, onClose, onSuccess, editPoll }: Create
             )}
           </div>
 
-          {/* Actions */}
           <div className="flex justify-end gap-3 pt-4">
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel

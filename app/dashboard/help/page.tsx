@@ -170,7 +170,6 @@ export default function HelpPage() {
     }
   };
 
-  // Map service names to display names
   const getDisplayName = (serviceName: string): string => {
     const nameMap: Record<string, string> = {
       'Database': 'Database',
@@ -189,56 +188,7 @@ export default function HelpPage() {
           <p className="text-muted-foreground">Find answers to common questions and get support for your club</p>
         </div>
 
-        {/* Search */}
-        <Card>
-          <CardContent className="pt-6">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-              <Input placeholder="Search help articles..." className="pl-10" />
-            </div>
-          </CardContent>
-        </Card>
-
         <div className="grid gap-6 lg:grid-cols-3">
-          {/* Quick Links */}
-          <div className="lg:col-span-1">
-            <Card>
-              <CardHeader>
-                <CardTitle>Quick Links</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {quickLinks.map((link, index) => (
-                  <Button key={index} variant="ghost" className="w-full justify-start h-auto p-3">
-                    <link.icon className="w-4 h-4 mr-3 text-primary" />
-                    <div className="text-left">
-                      <div className="font-medium">{link.title}</div>
-                      <div className="text-xs text-muted-foreground">{link.description}</div>
-                    </div>
-                  </Button>
-                ))}
-              </CardContent>
-            </Card>
-
-            {/* Contact Support */}
-            <Card className="mt-6">
-              <CardHeader>
-                <CardTitle>Contact Support</CardTitle>
-                <CardDescription>Need personalized help? Reach out to our support team</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Button variant="outline" className="w-full justify-start bg-transparent">
-                  <Mail className="w-4 h-4 mr-2" />
-                  support@wingmanpro.tech
-                </Button>
-                <Button variant="outline" className="w-full justify-start bg-transparent">
-                  <Phone className="w-4 h-4 mr-2" />
-                  +91 90296 36263
-                </Button>
-                <div className="text-xs text-muted-foreground">Support hours: Mon-Fri 9AM-6PM IST</div>
-              </CardContent>
-            </Card>
-          </div>
-
           {/* FAQ */}
           <div className="lg:col-span-2">
             <Card>

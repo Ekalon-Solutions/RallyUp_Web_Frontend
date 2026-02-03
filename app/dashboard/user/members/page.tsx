@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DashboardLayout } from '@/components/dashboard-layout'
 import { ProtectedRoute } from '@/components/protected-route'
 import MemberConnections from '@/components/member-connections'
+import { useRequiredClubId } from '@/hooks/useRequiredClubId'
 import { 
   Search, 
   Users, 
@@ -46,78 +47,68 @@ interface ClubMember {
 
 export default function ClubMembersPage() {
   const { user } = useAuth()
+  const clubId = useRequiredClubId()
   const [members, setMembers] = useState<ClubMember[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
-  const [activeClubId, setActiveClubId] = useState<string | null>(null)
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 20,
     total: 0,
     pages: 0
   })
+  const [metadata, setMetadata] = useState({ total: 0, active: 0, verified: 0, thisMonth: 0 })
 
   useEffect(() => {
-    // console.log('User data in ClubMembersPage:', user)
-    // console.log('User memberships:', (user as any)?.memberships)
-    // console.log('User memberships length:', (user as any)?.memberships?.length)
     if (user) {
       fetchClubMembers()
     }
-  }, [currentPage, searchTerm, user])
+  }, [currentPage, searchTerm, user, clubId])
 
   const fetchClubMembers = async () => {
     try {
       setLoading(true)
-      
-      // Check if user has club memberships
-      // console.log('Checking user memberships in fetchClubMembers:')
-      // console.log('User object keys:', Object.keys(user || {}))
-      // console.log('User memberships:', (user as any)?.memberships)
-      // console.log('User memberships length:', (user as any)?.memberships?.length)
-      
-      if (!(user as any)?.memberships || (user as any).memberships.length === 0) {
-        // console.log('No memberships found - showing error')
-        toast.error('No club memberships found. Please join a club first.')
+      if (!clubId) {
+        setMembers([])
+        setPagination({ page: 1, limit: 20, total: 0, pages: 0 })
+        setMetadata({ total: 0, active: 0, verified: 0, thisMonth: 0 })
         setLoading(false)
         return
       }
 
-      // Get the first active membership (assuming user can only be in one club at a time)
-      const activeMembership = (user as any).memberships.find((membership: any) => 
-        membership.status === 'active'
-      )
-
-      if (!activeMembership?.club_id?._id) {
-        // console.log('No active club membership found')
-        toast.error('No active club membership found. Please join a club first.')
-        setLoading(false)
-        return
-      }
-
-      setActiveClubId(activeMembership.club_id._id)
-
-      // console.log('Fetching club members for club ID:', activeMembership.club_id._id)
       const response = await apiClient.getClubMemberDirectory({
         search: searchTerm || undefined,
         page: currentPage,
         limit: 20,
-        clubId: activeMembership.club_id._id
+        clubId
       })
 
       // console.log('API response:', response)
       if (response.success && response.data) {
-        // console.log('Members data:', response.data.members)
-        // console.log('Pagination data:', response.data.pagination)
-        setMembers(response.data.members as ClubMember[])
-        setPagination(response.data.pagination)
+        const nextMembers = (response.data.members as ClubMember[]) || []
+        const nextPagination = response.data.pagination
+        const nextMetadata = (response.data as any)?.metadata
+
+        if (nextPagination?.pages > 0 && currentPage > nextPagination.pages) {
+          setCurrentPage(nextPagination.pages)
+          return
+        }
+
+        setMembers(nextMembers)
+        if (nextPagination) setPagination(nextPagination)
+        if (nextMetadata) {
+          setMetadata({
+            total: typeof nextMetadata.total === 'number' ? nextMetadata.total : 0,
+            active: typeof nextMetadata.active === 'number' ? nextMetadata.active : 0,
+            verified: typeof nextMetadata.verified === 'number' ? nextMetadata.verified : 0,
+            thisMonth: typeof nextMetadata.thisMonth === 'number' ? nextMetadata.thisMonth : 0
+          })
+        }
       } else {
-        // console.error('API error:', response.error)
         toast.error(response.error || 'Failed to load club members')
       }
     } catch (error) {
-      // console.error('Error fetching club members:', error)
       toast.error('Error loading club members')
     } finally {
       setLoading(false)
@@ -198,7 +189,7 @@ export default function ClubMembersPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-green-600">
-                  {members.filter(m => m.isPhoneVerified).length}
+                  {metadata.verified}
                 </div>
               </CardContent>
             </Card>
@@ -351,13 +342,13 @@ export default function ClubMembersPage() {
 
             {/* Member Connections Tab */}
             <TabsContent value="connections" className="mt-6">
-              {activeClubId && user ? (
+              {clubId && user ? (
                 <MemberConnections 
                   currentUser={{
                     ...user,
                     token: localStorage.getItem('token')
                   }} 
-                  clubId={activeClubId} 
+                  clubId={clubId} 
                 />
               ) : (
                 <Card>

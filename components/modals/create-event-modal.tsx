@@ -14,6 +14,7 @@ import { toast } from "sonner"
 import { apiClient } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
 import { toDatetimeLocalString, utcToDatetimeLocal, formatLocalDate } from "@/lib/timezone"
+import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 
 interface Event {
   _id: string
@@ -64,6 +65,7 @@ interface CreateEventModalProps {
 
 export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: CreateEventModalProps) {
   const { user } = useAuth()
+  const selectedClubId = useRequiredClubId()
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [formData, setFormData] = useState({
@@ -194,7 +196,7 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
           earlyBirdStartTime: "",
           earlyBirdEndTime: "",
           earlyBirdMembersOnly: false,
-          clubId: "",
+          clubId: selectedClubId || "",
           memberDiscountEnabled: false,
           memberDiscountType: "percentage",
           memberDiscountValue: "",
@@ -205,7 +207,7 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
         })
       }
     }
-  }, [isOpen, editEvent])
+  }, [isOpen, editEvent, selectedClubId])
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {}
@@ -264,8 +266,8 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
       }
     }
 
-    if (formData.memberOnly && !formData.clubId) {
-      newErrors.clubId = "Please select a club for members-only events"
+    if (!editEvent && !formData.clubId) {
+      newErrors.clubId = "Please select a club"
     }
 
     if (formData.earlyBirdEnabled) {
@@ -344,7 +346,7 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
         ticketPrice: parseFloat(formData.ticketPrice) || 0,
         requiresTicket: formData.requiresTicket,
         memberOnly: formData.memberOnly,
-        clubId: formData.clubId,
+        clubId: formData.clubId || undefined,
         awayDayEvent: formData.awayDayEvent,
         bookingStartTime: formData.bookingStartTime ? new Date(formData.bookingStartTime).toISOString() : undefined,
         bookingEndTime: formData.bookingEndTime ? new Date(formData.bookingEndTime).toISOString() : undefined,
@@ -856,31 +858,30 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
                     onCheckedChange={(checked) => setFormData({ ...formData, memberOnly: checked })}
                   />
                 </div>
-                {formData.memberOnly && (
-                  <div className="space-y-2 px-4">
-                    <Label htmlFor="clubId" className="text-sm font-medium">Select Club</Label>
-                    <Select
-                      value={formData.clubId}
-                      onValueChange={(value) => setFormData({ ...formData, clubId: value })}
-                    >
-                      <SelectTrigger className="border-gray-300">
-                        <SelectValue placeholder="Choose a club" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {clubs.length === 0 ? (
-                          <SelectItem disabled value="No clubs available">No clubs available</SelectItem>
-                        ) : (
-                          clubs.map((club) => (
-                            <SelectItem key={club._id} value={club._id}>{club.name}</SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-                    {formData.memberOnly && !formData.clubId && (
-                      <p className="text-red-500 text-sm">Please select a club for members-only events</p>
-                    )}
-                  </div>
-                )}
+                <div className="space-y-2 px-4">
+                  <Label htmlFor="clubId" className="text-sm font-medium">Club</Label>
+                  <Select
+                    value={formData.clubId}
+                    onValueChange={(value) => setFormData({ ...formData, clubId: value })}
+                    disabled={Boolean(selectedClubId)}
+                  >
+                    <SelectTrigger className="border-gray-300">
+                      <SelectValue placeholder="Choose a club" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {clubs.length === 0 ? (
+                        <SelectItem disabled value="No clubs available">No clubs available</SelectItem>
+                      ) : (
+                        clubs.map((club) => (
+                          <SelectItem key={club._id} value={club._id}>{club.name}</SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                  {!formData.clubId && (
+                    <p className="text-red-500 text-sm">Please select a club</p>
+                  )}
+                </div>
              </div>
             </div>
           </div>

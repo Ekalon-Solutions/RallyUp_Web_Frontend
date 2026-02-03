@@ -5,7 +5,8 @@ import { apiClient, Club } from '@/lib/api'
 import { toast } from 'sonner'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Button } from '@/components/ui/button'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { 
   Dialog,
   DialogContent,
@@ -91,7 +92,7 @@ export function ClubStatsModal({ club, trigger }: ClubStatsModalProps) {
   }
 
   const getVerificationRate = () => {
-    if (!stats) return 0
+    if (!stats || stats.totalMembers === 0) return 0
     return Math.round((stats.verifiedMembers / stats.totalMembers) * 100)
   }
 
@@ -109,6 +110,7 @@ export function ClubStatsModal({ club, trigger }: ClubStatsModalProps) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
             <Avatar className="w-10 h-10">
+              <AvatarImage src={club.logo} alt={club.name} className="object-cover" />
               <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
                 {club.name.split(' ').map(n => n[0]).join('').toUpperCase()}
               </AvatarFallback>

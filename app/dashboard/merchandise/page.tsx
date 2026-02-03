@@ -12,6 +12,7 @@ import { CreateMerchandiseModal } from "@/components/modals/create-merchandise-m
 import { apiClient } from "@/lib/api"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
+import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { 
   ShoppingBag, 
   Search, 
@@ -98,6 +99,7 @@ interface MerchandiseSettings {
 
 export default function MerchandiseManagementPage() {
   const { user, isAdmin } = useAuth()
+  const clubId = useRequiredClubId()
   const [merchandise, setMerchandise] = useState<Merchandise[]>([])
   const [stats, setStats] = useState<MerchandiseStats | null>(null)
   const [settings, setSettings] = useState<MerchandiseSettings>({
@@ -144,7 +146,7 @@ export default function MerchandiseManagementPage() {
       fetchStats()
       fetchSettings()
     }
-  }, [page, searchTerm, categoryFilter, availabilityFilter, isAdmin])
+  }, [page, searchTerm, categoryFilter, availabilityFilter, isAdmin, clubId])
 
   if (!isAdmin) {
     return (
@@ -172,6 +174,12 @@ export default function MerchandiseManagementPage() {
   const fetchMerchandise = async () => {
     try {
       setLoading(true)
+      if (!clubId) {
+        setMerchandise([])
+        setTotalPages(1)
+        setLoading(false)
+        return
+      }
       const params = new URLSearchParams({
         page: page.toString(),
         limit: '10'
@@ -180,6 +188,7 @@ export default function MerchandiseManagementPage() {
              if (searchTerm) params.append('search', searchTerm)
        if (categoryFilter && categoryFilter !== 'all') params.append('category', categoryFilter)
        if (availabilityFilter && availabilityFilter !== 'all') params.append('isAvailable', availabilityFilter)
+      params.append('clubId', clubId)
 
       const response = await apiClient.get(`/merchandise/admin?${params}`)
       
@@ -203,9 +212,13 @@ export default function MerchandiseManagementPage() {
 
   const fetchStats = async () => {
     try {
-      const response = await apiClient.get('/merchandise/admin/stats')
-      if (response.data) {
-        setStats(response.data)
+      if (!clubId) {
+        setStats(null)
+        return
+      }
+      const response = await apiClient.getMerchandiseStats({ clubId })
+      if (response.success && response.data) {
+        setStats(response.data as any)
       }
     } catch (error: any) {
       // console.error('Error fetching stats:', error)
@@ -218,16 +231,10 @@ export default function MerchandiseManagementPage() {
 
   const fetchSettings = async () => {
     try {
-      // console.log('📦 [Frontend] Fetching settings...')
-      const response = await apiClient.getMerchandiseSettings()
-      // console.log('📦 [Frontend] Fetched settings response:', response)
-      // The response structure is: { success: true, data: { success: true, data: { clubId, clubName, settings } } }
-      // OR: { success: true, data: { clubId, clubName, settings } }
-      const settingsData = response.data?.data?.settings || response.data?.settings
-      if (response.success && settingsData) {
-        // console.log('📦 [Frontend] Setting state with:', settingsData)
-        setSettings(settingsData)
-      }
+      if (!clubId) return
+      const response = await apiClient.getMerchandiseSettings(clubId)
+      const settingsData = (response.data as any)?.data?.settings || (response.data as any)?.settings
+      if (response.success && settingsData) setSettings(settingsData)
     } catch (error: any) {
       // console.error('Error fetching settings:', error)
     }
@@ -236,18 +243,15 @@ export default function MerchandiseManagementPage() {
   const saveSettings = async () => {
     try {
       setSettingsLoading(true)
-      // console.log('📦 [Frontend] Saving settings:', settings)
-      const response = await apiClient.updateMerchandiseSettings(settings)
-      // console.log('📦 [Frontend] Save response:', response)
+      if (!clubId) return
+      const response = await apiClient.updateMerchandiseSettings(settings, clubId)
       if (response.success) {
         toast.success('Settings saved successfully')
         setShowSettings(false)
       } else {
-        // console.error('📦 [Frontend] Save failed:', response.error, response.errorDetails)
         toast.error(response.error || 'Failed to save settings')
       }
     } catch (error: any) {
-      // console.error('📦 [Frontend] Save exception:', error)
       toast.error('Failed to save settings')
     } finally {
       setSettingsLoading(false)

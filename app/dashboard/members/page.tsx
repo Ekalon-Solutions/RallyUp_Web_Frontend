@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/auth-context'
 import { apiClient, User } from '@/lib/api'
 import { toast } from 'sonner'
 import { triggerBlobDownload } from '@/lib/utils'
+import { useRequiredClubId } from '@/hooks/useRequiredClubId'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
@@ -69,10 +70,12 @@ interface Member {
 
 export default function MembersPage() {
   const { user } = useAuth()
+  const clubId = useRequiredClubId()
   const [members, setMembers] = useState<Member[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
+  const [verificationFilter, setVerificationFilter] = useState<'all' | 'verified' | 'unverified'>('all')
   const [currentPage, setCurrentPage] = useState(1)
   const [pagination, setPagination] = useState({
     page: 1,
@@ -80,11 +83,12 @@ export default function MembersPage() {
     total: 0,
     pages: 0
   })
-  const [metadata, setMetadata] = useState({ total: 0, active: 0, verified: 0 })
+  const [metadata, setMetadata] = useState({ total: 0, active: 0, verified: 0, thisMonth: 0 })
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false)
+  const [isDeleteAllDialogOpen, setIsDeleteAllDialogOpen] = useState(false)
   const [isAdjustPointsOpen, setIsAdjustPointsOpen] = useState(false)
   const [adjustMemberId, setAdjustMemberId] = useState<string | null>(null)
   const [adjustMemberClub, setAdjustMemberClub] = useState<string | null>(null)
@@ -106,33 +110,52 @@ export default function MembersPage() {
 
   useEffect(() => {
     fetchMembers()
-  }, [currentPage, searchTerm, statusFilter])
+  }, [currentPage, searchTerm, statusFilter, verificationFilter, clubId])
    
 
   const fetchMembers = async () => {
     try {
       setLoading(true)
+      if (!clubId) {
+        setMembers([])
+        setPagination({ page: 1, limit: 20, total: 0, pages: 0 })
+        setMetadata({ total: 0, active: 0, verified: 0, thisMonth: 0 })
+        setLoading(false)
+        return
+      }
       const response = await apiClient.getClubMemberDirectory({
         search: searchTerm || undefined,
         page: currentPage,
-        // limit: 20,
+        limit: pagination.limit,
         status: statusFilter === 'all' ? undefined : statusFilter,
-        clubId: user?.club?._id
+        verification: verificationFilter === 'all' ? undefined : verificationFilter,
+        clubId
       })
 
       if (response.success && response.data) {
-        setMembers(response.data.members || [])
-        const respPagination = response.data.pagination || { page: 1, limit: 20, total: 0, pages: 0 }
-        const metaTotal = response.data.metadata?.total ?? respPagination.total ?? 0
-        const limitVal = respPagination.limit || pagination.limit
-        const totalCount = (searchTerm && typeof respPagination.total === 'number') ? respPagination.total : metaTotal
+        const nextMembers = (response.data.members as unknown as Member[]) || []
+        setMembers(nextMembers)
+
+        setSelectedMemberIds(new Set())
+        setIsSelectAll(false)
+
+        const respPagination = response.data.pagination || { page: currentPage, limit: pagination.limit, total: 0, pages: 0 }
+        const safeLimit = respPagination.limit || pagination.limit
+        const safeTotal = typeof respPagination.total === 'number' ? respPagination.total : 0
+        const safePages =
+          typeof respPagination.pages === 'number'
+            ? respPagination.pages
+            : (safeLimit > 0 ? Math.ceil(safeTotal / safeLimit) : 0)
+
         setPagination({
           page: respPagination.page || 1,
-          limit: limitVal,
-          total: totalCount,
-          pages: Math.max(1, Math.ceil(totalCount / limitVal))
+          limit: safeLimit,
+          total: safeTotal,
+          pages: safePages
         })
-        setMetadata(response.data.metadata || { total: 0, active: 0, verified: 0 })
+
+        setCurrentPage(respPagination.page || 1)
+        setMetadata(response.data.metadata || { total: 0, active: 0, verified: 0, thisMonth: 0 })
       } else {
         toast.error(response.error || 'Failed to load members')
       }
@@ -150,6 +173,11 @@ export default function MembersPage() {
 
   const handleStatusFilter = (value: string): void => {
     setStatusFilter(value as 'all' | 'active' | 'inactive')
+    setCurrentPage(1)
+  }
+
+  const handleVerificationFilter = (value: string): void => {
+    setVerificationFilter(value as 'all' | 'verified' | 'unverified')
     setCurrentPage(1)
   }
 
@@ -269,9 +297,13 @@ export default function MembersPage() {
 
   const handleAddMember = async (data: { name: string; email: string; phoneNumber: string; countryCode: string }): Promise<void> => {
     try {
+      if (!clubId) {
+        toast.error('Please select a club first')
+        return
+      }
       const response = await apiClient.userRegister({
         ...data,
-        clubId: user?.club?._id,
+        clubId,
       })
 
       if (response.success) {
@@ -389,6 +421,34 @@ export default function MembersPage() {
     setIsBulkDeleteDialogOpen(true)
   }
 
+  const openDeleteAllDialog = () => {
+    if ((metadata?.total || 0) === 0) {
+      toast.error('No members to delete')
+      return
+    }
+    setIsDeleteAllDialogOpen(true)
+  }
+
+  const handleDeleteAllMembers = async () => {
+    try {
+      const response = await apiClient.deleteAllClubMembers()
+
+      if (response.success) {
+        const deletedCount = response.data?.deletedCount ?? 0
+        toast.success(`Successfully deleted ${deletedCount} member(s)`)
+        setIsDeleteAllDialogOpen(false)
+        setSelectedMemberIds(new Set())
+        setIsSelectAll(false)
+        setCurrentPage(1)
+        fetchMembers()
+      } else {
+        toast.error(response.error || 'Failed to delete all members')
+      }
+    } catch (error) {
+      toast.error('Failed to delete all members')
+    }
+  }
+
   const exportMembers = () => {
     const csvContent = [
       ['Name', 'Email', 'Phone', 'Club', 'Membership Plan', 'Status', 'Joined Date'].join(','),
@@ -420,6 +480,12 @@ export default function MembersPage() {
               <p className="text-muted-foreground text-sm sm:text-base">Manage and view all club members</p>
             </div>
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              {(user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'system_owner') && (metadata?.total || 0) > 0 && (
+                <Button variant="destructive" onClick={openDeleteAllDialog} className="w-full sm:w-auto shadow-md hover:shadow-lg transition-shadow">
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete All Members ({metadata.total})
+                </Button>
+              )}
               {(user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'system_owner') && selectedMemberIds.size > 0 && (
                 <Button variant="destructive" onClick={openBulkDeleteDialog} className="w-full sm:w-auto shadow-md hover:shadow-lg transition-shadow">
                   <Trash2 className="w-4 h-4 mr-2" />
@@ -491,12 +557,7 @@ export default function MembersPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-purple-600">
-                  {members.filter((m: Member) => {
-                    const memberDate = new Date(m.createdAt)
-                    const now = new Date()
-                    return memberDate.getMonth() === now.getMonth() && 
-                           memberDate.getFullYear() === now.getFullYear()
-                  }).length}
+                  {metadata.thisMonth}
                 </div>
               </CardContent>
             </Card>
@@ -533,50 +594,36 @@ export default function MembersPage() {
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="w-full sm:w-56">
+                  <Select value={verificationFilter} onValueChange={handleVerificationFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Filter by verification" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All (Verified + Unverified)</SelectItem>
+                      <SelectItem value="verified">Verified Only</SelectItem>
+                      <SelectItem value="unverified">Unverified Only</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4 text-sm text-muted-foreground">
+                <div>
+                  {loading
+                    ? 'Loading results...'
+                    : members.length === 0
+                    ? 'Showing 0 results'
+                    : `Showing ${(currentPage - 1) * pagination.limit + 1}-${(currentPage - 1) * pagination.limit + members.length} of ${pagination.total} results`}
+                </div>
+                {(searchTerm || statusFilter !== 'all' || verificationFilter !== 'all') && (
+                  <div>
+                    Total in directory: {metadata.total}
+                  </div>
+                )}
               </div>
 
               {/* Members List */}
-              {pagination.pages > 1 && (
-                <div className="flex justify-end mb-4">
-                  <Pagination>
-                    <PaginationContent>
-                      <PaginationItem>
-                        <PaginationPrevious 
-                          onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
-                          className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                        />
-                      </PaginationItem>
-                              {pagesToShow.map((p) => {
-                                if (typeof p === 'number') {
-                                  return (
-                                    <PaginationItem key={`top-page-${p}`}>
-                                      <PaginationLink
-                                        onClick={() => handlePageChange(p)}
-                                        isActive={currentPage === p}
-                                        className="cursor-pointer"
-                                      >
-                                        {p}
-                                      </PaginationLink>
-                                    </PaginationItem>
-                                  )
-                                }
-
-                                return (
-                                  <PaginationItem key={`top-${p}`}>
-                                    <span className="px-3 py-2 text-muted-foreground select-none">...</span>
-                                  </PaginationItem>
-                                )
-                              })}
-                      <PaginationItem>
-                        <PaginationNext 
-                          onClick={() => handlePageChange(Math.min(pagination.pages, currentPage + 1))}
-                          className={currentPage === pagination.pages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                        />
-                      </PaginationItem>
-                    </PaginationContent>
-                  </Pagination>
-                </div>
-              )}
               {loading ? (
                 <div className="space-y-4">
                   {[...Array(5)].map((_, i) => (
@@ -605,7 +652,7 @@ export default function MembersPage() {
                         className="data-[state=checked]:bg-primary"
                       />
                       <Label className="text-sm font-semibold cursor-pointer" onClick={handleSelectAll}>
-                        Select All ({members.length} members)
+                        Select all on this page ({members.length})
                       </Label>
                     </div>
                   )}
@@ -703,7 +750,7 @@ export default function MembersPage() {
                     <PaginationContent>
                       <PaginationItem>
                         <PaginationPrevious 
-                          onClick={() => handlePageChange(currentPage - 1)}
+                          onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
                           className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
                         />
                       </PaginationItem>
@@ -730,7 +777,7 @@ export default function MembersPage() {
                       })}
                       <PaginationItem>
                         <PaginationNext 
-                          onClick={() => handlePageChange(currentPage + 1)}
+                          onClick={() => handlePageChange(Math.min(pagination.pages, currentPage + 1))}
                           className={currentPage === pagination.pages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
                         />
                       </PaginationItem>
@@ -1051,6 +1098,50 @@ export default function MembersPage() {
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
                   Delete Member
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={isDeleteAllDialogOpen} onOpenChange={setIsDeleteAllDialogOpen}>
+            <DialogContent className="w-[95vw] sm:w-full max-w-md">
+              <DialogHeader>
+                <DialogTitle className="text-xl font-bold text-destructive">Delete All Members</DialogTitle>
+                <DialogDescription className="text-base pt-2">
+                  This action cannot be undone. This will permanently delete all members from your club directory.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="py-6">
+                <div className="p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+                  <div className="flex items-center space-x-3">
+                    <div className="flex-shrink-0">
+                      <div className="w-12 h-12 rounded-full bg-destructive/20 flex items-center justify-center">
+                        <Trash2 className="w-6 h-6 text-destructive" />
+                      </div>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-base text-destructive">
+                        {metadata.total} Member{metadata.total !== 1 ? 's' : ''} Will Be Deleted
+                      </h3>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        All members currently in your directory will be permanently deleted.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <DialogFooter className="gap-2 sm:gap-0">
+                <Button type="button" variant="outline" onClick={() => setIsDeleteAllDialogOpen(false)} className="flex-1 sm:flex-initial">
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  variant="destructive"
+                  onClick={handleDeleteAllMembers}
+                  className="flex-1 sm:flex-initial shadow-md hover:shadow-lg"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete All Members
                 </Button>
               </DialogFooter>
             </DialogContent>

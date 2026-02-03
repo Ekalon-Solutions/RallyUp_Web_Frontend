@@ -15,6 +15,7 @@ import { apiClient, Poll } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
 import Link from "next/link"
 import { formatLocalDate } from "@/lib/timezone"
+import { useSelectedClubId } from "@/hooks/useSelectedClubId"
 
 interface PollsWidgetProps {
   limit?: number
@@ -23,25 +24,33 @@ interface PollsWidgetProps {
 
 export function PollsWidget({ limit = 3, showCreateButton = true }: PollsWidgetProps) {
   const { user } = useAuth()
+  const clubId = useSelectedClubId()
   const [polls, setPolls] = useState<Poll[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     fetchRecentPolls()
-  }, [])
+  }, [clubId, user?.role, limit])
 
   const fetchRecentPolls = async () => {
     setLoading(true)
     try {
-      // If authenticated admin, ask server for polls scoped to admin's club
+      if (!clubId) {
+        setPolls([])
+        setLoading(false)
+        return
+      }
       const isAdminLocal = user?.role === 'admin' || user?.role === 'super_admin'
       const response = isAdminLocal
-        ? await apiClient.getActivePollsByMyClub({
+        ? await apiClient.getPolls({
+            clubId: clubId || undefined,
+            status: "active",
             page: 1,
-            limit: limit + 2, // Get a few extra in case some are filtered out
+            limit: limit + 2,
           })
         : await apiClient.getActivePolls({
-            limit: limit + 2, // Get a few extra in case some are filtered out
+            clubId: clubId || undefined,
+            limit: limit + 2,
           })
       
       if (response.success && response.data) {

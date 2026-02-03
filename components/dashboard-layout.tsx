@@ -17,13 +17,9 @@ import {
   Ticket,
   Globe,
   ExternalLink,
-  MessageSquare,
-  BarChart3,
   Shield,
   Newspaper,
   Shirt,
-  Calendar,
-  Bus,
   LayoutDashboard,
   User,
   Building,
@@ -44,6 +40,7 @@ import { useTheme } from "next-themes"
 import { Sun, Moon } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import Image from "next/image"
+import { NotificationCenterModal } from "@/components/modals/notification-center-modal"
 
 const adminNavigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -54,7 +51,7 @@ const adminNavigation = [
   { name: "News & Updates", href: "/dashboard/content", icon: Newspaper },
   { name: "Polls", href: "/dashboard/polls", icon: Vote },
   { name: "Club Chants", href: "/dashboard/chants", icon: Music },
-  { name: "Merchandise Store", href: "/dashboard/merchandise", icon: Shirt },
+  { name: "Merchandise", href: "/dashboard/merchandise", icon: Shirt },
   { name: "Order Management", href: "/dashboard/orders", icon: ShoppingCart },
   { name: "Events & Tickets", href: "/dashboard/events", icon: Ticket },
   { name: "Leaderboard", href: "/dashboard/leaderboard", icon: ChartNoAxesColumn },
@@ -88,7 +85,7 @@ const superAdminNavigation = [
   { name: "News & Updates", href: "/dashboard/content", icon: Newspaper },
   { name: "Polls", href: "/dashboard/polls", icon: Vote },
   { name: "Club Chants", href: "/dashboard/chants", icon: Music },
-  { name: "Merchandise Store", href: "/dashboard/merchandise", icon: Shirt },
+  { name: "Merchandise", href: "/dashboard/merchandise", icon: Shirt },
   { name: "Order Management", href: "/dashboard/orders", icon: ShoppingCart },
   { name: "Events & Tickets", href: "/dashboard/events", icon: Ticket },
   { name: "Leaderboard", href: "/dashboard/leaderboard", icon: ChartNoAxesColumn },
@@ -105,7 +102,6 @@ const superAdminNavigation = [
 
 const userNavigation = [
   { name: "Feed", href: "/dashboard/user", icon: LayoutDashboard },
-  { name: "Clubs", href: "/dashboard/user/clubs", icon: Building2 },
   { name: "My Clubs", href: "/dashboard/user/my-clubs", icon: UserCheck },
   { name: "Members", href: "/dashboard/user/members", icon: Users },
   { name: "Events", href: "/dashboard/user/events", icon: Ticket },
@@ -173,7 +169,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   }
   
   const clubId = getUserClubId()
-  const { isSectionVisible, settings } = useClubSettings(clubId)
+  const { isSectionVisible, settings, loading: settingsLoading } = useClubSettings(clubId)
   
   useDesignSettings(clubId)
   
@@ -198,30 +194,29 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     const isRegularUser = !user.role || user.role === 'member'
     
     if (isRegularUser && clubId) {
+      const canShowSection = (section: Parameters<typeof isSectionVisible>[0]) => {
+        if (settingsLoading && !settings) return false
+        return isSectionVisible(section)
+      }
+
       const filtered = nav.filter(item => {
         if (item.name === 'News') {
-          const visible = isSectionVisible('news')
-          return visible
+          return canShowSection('news')
         }
         if (item.name === 'Events') {
-          const visible = isSectionVisible('events')
-          return visible
+          return canShowSection('events')
         }
-        if (item.name === 'Merchandise' || item.name === 'Merchandise Store') {
-          const visible = isSectionVisible('merchandise')
-          return visible
+        if (item.name === 'Merchandise') {
+          return canShowSection('merchandise') || canShowSection('store')
         }
         if (item.name === 'Polls') {
-          const visible = isSectionVisible('polls')
-          return visible
+          return canShowSection('polls')
         }
         if (item.name === 'Club Chants') {
-          const visible = isSectionVisible('chants')
-          return visible
+          return canShowSection('chants')
         }
         if (item.name === 'Members') {
-          const visible = isSectionVisible('members')
-          return visible
+          return canShowSection('members')
         }
         return true
       })
@@ -436,6 +431,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             <div className="hidden sm:flex items-center gap-2 mr-2 px-3 py-1.5 rounded-full bg-muted/50 border text-xs font-bold text-muted-foreground uppercase tracking-wider">
               {user?.role?.replace('_', ' ') || 'Member'}
             </div>
+            <NotificationCenterModal />
             <ThemeToggle />
             <Button variant="outline" size="sm" onClick={logout} className="h-9 px-4 font-bold border-2">
               <LogOut className="w-4 h-4 mr-2" />

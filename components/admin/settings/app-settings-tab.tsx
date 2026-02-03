@@ -4,12 +4,14 @@ import React, { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Save, Bell, Shield } from "lucide-react"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
 import { apiClient } from "@/lib/api"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 interface NotificationSettings {
   events: boolean
@@ -18,6 +20,9 @@ interface NotificationSettings {
   newMerchandise: boolean
   pollResults: boolean
   newsUpdates: boolean
+  orders?: boolean
+  refunds?: boolean
+  ticketStatus?: boolean
 }
 
 interface AppSettings {
@@ -29,9 +34,17 @@ interface AppSettings {
 }
 
 export function AppSettingsTab() {
-  const { user } = useAuth()
+  const { user, checkAuth } = useAuth()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [clubDetailsLoading, setClubDetailsLoading] = useState(false)
+  const [clubDetails, setClubDetails] = useState<any>(null)
+  const [otpDialogOpen, setOtpDialogOpen] = useState(false)
+  const [otpAction, setOtpAction] = useState<'delete' | 'restore'>('delete')
+  const [otpToken, setOtpToken] = useState<string | null>(null)
+  const [otp, setOtp] = useState("")
+  const [otpSending, setOtpSending] = useState(false)
+  const [otpSubmitting, setOtpSubmitting] = useState(false)
   const [settings, setSettings] = useState<AppSettings>({
     notifications: {
       events: true,
@@ -39,7 +52,10 @@ export function AppSettingsTab() {
       membershipExpiry: true,
       newMerchandise: true,
       pollResults: false,
-      newsUpdates: true
+      newsUpdates: true,
+      orders: true,
+      refunds: true,
+      ticketStatus: true,
     },
     appRules: "",
     maintenanceMode: false,
@@ -54,6 +70,12 @@ export function AppSettingsTab() {
       loadSettings()
     }
   }, [clubId])
+
+  useEffect(() => {
+    if (clubId && (user as any)?.role === 'super_admin') {
+      loadClubDetails()
+    }
+  }, [clubId, (user as any)?.role])
 
   const loadSettings = async () => {
     if (!clubId) return
@@ -71,7 +93,10 @@ export function AppSettingsTab() {
             membershipExpiry: true,
             newMerchandise: true,
             pollResults: false,
-            newsUpdates: true
+            newsUpdates: true,
+            orders: true,
+            refunds: true,
+            ticketStatus: true,
           },
           appRules: ""
         }
@@ -88,6 +113,77 @@ export function AppSettingsTab() {
       toast.error("Failed to load app settings")
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadClubDetails = async () => {
+    if (!clubId) return
+    try {
+      setClubDetailsLoading(true)
+      const resp = await apiClient.getClubById(clubId)
+      if (resp.success && resp.data) {
+        setClubDetails(resp.data)
+      } else {
+        setClubDetails(null)
+      }
+    } finally {
+      setClubDetailsLoading(false)
+    }
+  }
+
+  const startCriticalAction = async (action: 'delete' | 'restore') => {
+    if (!clubId) {
+      toast.error("Club ID not found")
+      return
+    }
+
+    try {
+      setOtpSending(true)
+      setOtpAction(action)
+      setOtp("")
+      setOtpToken(null)
+
+      const resp = await apiClient.generateClubDeletionOTP({ clubId, action })
+      if (!resp.success || !resp.data?.otpToken) {
+        toast.error(resp.error || "Failed to send OTP")
+        return
+      }
+
+      setOtpToken(resp.data.otpToken)
+      setOtpDialogOpen(true)
+      toast.success(resp.data.message || "OTP sent")
+    } finally {
+      setOtpSending(false)
+    }
+  }
+
+  const submitCriticalAction = async () => {
+    if (!clubId || !otpToken) return
+    if (!otp || otp.length !== 6) {
+      toast.error("Please enter a valid 6-digit OTP")
+      return
+    }
+
+    try {
+      setOtpSubmitting(true)
+      const resp =
+        otpAction === 'delete'
+          ? await apiClient.deleteClubWithOTP({ clubId, otpToken, otp })
+          : await apiClient.restoreClubWithOTP({ clubId, otpToken, otp })
+
+      if (!resp.success) {
+        toast.error(resp.error || "Request failed")
+        return
+      }
+
+      toast.success(resp.data?.message || (otpAction === 'delete' ? "Club deleted" : "Club restored"))
+      setOtpDialogOpen(false)
+      setOtp("")
+      setOtpToken(null)
+      await loadClubDetails()
+      try { await checkAuth() } catch { }
+    } finally {
+      setOtpSubmitting(false)
     }
   }
 
@@ -132,6 +228,9 @@ export function AppSettingsTab() {
       </div>
     )
   }
+
+  const canUseDangerZone = (user as any)?.role === 'super_admin' && !!clubId
+  const isClubDeleted = !!clubDetails?.is_deleted
 
   return (
     <div className="space-y-6">
@@ -260,6 +359,54 @@ export function AppSettingsTab() {
                 onCheckedChange={() => handleNotificationToggle("newsUpdates")}
               />
             </div>
+
+            <div className="flex items-center justify-between py-2">
+              <div className="space-y-0.5">
+                <Label htmlFor="ticketStatus" className="text-base font-medium">
+                  Ticket Status
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Notify members when their event registration/ticket status changes
+                </p>
+              </div>
+              <Switch
+                id="ticketStatus"
+                checked={!!settings.notifications.ticketStatus}
+                onCheckedChange={() => handleNotificationToggle("ticketStatus")}
+              />
+            </div>
+
+            <div className="flex items-center justify-between py-2">
+              <div className="space-y-0.5">
+                <Label htmlFor="orders" className="text-base font-medium">
+                  Orders
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Notify members about order creation and order status changes
+                </p>
+              </div>
+              <Switch
+                id="orders"
+                checked={!!settings.notifications.orders}
+                onCheckedChange={() => handleNotificationToggle("orders")}
+              />
+            </div>
+
+            <div className="flex items-center justify-between py-2">
+              <div className="space-y-0.5">
+                <Label htmlFor="refunds" className="text-base font-medium">
+                  Refunds
+                </Label>
+                <p className="text-sm text-muted-foreground">
+                  Notify members about refund requests and refund status changes
+                </p>
+              </div>
+              <Switch
+                id="refunds"
+                checked={!!settings.notifications.refunds}
+                onCheckedChange={() => handleNotificationToggle("refunds")}
+              />
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -366,6 +513,85 @@ export function AppSettingsTab() {
           )}
         </Button>
       </div>
+
+      {canUseDangerZone && (
+        <>
+          <Card className="border-destructive/40">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-destructive">
+                <Shield className="h-5 w-5" />
+                Danger Zone
+              </CardTitle>
+              <CardDescription>
+                Critical actions for your club require OTP verification.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="text-sm font-medium">
+                    {isClubDeleted ? "Restore deleted club" : "Delete club"}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {isClubDeleted
+                      ? "Restore your club and re-enable archived data."
+                      : "Archive your club and associated data."}
+                  </div>
+                </div>
+                <Button
+                  variant={isClubDeleted ? "default" : "destructive"}
+                  disabled={otpSending || clubDetailsLoading}
+                  onClick={() => startCriticalAction(isClubDeleted ? "restore" : "delete")}
+                >
+                  {otpSending ? "Sending OTP..." : (isClubDeleted ? "Restore Club" : "Delete Club")}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Dialog open={otpDialogOpen} onOpenChange={setOtpDialogOpen}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>
+                  {otpAction === 'delete' ? "Delete Club" : "Restore Club"}
+                </DialogTitle>
+                <DialogDescription>
+                  Enter the 6-digit OTP sent to your registered email and phone number.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="clubOtp">OTP</Label>
+                  <Input
+                    id="clubOtp"
+                    value={otp}
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                    placeholder="Enter 6-digit code"
+                    inputMode="numeric"
+                    maxLength={6}
+                  />
+                </div>
+                <div className="flex gap-2 justify-end">
+                  <Button
+                    variant="outline"
+                    onClick={() => setOtpDialogOpen(false)}
+                    disabled={otpSubmitting}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    variant={otpAction === 'delete' ? "destructive" : "default"}
+                    onClick={submitCriticalAction}
+                    disabled={otpSubmitting}
+                  >
+                    {otpSubmitting ? "Verifying..." : (otpAction === 'delete' ? "Delete Club" : "Restore Club")}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </>
+      )}
     </div>
   )
 }

@@ -50,7 +50,6 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
   const [eventData, setEventData] = useState<any>(null)
 
   useEffect(() => {
-    // Load Razorpay script
     if (isOpen && !scriptLoaded) {
       const script = document.createElement('script')
       script.src = 'https://checkout.razorpay.com/v1/checkout.js'
@@ -69,12 +68,11 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
     }
   }, [isOpen, scriptLoaded])
 
-  // Fetch event data to get clubId
   useEffect(() => {
     const fetchEventData = async () => {
       if (event?._id && isOpen && !eventData) {
         try {
-          const response = await apiClient.getEventById(String(event._id))
+          const response = await apiClient.getPublicEventById(String(event._id))
           if (response.success && response.data) {
             setEventData(response.data)
           }
@@ -102,7 +100,6 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
             setCouponName("")
           }
         } catch (error) {
-          // console.error("Error validating coupon:", error)
           setCouponDiscount(0)
           setCouponName("")
         }
@@ -126,7 +123,6 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
       return
     }
 
-    // For non-authenticated users, show member validation first
     if (!user && !memberValidated) {
       setShowMemberValidation(true)
       return
@@ -140,13 +136,15 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
       const finalPrice = Math.max(totalBeforeCoupon - couponDiscount, 0)
 
       if (finalPrice <= 0) {
-        // Free event, register directly
-        const response = await apiClient.registerForEvent(
-          String(event._id),
-          undefined,
-          attendees,
-          couponCode
-        )
+        const response = user
+          ? await apiClient.registerForEvent(String(event._id), undefined, attendees, couponCode)
+          : await apiClient.registerForPublicEvent(String(event._id), {
+              registrantName: attendees?.[0]?.name || 'Guest',
+              registrantPhone: attendees?.[0]?.phone || '',
+              registrantEmail: `${(attendees?.[0]?.phone || '').replace(/[^0-9]/g, '')}@guest.rallyup.local`,
+              attendees,
+              couponCode,
+            })
         
         if (response.success) {
           toast.success("Successfully registered for event!")
@@ -154,13 +152,11 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
           onClose()
         } else {
           onFailure()
-          // toast.error(response.error || "Failed to register for event")
         }
         setLoading(false)
         return
       }
 
-      // Create Razorpay order
       const response = await fetch('/api/razorpay/create-order', {
         method: 'POST',
         headers: {
@@ -199,7 +195,6 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
         },
         handler: async function (response: any) {
           try {
-            // Verify payment
             const verifyResponse = await fetch('/api/razorpay/verify-payment', {
               method: 'POST',
               headers: {
@@ -217,16 +212,26 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
               throw new Error('Payment verification failed')
             }
             
-            const registerResponse = await apiClient.registerForEvent(
-              String(event._id),
-              undefined,
-              attendees,
-              couponCode,
-              response.razorpay_order_id,
-              response.razorpay_payment_id,
-              response.razorpay_signature,
- 
-            )
+            const registerResponse = user
+              ? await apiClient.registerForEvent(
+                  String(event._id),
+                  undefined,
+                  attendees,
+                  couponCode,
+                  response.razorpay_order_id,
+                  response.razorpay_payment_id,
+                  response.razorpay_signature,
+                )
+              : await apiClient.registerForPublicEvent(String(event._id), {
+                  registrantName: attendees?.[0]?.name || 'Guest',
+                  registrantPhone: attendees?.[0]?.phone || '',
+                  registrantEmail: `${(attendees?.[0]?.phone || '').replace(/[^0-9]/g, '')}@guest.rallyup.local`,
+                  attendees,
+                  couponCode,
+                  orderID: response.razorpay_order_id,
+                  paymentID: response.razorpay_payment_id,
+                  signature: response.razorpay_signature,
+                })
 
             if (registerResponse.success) {
               toast.success("Payment successful! You are now registered for the event.")
@@ -236,7 +241,6 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
               toast.error("Payment successful but registration failed. Please contact support.")
             }
           } catch (error) {
-            // console.error('Payment verification error:', error)
             toast.error("Payment verification failed. Please contact support.")
           } finally {
             setLoading(false)
@@ -261,14 +265,12 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
       const razorpay = new window.Razorpay(options)
       
       razorpay.on('payment.failed', function (response: any) {
-        // console.error('Payment failed:', response.error)
         toast.error(response.error.description || "Payment processing failed. Please try again.")
         setLoading(false)
       })
 
       razorpay.open()
     } catch (error) {
-      // console.error('Payment initiation error:', error)
       toast.error("Failed to initiate payment. Please try again.")
       setLoading(false)
     }
@@ -426,7 +428,6 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
         </Button>
       </DialogContent>
 
-      {/* Member Validation Modal */}
       {eventData?.clubId && (
         <MemberValidationModal
           isOpen={showMemberValidation}
@@ -439,11 +440,10 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
           onNonMemberContinue={() => {
             setMemberValidated(true)
             setShowMemberValidation(false)
-            // Retry payment
             handlePayment()
           }}
           onBecomeMember={() => {
-            router.push(`/register?club=${eventData.clubId}`)
+            router.push(`/membership-plans?clubId=${eventData.clubId}`)
             onClose()
           }}
         />

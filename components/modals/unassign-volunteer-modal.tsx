@@ -43,8 +43,6 @@ export function UnassignVolunteerModal({
 
   const timeSlot = opportunity?.timeSlots.find(slot => slot._id === timeSlotId);
 
-  // Fetch volunteer details for assigned volunteers
-  // Since volunteersAssigned contains volunteer IDs, we need to find the volunteer documents that have those IDs
   const fetchAssignedVolunteers = React.useCallback(async () => {
     if (!timeSlot || timeSlot.volunteersAssigned.length === 0) {
       setAssignedVolunteers([]);
@@ -54,38 +52,24 @@ export function UnassignVolunteerModal({
     try {
       setLoading(true);
       
-      // Get all volunteers for the club (this already has populated user details)
       const response = await apiClient.getVolunteers({ 
         club: opportunity?.club 
       });
       
       if (response.success && response.data) {
-        // Find volunteers whose _id matches the IDs in volunteersAssigned
         const volunteers = response.data.filter(volunteer => 
           timeSlot.volunteersAssigned.includes(volunteer._id)
         );
         
-        // Filter out volunteers without user data to prevent display errors
         const validVolunteers = volunteers.filter(volunteer => volunteer.user);
         const invalidVolunteers = volunteers.filter(volunteer => !volunteer.user);
         
-        // // console.log('🔍 Found assigned volunteers:', volunteers.length);
-        // // console.log('🔍 Valid volunteers with user data:', validVolunteers.length);
-        // // console.log('🔍 Volunteers without user data:', invalidVolunteers.length);
-        // console.log('🔍 Volunteer data structure:', volunteers.map(v => ({
-        //   id: v._id,
-        //   hasUser: !!v.user,
-        //   userFields: v.user ? Object.keys(v.user) : 'No user object',
-        //   userData: v.user
-        // })));
         setAssignedVolunteers(validVolunteers);
         setVolunteersWithoutUserData(invalidVolunteers.length);
       } else {
-        // // console.error('Failed to fetch volunteers:', response.error);
         setAssignedVolunteers([]);
       }
     } catch (error) {
-      // // console.error('Error fetching assigned volunteers:', error);
       toast({
         title: 'Error',
         description: 'Failed to fetch volunteer details',
@@ -110,7 +94,7 @@ export function UnassignVolunteerModal({
       const response = await apiClient.unassignVolunteerFromOpportunity({
         opportunityId: opportunity._id,
         timeSlotId: timeSlotId,
-        volunteerId: userId // This is the user ID
+        volunteerId: userId
       });
       
       if (response.success) {
@@ -128,7 +112,6 @@ export function UnassignVolunteerModal({
         });
       }
     } catch (error) {
-      // // console.error('Error unassigning volunteer:', error);
       toast({
         title: 'Error',
         description: 'Failed to unassign volunteer',
@@ -172,7 +155,6 @@ export function UnassignVolunteerModal({
           <div className="space-y-3">
             <h3 className="font-semibold">Currently Assigned Volunteers</h3>
             
-            {/* Warning for volunteers without user data */}
             {volunteersWithoutUserData > 0 && (
               <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
                 <div className="flex items-center gap-2">
@@ -215,13 +197,12 @@ export function UnassignVolunteerModal({
                               </span>
                               <span className="flex items-center gap-1">
                                 <Phone className="w-3 h-3" />
-                                {volunteer.user ? `${volunteer.user.phone_country_code} ${volunteer.user.phoneNumber}` : 'No phone'}
+                                {volunteer.user ? `${volunteer.user.countryCode} ${volunteer.user.phoneNumber}` : 'No phone'}
                               </span>
                             </div>
                           </div>
                         </div>
                         
-                        {/* Skills */}
                         {volunteer.skills && volunteer.skills.length > 0 && (
                           <div className="ml-13 mb-2">
                             <span className="text-sm font-medium">Skills:</span>
@@ -235,7 +216,6 @@ export function UnassignVolunteerModal({
                           </div>
                         )}
                         
-                        {/* Status and Experience */}
                         <div className="ml-13 flex items-center gap-2">
                           <Badge variant="outline" className="text-xs">
                             {volunteer.status}

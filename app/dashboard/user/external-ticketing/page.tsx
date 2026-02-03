@@ -22,6 +22,7 @@ import {
   UserCheck
 } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 
 interface Club {
   _id: string
@@ -61,13 +62,14 @@ interface UserMembership {
 
 export default function ExternalTicketingPage() {
   const { user } = useAuth()
+  const clubId = useRequiredClubId()
   const router = useRouter()
   const [memberships, setMemberships] = useState<UserMembership[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showRequestDialog, setShowRequestDialog] = useState(false)
   const [requestingFor, setRequestingFor] = useState<UserMembership | null>(null)
-  const [requestForm, setRequestForm] = useState({ name: '', phone: '', phone_country_code: '', tickets: 1, preferredDate: '', comments: '' })
+  const [requestForm, setRequestForm] = useState({ name: '', phone: '', countryCode: '', tickets: 1, preferredDate: '', comments: '' })
   const [isSubmittingRequest, setIsSubmittingRequest] = useState(false)
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({})
 
@@ -75,7 +77,7 @@ export default function ExternalTicketingPage() {
     if (user) {
       loadUserMemberships()
     }
-  }, [user])
+  }, [user, clubId])
 
   const loadUserMemberships = async () => {
     const fallbackMemberships = Array.isArray((user as any)?.memberships) ? (user as any).memberships : []
@@ -94,12 +96,18 @@ export default function ExternalTicketingPage() {
         else if (data.memberships && Array.isArray(data.memberships)) membershipData = data.memberships
         else if (data.data && Array.isArray(data.data)) membershipData = data.data
         // Include all memberships, even free tiers
-        setMemberships(membershipData)
+        const filtered = clubId
+          ? membershipData.filter((m: any) => String(m?.club_id?._id || m?.club_id) === String(clubId))
+          : membershipData
+        setMemberships(filtered as any)
         return
       }
 
       if (fallbackMemberships.length > 0) {
-        setMemberships(fallbackMemberships as UserMembership[])
+        const filtered = clubId
+          ? fallbackMemberships.filter((m: any) => String(m?.club_id?._id || m?.club_id) === String(clubId))
+          : fallbackMemberships
+        setMemberships(filtered as UserMembership[])
         return
       }
 
@@ -151,11 +159,10 @@ export default function ExternalTicketingPage() {
     const slug = clubName 
       ? clubName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
       : 'club'
-    // Store club ID in sessionStorage to avoid exposing it in URL
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('selectedClubId', clubId)
     }
-    router.push(`/dashboard/user/clubs/${slug}`)
+    router.push(`/dashboard/clubs/${slug}`)
   }
 
   const navigateToPlans = () => {
@@ -232,10 +239,6 @@ export default function ExternalTicketingPage() {
                                     </p>
                                   </div>
                                   <div className="flex gap-3">
-                                    <Button onClick={() => router.push('/dashboard/user/clubs')}>
-                                      <Eye className="h-4 w-4 mr-2" />
-                                      Discover Clubs
-                                    </Button>
                                     <Button variant="outline" onClick={navigateToPlans}>
                                       <CreditCard className="h-4 w-4 mr-2" />
                                       Browse Plans
@@ -284,7 +287,7 @@ export default function ExternalTicketingPage() {
                                     size="sm" 
                                     onClick={() => {
                                       setRequestingFor(membership)
-                                      setRequestForm({ name: user?.name || '', phone: '', phone_country_code: (user as any)?.countryCode || '', tickets: 1, preferredDate: '', comments: '' })
+                                      setRequestForm({ name: user?.name || '', phone: '', countryCode: (user as any)?.countryCode || '', tickets: 1, preferredDate: '', comments: '' })
                                       setShowRequestDialog(true)
                                     }}
                                   >
@@ -312,7 +315,6 @@ export default function ExternalTicketingPage() {
                 <form className="space-y-4" onSubmit={async (e) => {
                   e.preventDefault()
                   if (!requestingFor) return
-                  // Validate form before submitting
                   const errors: { [key: string]: string } = {}
                   const phoneRegex = /^\+?[0-9\s\-()]{7,20}$/
                   const countryCodeRegex = /^\+?[0-9]{1,6}$/
@@ -323,8 +325,8 @@ export default function ExternalTicketingPage() {
                   if (!requestForm.phone || !phoneRegex.test(requestForm.phone)) {
                     errors.phone = 'Please enter a valid phone number'
                   }
-                  if (requestForm.phone_country_code && !countryCodeRegex.test(requestForm.phone_country_code)) {
-                    errors.phone_country_code = 'Please enter a valid country code (e.g. +44)'
+                  if (requestForm.countryCode && !countryCodeRegex.test(requestForm.countryCode)) {
+                    errors.countryCode = 'Please enter a valid country code (e.g. +44)'
                   }
                   if (!requestForm.tickets || Number(requestForm.tickets) < 1) {
                     errors.tickets = 'Please request at least 1 ticket'
@@ -353,7 +355,7 @@ export default function ExternalTicketingPage() {
                       clubId: requestingFor.club_id._id,
                       userName: requestForm.name,
                       phone: requestForm.phone,
-                      phone_country_code: requestForm.phone_country_code,
+                      countryCode: requestForm.countryCode,
                       tickets: requestForm.tickets,
                       preferredDate: requestForm.preferredDate,
                       comments: requestForm.comments,
@@ -381,11 +383,11 @@ export default function ExternalTicketingPage() {
                   <div>
                     <Label>Phone</Label>
                     <div className="flex gap-2">
-                      <Input name="phone_country_code" placeholder="+1" style={{width: '100px'}} value={requestForm.phone_country_code} onChange={(e) => setRequestForm({...requestForm, phone_country_code: e.target.value})} />
+                      <Input name="countryCode" placeholder="+1" style={{width: '100px'}} value={requestForm.countryCode} onChange={(e) => setRequestForm({...requestForm, countryCode: e.target.value})} />
                       <Input name="phone" value={requestForm.phone} onChange={(e) => setRequestForm({...requestForm, phone: e.target.value})} />
                     </div>
                     {formErrors.phone && <div className="text-destructive text-sm mt-1">{formErrors.phone}</div>}
-                    {formErrors.phone_country_code && <div className="text-destructive text-sm mt-1">{formErrors.phone_country_code}</div>}
+                    {formErrors.countryCode && <div className="text-destructive text-sm mt-1">{formErrors.countryCode}</div>}
                   </div>
                   <div>
                     <Label>Number of Tickets</Label>

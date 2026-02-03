@@ -28,84 +28,50 @@ import {
   Globe
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { useSelectedClubId } from "@/hooks/useSelectedClubId"
 
 export default function MemberChantsPage() {
   const { user } = useAuth();
+  const clubId = useSelectedClubId()
   const [chants, setChants] = useState<Chant[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedFileType, setSelectedFileType] = useState<string>('all');
-  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [playingAudio, setPlayingAudio] = useState<string | null>(null);
-  const [favorites, setFavorites] = useState<Set<string>>(new Set());
-  const [audioVolume, setAudioVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
 
   useEffect(() => {
-    if (user) {
+    if (user && clubId) {
       fetchChants();
     }
-  }, [user, currentPage, selectedFileType, searchTerm, showFavoritesOnly]);
+  }, [user, clubId, currentPage, selectedFileType, searchTerm]);
 
   const fetchChants = async () => {
     try {
       setLoading(true);
-      
-      const clubIds: string[] = [];
-      
-      if ((user as any).club?._id) {
-        clubIds.push((user as any).club._id);
+
+      if (!clubId) {
+        setChants([])
+        setTotalPages(0)
+        setLoading(false)
+        return
       }
-      
-      const userMemberships = (user as any).memberships || [];
-      userMemberships.forEach((membership: any) => {
-        const clubId = membership.club_id?._id || membership.club_id;
-        if (clubId && !clubIds.includes(clubId)) {
-          clubIds.push(clubId);
-        }
-      });
-      
-      if (clubIds.length === 0) {
-        setChants([]);
-        setTotalPages(0);
-        setLoading(false);
-        return;
+
+      const params: any = { page: 1, limit: 100 }
+      if (selectedFileType !== 'all') params.fileType = selectedFileType
+      if (searchTerm) params.search = searchTerm
+
+      const response = await apiClient.getChants(clubId, params)
+
+      let allChants: Chant[] = []
+      if (response.success && response.data) {
+        allChants = Array.isArray(response.data.chants) ? response.data.chants : []
       }
-      
-      const allChantsPromises = clubIds.map(clubId => {
-        const params: any = {
-          page: 1,
-          limit: 100
-        };
-        
-        if (selectedFileType !== 'all') {
-          params.fileType = selectedFileType;
-        }
-        
-        if (searchTerm) {
-          params.search = searchTerm;
-        }
-        
-        return apiClient.getChants(clubId, params);
-      });
-      
-      const responses = await Promise.all(allChantsPromises);
-      
-      let allChants: Chant[] = [];
-      responses.forEach(response => {
-        if (response.success && response.data) {
-          allChants = [...allChants, ...response.data.chants];
-        }
-      });
-      
-      allChants.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      
-      if (showFavoritesOnly) {
-        allChants = allChants.filter(chant => favorites.has(chant._id));
-      }
-      
+
+      allChants.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+
       const itemsPerPage = 12;
       const startIndex = (currentPage - 1) * itemsPerPage;
       const endIndex = startIndex + itemsPerPage;
@@ -115,7 +81,6 @@ export default function MemberChantsPage() {
       setTotalPages(Math.ceil(allChants.length / itemsPerPage));
       
     } catch (error) {
-      // console.error('Error fetching chants:', error);
       toast({
         title: "Error",
         description: "Failed to fetch chants",
@@ -148,47 +113,13 @@ export default function MemberChantsPage() {
     setPlayingAudio(playingAudio === chantId ? null : chantId);
   };
 
-  const toggleFavorite = (chantId: string) => {
-    setFavorites(prev => {
-      const newFavorites = new Set(prev);
-      if (newFavorites.has(chantId)) {
-        newFavorites.delete(chantId);
-      } else {
-        newFavorites.add(chantId);
-      }
-      return newFavorites;
-    });
-  };
-
-  const handleShare = async (chant: Chant) => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: chant.title,
-          text: chant.description || 'Check out this club chant!',
-          url: window.location.href
-        });
-      } catch (error) {
-        // console.log('Error sharing:', error);
-      }
-    } else {
-      navigator.clipboard.writeText(`${chant.title} - ${window.location.href}`);
-      toast({
-        title: "Link copied!",
-        description: "Chant link has been copied to clipboard",
-      });
-    }
-  };
-
   const toggleMute = () => {
     setIsMuted(!isMuted);
   };
 
   const hasClubMembership = React.useMemo(() => {
-    if (!user) return false;
-    const userMemberships = (user as any).memberships || [];
-    return userMemberships.length > 0 || !!(user as any).club;
-  }, [user]);
+    return !!clubId
+  }, [clubId]);
 
   if (!hasClubMembership) {
     return (
@@ -215,11 +146,10 @@ export default function MemberChantsPage() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold">Club Chants</h1>
-              <p className="text-muted-foreground">Learn and participate in traditions from all your clubs</p>
+              <p className="text-muted-foreground">Learn and participate in traditions from your club</p>
             </div>
           </div>
 
-          {/* Filters */}
           <Card>
             <CardContent className="pt-6">
               <div className="flex flex-col sm:flex-row gap-4">
@@ -247,21 +177,11 @@ export default function MemberChantsPage() {
                       <SelectItem value="iframe">Embedded Content (iframe)</SelectItem>
                     </SelectContent>
                   </Select>
-{/*                   <Button
-                    variant={showFavoritesOnly ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
-                    className="flex items-center gap-2"
-                  >
-                    <Heart className={`w-4 h-4 ${showFavoritesOnly ? 'fill-current' : ''}`} />
-                    Favorites
-                  </Button> */}
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* Chants Grid */}
           {loading ? (
             <div className="text-center py-8">
               <div className="text-muted-foreground">Loading chants...</div>
@@ -272,7 +192,7 @@ export default function MemberChantsPage() {
                 <Music className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-semibold mb-2">No Chants Available</h3>
                 <p className="text-muted-foreground">
-                  {searchTerm || selectedFileType !== 'all' || showFavoritesOnly
+                  {searchTerm || selectedFileType !== 'all'
                     ? "No chants match your current filters. Try adjusting your search criteria."
                     : "Your club hasn't uploaded any chants yet. Check back later for club traditions and songs."
                   }
@@ -289,14 +209,6 @@ export default function MemberChantsPage() {
                         {getFileTypeIcon(chant.fileType)}
                         <div className="flex-1 min-w-0">
                           <CardTitle className="text-lg leading-tight">{chant.title}</CardTitle>
-                          {/* Display club name prominently */}
-                          {chant.club && (
-                            <div className="mt-1">
-                              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20">
-                                {(chant.club as any).name || 'Unknown Club'}
-                              </Badge>
-                            </div>
-                          )}
                           {chant.description && (
                             <CardDescription className="mt-1 line-clamp-2">
                               {chant.description}
@@ -308,34 +220,11 @@ export default function MemberChantsPage() {
                         <Badge variant="secondary">
                           {chant.fileType}
                         </Badge>
-{/*                         <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => toggleFavorite(chant._id)}
-                          className="p-1 h-6 w-6"
-                        >
-                          <Heart 
-                            className={`w-4 h-4 ${
-                              favorites.has(chant._id) 
-                                ? 'fill-red-500 text-red-500' 
-                                : 'text-muted-foreground hover:text-red-500'
-                            }`} 
-                          />
-                        </Button> */}
-{/*                         <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleShare(chant)}
-                          className="p-1 h-6 w-6"
-                        >
-                          <Share2 className="w-4 h-4 text-muted-foreground hover:text-primary" />
-                        </Button> */}
                       </div>
                     </div>
                   </CardHeader>
                   
                   <CardContent className="space-y-4">
-                    {/* Content Display */}
                     {chant.fileType === 'text' && chant.content && (
                       <div className="bg-muted p-4 rounded-lg">
                         <pre className="whitespace-pre-wrap text-sm font-mono leading-relaxed">
@@ -441,16 +330,13 @@ export default function MemberChantsPage() {
                                   <Volume2 className="w-4 h-4" />
                                 )}
                               </Button>
-                              <span className="text-muted-foreground">
-                                {isMuted ? 'Muted' : 'Volume: ' + Math.round(audioVolume * 100) + '%'}
-                              </span>
+                              <span className="text-muted-foreground">{isMuted ? 'Muted' : 'Sound on'}</span>
                             </div>
                           </div>
                         )}
                       </div>
                     )}
                     
-                    {/* Tags */}
                     {chant.tags && chant.tags.length > 0 && (
                       <div className="flex items-center gap-2 flex-wrap">
                         <Tag className="w-4 h-4 text-muted-foreground flex-shrink-0" />
@@ -464,7 +350,6 @@ export default function MemberChantsPage() {
                       </div>
                     )}
                     
-                    {/* Metadata */}
                     <div className="flex items-center justify-between text-sm text-muted-foreground pt-2 border-t">
                       <div className="flex items-center gap-1">
                         <User className="w-4 h-4" />
@@ -481,7 +366,6 @@ export default function MemberChantsPage() {
             </div>
           )}
 
-          {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex justify-center gap-2">
               <Button

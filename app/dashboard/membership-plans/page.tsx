@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
-import { Plus, CreditCard, Users, Calendar, CheckCircle, Edit } from "lucide-react"
+import { Plus, CreditCard, Users, Calendar, Edit } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api"
@@ -84,7 +84,6 @@ export default function MembershipPlansPage() {
       
       const token = localStorage.getItem('token')
       if (!token) {
-        // console.error('No authentication token found')
         toast.error('Please log in to view membership plans')
         setIsLoading(false)
         return
@@ -199,7 +198,6 @@ export default function MembershipPlansPage() {
 
       await loadPlansForClub(initialClubId)
     } catch (error) {
-      // console.error('Error loading clubs:', error)
       setClubs([])
       await loadPlansForClub(undefined)
     }
@@ -458,7 +456,6 @@ export default function MembershipPlansPage() {
                   onChange={(e) => {
                     const id = e.target.value || undefined
                     setSelectedClubId(id)
-                    // reload plans for selected club
                     loadPlansForClub(id)
                   }}
                   className="px-3 py-2 border border-input rounded-md bg-background text-foreground w-full sm:w-auto text-sm"

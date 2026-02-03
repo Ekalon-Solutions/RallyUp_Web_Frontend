@@ -46,6 +46,7 @@ export const API_ENDPOINTS = {
     profile: '/users/profile',
     update: '/users/update',
     joinClubRequest: '/users/join-club-request',
+    checkExistingUserPlan: '/users/check-existing-user-plan',
     verifyPhone: '/users/verify-phone',
     resendOTP: '/users/resend-otp',
   },
@@ -179,7 +180,6 @@ export const isStaging = () => ENV.CURRENT === 'staging';
 
 export const debugLog = (message: string, data?: any) => {
   if (currentConfig.debug) {
-    // console.log(`[${ENV.CURRENT.toUpperCase()}] ${message}`, data || '');
   }
 };
 

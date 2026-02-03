@@ -1,19 +1,10 @@
-/**
- * Timezone Utility for RallyUp
- * 
- * Converts UTC dates from the backend to the user's local timezone
- * and provides consistent date/time formatting across the application.
- */
-
-// Get the user's timezone from the browser
 export function getUserTimezone(): string {
   if (typeof window === 'undefined') {
-    return 'UTC'; // SSR fallback
+    return 'UTC';
   }
   return Intl.DateTimeFormat().resolvedOptions().timeZone;
 }
 
-// Get timezone offset string (e.g., "+05:30", "-08:00")
 export function getTimezoneOffset(): string {
   const offset = new Date().getTimezoneOffset();
   const absOffset = Math.abs(offset);
@@ -23,7 +14,6 @@ export function getTimezoneOffset(): string {
   return `${sign}${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
 }
 
-// Get timezone abbreviation (e.g., "IST", "PST", "EST")
 export function getTimezoneAbbreviation(): string {
   if (typeof window === 'undefined') {
     return 'UTC';
@@ -34,34 +24,25 @@ export function getTimezoneAbbreviation(): string {
   return match ? match[0] : getTimezoneOffset();
 }
 
-// Format options for different use cases
 export type DateFormatType = 
-  | 'full'           // "December 7, 2025 at 2:30 PM IST"
-  | 'long'           // "Dec 7, 2025, 2:30 PM"
-  | 'short'          // "12/7/25, 2:30 PM"
-  | 'date-only'      // "December 7, 2025"
-  | 'date-short'     // "Dec 7, 2025"
-  | 'date-numeric'   // "12/7/2025"
-  | 'time-only'      // "2:30 PM"
-  | 'time-24h'       // "14:30"
-  | 'relative'       // "2 hours ago", "in 3 days"
-  | 'datetime-input' // "2025-12-07T14:30" (for datetime-local inputs)
+  | 'full'
+  | 'long'
+  | 'short'
+  | 'date-only'
+  | 'date-short'
+  | 'date-numeric'
+  | 'time-only'
+  | 'time-24h'
+  | 'relative'
+  | 'datetime-input'
 
-/**
- * Convert a UTC date string/Date to the user's local timezone and format it
- * 
- * @param dateInput - UTC date string or Date object from the backend
- * @param format - The desired output format
- * @param options - Additional options
- * @returns Formatted date string in user's local timezone
- */
 export function formatLocalDate(
   dateInput: string | Date | null | undefined,
   format: DateFormatType = 'long',
   options?: {
-    timezone?: string;      // Override timezone (default: user's timezone)
-    showTimezone?: boolean; // Show timezone abbreviation (default: false for most formats)
-    locale?: string;        // Override locale (default: browser locale)
+    timezone?: string;
+    showTimezone?: boolean;
+    locale?: string;
   }
 ): string {
   if (!dateInput) {
@@ -157,21 +138,16 @@ export function formatLocalDate(
         return getRelativeTimeString(date, timezone);
 
       case 'datetime-input':
-        // Format for datetime-local input: "YYYY-MM-DDTHH:mm"
         return formatForDatetimeInput(date, timezone);
 
       default:
         return date.toLocaleString(locale, { timeZone: timezone });
     }
   } catch (error) {
-    // console.error('Error formatting date:', error);
     return date.toLocaleString();
   }
 }
 
-/**
- * Get relative time string (e.g., "2 hours ago", "in 3 days")
- */
 function getRelativeTimeString(date: Date, timezone: string): string {
   const now = new Date();
   const diffMs = date.getTime() - now.getTime();
@@ -205,11 +181,7 @@ function getRelativeTimeString(date: Date, timezone: string): string {
   }
 }
 
-/**
- * Format date for datetime-local input in user's timezone
- */
 function formatForDatetimeInput(date: Date, timezone: string): string {
-  // Create a formatter that gives us the parts in the target timezone
   const formatter = new Intl.DateTimeFormat('en-CA', {
     timeZone: timezone,
     year: 'numeric',
@@ -232,13 +204,6 @@ function formatForDatetimeInput(date: Date, timezone: string): string {
   return `${year}-${month}-${day}T${hour}:${minute}`;
 }
 
-/**
- * Convert a local datetime-input value to UTC Date for sending to backend
- * 
- * @param localDatetimeString - Value from datetime-local input (e.g., "2025-12-07T14:30")
- * @param timezone - The timezone of the input (default: user's timezone)
- * @returns Date object in UTC
- */
 export function localInputToUTC(
   localDatetimeString: string,
   timezone?: string
@@ -249,16 +214,13 @@ export function localInputToUTC(
 
   const tz = timezone || getUserTimezone();
   
-  // Parse the local datetime string
   const [datePart, timePart] = localDatetimeString.split('T');
   const [year, month, day] = datePart.split('-').map(Number);
   const [hour, minute] = (timePart || '00:00').split(':').map(Number);
 
-  // Create a date string with the timezone
   const dateStr = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}T${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:00`;
   
-  // Use Intl to get the offset for this timezone at this specific date/time
-  const tempDate = new Date(dateStr + 'Z'); // Start with UTC
+  const tempDate = new Date(dateStr + 'Z');
   const formatter = new Intl.DateTimeFormat('en-US', {
     timeZone: tz,
     year: 'numeric',
@@ -270,7 +232,6 @@ export function localInputToUTC(
     hour12: false
   });
 
-  // Format the temp date in the target timezone to find the offset
   const parts = formatter.formatToParts(tempDate);
   const getPart = (type: string) => parts.find(p => p.type === type)?.value || '';
   
@@ -280,25 +241,14 @@ export function localInputToUTC(
   const tzHour = parseInt(getPart('hour'));
   const tzMinute = parseInt(getPart('minute'));
 
-  // Calculate the offset by comparing
   const utcDate = new Date(Date.UTC(tzYear, tzMonth - 1, tzDay, tzHour, tzMinute));
   const offsetMs = utcDate.getTime() - tempDate.getTime();
 
-  // Create the final date in the local timezone
   const localDate = new Date(dateStr);
   
-  // Adjust for timezone - we need to convert FROM local TO UTC
-  // The local datetime represents a moment in the user's timezone
-  // We need to figure out what UTC time corresponds to that local time
-  
-  // Simple approach: parse as local and it will be correct if browser timezone matches
-  // For explicit timezone handling, we'd need a library like date-fns-tz
   return new Date(dateStr);
 }
 
-/**
- * Format a date range (e.g., "Dec 7 - Dec 9, 2025" or "Dec 7, 2:00 PM - 5:00 PM")
- */
 export function formatDateRange(
   startDate: string | Date,
   endDate: string | Date,
@@ -313,12 +263,10 @@ export function formatDateRange(
   const showTime = options?.showTime ?? true;
   const locale = typeof navigator !== 'undefined' ? navigator.language : 'en-US';
 
-  // Check if same day
   const sameDay = start.toLocaleDateString(locale, { timeZone: timezone }) === 
                   end.toLocaleDateString(locale, { timeZone: timezone });
 
   if (sameDay && showTime) {
-    // Same day: "Dec 7, 2025, 2:00 PM - 5:00 PM"
     const dateStr = start.toLocaleDateString(locale, {
       timeZone: timezone,
       year: 'numeric',
@@ -337,7 +285,6 @@ export function formatDateRange(
     });
     return `${dateStr}, ${startTime} - ${endTime}`;
   } else {
-    // Different days: "Dec 7 - Dec 9, 2025"
     const startStr = start.toLocaleDateString(locale, {
       timeZone: timezone,
       month: 'short',
@@ -353,25 +300,16 @@ export function formatDateRange(
   }
 }
 
-/**
- * Check if a date is in the past (considering timezone)
- */
 export function isPast(dateInput: string | Date): boolean {
   const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
   return date.getTime() < Date.now();
 }
 
-/**
- * Check if a date is in the future (considering timezone)
- */
 export function isFuture(dateInput: string | Date): boolean {
   const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
   return date.getTime() > Date.now();
 }
 
-/**
- * Check if a date is today (in user's timezone)
- */
 export function isToday(dateInput: string | Date, timezone?: string): boolean {
   const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
   const tz = timezone || getUserTimezone();
@@ -383,20 +321,16 @@ export function isToday(dateInput: string | Date, timezone?: string): boolean {
   return todayStr === dateStr;
 }
 
-/**
- * Get timezone display info for UI
- */
 export function getTimezoneInfo(): {
-  name: string;        // e.g., "Asia/Kolkata"
-  abbreviation: string; // e.g., "IST"
-  offset: string;      // e.g., "+05:30"
-  displayName: string; // e.g., "India Standard Time (IST, +05:30)"
+  name: string;
+  abbreviation: string;
+  offset: string;
+  displayName: string;
 } {
   const name = getUserTimezone();
   const abbreviation = getTimezoneAbbreviation();
   const offset = getTimezoneOffset();
   
-  // Try to get a friendly name
   let friendlyName = name.replace(/_/g, ' ').split('/').pop() || name;
   
   return {
@@ -407,7 +341,6 @@ export function getTimezoneInfo(): {
   };
 }
 
-// Common timezone list for dropdown selections
 export const COMMON_TIMEZONES = [
   { value: 'Asia/Kolkata', label: 'India Standard Time (IST)', offset: '+05:30' },
   { value: 'America/New_York', label: 'Eastern Time (ET)', offset: '-05:00' },
@@ -425,13 +358,6 @@ export const COMMON_TIMEZONES = [
   { value: 'UTC', label: 'Coordinated Universal Time (UTC)', offset: '+00:00' },
 ];
 
-/**
- * Format a Date object for datetime-local input in local timezone
- * This is the correct way to set default values for datetime-local inputs
- * 
- * @param date - Date object to format
- * @returns String in format "YYYY-MM-DDTHH:mm" in local timezone
- */
 export function toDatetimeLocalString(date: Date): string {
   const year = date.getFullYear();
   const month = (date.getMonth() + 1).toString().padStart(2, '0');
@@ -442,27 +368,13 @@ export function toDatetimeLocalString(date: Date): string {
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 }
 
-/**
- * Parse a datetime-local input value and return a Date object
- * The input is assumed to be in the user's local timezone
- * 
- * @param datetimeString - Value from datetime-local input (e.g., "2025-12-07T14:30")
- * @returns Date object
- */
 export function parseDatetimeLocal(datetimeString: string): Date {
   if (!datetimeString) {
     return new Date();
   }
-  // datetime-local input values are treated as local time by the browser
   return new Date(datetimeString);
 }
 
-/**
- * Convert a UTC ISO string from the backend to a datetime-local input value
- * 
- * @param isoString - UTC ISO string from backend (e.g., "2025-12-07T10:00:00.000Z")
- * @returns String for datetime-local input in local timezone
- */
 export function utcToDatetimeLocal(isoString: string): string {
   if (!isoString) return '';
   const date = new Date(isoString);

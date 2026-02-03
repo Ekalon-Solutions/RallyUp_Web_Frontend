@@ -23,6 +23,7 @@ import {
   Clock,
   Download
 } from 'lucide-react'
+import { useRequiredClubId } from '@/hooks/useRequiredClubId'
 
 interface OrderItem {
   productId: string
@@ -90,6 +91,7 @@ const paymentStatusConfig = {
 
 export default function UserOrdersPage() {
   const { user } = useAuth()
+  const clubId = useRequiredClubId()
   const { toast } = useToast()
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(false)
@@ -105,30 +107,37 @@ export default function UserOrdersPage() {
     if (user) {
       loadOrders()
     }
-  }, [user])
+  }, [user, clubId])
 
   useEffect(() => {
     if (user) {
       setCurrentPage(1)
       loadOrders()
     }
-  }, [searchTerm, statusFilter])
+  }, [searchTerm, statusFilter, clubId])
 
   useEffect(() => {
     if (user && currentPage > 1) {
       loadOrders()
     }
-  }, [currentPage])
+  }, [currentPage, clubId])
 
   const loadOrders = async () => {
     try {
       setLoading(true)
+      if (!clubId) {
+        setOrders([])
+        setTotalPages(1)
+        setLoading(false)
+        return
+      }
       const params = new URLSearchParams({
         page: currentPage.toString(),
         limit: '10',
         ...(searchTerm && { search: searchTerm }),
         ...(statusFilter && statusFilter !== 'all' && { status: statusFilter })
       })
+      params.append('clubId', clubId)
 
       const response = await apiClient.get(`/orders/my-orders?${params}`)
       if (response.success && response.data) {
@@ -167,6 +176,7 @@ export default function UserOrdersPage() {
     const params = {
       ...(searchTerm ? { search: searchTerm } : {}),
       ...(statusFilter && statusFilter !== 'all' ? { status: statusFilter } : {}),
+      ...(clubId ? { clubId } : {}),
     };
 
     try {

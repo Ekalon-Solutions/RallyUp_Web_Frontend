@@ -14,6 +14,7 @@ import { CartIcon } from "@/components/cart-icon"
 import { apiClient } from "@/lib/api"
 import { toast } from "sonner"
 import { useCart } from "@/contexts/cart-context"
+import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { 
   ShoppingBag, 
   Search, 
@@ -52,6 +53,8 @@ interface Merchandise {
 
 export default function MerchandisePage() {
   const { addToCart } = useCart()
+  const selectedClubId = useRequiredClubId()
+  const [clubId, setClubId] = useState<string | null>(null)
   const [merchandise, setMerchandise] = useState<Merchandise[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -66,6 +69,12 @@ export default function MerchandisePage() {
   const [isCartModalOpen, setIsCartModalOpen] = useState(false)
   const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false)
   const [directCheckoutItems, setDirectCheckoutItems] = useState<any[] | null>(null)
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+    const fromQuery = new URLSearchParams(window.location.search).get("clubId") || ""
+    setClubId(selectedClubId || (fromQuery ? fromQuery : null))
+  }, [selectedClubId])
 
   const formatCurrency = (amount: number, currencyCode: string = 'USD') => {
     const localeMap: Record<string, string> = {
@@ -88,8 +97,15 @@ export default function MerchandisePage() {
   }
 
   useEffect(() => {
+    if (clubId === null) return
     fetchMerchandise()
-  }, [page, searchTerm, categoryFilter, sortBy, showFeaturedOnly])
+  }, [page, searchTerm, categoryFilter, sortBy, showFeaturedOnly, clubId])
+
+  useEffect(() => {
+    if (clubId !== null) return
+    setMerchandise([])
+    setLoading(false)
+  }, [clubId])
 
   const fetchMerchandise = async () => {
     try {
@@ -102,19 +118,16 @@ export default function MerchandisePage() {
              if (searchTerm) params.append('search', searchTerm)
        if (categoryFilter && categoryFilter !== 'all') params.append('category', categoryFilter)
        if (showFeaturedOnly) params.append('featured', 'true')
+       if (clubId) params.append('clubId', clubId)
 
       const response = await apiClient.get(`/merchandise/public?${params}`)
       
       if (response.data) {
         let items = response.data.merchandise || []
         
-        // Debug: Log the first item to see the structure
         if (items.length > 0) {
-          // console.log('First merchandise item:', items[0])
-          // console.log('Tags:', items[0].tags, 'Type:', typeof items[0].tags)
         }
         
-        // Sort items
         switch (sortBy) {
           case 'price-low':
             items.sort((a: Merchandise, b: Merchandise) => a.price - b.price)
@@ -135,7 +148,6 @@ export default function MerchandisePage() {
         setTotalPages(response.data.pagination?.pages || 1)
       }
     } catch (error) {
-      // console.error('Error fetching merchandise:', error)
       toast.error('Failed to load merchandise')
     } finally {
       setLoading(false)
@@ -201,6 +213,26 @@ export default function MerchandisePage() {
     }])
     setIsProductModalOpen(false)
     setIsCheckoutModalOpen(true)
+  }
+
+  if (!clubId) {
+    return (
+      <DashboardLayout>
+        <div className="space-y-6">
+          <Card>
+            <CardContent className="py-10 text-center space-y-3">
+              <h2 className="text-xl font-semibold">No club selected</h2>
+              <p className="text-muted-foreground">
+                Please select a club to browse merchandise.
+              </p>
+              <Button onClick={() => (window.location.href = "/splash")}>
+                Go to Club Selection
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </DashboardLayout>
+    )
   }
 
   return (

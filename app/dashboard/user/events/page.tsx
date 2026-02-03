@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -25,6 +25,8 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/auth-context";
 import { formatLocalDate } from "@/lib/timezone";
 import { User as UserInterface } from "@/lib/api";
+import { useSearchParams } from "next/navigation";
+import { useRequiredClubId } from "@/hooks/useRequiredClubId";
 import {
   Calendar,
   MapPin,
@@ -38,9 +40,7 @@ import {
 } from "lucide-react";
 import EventDetailsModal from "@/components/modals/event-details-modal";
 import UserEventRegistrationModal from "@/components/modals/user-event-registration-modal";
-import { CheckoutModal } from "@/components/modals/checkout-modal";
 import { EventCheckoutModal } from "@/components/modals/event-checkout-modal";
-import { EventPaymentSimulationModal } from "@/components/modals/event-payment-simulation-modal";
 
 const eventCategories = [
   "all",
@@ -56,7 +56,6 @@ const eventCategories = [
   "entertainment",
 ];
 
-// Component to display attendance marker with user's registration data
 function AttendanceMarker({
   event,
   userId,
@@ -73,8 +72,6 @@ function AttendanceMarker({
       setLoading(false);
       return;
     }
-
-    // Find the user's registration entry
     const regs = (event.registrations || []) as any[];
     const myRegEntry = regs.find(
       (r) => r && String(r.userId) === String(userId) && r.registrationId
@@ -135,9 +132,10 @@ function AttendanceMarker({
   );
 }
 
-export default function UserEventsPage() {
+function UserEventsPageInner() {
   const { user } = useAuth() as { user: UserInterface };
-  // // console.log("events user:", user);
+  const clubId = useRequiredClubId();
+  const searchParams = useSearchParams();
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -154,36 +152,68 @@ export default function UserEventsPage() {
     null
   );
   const [showEventCheckoutModal, setShowEventCheckoutModal] = useState(false);
-  const [showEventPaymentSimulationModal, setShowEventPaymentSimulationModal] =
-    useState(false);
   const [eventForPayment, setEventForPayment] = useState<Event | null>(null);
   const [attendeesForPayment, setAttendeesForPayment] = useState<any[]>([]);
   const [couponForPayment, setCouponForPayment] = useState<{code: string; discount: number} | null>(null);
+  const [handledDeepLinkEventId, setHandledDeepLinkEventId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchEvents();
-  }, []);
+  }, [clubId]);
+
+  useEffect(() => {
+    const eventId = searchParams.get("eventId");
+    if (!eventId) return;
+    if (handledDeepLinkEventId === eventId) return;
+    if (loading) return;
+
+    const found = events.find((e) => String(e._id) === String(eventId));
+    const openFound = (ev: Event) => {
+      setSelectedEventForDetails(ev);
+      setShowEventDetailsModal(true);
+      setHandledDeepLinkEventId(eventId);
+    };
+
+    if (found) {
+      openFound(found);
+      return;
+    }
+
+    (async () => {
+      const res = await apiClient.getPublicEventById(eventId);
+      if (res.success && res.data) {
+        openFound(res.data as any);
+      } else {
+        setHandledDeepLinkEventId(eventId);
+      }
+    })();
+  }, [events, handledDeepLinkEventId, loading, searchParams]);
 
   const fetchEvents = async () => {
     try {
       setLoading(true);
-      const response = await apiClient.getPublicEvents();
+      if (!clubId) {
+        setEvents([]);
+        setLoading(false);
+        return;
+      }
+
+      const response = await apiClient.getPublicEvents(clubId);
 
       if (response.success && response.data) {
-        setEvents(response.data);
+        const data: any = response.data;
+        const eventsData = Array.isArray(data) ? data : (data?.events || []);
+        setEvents(eventsData);
       } else {
-        // // console.error("Failed to fetch events:", response.error);
         toast.error("Failed to fetch events");
       }
     } catch (error) {
-      // // console.error("Error fetching events:", error);
       toast.error("Error fetching events");
     } finally {
       setLoading(false);
     }
   };
 
-  // Open registration modal instead of immediately calling the API.
   const handleEventRegistration = (eventId: string) => {
     if (!user) {
       toast.error("Please log in to register for events");
@@ -195,7 +225,6 @@ export default function UserEventsPage() {
     setShowRegistrationModal(true);
   };
 
-  // Frontend-only handler that receives registration payload from the modal
   const handlePerformRegistration = async (payload: {
     eventId: string;
     attendees: any[];
@@ -204,20 +233,18 @@ export default function UserEventsPage() {
     if (!payload || !payload.eventId) return;
 
     const event = events.find((e) => e._id === payload.eventId);
+    if (!event) {
+      toast.error("Event not found. Please refresh and try again.");
+      return;
+    }
     if (true) {
-      // Calculate discount if coupon was applied
-      let discountAmount = 0;
       if (payload.couponCode) {
-        // The coupon was already validated in the modal, so we trust the discount
-        // We'll pass it to the checkout modal
-        setCouponForPayment({ code: payload.couponCode, discount: 0 }); // Will be calculated in checkout
+        setCouponForPayment({ code: payload.couponCode, discount: 0 });
       } else {
         setCouponForPayment(null);
       }
-      
-      // Open EventCheckoutModal for paid events
       setShowEventCheckoutModal(true);
-      setEventForPayment({ ...event, price: event.ticketPrice } as Event & {
+      setEventForPayment({ ...event, price: event.ticketPrice ?? 0 } as Event & {
         price: number;
       });
       setAttendeesForPayment(
@@ -236,7 +263,6 @@ export default function UserEventsPage() {
   const formatTime = (dateString: string) => {
     return formatLocalDate(dateString, 'time-only');
   };
-  // Currency helpers
   const currencySymbols: Record<string, string> = {
     INR: '₹',
     USD: '$',
@@ -314,7 +340,6 @@ export default function UserEventsPage() {
       return;
     try {
       setCancellingEventId(eventId);
-      // Call the API and inspect the response object
       const res = await apiClient.cancelEventRegistration(eventId);
       if (res && res.success) {
         toast.success(res.data?.message || "Registration cancelled");
@@ -325,10 +350,8 @@ export default function UserEventsPage() {
           res?.message ||
           `Cancellation failed (status ${res?.status ?? "unknown"})`;
         toast.error(msg);
-        // // console.error("Cancel registration failed:", res);
       }
     } catch (error) {
-      // // console.error("Cancel registration error", error);
       toast.error("Failed to cancel registration");
     } finally {
       setCancellingEventId(null);
@@ -336,14 +359,12 @@ export default function UserEventsPage() {
   };
 
   const filteredEvents = events.filter((event) => {
-    // Apply search filter
     const searchMatch =
       !searchTerm ||
       event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       event.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
       event.venue.toLowerCase().includes(searchTerm.toLowerCase());
 
-    // Apply category filter
     const categoryMatch =
       categoryFilter === "all" || event.category === categoryFilter;
 
@@ -403,7 +424,6 @@ export default function UserEventsPage() {
             </CardContent>
           </Card>
 
-          {/* Ongoing Events */}
           <div className="space-y-4">
             <div className="mt-4">
               <h4 className="text-md font-semibold">Ongoing events</h4>
@@ -858,34 +878,37 @@ export default function UserEventsPage() {
         <EventCheckoutModal
           isOpen={showEventCheckoutModal}
           onClose={() => setShowEventCheckoutModal(false)}
-          event={eventForPayment}
+          event={
+            eventForPayment
+              ? {
+                  _id: (eventForPayment as any)._id,
+                  name: (eventForPayment as any).title || (eventForPayment as any).name || "Event",
+                  price: (eventForPayment as any).ticketPrice ?? (eventForPayment as any).price ?? 0,
+                  ticketPrice: (eventForPayment as any).ticketPrice,
+                  earlyBirdDiscount: (eventForPayment as any).earlyBirdDiscount,
+                  currency: (eventForPayment as any).currency,
+                }
+              : undefined
+          }
           attendees={attendeesForPayment}
           couponCode={couponForPayment?.code}
           onSuccess={() => {
             setShowEventCheckoutModal(false);
             fetchEvents();
             toast.success("Payment successful!");
-            // setShowEventPaymentSimulationModal(true);
           }}
           onFailure={()=> {
             toast.error("Payment failed. Please try again.");
           }}
         />
-
-{/*         <EventPaymentSimulationModal
-          isOpen={showEventPaymentSimulationModal}
-          onClose={() => setShowEventPaymentSimulationModal(false)}
-          event={eventForPayment}
-          attendees={attendeesForPayment}
-          couponCode={couponForPayment?.code}
-          onPaymentSuccess={() => {
-            setShowEventPaymentSimulationModal(false);
-          }}
-          onPaymentFailure={() => {
-            setShowEventPaymentSimulationModal(false);
-          }}
-        /> 
-*/}
     </ProtectedRoute>
+  );
+}
+
+export default function UserEventsPage() {
+  return (
+    <Suspense fallback={<div className="p-6">Loading...</div>}>
+      <UserEventsPageInner />
+    </Suspense>
   );
 }

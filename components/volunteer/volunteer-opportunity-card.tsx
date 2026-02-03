@@ -12,8 +12,8 @@ interface VolunteerOpportunityCardProps {
   onWithdraw?: (opportunityId: string, timeSlotId: string) => void;
   onEdit?: (opportunity: VolunteerOpportunity) => void;
   isAdmin?: boolean;
-  currentVolunteerId?: string; // Add this to check if user is already signed up
-  signingUp?: string | null; // Track which opportunity is being signed up for
+  currentVolunteerId?: string;
+  signingUp?: string | null;
 }
 
 const statusColors = {
@@ -43,7 +43,6 @@ export function VolunteerOpportunityCard({
     0
   );
 
-  // Helper function to check if current volunteer is signed up for a time slot
   const isSignedUpForTimeSlot = (slot: any) => {
     return currentVolunteerId && slot.volunteersAssigned.includes(currentVolunteerId);
   };
@@ -100,7 +99,7 @@ export function VolunteerOpportunityCard({
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      // // console.log('Sign up button clicked for opportunity:', opportunity._id, 'timeSlot:', slot._id);
+                      // console.log('Sign up button clicked for opportunity:', opportunity._id, 'timeSlot:', slot._id);
                       onSignUp(opportunity._id, slot._id);
                     }}
                     disabled={slot.volunteersAssigned.length >= slot.volunteersNeeded || signingUp === `${opportunity._id}-${slot._id}`}
@@ -123,7 +122,7 @@ export function VolunteerOpportunityCard({
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          // // console.log('Sign out button clicked for opportunity:', opportunity._id, 'timeSlot:', slot._id);
+                          // console.log('Sign out button clicked for opportunity:', opportunity._id, 'timeSlot:', slot._id);
                           onWithdraw(opportunity._id, slot._id);
                         }}
                         className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-950 transition-colors"

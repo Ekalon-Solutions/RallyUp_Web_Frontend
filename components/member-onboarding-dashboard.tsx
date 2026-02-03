@@ -25,6 +25,7 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 import { getApiUrl, API_ENDPOINTS } from "@/lib/config"
+import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 
 interface OnboardingStep {
   title: string
@@ -54,6 +55,7 @@ interface MemberOnboardingDashboardProps {
 
 export default function MemberOnboardingDashboard({ userId, userRole }: MemberOnboardingDashboardProps) {
   const router = useRouter()
+  const clubId = useRequiredClubId()
   const [onboardingFlows, setOnboardingFlows] = useState<OnboardingFlow[]>([])
   const [activeFlow, setActiveFlow] = useState<OnboardingFlow | null>(null)
   const [currentStepIndex, setCurrentStepIndex] = useState(0)
@@ -64,12 +66,15 @@ export default function MemberOnboardingDashboard({ userId, userRole }: MemberOn
 
   useEffect(() => {
     fetchOnboardingFlows()
-  }, [userId])
+  }, [clubId, userId])
 
   const fetchOnboardingFlows = async () => {
     try {
       const token = localStorage.getItem('token')
-      const response = await fetch(getApiUrl(API_ENDPOINTS.onboarding.flows), {
+      const url = clubId
+        ? `${getApiUrl(API_ENDPOINTS.onboarding.flows)}?club=${encodeURIComponent(clubId)}`
+        : getApiUrl(API_ENDPOINTS.onboarding.flows)
+      const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -77,52 +82,44 @@ export default function MemberOnboardingDashboard({ userId, userRole }: MemberOn
       
       if (response.ok) {
         const data = await response.json()
-        // Backend already filters out completed flows for members
-        // Filter to only show active flows and initialize step completion state
         const activeFlows = (data.flows || [])
           .filter((flow: any) => flow.isActive)
           .map((flow: any) => ({
             ...flow,
             steps: flow.steps.map((step: any, index: number) => ({
               ...step,
-              isCompleted: false, // Initialize all steps as not completed
-              estimatedTime: step.estimatedTime || 5 // Default estimated time
+              isCompleted: false,
+              estimatedTime: step.estimatedTime || 5
             })),
-            progress: 0, // Initialize progress as 0
-            currentStep: 0 // Start at first step
+            progress: 0,
+            currentStep: 0
           }))
         
         setOnboardingFlows(activeFlows)
         
-        // If no flows available, user has completed all onboarding
         if (activeFlows.length === 0) {
           setHasCompletedOnboarding(true)
           return
         }
         
-        // Handle flow selection logic
         if (activeFlows && activeFlows.length > 0) {
           const flowWithProgress = activeFlows.find((f: OnboardingFlow) => f.progress > 0)
           
           if (flowWithProgress) {
-            // User has progress in a specific flow, continue with that one
             setActiveFlow(flowWithProgress)
             setCurrentStepIndex(flowWithProgress.currentStep)
             setShowFlowSelection(false)
           } else if (activeFlows.length === 1) {
-            // Only one flow available, start it automatically
             setActiveFlow(activeFlows[0])
             setCurrentStepIndex(0)
             setShowFlowSelection(false)
           } else {
-            // Multiple flows available, show selection interface
             setShowFlowSelection(true)
             setActiveFlow(null)
           }
         }
       }
     } catch (error) {
-      // console.error('Error fetching onboarding flows:', error)
     }
   }
 
@@ -131,21 +128,17 @@ export default function MemberOnboardingDashboard({ userId, userRole }: MemberOn
 
     setLoading(true)
     try {
-      // Update local state
       const updatedFlow = { ...activeFlow }
       if (stepIndex >= 0 && stepIndex < updatedFlow.steps.length) {
         updatedFlow.steps[stepIndex].isCompleted = true
         
-        // Recalculate progress
         const completedSteps = updatedFlow.steps.filter(s => s.isCompleted).length
         updatedFlow.progress = (completedSteps / updatedFlow.steps.length) * 100
         
-        // Prepare completed step indices
         const completedStepIndices = updatedFlow.steps
           .map((step, idx) => step.isCompleted ? idx : -1)
           .filter(idx => idx !== -1)
         
-        // Update backend
         const token = localStorage.getItem('token')
         const response = await fetch(
           getApiUrl(API_ENDPOINTS.onboardingProgress.updateProgress(activeFlow._id)), 
@@ -166,26 +159,20 @@ export default function MemberOnboardingDashboard({ userId, userRole }: MemberOn
         
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}))
-          // console.error('Failed to save progress. Status:', response.status, 'Error:', errorData)
           throw new Error(`Failed to save progress to server: ${errorData.message || response.statusText}`)
         }
         
-        // Check if onboarding is complete
         if (updatedFlow.progress === 100) {
-          // Mark onboarding as completed for this user
           localStorage.setItem(`onboarding_completed_${userId}`, 'true')
           setHasCompletedOnboarding(true)
           
-          // Refetch flows to get updated list (backend will filter out completed ones)
           await fetchOnboardingFlows()
           
           toast.success("🎉 Congratulations! You've completed this onboarding flow!")
           
-          // Return early since fetchOnboardingFlows will handle the flow selection
           return
         }
         
-        // Move to next step if available
         if (stepIndex < updatedFlow.steps.length - 1) {
           updatedFlow.currentStep = stepIndex + 1
           setCurrentStepIndex(stepIndex + 1)
@@ -195,7 +182,6 @@ export default function MemberOnboardingDashboard({ userId, userRole }: MemberOn
         
         setActiveFlow(updatedFlow)
         
-        // Also update the flows array to keep it in sync
         setOnboardingFlows(prevFlows => 
           prevFlows.map(flow => 
             flow._id === updatedFlow._id ? updatedFlow : flow
@@ -207,7 +193,6 @@ export default function MemberOnboardingDashboard({ userId, userRole }: MemberOn
         }
       }
     } catch (error) {
-      // console.error('Error completing step:', error)
       toast.error("An error occurred while completing the step")
     } finally {
       setLoading(false)
@@ -388,7 +373,6 @@ export default function MemberOnboardingDashboard({ userId, userRole }: MemberOn
     )
   }
 
-  // Flow Selection Screen
   if (showFlowSelection && onboardingFlows.length > 1) {
     return (
       <div className="max-w-4xl mx-auto p-6">
@@ -491,12 +475,10 @@ export default function MemberOnboardingDashboard({ userId, userRole }: MemberOn
   }
 
   const currentStep = activeFlow.steps[currentStepIndex]
-  // Use the flow's progress property which is updated when steps are completed
   const progress = activeFlow.progress || 0
 
   return (
     <div className="max-w-4xl mx-auto p-6">
-      {/* Progress Header */}
       <Card className="mb-6">
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -510,9 +492,7 @@ export default function MemberOnboardingDashboard({ userId, userRole }: MemberOn
                   variant="outline"
                   size="sm"
                   onClick={async () => {
-                    // Refetch flows to get updated list
                     await fetchOnboardingFlows()
-                    // After fetching, show selection if there are multiple flows
                     if (onboardingFlows.length > 1) {
                       setShowFlowSelection(true)
                     }
@@ -536,7 +516,6 @@ export default function MemberOnboardingDashboard({ userId, userRole }: MemberOn
         </CardHeader>
       </Card>
 
-      {/* Current Step */}
       <Card className="mb-6">
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -580,7 +559,6 @@ export default function MemberOnboardingDashboard({ userId, userRole }: MemberOn
         </CardContent>
       </Card>
 
-      {/* Navigation */}
       <div className="flex items-center justify-between">
         <Button
           variant="outline"
@@ -616,7 +594,6 @@ export default function MemberOnboardingDashboard({ userId, userRole }: MemberOn
         </Button>
       </div>
 
-      {/* Completion Celebration */}
       {progress === 100 && (
         <Card className="mt-6 border-green-200 bg-green-50">
           <CardContent className="p-6 text-center">

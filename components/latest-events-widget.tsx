@@ -13,6 +13,7 @@ import {
 } from "lucide-react"
 import { apiClient, Event } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
+import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import Link from "next/link"
 import { formatLocalDate } from "@/lib/timezone"
 
@@ -23,19 +24,26 @@ interface LatestEventsWidgetProps {
 
 export function LatestEventsWidget({ limit = 3, showManageButton = true }: LatestEventsWidgetProps) {
   const { user } = useAuth()
+  const clubId = useRequiredClubId()
   const [events, setEvents] = useState<Event[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     fetchRecentEvents()
-  }, [])
+  }, [clubId, limit, user?.role])
 
   const fetchRecentEvents = async () => {
     setLoading(true)
     try {
+      if (!clubId) {
+        setEvents([])
+        setLoading(false)
+        return
+      }
+
       const response = isAdmin
-        ? await apiClient.getEventsByClub()
-        : await apiClient.getPublicEvents()
+        ? await apiClient.getEventsByClub(clubId)
+        : await apiClient.getPublicEvents(clubId)
 
 
       if (response.success && response.data) {

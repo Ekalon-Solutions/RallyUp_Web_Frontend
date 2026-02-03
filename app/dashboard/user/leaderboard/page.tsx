@@ -12,6 +12,7 @@ import { Loader2, Trophy, Medal, Award, Users, Calendar, Star, RefreshCw } from 
 import { apiClient } from '@/lib/api'
 import { toast } from 'sonner'
 import { useAuth } from '@/contexts/auth-context'
+import { useRequiredClubId } from '@/hooks/useRequiredClubId'
 
 interface LeaderboardEntry {
     userId: string
@@ -25,6 +26,7 @@ interface LeaderboardEntry {
 
 export default function UserLeaderboardPage() {
     const { user, isLoading: authLoading, isAuthenticated } = useAuth()
+    const clubId = useRequiredClubId()
     const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
     const [loading, setLoading] = useState(true)
     const [userRank, setUserRank] = useState<number | null>(null)
@@ -36,20 +38,31 @@ export default function UserLeaderboardPage() {
     const fetchLeaderboard = useCallback(async () => {
         try {
             setLoading(true)
+            if (!clubId) {
+                setLeaderboard([])
+                setUserRank(null)
+                setUserEventCount(0)
+                setUserPoints(0)
+                setLoading(false)
+                return
+            }
             const response = await apiClient.getLeaderboard()
 
             if (response.success && response.data) {
-                setLeaderboard(response.data.leaderboard || [])
+                const filtered = (response.data.leaderboard || []).filter(
+                    (e) => String((e as any)?.club || '') === String(clubId)
+                )
+                setLeaderboard(filtered)
 
                 // Find user's rank and event count
                 if (userId) {
-                    const userEntry = response.data.leaderboard.find(
+                    const userEntry = filtered.find(
                         (entry) => entry.userId === userId
                     )
                     if (userEntry) {
                         setUserEventCount(userEntry.eventCount)
                         setUserPoints(userEntry.points || 0)
-                        const rank = response.data.leaderboard.findIndex(
+                        const rank = filtered.findIndex(
                             (entry) => entry.userId === userId
                         ) + 1
                         setUserRank(rank)
@@ -72,7 +85,7 @@ export default function UserLeaderboardPage() {
         } finally {
             setLoading(false)
         }
-    }, [userId])
+    }, [userId, clubId])
 
     useEffect(() => {
         if (authLoading || !isAuthenticated) {

@@ -4,6 +4,7 @@ import React, { useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { BookOpen, CheckCircle2, Circle, ChevronRight, Settings, Users, Calendar, Store, FileText, HelpCircle } from "lucide-react"
+import { useRouter } from "next/navigation"
 
 interface SetupStep {
   id: string
@@ -15,6 +16,7 @@ interface SetupStep {
 }
 
 export function GetStartedTab() {
+  const router = useRouter()
   const [steps, setSteps] = useState<SetupStep[]>([
     {
       id: "1",
@@ -54,7 +56,7 @@ export function GetStartedTab() {
       description: "Set up your club store with merchandise items",
       icon: <Store className="h-5 w-5" />,
       completed: false,
-      link: "/dashboard/merchandise/create"
+      link: "/dashboard/merchandise"
     },
     {
       id: "6",
@@ -178,7 +180,7 @@ export function GetStartedTab() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => window.location.href = step.link}
+                      onClick={() => router.push(step.link)}
                       className="flex-shrink-0"
                     >
                       Go
@@ -233,7 +235,7 @@ export function GetStartedTab() {
             </Button>
 
             <Button variant="outline" className="justify-start h-auto py-4" asChild>
-              <a href="/dashboard/admin-settings?tab=app-settings">
+              <a href="/dashboard/admin-settings?tab=app">
                 <Settings className="h-5 w-5 mr-3" />
                 <div className="text-left">
                   <div className="font-medium">App Settings</div>

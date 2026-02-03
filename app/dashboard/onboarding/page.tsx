@@ -20,6 +20,7 @@ import { ProtectedRoute } from "@/components/protected-route"
 import { getApiUrl, API_ENDPOINTS } from "@/lib/config"
 import { toast } from "sonner"
 import UserOnboardingProgressAdmin from "@/components/admin/user-onboarding-progress-admin"
+import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 
 interface OnboardingFlow {
   _id: string
@@ -39,6 +40,7 @@ interface OnboardingFlow {
 }
 
 export default function OnboardingDashboard() {
+  const clubId = useRequiredClubId()
   const [showOnboardingModal, setShowOnboardingModal] = useState(false)
   const [flows, setFlows] = useState<OnboardingFlow[]>([])
   const [loading, setLoading] = useState(false)
@@ -50,16 +52,18 @@ export default function OnboardingDashboard() {
   const [editSteps, setEditSteps] = useState<Array<{ id: string; title: string; description: string; isRequired: boolean }>>([])
   const [updatingFlow, setUpdatingFlow] = useState(false)
 
-  // Fetch flows when component mounts
   useEffect(() => {
     fetchFlows()
-  }, [])
+  }, [clubId])
 
   const fetchFlows = async () => {
     try {
       setLoading(true)
       const token = localStorage.getItem('token')
-      const response = await fetch(getApiUrl(API_ENDPOINTS.onboarding.flows), {
+      const url = clubId
+        ? `${getApiUrl(API_ENDPOINTS.onboarding.flows)}?club=${encodeURIComponent(clubId)}`
+        : getApiUrl(API_ENDPOINTS.onboarding.flows)
+      const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -69,10 +73,8 @@ export default function OnboardingDashboard() {
         const data = await response.json()
         setFlows(data.flows || [])
       } else {
-        // console.error('Failed to fetch flows')
       }
     } catch (error) {
-      // console.error('Error fetching flows:', error)
     } finally {
       setLoading(false)
     }
@@ -92,12 +94,11 @@ export default function OnboardingDashboard() {
 
       if (response.ok) {
         toast.success(`Flow ${isActive ? 'activated' : 'deactivated'} successfully!`)
-        fetchFlows() // Refresh the list
+        fetchFlows()
       } else {
         toast.error('Failed to update flow status')
       }
     } catch (error) {
-      // console.error('Error toggling flow status:', error)
       toast.error("Failed to update flow status")
     }
   }
@@ -118,12 +119,11 @@ export default function OnboardingDashboard() {
 
       if (response.ok) {
         toast.success("Onboarding flow deleted successfully!")
-        fetchFlows() // Refresh the list
+        fetchFlows()
       } else {
         toast.error("Failed to delete flow")
       }
     } catch (error) {
-      // console.error('Error deleting flow:', error)
       toast.error("Failed to delete flow")
     }
   }
@@ -184,6 +184,11 @@ export default function OnboardingDashboard() {
 
     setUpdatingFlow(true)
     try {
+      if (!clubId) {
+        toast.error("Please select a club")
+        setUpdatingFlow(false)
+        return
+      }
       const token = localStorage.getItem('token')
       const response = await fetch(getApiUrl(API_ENDPOINTS.onboarding.flows) + `/${editingFlowId}`, {
         method: 'PUT',
@@ -194,6 +199,7 @@ export default function OnboardingDashboard() {
         body: JSON.stringify({
           name: editName,
           description: editDescription,
+          club: clubId,
           targetAudience: editTargetAudience,
           estimatedDuration: editEstimatedDuration,
           steps: editSteps.map(step => ({
@@ -223,7 +229,6 @@ export default function OnboardingDashboard() {
     <ProtectedRoute>
       <DashboardLayout>
         <div className="space-y-6">
-          {/* Header */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold">Member Onboarding & Engagement</h1>
@@ -239,7 +244,6 @@ export default function OnboardingDashboard() {
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="space-y-6">
           {editingFlowId && (
             <Card>
@@ -435,17 +439,15 @@ export default function OnboardingDashboard() {
             </CardContent>
           </Card>
 
-          {/* User Progress Tracking */}
           <UserOnboardingProgressAdmin />
       </div>
 
-      {/* Modals */}
       <OnboardingModal
         isOpen={showOnboardingModal}
         onClose={() => setShowOnboardingModal(false)}
         onFlowCreated={() => {
           setShowOnboardingModal(false)
-          fetchFlows() // Refresh the flows list
+          fetchFlows()
         }}
       />
         </div>

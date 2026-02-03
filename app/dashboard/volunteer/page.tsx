@@ -11,9 +11,11 @@ import config from '@/lib/config';
 
 import { DashboardLayout } from '@/components/dashboard-layout';
 import { useAuth } from '@/contexts/auth-context';
+import { useRequiredClubId } from '@/hooks/useRequiredClubId';
 
 export default function VolunteerDashboard() {
   const { user } = useAuth();
+  const clubId = useRequiredClubId();
   const [opportunities, setOpportunities] = React.useState<VolunteerOpportunity[]>([]);
 
   const [volunteerProfile, setVolunteerProfile] = React.useState<any>(null);
@@ -45,8 +47,10 @@ export default function VolunteerDashboard() {
     // // console.log('🔍 Starting to fetch opportunities...');
     // // console.log('🔍 User object from auth:', user);
     
-    if (!user?._id) {
-      // // console.log('⚠️ User not loaded yet, skipping fetch');
+    if (!user?._id) return;
+    if (!clubId) {
+      setOpportunities([]);
+      setError('Please select a club to see volunteer opportunities');
       return;
     }
     
@@ -54,111 +58,14 @@ export default function VolunteerDashboard() {
     setError(null);
     
     try {
-      // Get user's profile to get club info
-      // // console.log('📱 Fetching user profile...');
-      const userProfileResponse = await apiClient.userProfile();
-      // // console.log('👤 User profile response:', {
-//         success: userProfileResponse.success,
-//         hasData: !!userProfileResponse.data,
-//         hasMemberships: !!userProfileResponse.data?.memberships,
-//         userData: userProfileResponse.data,
-//         memberships: userProfileResponse.data?.memberships
-//       });
-      
-      const memberships = userProfileResponse.data?.memberships || [];
-      
-      if (!userProfileResponse.success || memberships.length === 0) {
-        // // console.log('❌ No club memberships found in user profile');
-        setOpportunities([]);
-        setError('You need to be a member of a club to see volunteer opportunities');
-        toast({
-          title: 'No Club Access',
-          description: 'You need to be a member of a club to see volunteer opportunities',
-          variant: 'default',
-        });
-        return;
+      const opportunitiesResponse = await apiClient.getVolunteerOpportunities({ club: clubId });
+      let clubOpportunities: VolunteerOpportunity[] = [];
+      if ((opportunitiesResponse.data as any)?.opportunities && Array.isArray((opportunitiesResponse.data as any).opportunities)) {
+        clubOpportunities = (opportunitiesResponse.data as any).opportunities as VolunteerOpportunity[];
+      } else if (Array.isArray(opportunitiesResponse.data)) {
+        clubOpportunities = opportunitiesResponse.data as VolunteerOpportunity[];
       }
-
-      // Get ALL active memberships (user can be in multiple clubs)
-      const activeMemberships = memberships.filter(
-        (membership: any) =>
-          membership?.status === 'active' && membership?.club_id?._id
-      );
-
-      if (activeMemberships.length === 0) {
-        // // console.log('❌ No active club memberships found');
-        setOpportunities([]);
-        setError('You need to have an active club membership to see volunteer opportunities');
-        toast({
-          title: 'No Active Membership',
-          description: 'You need to have an active club membership to see volunteer opportunities',
-          variant: 'default',
-        });
-        return;
-      }
-
-      // Get all club IDs from active memberships
-      const clubIds = activeMemberships
-        .map((membership: any) => membership?.club_id?._id)
-        .filter(Boolean) as string[];
-      // // console.log('🏢 Found club IDs:', clubIds);
-      // console.log('🏢 Club details:', activeMemberships.map(m => ({
-      //   id: m.club_id._id,
-      //   name: m.club_id.name
-      // })));
-      
-      // Fetch opportunities for ALL user's clubs
-      // // console.log('🔍 Fetching opportunities for all clubs:', clubIds);
-      
-      // Fetch opportunities for each club and combine them
-      const allOpportunitiesPromises = clubIds.map(clubId => 
-        apiClient.getVolunteerOpportunities({ club: clubId })
-      );
-      
-      const allResponses = await Promise.all(allOpportunitiesPromises);
-      // // console.log('📋 All Opportunities API responses:', allResponses);
-
-      // Combine all opportunities from all clubs
-      let combinedOpportunities: VolunteerOpportunity[] = [];
-      
-      allResponses.forEach((opportunitiesResponse, index) => {
-        // // console.log(`📋 Response ${index + 1} for club ${clubIds[index]}:`, {
-//           success: opportunitiesResponse.success,
-//           hasData: !!opportunitiesResponse.data,
-//           error: opportunitiesResponse.error,
-//           clubId: clubIds[index]
-//         });
-        
-        if (!opportunitiesResponse.success) {
-          // // console.log(`❌ Failed to fetch opportunities for club ${clubIds[index]}:`, opportunitiesResponse.error);
-          return; // Skip this club but continue with others
-        }
-        
-        // The API returns { opportunities: VolunteerOpportunity[], pagination: {...} }
-        let clubOpportunities: VolunteerOpportunity[] = [];
-        if ((opportunitiesResponse.data as any)?.opportunities && Array.isArray((opportunitiesResponse.data as any).opportunities)) {
-          clubOpportunities = (opportunitiesResponse.data as any).opportunities as VolunteerOpportunity[];
-        } else if (Array.isArray(opportunitiesResponse.data)) {
-          clubOpportunities = opportunitiesResponse.data as VolunteerOpportunity[];
-        }
-        
-        combinedOpportunities = [...combinedOpportunities, ...clubOpportunities];
-      });
-      
-      // console.log('✅ Combined opportunities from all clubs:', {
-      //   totalCount: combinedOpportunities.length,
-      //   clubsCount: clubIds.length,
-      //   clubIds: clubIds,
-      //   opportunities: combinedOpportunities.map(o => ({
-      //     id: o._id,
-      //     title: o.title,
-      //     club: o.club,
-      //     status: o.status,
-      //     timeSlots: o.timeSlots?.length || 0
-      //   }))
-      // });
-
-      setOpportunities(combinedOpportunities);
+      setOpportunities(clubOpportunities);
       setError(null);
       
       // Fetch volunteer profiles for all clubs to get all profile IDs
@@ -205,7 +112,7 @@ export default function VolunteerDashboard() {
     } finally {
       setLoading(false);
     }
-  }, [toast, user]); // Add user as dependency
+  }, [toast, user, clubId]); // Add user as dependency
 
   React.useEffect(() => {
     // // console.log('🔄 Effect triggered - fetching opportunities and volunteer profile');
@@ -520,10 +427,14 @@ export default function VolunteerDashboard() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <h1 className="text-2xl sm:text-3xl font-bold">Volunteer Dashboard</h1>
-          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+      <div className="w-full max-w-5xl mx-auto space-y-6">
+        {/* Centered page header */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+          <div className="w-full sm:w-auto">
+            <h1 className="text-2xl sm:text-3xl font-bold">Volunteer Dashboard</h1>
+            <p className="text-muted-foreground text-sm sm:text-base mt-1">Browse and sign up for volunteer opportunities</p>
+          </div>
+          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto justify-center sm:justify-end">
             <Button variant="outline" onClick={fetchOpportunities} className="w-full sm:w-auto">
               Refresh Opportunities
             </Button>
@@ -537,19 +448,19 @@ export default function VolunteerDashboard() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList>
+          <TabsList className="grid w-full max-w-md mx-auto grid-cols-2">
             <TabsTrigger value="available">Available Opportunities</TabsTrigger>
             <TabsTrigger value="my-opportunities">My Opportunities</TabsTrigger>
           </TabsList>
 
-          {/* Status Message */}
-          <div className="text-center py-4">
+          {/* Status Message - centered */}
+          <div className="text-center py-4 flex flex-col items-center">
             {loading ? (
               <p className="text-sm text-muted-foreground">Loading volunteer opportunities...</p>
             ) : error ? (
               <p className="text-sm text-red-600">{error}</p>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-2 w-full max-w-xl mx-auto">
                 <p className="text-sm text-muted-foreground">
                   {opportunities.length === 0 
                     ? "No volunteer opportunities found" 
@@ -557,7 +468,7 @@ export default function VolunteerDashboard() {
                   }
                 </p>
                 {user && !volunteerProfile && (
-                  <div className="p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
+                  <div className="p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg text-left mx-auto max-w-xl">
                     <div className="flex items-center gap-3">
                       <div className="text-2xl">🎯</div>
                       <div>
@@ -575,20 +486,20 @@ export default function VolunteerDashboard() {
 
           <TabsContent value="available" className="space-y-4">
             {loading ? (
-              <div className="text-center py-8">
+              <div className="text-center py-8 flex flex-col items-center">
                 <p className="text-muted-foreground mb-2">
                   Loading volunteer opportunities...
                 </p>
               </div>
             ) : error ? (
-              <div className="text-center py-8">
+              <div className="text-center py-8 flex flex-col items-center">
                 <p className="text-muted-foreground mb-2">
                   {error}
                 </p>
               </div>
             ) : availableOpportunities.length === 0 ? (
-              <div className="text-center py-8">
-                <div className="bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 p-4 rounded-lg mb-4">
+              <div className="text-center py-8 flex flex-col items-center">
+                <div className="bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 p-4 rounded-lg mb-4 max-w-xl mx-auto w-full text-left">
                   <p className="text-yellow-800 dark:text-yellow-200 mb-2">
                     {opportunities.length === 0 
                       ? "No volunteer opportunities found for your club."
@@ -596,7 +507,7 @@ export default function VolunteerDashboard() {
                   }
                   </p>
                   {opportunities.length > 0 && (
-                    <div className="text-sm text-left mt-3">
+                    <div className="text-sm mt-3">
                       <p className="font-semibold mb-2">Opportunity Details:</p>
                       {opportunities.map(opp => (
                         <div key={opp._id} className="bg-white dark:bg-gray-900 p-2 mb-2 rounded">
@@ -608,19 +519,19 @@ export default function VolunteerDashboard() {
                     </div>
                   )}
                 </div>
-                <p className="text-muted-foreground">
+                <p className="text-muted-foreground max-w-xl mx-auto">
                   {opportunities.length === 0 
                     ? "Check with your club admin about upcoming volunteer opportunities."
                     : "Check back later or contact your club admin."}
                 </p>
                 {opportunities.length > 0 && (
-                  <div className="space-y-4">
+                  <div className="space-y-4 max-w-xl mx-auto w-full text-left mt-4">
                     <p className="text-sm text-muted-foreground">
                       There are {opportunities.length} total opportunities:
                     </p>
                     <div className="space-y-4">
                       {opportunities.map(opportunity => (
-                        <div key={opportunity._id} className="border rounded-lg p-4 text-left">
+                        <div key={opportunity._id} className="border rounded-lg p-4">
                           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-2">
                             <h3 className="font-medium text-sm sm:text-base break-words">{opportunity.title}</h3>
                             <span className={`px-2 py-1 text-xs rounded whitespace-nowrap ${
@@ -644,40 +555,46 @@ export default function VolunteerDashboard() {
                 )}
               </div>
             ) : (
-              availableOpportunities.map((opportunity: VolunteerOpportunity) => (
-                <VolunteerOpportunityCard
-                  key={opportunity._id}
-                  opportunity={opportunity}
-                  onSignUp={handleSignUp}
-                  currentVolunteerId={allVolunteerProfileIds.find(profileId => 
-                    opportunity.timeSlots.some((slot: any) => 
-                      slot.volunteersAssigned.includes(profileId)
-                    )
-                  )}
-                  signingUp={signingUp}
-                />
-              ))
+              <div className="space-y-4 w-full">
+                {availableOpportunities.map((opportunity: VolunteerOpportunity) => (
+                  <VolunteerOpportunityCard
+                    key={opportunity._id}
+                    opportunity={opportunity}
+                    onSignUp={handleSignUp}
+                    currentVolunteerId={allVolunteerProfileIds.find(profileId => 
+                      opportunity.timeSlots.some((slot: any) => 
+                        slot.volunteersAssigned.includes(profileId)
+                      )
+                    )}
+                    signingUp={signingUp}
+                  />
+                ))}
+              </div>
             )}
           </TabsContent>
 
           <TabsContent value="my-opportunities" className="space-y-4">
             {myOpportunities.length === 0 ? (
-              <p className="text-center text-muted-foreground">
-                You haven't signed up for any volunteer opportunities yet.
-              </p>
+              <div className="text-center py-8 flex flex-col items-center">
+                <p className="text-muted-foreground max-w-md">
+                  You haven't signed up for any volunteer opportunities yet.
+                </p>
+              </div>
             ) : (
-              myOpportunities.map((opportunity: VolunteerOpportunity) => (
-                <VolunteerOpportunityCard
-                  key={opportunity._id}
-                  opportunity={opportunity}
-                  onWithdraw={handleWithdraw}
-                  currentVolunteerId={allVolunteerProfileIds.find(profileId => 
-                    opportunity.timeSlots.some((slot: any) => 
-                      slot.volunteersAssigned.includes(profileId)
-                    )
-                  )}
-                />
-              ))
+              <div className="space-y-4 w-full">
+                {myOpportunities.map((opportunity: VolunteerOpportunity) => (
+                  <VolunteerOpportunityCard
+                    key={opportunity._id}
+                    opportunity={opportunity}
+                    onWithdraw={handleWithdraw}
+                    currentVolunteerId={allVolunteerProfileIds.find(profileId => 
+                      opportunity.timeSlots.some((slot: any) => 
+                        slot.volunteersAssigned.includes(profileId)
+                      )
+                    )}
+                  />
+                ))}
+              </div>
             )}
           </TabsContent>
         </Tabs>

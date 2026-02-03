@@ -14,6 +14,7 @@ import { apiClient, News } from "@/lib/api"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
 import { getNewsImageUrl } from "@/lib/config"
+import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { 
   Newspaper, 
   Search, 
@@ -34,6 +35,7 @@ import {
 
 export default function ContentManagementPage() {
   const { user } = useAuth()
+  const clubId = useRequiredClubId()
   const [news, setNews] = useState<News[]>([])
   const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
@@ -48,23 +50,20 @@ export default function ContentManagementPage() {
   const [showReadMoreModal, setShowReadMoreModal] = useState(false)
   const [selectedNewsForReadMore, setSelectedNewsForReadMore] = useState<News | null>(null)
 
-  // Simple initial load effect
   useEffect(() => {
     if (user?.role === 'admin' || user?.role === 'super_admin') {
       loadNews()
       loadStats()
     }
-  }, [user?.role])
+  }, [user?.role, clubId])
 
-  // Simple filter effect
   useEffect(() => {
     if (user?.role === 'admin' || user?.role === 'super_admin') {
       setCurrentPage(1)
       loadNews()
     }
-  }, [categoryFilter, priorityFilter])
+  }, [categoryFilter, priorityFilter, clubId])
 
-  // Simple search effect with delay
   useEffect(() => {
     if (user?.role === 'admin' || user?.role === 'super_admin') {
       const timer = setTimeout(() => {
@@ -73,31 +72,44 @@ export default function ContentManagementPage() {
       }, 300)
       return () => clearTimeout(timer)
     }
-  }, [searchTerm])
+  }, [searchTerm, clubId])
 
-  // Simple page change effect
   useEffect(() => {
-    if (user?.role === 'admin' || user?.role === 'super_admin' && currentPage > 1) {
+    if ((user?.role === 'admin' || user?.role === 'super_admin') && currentPage > 1) {
       loadNews()
     }
-  }, [currentPage])
+  }, [currentPage, clubId])
 
   const loadNews = async () => {
     try {
       setLoading(true)
-      const response = await apiClient.getNewsByMyClub()
+      if (!clubId) {
+        setNews([])
+        setTotalPages(1)
+        setLoading(false)
+        return
+      }
+
+      const response = await apiClient.getNews({
+        clubId,
+        category: categoryFilter || undefined,
+        priority: priorityFilter || undefined,
+        search: searchTerm || undefined,
+        page: currentPage,
+        limit: 20
+      })
       
       if (response.success && response.data) {
-        setNews(response.data.news || response.data)
-        if (response.data.pagination) {
-          setTotalPages(response.data.pagination.pages)
+        const data: any = response.data
+        const items = Array.isArray(data) ? data : (data?.news || [])
+        setNews(items)
+        if (data?.pagination) {
+          setTotalPages(data.pagination.pages)
         }
       } else {
-        // console.error("Failed to fetch news:", response.error)
         toast.error("Failed to fetch news")
       }
     } catch (error) {
-      // console.error("Error fetching news:", error)
       toast.error("Error fetching news")
     } finally {
       setLoading(false)
@@ -106,12 +118,15 @@ export default function ContentManagementPage() {
 
   const loadStats = async () => {
     try {
-      const response = await apiClient.getNewsStats()
+      if (!clubId) {
+        setStats(null)
+        return
+      }
+      const response = await apiClient.getNewsStats(clubId)
       if (response.success) {
         setStats(response.data)
       }
     } catch (error) {
-      // console.error("Error fetching stats:", error)
     }
   }
 
@@ -145,7 +160,6 @@ export default function ContentManagementPage() {
         toast.error(response.error || "Failed to delete news article")
       }
     } catch (error) {
-      // console.error("Error deleting news:", error)
       toast.error("Error deleting news article")
     }
   }
@@ -161,7 +175,6 @@ export default function ContentManagementPage() {
         toast.error(response.error || "Failed to update publish status")
       }
     } catch (error) {
-      // console.error("Error updating publish status:", error)
       toast.error("Error updating publish status")
     }
   }
@@ -365,7 +378,6 @@ export default function ContentManagementPage() {
             </CardContent>
           </Card>
 
-          {/* News Articles */}
           <div className="space-y-4">
             {loading ? (
               <div className="flex items-center justify-center h-64">
@@ -400,7 +412,6 @@ export default function ContentManagementPage() {
                           alt={article.title}
                           className="w-full h-full object-cover"
                           onError={(e) => {
-//                             console.error('Failed to load featured image:', article.featuredImage);
                             e.currentTarget.style.display = 'none';
                           }}
                         />
@@ -469,7 +480,6 @@ export default function ContentManagementPage() {
                                 alt={`${article.title} - Image ${index + 1}`}
                                 className="w-full h-20 object-cover rounded-lg"
                                 onError={(e) => {
-                                  // // console.error('Failed to load image:', image);
                                   e.currentTarget.style.display = 'none';
                                 }}
                               />

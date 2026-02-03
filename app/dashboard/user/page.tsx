@@ -88,9 +88,11 @@ function AttendanceMarker({ event, userId }: { event: Event; userId?: string }) 
 import { MembershipStatus } from "@/components/membership-status"
 import { PollsWidget } from "@/components/polls-widget"
 import { useClubSettings } from "@/hooks/useClubSettings"
+import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 
 export default function UserDashboardPage() {
   const { user } = useAuth()
+  const clubId = useRequiredClubId()
   const [events, setEvents] = useState<Event[]>([])
   const [news, setNews] = useState<News[]>([])
   const [loading, setLoading] = useState(true)
@@ -120,20 +122,29 @@ export default function UserDashboardPage() {
       }
     : undefined
 
-  console.log("user:", user)
-  // Get user's active club membership
-  const getActiveMembership = () => {
-    if (!user || user.role === 'system_owner') return null;
+  const activeMembership = useMemo(() => {
+    if (!user || user.role === "system_owner") return null
+    if (!clubId) return null
+    const userAny: any = user
+    const memberships = Array.isArray(userAny?.memberships) ? userAny.memberships : []
+    const normalizeClubId = (club: any): string | null => {
+      if (!club) return null
+      if (typeof club === "string") return club
+      if (club?._id) return String(club._id)
+      return null
+    }
+    return (
+      memberships.find(
+        (m: any) =>
+          m?.status === "active" &&
+          (normalizeClubId(m?.club_id) === clubId || normalizeClubId(m?.club) === clubId),
+      ) || null
+    )
+  }, [clubId, user])
 
-    const userMemberships = (user as User | Admin).memberships || [];
-    return userMemberships.find(m => m.status === 'active');
-  }
+  const userClub = (activeMembership as any)?.club_id || (activeMembership as any)?.club || null
 
-  const activeMembership = getActiveMembership();
-  const userClub = activeMembership?.club_id;
-
-  // Load club settings to check section visibility
-  const { isSectionVisible } = useClubSettings(userClub?._id)
+  const { isSectionVisible } = useClubSettings(clubId || undefined)
 
   // Get user's display name
   const getUserDisplayName = () => {
@@ -170,7 +181,7 @@ export default function UserDashboardPage() {
 
   useEffect(() => {
     fetchData()
-  }, [user, activeMembership, userClub])
+  }, [clubId, user])
 
   useEffect(() => {
     if (user) {
@@ -184,21 +195,15 @@ export default function UserDashboardPage() {
     try {
       setLoading(true)
 
-      // Check if user has an active club membership
-      if (!activeMembership || !userClub) {
-        // console.log('User has no active club membership:', { activeMembership, userClub })
+      if (!clubId) {
         toast.error("You need to have an active club membership to view news and events")
         setLoading(false)
         return
       }
 
-      // console.log('User club:', userClub)
-      // console.log('User club ID:', userClub._id)
-
-      // Fetch public events and club-specific news
       const [eventsResponse, newsResponse] = await Promise.all([
-        apiClient.getPublicEvents(),
-        apiClient.getNewsByUserClub()
+        apiClient.getPublicEvents(clubId),
+        apiClient.getNewsByUserClub(clubId)
       ])
 
       if (eventsResponse.success && eventsResponse.data) {
@@ -213,17 +218,10 @@ export default function UserDashboardPage() {
       }
 
       if (newsResponse.success && newsResponse.data) {
-        // console.log('News response:', newsResponse)
-        // console.log('News data:', newsResponse.data)
         const newsData = Array.isArray(newsResponse.data) ? newsResponse.data : (newsResponse.data as any).news || []
-        // console.log('News array:', newsData)
         setNews(newsData)
-      } else {
-        // console.error('News response failed:', newsResponse)
-        // console.error('News error details:', newsResponse.error)
       }
     } catch (error) {
-      // console.error("Error fetching data:", error)
       toast.error("Error loading dashboard data")
     } finally {
       setLoading(false)

@@ -225,7 +225,7 @@ function CoreFeatures() {
       desc: "Stop using third-party ticketing tools that eat your margins. Wingman Pro turns your passion into revenue with an integrated sports ecommerce platform.",
       icon: CreditCard,
       points: [
-        "Merchandise Store: Real-time inventory tracking and seamless checkout",
+        "Merchandise: Real-time inventory tracking and seamless checkout",
         "Event Ticketing: QR-code ready ticketing software for match days and socials",
         "Financial Reporting: One-click export for easy club accounting and reconciliation"
       ],
