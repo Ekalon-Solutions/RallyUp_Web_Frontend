@@ -78,6 +78,7 @@ export interface Admin {
   isPhoneVerified: boolean;
   role: 'admin' | 'super_admin';
   club?: Club;
+  clubs?: Club[];
   isActive?: boolean;
   volunteering?: VolunteerProfile;
   notificationPreferences?: {

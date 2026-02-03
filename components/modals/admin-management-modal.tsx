@@ -325,7 +325,8 @@ export function AdminManagementModal({ clubId, clubName, trigger }: AdminManagem
                       <Label>Available Admins</Label>
                       <div className="max-h-60 overflow-y-auto border rounded-lg">
                                                  {searchResults.map((admin) => {
-                           const isAlreadyInClub = admin.club && admin.club._id === clubId
+                           const adminClubIds = (admin.clubs || (admin.club ? [admin.club] : [])).map(c => (c as any)?._id ?? c);
+                           const isAlreadyInClub = adminClubIds.includes(clubId)
                            const isCurrentClubAdmin = admins.find(existingAdmin => existingAdmin._id === admin._id)
                           
                           return (
@@ -343,11 +344,11 @@ export function AdminManagementModal({ clubId, clubName, trigger }: AdminManagem
                                       <Shield className="w-3 h-3 mr-1" />
                                       {admin.role === 'super_admin' ? 'Super Admin' : 'Admin'}
                                     </Badge>
-                                                                         {admin.club && (
-                                       <Badge variant="outline" className="text-xs">
-                                         {admin.club.name}
+                                                                         {(admin.clubs?.length ? admin.clubs : admin.club ? [admin.club] : []).map((c: any) => (
+                                       <Badge key={String((c?._id ?? c) ?? '')} variant="outline" className="text-xs">
+                                         {typeof c === 'object' && c?.name ? c.name : c}
                                        </Badge>
-                                     )}
+                                     ))}
                                   </div>
                                   <div className="text-sm text-muted-foreground">{admin.email}</div>
                                 </div>
