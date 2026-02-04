@@ -319,6 +319,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem('userType');
     localStorage.removeItem('activeClubId');
     localStorage.removeItem('hasSeenDashboardLogo');
+    localStorage.removeItem('hasSeenUserDashboardLogo');
     setUser(null);
     setActiveClubIdState(null);
     window.location.href = '/';

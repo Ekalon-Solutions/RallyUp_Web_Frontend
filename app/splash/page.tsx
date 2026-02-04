@@ -151,7 +151,7 @@ export default function SplashPage() {
               {(() => {
                 const selectedClubForLogo = activeClubId
                   ? clubs.find((c) => c._id === activeClubId)
-                  : clubs.length === 1
+                  : clubs.length >= 1
                     ? clubs[0]
                     : null
                 const clubLogo = selectedClubForLogo?.settingsLogo || selectedClubForLogo?.logo

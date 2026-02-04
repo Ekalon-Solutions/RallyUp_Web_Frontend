@@ -109,7 +109,7 @@ export default function UserDashboardPage() {
   const [showEventPaymentSimulationModal, setShowEventPaymentSimulationModal] = useState(false)
   const [eventForPayment, setEventForPayment] = useState<Event | null>(null)
   const [attendeesForPayment, setAttendeesForPayment] = useState<any[]>([])
-  const [showLogo, setShowLogo] = useState(true)
+  const [showLogo, setShowLogo] = useState(false)
 
   const paymentEvent = eventForPayment
     ? {
@@ -173,11 +173,16 @@ export default function UserDashboardPage() {
   }
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowLogo(false)
-    }, 2000)
-    return () => clearTimeout(timer)
-  }, [])
+    const hasSeenUserDashboardLogo = typeof window !== "undefined" && localStorage.getItem("hasSeenUserDashboardLogo")
+    if (!hasSeenUserDashboardLogo && user) {
+      setShowLogo(true)
+      const fadeOutTimer = setTimeout(() => {
+        setShowLogo(false)
+        if (typeof window !== "undefined") localStorage.setItem("hasSeenUserDashboardLogo", "true")
+      }, 2000)
+      return () => clearTimeout(fadeOutTimer)
+    }
+  }, [user])
 
   useEffect(() => {
     fetchData()

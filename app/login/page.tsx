@@ -187,6 +187,8 @@ function AuthPageContent() {
   const [systemOwnerRegisterResendCountdown, setSystemOwnerRegisterResendCountdown] = useState(0)
 
   const [clubFontFamily, setClubFontFamily] = useState<string | null>(null)
+  const [clubLogoFromUrl, setClubLogoFromUrl] = useState<string | null>(null)
+  const [clubNameFromUrl, setClubNameFromUrl] = useState<string | null>(null)
 
   const [userLoginErrors, setUserLoginErrors] = useState({ email: "", phoneNumber: "" })
   const [userRegisterErrors, setUserRegisterErrors] = useState({
@@ -299,6 +301,8 @@ function AuthPageContent() {
     const clubId = searchParams.get("club")
     if (!clubId) {
       setClubFontFamily(null)
+      setClubLogoFromUrl(null)
+      setClubNameFromUrl(null)
       return
     }
     let cancelled = false
@@ -307,6 +311,10 @@ function AuthPageContent() {
       const settings = res.data?.data || res.data
       const font = settings?.designSettings?.fontFamily
       if (font) setClubFontFamily(font)
+      const logo = settings?.designSettings?.logo
+      if (logo) setClubLogoFromUrl(logo)
+      const name = settings?.club?.name
+      if (name) setClubNameFromUrl(name)
     }).catch(() => { /* ignore */ })
     return () => { cancelled = true }
   }, [searchParams])
@@ -995,15 +1003,17 @@ function AuthPageContent() {
             <CardHeader className="text-center pb-6">
               <div className="mx-auto mb-4 relative w-24 h-24">
                 <Image
-                  src="/WingmanPro Logo (White BG).svg"
-                  alt="Wingman Pro logo"
+                  src={clubLogoFromUrl || "/WingmanPro Logo (White BG).svg"}
+                  alt={clubNameFromUrl ? `${clubNameFromUrl} logo` : "Wingman Pro logo"}
                   fill
                   sizes="96px"
                   className="object-contain"
                   priority
                 />
               </div>
-              <CardTitle className="text-3xl font-bold text-white">Welcome to Wingman Pro</CardTitle>
+              <CardTitle className="text-3xl font-bold text-white">
+                {clubNameFromUrl ? `Welcome to ${clubNameFromUrl}` : "Welcome to Wingman Pro"}
+              </CardTitle>
               <CardDescription className="text-slate-300 text-lg">
                 Manage your supporter group with ease
               </CardDescription>
