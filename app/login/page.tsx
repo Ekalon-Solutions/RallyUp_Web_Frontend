@@ -15,6 +15,7 @@ import { SiteNavbar } from "@/components/site-navbar"
 import { SiteFooter } from "@/components/site-footer"
 import { RecaptchaVerifier, signInWithPhoneNumber, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink } from "firebase/auth"
 import { auth } from "@/lib/firebase/config"
+import { apiClient } from "@/lib/api"
 
 const DEBUG_OTP = "123456"
 
@@ -185,6 +186,8 @@ function AuthPageContent() {
   const [adminRegisterResendCountdown, setAdminRegisterResendCountdown] = useState(0)
   const [systemOwnerRegisterResendCountdown, setSystemOwnerRegisterResendCountdown] = useState(0)
 
+  const [clubFontFamily, setClubFontFamily] = useState<string | null>(null)
+
   const [userLoginErrors, setUserLoginErrors] = useState({ email: "", phoneNumber: "" })
   const [userRegisterErrors, setUserRegisterErrors] = useState({
     email: "",
@@ -291,6 +294,35 @@ function AuthPageContent() {
       }))
     }
   }, [searchParams])
+
+  useEffect(() => {
+    const clubId = searchParams.get("club")
+    if (!clubId) {
+      setClubFontFamily(null)
+      return
+    }
+    let cancelled = false
+    apiClient.getClubSettings(clubId, true).then((res) => {
+      if (cancelled || !res.success) return
+      const settings = res.data?.data || res.data
+      const font = settings?.designSettings?.fontFamily
+      if (font) setClubFontFamily(font)
+    }).catch(() => { /* ignore */ })
+    return () => { cancelled = true }
+  }, [searchParams])
+
+  useEffect(() => {
+    if (!clubFontFamily) return
+    const linkId = "login-club-font"
+    if (document.getElementById(linkId)) return
+    const familyParam = encodeURIComponent(clubFontFamily)
+    const link = document.createElement("link")
+    link.id = linkId
+    link.rel = "stylesheet"
+    link.href = `https://fonts.googleapis.com/css2?family=${familyParam}:wght@400;500;600;700&display=swap`
+    document.head.appendChild(link)
+    return () => { document.getElementById(linkId)?.remove() }
+  }, [clubFontFamily])
 
   useEffect(() => {
     if (typeof window === "undefined") return
@@ -945,6 +977,10 @@ function AuthPageContent() {
 
   return (
     <>
+      <div
+        style={clubFontFamily ? { fontFamily: `"${clubFontFamily}", sans-serif` } : undefined}
+        className="min-h-screen"
+      >
       <SiteNavbar brandName="Wingman Pro" />
       <div className="relative min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
         {/* Background Pattern */}
@@ -2402,6 +2438,7 @@ function AuthPageContent() {
       </div>
       <div id="recaptcha-container"></div>
       <SiteFooter brandName="Wingman Pro" />
+      </div>
     </>
   )
 }
