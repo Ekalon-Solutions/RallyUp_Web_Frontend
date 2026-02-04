@@ -45,7 +45,7 @@ export function ImportMembersModal({ trigger, onImported }: ImportMembersModalPr
       const res = await apiClient.getMembershipPlans(clubId);
       if (res.error) return
       const data = res.data
-      setPlans(data?.data || [])
+      setPlans((data as any)?.data || (data as any) || [])
     } catch (e) {
     }
   }
@@ -262,7 +262,23 @@ charlie.brown@example.com,Charlie,Brown,9234567890,+91,charlie_brown,1992-08-20,
 
             if (findUserResp.success && findUserResp.data?.user) {
               existingUser = findUserResp.data.user
-              userId = existingUser._id
+              // If the user exists but is marked deleted, attempt to re-register (reactivate) them
+              if ((existingUser as any).is_deleted) {
+                try {
+                  const reactResp = await apiClient.userRegister({ ...payload, clubId } as any)
+                  if (reactResp.success) {
+                    const created = (reactResp.data && (reactResp.data.user || reactResp.data)) || null
+                    userId = (created as any)?._id || (reactResp.data as any)?._id
+                  } else {
+                    // registration failed for deleted user
+                    userId = null
+                  }
+                } catch (e) {
+                  userId = null
+                }
+              } else {
+                userId = existingUser._id
+              }
             }
           } catch (err) {
           }
@@ -282,7 +298,7 @@ charlie.brown@example.com,Charlie,Brown,9234567890,+91,charlie_brown,1992-08-20,
             }
 
             const createdUser = (regResp.data && (regResp.data.user || regResp.data)) || null
-            userId = createdUser?._id || regResp.data?._id
+            userId = (createdUser as any)?._id || (regResp.data as any)?._id
 
             if (!userId) {
               failCount++
