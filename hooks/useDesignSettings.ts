@@ -3,6 +3,23 @@
 import { useEffect } from 'react'
 import { useClubSettings } from './useClubSettings'
 
+const CLUB_FONT_LINK_ID = 'club-design-font'
+
+function loadClubFont(fontFamily: string) {
+  if (typeof document === 'undefined' || !fontFamily) return
+  const existing = document.getElementById(CLUB_FONT_LINK_ID) as HTMLLinkElement | null
+  const href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(fontFamily)}:wght@400;500;600;700&display=swap`
+  if (existing) {
+    if (existing.href === href) return
+    existing.remove()
+  }
+  const link = document.createElement('link')
+  link.id = CLUB_FONT_LINK_ID
+  link.rel = 'stylesheet'
+  link.href = href
+  document.head.appendChild(link)
+}
+
 function hexToHSL(hex: string): string {
   hex = hex.replace(/^#/, '')
   
@@ -54,10 +71,14 @@ export function useDesignSettings(clubId?: string) {
         }
 
         if (designSettings.fontFamily) {
+          loadClubFont(designSettings.fontFamily)
           document.documentElement.style.setProperty('--font-sans', designSettings.fontFamily)
-          document.body.style.fontFamily = designSettings.fontFamily
+          document.body.style.fontFamily = `"${designSettings.fontFamily}", sans-serif`
         }
       }
+    }
+    return () => {
+      document.getElementById(CLUB_FONT_LINK_ID)?.remove()
     }
   }, [settings])
 
