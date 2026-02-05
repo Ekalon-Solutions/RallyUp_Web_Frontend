@@ -22,6 +22,7 @@ import { Plus, UserPlus, CreditCard, CheckCircle } from "lucide-react"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
 import { getApiUrl } from "@/lib/config"
+import { apiClient } from "@/lib/api"
 
 interface MembershipPlan {
   _id: string
@@ -46,16 +47,16 @@ interface MembershipPlan {
 interface AddMemberModalProps {
   trigger?: React.ReactNode
   onMemberAdded?: () => void
+  clubId?: string | null
 }
 
-export function AddMemberModal({ trigger, onMemberAdded }: AddMemberModalProps) {
+export function AddMemberModal({ trigger, onMemberAdded, clubId: clubIdProp }: AddMemberModalProps) {
   const [open, setOpen] = useState(false)
   const [step, setStep] = useState<"user-info" | "membership-selection" | "success">("user-info")
   const [isLoading, setIsLoading] = useState(false)
   const [membershipPlans, setMembershipPlans] = useState<MembershipPlan[]>([])
   const { user } = useAuth()
 
-  // User form data
   const [userData, setUserData] = useState({
     username: "",
     email: "",
@@ -75,22 +76,21 @@ export function AddMemberModal({ trigger, onMemberAdded }: AddMemberModalProps) 
     id_proof_number: "",
   })
 
-  // Membership selection
   const [selectedPlan, setSelectedPlan] = useState<MembershipPlan | null>(null)
   const [sendWelcomeEmail, setSendWelcomeEmail] = useState(true)
 
-  // Fetch membership plans when modal opens
+  const resolvedClubId = clubIdProp ?? (user as any)?.club?._id ?? (user as any)?.clubs?.[0]?._id ?? (user as any)?.clubs?.[0]
+
   useEffect(() => {
-    if (open && user && 'club' in user && user.club) {
+    if (open && resolvedClubId) {
       fetchMembershipPlans()
     }
-  }, [open, user])
+  }, [open, resolvedClubId])
 
   const fetchMembershipPlans = async () => {
     try {
-      const clubId = user && 'club' in user ? user.club?._id : null
+      const clubId = resolvedClubId
       if (!clubId) {
-        // console.error('No club found for user')
         return
       }
 
@@ -106,7 +106,6 @@ export function AddMemberModal({ trigger, onMemberAdded }: AddMemberModalProps) 
         setMembershipPlans(data.data || [])
       }
     } catch (error) {
-      // console.error('Error fetching membership plans:', error)
     }
   }
 
@@ -155,6 +154,8 @@ export function AddMemberModal({ trigger, onMemberAdded }: AddMemberModalProps) 
     } else if (step === "membership-selection") {
       if (selectedPlan) {
         setStep("success")
+      } else if (membershipPlans.length === 0) {
+        setStep("success")
       } else {
         toast.error("Please select a membership plan")
       }
@@ -174,7 +175,6 @@ export function AddMemberModal({ trigger, onMemberAdded }: AddMemberModalProps) 
     setIsLoading(true)
 
     try {
-      // console.log('Creating user with data:', userData)
       
       const userResponse = await fetch(getApiUrl('/users/register'), {
         method: 'POST',
@@ -192,35 +192,23 @@ export function AddMemberModal({ trigger, onMemberAdded }: AddMemberModalProps) 
       const userResult = await userResponse.json()
       const newUserId = userResult._id
 
+      const clubId = resolvedClubId
+      if (!clubId) {
+        throw new Error('Please select a club first')
+      }
+
       if (selectedPlan) {
-        const clubId = user && 'club' in user ? user.club?._id : null
-        if (!clubId) {
-          throw new Error('User is not associated with any club')
-        }
-
-        // console.log('Creating membership for plan:', {
-//           planId: selectedPlan._id,
-//           planName: selectedPlan.name,
-//           duration: selectedPlan.duration,
-//           durationType: typeof selectedPlan.duration,
-//           clubId: clubId
-//         })
-
-        // Calculate proper dates for membership
         const startDate = new Date()
         let endDate = null
         
         if (selectedPlan.duration > 0) {
-          // Calculate end date based on duration (in months)
           endDate = new Date(startDate)
           endDate.setMonth(endDate.getMonth() + selectedPlan.duration)
           
-          // Validate the calculated date
           if (isNaN(endDate.getTime())) {
             throw new Error('Invalid end date calculated')
           }
         }
-        // If duration is 0, it's a lifetime membership (no end date)
 
         const membershipData: any = {
           user_id: newUserId,
@@ -231,12 +219,10 @@ export function AddMemberModal({ trigger, onMemberAdded }: AddMemberModalProps) 
           duration_days: selectedPlan.duration > 0 ? selectedPlan.duration * 30 : undefined,
         }
 
-        // Only add end_date if it's not a lifetime membership
         if (endDate) {
           membershipData.end_date = endDate
         }
 
-        // console.log('Sending membership data:', membershipData)
 
         const membershipResponse = await fetch(getApiUrl('/user-memberships'), {
           method: 'POST',
@@ -249,22 +235,19 @@ export function AddMemberModal({ trigger, onMemberAdded }: AddMemberModalProps) 
 
         if (!membershipResponse.ok) {
           const errorData = await membershipResponse.json()
-          // console.error('Membership creation failed:', errorData)
           throw new Error(errorData.message || 'Failed to create membership')
         }
 
-        // console.log('Membership created successfully:', {
-//           startDate: startDate.toISOString(),
-//           endDate: endDate ? endDate.toISOString() : 'Lifetime',
-//           duration: selectedPlan.duration
-//         })
+      } else {
+        const defaultResp = await apiClient.addMemberWithDefaultPlan({ user_id: newUserId, club_id: clubId })
+        if (!defaultResp.success) {
+          throw new Error(defaultResp.error || 'Failed to add member to club')
+        }
       }
 
-      // Success
       toast.success("Member created successfully!")
       setStep("success")
       
-      // Reset form after a delay
       setTimeout(() => {
         resetForm()
     setOpen(false)
@@ -272,7 +255,6 @@ export function AddMemberModal({ trigger, onMemberAdded }: AddMemberModalProps) 
       }, 2000)
 
     } catch (error) {
-      // console.error('Error creating member:', error)
       toast.error(error instanceof Error ? error.message : 'Failed to create member')
     } finally {
       setIsLoading(false)

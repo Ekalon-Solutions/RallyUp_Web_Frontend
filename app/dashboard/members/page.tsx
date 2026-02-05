@@ -267,18 +267,15 @@ export default function MembersPage() {
   }
 
   const handleAddExistingUser = async (): Promise<void> => {
-    if (!selectedUser) {
-      toast.error('Please select a user to add');
+    if (!selectedUser || !clubId) {
+      toast.error(selectedUser ? 'Please select a club first' : 'Please select a user to add');
       return;
     }
-
     try {
-      const response = await apiClient.addUserToClub({
-        email: selectedUser.email,
-        name: selectedUser.name,
-        phoneNumber: selectedUser.phoneNumber
+      const response = await apiClient.addMemberWithDefaultPlan({
+        user_id: selectedUser._id,
+        club_id: clubId
       });
-      
       if (response.success) {
         toast.success('Member added successfully');
         setIsAddDialogOpen(false);
@@ -301,11 +298,10 @@ export default function MembersPage() {
         toast.error('Please select a club first')
         return
       }
-      const response = await apiClient.userRegister({
+      const response = await apiClient.adminAddMember({
         ...data,
-        clubId,
+        club_id: clubId
       })
-
       if (response.success) {
         toast.success('Member added successfully')
         setIsAddDialogOpen(false)
@@ -497,6 +493,7 @@ export default function MembersPage() {
                 Export
               </Button>
               <AddMemberModal 
+                clubId={clubId}
                 trigger={
                   <Button className="w-full sm:w-auto">
                     <Plus className="w-4 h-4 mr-2" />
@@ -510,6 +507,7 @@ export default function MembersPage() {
               />
               {/* Bulk import modal */}
               <ImportMembersModal
+                clubId={clubId}
                 trigger={
                   <Button className="w-full sm:w-auto">
                     <Plus className="w-4 h-4 mr-2" />
@@ -729,7 +727,8 @@ export default function MembersPage() {
                             size="sm"
                             onClick={() => {
                               setAdjustMemberId(member._id)
-                              setAdjustMemberClub(user?.club?._id || null)
+                              const primaryClub = (user as any)?.clubs?.[0]
+                              setAdjustMemberClub(primaryClub?._id ?? primaryClub ?? clubId ?? null)
                               setIsAdjustPointsOpen(true)
                             }}
                             className="flex-1 sm:flex-initial"

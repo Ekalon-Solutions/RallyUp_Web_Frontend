@@ -2082,12 +2082,22 @@ class ApiClient {
     };
   }
 
-  async addUserToClub(data: {
+  async adminAddMember(data: {
     email: string;
     name: string;
     phoneNumber: string;
-  }): Promise<ApiResponse<{ message: string; user: User }>> {
-    return this.request('/users/join-club', {
+    countryCode?: string;
+    club_id: string;
+    membership_plan_id?: string;
+  }): Promise<ApiResponse<{ message: string; userMembership: unknown }>> {
+    return this.request('/user-memberships/admin-add', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async addMemberWithDefaultPlan(data: { user_id: string; club_id: string }): Promise<ApiResponse<{ message: string; userMembership: unknown }>> {
+    return this.request('/user-memberships/add-with-default', {
       method: 'POST',
       body: JSON.stringify(data)
     });

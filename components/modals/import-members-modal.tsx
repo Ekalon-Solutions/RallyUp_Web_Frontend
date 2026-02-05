@@ -16,9 +16,10 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 interface ImportMembersModalProps {
   trigger?: React.ReactNode
   onImported?: () => void
+  clubId?: string | null
 }
 
-export function ImportMembersModal({ trigger, onImported }: ImportMembersModalProps) {
+export function ImportMembersModal({ trigger, onImported, clubId: clubIdProp }: ImportMembersModalProps) {
   const [open, setOpen] = useState(false)
   const { user } = useAuth()
   const [plans, setPlans] = useState<any[]>([])
@@ -29,7 +30,7 @@ export function ImportMembersModal({ trigger, onImported }: ImportMembersModalPr
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
 
-  const clubId = (user as any)?.club?._id || (user as any)?.club_id?._id
+  const clubId = clubIdProp ?? (user as any)?.club?._id ?? (user as any)?.clubs?.[0]?._id ?? (user as any)?.clubs?.[0]
 
   useEffect(() => {
     if (open && clubId) fetchPlans()

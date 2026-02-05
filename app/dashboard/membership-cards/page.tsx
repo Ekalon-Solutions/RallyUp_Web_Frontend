@@ -85,21 +85,15 @@ export default function MembershipCardsPage() {
           cardsData = cardsResponse.data.data
         }
         
-        const validCards = cardsData.filter(card => {
-          if (card && card.success && card.data) {
-            return false
-          }
-          
-          const isValid = card && 
-            card.card && 
-            card.card._id && 
-            typeof card.card._id === 'string' &&
-            card.card.cardStyle &&
-            card.club &&
-            card.membershipPlan
-          
-          return isValid
-        })
+        const validCards = cardsData.filter((item: any) =>
+          item &&
+          item.card &&
+          item.card._id &&
+          typeof item.card._id === 'string' &&
+          item.card.cardStyle &&
+          item.club &&
+          item.membershipPlan
+        )
         
         setCards(validCards)
       } else {
