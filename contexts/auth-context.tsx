@@ -54,6 +54,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!u) return null;
     if (u?.club?._id) return u.club._id;
     if (typeof u?.club === 'string') return u.club;
+    const clubs = Array.isArray(u?.clubs) ? u.clubs : [];
+    if (clubs[0]) {
+      const c = clubs[0];
+      return (typeof c === 'object' && c?._id ? c._id : c) ?? null;
+    }
 
     const memberships = Array.isArray(u?.memberships) ? u.memberships : [];
     const activeMembership = memberships.find((m: any) => m?.status === 'active');

@@ -53,11 +53,12 @@ export default function SplashPage() {
           }
         })
 
-        if (clubsList.length === 0 && isAdmin && (userAny.club?._id || userAny.club)) {
-          const club = userAny.club
-          const clubId = club._id || club
+        const adminPrimaryClub = userAny.club || (userAny.clubs?.[0]);
+        if (clubsList.length === 0 && isAdmin && (adminPrimaryClub?._id || adminPrimaryClub)) {
+          const club = typeof adminPrimaryClub === 'object' ? adminPrimaryClub : { _id: adminPrimaryClub };
+          const clubId = (club._id || club)?.toString?.() || (club._id || club);
           if (clubId && !uniqueClubIds.has(clubId)) {
-            uniqueClubIds.add(clubId)
+            uniqueClubIds.add(clubId);
             clubsList.push({
               _id: clubId,
               name: typeof club === 'object' ? (club.name || 'Unknown Club') : 'Unknown Club',

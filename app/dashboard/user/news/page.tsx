@@ -58,23 +58,20 @@ function UserNewsPageInner() {
     if (handledDeepLinkNewsId === newsId) return
     if (loading) return
 
-    const found = news.find((n) => String(n._id) === String(newsId))
-    const openFound = (n: News) => {
+    const openWithNews = (n: News) => {
       setSelectedNewsForReadMore(n)
       setShowReadMoreModal(true)
       setHandledDeepLinkNewsId(newsId)
     }
 
-    if (found) {
-      openFound(found)
-      return
-    }
-
     ;(async () => {
-      const res = await apiClient.getNewsById(newsId)
+      const res = await apiClient.getPublicNewsById(newsId)
       if (res.success && res.data) {
-        openFound(res.data as any)
+        openWithNews(res.data as News)
+        setNews((prev) => prev.map((n) => (String(n._id) === String(newsId) ? (res.data as News) : n)))
       } else {
+        const found = news.find((n) => String(n._id) === String(newsId))
+        if (found) openWithNews(found)
         setHandledDeepLinkNewsId(newsId)
       }
     })()
@@ -137,8 +134,18 @@ function UserNewsPageInner() {
     }
   }
 
-  const handleReadMore = (newsItem: News) => {
-    setSelectedNewsForReadMore(newsItem)
+  const handleReadMore = async (newsItem: News) => {
+    try {
+      const res = await apiClient.getPublicNewsById(newsItem._id)
+      if (res.success && res.data) {
+        setSelectedNewsForReadMore(res.data as News)
+        setNews((prev) => prev.map((n) => (n._id === newsItem._id ? (res.data as News) : n)))
+      } else {
+        setSelectedNewsForReadMore(newsItem)
+      }
+    } catch {
+      setSelectedNewsForReadMore(newsItem)
+    }
     setShowReadMoreModal(true)
   }
 

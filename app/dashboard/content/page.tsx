@@ -135,8 +135,18 @@ export default function ContentManagementPage() {
     setShowCreateModal(true)
   }
 
-  const handleReadMore = (newsItem: News) => {
-    setSelectedNewsForReadMore(newsItem)
+  const handleReadMore = async (newsItem: News) => {
+    try {
+      const res = await apiClient.getNewsById(newsItem._id)
+      if (res.success && res.data) {
+        setSelectedNewsForReadMore(res.data as News)
+        setNews((prev) => prev.map((n) => (n._id === newsItem._id ? (res.data as News) : n)))
+      } else {
+        setSelectedNewsForReadMore(newsItem)
+      }
+    } catch {
+      setSelectedNewsForReadMore(newsItem)
+    }
     setShowReadMoreModal(true)
   }
 

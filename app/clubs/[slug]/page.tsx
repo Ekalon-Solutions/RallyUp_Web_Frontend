@@ -11,6 +11,7 @@ import { apiClient, News, Event, Poll, Chant } from "@/lib/api"
 import { getNewsImageUrl } from "@/lib/config"
 import UserEventRegistrationModal from "@/components/modals/user-event-registration-modal"
 import { EventCheckoutModal } from "@/components/modals/event-checkout-modal"
+import NewsReadMoreModal from "@/components/modals/news-readmore-modal"
 import { 
   Globe, 
   Mail, 
@@ -78,9 +79,26 @@ export default function PublicClubPage() {
   const [showEventCheckoutModal, setShowEventCheckoutModal] = useState(false)
   const [attendeesForPayment, setAttendeesForPayment] = useState<any[]>([])
   const [couponCodeForPayment, setCouponCodeForPayment] = useState<string | undefined>(undefined)
+  const [showReadMoreModal, setShowReadMoreModal] = useState(false)
+  const [selectedNewsForReadMore, setSelectedNewsForReadMore] = useState<News | null>(null)
 
   const encodeSearchParam = (value: string) =>
     encodeURIComponent(value).replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`)
+
+  const handleReadMoreNews = async (article: News) => {
+    try {
+      const res = await apiClient.getPublicNewsById(article._id)
+      if (res.success && res.data) {
+        setSelectedNewsForReadMore(res.data as News)
+        setNews((prev) => prev.map((n) => (n._id === article._id ? (res.data as News) : n)))
+      } else {
+        setSelectedNewsForReadMore(article)
+      }
+    } catch {
+      setSelectedNewsForReadMore(article)
+    }
+    setShowReadMoreModal(true)
+  }
 
   useEffect(() => {
     if (slug) {
@@ -555,6 +573,16 @@ export default function PublicClubPage() {
                                     </div>
                                   )}
                                 </CardContent>
+                                <CardFooter className="pt-0">
+                                  <Button
+                                    variant="outline"
+                                    className="w-full"
+                                    style={{ borderColor: primaryColor, color: primaryColor }}
+                                    onClick={() => handleReadMoreNews(article)}
+                                  >
+                                    Read more
+                                  </Button>
+                                </CardFooter>
                               </Card>
                             ))}
                           </div>
@@ -853,24 +881,6 @@ export default function PublicClubPage() {
               </Tabs>
             </div>
           )}
-
-          {websiteSetup.sections.members && (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-12">
-              <Card className="group hover:border-primary/50 transition-all duration-500 shadow-sm hover:shadow-2xl rounded-3xl overflow-hidden border-2">
-                <CardHeader className="space-y-6 p-8">
-                  <div className="w-16 h-16 rounded-[1.25rem] bg-primary/10 flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-inner">
-                    <Users className="h-8 w-8" style={{ color: primaryColor }} />
-                  </div>
-                  <div className="space-y-4">
-                    <CardTitle className="text-2xl font-bold">Member Directory</CardTitle>
-                    <CardDescription className="text-lg leading-relaxed font-medium">
-                      Connect with thousands of fellow supporters and expand our community.
-                    </CardDescription>
-                  </div>
-                </CardHeader>
-              </Card>
-            </div>
-          )}
         </div>
       </section>
 
@@ -956,6 +966,15 @@ export default function PublicClubPage() {
           }
         }}
         onFailure={() => {
+        }}
+      />
+
+      <NewsReadMoreModal
+        news={selectedNewsForReadMore}
+        isOpen={showReadMoreModal}
+        onClose={() => {
+          setShowReadMoreModal(false)
+          setSelectedNewsForReadMore(null)
         }}
       />
     </div>

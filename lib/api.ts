@@ -1030,6 +1030,10 @@ class ApiClient {
   async getNewsById(id: string): Promise<ApiResponse<News>> {
     return this.request(`/news/${id}`);
   }
+  
+  async getPublicNewsById(id: string): Promise<ApiResponse<News>> {
+    return this.request(`/news/public/${id}`);
+  }
 
   async createNews(data: FormData): Promise<ApiResponse<{ message: string; news: News }>> {
     return this.request('/news', {
