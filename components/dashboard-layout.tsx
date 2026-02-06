@@ -39,6 +39,7 @@ import { cn } from "@/lib/utils"
 import { useTheme } from "next-themes"
 import { Sun, Moon } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import Image from "next/image"
 import { NotificationCenterModal } from "@/components/modals/notification-center-modal"
 
@@ -344,9 +345,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="w-full h-14 px-4 justify-start bg-card border-2 hover:bg-muted/50 transition-all rounded-2xl group shadow-sm">
                 <div className="flex items-center gap-3 min-w-0 w-full">
-                  <div className="w-9 h-9 bg-primary/10 rounded-xl flex items-center justify-center text-sm font-black text-primary flex-shrink-0 ring-2 ring-primary/5 group-hover:scale-110 transition-transform">
-                    {user?.name?.charAt(0)?.toUpperCase() || 'U'}
-                  </div>
+                  <Avatar className="w-9 h-9 rounded-xl flex-shrink-0 ring-2 ring-primary/5 group-hover:scale-110 transition-transform">
+                    <AvatarImage src={(user as { profilePicture?: string })?.profilePicture} alt={user?.name ?? "User"} className="object-cover" />
+                    <AvatarFallback className="rounded-xl bg-primary/10 text-sm font-black text-primary">
+                      {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
                   <div className="flex flex-col items-start min-w-0 flex-1">
                     <span className="text-sm font-bold truncate w-full">{user?.name || 'User Account'}</span>
                     <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wide truncate w-full">

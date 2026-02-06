@@ -334,25 +334,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const response = await apiClient.updateUserProfile(data);
       if (response.success && response.data) {
-        const updatedUser = (response.data as any).user || response.data;
-        
-        setUser(prevUser => ({
-          ...prevUser,
-          ...updatedUser,
-          name: updatedUser.role==='user' ? (updatedUser.first_name && updatedUser.last_name
-            ? `${updatedUser.first_name} ${updatedUser.last_name}`.trim()
-            : prevUser?.name || '') : updatedUser.name || prevUser?.name,
-          phoneNumber: updatedUser.phoneNumber || prevUser?.phoneNumber || '',
-          countryCode: updatedUser.countryCode || prevUser?.countryCode || '+1',
-        } as any));
-        
+        const raw = (response.data as any).user || response.data;
+
+        setUser(prevUser => {
+          if (!prevUser) return prevUser;
+          const prev = prevUser as any;
+          const name = raw.role === 'user'
+            ? (raw.first_name != null && raw.last_name != null
+              ? `${raw.first_name} ${raw.last_name}`.trim()
+              : raw.name ?? prev.name)
+            : (raw.name ?? prev.name);
+          return {
+            ...prevUser,
+            name: name || prev.name,
+            email: raw.email ?? prev.email,
+            phoneNumber: raw.phoneNumber ?? prev.phoneNumber,
+            countryCode: raw.countryCode ?? prev.countryCode,
+            profilePicture: raw.profilePicture ?? prev.profilePicture,
+            first_name: raw.first_name ?? prev.first_name,
+            last_name: raw.last_name ?? prev.last_name,
+            notificationPreferences: raw.notificationPreferences ?? prev.notificationPreferences,
+            isPhoneVerified: raw.isPhoneVerified ?? prev.isPhoneVerified,
+          } as any;
+        });
+
         return { success: true };
       } else {
-        // console.error('Profile update failed:', response.error);
         return { success: false, error: response.error || 'Profile update failed' };
       }
     } catch (error) {
-      // console.error('Profile update error:', error);
       return { success: false, error: 'Network error occurred' };
     }
   };

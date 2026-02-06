@@ -1081,7 +1081,7 @@ class ApiClient {
   }
 
   async getEventsByClub(clubId?: string): Promise<ApiResponse<Event[]>> {
-    const endpoint = '/events/club/';
+    const endpoint = clubId ? `/events/club?clubId=${encodeURIComponent(clubId)}` : '/events/club';
     return this.request(endpoint);
   }
 
