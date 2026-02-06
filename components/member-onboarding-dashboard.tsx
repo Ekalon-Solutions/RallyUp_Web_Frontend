@@ -82,17 +82,18 @@ export default function MemberOnboardingDashboard({ userId, userRole }: MemberOn
       
       if (response.ok) {
         const data = await response.json()
-        const activeFlows = (data.flows || [])
+        const flows = Array.isArray(data.flows) ? data.flows : []
+        const activeFlows = flows
           .filter((flow: any) => flow.isActive)
           .map((flow: any) => ({
             ...flow,
-            steps: flow.steps.map((step: any, index: number) => ({
+            steps: Array.isArray(flow.steps) ? flow.steps.map((step: any, index: number) => ({
               ...step,
               isCompleted: false,
               estimatedTime: step.estimatedTime || 5
-            })),
-            progress: 0,
-            currentStep: 0
+            })) : [],
+            progress: flow.progress ?? 0,
+            currentStep: flow.currentStep ?? 0
           }))
         
         setOnboardingFlows(activeFlows)
@@ -120,6 +121,7 @@ export default function MemberOnboardingDashboard({ userId, userRole }: MemberOn
         }
       }
     } catch (error) {
+      toast.error("Failed to load onboarding flows")
     }
   }
 

@@ -66,6 +66,18 @@ export function getStaticPages(): SitemapEntry[] {
       priority: 0.3,
     },
     {
+      url: `${BASE_URL}/refund`,
+      lastModified: currentDate,
+      changeFrequency: 'yearly',
+      priority: 0.3,
+    },
+    {
+      url: `${BASE_URL}/ppsa`,
+      lastModified: currentDate,
+      changeFrequency: 'yearly',
+      priority: 0.3,
+    },
+    {
       url: `${BASE_URL}/affiliations`,
       lastModified: currentDate,
       changeFrequency: 'monthly',

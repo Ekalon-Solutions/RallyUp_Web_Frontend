@@ -6,8 +6,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
-import { Badge } from "@/components/ui/badge"
-import { Save, Users, X, Plus } from "lucide-react"
+import { Save, Users } from "lucide-react"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
 import { apiClient } from "@/lib/api"
@@ -16,7 +15,6 @@ interface ClubInfo {
   name: string
   description: string
   contactInfo: string
-  members: string[]
 }
 
 export function DirectoryTab() {
@@ -26,10 +24,8 @@ export function DirectoryTab() {
   const [clubInfo, setClubInfo] = useState<ClubInfo>({
     name: "",
     description: "",
-    contactInfo: "",
-    members: []
+    contactInfo: ""
   })
-  const [newMemberEmail, setNewMemberEmail] = useState("")
 
   const clubId = (user as any)?.club?._id || (user as any)?.club_id?._id
 
@@ -60,8 +56,7 @@ export function DirectoryTab() {
           setClubInfo({
             name: listing.name || "",
             description: listing.description || "",
-            contactInfo: listing.contactInfo || "",
-            members: listing.members || []
+            contactInfo: listing.contactInfo || ""
           })
         }
       }
@@ -71,41 +66,6 @@ export function DirectoryTab() {
     } finally {
       setLoading(false)
     }
-  }
-
-  const handleAddMember = () => {
-    if (!newMemberEmail.trim()) {
-      toast.error("Please enter a member email")
-      return
-    }
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(newMemberEmail)) {
-      toast.error("Please enter a valid email address")
-      return
-    }
-
-    // Check if member already exists
-    if (clubInfo.members.includes(newMemberEmail)) {
-      toast.error("This member is already in the list")
-      return
-    }
-
-    setClubInfo({
-      ...clubInfo,
-      members: [...clubInfo.members, newMemberEmail]
-    })
-    setNewMemberEmail("")
-    toast.success("Member added")
-  }
-
-  const handleRemoveMember = (email: string) => {
-    setClubInfo({
-      ...clubInfo,
-      members: clubInfo.members.filter(m => m !== email)
-    })
-    toast.success("Member removed")
   }
 
   const handleSave = async () => {
@@ -127,8 +87,8 @@ export function DirectoryTab() {
         name: clubInfo.name,
         description: clubInfo.description,
         contactInfo: clubInfo.contactInfo,
-        members: clubInfo.members,
-        memberCount: clubInfo.members.length,
+        members: [],
+        memberCount: 0,
         isVisible: true
       }]
       
@@ -180,7 +140,7 @@ export function DirectoryTab() {
             Club Information
           </CardTitle>
           <CardDescription>
-            Update your club's information and manage members
+            Update your club's information for the directory
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -217,72 +177,6 @@ export function DirectoryTab() {
         </CardContent>
       </Card>
 
-      {/* Members Management */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            Club Members
-          </CardTitle>
-          <CardDescription>
-            Add or remove members from your club directory
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Current Members */}
-          {clubInfo.members.length > 0 && (
-            <div className="space-y-2">
-              <Label>Current Members ({clubInfo.members.length})</Label>
-              <div className="flex flex-wrap gap-2">
-                {clubInfo.members.map((email, index) => (
-                  <Badge key={index} variant="secondary" className="text-sm px-3 py-1">
-                    {email}
-                    <button
-                      onClick={() => handleRemoveMember(email)}
-                      className="ml-2 hover:text-destructive"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Add New Member */}
-          <div className="space-y-2">
-            <Label htmlFor="newMember">Add New Member</Label>
-            <div className="flex gap-2">
-              <Input
-                id="newMember"
-                type="email"
-                value={newMemberEmail}
-                onChange={(e) => setNewMemberEmail(e.target.value)}
-                placeholder="Enter member email"
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    handleAddMember()
-                  }
-                }}
-              />
-              <Button onClick={handleAddMember} type="button">
-                <Plus className="h-4 w-4 mr-2" />
-                Add
-              </Button>
-            </div>
-          </div>
-
-          {clubInfo.members.length === 0 && (
-            <div className="text-center py-6 text-muted-foreground">
-              <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">No members added yet. Add members using their email address.</p>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Save Button */}
       <div className="flex justify-end">
         <Button onClick={handleSave} disabled={saving || !clubId} size="lg" type="button">
           {saving ? (

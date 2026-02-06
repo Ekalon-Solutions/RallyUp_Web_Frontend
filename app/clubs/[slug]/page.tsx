@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { apiClient, News, Event, Poll, Chant } from "@/lib/api"
+import { formatDisplayDate } from "@/lib/utils"
 import { getNewsImageUrl } from "@/lib/config"
 import UserEventRegistrationModal from "@/components/modals/user-event-registration-modal"
 import { EventCheckoutModal } from "@/components/modals/event-checkout-modal"
@@ -563,7 +564,7 @@ export default function PublicClubPage() {
                                     </span>
                                     <span className="flex items-center gap-1">
                                       <Calendar className="w-4 h-4" />
-                                      {new Date(article.publishedAt || article.createdAt).toLocaleDateString()}
+                                      {formatDisplayDate(article.publishedAt || article.createdAt)}
                                     </span>
                                   </div>
                                   {article.viewCount !== undefined && (
@@ -644,12 +645,7 @@ export default function PublicClubPage() {
                                   {(event.eventDate || event.startTime) && (
                                     <div className="flex items-center gap-2 text-sm">
                                       <Calendar className="w-4 h-4 text-muted-foreground" />
-                                      <span>{new Date(event.eventDate || event.startTime).toLocaleDateString('en-US', { 
-                                        weekday: 'long', 
-                                        year: 'numeric', 
-                                        month: 'long', 
-                                        day: 'numeric' 
-                                      })}</span>
+                                      <span>{formatDisplayDate(event.eventDate || event.startTime)}</span>
                                     </div>
                                   )}
                                   {(event.eventTime || event.startTime) && (

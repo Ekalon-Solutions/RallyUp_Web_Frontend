@@ -16,6 +16,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { apiClient, VolunteerOpportunity, Volunteer } from '@/lib/api';
+import { formatDisplayDate } from '@/lib/utils';
 import { useAuth } from '@/contexts/auth-context';
 import { DashboardLayout } from '@/components/dashboard-layout';
 import { Badge } from '@/components/ui/badge';
@@ -549,7 +550,7 @@ export default function VolunteerManagementPage() {
                               {opportunity.timeSlots.length} time slot{opportunity.timeSlots.length !== 1 ? 's' : ''}
                             </span>
                             <span className="text-muted-foreground">
-                              Created: {new Date(opportunity.createdAt).toLocaleDateString()}
+                              Created: {formatDisplayDate(opportunity.createdAt)}
                             </span>
                           </div>
                         </div>
@@ -924,7 +925,7 @@ export default function VolunteerManagementPage() {
                               {signup.status}
                             </Badge>
                             <p className="text-xs text-muted-foreground">
-                              Date: {new Date(signup.date).toLocaleDateString()}
+                              Date: {formatDisplayDate(signup.date)}
                             </p>
                           </div>
                         </div>
@@ -1089,7 +1090,7 @@ export default function VolunteerManagementPage() {
                                 {signup.status}
                               </Badge>
                               <p className="text-xs text-muted-foreground">
-                                {new Date(signup.date).toLocaleDateString()}
+                                {formatDisplayDate(signup.date)}
                               </p>
                             </div>
                           </div>

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog'
 import { Building2, Users, Calendar, MapPin, CreditCard, Crown, Star, Shield } from 'lucide-react'
 import { apiClient } from '@/lib/api'
+import { formatDisplayDate } from '@/lib/utils'
 import { toast } from 'sonner'
 import { useState } from 'react'
 
@@ -125,11 +126,7 @@ export function MembershipStatus() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Member since:</span>
-                  <span className="font-medium">{new Date(activeMembership.start_date).toLocaleDateString('en-US', { 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
-                  })}</span>
+                  <span className="font-medium">{formatDisplayDate(activeMembership.start_date)}</span>
                 </div>
                 {activeMembership.membership_level_id && (
                   <div className="flex items-center justify-between text-sm">
@@ -140,11 +137,7 @@ export function MembershipStatus() {
                 {activeMembership.end_date && (
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Expires:</span>
-                    <span className="font-medium">{new Date(activeMembership.end_date).toLocaleDateString('en-US', { 
-                      year: 'numeric', 
-                      month: 'long', 
-                      day: 'numeric' 
-                    })}</span>
+                    <span className="font-medium">{formatDisplayDate(activeMembership.end_date)}</span>
                   </div>
                 )}
               </div>

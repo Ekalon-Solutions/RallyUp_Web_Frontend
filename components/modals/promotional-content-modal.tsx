@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
+import { formatDisplayDate } from "@/lib/utils"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -541,7 +542,7 @@ export default function PromotionalContentModal({ isOpen, onClose, onContentCrea
                                                      {content.scheduling?.startDate && (
                              <span className="flex items-center gap-1">
                                <Calendar className="w-4 h-4" />
-                               {new Date(content.scheduling.startDate).toLocaleDateString()}
+                               {formatDisplayDate(content.scheduling.startDate)}
                              </span>
                            )}
 

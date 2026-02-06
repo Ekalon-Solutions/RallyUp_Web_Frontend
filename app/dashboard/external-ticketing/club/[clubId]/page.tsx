@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { apiClient, ExternalTicketRequest } from '@/lib/api'
 import { toast } from 'sonner'
-import { triggerBlobDownload } from '@/lib/utils'
+import { triggerBlobDownload, formatDisplayDate } from '@/lib/utils'
 import { CheckCircle, XCircle } from 'lucide-react'
 
 export default function ClubExternalTicketsPage() {
@@ -72,13 +72,7 @@ export default function ClubExternalTicketsPage() {
     }
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
-  }
+  const formatDate = (dateString: string) => formatDisplayDate(dateString)
 
   return (
     <DashboardLayout>

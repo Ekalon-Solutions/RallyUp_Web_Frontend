@@ -11,6 +11,7 @@ import {
 } from "lucide-react"
 import { MembershipCard } from "@/components/membership-card"
 import { apiClient, PublicMembershipCardDisplay } from "@/lib/api"
+import { formatDisplayDate } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
@@ -314,7 +315,7 @@ export default function UserMembershipCardPage() {
                       <div className="flex items-center gap-2 text-sm">
                         <Calendar className="w-4 h-4 text-muted-foreground" />
                         <span className="text-muted-foreground">Expires:</span>
-                        <span>{new Date(displaySelectedCard.card.expiryDate).toLocaleDateString()}</span>
+                        <span>{formatDisplayDate(displaySelectedCard.card.expiryDate)}</span>
                       </div>
 
                       <div className="flex items-center gap-2 text-sm">
@@ -422,7 +423,7 @@ export default function UserMembershipCardPage() {
                         </div>
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Expires:</span>
-                          <span>{new Date(card.card.expiryDate).toLocaleDateString()}</span>
+                          <span>{formatDisplayDate(card.card.expiryDate)}</span>
                         </div>
                       </div>
                       <Button

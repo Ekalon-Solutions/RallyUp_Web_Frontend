@@ -18,6 +18,7 @@ import OnboardingModal from "@/components/modals/onboarding-modal"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
 import { getApiUrl, API_ENDPOINTS } from "@/lib/config"
+import { formatDisplayDate } from "@/lib/utils"
 import { toast } from "sonner"
 import UserOnboardingProgressAdmin from "@/components/admin/user-onboarding-progress-admin"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
@@ -430,7 +431,7 @@ export default function OnboardingDashboard() {
                         <p className="break-words">Steps: {flow.steps.length}</p>
                         <p className="break-words">Duration: {flow.estimatedDuration} minutes</p>
                         <p className="break-words">Target Audience: {flow.targetAudience}</p>
-                        <p className="break-words">Created: {new Date(flow.createdAt).toLocaleDateString()}</p>
+                        <p className="break-words">Created: {formatDisplayDate(flow.createdAt)}</p>
                       </CardContent>
                     </Card>
                   ))}

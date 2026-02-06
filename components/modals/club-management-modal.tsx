@@ -16,6 +16,7 @@ import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth"
 import { auth } from "@/lib/firebase/config"
 import { useAuth } from "@/contexts/auth-context"
 import { apiClient } from "@/lib/api"
+import { formatDisplayDate } from "@/lib/utils"
 
 declare global {
   interface Window {
@@ -539,7 +540,7 @@ export default function ClubManagementModal({ isOpen, onClose, club, onClubUpdat
                     <div>
                       <h4 className="font-semibold">Created Date</h4>
                       <p className="text-sm text-muted-foreground">
-                        {new Date(club.createdAt).toLocaleDateString()}
+                        {formatDisplayDate(club.createdAt)}
                       </p>
                     </div>
                   </div>

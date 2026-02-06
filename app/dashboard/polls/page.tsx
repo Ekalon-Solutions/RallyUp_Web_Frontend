@@ -23,6 +23,7 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 import { apiClient, Poll } from "@/lib/api"
+import { formatLocalDate } from "@/lib/timezone"
 import { useAuth } from "@/contexts/auth-context"
 import { useSelectedClubId } from "@/hooks/useSelectedClubId"
 import { CreatePollModal } from "@/components/modals/create-poll-modal"
@@ -163,15 +164,7 @@ export default function PollsManagementPage() {
     }
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
+  const formatDate = (dateString: string) => formatLocalDate(dateString, 'long')
 
   const filteredPolls = polls.filter(poll => {
     const matchesSearch = poll.question.toLowerCase().includes(searchTerm.toLowerCase()) ||

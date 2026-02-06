@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { apiClient } from '@/lib/api'
+import { formatLocalDate } from '@/lib/timezone'
 import { DashboardLayout } from '@/components/dashboard-layout'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import Link from 'next/link'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
@@ -126,6 +128,8 @@ export default function OrdersPage() {
   const [newStatus, setNewStatus] = useState('')
   const [trackingNumber, setTrackingNumber] = useState('')
   const [statusNotes, setStatusNotes] = useState('')
+  const [showRefundConfirmDialog, setShowRefundConfirmDialog] = useState(false)
+  const [orderToRefund, setOrderToRefund] = useState<string | null>(null)
 
   useEffect(() => {
     if (user?.role === 'admin' || user?.role === 'super_admin') {
@@ -389,15 +393,7 @@ export default function OrdersPage() {
     }
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
+  const formatDate = (dateString: string) => formatLocalDate(dateString, 'long')
 
   const formatCurrency = (amount: number, currency: string = 'USD') => {
     return new Intl.NumberFormat('en-US', {
@@ -659,7 +655,10 @@ export default function OrdersPage() {
                                 )}
                                 {order.paymentStatus === 'paid' && (
                                   <DropdownMenuItem
-                                    onClick={() => handlePaymentStatusUpdate(order._id, 'refunded')}
+                                    onClick={() => {
+                                      setOrderToRefund(order._id)
+                                      setShowRefundConfirmDialog(true)
+                                    }}
                                     className="text-orange-600"
                                   >
                                     <XCircle className="mr-2 h-4 w-4" />
@@ -994,6 +993,48 @@ export default function OrdersPage() {
               </Button>
               <Button onClick={handleStatusUpdate}>
                 Update Status
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Refund Confirmation Dialog */}
+        <Dialog open={showRefundConfirmDialog} onOpenChange={(open) => {
+          setShowRefundConfirmDialog(open)
+          if (!open) setOrderToRefund(null)
+        }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Confirm Refund</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to mark this order as refunded? This action will update the payment status.
+                Please ensure the refund has been processed per our{' '}
+                <Link href="/refund" target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:text-sky-500 underline font-medium">
+                  Refund and Cancellation Policy
+                </Link>.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowRefundConfirmDialog(false)
+                  setOrderToRefund(null)
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="text-orange-600"
+                onClick={async () => {
+                  if (orderToRefund) {
+                    await handlePaymentStatusUpdate(orderToRefund, 'refunded')
+                    setShowRefundConfirmDialog(false)
+                    setOrderToRefund(null)
+                  }
+                }}
+              >
+                Mark as Refunded
               </Button>
             </DialogFooter>
           </DialogContent>

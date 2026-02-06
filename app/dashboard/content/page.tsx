@@ -11,6 +11,7 @@ import { ProtectedRoute } from "@/components/protected-route"
 import { CreateNewsModal } from "@/components/modals/create-news-modal"
 import NewsReadMoreModal from "@/components/modals/news-readmore-modal"
 import { apiClient, News } from "@/lib/api"
+import { formatDisplayDate } from "@/lib/utils"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
 import { getNewsImageUrl } from "@/lib/config"
@@ -189,15 +190,7 @@ export default function ContentManagementPage() {
     }
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
+  const formatDate = (dateString: string) => formatDisplayDate(dateString)
 
   const truncateText = (text: string, maxLength: number = 200) => {
     if (text.length <= maxLength) return text

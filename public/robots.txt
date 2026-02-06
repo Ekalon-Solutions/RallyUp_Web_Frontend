@@ -32,6 +32,8 @@ Allow: /merchandise
 Allow: /faqs
 Allow: /terms
 Allow: /privacy
+Allow: /refund
+Allow: /ppsa
 Allow: /affiliations
 
 Disallow: /api/

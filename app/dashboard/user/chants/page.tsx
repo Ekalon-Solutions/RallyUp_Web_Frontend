@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { DashboardLayout } from '@/components/dashboard-layout';
 import { ProtectedRoute } from '@/components/protected-route';
 import { apiClient, Chant } from '@/lib/api';
+import { formatDisplayDate } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -357,7 +358,7 @@ export default function MemberChantsPage() {
                       </div>
                       <div className="flex items-center gap-1">
                         <Calendar className="w-4 h-4" />
-                        <span>{new Date(chant.createdAt).toLocaleDateString()}</span>
+                        <span>{formatDisplayDate(chant.createdAt)}</span>
                       </div>
                     </div>
                   </CardContent>

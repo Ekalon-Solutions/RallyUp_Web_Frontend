@@ -30,6 +30,7 @@ import {
   Eye
 } from "lucide-react"
 import { getApiUrl } from "@/lib/config"
+import { formatDisplayDate } from "@/lib/utils"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
@@ -157,8 +158,8 @@ export default function UserOnboardingProgressAdmin() {
         'Email': p.user.email,
         'Flow': p.onboardingFlow.name,
         'Status': p.status,
-        'Started': new Date(p.startedAt).toLocaleDateString(),
-        'Completed': p.completedAt ? new Date(p.completedAt).toLocaleDateString() : 'N/A',
+        'Started': formatDisplayDate(p.startedAt),
+        'Completed': p.completedAt ? formatDisplayDate(p.completedAt) : 'N/A',
       }))
 
     if (csvData.length === 0) {
@@ -332,11 +333,11 @@ export default function UserOnboardingProgressAdmin() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        {new Date(progress.startedAt).toLocaleDateString()}
+                        {formatDisplayDate(progress.startedAt)}
                       </TableCell>
                       <TableCell>
                         {progress.completedAt 
-                          ? new Date(progress.completedAt).toLocaleDateString()
+                          ? formatDisplayDate(progress.completedAt)
                           : '-'
                         }
                       </TableCell>

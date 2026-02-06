@@ -537,6 +537,15 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                 </CardContent>
               </Card>
 
+              {/* Refund Policy Notice */}
+              <p className="text-xs text-muted-foreground text-center">
+                By placing your order, you agree to our{" "}
+                <a href="/refund" target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:text-sky-500 underline">
+                  Refund and Cancellation Policy
+                </a>
+                .
+              </p>
+
               {/* Place Order Button */}
               <Button
                 type="submit"

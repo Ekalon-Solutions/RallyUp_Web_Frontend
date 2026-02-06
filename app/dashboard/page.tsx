@@ -32,6 +32,9 @@ export default function DashboardPage() {
     if (user && !isAdmin) {
       window.location.href = "/dashboard/user"
     }
+    if (user?.role === 'system_owner') {
+      window.location.href = "/dashboard/club-management"
+    }
   }, [user, isAdmin])
 
   useEffect(() => {

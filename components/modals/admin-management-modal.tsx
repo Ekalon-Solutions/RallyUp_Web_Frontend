@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { apiClient, Admin, User } from '@/lib/api'
+import { formatDisplayDate } from '@/lib/utils'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -552,7 +553,7 @@ export function AdminManagementModal({ clubId, clubName, trigger }: AdminManagem
                       </TableCell>
                       <TableCell>
                         <div className="text-sm">
-                          {new Date(admin.createdAt || '').toLocaleDateString()}
+                          {formatDisplayDate(admin.createdAt)}
                         </div>
                       </TableCell>
                       <TableCell className="text-right">

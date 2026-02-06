@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Calendar, CreditCard, AlertTriangle, CheckCircle } from "lucide-react"
 import { toast } from "sonner"
 import { Label } from "@/components/ui/label"
+import { formatDisplayDate } from "@/lib/utils"
 
 interface MembershipPlan {
   _id: string
@@ -118,7 +119,7 @@ export function MembershipRenewal({ user, membershipPlans, onRenewal }: Membersh
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">Expires</span>
                 <span className={`text-sm ${isExpired ? 'text-red-600 font-medium' : ''}`}>
-                  {new Date(user.membershipExpiry).toLocaleDateString()}
+                  {formatDisplayDate(user.membershipExpiry)}
                 </span>
               </div>
             )}

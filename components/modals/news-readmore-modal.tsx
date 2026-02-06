@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Calendar, User, Eye, Tag, Building } from 'lucide-react'
 import { News } from '@/lib/api'
 import { getNewsImageUrl } from '@/lib/config'
+import { formatLocalDate } from '@/lib/timezone'
 
 interface NewsReadMoreModalProps {
   news: News | null
@@ -18,16 +19,7 @@ interface NewsReadMoreModalProps {
 export default function NewsReadMoreModal({ news, isOpen, onClose }: NewsReadMoreModalProps) {
   if (!news) return null
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-  }
+  const formatDate = (dateString: string) => formatLocalDate(dateString, 'long')
 
   const getCategoryIcon = (category: string) => {
     switch (category) {

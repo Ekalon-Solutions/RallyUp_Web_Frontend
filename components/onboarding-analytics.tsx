@@ -16,7 +16,7 @@ import {
 } from "lucide-react"
 import { getApiUrl, API_ENDPOINTS } from "@/lib/config"
 import { toast } from "sonner"
-import { triggerBlobDownload } from '@/lib/utils'
+import { triggerBlobDownload, formatDisplayDate } from '@/lib/utils'
 
 interface UserProgress {
   _id: string
@@ -155,8 +155,8 @@ export default function OnboardingAnalytics({ flowId }: OnboardingAnalyticsProps
       p.onboardingFlow.name,
       p.status,
       `${p.progress}%`,
-      p.startedAt ? new Date(p.startedAt).toLocaleDateString() : 'N/A',
-      p.completedAt ? new Date(p.completedAt).toLocaleDateString() : 'N/A'
+      p.startedAt ? formatDisplayDate(p.startedAt) : 'N/A',
+      p.completedAt ? formatDisplayDate(p.completedAt) : 'N/A'
     ])
     
     const csv = [headers, ...rows].map(row => row.join(',')).join('\n')
@@ -337,12 +337,12 @@ export default function OnboardingAnalytics({ flowId }: OnboardingAnalyticsProps
                       {progress.completedAt ? (
                         <div>
                           <div className="font-medium text-green-600">Completed</div>
-                          <div>{new Date(progress.completedAt).toLocaleDateString()}</div>
+                          <div>{formatDisplayDate(progress.completedAt)}</div>
                         </div>
                       ) : progress.startedAt ? (
                         <div>
                           <div>Started</div>
-                          <div>{new Date(progress.startedAt).toLocaleDateString()}</div>
+                          <div>{formatDisplayDate(progress.startedAt)}</div>
                         </div>
                       ) : (
                         <div className="text-gray-400">Not started</div>

@@ -12,6 +12,7 @@ import { Ticket, AlertCircle } from "lucide-react"
 import { toast } from "sonner"
 import config from "@/lib/config"
 import { toDatetimeLocalString } from "@/lib/timezone"
+import { formatDisplayDate } from "@/lib/utils"
 
 interface Coupon {
   _id: string
@@ -493,8 +494,8 @@ export function CreateCouponModal({ isOpen, onClose, onSuccess, editCoupon }: Cr
               <div className="flex items-center gap-2">
                 <span className="font-medium">Valid:</span>
                 <span>
-                  {formData.startTime ? new Date(formData.startTime).toLocaleDateString() : "—"} to{" "}
-                  {formData.endTime ? new Date(formData.endTime).toLocaleDateString() : "—"}
+                  {formData.startTime ? formatDisplayDate(formData.startTime) : "—"} to{" "}
+                  {formData.endTime ? formatDisplayDate(formData.endTime) : "—"}
                 </span>
               </div>
               <div className="flex items-center gap-2">

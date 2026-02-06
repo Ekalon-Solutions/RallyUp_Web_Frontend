@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { apiClient, Club } from '@/lib/api'
+import { formatDisplayDate } from '@/lib/utils'
 import { toast } from 'sonner'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -150,7 +151,7 @@ export function ClubStatsModal({ club, trigger }: ClubStatsModalProps) {
                       </div>
                       <div className="flex items-center gap-2">
                         <Calendar className="w-4 h-4 text-muted-foreground" />
-                        <span>Created: {new Date(club.createdAt).toLocaleDateString()}</span>
+                        <span>Created: {formatDisplayDate(club.createdAt)}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Globe className="w-4 h-4 text-muted-foreground" />

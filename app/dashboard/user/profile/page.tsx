@@ -11,13 +11,14 @@ import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
 import { useAuth } from "@/contexts/auth-context"
 import { toast } from "sonner"
-import { User, Mail, Phone, Shield, Save, Calendar, CheckCircle, XCircle, Edit, Building2, MapPin, Globe, Users, Search, Plus, ArrowRight, Loader2, Camera } from "lucide-react"
+import { User, Mail, Phone, Shield, Save, CheckCircle, XCircle, Edit, Building2, MapPin, Globe, Loader2, Camera, Search, ArrowRight, Users } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { MembershipRenewal } from "@/components/membership-renewal"
 import { useRouter } from "next/navigation"
 import { VolunteerSignUpModal } from "@/components/volunteer/volunteer-signup-modal"
 import { VolunteerProfile } from "@/lib/api"
 import { apiClient } from "@/lib/api"
+import { formatDisplayDate } from "@/lib/utils"
 import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth"
 import { auth } from "@/lib/firebase/config"
 
@@ -27,6 +28,9 @@ declare global {
     confirmationResult: any;
   }
 }
+
+const isSystemAdmin = (role: string | undefined) =>
+  role === "admin" || role === "super_admin" || role === "system_owner"
 
 export default function UserProfilePage() {
   const { user, updateProfile, checkAuth } = useAuth()
@@ -42,13 +46,13 @@ export default function UserProfilePage() {
     countryCode: "+1"
   })
 
-  // OTP related states
   const [showOtpInput, setShowOtpInput] = useState(false)
   const [otp, setOtp] = useState("")
   const [otpSent, setOtpSent] = useState(false)
   const [isVerifying, setIsVerifying] = useState(false)
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const fileInputRef = React.useRef<HTMLInputElement>(null)
+  const showSystemAdminProfile = user ? isSystemAdmin(user.role) : false
 
   useEffect(() => {
     if (user) {
@@ -62,9 +66,8 @@ export default function UserProfilePage() {
   }, [user])
 
   useEffect(() => {
+    if (!user || isSystemAdmin(user.role)) return
     const fetchVolunteerProfile = async () => {
-      if (!user) return
-      
       try {
         const profileResponse = await apiClient.getVolunteerProfile()
         if (profileResponse.success && profileResponse.data) {
@@ -72,11 +75,10 @@ export default function UserProfilePage() {
         } else {
           setVolunteerProfile(null)
         }
-      } catch (error) {
+      } catch {
         setVolunteerProfile(null)
       }
     }
-
     fetchVolunteerProfile()
   }, [user])
 
@@ -171,20 +173,13 @@ export default function UserProfilePage() {
         toast.error(result.error || "Failed to update profile")
       }
     } catch (error) {
-      // console.error("Error updating profile:", error)
       toast.error("Error updating profile")
     } finally {
       setLoading(false)
     }
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    })
-  }
+  const formatDate = (dateString: string) => formatDisplayDate(dateString)
 
   const handleDiscoverClubs = () => {
     router.push('/clubs')
@@ -231,89 +226,61 @@ export default function UserProfilePage() {
 
   const handleVolunteerPreferencesSubmit = async (preferences: VolunteerProfile) => {
     try {
-      // First check if volunteer profile exists
       const profileResponse = await apiClient.getVolunteerProfile();
       
       if (!profileResponse.success) {
-        // Profile doesn't exist, create one first
         const createResponse = await apiClient.createVolunteerProfile({
-          club: user?.club?._id || '',
           skills: preferences.skills || [],
           interests: preferences.interests || [],
           availability: {
             weekdays: preferences.availability?.weekdays || false,
             weekends: preferences.availability?.weekends || false,
-            evenings: preferences.availability?.evenings || false,
-            flexible: false
-          },
-          experience: {
-            level: 'beginner',
-            yearsOfExperience: 0,
-            previousRoles: []
-          },
-          preferences: {
-            preferredEventTypes: [],
-            maxHoursPerWeek: 10,
-            preferredTimeSlots: [],
-            locationPreference: 'on-site'
-          },
-          emergencyContact: {
-            name: '',
-            relationship: '',
-            phone: '',
-            email: ''
+            evenings: preferences.availability?.evenings || false
           },
           notes: preferences.notes || ''
         });
         
         if (createResponse.success) {
-          // Fetch the updated profile to get all data
           const updatedProfileResponse = await apiClient.getVolunteerProfile()
           if (updatedProfileResponse.success && updatedProfileResponse.data) {
             setVolunteerProfile(updatedProfileResponse.data)
           } else {
             setVolunteerProfile(preferences)
           }
-          setIsVolunteerModalOpen(false);
-          toast.success("Volunteer profile created successfully");
-          // Refresh user data to update volunteering status
+          setIsVolunteerModalOpen(false)
+          toast.success("Volunteer profile created successfully")
           await checkAuth()
         } else {
           toast.error(createResponse.error || "Failed to create volunteer profile");
         }
       } else {
-        // Profile exists, update it
         const updateResponse = await apiClient.updateVolunteerProfile({
           skills: preferences.skills || [],
           interests: preferences.interests || [],
           availability: {
             weekdays: preferences.availability?.weekdays || false,
             weekends: preferences.availability?.weekends || false,
-            evenings: preferences.availability?.evenings || false,
-            flexible: false
+            evenings: preferences.availability?.evenings || false
           },
           notes: preferences.notes || ''
         });
         
         if (updateResponse.success) {
-          // Fetch the updated profile to get all data
           const updatedProfileResponse = await apiClient.getVolunteerProfile()
           if (updatedProfileResponse.success && updatedProfileResponse.data) {
             setVolunteerProfile(updatedProfileResponse.data)
           } else {
             setVolunteerProfile(preferences)
           }
-          setIsVolunteerModalOpen(false);
-          toast.success("Volunteer preferences updated successfully");
-          // Refresh user data to update volunteering status
+          setIsVolunteerModalOpen(false)
+          toast.success("Volunteer preferences updated successfully")
           await checkAuth()
         } else {
           toast.error(updateResponse.error || "Failed to update volunteer preferences");
         }
       }
-    } catch (error) {
-      // // console.error("Error updating volunteer preferences:", error);
-      toast.error("Error updating volunteer preferences");
+    } catch {
+      toast.error("Error updating volunteer preferences")
     }
   };
 
@@ -335,25 +302,32 @@ export default function UserProfilePage() {
   return (
     <ProtectedRoute>
       <DashboardLayout>
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
+        <div className="space-y-8">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-3xl font-bold">My Profile</h1>
+              <div className="flex items-center gap-3 mb-1">
+                <h1 className="text-3xl font-bold tracking-tight">My Profile</h1>
+                {showSystemAdminProfile && (
+                  <Badge variant="secondary" className="text-xs font-semibold uppercase tracking-wider">
+                    {user.role?.replace("_", " ")}
+                  </Badge>
+                )}
+              </div>
               <p className="text-muted-foreground">Manage your personal information and account settings</p>
             </div>
-            <Button 
+            <Button
               onClick={() => setIsEditing(!isEditing)}
               variant={isEditing ? "outline" : "default"}
+              className="shrink-0"
             >
               <Edit className="w-4 h-4 mr-2" />
               {isEditing ? "Cancel Edit" : "Edit Profile"}
             </Button>
           </div>
 
-          <div className="grid gap-6 md:grid-cols-3">
-            {/* Profile Information */}
-            <div className="md:col-span-2 space-y-6">
-              <Card>
+          <div className={`grid gap-6 ${showSystemAdminProfile ? "md:grid-cols-2" : "md:grid-cols-3"}`}>
+            <div className={showSystemAdminProfile ? "space-y-6" : "md:col-span-2 space-y-6"}>
+              <Card className="overflow-hidden rounded-xl border shadow-sm">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <User className="w-5 h-5" />
@@ -528,10 +502,10 @@ export default function UserProfilePage() {
                 </CardContent>
               </Card>
 
-              <div id="recaptcha-container"></div>
+              <div id="recaptcha-container" />
 
-              {/* Joined Clubs / Join a Club */}
-              <Card>
+              {!showSystemAdminProfile && (
+              <Card className="overflow-hidden rounded-xl border shadow-sm">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Building2 className="w-5 h-5" />
@@ -585,16 +559,17 @@ export default function UserProfilePage() {
                   )}
                 </CardContent>
               </Card>
+              )}
             </div>
 
-            {/* Club Information */}
             {(user as any).club && (
-              <Card>
+              <Card className="overflow-hidden rounded-xl border shadow-sm">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Building2 className="w-5 h-5" />
                     Club Information
                   </CardTitle>
+                  <CardDescription>Your club details</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
@@ -658,8 +633,8 @@ export default function UserProfilePage() {
               </Card>
             )}
 
-            {/* Volunteer Preferences */}
-            <Card>
+            {!showSystemAdminProfile && (
+            <Card className="overflow-hidden rounded-xl border shadow-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Users className="w-5 h-5" />
@@ -734,7 +709,7 @@ export default function UserProfilePage() {
                           {(volunteerProfile as any).certifications.map((c: any, idx: number) => (
                             <div key={idx}>
                               <p className="font-medium">{c.name} {(c.issuingOrganization) ? `— ${c.issuingOrganization}` : ''}</p>
-                              {c.issueDate && <p className="text-xs text-muted-foreground">Issued: {new Date(c.issueDate).toLocaleDateString()}</p>}
+                              {c.issueDate && <p className="text-xs text-muted-foreground">Issued: {formatDisplayDate(c.issueDate)}</p>}
                             </div>
                           ))}
                         </div>
@@ -762,20 +737,21 @@ export default function UserProfilePage() {
                 </div>
               </CardContent>
             </Card>
+            )}
 
-            {/* Account Information */}
-            <Card>
+            <Card className="overflow-hidden rounded-xl border shadow-sm">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Shield className="w-5 h-5" />
                   Account Information
                 </CardTitle>
+                <CardDescription>Your account details and status</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label className="text-sm font-medium text-muted-foreground">Account Type</Label>
-                  <Badge variant="outline">
-                    {user.role === 'member' ? 'Member' : user.role}
+                  <Badge variant="outline" className="capitalize">
+                    {user.role === 'member' ? 'Member' : user.role?.replace('_', ' ')}
                   </Badge>
                 </div>
                 <div className="space-y-2">
@@ -796,7 +772,6 @@ export default function UserProfilePage() {
             </Card>
           </div>
 
-          {/* Membership Renewal Component */}
           {(user as any).club && (user as any).membershipExpiry && (
             <MembershipRenewal 
               user={(user as any)}
@@ -806,12 +781,14 @@ export default function UserProfilePage() {
           )}
         </div>
       </DashboardLayout>
-      <VolunteerSignUpModal 
-        open={isVolunteerModalOpen} 
-        onClose={() => setIsVolunteerModalOpen(false)} 
-        onSubmit={handleVolunteerPreferencesSubmit} 
-        initialPreferences={volunteerProfile || undefined}
-      />
+      {!showSystemAdminProfile && (
+        <VolunteerSignUpModal
+          open={isVolunteerModalOpen}
+          onClose={() => setIsVolunteerModalOpen(false)}
+          onSubmit={handleVolunteerPreferencesSubmit}
+          initialPreferences={volunteerProfile || undefined}
+        />
+      )}
     </ProtectedRoute>
   )
 } 

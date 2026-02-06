@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination'
 import { DashboardLayout } from '@/components/dashboard-layout'
 import { ProtectedRoute } from '@/components/protected-route'
+import { formatDisplayDate } from '@/lib/utils'
 import { AddMemberModal } from '@/components/modals/add-member-modal'
 import ImportMembersModal from '@/components/modals/import-members-modal'
 import { 
@@ -214,14 +215,6 @@ export default function MembersPage() {
   }
 
   const pagesToShow = getVisiblePages(pagination.pages, currentPage)
-
-  const formatDate = (dateString: string): string => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
-  }
 
   const formatPhoneNumber = (phoneNumber: string, countryCode: string): string => {
     return `${countryCode} ${phoneNumber}`
@@ -455,7 +448,7 @@ export default function MembersPage() {
         member.club?.name || 'N/A',
         member.membershipPlan?.name || 'N/A',
         member.isActive ? 'Active' : 'Inactive',
-        formatDate(member.createdAt)
+        formatDisplayDate(member.createdAt)
       ].join(','))
     ].join('\n')
 

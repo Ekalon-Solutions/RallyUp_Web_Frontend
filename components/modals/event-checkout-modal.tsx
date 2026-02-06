@@ -412,6 +412,14 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
           </CardContent>
         </Card>
 
+        <p className="text-xs text-muted-foreground text-center mt-4">
+          By completing payment, you agree to our{" "}
+          <a href="/refund" target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:text-sky-500 underline">
+            Refund and Cancellation Policy
+          </a>
+          .
+        </p>
+
         <Button
           onClick={handlePayment}
           disabled={loading}

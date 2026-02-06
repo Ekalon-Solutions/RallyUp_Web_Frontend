@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Building2, Users, Calendar, DollarSign, Crown, Plus } from "lucide-react"
 import { apiClient } from "@/lib/api"
+import { formatDisplayDate } from "@/lib/utils"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
 
@@ -123,9 +124,7 @@ export const ClubSelector: React.FC<ClubSelectorProps> = ({ onClubSelect, select
     }).format(price)
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString()
-  }
+  const formatDate = (dateString: string) => formatDisplayDate(dateString)
 
   if (isLoading) {
     return (

@@ -14,6 +14,7 @@ import { User, Mail, Phone, Shield, Save, Building2, MapPin, Globe, Loader2, Che
 import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth"
 import { auth } from "@/lib/firebase/config"
 import { apiClient } from "@/lib/api"
+import { formatDisplayDate } from "@/lib/utils"
 
 declare global {
   interface Window {
@@ -316,7 +317,7 @@ export default function SettingsPage() {
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">Member Since</Label>
                     <p className="text-sm text-muted-foreground">
-                      {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "N/A"}
+                      {user.createdAt ? formatDisplayDate(user.createdAt) : "N/A"}
                     </p>
                   </div>
                 </div>

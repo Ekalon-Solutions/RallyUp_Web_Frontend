@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { PublicMembershipCardDisplay, apiClient } from '@/lib/api';
+import { formatDisplayDate } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { getBaseUrl } from '@/lib/config';
 
@@ -144,13 +145,7 @@ export function MembershipCard({
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric'
-    });
-  };
+  const formatDate = (dateString: string) => formatDisplayDate(dateString);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!cardRef.current) return;

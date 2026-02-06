@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Calendar, Clock, MapPin, Users, Ticket, UserCheck, Bus, CheckCircle, XCircle, Plus, X, UserPlus, AlertCircle, Tag, Percent, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { apiClient, Event } from "@/lib/api"
+import { formatLocalDate } from "@/lib/timezone"
 
 interface EventRegistrationModalProps {
   isOpen: boolean
@@ -315,13 +316,7 @@ export function EventRegistrationModal({
 
   const formatDate = (dateString: string) => {
     try {
-      return new Date(dateString).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      })
+      return formatLocalDate(dateString, 'long')
     } catch (error) {
       return 'Invalid Date'
     }

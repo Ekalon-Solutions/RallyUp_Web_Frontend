@@ -13,6 +13,7 @@ import { ProtectedRoute } from "@/components/protected-route"
 import { CreateEventModal } from "@/components/modals/create-event-modal"
 import { EventRegistrationModal } from "@/components/modals/event-registration-modal"
 import { apiClient, Event } from "@/lib/api"
+import { formatDisplayDate } from "@/lib/utils"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
 import { useCallback, useEffect, useState } from "react"
@@ -153,17 +154,7 @@ export default function EventsPage() {
     }
   }
 
-  const formatDate = (dateString: string) => {
-    try {
-      return new Date(dateString).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric'
-      })
-    } catch (error) {
-      return 'Invalid Date'
-    }
-  }
+  const formatDate = (dateString: string) => formatDisplayDate(dateString)
 
   const getRegistrationStatus = (eventId: string) => {
     const registration = userRegistrations.get(eventId)

@@ -43,7 +43,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import config from '@/lib/config';
-import { triggerBlobDownload } from '@/lib/utils';
+import { triggerBlobDownload, formatDisplayDate } from '@/lib/utils';
 import { Volunteer } from '@/lib/api';
 
 interface AdminVolunteerListProps {
@@ -351,7 +351,7 @@ export default function AdminVolunteerList({ clubId, currentUser }: AdminVolunte
                                 {volunteer.user?.first_name} {volunteer.user?.last_name}
                               </p>
                               <p className="text-xs text-gray-500">
-                                Member since {new Date(volunteer.createdAt).toLocaleDateString()}
+                                Member since {formatDisplayDate(volunteer.createdAt)}
                               </p>
                             </div>
                           </div>
@@ -566,11 +566,7 @@ export default function AdminVolunteerList({ clubId, currentUser }: AdminVolunte
                 <h4 className="text-sm font-semibold mb-2">Joined</h4>
                 <div className="flex items-center text-sm text-gray-600">
                   <Calendar className="w-4 h-4 mr-2 text-gray-400" />
-                  {new Date(selectedVolunteer.createdAt).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                  })}
+                  {formatDisplayDate(selectedVolunteer.createdAt)}
                 </div>
               </div>
             </div>

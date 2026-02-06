@@ -27,6 +27,7 @@ import {
 import { MembershipCard } from "@/components/membership-card"
 import { MembershipCardCustomizer } from "@/components/admin/membership-card-customizer"
 import { apiClient, PublicMembershipCardDisplay, CreateMembershipCardRequest } from "@/lib/api"
+import { formatDisplayDate } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 import { getBaseUrl, getApiUrl } from "@/lib/config"
 import { DashboardLayout } from "@/components/dashboard-layout"
@@ -982,7 +983,7 @@ export default function MembershipCardsPage() {
                                       {card.card.status}
                                     </Badge>
                                     <span className="text-xs text-muted-foreground">
-                                      Expires: {new Date(card.card.expiryDate).toLocaleDateString()}
+                                      Expires: {formatDisplayDate(card.card.expiryDate)}
                                     </span>
                                   </div>
                                 </div>

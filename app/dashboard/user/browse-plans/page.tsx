@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Check, Star, CreditCard, Calendar, Users, Building2, ArrowUp, ArrowDown } from "lucide-react"
 import { toast } from "sonner"
 import { apiClient, MembershipPlan } from "@/lib/api"
+import { formatDisplayDate } from "@/lib/utils"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
 import { useAuth } from "@/contexts/auth-context"
@@ -121,14 +122,7 @@ export default function BrowseMembershipPlansPage() {
     }).format(price)
   }
 
-  const formatDate = (dateString: string) => {
-    if (!dateString) return 'N/A'
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    })
-  }
+  const formatDate = (dateString: string) => (dateString ? formatDisplayDate(dateString) : 'N/A')
 
   const formatDuration = (duration: number) => {
     if (duration === 0) return "Lifetime"

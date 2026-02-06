@@ -153,7 +153,6 @@ export default function UserOrdersPage() {
         setTotalPages(1)
       }
     } catch (error) {
-      // console.error('Error loading orders:', error)
       toast({
         title: "Error",
         description: "Failed to fetch orders",
@@ -187,7 +186,6 @@ export default function UserOrdersPage() {
         toast({ title: 'Report downloaded', description: 'Your orders report downloaded successfully.' });
       }
     } catch (error) {
-      // // console.error('Error downloading my orders report:', error);
       toast({ title: 'Error', description: 'Failed to download report', variant: 'destructive' });
     }
   }
@@ -287,7 +285,11 @@ export default function UserOrdersPage() {
           <CardHeader>
             <CardTitle>Order History</CardTitle>
             <CardDescription>
-              View and track your past orders
+              View and track your past orders. For refund-related inquiries, see our{" "}
+              <a href="/refund" target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:text-sky-500 underline">
+                Refund and Cancellation Policy
+              </a>
+              .
             </CardDescription>
           </CardHeader>
           <CardContent>

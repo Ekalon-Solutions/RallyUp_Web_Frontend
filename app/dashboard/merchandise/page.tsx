@@ -10,6 +10,7 @@ import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
 import { CreateMerchandiseModal } from "@/components/modals/create-merchandise-modal"
 import { apiClient } from "@/lib/api"
+import { formatDisplayDate } from "@/lib/utils"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
@@ -646,7 +647,7 @@ export default function MerchandiseManagementPage() {
                             </TableCell>
                             <TableCell>
                               <div className="text-sm text-gray-500">
-                                {new Date(item.createdAt).toLocaleDateString()}
+                                {formatDisplayDate(item.createdAt)}
                               </div>
                             </TableCell>
                             <TableCell className="text-right">
