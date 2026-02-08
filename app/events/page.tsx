@@ -20,8 +20,9 @@ export default function PublicEventsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [categoryFilter, setCategoryFilter] = useState<string>("all")
   const [userRegistrations, setUserRegistrations] = useState<Map<string, any>>(new Map())
+  const [waitlistStatus, setWaitlistStatus] = useState<Map<string, { position: number; status: string }>>(new Map())
+  const [joiningWaitlistId, setJoiningWaitlistId] = useState<string | null>(null)
 
-  // Registration modal states
   const [registrationModalOpen, setRegistrationModalOpen] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
 
@@ -29,6 +30,13 @@ export default function PublicEventsPage() {
     fetchEvents()
     if (user) {
       fetchUserRegistrations()
+      apiClient.getMyWaitlistStatus().then((r) => {
+        if (r.success && r.data) {
+          const m = new Map()
+          r.data.forEach((w: any) => m.set(String(w.eventId), { position: w.position, status: w.status }))
+          setWaitlistStatus(m)
+        }
+      })
     }
   }, [searchTerm, categoryFilter, user])
 
@@ -40,7 +48,6 @@ export default function PublicEventsPage() {
       if (response.success && response.data) {
         let filteredEvents = response.data.filter(event => event.isActive)
 
-        // Apply search filter
         if (searchTerm) {
           filteredEvents = filteredEvents.filter(event =>
             event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -49,18 +56,15 @@ export default function PublicEventsPage() {
           )
         }
 
-        // Apply category filter
         if (categoryFilter !== "all") {
           filteredEvents = filteredEvents.filter(event => event.category === categoryFilter)
         }
 
         setEvents(filteredEvents)
       } else {
-        // console.error("Failed to fetch events:", response.error)
         toast.error("Failed to fetch events")
       }
     } catch (error) {
-      // console.error("Error fetching events:", error)
       toast.error("Error fetching events")
     } finally {
       setLoading(false)
@@ -78,7 +82,6 @@ export default function PublicEventsPage() {
         setUserRegistrations(registrationsMap)
       }
     } catch (error) {
-      // console.error("Error fetching user registrations:", error)
     }
   }
 
@@ -95,6 +98,30 @@ export default function PublicEventsPage() {
     fetchEvents()
     if (user) {
       fetchUserRegistrations()
+      apiClient.getMyWaitlistStatus().then((r) => {
+        if (r.success && r.data) {
+          const m = new Map()
+          r.data.forEach((w: any) => m.set(String(w.eventId), { position: w.position, status: w.status }))
+          setWaitlistStatus(m)
+        }
+      })
+    }
+  }
+
+  const handleJoinWaitlist = async (eventId: string) => {
+    try {
+      setJoiningWaitlistId(eventId)
+      const res = await apiClient.joinWaitlist(eventId)
+      if (res.success) {
+        toast.success(`Joined waitlist at position ${res.data?.position || 1}`)
+        handleRegistrationSuccess()
+      } else {
+        toast.error(res.error || res.message || "Failed to join waitlist")
+      }
+    } catch {
+      toast.error("Failed to join waitlist")
+    } finally {
+      setJoiningWaitlistId(null)
     }
   }
 
@@ -157,7 +184,6 @@ export default function PublicEventsPage() {
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
         <div className="space-y-6">
-          {/* Header */}
           <div className="text-center space-y-2">
             <h1 className="text-4xl font-bold">Upcoming Events</h1>
             <p className="text-xl text-muted-foreground">
@@ -165,7 +191,6 @@ export default function PublicEventsPage() {
             </p>
           </div>
 
-          {/* Event Registration Modal */}
           <EventRegistrationModal
             isOpen={registrationModalOpen}
             onClose={() => {
@@ -178,7 +203,6 @@ export default function PublicEventsPage() {
             registrationStatus={selectedEvent ? getRegistrationStatus(selectedEvent._id) : undefined}
           />
 
-          {/* Filters and Search */}
           <Card>
             <CardHeader>
               <CardTitle>Find Events</CardTitle>
@@ -221,7 +245,6 @@ export default function PublicEventsPage() {
                 </Select>
               </div>
 
-              {/* Events Grid */}
               {loading ? (
                 <div className="text-center py-12">
                   <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
@@ -340,6 +363,21 @@ export default function PublicEventsPage() {
                               >
                                 Register for Event
                               </Button>
+                            ) : isEventFull && (event as any).waitlist?.enabled ? (
+                              waitlistStatus.has(event._id) ? (
+                                <Button variant="outline" className="w-full" disabled>
+                                  On Waitlist (Position: {waitlistStatus.get(event._id)?.position ?? 1})
+                                </Button>
+                              ) : (
+                                <Button 
+                                  variant="outline" 
+                                  className="w-full"
+                                  onClick={() => handleJoinWaitlist(event._id)}
+                                  disabled={joiningWaitlistId === event._id}
+                                >
+                                  {joiningWaitlistId === event._id ? "Joining..." : "Join Waitlist"}
+                                </Button>
+                              )
                             ) : (
                               <Button 
                                 variant="outline" 

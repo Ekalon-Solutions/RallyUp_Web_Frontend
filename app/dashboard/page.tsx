@@ -100,14 +100,15 @@ export default function DashboardPage() {
 
         const eventsResponse = await axios.get(
           getApiUrl(`/events/public`),
-          { 
+          {
             headers: { Authorization: `Bearer ${token}` },
-            params: { limit: 100 }
+            params: { clubId, limit: 100 }
           }
         )
-        const upcomingEvents = eventsResponse.data.events?.filter((event: any) => 
-          new Date(event.date) >= new Date()
-        ).length || 0
+        const eventsList = Array.isArray(eventsResponse.data) ? eventsResponse.data : (eventsResponse.data?.events || [])
+        const upcomingEvents = eventsList.filter((event: any) =>
+          new Date(event.startTime || event.date) >= new Date()
+        ).length
 
         const orderStatsResponse = await axios.get(
           getApiUrl(`/orders/admin/stats`),

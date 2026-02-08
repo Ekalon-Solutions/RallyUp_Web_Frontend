@@ -32,8 +32,63 @@ export default function SplashPage() {
       try {
         setIsLoading(true)
         const userAny = user as any
-        const memberships = userAny.memberships || []
+        let memberships = userAny.memberships || []
         const isAdmin = userAny.role === 'admin' || userAny.role === 'super_admin'
+
+        if (isAdmin) {
+          const profileRes = await apiClient.adminProfile()
+          if (profileRes?.success && profileRes?.data) {
+            const profile = profileRes.data as any
+            const profileClubs = Array.isArray(profile.clubs) ? profile.clubs : []
+            const uniqueClubIds = new Set<string>()
+            const clubsList: Club[] = []
+
+            profileClubs.forEach((clubRef: any) => {
+              const club = typeof clubRef === 'object' ? clubRef : { _id: clubRef }
+              const clubId = (club._id || club)?.toString?.() || (club._id || club)
+              if (clubId && !uniqueClubIds.has(clubId)) {
+                uniqueClubIds.add(clubId)
+                clubsList.push({
+                  _id: clubId,
+                  name: typeof club === 'object' && club.name ? club.name : 'Unknown Club',
+                  logo: typeof club === 'object' ? club.logo : undefined,
+                  description: typeof club === 'object' ? club.description : undefined,
+                  settingsLogo: undefined
+                })
+              }
+            })
+
+            if (clubsList.length > 0) {
+              const clubsWithSettings = await Promise.all(
+                clubsList.map(async (club) => {
+                  try {
+                    const settingsResponse = await apiClient.getClubSettings(club._id)
+                    if (settingsResponse.success && settingsResponse.data) {
+                      const actualData = settingsResponse.data.data || settingsResponse.data
+                      const designSettings = actualData.designSettings
+                      if (designSettings?.logo) {
+                        return { ...club, settingsLogo: designSettings.logo }
+                      }
+                    }
+                  } catch (error) {
+                  }
+                  return club
+                })
+              )
+              setClubs(clubsWithSettings)
+              if (clubsList.length === 1) {
+                if (!activeClubId) setActiveClubId(clubsList[0]._id)
+                return
+              }
+              if (clubsList.length > 1) return
+              if (activeClubId && clubsList.some((c) => c._id === activeClubId)) {
+                router.push('/dashboard')
+                return
+              }
+              return
+            }
+          }
+        }
 
         const activeMemberships = memberships.filter((m: any) => m.status === 'active')
         const uniqueClubIds = new Set<string>()
@@ -53,20 +108,22 @@ export default function SplashPage() {
           }
         })
 
-        const adminPrimaryClub = userAny.club || (userAny.clubs?.[0]);
-        if (clubsList.length === 0 && isAdmin && (adminPrimaryClub?._id || adminPrimaryClub)) {
-          const club = typeof adminPrimaryClub === 'object' ? adminPrimaryClub : { _id: adminPrimaryClub };
-          const clubId = (club._id || club)?.toString?.() || (club._id || club);
-          if (clubId && !uniqueClubIds.has(clubId)) {
-            uniqueClubIds.add(clubId);
-            clubsList.push({
-              _id: clubId,
-              name: typeof club === 'object' ? (club.name || 'Unknown Club') : 'Unknown Club',
-              logo: typeof club === 'object' ? club.logo : undefined,
-              description: typeof club === 'object' ? club.description : undefined,
-              settingsLogo: undefined
-            })
-          }
+        if (isAdmin) {
+          const adminClubs = Array.isArray(userAny.clubs) ? userAny.clubs : (userAny.club ? [userAny.club] : [])
+          adminClubs.forEach((clubRef: any) => {
+            const club = typeof clubRef === 'object' ? clubRef : { _id: clubRef }
+            const clubId = (club._id || club)?.toString?.() || (club._id || club)
+            if (clubId && !uniqueClubIds.has(clubId)) {
+              uniqueClubIds.add(clubId)
+              clubsList.push({
+                _id: clubId,
+                name: typeof club === 'object' && club.name ? club.name : 'Unknown Club',
+                logo: typeof club === 'object' ? club.logo : undefined,
+                description: typeof club === 'object' ? club.description : undefined,
+                settingsLogo: undefined
+              })
+            }
+          })
         }
 
         const clubsWithSettings = await Promise.all(

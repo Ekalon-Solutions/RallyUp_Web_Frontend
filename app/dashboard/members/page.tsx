@@ -48,7 +48,7 @@ interface Member {
   phoneNumber: string
   countryCode: string
   isPhoneVerified: boolean
-  role: string
+  role?: string
   club?: {
     _id: string
     name: string
@@ -86,6 +86,7 @@ export default function MembersPage() {
   })
   const [metadata, setMetadata] = useState({ total: 0, active: 0, verified: 0, thisMonth: 0 })
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false)
@@ -343,6 +344,11 @@ export default function MembersPage() {
     }
   }
 
+  const openViewDialog = (member: Member) => {
+    setSelectedMember(member)
+    setIsViewDialogOpen(true)
+  }
+
   const openEditDialog = (member: Member) => {
     setSelectedMember(member)
     setEditFormData({
@@ -420,7 +426,7 @@ export default function MembersPage() {
 
   const handleDeleteAllMembers = async () => {
     try {
-      const response = await apiClient.deleteAllClubMembers()
+      const response = await apiClient.deleteAllClubMembers(clubId ?? undefined)
 
       if (response.success) {
         const deletedCount = response.data?.deletedCount ?? 0
@@ -701,7 +707,7 @@ export default function MembersPage() {
                       </div>
                       {(user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'system_owner') && (
                         <div className="flex items-center space-x-2 w-full sm:w-auto justify-end">
-                          <Button variant="ghost" size="sm" className="flex-1 sm:flex-initial">
+                          <Button variant="ghost" size="sm" onClick={() => openViewDialog(member)} className="flex-1 sm:flex-initial" title="View details">
                             <Eye className="w-4 h-4" />
                           </Button>
                           <Button variant="ghost" size="sm" onClick={() => openEditDialog(member)} className="flex-1 sm:flex-initial">
@@ -968,6 +974,104 @@ export default function MembersPage() {
             </DialogContent>
           </Dialog>
 
+          {/* View Member Dialog */}
+          <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+            <DialogContent className="w-[95vw] sm:w-full max-w-lg max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Member Details</DialogTitle>
+                <DialogDescription>
+                  View member information and membership plan.
+                </DialogDescription>
+              </DialogHeader>
+              {selectedMember && (
+                <div className="space-y-4 py-4">
+                  <div className="flex items-center space-x-4 p-4 bg-muted/50 rounded-lg">
+                    <Avatar className="h-14 w-14 flex-shrink-0">
+                      <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-600 text-white text-lg font-bold">
+                        {selectedMember.name.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-lg break-words">{selectedMember.name}</h3>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        <Badge className={getStatusColor(selectedMember.isActive)}>
+                          {selectedMember.isActive ? 'Active' : 'Inactive'}
+                        </Badge>
+                        <Badge className={getVerificationColor(selectedMember.isPhoneVerified)}>
+                          {selectedMember.isPhoneVerified ? 'Verified' : 'Unverified'}
+                        </Badge>
+                        {selectedMember.role && (
+                          <Badge variant="outline">{selectedMember.role}</Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="grid gap-3 text-sm">
+                    <div className="flex items-center gap-2">
+                      <Mail className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                      <span className="break-all">{selectedMember.email}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Phone className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                      <span>{formatPhoneNumber(selectedMember.phoneNumber, selectedMember.countryCode)}</span>
+                    </div>
+                    {selectedMember.club && (
+                      <div className="flex items-center gap-2">
+                        <Building2 className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                        <span>{selectedMember.club.name}</span>
+                      </div>
+                    )}
+                    {selectedMember.createdAt && (
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                        <span>Joined {formatDisplayDate(selectedMember.createdAt)}</span>
+                      </div>
+                    )}
+                  </div>
+                  {selectedMember.membershipPlan && (
+                    <div className="rounded-lg border p-4 space-y-2">
+                      <h4 className="font-semibold flex items-center gap-2">
+                        <Shield className="w-4 h-4" />
+                        Membership Plan
+                      </h4>
+                      <div className="text-sm space-y-1">
+                        <p className="font-medium">{selectedMember.membershipPlan.name}</p>
+                        {selectedMember.membershipPlan.description && (
+                          <p className="text-muted-foreground">{selectedMember.membershipPlan.description}</p>
+                        )}
+                        <p className="text-muted-foreground">
+                          {selectedMember.membershipPlan.price} {selectedMember.membershipPlan.currency}
+                          {selectedMember.membershipPlan.duration
+                            ? ` / ${selectedMember.membershipPlan.duration} day${selectedMember.membershipPlan.duration !== 1 ? 's' : ''}`
+                            : ''}
+                        </p>
+                        {selectedMember.membershipExpiry && (
+                          <p className="text-muted-foreground pt-1">
+                            Expires: {formatDisplayDate(selectedMember.membershipExpiry)}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  {!selectedMember.membershipPlan && (
+                    <div className="rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground">
+                      No membership plan assigned
+                    </div>
+                  )}
+                  <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => setIsViewDialogOpen(false)}>
+                      Close
+                    </Button>
+                    <Button type="button" onClick={() => { setIsViewDialogOpen(false); openEditDialog(selectedMember); }}>
+                      <Edit className="w-4 h-4 mr-2" />
+                      Edit Member
+                    </Button>
+                  </DialogFooter>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
+
           <AdjustPointsModal
             isOpen={isAdjustPointsOpen}
             onClose={() => {
@@ -994,6 +1098,45 @@ export default function MembersPage() {
                 handleEditMember()
               }}>
                 <div className="space-y-4 py-4">
+                  {selectedMember && (
+                    <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
+                      <h4 className="text-sm font-semibold text-muted-foreground">Member details</h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                        <div className="flex items-center gap-2">
+                          <span className="text-muted-foreground">Status:</span>
+                          <Badge className={getStatusColor(selectedMember.isActive)}>
+                            {selectedMember.isActive ? 'Active' : 'Inactive'}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-muted-foreground">Verification:</span>
+                          <Badge className={getVerificationColor(selectedMember.isPhoneVerified)}>
+                            {selectedMember.isPhoneVerified ? 'Verified' : 'Unverified'}
+                          </Badge>
+                        </div>
+                        {selectedMember.membershipPlan && (
+                          <div className="sm:col-span-2 flex flex-wrap items-center gap-2">
+                            <span className="text-muted-foreground">Plan:</span>
+                            <span className="font-medium">{selectedMember.membershipPlan.name}</span>
+                            <span className="text-muted-foreground">
+                              ({selectedMember.membershipPlan.price} {selectedMember.membershipPlan.currency})
+                            </span>
+                            {selectedMember.membershipExpiry && (
+                              <span className="text-muted-foreground">
+                                · Expires {formatDisplayDate(selectedMember.membershipExpiry)}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        {selectedMember.createdAt && (
+                          <div className="sm:col-span-2 flex items-center gap-2 text-muted-foreground">
+                            <Calendar className="w-3 h-3" />
+                            Joined {formatDisplayDate(selectedMember.createdAt)}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                   <div className="space-y-2">
                     <Label htmlFor="edit-name">Full Name</Label>
                     <Input 

@@ -57,13 +57,16 @@ interface CreateMerchandiseModalProps {
   onClose: () => void
   onSuccess: () => void
   editMerchandise?: Merchandise | null
+  /** Selected club ID for new merchandise (so it appears in the current list) */
+  clubId?: string | null
 }
 
 export function CreateMerchandiseModal({ 
   isOpen, 
   onClose, 
   onSuccess, 
-  editMerchandise 
+  editMerchandise,
+  clubId 
 }: CreateMerchandiseModalProps) {
   const { user, isAdmin } = useAuth()
   const [loading, setLoading] = useState(false)
@@ -168,6 +171,11 @@ export function CreateMerchandiseModal({
       return
     }
     
+    if (!editMerchandise && !clubId) {
+      toast.error('No club selected. Please select a club from the sidebar first, then add a product.')
+      return
+    }
+
     if (!name.trim() || !description.trim() || !price.trim() || !stockQuantity.trim()) {
       toast.error('Please fill in all required fields')
       return
@@ -196,6 +204,9 @@ export function CreateMerchandiseModal({
       formData.append('isAvailable', isAvailable.toString())
       formData.append('isFeatured', isFeatured.toString())
       formData.append('tags', JSON.stringify(tags))
+      if (!editMerchandise && clubId) {
+        formData.append('clubId', clubId)
+      }
 
       const existingImagesToKeep = imageItems
         .filter(item => !item.file)
@@ -208,11 +219,20 @@ export function CreateMerchandiseModal({
         }
       })
 
+      let response
       if (editMerchandise) {
-        await apiClient.put(`/merchandise/admin/${editMerchandise._id}`, formData)
+        response = await apiClient.put(`/merchandise/admin/${editMerchandise._id}`, formData)
+        if (!response.success) {
+          toast.error(response.message || response.error || 'Failed to update merchandise')
+          return
+        }
         toast.success('Merchandise updated successfully')
       } else {
-        await apiClient.post('/merchandise/admin', formData)
+        response = await apiClient.post('/merchandise/admin', formData)
+        if (!response.success) {
+          toast.error(response.message || response.error || 'Failed to create merchandise')
+          return
+        }
         toast.success('Merchandise created successfully')
       }
 
@@ -223,7 +243,8 @@ export function CreateMerchandiseModal({
         onClose()
         window.location.href = '/dashboard'
       } else {
-        toast.error(error.response?.data?.message || 'Failed to save merchandise')
+        const msg = error?.data?.message || error?.message || error?.error || 'Failed to save merchandise'
+        toast.error(msg)
       }
     } finally {
       setLoading(false)
@@ -255,6 +276,13 @@ export function CreateMerchandiseModal({
             }
           </DialogDescription>
         </DialogHeader>
+
+        {!editMerchandise && !clubId && (
+          <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
+            <AlertCircle className="h-5 w-5 flex-shrink-0" />
+            <span>Select a club from the sidebar first so the new product is linked to the correct club and appears in the list.</span>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <Card>

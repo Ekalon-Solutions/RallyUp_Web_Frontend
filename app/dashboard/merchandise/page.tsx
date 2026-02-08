@@ -172,24 +172,19 @@ export default function MerchandiseManagementPage() {
     )
   }
 
-  const fetchMerchandise = async () => {
+  const fetchMerchandise = async (pageOverride?: number) => {
     try {
       setLoading(true)
-      if (!clubId) {
-        setMerchandise([])
-        setTotalPages(1)
-        setLoading(false)
-        return
-      }
+      const pageToUse = pageOverride ?? page
       const params = new URLSearchParams({
-        page: page.toString(),
+        page: pageToUse.toString(),
         limit: '10'
       })
 
-             if (searchTerm) params.append('search', searchTerm)
-       if (categoryFilter && categoryFilter !== 'all') params.append('category', categoryFilter)
-       if (availabilityFilter && availabilityFilter !== 'all') params.append('isAvailable', availabilityFilter)
-      params.append('clubId', clubId)
+      if (searchTerm) params.append('search', searchTerm)
+      if (categoryFilter && categoryFilter !== 'all') params.append('category', categoryFilter)
+      if (availabilityFilter && availabilityFilter !== 'all') params.append('isAvailable', availabilityFilter)
+      if (clubId) params.append('clubId', clubId)
 
       const response = await apiClient.get(`/merchandise/admin?${params}`)
       
@@ -213,13 +208,12 @@ export default function MerchandiseManagementPage() {
 
   const fetchStats = async () => {
     try {
-      if (!clubId) {
-        setStats(null)
-        return
-      }
-      const response = await apiClient.getMerchandiseStats({ clubId })
+      const params = clubId ? { clubId } : undefined
+      const response = await apiClient.getMerchandiseStats(params)
       if (response.success && response.data) {
         setStats(response.data as any)
+      } else {
+        setStats(null)
       }
     } catch (error: any) {
       // console.error('Error fetching stats:', error)
@@ -450,12 +444,14 @@ export default function MerchandiseManagementPage() {
               setEditingMerchandise(null)
             }}
             onSuccess={() => {
-              fetchMerchandise()
+              setPage(1)
+              fetchMerchandise(1)
               fetchStats()
               setIsAddDialogOpen(false)
               setEditingMerchandise(null)
             }}
             editMerchandise={editingMerchandise}
+            clubId={clubId}
           />
 
           {/* Stats Cards */}
@@ -542,7 +538,7 @@ export default function MerchandiseManagementPage() {
                    <SelectItem value="false">Unavailable</SelectItem>
                  </SelectContent>
                 </Select>
-                <Button variant="outline" onClick={fetchMerchandise}>
+                <Button variant="outline" onClick={() => fetchMerchandise()}>
                   <RefreshCw className="w-4 h-4 mr-2" />
                   Refresh
                 </Button>

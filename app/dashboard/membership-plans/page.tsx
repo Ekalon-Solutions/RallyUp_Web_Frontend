@@ -449,23 +449,6 @@ export default function MembershipPlansPage() {
               <p className="text-muted-foreground text-sm sm:text-base">Create and manage membership plans for your club</p>
             </div>
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
-                <Label className="text-sm">Club</Label>
-                <select
-                  value={selectedClubId}
-                  onChange={(e) => {
-                    const id = e.target.value || undefined
-                    setSelectedClubId(id)
-                    loadPlansForClub(id)
-                  }}
-                  className="px-3 py-2 border border-input rounded-md bg-background text-foreground w-full sm:w-auto text-sm"
-                >
-                  <option value={""}>Select Club</option>
-                  {clubs.map((c) => (
-                    <option key={c._id} value={c._id}>{c.name}</option>
-                  ))}
-                </select>
-              </div>
               <Button variant="outline" onClick={loadPlans} className="w-full sm:w-auto">
                 Refresh
               </Button>

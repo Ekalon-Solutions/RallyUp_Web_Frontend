@@ -25,7 +25,7 @@ import { toast } from "sonner"
 import { apiClient, Poll } from "@/lib/api"
 import { formatLocalDate } from "@/lib/timezone"
 import { useAuth } from "@/contexts/auth-context"
-import { useSelectedClubId } from "@/hooks/useSelectedClubId"
+import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { CreatePollModal } from "@/components/modals/create-poll-modal"
 import { PollResultsModal } from "@/components/modals/poll-results-modal"
 import {
@@ -37,7 +37,7 @@ import {
 
 export default function PollsManagementPage() {
   const { user } = useAuth()
-  const clubId = useSelectedClubId()
+  const clubId = useRequiredClubId()
   const [polls, setPolls] = useState<Poll[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -48,12 +48,14 @@ export default function PollsManagementPage() {
   const [selectedPollForResults, setSelectedPollForResults] = useState<string | null>(null)
 
   useEffect(() => {
-    fetchPolls()
-  }, [clubId])
+    if (user?.role === "admin" || user?.role === "super_admin") {
+      fetchPolls()
+    }
+  }, [user?.role, clubId])
 
   const fetchPolls = async () => {
-    setLoading(true)
     try {
+      setLoading(true)
       if (!clubId) {
         setPolls([])
         setLoading(false)
@@ -68,11 +70,14 @@ export default function PollsManagementPage() {
         page: 1,
         limit: 200
       })
-      
+
       if (response.success && response.data) {
-        setPolls(response.data.polls)
+        const data: any = response.data
+        const list = Array.isArray(data?.polls) ? data.polls : (Array.isArray(data) ? data : [])
+        setPolls(list)
       } else {
-        throw new Error(response.error || "Failed to load polls")
+        toast.error(response.error || "Failed to load polls")
+        setPolls([])
       }
     } catch (error: any) {
       if (error.message?.includes("Access denied") || error.message?.includes("Unauthorized")) {
@@ -84,18 +89,20 @@ export default function PollsManagementPage() {
       } else {
         toast.error(error.message || "An error occurred while loading polls")
       }
+      setPolls([])
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => {
+    if (user?.role !== "admin" && user?.role !== "super_admin") return
+    if (!clubId) return
     const debounceTimer = setTimeout(() => {
       fetchPolls()
     }, 300)
-
     return () => clearTimeout(debounceTimer)
-  }, [searchTerm, statusFilter, categoryFilter])
+  }, [searchTerm, statusFilter, categoryFilter, clubId])
 
   const handleDeletePoll = async (pollId: string) => {
     if (!confirm("Are you sure you want to delete this poll? This action cannot be undone.")) {
@@ -171,11 +178,26 @@ export default function PollsManagementPage() {
                          poll.description?.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = statusFilter === "all" || poll.status === statusFilter
     const matchesCategory = categoryFilter === "all" || poll.category === categoryFilter
-    
+
     return matchesSearch && matchesStatus && matchesCategory
   })
 
-  if (loading) {
+  if (user?.role !== "admin" && user?.role !== "super_admin") {
+    return (
+      <ProtectedRoute>
+        <DashboardLayout>
+          <div className="container mx-auto p-6 flex items-center justify-center min-h-[50vh]">
+            <div className="text-center">
+              <h3 className="text-lg font-semibold">Access Denied</h3>
+              <p className="text-muted-foreground">You don&apos;t have permission to access this page.</p>
+            </div>
+          </div>
+        </DashboardLayout>
+      </ProtectedRoute>
+    )
+  }
+
+  if (loading && polls.length === 0) {
     return (
       <ProtectedRoute>
         <DashboardLayout>
@@ -223,6 +245,7 @@ export default function PollsManagementPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="draft">Draft</SelectItem>
             <SelectItem value="active">Active</SelectItem>
             <SelectItem value="closed">Closed</SelectItem>
             <SelectItem value="archived">Archived</SelectItem>
@@ -299,10 +322,16 @@ export default function PollsManagementPage() {
                         </DropdownMenuItem>
                       )}
                       {poll.status === 'closed' && (
-                        <DropdownMenuItem onClick={() => handleUpdatePollStatus(poll._id, 'archived')}>
-                          <Archive className="w-4 h-4 mr-2" />
-                          Archive
-                        </DropdownMenuItem>
+                        <>
+                          <DropdownMenuItem onClick={() => handleUpdatePollStatus(poll._id, 'active')}>
+                            <Play className="w-4 h-4 mr-2" />
+                            Activate
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleUpdatePollStatus(poll._id, 'archived')}>
+                            <Archive className="w-4 h-4 mr-2" />
+                            Archive
+                          </DropdownMenuItem>
+                        </>
                       )}
                       <DropdownMenuItem 
                         onClick={() => handleDeletePoll(poll._id)}

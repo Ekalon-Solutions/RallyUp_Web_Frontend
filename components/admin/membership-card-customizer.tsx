@@ -66,17 +66,13 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
       try {
         setLoading(true);
         
-        // If clubId is provided (admin mode), fetch club cards
-        // Otherwise try to fetch user's cards (member mode)
         const response = clubId 
-          ? await apiClient.getClubMembershipCards(clubId)
+          ? await apiClient.getClubMembershipCards(clubId, { isTemplate: true, limit: 100 })
           : await apiClient.getMyMembershipCards();
         
         if (response.success && response.data) {
-          // Handle club cards response structure
           let cards: any[] = [];
           if (clubId) {
-            // Club cards API returns { data: [...], pagination: {...} }
             if (Array.isArray(response.data)) {
               cards = response.data;
             } else if ((response.data as any).data) {
@@ -329,14 +325,12 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
         showLogo,
         customLogo: customLogo || undefined
       };
-
-      // Get membership plan ID from card data
       const membershipPlanId = cardData.membershipPlan._id;
 
-      // Use the template card update endpoint
       const response = await apiClient.updateTemplateCardCustomization(
         membershipPlanId,
-        customization
+        customization,
+        clubId || undefined
       );
 
       if (response.success) {
@@ -349,7 +343,6 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
         throw new Error(response.error || 'Failed to save');
       }
     } catch (error) {
-      // // console.error('Error saving customization:', error);
       toast({
         title: "Error",
         description: "Failed to save customization",

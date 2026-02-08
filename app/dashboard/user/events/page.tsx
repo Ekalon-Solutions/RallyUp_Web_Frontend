@@ -156,24 +156,63 @@ function UserEventsPageInner() {
   const [attendeesForPayment, setAttendeesForPayment] = useState<any[]>([]);
   const [couponForPayment, setCouponForPayment] = useState<{code: string; discount: number} | null>(null);
   const [handledDeepLinkEventId, setHandledDeepLinkEventId] = useState<string | null>(null);
+  const [waitlistStatus, setWaitlistStatus] = useState<Array<{
+    eventId: string;
+    eventTitle: string;
+    eventStartTime: string;
+    eventVenue: string;
+    position: number;
+    status: 'pending' | 'notified';
+    purchaseLinkExpiresAt?: string;
+    purchaseToken?: string;
+  }>>([]);
+  const [joiningWaitlistId, setJoiningWaitlistId] = useState<string | null>(null);
+  const [decliningWaitlistId, setDecliningWaitlistId] = useState<string | null>(null);
+  const [waitlistTokenForCheckout, setWaitlistTokenForCheckout] = useState<string | null>(null);
 
   useEffect(() => {
     fetchEvents();
   }, [clubId]);
 
   useEffect(() => {
+    if (!user) return;
+    apiClient.getMyWaitlistStatus().then((res) => {
+      if (res.success && res.data) setWaitlistStatus(res.data);
+    });
+  }, [user]);
+
+  useEffect(() => {
     const eventId = searchParams.get("eventId");
+    const token = searchParams.get("waitlistToken");
     if (!eventId) return;
-    if (handledDeepLinkEventId === eventId) return;
+    if (handledDeepLinkEventId === eventId && !token) return;
     if (loading) return;
 
-    const found = events.find((e) => String(e._id) === String(eventId));
-    const openFound = (ev: Event) => {
+    const openFound = (ev: Event, openCheckout = false, t?: string) => {
       setSelectedEventForDetails(ev);
       setShowEventDetailsModal(true);
       setHandledDeepLinkEventId(eventId);
+      if (openCheckout && t && ev) {
+        setEventForPayment({ ...ev, price: ev.ticketPrice ?? 0 } as Event & { price: number });
+        setAttendeesForPayment([{ name: (user as any)?.name || `${(user as any)?.first_name || ''} ${(user as any)?.last_name || ''}`.trim() || 'Attendee', phone: (user as any)?.phoneNumber || (user as any)?.phone || '' }]);
+        setCouponForPayment(null);
+        setWaitlistTokenForCheckout(t);
+        setShowEventCheckoutModal(true);
+      }
     };
 
+    if (token) {
+      apiClient.validateWaitlistToken(eventId, token).then((res) => {
+        if (res.success && (res.data as any)?.valid && (res.data as any)?.event) {
+          const ev = (res.data as any).event as Event;
+          openFound(ev, true, token);
+        }
+        setHandledDeepLinkEventId(eventId);
+      });
+      return;
+    }
+
+    const found = events.find((e) => String(e._id) === String(eventId));
     if (found) {
       openFound(found);
       return;
@@ -187,7 +226,7 @@ function UserEventsPageInner() {
         setHandledDeepLinkEventId(eventId);
       }
     })();
-  }, [events, handledDeepLinkEventId, loading, searchParams]);
+  }, [events, handledDeepLinkEventId, loading, searchParams, user]);
 
   const fetchEvents = async () => {
     try {
@@ -223,6 +262,51 @@ function UserEventsPageInner() {
     setRegistrationEventId(eventId);
     setRegistrationEvent(event || null);
     setShowRegistrationModal(true);
+  };
+
+  const handleJoinWaitlist = async (eventId: string) => {
+    try {
+      setJoiningWaitlistId(eventId);
+      const res = await apiClient.joinWaitlist(eventId);
+      if (res.success) {
+        toast.success(`Joined waitlist at position ${res.data?.position || 1}`);
+        fetchEvents();
+        apiClient.getMyWaitlistStatus().then((r) => r.success && r.data && setWaitlistStatus(r.data));
+      } else {
+        toast.error(res.error || res.message || "Failed to join waitlist");
+      }
+    } catch {
+      toast.error("Failed to join waitlist");
+    } finally {
+      setJoiningWaitlistId(null);
+    }
+  };
+
+  const handleDeclineWaitlistOffer = async (eventId: string) => {
+    if (!confirm("Decline this waitlist offer? The next person in line will be notified.")) return;
+    try {
+      setDecliningWaitlistId(eventId);
+      const res = await apiClient.declineWaitlistOffer(eventId);
+      if (res.success) {
+        toast.success("Offer declined");
+        fetchEvents();
+        apiClient.getMyWaitlistStatus().then((r) => r.success && r.data && setWaitlistStatus(r.data));
+      } else {
+        toast.error(res.error || res.message || "Failed to decline");
+      }
+    } catch {
+      toast.error("Failed to decline");
+    } finally {
+      setDecliningWaitlistId(null);
+    }
+  };
+
+  const isUserOnWaitlist = (eventId: string) => {
+    return waitlistStatus.some((w) => String(w.eventId) === String(eventId));
+  };
+
+  const getWaitlistEntry = (eventId: string) => {
+    return waitlistStatus.find((w) => String(w.eventId) === String(eventId));
   };
 
   const handlePerformRegistration = async (payload: {
@@ -423,6 +507,66 @@ function UserEventsPageInner() {
               </div>
             </CardContent>
           </Card>
+
+          {waitlistStatus.length > 0 && (
+            <div className="space-y-4">
+              <h4 className="text-md font-semibold">My Waitlist Status</h4>
+              <p className="text-sm text-muted-foreground mb-3">
+                Events you are on the waitlist for
+              </p>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {waitlistStatus.map((w) => (
+                  <Card key={w.eventId} className="overflow-hidden">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base">{w.eventTitle}</CardTitle>
+                      <CardDescription>{w.eventVenue}</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <Badge variant="outline">Position: {w.position}</Badge>
+                      <Badge variant={w.status === "notified" ? "default" : "secondary"}>
+                        {w.status === "notified" ? "Purchase available" : "Waiting"}
+                      </Badge>
+                      {w.status === "notified" && (
+                        <div className="flex gap-2 pt-2">
+                          <Button
+                            size="sm"
+                            onClick={async () => {
+                              const ev = events.find((e) => String(e._id) === String(w.eventId));
+                              const eventData = ev || (await apiClient.getPublicEventById(String(w.eventId)).then((r) => r.success ? r.data : null));
+                              if (!eventData) {
+                                toast.error("Event not found");
+                                return;
+                              }
+                              setEventForPayment({
+                                _id: w.eventId,
+                                name: w.eventTitle,
+                                title: w.eventTitle,
+                                ticketPrice: (eventData as any).ticketPrice ?? 0,
+                                price: (eventData as any).ticketPrice ?? 0,
+                                currency: (eventData as any).currency,
+                              } as any);
+                              setAttendeesForPayment([{ name: (user as any)?.name || `${(user as any)?.first_name || ''} ${(user as any)?.last_name || ''}`.trim() || "Attendee", phone: (user as any)?.phoneNumber || (user as any)?.phone || "" }]);
+                              setCouponForPayment(null);
+                              setWaitlistTokenForCheckout(w.purchaseToken || null);
+                              setShowEventCheckoutModal(true);
+                            }}>
+                            Purchase
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDeclineWaitlistOffer(String(w.eventId))}
+                            disabled={decliningWaitlistId === String(w.eventId)}>
+                            Decline
+                          </Button>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="space-y-4">
             <div className="mt-4">
@@ -699,6 +843,51 @@ function UserEventsPageInner() {
                               event.maxAttendees &&
                               isEventFull(event)
                             ) {
+                              const ev = event as any;
+                              const waitlistEnabled = ev.waitlist?.enabled;
+                              const onWaitlist = isUserOnWaitlist(event._id);
+                              const waitlistEntry = getWaitlistEntry(event._id);
+                              if (waitlistEnabled && onWaitlist && waitlistEntry) {
+                                return (
+                                  <div className="space-y-2">
+                                    <Badge variant="outline" className="block w-fit">
+                                      Position: {waitlistEntry.position} ({waitlistEntry.status})
+                                    </Badge>
+                                    {waitlistEntry.status === "notified" && (
+                                      <div className="flex gap-2">
+                                        <Button
+                                          onClick={() => {
+                                            setEventForPayment({ ...event, price: event.ticketPrice ?? 0 } as Event & { price: number });
+                                            setAttendeesForPayment([{ name: (user as any)?.name || `${(user as any)?.first_name || ''} ${(user as any)?.last_name || ''}`.trim() || "Attendee", phone: (user as any)?.phoneNumber || (user as any)?.phone || "" }]);
+                                            setCouponForPayment(null);
+                                            setWaitlistTokenForCheckout(waitlistEntry.purchaseToken || null);
+                                            setShowEventCheckoutModal(true);
+                                          }}
+                                          className="w-full">
+                                          Purchase Ticket
+                                        </Button>
+                                        <Button
+                                          variant="outline"
+                                          onClick={() => handleDeclineWaitlistOffer(event._id)}
+                                          disabled={decliningWaitlistId === event._id}>
+                                          Decline
+                                        </Button>
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              }
+                              if (waitlistEnabled && !onWaitlist) {
+                                return (
+                                  <Button
+                                    onClick={() => handleJoinWaitlist(event._id)}
+                                    disabled={joiningWaitlistId === event._id}
+                                    variant="outline"
+                                    className="w-full">
+                                    {joiningWaitlistId === event._id ? "Joining..." : "Join Waitlist"}
+                                  </Button>
+                                );
+                              }
                               return (
                                 <Button
                                   disabled
@@ -877,7 +1066,7 @@ function UserEventsPageInner() {
       />
         <EventCheckoutModal
           isOpen={showEventCheckoutModal}
-          onClose={() => setShowEventCheckoutModal(false)}
+          onClose={() => { setShowEventCheckoutModal(false); setWaitlistTokenForCheckout(null); }}
           event={
             eventForPayment
               ? {
@@ -892,9 +1081,12 @@ function UserEventsPageInner() {
           }
           attendees={attendeesForPayment}
           couponCode={couponForPayment?.code}
+          waitlistToken={waitlistTokenForCheckout}
           onSuccess={() => {
             setShowEventCheckoutModal(false);
+            setWaitlistTokenForCheckout(null);
             fetchEvents();
+            apiClient.getMyWaitlistStatus().then((r) => r.success && r.data && setWaitlistStatus(r.data));
             toast.success("Payment successful!");
           }}
           onFailure={()=> {

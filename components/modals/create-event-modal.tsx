@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
-import { Calendar, Clock, MapPin, Users, Ticket, UserCheck, Bus, Plus, X, Percent } from "lucide-react"
+import { Calendar, Clock, MapPin, Users, Ticket, UserCheck, Bus, Plus, X, Percent, ListOrdered } from "lucide-react"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
@@ -93,46 +93,14 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
     memberDiscountEnabled: false,
     memberDiscountType: "percentage" as "percentage" | "fixed",
     memberDiscountValue: "",
-    groupDiscountEnabled: false,
-    groupDiscountType: "percentage" as "percentage" | "fixed",
-    groupDiscountValue: "",
-    groupDiscountMinQty: "2",
-  })
-
-  const [clubs, setClubs] = useState<Array<{ _id: string; name: string }>>([])
-
-  useEffect(() => {
-    let mounted = true
-    
-    async function fetchClubs() {
-      try {
-        const userRole = user?.role
-        
-        if (userRole === 'admin' || userRole === 'super_admin') {
-          const adminUser = user as any
-          if (adminUser?.club) {
-            const adminClub = adminUser.club
-            if (mounted) {
-              setClubs([{ _id: adminClub._id, name: adminClub.name }])
-            }
-            return
-          }
-        }
-        
-        if (userRole === 'system_owner') {
-          const res: any = await apiClient.getPublicClubs()
-          if (mounted && res?.data) {
-            const list = res?.data?.clubs || []
-            setClubs(list.map((c: any) => ({ _id: c._id, name: c.name })))
-          }
-        }
-      } catch (err) {
-      }
-    }
-
-    if (isOpen && user) fetchClubs()
-    return () => { mounted = false }
-  }, [isOpen, user])
+  groupDiscountEnabled: false,
+  groupDiscountType: "percentage" as "percentage" | "fixed",
+  groupDiscountValue: "",
+  groupDiscountMinQty: "2",
+  waitlistEnabled: false,
+  waitlistPercentage: "25",
+  waitlistPurchaseWindowHours: "12",
+})
 
   useEffect(() => {
     if (isOpen) {
@@ -159,7 +127,7 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
           earlyBirdStartTime: editEvent.earlyBirdDiscount?.startTime ? utcToDatetimeLocal(editEvent.earlyBirdDiscount.startTime) : "",
           earlyBirdEndTime: editEvent.earlyBirdDiscount?.endTime ? utcToDatetimeLocal(editEvent.earlyBirdDiscount.endTime) : "",
           earlyBirdMembersOnly: editEvent.earlyBirdDiscount?.membersOnly || false,
-          clubId: (editEvent as any).clubId || (editEvent as any).club?._id || "",
+          clubId: (editEvent as any).clubId || (editEvent as any).club?._id || selectedClubId || "",
           memberDiscountEnabled: editEvent.memberDiscount?.enabled || false,
           memberDiscountType: editEvent.memberDiscount?.type || "percentage",
           memberDiscountValue: editEvent.memberDiscount?.value?.toString() || "",
@@ -167,6 +135,9 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
           groupDiscountType: editEvent.groupDiscount?.type || "percentage",
           groupDiscountValue: editEvent.groupDiscount?.value?.toString() || "",
           groupDiscountMinQty: editEvent.groupDiscount?.minQuantity?.toString() || "2",
+          waitlistEnabled: (editEvent as any).waitlist?.enabled || false,
+          waitlistPercentage: (editEvent as any).waitlist?.percentage?.toString() || "25",
+          waitlistPurchaseWindowHours: (editEvent as any).waitlist?.purchaseWindowHours?.toString() || "12",
         })
       } else {
         const now = new Date()
@@ -204,6 +175,9 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
           groupDiscountType: "percentage",
           groupDiscountValue: "",
           groupDiscountMinQty: "2",
+          waitlistEnabled: false,
+          waitlistPercentage: "25",
+          waitlistPurchaseWindowHours: "12",
         })
       }
     }
@@ -258,16 +232,25 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
       newErrors.ticketPrice = "Ticket price cannot be negative"
     }
 
+    const eventStartForBooking = formData.startTime ? new Date(formData.startTime) : null
+    const eventEndForBooking = formData.endTime ? new Date(formData.endTime) : eventStartForBooking
     if (formData.bookingStartTime && formData.bookingEndTime) {
       const bookingStart = new Date(formData.bookingStartTime)
       const bookingEnd = new Date(formData.bookingEndTime)
       if (bookingEnd <= bookingStart) {
         newErrors.bookingEndTime = "Booking end time must be after booking start time"
       }
+      if (eventStartForBooking && bookingStart > eventStartForBooking) {
+        newErrors.bookingStartTime = "Booking start time cannot be after event start time"
+      }
+      if (eventEndForBooking && bookingEnd > eventEndForBooking) {
+        newErrors.bookingEndTime = "Booking end time cannot be after event end time"
+      }
     }
 
-    if (!editEvent && !formData.clubId) {
-      newErrors.clubId = "Please select a club"
+    const effectiveClubId = formData.clubId || selectedClubId
+    if (!editEvent && !effectiveClubId) {
+      newErrors.clubId = "Club context is required"
     }
 
     if (formData.earlyBirdEnabled) {
@@ -277,12 +260,20 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
       if (formData.earlyBirdType === "percentage" && parseFloat(formData.earlyBirdValue) > 100) {
         newErrors.earlyBirdValue = "Percentage discount cannot exceed 100%"
       }
+      if (formData.earlyBirdType === "fixed") {
+        const ticketPriceNum = parseFloat(formData.ticketPrice) || 0
+        const discountVal = parseFloat(formData.earlyBirdValue) || 0
+        if (discountVal > ticketPriceNum) {
+          newErrors.earlyBirdValue = "Fixed discount cannot be greater than ticket price"
+        }
+      }
+      const eventStart = formData.startTime ? new Date(formData.startTime) : null
+      const eventEnd = formData.endTime ? new Date(formData.endTime) : eventStart
       if (!formData.earlyBirdStartTime) {
         newErrors.earlyBirdStartTime = "Early bird start time is required"
       } else {
-        const start = new Date(formData.startTime)
         const earlyBirdStart = new Date(formData.earlyBirdStartTime)
-        if (earlyBirdStart >= start) {
+        if (eventStart && earlyBirdStart >= eventStart) {
           newErrors.earlyBirdStartTime = "Early bird start time must be before event start time"
         }
       }
@@ -293,6 +284,9 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
         const earlyBirdStart = new Date(formData.earlyBirdStartTime)
         if (earlyBirdEnd <= earlyBirdStart) {
           newErrors.earlyBirdEndTime = "Early bird end time must be after early bird start time"
+        }
+        if (eventEnd && earlyBirdEnd > eventEnd) {
+          newErrors.earlyBirdEndTime = "Early bird end time must not be after event end time"
         }
       }
     }
@@ -346,7 +340,7 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
         ticketPrice: parseFloat(formData.ticketPrice) || 0,
         requiresTicket: formData.requiresTicket,
         memberOnly: formData.memberOnly,
-        clubId: formData.clubId || undefined,
+        clubId: formData.clubId || selectedClubId || undefined,
         awayDayEvent: formData.awayDayEvent,
         bookingStartTime: formData.bookingStartTime ? new Date(formData.bookingStartTime).toISOString() : undefined,
         bookingEndTime: formData.bookingEndTime ? new Date(formData.bookingEndTime).toISOString() : undefined,
@@ -355,8 +349,8 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
           enabled: true,
           type: formData.earlyBirdType,
           value: parseFloat(formData.earlyBirdValue),
-          startTime: new Date(formData.earlyBirdStartTime).toDateString(),
-          endTime: new Date(formData.earlyBirdEndTime).toDateString(),
+          startTime: new Date(formData.earlyBirdStartTime).toISOString(),
+          endTime: new Date(formData.earlyBirdEndTime).toISOString(),
           membersOnly: formData.earlyBirdMembersOnly
         } : { enabled: false, type: 'percentage', value: 0 },
         memberDiscount: formData.memberDiscountEnabled ? {
@@ -369,7 +363,12 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
           type: formData.groupDiscountType,
           value: parseFloat(formData.groupDiscountValue),
           minQuantity: parseInt(formData.groupDiscountMinQty)
-        } : { enabled: false, type: 'percentage', value: 0, minQuantity: 2 }
+        } : { enabled: false, type: 'percentage', value: 0, minQuantity: 2 },
+        waitlist: formData.waitlistEnabled ? {
+          enabled: true,
+          percentage: Math.min(100, Math.max(0, parseInt(formData.waitlistPercentage) || 25)),
+          purchaseWindowHours: Math.min(168, Math.max(1, parseInt(formData.waitlistPurchaseWindowHours) || 12)),
+        } : { enabled: false, percentage: 25, purchaseWindowHours: 12 }
       }
       let response
       if (editEvent) {
@@ -390,7 +389,6 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
         }
       }
     } catch (error) {
-      // console.error("Error saving event:", error)
       let errorMessage = "An error occurred while saving the event"
 
       if (error instanceof Error) {
@@ -449,6 +447,9 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
       groupDiscountType: "percentage",
       groupDiscountValue: "",
       groupDiscountMinQty: "2",
+      waitlistEnabled: false,
+      waitlistPercentage: "25",
+      waitlistPurchaseWindowHours: "12",
       clubId: "",
     })
   }
@@ -506,9 +507,8 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
           </DialogDescription>
         </DialogHeader>
 
-        {/* Error Summary */}
         {hasErrors && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-lg p-4">
             <div className="flex items-start gap-3">
               <div className="bg-red-100 p-2 rounded-full">
                 <svg className="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -516,11 +516,11 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
                 </svg>
               </div>
               <div className="flex-1">
-                <h4 className="text-red-800 font-semibold mb-2">Please fix the following errors:</h4>
-                <ul className="text-red-700 text-sm space-y-1">
+                <h4 className="text-red-800 dark:text-red-200 font-semibold mb-2">Please fix the following errors:</h4>
+                <ul className="text-red-700 dark:text-red-300 text-sm space-y-1">
                   {Object.entries(errors).map(([field, error]) => (
                     <li key={field} className="flex items-start gap-2">
-                      <span className="text-red-500 font-bold">•</span>
+                      <span className="text-red-500 dark:text-red-400 font-bold">•</span>
                       <span>{error}</span>
                     </li>
                   ))}
@@ -531,7 +531,6 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6 pt-4">
-          {/* Basic Information Section */}
           <div className="border rounded-xl p-6">
             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -722,7 +721,6 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
             </div>
           </div>
 
-          {/* Event Settings Section */}
           <div className="border rounded-xl p-6">
             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
               <Users className="w-5 h-5" />
@@ -810,7 +808,7 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
                     }}
                     className={`${errors.ticketPrice ? "border-red-500" : "border-gray-300"} transition-all`}
                     min="0"
-                    step="10"
+                    step="1"
                   />
                   {errors.ticketPrice && (
                     <p className="text-red-500 text-sm flex items-center gap-1">
@@ -849,7 +847,7 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
                     </div>
                     <div>
                       <Label htmlFor="memberOnly" className="text-sm font-medium cursor-pointer">Members Only</Label>
-                      <p className="text-xs">Only club members can attend</p>
+                      <p className="text-xs text-muted-foreground">Only club members can attend</p>
                     </div>
                   </div>
                   <Switch
@@ -858,35 +856,61 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
                     onCheckedChange={(checked) => setFormData({ ...formData, memberOnly: checked })}
                   />
                 </div>
-                <div className="space-y-2 px-4">
-                  <Label htmlFor="clubId" className="text-sm font-medium">Club</Label>
-                  <Select
-                    value={formData.clubId}
-                    onValueChange={(value) => setFormData({ ...formData, clubId: value })}
-                    disabled={Boolean(selectedClubId)}
-                  >
-                    <SelectTrigger className="border-gray-300">
-                      <SelectValue placeholder="Choose a club" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {clubs.length === 0 ? (
-                        <SelectItem disabled value="No clubs available">No clubs available</SelectItem>
-                      ) : (
-                        clubs.map((club) => (
-                          <SelectItem key={club._id} value={club._id}>{club.name}</SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
-                  {!formData.clubId && (
-                    <p className="text-red-500 text-sm">Please select a club</p>
-                  )}
-                </div>
+
+                {formData.maxAttendees && parseInt(formData.maxAttendees) > 0 && (
+                  <div className="border-t pt-4 mt-4 space-y-4">
+                    <div className="flex items-center justify-between p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg">
+                          <ListOrdered className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <Label htmlFor="waitlistEnabled" className="text-sm font-medium cursor-pointer">Waitlist</Label>
+                          <p className="text-xs text-muted-foreground">Allow members to join a queue when event is full</p>
+                        </div>
+                      </div>
+                      <Switch
+                        id="waitlistEnabled"
+                        checked={formData.waitlistEnabled}
+                        onCheckedChange={(checked) => setFormData({ ...formData, waitlistEnabled: checked })}
+                      />
+                    </div>
+                    {formData.waitlistEnabled && (
+                      <div className="grid gap-4 md:grid-cols-2 pl-4 border-l-2 border-amber-300">
+                        <div className="space-y-2">
+                          <Label htmlFor="waitlistPercentage">Waitlist % of capacity</Label>
+                          <Input
+                            id="waitlistPercentage"
+                            type="number"
+                            min={1}
+                            max={100}
+                            value={formData.waitlistPercentage}
+                            onChange={(e) => setFormData({ ...formData, waitlistPercentage: e.target.value })}
+                            className="border-gray-300"
+                          />
+                          <p className="text-xs text-muted-foreground">Max % of tickets for waitlist (default 25%)</p>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="waitlistPurchaseWindowHours">Purchase window (hours)</Label>
+                          <Input
+                            id="waitlistPurchaseWindowHours"
+                            type="number"
+                            min={1}
+                            max={168}
+                            value={formData.waitlistPurchaseWindowHours}
+                            onChange={(e) => setFormData({ ...formData, waitlistPurchaseWindowHours: e.target.value })}
+                            className="border-gray-300"
+                          />
+                          <p className="text-xs text-muted-foreground">Time to complete purchase when offered (default 12h)</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
              </div>
             </div>
           </div>
 
-          {/* Booking Time Settings */}
           <div className="border rounded-lg p-4 ">
             <h4 className="font-semibold mb-4 flex items-center gap-2">
               <Clock className="w-4 h-4" />
@@ -899,8 +923,20 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
                   id="bookingStartTime"
                   type="datetime-local"
                   value={formData.bookingStartTime}
-                  onChange={(e) => setFormData({ ...formData, bookingStartTime: e.target.value })}
+                  onChange={(e) => {
+                    setFormData({ ...formData, bookingStartTime: e.target.value });
+                    if (errors.bookingStartTime) {
+                      setErrors((prev) => {
+                        const { bookingStartTime, ...rest } = prev;
+                        return rest;
+                      });
+                    }
+                  }}
+                  className={errors.bookingStartTime ? "border-red-500" : ""}
                 />
+                {errors.bookingStartTime && (
+                  <p className="text-red-500 text-sm">{errors.bookingStartTime}</p>
+                )}
                 <p className="text-xs text-muted-foreground">When bookings open</p>
               </div>
               <div className="space-y-2">
@@ -928,15 +964,12 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
             </div>
           </div>
 
-          {/* Discount Settings */}
           <div className="border rounded-lg p-4 ">
             <h4 className="font-semibold mb-4 flex items-center gap-2">
               <Ticket className="w-4 h-4" />
               Discount Options
             </h4>
-            
-            {/* Early Bird Discount */}
-           <div className="space-y-4 mb-6">
+            <div className="space-y-4 mb-6">
               <div className="flex items-center justify-between">
                 <div>
                   <Label htmlFor="earlyBirdEnabled" className="font-medium">Early Bird Discount</Label>
@@ -1051,92 +1084,8 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
                 </div>
               )}
             </div>
-
-            {/* Group Discount */}
-            {/* <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label htmlFor="groupDiscountEnabled" className="font-medium">Group/Bulk Discount</Label>
-                  <p className="text-sm text-muted-foreground">Discount for group registrations</p>
-                </div>
-                <Switch
-                  id="groupDiscountEnabled"
-                  checked={formData.groupDiscountEnabled}
-                  onCheckedChange={(checked) => setFormData({ ...formData, groupDiscountEnabled: checked })}
-                  />
-            </div>
-              {formData.groupDiscountEnabled && (
-                <div className="grid gap-4 md:grid-cols-3 pl-4 border-l-2 border-green-300">
-                  <div className="space-y-2">
-                    <Label htmlFor="groupDiscountType">Type</Label>
-                    <Select
-                      value={formData.groupDiscountType}
-                      onValueChange={(value: "percentage" | "fixed") => setFormData({ ...formData, groupDiscountType: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="percentage">Percentage (%)</SelectItem>
-                        <SelectItem value="fixed">Fixed Amount (₹)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="groupDiscountValue">
-                      Value {formData.groupDiscountType === "percentage" ? "(%)" : "(₹)"}
-                    </Label>
-                    <Input
-                      id="groupDiscountValue"
-                      type="number"
-                      placeholder={formData.groupDiscountType === "percentage" ? "e.g., 10" : "e.g., 200"}
-                      value={formData.groupDiscountValue}
-                      onChange={(e) => {
-                        setFormData({ ...formData, groupDiscountValue: e.target.value });
-                        if (errors.groupDiscountValue) {
-                          setErrors((errors) => {
-                            const { groupDiscountValue, ...rest } = errors;
-                            return rest;
-                          });
-                        }
-                      }}
-                      className={errors.groupDiscountValue ? "border-red-500" : ""}
-                      min="0"
-                      max={formData.groupDiscountType === "percentage" ? "100" : undefined}
-                    />
-                    {errors.groupDiscountValue && (
-                      <p className="text-red-500 text-sm">{errors.groupDiscountValue}</p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="groupDiscountMinQty">Min. Quantity</Label>
-                    <Input
-                      id="groupDiscountMinQty"
-                      type="number"
-                      placeholder="e.g., 5"
-                      value={formData.groupDiscountMinQty}
-                      onChange={(e) => {
-                        setFormData({ ...formData, groupDiscountMinQty: e.target.value });
-                        if (errors.groupDiscountMinQty) {
-                          setErrors((errors) => {
-                            const { groupDiscountMinQty, ...rest } = errors;
-                            return rest;
-                          });
-                        }
-                      }}
-                      className={errors.groupDiscountMinQty ? "border-red-500" : ""}
-                      min="2"
-                    />
-                    {errors.groupDiscountMinQty && (
-                      <p className="text-red-500 text-sm">{errors.groupDiscountMinQty}</p>
-                    )}
-                  </div>
-                </div>
-              )}
-          </div> */}
           </div>
 
-          {/* Event Preview */}
           <div className="border rounded-lg p-4 bg-muted/50">
             <h4 className="font-semibold mb-3">Event Preview</h4>
             <div className="space-y-2 text-sm">
@@ -1179,23 +1128,23 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
                   <span className="font-medium block mb-2">Active Discounts:</span>
                   <div className="space-y-1 pl-2">
                     {formData.earlyBirdEnabled && formData.earlyBirdValue && (
-                      <div className="flex items-center gap-2 text-green-700">
-                        <Badge variant="outline" className="bg-green-100">
+                      <div className="flex items-center gap-2 text-green-700 dark:text-green-300">
+                        <Badge variant="outline" className="bg-green-100 dark:bg-green-900/50 dark:text-green-300 dark:border-green-700">
                           Early Bird: {formData.earlyBirdType === "percentage" ? `${formData.earlyBirdValue}%` : `₹${formData.earlyBirdValue}`} off
                           {formData.earlyBirdEndTime && ` until ${formatLocalDate(formData.earlyBirdEndTime, 'date-short')}`}
                         </Badge>
                       </div>
                     )}
                     {formData.memberDiscountEnabled && formData.memberDiscountValue && (
-                      <div className="flex items-center gap-2 text-blue-700">
-                        <Badge variant="outline" className="bg-blue-100">
+                      <div className="flex items-center gap-2 text-blue-700 dark:text-blue-300">
+                        <Badge variant="outline" className="bg-blue-100 dark:bg-blue-900/50 dark:text-blue-300 dark:border-blue-700">
                           Member: {formData.memberDiscountType === "percentage" ? `${formData.memberDiscountValue}%` : `₹${formData.memberDiscountValue}`} off
                         </Badge>
                       </div>
                     )}
                     {formData.groupDiscountEnabled && formData.groupDiscountValue && (
-                      <div className="flex items-center gap-2 text-purple-700">
-                        <Badge variant="outline" className="bg-purple-100">
+                      <div className="flex items-center gap-2 text-purple-700 dark:text-purple-300">
+                        <Badge variant="outline" className="bg-purple-100 dark:bg-purple-900/50 dark:text-purple-300 dark:border-purple-700">
                           Group: {formData.groupDiscountType === "percentage" ? `${formData.groupDiscountValue}%` : `₹${formData.groupDiscountValue}`} off
                           {formData.groupDiscountMinQty && ` (min ${formData.groupDiscountMinQty} people)`}
                         </Badge>
@@ -1207,7 +1156,6 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
             </div>
           </div>
 
-          {/* Actions */}
           <DialogFooter className="flex justify-between">
             <div className="flex gap-2">
               <Button type="button" variant="outline" onClick={resetForm}>

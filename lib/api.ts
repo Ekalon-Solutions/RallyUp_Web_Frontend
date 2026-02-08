@@ -232,6 +232,11 @@ export interface Event {
     startTime: string,
     endTime: string,
   }
+  waitlist?: {
+    enabled: boolean;
+    percentage: number;
+    purchaseWindowHours: number;
+  }
   createdAt: string;
   updatedAt: string;
 }
@@ -355,7 +360,7 @@ export interface Club {
 export interface MembershipCard {
   _id: string;
   cardNumber: string;
-  cardStyle: 'default' | 'premium' | 'vintage' | 'modern';
+  cardStyle: 'default' | 'premium' | 'vintage' | 'modern' | 'elite' | 'emerald';
   status: 'active' | 'expired' | 'pending' | 'suspended';
   issueDate: string;
   expiryDate: string;
@@ -422,7 +427,7 @@ export interface PublicMembershipCardDisplay {
 export interface CreateMembershipCardRequest {
   membershipPlanId: string;
   clubId: string;
-  cardStyle?: 'default' | 'premium' | 'vintage' | 'modern';
+  cardStyle?: 'default' | 'premium' | 'vintage' | 'modern' | 'elite' | 'emerald';
   expiryDate?: string;
   accessLevel?: 'basic' | 'premium' | 'vip';
   customization?: {
@@ -436,7 +441,7 @@ export interface CreateMembershipCardRequest {
 }
 
 export interface UpdateMembershipCardRequest {
-  cardStyle?: 'default' | 'premium' | 'vintage' | 'modern';
+  cardStyle?: 'default' | 'premium' | 'vintage' | 'modern' | 'elite' | 'emerald';
   status?: 'active' | 'expired' | 'pending' | 'suspended';
   expiryDate?: string;
   accessLevel?: 'basic' | 'premium' | 'vip';
@@ -967,9 +972,10 @@ class ApiClient {
     });
   }
 
-  async deleteAllClubMembers(): Promise<ApiResponse<{ message: string; deletedCount: number }>> {
+  async deleteAllClubMembers(clubId?: string | null): Promise<ApiResponse<{ message: string; deletedCount: number }>> {
     return this.request('/admin/members/delete-all', {
-      method: 'POST'
+      method: 'POST',
+      body: clubId ? JSON.stringify({ clubId }) : undefined,
     });
   }
 
@@ -1179,6 +1185,7 @@ class ApiClient {
     earlyBirdDiscount?: any;
     memberDiscount?: any;
     groupDiscount?: any;
+    waitlist?: { enabled: boolean; percentage?: number; purchaseWindowHours?: number };
   }): Promise<ApiResponse<{ message: string; event: Event }>> {
     return this.request('/events', {
       method: 'POST',
@@ -1199,6 +1206,7 @@ class ApiClient {
     memberOnly?: boolean;
     clubId?: string;
     awayDayEvent?: boolean;
+    waitlist?: { enabled?: boolean; percentage?: number; purchaseWindowHours?: number };
   }): Promise<ApiResponse<{ message: string; event: Event }>> {
     return this.request(`/events/${id}`, {
       method: 'PUT',
@@ -1219,10 +1227,10 @@ class ApiClient {
     });
   }
 
-  async registerForEvent(eventId: string, notes?: string, attendees?: Array<{ name: string; phone: string }>, couponCode?: string | null, orderID?: string, paymentID?: string, signature?: string): Promise<ApiResponse<{ message: string; event: Event }>> {
+  async registerForEvent(eventId: string, notes?: string, attendees?: Array<{ name: string; phone: string }>, couponCode?: string | null, orderID?: string, paymentID?: string, signature?: string, waitlistToken?: string): Promise<ApiResponse<{ message: string; event: Event }>> {
     return this.request(`/events/${eventId}/register`, {
       method: 'POST',
-      body: JSON.stringify({ notes, attendees, couponCode, orderID, paymentID, signature }),
+      body: JSON.stringify({ notes, attendees, couponCode, orderID, paymentID, signature, waitlistToken }),
     });
   }
 
@@ -1247,6 +1255,34 @@ class ApiClient {
     return this.request(`/events/${eventId}/register`, {
       method: 'DELETE',
     });
+  }
+
+  async joinWaitlist(eventId: string): Promise<ApiResponse<{ message: string; position: number; eventId: string }>> {
+    return this.request(`/events/${eventId}/waitlist`, {
+      method: 'POST',
+    });
+  }
+
+  async declineWaitlistOffer(eventId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request(`/events/${eventId}/waitlist/decline`, {
+      method: 'POST',
+    });
+  }
+
+  async getMyWaitlistStatus(): Promise<ApiResponse<Array<{
+    eventId: string;
+    eventTitle: string;
+    eventStartTime: string;
+    eventVenue: string;
+    position: number;
+    status: 'pending' | 'notified';
+    purchaseLinkExpiresAt?: string;
+  }>>> {
+    return this.request('/events/waitlist/my-status');
+  }
+
+  async validateWaitlistToken(eventId: string, token: string): Promise<ApiResponse<{ valid: boolean; event?: Event }>> {
+    return this.request(`/events/waitlist/validate-token?eventId=${encodeURIComponent(eventId)}&token=${encodeURIComponent(token)}`);
   }
 
   async getEventRegistrations(eventId: string): Promise<ApiResponse<{
@@ -2264,6 +2300,7 @@ class ApiClient {
     accessLevel?: string;
     isExpired?: boolean;
     isActive?: boolean;
+    isTemplate?: boolean;
     page?: number;
     limit?: number;
     sortBy?: string;
@@ -2283,6 +2320,7 @@ class ApiClient {
     if (params?.accessLevel) queryParams.append('accessLevel', params.accessLevel);
     if (params?.isExpired !== undefined) queryParams.append('isExpired', params.isExpired.toString());
     if (params?.isActive !== undefined) queryParams.append('isActive', params.isActive.toString());
+    if (params?.isTemplate !== undefined) queryParams.append('isTemplate', params.isTemplate.toString());
     if (params?.page) queryParams.append('page', params.page.toString());
     if (params?.limit) queryParams.append('limit', params.limit.toString());
     if (params?.sortBy) queryParams.append('sortBy', params.sortBy);
@@ -2299,10 +2337,12 @@ class ApiClient {
     });
   }
 
-  async updateTemplateCardCustomization(membershipPlanId: string, customization: any): Promise<ApiResponse<PublicMembershipCardDisplay>> {
+  async updateTemplateCardCustomization(membershipPlanId: string, customization: any, clubId?: string | null): Promise<ApiResponse<PublicMembershipCardDisplay>> {
+    const body: { membershipPlanId: string; customization: any; clubId?: string } = { membershipPlanId, customization };
+    if (clubId) body.clubId = clubId;
     return this.request(`/membership-cards/template/customize`, {
       method: 'PATCH',
-      body: JSON.stringify({ membershipPlanId, customization }),
+      body: JSON.stringify(body),
     });
   }
 

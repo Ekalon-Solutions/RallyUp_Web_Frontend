@@ -17,7 +17,6 @@ import { Calendar, MapPin, Clock, Users, Newspaper, Tag, User as UserIcon, Eye, 
 import EventDetailsModal from '@/components/modals/event-details-modal'
 import UserEventRegistrationModal from "@/components/modals/user-event-registration-modal"
 import { EventCheckoutModal } from "@/components/modals/event-checkout-modal"
-import { EventPaymentSimulationModal } from "@/components/modals/event-payment-simulation-modal"
 
 function AttendanceMarker({ event, userId }: { event: Event; userId?: string }) {
   const [registration, setRegistration] = useState<any | null>(null)
@@ -106,7 +105,6 @@ export default function UserDashboardPage() {
   const [showRegistrationModal, setShowRegistrationModal] = useState(false)
   const [cancellingEventId, setCancellingEventId] = useState<string | null>(null)
   const [showEventCheckoutModal, setShowEventCheckoutModal] = useState(false)
-  const [showEventPaymentSimulationModal, setShowEventPaymentSimulationModal] = useState(false)
   const [eventForPayment, setEventForPayment] = useState<Event | null>(null)
   const [attendeesForPayment, setAttendeesForPayment] = useState<any[]>([])
   const [showLogo, setShowLogo] = useState(false)
@@ -643,7 +641,8 @@ export default function UserDashboardPage() {
 
   const handleEventCheckoutSuccess = () => {
     setShowEventCheckoutModal(false);
-    setShowEventPaymentSimulationModal(true);
+    fetchData();
+    toast.success("Payment successful!");
   };
 
   return (
@@ -1140,34 +1139,17 @@ export default function UserDashboardPage() {
           }}
           onRegister={handlePerformRegistration}
         />
-        {paymentEvent && (
-          <EventCheckoutModal
-            isOpen={showEventCheckoutModal}
-            onClose={() => setShowEventCheckoutModal(false)}
-            event={paymentEvent}
-            attendees={attendeesForPayment}
-            onSuccess={handleEventCheckoutSuccess}
-            onFailure={() => setShowEventCheckoutModal(false)}
-          />
-        )}
-
-        {paymentEvent && (
-          <EventPaymentSimulationModal
-            isOpen={showEventPaymentSimulationModal}
-            onClose={() => setShowEventPaymentSimulationModal(false)}
-            event={paymentEvent}
-            attendees={attendeesForPayment}
-            onPaymentSuccess={() => {
-              setShowEventPaymentSimulationModal(false);
-              fetchData();
-              toast.success("Payment successful!");
-            }}
-            onPaymentFailure={() => {
-              setShowEventPaymentSimulationModal(false);
-              toast.error("Payment failed. Please try again.");
-            }}
-          />
-        )}
+        <EventCheckoutModal
+          isOpen={showEventCheckoutModal}
+          onClose={() => setShowEventCheckoutModal(false)}
+          event={paymentEvent}
+          attendees={attendeesForPayment}
+          onSuccess={handleEventCheckoutSuccess}
+          onFailure={() => {
+            setShowEventCheckoutModal(false);
+            toast.error("Payment failed. Please try again.");
+          }}
+        />
       </DashboardLayout>
     </ProtectedRoute>
   )

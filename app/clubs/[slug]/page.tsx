@@ -614,9 +614,9 @@ export default function PublicClubPage() {
                           <div className="flex items-center justify-center py-12">
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: primaryColor }} />
                           </div>
-                        ) : events.length > 0 ? (
+                        ) : events.filter((e: any) => !e?.memberOnly).length > 0 ? (
                           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                            {events.map((event) => (
+                            {events.filter((e: any) => !e?.memberOnly).map((event) => (
                               <Card key={event._id} className="hover:shadow-lg transition-all border-2">
                                 <CardHeader>
                                   <div className="flex items-start justify-between mb-2">
@@ -665,25 +665,36 @@ export default function PublicClubPage() {
                                       <span className="line-clamp-1">{event.venue}</span>
                                     </div>
                                   )}
-                                  {event.maxAttendees && (
+                                  {event.maxAttendees != null && (
                                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                       <Users className="w-4 h-4" />
                                       <span>
                                         {event.currentAttendees || 0} / {event.maxAttendees} attendees
+                                        {(event.currentAttendees ?? 0) >= event.maxAttendees && (
+                                          <span className="font-medium text-destructive ml-1">(Full)</span>
+                                        )}
                                       </span>
                                     </div>
                                   )}
 
-                                  <Button
-                                    className="w-full mt-2"
-                                    style={{ backgroundColor: primaryColor, color: "white" }}
-                                    onClick={() => {
-                                      setEventForRegistration(event)
-                                      setShowEventRegistrationModal(true)
-                                    }}
-                                  >
-                                    {event.ticketPrice && event.ticketPrice > 0 ? "Buy Tickets" : "Register"}
-                                  </Button>
+                                  {(() => {
+                                    const isEventFull = event.maxAttendees != null && (event.currentAttendees ?? 0) >= event.maxAttendees
+                                    return (
+                                      <Button
+                                        className="w-full mt-2"
+                                        style={isEventFull ? undefined : { backgroundColor: primaryColor, color: "white" }}
+                                        variant={isEventFull ? "secondary" : "default"}
+                                        disabled={isEventFull}
+                                        onClick={() => {
+                                          if (isEventFull) return
+                                          setEventForRegistration(event)
+                                          setShowEventRegistrationModal(true)
+                                        }}
+                                      >
+                                        {isEventFull ? "Event Full" : event.ticketPrice && event.ticketPrice > 0 ? "Buy Tickets" : "Register"}
+                                      </Button>
+                                    )
+                                  })()}
                                 </CardContent>
                               </Card>
                             ))}

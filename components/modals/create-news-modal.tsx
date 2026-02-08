@@ -103,6 +103,9 @@ export function CreateNewsModal({ isOpen, onClose, onSuccess, editNews }: Create
       if (clubId) {
         formData.append("clubId", clubId)
       }
+      if (editNews && existingImages.length >= 0) {
+        formData.append("imagesToKeep", JSON.stringify(existingImages))
+      }
       formData.append("title", title)
       formData.append("content", content)
       formData.append("summary", summary)
@@ -165,6 +168,16 @@ export function CreateNewsModal({ isOpen, onClose, onSuccess, editNews }: Create
     if (featuredImageIndex === removedCombinedIndex) {
       setFeaturedImageIndex(0)
     } else if (featuredImageIndex > removedCombinedIndex) {
+      setFeaturedImageIndex(featuredImageIndex - 1)
+    }
+  }
+
+  const removeExistingImage = (index: number) => {
+    const newExisting = existingImages.filter((_, i) => i !== index)
+    setExistingImages(newExisting)
+    if (featuredImageIndex === index) {
+      setFeaturedImageIndex(0)
+    } else if (featuredImageIndex > index) {
       setFeaturedImageIndex(featuredImageIndex - 1)
     }
   }
@@ -355,6 +368,20 @@ export function CreateNewsModal({ isOpen, onClose, onSuccess, editNews }: Create
                           alt={`Existing image ${existingIdx + 1}`}
                           className="w-full h-32 object-cover rounded-lg"
                         />
+                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            onClick={(e) => {
+                              e.preventDefault()
+                              removeExistingImage(existingIdx)
+                            }}
+                            aria-label="Remove image"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                         <div className="absolute top-2 left-2">
                           <input
                             type="radio"

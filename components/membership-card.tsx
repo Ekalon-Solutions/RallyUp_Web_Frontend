@@ -26,8 +26,10 @@ export function MembershipCard({
   cardStyle = 'default', 
   showLogo = true,
   userName = 'Member Name',
+  membershipId,
 }: MembershipCardProps) {
   const { card, club, membershipPlan } = cardData;
+  const displayMembershipId = membershipId ?? card.membershipId ?? '';
   const cardRef = useRef<HTMLDivElement>(null);
   const [transform, setTransform] = useState({ rotateX: 0, rotateY: 0, scale: 1 });
   const [isHovered, setIsHovered] = useState(false);
@@ -257,7 +259,7 @@ export function MembershipCard({
            <div className="mb-2">
              <p className="text-xs opacity-80">Membership ID</p>
              <p className="text-lg font-mono tracking-widest font-semibold opacity-90">
-               {cardData.card.membershipId || ''}
+               {displayMembershipId || ''}
              </p>
            </div>
         </div>

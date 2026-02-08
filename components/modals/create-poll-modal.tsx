@@ -266,7 +266,10 @@ export function CreatePollModal({ isOpen, onClose, onSuccess, editPoll }: Create
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <Label htmlFor="allowMultipleVotes">Allow Multiple Votes</Label>
+                <div>
+                  <Label htmlFor="allowMultipleVotes">Allow Multiple Votes</Label>
+                  <p className="text-xs text-muted-foreground">Voters can select more than one option</p>
+                </div>
                 <Switch
                   id="allowMultipleVotes"
                   checked={allowMultipleVotes}
@@ -274,7 +277,10 @@ export function CreatePollModal({ isOpen, onClose, onSuccess, editPoll }: Create
                 />
               </div>
               <div className="flex items-center justify-between">
-                <Label htmlFor="allowAnonymousVotes">Anonymous Votes</Label>
+                <div>
+                  <Label htmlFor="allowAnonymousVotes">Anonymous Votes</Label>
+                  <p className="text-xs text-muted-foreground">Results do not show who voted for which option</p>
+                </div>
                 <Switch
                   id="allowAnonymousVotes"
                   checked={allowAnonymousVotes}
@@ -282,7 +288,10 @@ export function CreatePollModal({ isOpen, onClose, onSuccess, editPoll }: Create
                 />
               </div>
               <div className="flex items-center justify-between">
-                <Label htmlFor="isPublic">Public Poll</Label>
+                <div>
+                  <Label htmlFor="isPublic">Public Poll</Label>
+                  <p className="text-xs text-muted-foreground">Include in public poll listing (e.g. club page) when active</p>
+                </div>
                 <Switch
                   id="isPublic"
                   checked={isPublic}

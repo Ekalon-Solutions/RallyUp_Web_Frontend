@@ -35,7 +35,7 @@ import { ProtectedRoute } from "@/components/protected-route"
 
 export default function MembershipCardsPage() {
   const [customization, setCustomization] = useState({
-    cardStyle: 'default' as const,
+    cardStyle: 'default' as 'default' | 'premium' | 'vintage' | 'modern' | 'elite' | 'emerald',
     showLogo: true,
     primaryColor: '#3b82f6',
     secondaryColor: '#1e40af',
@@ -76,7 +76,7 @@ export default function MembershipCardsPage() {
 
   const fetchCards = useCallback(async (targetClubId: string) => {
     try {
-      const cardsResponse = await apiClient.getClubMembershipCards(targetClubId)
+      const cardsResponse = await apiClient.getClubMembershipCards(targetClubId, { isTemplate: true, limit: 100 })
       
       if (cardsResponse.success && cardsResponse.data) {
         let cardsData: any[] = []
@@ -248,10 +248,27 @@ export default function MembershipCardsPage() {
     try {
       setIsCreating(true)
       
+      let customLogoUrl: string | undefined
+      if (selectedFile) {
+        const formData = new FormData()
+        formData.append('image', selectedFile)
+        const uploadResponse = await fetch(getApiUrl('/upload/logo'), {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+          body: formData
+        })
+        if (!uploadResponse.ok) {
+          const errData = await uploadResponse.json().catch(() => ({}))
+          throw new Error(errData?.message || 'Logo upload failed')
+        }
+        const uploadData = await uploadResponse.json()
+        customLogoUrl = uploadData.url?.startsWith('http') ? uploadData.url : `${getBaseUrl()}${uploadData.url || ''}`
+      }
+
       const cardData: CreateMembershipCardRequest = {
         membershipPlanId: selectedPlanId,
         clubId: clubId,
-        cardStyle: 'default',
+        cardStyle: customization.cardStyle,
         accessLevel: 'basic',
         customization: {
           primaryColor: customization.primaryColor,
@@ -259,7 +276,7 @@ export default function MembershipCardsPage() {
           fontFamily: customization.fontFamily,
           logoSize: customization.logoSize,
           showLogo: customization.showLogo,
-          customLogo: previewUrl || undefined
+          customLogo: customLogoUrl
         }
       }
 
@@ -355,8 +372,8 @@ export default function MembershipCardsPage() {
           setMembershipPlans(plansData)
         }
         
-        // Fetch existing membership cards
-        const cardsResponse = await apiClient.getClubMembershipCards(clubId)
+        // Fetch existing membership cards (template cards only, all of them)
+        const cardsResponse = await apiClient.getClubMembershipCards(clubId, { isTemplate: true, limit: 100 })
         
         if (cardsResponse.success && cardsResponse.data) {
           // Handle both array and nested data structure
@@ -513,6 +530,7 @@ export default function MembershipCardsPage() {
       const updateData = {
         status: editingCard.card.status,
         accessLevel: editingCard.card.accessLevel,
+        cardStyle: editingCard.card.cardStyle,
         customization: {
           ...editingCard.card.customization,
           customLogo: customLogoUrl
@@ -645,6 +663,16 @@ export default function MembershipCardsPage() {
     });
   }, []);
 
+  const handleCardStyleChange = useCallback((value: string) => {
+    setEditingCard(prev => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        card: { ...prev.card, cardStyle: value as 'default' | 'premium' | 'vintage' | 'modern' | 'elite' | 'emerald' }
+      };
+    });
+  }, []);
+
   const handleFontFamilyChange = useCallback((value: string) => {
     setEditingCard(prev => {
       if (!prev) return null;
@@ -773,6 +801,8 @@ export default function MembershipCardsPage() {
                                 cardData={editingCard}
                                 cardStyle={editingCard.card.cardStyle}
                                 showLogo={editingCard.card.customization?.showLogo ?? true}
+                                userName="John Doe"
+                                membershipId={editingCard.card.membershipId ?? 'MEM-XXXX'}
                               />
                             </div>
                           </div>
@@ -799,6 +829,8 @@ export default function MembershipCardsPage() {
                                       cardData={card}
                                       cardStyle={card?.card?.cardStyle || 'default'}
                                       showLogo={card?.card?.customization?.showLogo ?? true}
+                                      userName="John Doe"
+                                      membershipId={card?.card?.membershipId ?? 'Membership ID'}
                                     />
                                   </div>
                                 </div>
@@ -907,22 +939,48 @@ export default function MembershipCardsPage() {
                           </SelectContent>
                         </Select>
                       </div>
-
-
+                      <div>
+                        <Label htmlFor="createCardStyle">Card Style</Label>
+                        <Select
+                          value={customization.cardStyle}
+                          onValueChange={(v) => setCustomization(prev => ({ ...prev, cardStyle: v as typeof prev.cardStyle }))}
+                        >
+                          <SelectTrigger id="createCardStyle">
+                            <SelectValue placeholder="Select style" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="default">Classic Blue</SelectItem>
+                            <SelectItem value="premium">Premium Gold</SelectItem>
+                            <SelectItem value="vintage">Vintage Amber</SelectItem>
+                            <SelectItem value="modern">Modern Purple</SelectItem>
+                            <SelectItem value="elite">Elite Black</SelectItem>
+                            <SelectItem value="emerald">Emerald Green</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
                     </>
                   )}
 
-                  {membershipPlans.length > 0 && (
-                    <div className="flex justify-end">
+                  {membershipPlans.length > 0 && (() => {
+                    const planIdsWithCards = cards.map(c => c.membershipPlan?._id).filter(Boolean);
+                    const selectedPlanHasCard = selectedPlanId && planIdsWithCards.includes(selectedPlanId);
+                    return (
+                    <div className="flex flex-col items-end gap-2">
+                      {selectedPlanHasCard && (
+                        <p className="text-sm text-amber-600 dark:text-amber-400">
+                          This plan already has a membership card. Only one card can be created per plan.
+                        </p>
+                      )}
                       <Button 
                         onClick={handleCreateCard} 
-                        disabled={!clubId || !selectedPlanId || isCreating}
+                        disabled={!clubId || !selectedPlanId || isCreating || !!selectedPlanHasCard}
                       >
                         {isCreating ? "Creating..." : "Create Membership Card"}
                       </Button>
                     </div>
-                  )}
+                    );
+                  })()}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -1062,11 +1120,9 @@ export default function MembershipCardsPage() {
               </Button>
             </div>
             
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 p-4 sm:p-6 pt-0 overflow-y-auto flex-1">
-              {/* Left Column - Input Fields */}
-              <div className="space-y-4">
-
-
+            <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 p-4 sm:p-6 pt-0 overflow-y-auto flex-1 min-h-0">
+              {/* Left Column - Settings */}
+              <div className="flex-shrink-0 lg:w-[380px] xl:w-[420px] space-y-4 overflow-y-auto">
               <div>
                 <Label htmlFor="status">Status</Label>
                 <Select
@@ -1103,7 +1159,27 @@ export default function MembershipCardsPage() {
               </div>
 
               <div>
-                <Label htmlFor="primaryColor">Secondary Color</Label>
+                <Label htmlFor="editCardStyle">Card Style</Label>
+                <Select
+                  value={editingCard.card.cardStyle}
+                  onValueChange={handleCardStyleChange}
+                >
+                  <SelectTrigger id="editCardStyle">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="default">Classic Blue</SelectItem>
+                    <SelectItem value="premium">Premium Gold</SelectItem>
+                    <SelectItem value="vintage">Vintage Amber</SelectItem>
+                    <SelectItem value="modern">Modern Purple</SelectItem>
+                    <SelectItem value="elite">Elite Black</SelectItem>
+                    <SelectItem value="emerald">Emerald Green</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="primaryColor">Primary Color</Label>
                 <Input
                   id="primaryColor"
                   type="color"
@@ -1114,7 +1190,7 @@ export default function MembershipCardsPage() {
               </div>
 
               <div>
-                <Label htmlFor="secondaryColor">Primary Color</Label>
+                <Label htmlFor="secondaryColor">Secondary Color</Label>
                 <Input
                   id="secondaryColor"
                   type="color"
@@ -1227,9 +1303,9 @@ export default function MembershipCardsPage() {
               </div>
               </div>
 
-              {/* Right Column - Preview */}
-              <div className="lg:sticky lg:top-0 lg:self-start order-first lg:order-last">
-                <div className="border rounded-lg p-4 sm:p-6 bg-muted/20">
+              {/* Right Column - Live Preview */}
+              <div className="flex-1 flex items-start justify-center lg:justify-end min-h-[320px] lg:min-h-0 lg:sticky lg:top-0">
+                <div className="border rounded-lg p-4 sm:p-6 bg-muted/20 w-full max-w-sm">
                   <Label className="text-sm font-medium mb-4 block">Live Preview</Label>
                   <div className="flex justify-center">
                     <div className="w-full max-w-xs sm:max-w-sm">
@@ -1237,13 +1313,17 @@ export default function MembershipCardsPage() {
                         cardData={editingCard}
                         cardStyle={editingCard.card.cardStyle}
                         showLogo={editingCard.card.customization?.showLogo ?? true}
+                        userName="John Doe"
+                        membershipId={editingCard.card.membershipId ?? 'MEM-XXXX'}
                       />
                     </div>
                   </div>
                 </div>
               </div>
+            </div>
 
-              <div className="flex flex-col sm:flex-row justify-end gap-2 mt-6 p-4 sm:p-6 pt-4 border-t bg-muted/20">
+            {/* Footer - Actions */}
+            <div className="flex flex-col sm:flex-row justify-end gap-2 p-4 sm:p-6 pt-4 border-t bg-muted/20 flex-shrink-0">
                 <Button variant="outline" onClick={handleCancelEdit} className="w-full sm:w-auto">
                   Cancel
                 </Button>
@@ -1253,7 +1333,6 @@ export default function MembershipCardsPage() {
               </div>
             </div>
           </div>
-        </div>
         )}
       </DashboardLayout>
     </ProtectedRoute>

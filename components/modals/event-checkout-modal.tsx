@@ -34,11 +34,12 @@ interface EventCheckoutModalProps {
   }
   attendees: Array<{ name: string; phone: string }>
   couponCode?: string
+  waitlistToken?: string | null
   onSuccess: () => void
   onFailure: () => void
 }
 
-export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCode, onSuccess, onFailure }: EventCheckoutModalProps) {
+export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCode, waitlistToken, onSuccess, onFailure }: EventCheckoutModalProps) {
   const { user } = useAuth()
   const router = useRouter()
   const [loading, setLoading] = useState(false)
@@ -137,7 +138,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
 
       if (finalPrice <= 0) {
         const response = user
-          ? await apiClient.registerForEvent(String(event._id), undefined, attendees, couponCode)
+          ? await apiClient.registerForEvent(String(event._id), undefined, attendees, couponCode, undefined, undefined, undefined, waitlistToken || undefined)
           : await apiClient.registerForPublicEvent(String(event._id), {
               registrantName: attendees?.[0]?.name || 'Guest',
               registrantPhone: attendees?.[0]?.phone || '',
@@ -221,6 +222,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
                   response.razorpay_order_id,
                   response.razorpay_payment_id,
                   response.razorpay_signature,
+                  waitlistToken || undefined,
                 )
               : await apiClient.registerForPublicEvent(String(event._id), {
                   registrantName: attendees?.[0]?.name || 'Guest',
