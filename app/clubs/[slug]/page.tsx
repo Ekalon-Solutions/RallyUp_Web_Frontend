@@ -961,6 +961,8 @@ export default function PublicClubPage() {
                 price: eventForRegistration.ticketPrice || 0,
                 ticketPrice: eventForRegistration.ticketPrice || 0,
                 earlyBirdDiscount: (eventForRegistration as any).earlyBirdDiscount,
+                memberDiscount: (eventForRegistration as any).memberDiscount,
+                groupDiscount: (eventForRegistration as any).groupDiscount,
                 currency: (eventForRegistration as any).currency || "INR",
               }
             : undefined

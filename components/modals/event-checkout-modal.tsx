@@ -30,7 +30,25 @@ interface EventCheckoutModalProps {
     name: string
     price: number
     ticketPrice?: number
-    earlyBirdDiscount?: any
+    earlyBirdDiscount?: {
+      enabled?: boolean
+      type?: 'percentage' | 'fixed'
+      value?: number
+      startTime?: string
+      endTime?: string
+      membersOnly?: boolean
+    }
+    memberDiscount?: {
+      enabled?: boolean
+      type?: 'percentage' | 'fixed'
+      value?: number
+    }
+    groupDiscount?: {
+      enabled?: boolean
+      type?: 'percentage' | 'fixed'
+      value?: number
+      minQuantity?: number
+    }
     currency?: string
   }
   attendees: Array<{ name: string; phone: string }>
@@ -86,12 +104,57 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
     fetchEventData()
   }, [event?._id, isOpen, eventData])
 
+  const discountSource = eventData || event
+  const isMember = Boolean(user && (user as any).membershipStatus === 'active')
+
+  const getDiscountedPricePerTicket = (): number => {
+    if (!event) return 0
+    const ticketPrice = event.ticketPrice ?? event.price ?? 0
+    if (!discountSource) return ticketPrice
+
+    let price = ticketPrice
+
+    if (discountSource.earlyBirdDiscount?.enabled) {
+      const eb = discountSource.earlyBirdDiscount
+      if (eb.membersOnly && !isMember) {
+        // early bird is members-only and user is not a member
+      } else {
+        const now = new Date()
+        const startTime = new Date(eb.startTime ?? 0)
+        const endTime = new Date(eb.endTime ?? 0)
+        if (now >= startTime && now <= endTime) {
+          const discount =
+            eb.type === 'percentage' ? (price * (eb.value ?? 0)) / 100 : (eb.value ?? 0)
+          price = Math.max(price - discount, 0)
+        }
+      }
+    }
+
+    if (discountSource.memberDiscount?.enabled && isMember) {
+      const md = discountSource.memberDiscount
+      const discount =
+        md.type === 'percentage' ? (price * (md.value ?? 0)) / 100 : (md.value ?? 0)
+      price = Math.max(price - discount, 0)
+    }
+
+    if (
+      discountSource.groupDiscount?.enabled &&
+      attendees.length >= (discountSource.groupDiscount.minQuantity ?? 2)
+    ) {
+      const gd = discountSource.groupDiscount
+      const discount =
+        gd.type === 'percentage' ? (price * (gd.value ?? 0)) / 100 : (gd.value ?? 0)
+      price = Math.max(price - discount, 0)
+    }
+
+    return price
+  }
+
   useEffect(() => {
     const validateCoupon = async () => {
       if (couponCode && event?._id && isOpen) {
         try {
-          const ticketPrice = event.ticketPrice || event.price
-          const totalPrice = ticketPrice * attendees.length
+          const totalPrice = getDiscountedPricePerTicket() * attendees.length
           const response = await apiClient.validateCoupon(couponCode, String(event._id), totalPrice)
           
           if (response.success && response.data?.coupon) {
@@ -112,7 +175,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
     }
     
     validateCoupon()
-  }, [couponCode, event?._id, attendees.length, isOpen])
+  }, [couponCode, event?._id, attendees.length, isOpen, eventData])
 
   const handlePayment = async () => {
     if (!scriptLoaded) {
@@ -133,7 +196,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
     setLoading(true)
 
     try {
-      const basePrice = calculateDiscountedPrice()
+      const basePrice = getDiscountedPricePerTicket()
       const totalBeforeCoupon = basePrice * attendees.length
       const finalPrice = Math.max(totalBeforeCoupon - couponDiscount, 0)
 
@@ -279,26 +342,8 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
     }
   }
 
-  const calculateDiscountedPrice = () => {
-    if (!event || !event.earlyBirdDiscount?.enabled) return event?.ticketPrice || event?.price || 0;
-
-    const now = new Date();
-    const startTime = new Date(event.earlyBirdDiscount.startTime);
-    const endTime = new Date(event.earlyBirdDiscount.endTime);
-    const eventPrice = event.ticketPrice || event.price;
-
-    if (now >= startTime && now <= endTime) {
-      const discount = event.earlyBirdDiscount.type === 'percentage'
-        ? (eventPrice * event.earlyBirdDiscount.value) / 100
-        : event.earlyBirdDiscount.value;
-      return Math.max((eventPrice || event.price) - discount, 0);
-    }
-
-    return eventPrice;
-  };
-
-  const priceBeforeDiscount = event?.ticketPrice || event?.price || 0;
-  const basePrice = calculateDiscountedPrice();
+  const priceBeforeDiscount = event?.ticketPrice ?? event?.price ?? 0
+  const basePrice = getDiscountedPricePerTicket()
   const totalBeforeCoupon = basePrice * attendees.length;
   const finalPrice = Math.max(totalBeforeCoupon - couponDiscount, 0);
   const feeBreakdown = finalPrice > 0 ? calculateTransactionFees(finalPrice) : null;
@@ -359,13 +404,17 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <span>Price per ticket:</span>
-                <span className="flex space-x-2">
-                  <span className="flex items-center gap-1 line-through text-muted-foreground">
-                    {formatCurrency(priceBeforeDiscount, event.currency)}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    {formatCurrency(basePrice, event.currency)}
-                  </span>
+                <span className="flex items-center gap-2">
+                  {priceBeforeDiscount > basePrice ? (
+                    <>
+                      <span className="line-through text-muted-foreground">
+                        {formatCurrency(priceBeforeDiscount, event.currency)}
+                      </span>
+                      <span>{formatCurrency(basePrice, event.currency)}</span>
+                    </>
+                  ) : (
+                    <span>{formatCurrency(basePrice, event.currency)}</span>
+                  )}
                 </span>
               </div>
               

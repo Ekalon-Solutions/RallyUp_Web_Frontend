@@ -115,7 +115,9 @@ export default function UserDashboardPage() {
         name: eventForPayment.title,
         price: eventForPayment.ticketPrice ?? 0,
         ticketPrice: eventForPayment.ticketPrice,
-        earlyBirdDiscount: eventForPayment.earlyBirdDiscount,
+        earlyBirdDiscount: (eventForPayment as any).earlyBirdDiscount,
+        memberDiscount: (eventForPayment as any).memberDiscount,
+        groupDiscount: (eventForPayment as any).groupDiscount,
         currency: (eventForPayment as any)?.currency,
       }
     : undefined

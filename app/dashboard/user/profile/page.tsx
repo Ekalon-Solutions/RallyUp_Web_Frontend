@@ -751,13 +751,17 @@ export default function UserProfilePage() {
                 <div className="space-y-2">
                   <Label className="text-sm font-medium text-muted-foreground">Account Type</Label>
                   <Badge variant="outline" className="capitalize">
-                    {user.role === 'member' ? 'Member' : user.role?.replace('_', ' ')}
+                    {(() => {
+                      const role = (user as any).role;
+                      if (!role) return 'Member';
+                      return role === 'member' ? 'Member' : String(role).replace(/_/g, ' ');
+                    })()}
                   </Badge>
                 </div>
                 <div className="space-y-2">
                   <Label className="text-sm font-medium text-muted-foreground">Account Status</Label>
-                  <Badge variant={user.isActive ? "default" : "secondary"}>
-                    {user.isActive ? "Active" : "Inactive"}
+                  <Badge variant={(user as any).is_active ?? user.isActive ? "default" : "secondary"}>
+                    {(user as any).is_active ?? user.isActive ? "Active" : "Inactive"}
                   </Badge>
                 </div>
                 <div className="space-y-2">

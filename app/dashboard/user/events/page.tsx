@@ -1075,6 +1075,8 @@ function UserEventsPageInner() {
                   price: (eventForPayment as any).ticketPrice ?? (eventForPayment as any).price ?? 0,
                   ticketPrice: (eventForPayment as any).ticketPrice,
                   earlyBirdDiscount: (eventForPayment as any).earlyBirdDiscount,
+                  memberDiscount: (eventForPayment as any).memberDiscount,
+                  groupDiscount: (eventForPayment as any).groupDiscount,
                   currency: (eventForPayment as any).currency,
                 }
               : undefined
