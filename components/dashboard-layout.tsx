@@ -349,6 +349,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                         key={club._id}
                         onClick={() => {
                           setActiveClubId(club._id)
+                          router.refresh()
                           if (mobile) setSidebarOpen(false)
                         }}
                         className={cn(

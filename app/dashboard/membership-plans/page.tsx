@@ -38,7 +38,7 @@ interface MembershipPlan {
 }
 
 export default function MembershipPlansPage() {
-  const { user } = useAuth()
+  const { user, activeClubId } = useAuth()
   const [plans, setPlans] = useState<MembershipPlan[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [clubs, setClubs] = useState<Array<{ _id: string; name: string }>>([])
@@ -73,6 +73,21 @@ export default function MembershipPlansPage() {
       loadClubsAndDefault()
     }
   }, [user])
+
+  // When user switches club in sidebar (activeClubId), sync selected club and refetch plans
+  useEffect(() => {
+    if (!user || !activeClubId) return
+    const u = user as any
+    const normalizeId = (c: any) => (c?._id?.toString?.() ?? (typeof c === "string" ? c : null))
+    const hasClub = (id: string) =>
+      u.clubs?.some((c: any) => normalizeId(c) === id) ||
+      u.memberships?.some((m: any) => m?.status === "active" && (normalizeId(m.club_id) === id || normalizeId(m.club) === id)) ||
+      normalizeId(u.club) === id
+    if (hasClub(activeClubId)) {
+      setSelectedClubId(activeClubId)
+      loadPlansForClub(activeClubId)
+    }
+  }, [activeClubId])
 
   const loadPlans = async () => {
     return loadPlansForClub(selectedClubId)
@@ -191,6 +206,11 @@ export default function MembershipPlansPage() {
             }))
           initialClubId = clubsList.length > 0 ? clubsList[0]._id : undefined
         }
+      }
+
+      // Prefer context activeClubId so switching club in sidebar is reflected
+      if (activeClubId && clubsList.some((c) => c._id === activeClubId)) {
+        initialClubId = activeClubId
       }
 
       setClubs(clubsList)

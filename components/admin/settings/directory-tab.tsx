@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Save, Users } from "lucide-react"
 import { toast } from "sonner"
-import { useAuth } from "@/contexts/auth-context"
+import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { apiClient } from "@/lib/api"
 
 interface ClubInfo {
@@ -18,7 +18,7 @@ interface ClubInfo {
 }
 
 export function DirectoryTab() {
-  const { user } = useAuth()
+  const clubId = useRequiredClubId()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [clubInfo, setClubInfo] = useState<ClubInfo>({
@@ -26,8 +26,6 @@ export function DirectoryTab() {
     description: "",
     contactInfo: ""
   })
-
-  const clubId = (user as any)?.club?._id || (user as any)?.club_id?._id
 
   useEffect(() => {
     if (clubId) {

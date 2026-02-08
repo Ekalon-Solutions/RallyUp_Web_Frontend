@@ -12,6 +12,7 @@ import {
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
+import { calculateTransactionFees, PLATFORM_FEE_PERCENT, RAZORPAY_FEE_PERCENT } from "@/lib/transactionFees"
 import { MemberValidationModal } from "./member-validation-modal"
 import { useRouter } from "next/navigation"
 
@@ -164,7 +165,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          amount: finalPrice,
+          amount: amountToCharge,
           currency: event.currency || 'INR',
           orderId: `EVT-${Date.now()}`,
           orderNumber: `EVT-${Date.now()}`,
@@ -300,6 +301,8 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
   const basePrice = calculateDiscountedPrice();
   const totalBeforeCoupon = basePrice * attendees.length;
   const finalPrice = Math.max(totalBeforeCoupon - couponDiscount, 0);
+  const feeBreakdown = finalPrice > 0 ? calculateTransactionFees(finalPrice) : null;
+  const amountToCharge = feeBreakdown ? feeBreakdown.finalAmount : finalPrice;
 
   const currencySymbols: Record<string, string> = {
     INR: '₹',
@@ -395,10 +398,24 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
                   <Separator />
                 </>
               )}
+
+              {feeBreakdown && feeBreakdown.totalFees > 0 && (
+                <>
+                  <div className="flex justify-between items-center text-sm text-muted-foreground">
+                    <span>Platform fee ({PLATFORM_FEE_PERCENT}% + GST):</span>
+                    <span>{formatCurrency(feeBreakdown.platformFee + feeBreakdown.platformFeeGst, event.currency)}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm text-muted-foreground">
+                    <span>Payment gateway fee ({RAZORPAY_FEE_PERCENT}% + GST):</span>
+                    <span>{formatCurrency(feeBreakdown.razorpayFee + feeBreakdown.razorpayFeeGst, event.currency)}</span>
+                  </div>
+                  <Separator />
+                </>
+              )}
               
               <div className="flex justify-between items-center font-bold text-lg">
                 <span>Total to Pay:</span>
-                <span className="text-primary">{formatCurrency(finalPrice, event.currency)}</span>
+                <span className="text-primary">{formatCurrency(amountToCharge, event.currency)}</span>
               </div>
             </div>
             

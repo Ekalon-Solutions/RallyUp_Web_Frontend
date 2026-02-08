@@ -37,6 +37,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const savedClubId = localStorage.getItem('activeClubId');
     if (savedClubId && savedClubId !== activeClubId) {
       setActiveClubIdState(savedClubId);
+      if (typeof window !== 'undefined') {
+        window.sessionStorage.setItem('selectedClubId', savedClubId);
+      }
     }
     checkAuth();
   }, []);
@@ -45,8 +48,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setActiveClubIdState(clubId);
     if (clubId) {
       localStorage.setItem('activeClubId', clubId);
+      if (typeof window !== 'undefined') {
+        window.sessionStorage.setItem('selectedClubId', clubId);
+      }
     } else {
       localStorage.removeItem('activeClubId');
+      if (typeof window !== 'undefined') {
+        window.sessionStorage.removeItem('selectedClubId');
+      }
     }
   };
 

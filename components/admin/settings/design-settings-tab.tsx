@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/select"
 import { Save, Palette, Upload, Image as ImageIcon } from "lucide-react"
 import { toast } from "sonner"
-import { useAuth } from "@/contexts/auth-context"
+import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { apiClient } from "@/lib/api"
 
 const FONT_OPTIONS = [
@@ -59,7 +59,7 @@ interface DesignSettings {
 }
 
 export function DesignSettingsTab() {
-  const { user } = useAuth()
+  const clubId = useRequiredClubId()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [settings, setSettings] = useState<DesignSettings>({
@@ -75,8 +75,6 @@ export function DesignSettingsTab() {
       youtube: ""
     }
   })
-
-  const clubId = (user as any)?.club?._id || (user as any)?.club_id?._id
   
   useEffect(() => {
     const linkId = "design-settings-google-fonts"

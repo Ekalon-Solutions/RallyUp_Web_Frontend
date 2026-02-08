@@ -32,8 +32,10 @@ import { useToast } from "@/hooks/use-toast"
 import { getBaseUrl, getApiUrl } from "@/lib/config"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
+import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 
 export default function MembershipCardsPage() {
+  const contextClubId = useRequiredClubId()
   const [customization, setCustomization] = useState({
     cardStyle: 'default' as 'default' | 'premium' | 'vintage' | 'modern' | 'elite' | 'emerald',
     showLogo: true,
@@ -52,6 +54,7 @@ export default function MembershipCardsPage() {
   const [customLogoFile, setCustomLogoFile] = useState<File | null>(null)
   const [clubId, setClubId] = useState<string | null>(null)
   const [membershipPlans, setMembershipPlans] = useState<any[]>([])
+  const effectiveClubId = contextClubId ?? clubId
   const [selectedPlanId, setSelectedPlanId] = useState<string>("")
   const [isCreating, setIsCreating] = useState(false)
   const [editingCard, setEditingCard] = useState<PublicMembershipCardDisplay | null>(null)
@@ -125,27 +128,37 @@ export default function MembershipCardsPage() {
     const fetchInitialData = async () => {
       try {
         setLoading(true)
-        
-        const clubResponse = await apiClient.getAdminClub()
-        if (clubResponse.success && clubResponse.data?.club?._id) {
-          const currentClubId = clubResponse.data.club._id
-          setClubId(currentClubId)
-          
+        setError(null)
+        let currentClubId: string | null = null
+
+        if (contextClubId) {
+          currentClubId = contextClubId
+          setClubId(contextClubId)
+        } else {
+          const clubResponse = await apiClient.getAdminClub()
+          if (clubResponse.success && clubResponse.data?.club?._id) {
+            currentClubId = clubResponse.data.club._id
+            setClubId(currentClubId)
+          } else {
+            const errorMsg = 'No club found for this admin account. Please ensure your account is associated with a club before managing membership cards.'
+            setError(errorMsg)
+            toast({
+              title: "Club Not Found",
+              description: errorMsg,
+              variant: "destructive",
+            })
+            setLoading(false)
+            return
+          }
+        }
+
+        if (currentClubId) {
           const plansResponse = await apiClient.getMembershipPlans(currentClubId)
           if (plansResponse.success && plansResponse.data) {
             const plansData = Array.isArray(plansResponse.data) ? plansResponse.data : (plansResponse.data?.data || [])
             setMembershipPlans(plansData)
           }
-          
           await fetchCards(currentClubId)
-        } else {
-          const errorMsg = 'No club found for this admin account. Please ensure your account is associated with a club before managing membership cards.'
-          setError(errorMsg)
-          toast({
-            title: "Club Not Found",
-            description: errorMsg,
-            variant: "destructive",
-          })
         }
       } catch (err: any) {
         const errorMessage = err?.message || 'Network error or server unavailable'
@@ -163,7 +176,7 @@ export default function MembershipCardsPage() {
     }
 
     fetchInitialData()
-  }, [toast, fetchCards])
+  }, [toast, fetchCards, contextClubId])
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -236,7 +249,7 @@ export default function MembershipCardsPage() {
   }
 
   const handleCreateCard = async () => {
-    if (!clubId || !selectedPlanId) {
+    if (!effectiveClubId || !selectedPlanId) {
       toast({
         title: "Error",
         description: "Please select a membership plan",
@@ -267,7 +280,7 @@ export default function MembershipCardsPage() {
 
       const cardData: CreateMembershipCardRequest = {
         membershipPlanId: selectedPlanId,
-        clubId: clubId,
+        clubId: effectiveClubId,
         cardStyle: customization.cardStyle,
         accessLevel: 'basic',
         customization: {
@@ -294,8 +307,8 @@ export default function MembershipCardsPage() {
         setPreviewUrl(null)
         setSelectedFile(null)
         
-        if (clubId) {
-          await fetchCards(clubId)
+        if (effectiveClubId) {
+          await fetchCards(effectiveClubId)
         }
       } else {
         const errorDetails = (response as any).errorDetails || {}
@@ -361,19 +374,19 @@ export default function MembershipCardsPage() {
   }
 
   const handleRefresh = async () => {
-    if (clubId) {
-      try {
-        setLoading(true)
-        
-        // Fetch membership plans for this club
-        const plansResponse = await apiClient.getMembershipPlans(clubId)
+    if (!effectiveClubId) return
+    try {
+      setLoading(true)
+      
+      // Fetch membership plans for this club
+        const plansResponse = await apiClient.getMembershipPlans(effectiveClubId)
         if (plansResponse.success && plansResponse.data) {
           const plansData = Array.isArray(plansResponse.data) ? plansResponse.data : (plansResponse.data?.data || [])
           setMembershipPlans(plansData)
         }
         
         // Fetch existing membership cards (template cards only, all of them)
-        const cardsResponse = await apiClient.getClubMembershipCards(clubId, { isTemplate: true, limit: 100 })
+        const cardsResponse = await apiClient.getClubMembershipCards(effectiveClubId, { isTemplate: true, limit: 100 })
         
         if (cardsResponse.success && cardsResponse.data) {
           // Handle both array and nested data structure
@@ -402,7 +415,7 @@ export default function MembershipCardsPage() {
           const statusCode = errorDetails.statusCode || (cardsResponse as any).statusCode || 'Unknown'
           toast({
             title: "Error Refreshing Membership Cards",
-            description: `Failed to refresh membership cards for club (ID: ${clubId}): ${errorMessage}. Status: ${statusCode}. ${errorDetails.message ? `Details: ${errorDetails.message}.` : ''} Please try again.`,
+            description: `Failed to refresh membership cards for club (ID: ${effectiveClubId}): ${errorMessage}. Status: ${statusCode}. ${errorDetails.message ? `Details: ${errorDetails.message}.` : ''} Please try again.`,
             variant: "destructive",
           })
         }
@@ -412,12 +425,11 @@ export default function MembershipCardsPage() {
         const statusCode = err?.response?.status || 'Unknown'
         toast({
           title: "Error Refreshing Data",
-          description: `Failed to refresh membership cards and plans for club (ID: ${clubId || 'Unknown'}) due to: ${errorMessage}. Status: ${statusCode}. ${errorDetails.message ? `Details: ${errorDetails.message}.` : ''} Please check your connection and try again.`,
+          description: `Failed to refresh membership cards and plans for club (ID: ${effectiveClubId || 'Unknown'}) due to: ${errorMessage}. Status: ${statusCode}. ${errorDetails.message ? `Details: ${errorDetails.message}.` : ''} Please check your connection and try again.`,
           variant: "destructive",
         })
-      } finally {
-        setLoading(false)
-      }
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -974,7 +986,7 @@ export default function MembershipCardsPage() {
                       )}
                       <Button 
                         onClick={handleCreateCard} 
-                        disabled={!clubId || !selectedPlanId || isCreating || !!selectedPlanHasCard}
+                        disabled={!effectiveClubId || !selectedPlanId || isCreating || !!selectedPlanHasCard}
                       >
                         {isCreating ? "Creating..." : "Create Membership Card"}
                       </Button>
@@ -987,7 +999,7 @@ export default function MembershipCardsPage() {
 
             <TabsContent value="customize" className="space-y-6">
               <MembershipCardCustomizer 
-                clubId={clubId || undefined}
+                clubId={effectiveClubId || undefined}
                 onSave={() => {
                   // Refresh cards after saving customization  
                   window.location.reload();

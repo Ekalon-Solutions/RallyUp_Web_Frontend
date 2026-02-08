@@ -55,6 +55,8 @@ export function useDesignSettings(clubId?: string) {
   const { settings } = useClubSettings(clubId)
 
   useEffect(() => {
+    if (typeof document === 'undefined') return
+
     if (settings) {
       const actualData = (settings as any).data || settings
       const designSettings = actualData.designSettings
@@ -76,7 +78,15 @@ export function useDesignSettings(clubId?: string) {
           document.body.style.fontFamily = `"${designSettings.fontFamily}", sans-serif`
         }
       }
+    } else {
+      // Reset to defaults when club switched and settings cleared (or no club)
+      document.documentElement.style.removeProperty('--primary')
+      document.documentElement.style.removeProperty('--secondary')
+      document.documentElement.style.removeProperty('--font-sans')
+      document.body.style.fontFamily = ''
+      document.getElementById(CLUB_FONT_LINK_ID)?.remove()
     }
+
     return () => {
       document.getElementById(CLUB_FONT_LINK_ID)?.remove()
     }

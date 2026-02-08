@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useMemo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -24,8 +24,30 @@ declare global {
 }
 
 export default function SettingsPage() {
-  const { user, updateProfile, checkAuth } = useAuth()
+  const { user, updateProfile, checkAuth, activeClubId } = useAuth()
   const [loading, setLoading] = useState(false)
+
+  // Derive current club from activeClubId so it updates when user switches clubs
+  const currentClub = useMemo(() => {
+    if (!user || user.role === "system_owner") return null
+    const u = user as any
+    const normalizeId = (c: any) => (c?._id?.toString?.() ?? (typeof c === "string" ? c : null))
+    if (activeClubId) {
+      const fromClubs = Array.isArray(u.clubs) && u.clubs.find((c: any) => normalizeId(c) === activeClubId)
+      if (fromClubs) return typeof fromClubs === "object" ? fromClubs : null
+      const fromMembership = u.memberships?.find(
+        (m: any) => m?.status === "active" && (normalizeId(m.club_id) === activeClubId || normalizeId(m.club) === activeClubId)
+      )
+      const clubRef = fromMembership?.club_id ?? fromMembership?.club
+      if (clubRef) return typeof clubRef === "object" ? clubRef : null
+    }
+    if (u.club) return typeof u.club === "object" ? u.club : null
+    const firstMembership = u.memberships?.find((m: any) => m?.status === "active")
+    const ref = firstMembership?.club_id ?? firstMembership?.club
+    if (ref) return typeof ref === "object" ? ref : null
+    const firstAdminClub = Array.isArray(u.clubs) ? u.clubs[0] : null
+    return firstAdminClub && typeof firstAdminClub === "object" ? firstAdminClub : null
+  }, [user, activeClubId])
   const [profileForm, setProfileForm] = useState({
     name: "",
     email: "",
@@ -327,8 +349,8 @@ export default function SettingsPage() {
 
           <div id="recaptcha-container"></div>
 
-          {/* Club Information for Admins */}
-          {user.club && (user.role === 'admin' || user.role === 'super_admin' || user.role === 'system_owner') && (
+          {/* Club Information (uses current selected club so it updates on club switch) */}
+          {currentClub && (user.role === 'admin' || user.role === 'super_admin' || user.role === 'system_owner') && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -343,37 +365,37 @@ export default function SettingsPage() {
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">Club Name</Label>
-                    <p className="text-sm font-medium">{user.club.name}</p>
+                    <p className="text-sm font-medium">{currentClub.name}</p>
                   </div>
-                  {user.club.description && (
+                  {currentClub.description && (
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">Description</Label>
-                      <p className="text-sm text-muted-foreground">{user.club.description}</p>
+                      <p className="text-sm text-muted-foreground">{currentClub.description}</p>
                     </div>
                   )}
-                  {user.club.website && (
+                  {currentClub.website && (
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">Website</Label>
                       <div className="flex items-center gap-2">
                         <Globe className="w-4 h-4 text-muted-foreground" />
                         <a 
-                          href={user.club.website} 
+                          href={currentClub.website} 
                           target="_blank" 
                           rel="noopener noreferrer"
                           className="text-sm text-blue-600 hover:underline"
                         >
-                          {user.club.website}
+                          {currentClub.website}
                         </a>
                       </div>
                     </div>
                   )}
-                  {user.club.address && (
+                  {currentClub.address && (
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">Address</Label>
                       <div className="flex items-start gap-2">
                         <MapPin className="w-4 h-4 text-muted-foreground mt-0.5" />
                         <p className="text-sm text-muted-foreground">
-                          {user.club.address.street}, {user.club.address.city}, {user.club.address.state} {user.club.address.zipCode}, {user.club.address.country}
+                          {currentClub.address.street}, {currentClub.address.city}, {currentClub.address.state} {currentClub.address.zipCode}, {currentClub.address.country}
                         </p>
                       </div>
                     </div>
@@ -383,14 +405,14 @@ export default function SettingsPage() {
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <Mail className="w-4 h-4 text-muted-foreground" />
-                        <a href={`mailto:${user.club.contactEmail}`} className="text-sm text-blue-600 hover:underline">
-                          {user.club.contactEmail}
+                        <a href={`mailto:${currentClub.contactEmail}`} className="text-sm text-blue-600 hover:underline">
+                          {currentClub.contactEmail}
                         </a>
                       </div>
                       <div className="flex items-center gap-2">
                         <Phone className="w-4 h-4 text-muted-foreground" />
-                        <a href={`tel:${user.club.contactPhone}`} className="text-sm text-blue-600 hover:underline">
-                          {user.club.contactPhone}
+                        <a href={`tel:${currentClub.contactPhone}`} className="text-sm text-blue-600 hover:underline">
+                          {currentClub.contactPhone}
                         </a>
                       </div>
                     </div>
@@ -398,16 +420,16 @@ export default function SettingsPage() {
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">Club Status</Label>
                     <p className="text-sm text-muted-foreground capitalize">
-                      {user.club.status}
+                      {currentClub.status}
                     </p>
                   </div>
-                  {user.club.settings && (
+                  {currentClub.settings && (
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">Club Settings</Label>
                       <div className="grid gap-2 text-sm text-muted-foreground">
-                        <div>Max Members: {user.club.settings.maxMembers}</div>
-                        <div>Public Registration: {user.club.settings.allowPublicRegistration ? 'Enabled' : 'Disabled'}</div>
-                        <div>Approval Required: {user.club.settings.requireApproval ? 'Yes' : 'No'}</div>
+                        <div>Max Members: {currentClub.settings.maxMembers}</div>
+                        <div>Public Registration: {currentClub.settings.allowPublicRegistration ? 'Enabled' : 'Disabled'}</div>
+                        <div>Approval Required: {currentClub.settings.requireApproval ? 'Yes' : 'No'}</div>
                       </div>
                     </div>
                   )}
