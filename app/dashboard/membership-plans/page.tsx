@@ -42,7 +42,6 @@ export default function MembershipPlansPage() {
   const [plans, setPlans] = useState<MembershipPlan[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [clubs, setClubs] = useState<Array<{ _id: string; name: string }>>([])
-  const [selectedClubId, setSelectedClubId] = useState<string | undefined>(undefined)
   const [isCreating, setIsCreating] = useState(false)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [editingPlan, setEditingPlan] = useState<MembershipPlan | null>(null)
@@ -68,35 +67,23 @@ export default function MembershipPlansPage() {
     }
   })
 
+  // Use activeClubId from useAuth as the only source of truth for "selected" club
+  // When user or activeClubId is set, update UI and/or load plans
   useEffect(() => {
-    if (user) {
-      loadClubsAndDefault()
+    if (user && activeClubId) {
+      loadClubsAndPlans()
     }
-  }, [user])
+  }, [user, activeClubId])
 
-  // When user switches club in sidebar (activeClubId), sync selected club and refetch plans
-  useEffect(() => {
-    if (!user || !activeClubId) return
-    const u = user as any
-    const normalizeId = (c: any) => (c?._id?.toString?.() ?? (typeof c === "string" ? c : null))
-    const hasClub = (id: string) =>
-      u.clubs?.some((c: any) => normalizeId(c) === id) ||
-      u.memberships?.some((m: any) => m?.status === "active" && (normalizeId(m.club_id) === id || normalizeId(m.club) === id)) ||
-      normalizeId(u.club) === id
-    if (hasClub(activeClubId)) {
-      setSelectedClubId(activeClubId)
-      loadPlansForClub(activeClubId)
-    }
-  }, [activeClubId])
-
+  // Helper to refresh plans for currently active club
   const loadPlans = async () => {
-    return loadPlansForClub(selectedClubId)
+    return loadPlansForClub(activeClubId)
   }
 
-  const loadPlansForClub = async (clubId?: string) => {
+  const loadPlansForClub = async (clubId?: string | null) => {
     try {
       setIsLoading(true)
-      
+
       const token = localStorage.getItem('token')
       if (!token) {
         toast.error('Please log in to view membership plans')
@@ -104,7 +91,7 @@ export default function MembershipPlansPage() {
         return
       }
 
-      const response = await apiClient.getMembershipPlans(clubId)
+      const response = await apiClient.getMembershipPlans(clubId || "")
 
       if (response.success) {
         const respAny: any = response
@@ -136,19 +123,19 @@ export default function MembershipPlansPage() {
   const loadPlansWithCards = async (clubId: string, plansData: MembershipPlan[]) => {
     try {
       const cardsResponse = await apiClient.getClubMembershipCards(clubId, {})
-      
+
       if (cardsResponse.success) {
-        const cards = Array.isArray(cardsResponse.data) 
-          ? cardsResponse.data 
+        const cards = Array.isArray(cardsResponse.data)
+          ? cardsResponse.data
           : (cardsResponse.data?.data || [])
-        
+
         const planIdsWithCards = new Set<string>()
         cards.forEach((card: any) => {
           if (card.membershipPlan && card.membershipPlan._id) {
             planIdsWithCards.add(card.membershipPlan._id)
           }
         })
-        
+
         setPlansWithCards(planIdsWithCards)
       }
     } catch (error) {
@@ -160,10 +147,11 @@ export default function MembershipPlansPage() {
     window.location.href = `/dashboard/membership-cards?planId=${planId}`
   }
 
-  const loadClubsAndDefault = async () => {
+  // This loads the user's clubs list for display (not for switching);
+  // selected/active club always comes from context (activeClubId).
+  const loadClubsAndPlans = async () => {
     try {
       let clubsList: Array<{ _id: string; name: string }> = []
-      let initialClubId: string | undefined = undefined
 
       const userRole = user?.role
       const userAny = user as any
@@ -171,11 +159,9 @@ export default function MembershipPlansPage() {
       if (userRole === 'system_owner') {
         const clubsResp = await apiClient.getPublicClubs()
         clubsList = clubsResp.success ? (clubsResp.data?.clubs || []) : []
-        initialClubId = clubsList.length > 0 ? clubsList[0]._id : undefined
       } else if (userRole === 'admin' || userRole === 'super_admin') {
         if (userAny?.club?._id) {
           clubsList = [{ _id: userAny.club._id, name: userAny.club.name }]
-          initialClubId = userAny.club._id
         } else if (userAny?.memberships && Array.isArray(userAny.memberships)) {
           clubsList = userAny.memberships
             .filter((m: any) => m.club_id && m.status === 'active')
@@ -183,7 +169,6 @@ export default function MembershipPlansPage() {
               _id: m.club_id._id || m.club_id,
               name: m.club_id.name || 'Unknown Club'
             }))
-          initialClubId = clubsList.length > 0 ? clubsList[0]._id : undefined
         }
 
         if (clubsList.length === 0) {
@@ -191,10 +176,8 @@ export default function MembershipPlansPage() {
             const adminClubResp = await apiClient.getAdminClub()
             if (adminClubResp.success && adminClubResp.data?.club) {
               clubsList = [{ _id: adminClubResp.data.club._id, name: adminClubResp.data.club.name }]
-              initialClubId = adminClubResp.data.club._id
             }
-          } catch (err) {
-          }
+          } catch (err) {}
         }
       } else {
         if (userAny?.memberships && Array.isArray(userAny.memberships)) {
@@ -204,19 +187,11 @@ export default function MembershipPlansPage() {
               _id: m.club_id._id || m.club_id,
               name: m.club_id.name || 'Unknown Club'
             }))
-          initialClubId = clubsList.length > 0 ? clubsList[0]._id : undefined
         }
       }
 
-      // Prefer context activeClubId so switching club in sidebar is reflected
-      if (activeClubId && clubsList.some((c) => c._id === activeClubId)) {
-        initialClubId = activeClubId
-      }
-
       setClubs(clubsList)
-      setSelectedClubId(initialClubId)
-
-      await loadPlansForClub(initialClubId)
+      await loadPlansForClub(activeClubId)
     } catch (error) {
       setClubs([])
       await loadPlansForClub(undefined)
@@ -228,7 +203,7 @@ export default function MembershipPlansPage() {
     setIsCreating(true)
 
     try {
-      if (!selectedClubId) {
+      if (!activeClubId) {
         toast.error('Please select a club to create the plan for')
         setIsCreating(false)
         return
@@ -252,7 +227,7 @@ export default function MembershipPlansPage() {
         return
       }
 
-      const response = await (apiClient as any).createMembershipPlan({ ...formData, clubId: selectedClubId })
+      const response = await (apiClient as any).createMembershipPlan({ ...formData, clubId: activeClubId })
 
       if (response.success) {
         toast.success(`Membership plan "${formData.name}" created successfully with price ${formData.currency} ${formData.price} for ${formData.duration} month(s).`)
