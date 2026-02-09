@@ -23,13 +23,13 @@ import { toast } from "sonner"
 import { Loader2, ExternalLink, Newspaper, Calendar, User, Eye } from "lucide-react"
 
 export default function WebsitePage() {
-  const { user } = useAuth()
+  const { user , activeClubId} = useAuth()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [publishing, setPublishing] = useState(false)
   
-  const clubId = (user as any)?.club?._id || (user as any)?.club_id?._id
-  const clubSlug = (user as any)?.club?.slug || (user as any)?.club_id?.slug
+  const clubId = activeClubId
+  const clubSlug = (user as any)?.clubs?.find((c: any) => c._id === clubId)?.slug
 
   const [websiteSettings, setWebsiteSettings] = useState({
     published: false,
