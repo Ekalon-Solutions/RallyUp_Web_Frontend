@@ -344,7 +344,7 @@ export default function MembersPage() {
     if (!selectedMember) return
 
     try {
-      const response = await apiClient.deleteMember(selectedMember._id)
+      const response = await apiClient.deleteMember(selectedMember._id, clubId)
 
       if (response.success) {
         toast.success('Member deleted successfully')
@@ -406,7 +406,7 @@ export default function MembersPage() {
     if (selectedMemberIds.size === 0) return
 
     try {
-      const response = await apiClient.deleteMembersBulk(Array.from(selectedMemberIds))
+      const response = await apiClient.deleteMembersBulk(Array.from(selectedMemberIds), clubId)
 
       if (response.success) {
         toast.success(`Successfully deleted ${response.data?.deletedCount || selectedMemberIds.size} member(s)`)

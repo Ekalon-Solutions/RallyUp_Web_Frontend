@@ -189,6 +189,18 @@ export function AddMemberModal({ trigger, onMemberAdded, clubId: clubIdProp }: A
         club_id: clubId,
         membership_plan_id: selectedPlan?._id,
         username: userData.username || undefined,
+        first_name: userData.first_name || undefined,
+        last_name: userData.last_name || undefined,
+        date_of_birth: userData.date_of_birth || undefined,
+        gender: userData.gender || undefined,
+        address_line1: userData.address_line1 || undefined,
+        address_line2: userData.address_line2 || undefined,
+        city: userData.city || undefined,
+        state_province: userData.state_province || undefined,
+        zip_code: userData.zip_code || undefined,
+        country: userData.country || undefined,
+        id_proof_type: userData.id_proof_type || undefined,
+        id_proof_number: userData.id_proof_number || undefined,
       })
 
       if (!response.success) {

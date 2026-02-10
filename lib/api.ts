@@ -959,16 +959,17 @@ class ApiClient {
     });
   }
 
-  async deleteMember(id: string): Promise<ApiResponse<{ message: string }>> {
-    return this.request(`/admin/members/${id}`, {
+  async deleteMember(id: string, clubId?: string | null): Promise<ApiResponse<{ message: string }>> {
+    const query = clubId ? `?clubId=${encodeURIComponent(clubId)}` : '';
+    return this.request(`/admin/members/${id}${query}`, {
       method: 'DELETE',
     });
   }
 
-  async deleteMembersBulk(memberIds: string[]): Promise<ApiResponse<{ message: string; deletedCount: number }>> {
+  async deleteMembersBulk(memberIds: string[], clubId?: string | null): Promise<ApiResponse<{ message: string; deletedCount: number }>> {
     return this.request('/admin/members/bulk-delete', {
       method: 'POST',
-      body: JSON.stringify({ memberIds }),
+      body: JSON.stringify({ memberIds, clubId: clubId ?? undefined }),
     });
   }
 
@@ -2126,6 +2127,18 @@ class ApiClient {
     club_id: string;
     membership_plan_id?: string;
     username?: string;
+    first_name?: string;
+    last_name?: string;
+    date_of_birth?: string;
+    gender?: string;
+    address_line1?: string;
+    address_line2?: string;
+    city?: string;
+    state_province?: string;
+    zip_code?: string;
+    country?: string;
+    id_proof_type?: string;
+    id_proof_number?: string;
   }): Promise<ApiResponse<{ message: string; userMembership: unknown; existingUser?: boolean; alreadyMember?: boolean }>> {
     return this.request('/user-memberships/admin-add', {
       method: 'POST',

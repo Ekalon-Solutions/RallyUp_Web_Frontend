@@ -9,21 +9,39 @@ import { Building2, Users, Calendar, MapPin, CreditCard, Crown, Star, Shield } f
 import { apiClient } from '@/lib/api'
 import { formatDisplayDate } from '@/lib/utils'
 import { toast } from 'sonner'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
+
+/**
+ * This gets the user's active membership for their currently active club
+ * by matching the club id (from context) with membership.club_id.
+ */
+function getActiveClubMembershipForUser(user: any, activeClubId: string | null) {
+  if (!user || user.role === 'system_owner') return null
+  if (!activeClubId) return null
+
+  const memberships: any[] = Array.isArray(user.memberships) ? user.memberships : []
+  // match club id string or club object _id
+  return memberships.find(m => {
+    // Defensive for missing fields.
+    if (!m || !m.club_id) return false
+    let clubId = typeof m.club_id === 'string' ? m.club_id : m.club_id._id
+    return m.status === 'active' && clubId === activeClubId
+  }) || null
+}
 
 export function MembershipStatus() {
-  const { user, checkAuth } = useAuth()
+  const { user, activeClubId, checkAuth } = useAuth()
   const [leaving, setLeaving] = useState(false)
-  
-  const getActiveMembership = () => {
-    if (!user || user.role === 'system_owner') return null;
-    
-    const userMemberships = (user as any).memberships || [];
-    return userMemberships.find((m: any) => m.status === 'active');
-  }
 
-  const activeMembership = getActiveMembership();
-  const userClub = activeMembership?.club_id;
+  // Efficiently re-select membership and club info when user or activeClubId changes
+  const { activeMembership, userClub } = useMemo(() => {
+    const am = getActiveClubMembershipForUser(user, activeClubId)
+    // am?.club_id may be a club object or club id string
+    return {
+      activeMembership: am,
+      userClub: (am && typeof am.club_id === 'object' && am.club_id) || null,
+    }
+  }, [user, activeClubId])
 
   const handleLeaveClub = async () => {
     if (!userClub?._id) return
@@ -46,7 +64,7 @@ export function MembershipStatus() {
 
   const getPlanIcon = (planName?: string) => {
     if (!planName) return <Calendar className="w-4 h-4" />
-    
+
     const lowerPlan = planName.toLowerCase()
     if (lowerPlan.includes('premium') || lowerPlan.includes('gold')) return <Crown className="w-4 h-4" />
     if (lowerPlan.includes('basic') || lowerPlan.includes('standard')) return <Shield className="w-4 h-4" />
@@ -56,7 +74,7 @@ export function MembershipStatus() {
 
   const getPlanBadgeVariant = (planName?: string) => {
     if (!planName) return "secondary"
-    
+
     const lowerPlan = planName.toLowerCase()
     if (lowerPlan.includes('premium') || lowerPlan.includes('gold')) return "default"
     if (lowerPlan.includes('basic') || lowerPlan.includes('standard')) return "secondary"
@@ -131,7 +149,9 @@ export function MembershipStatus() {
                 {activeMembership.membership_level_id && (
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Plan price:</span>
-                    <span className="font-medium">{activeMembership.membership_level_id.currency} {activeMembership.membership_level_id.price}</span>
+                    <span className="font-medium">
+                      {activeMembership.membership_level_id.currency} {activeMembership.membership_level_id.price}
+                    </span>
                   </div>
                 )}
                 {activeMembership.end_date && (
@@ -173,9 +193,9 @@ export function MembershipStatus() {
 
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-3 pt-2 border-t border-border/50">
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             className="flex-1 sm:flex-none"
             asChild
           >
@@ -186,9 +206,9 @@ export function MembershipStatus() {
           </Button>
           <AlertDialog>
             <AlertDialogTrigger asChild>
-              <Button 
-                variant="destructive" 
-                size="sm" 
+              <Button
+                variant="destructive"
+                size="sm"
                 className="flex-1 sm:flex-none"
                 disabled={leaving}
               >
