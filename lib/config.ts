@@ -13,7 +13,7 @@ const getWsBaseUrl = () => {
 };
 
 export const ENV = {
-  CURRENT: 'development' as 'development' | 'production' | 'staging',
+  CURRENT: 'production' as 'development' | 'production' | 'staging',
   
   development: {
     apiBaseUrl: getApiBaseUrl(),
