@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 import { useAuth } from '@/contexts/auth-context'
 import { getApiUrl } from '@/lib/config'
@@ -15,7 +16,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 interface ImportMembersModalProps {
   trigger?: React.ReactNode
-  onImported?: () => void
+  onImported?: (entries?: Array<{ email: string; name: string; status: 'added' | 'updated' | 'already_member' }>) => void
   clubId?: string | null
 }
 
@@ -26,7 +27,12 @@ export function ImportMembersModal({ trigger, onImported, clubId: clubIdProp }: 
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null)
   const [file, setFile] = useState<File | null>(null)
   const [processing, setProcessing] = useState(false)
-  const [results, setResults] = useState<{ success: number; failed: number; errors: Array<{ row: number; error: string }> } | null>(null)
+  const [results, setResults] = useState<{
+    success: number
+    failed: number
+    errors: Array<{ row: number; error: string }>
+    entries: Array<{ row: number; email: string; name: string; status: 'added' | 'updated' | 'already_member' }>
+  } | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
 
@@ -125,6 +131,7 @@ charlie.brown@example.com,Charlie,Brown,9234567890,+91,charlie_brown,1992-08-20,
     setResults(null)
     setCurrentPage(1)
     const errors: Array<{ row: number; error: string }> = []
+    const entries: Array<{ row: number; email: string; name: string; status: 'added' | 'updated' | 'already_member' }> = []
     let successCount = 0
     let failCount = 0
 
@@ -335,14 +342,23 @@ charlie.brown@example.com,Charlie,Brown,9234567890,+91,charlie_brown,1992-08-20,
             
             if (errorMessage.includes('already has an active membership')) {
               successCount++
+              const memberName = `${first_name} ${last_name}`.trim() || email
+              entries.push({ row: idx + 2, email, name: memberName, status: 'already_member' })
             } else {
               failCount++
               errors.push({ row: idx + 2, error: `Membership creation failed for user ${email} (Plan: "${plan.name}"): ${errorMessage}. Status: ${statusCode}.${validationMsg} ${errorDetails.message ? `Details: ${errorDetails.message}.` : ''} Please check the membership plan and user details.` })
             }
             continue
           }
-          
+
+          const memberName = `${first_name} ${last_name}`.trim() || email
           successCount++
+          entries.push({
+            row: idx + 2,
+            email,
+            name: memberName,
+            status: existingUser ? 'updated' : 'added'
+          })
         } catch (err: any) {
           failCount++
           const errorMessage = err?.message || 'Unknown error occurred'
@@ -354,10 +370,10 @@ charlie.brown@example.com,Charlie,Brown,9234567890,+91,charlie_brown,1992-08-20,
         }
       }
 
-      setResults({ success: successCount, failed: failCount, errors })
+      setResults({ success: successCount, failed: failCount, errors, entries })
       if (successCount > 0) {
         toast.success(`${successCount} members imported successfully`)
-        onImported?.()
+        onImported?.(entries.map(({ row: _r, ...e }) => e))
       }
       if (failCount > 0) {
         toast.error(`${failCount} rows failed. See details.`)
@@ -435,6 +451,47 @@ charlie.brown@example.com,Charlie,Brown,9234567890,+91,charlie_brown,1992-08-20,
                   </div>
                 </div>
               </div>
+
+              {results.entries && results.entries.length > 0 && (
+                <div className="border rounded-lg overflow-hidden">
+                  <div className="px-4 py-2 bg-muted/50 border-b text-sm font-medium">Added / Updated entries</div>
+                  <div className="overflow-x-auto max-h-[280px] overflow-y-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-16">Row</TableHead>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {results.entries.map((entry, i) => (
+                          <TableRow key={`${entry.email}-${entry.row}-${i}`}>
+                            <TableCell className="font-medium">{entry.row}</TableCell>
+                            <TableCell>{entry.name}</TableCell>
+                            <TableCell>{entry.email}</TableCell>
+                            <TableCell>
+                              <Badge
+                                variant={entry.status === 'added' ? 'default' : 'secondary'}
+                                className={
+                                  entry.status === 'added'
+                                    ? 'bg-green-600 hover:bg-green-700'
+                                    : entry.status === 'updated'
+                                    ? 'bg-blue-600 hover:bg-blue-700'
+                                    : ''
+                                }
+                              >
+                                {entry.status === 'added' ? 'Added' : entry.status === 'updated' ? 'Updated' : 'Already a member'}
+                              </Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </div>
+              )}
               
               {results.errors.length > 0 && (
                 <div className="border rounded-lg overflow-hidden">

@@ -44,9 +44,11 @@ interface MembershipPlan {
   isActive: boolean
 }
 
+export type AddMemberResultStatus = 'added' | 'updated' | 'already_member'
+
 interface AddMemberModalProps {
   trigger?: React.ReactNode
-  onMemberAdded?: () => void
+  onMemberAdded?: (result?: { name: string; email: string; status: AddMemberResultStatus }) => void
   clubId?: string | null
 }
 
@@ -78,6 +80,7 @@ export function AddMemberModal({ trigger, onMemberAdded, clubId: clubIdProp }: A
 
   const [selectedPlan, setSelectedPlan] = useState<MembershipPlan | null>(null)
   const [sendWelcomeEmail, setSendWelcomeEmail] = useState(true)
+  const [lastAddStatus, setLastAddStatus] = useState<AddMemberResultStatus>('added')
 
   const resolvedClubId = clubIdProp ?? (user as any)?.club?._id ?? (user as any)?.clubs?.[0]?._id ?? (user as any)?.clubs?.[0]
 
@@ -115,34 +118,29 @@ export function AddMemberModal({ trigger, onMemberAdded, clubId: clubIdProp }: A
 
   const validateUserData = () => {
     const requiredFields = [
-      'username', 'email', 'first_name', 'last_name', 'date_of_birth', 
-      'gender', 'phoneNumber', 'address_line1', 'city', 'state_province', 
+      'username', 'email', 'first_name', 'last_name', 'date_of_birth',
+      'gender', 'phoneNumber', 'address_line1', 'city', 'state_province',
       'zip_code', 'country', 'id_proof_type', 'id_proof_number'
     ]
-    
     for (const field of requiredFields) {
       if (!userData[field as keyof typeof userData]) {
         toast.error(`Please fill in ${field.replace('_', ' ')}`)
         return false
       }
     }
-
     if (!/^[a-zA-Z0-9_.'-]+$/.test(userData.username)) {
       toast.error("Username can only contain letters, numbers, underscores, periods, apostrophes, and hyphens")
       return false
     }
-
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(userData.email)) {
       toast.error("Please enter a valid email address")
       return false
     }
-
     if (!/^\d{9,15}$/.test(userData.phoneNumber)) {
       toast.error("Please enter a valid phone number (9-15 digits)")
       return false
     }
-
     return true
   }
 
@@ -174,86 +172,51 @@ export function AddMemberModal({ trigger, onMemberAdded, clubId: clubIdProp }: A
     if (isLoading) return
     setIsLoading(true)
 
+    const clubId = resolvedClubId
+    if (!clubId) {
+      toast.error('Please select a club first')
+      setIsLoading(false)
+      return
+    }
+
+    const name = `${userData.first_name} ${userData.last_name}`.trim() || userData.username || 'Member'
     try {
-      
-      const userResponse = await fetch(getApiUrl('/users/register'), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(userData),
+      const response = await apiClient.adminAddMember({
+        name,
+        email: userData.email,
+        phoneNumber: userData.phoneNumber,
+        countryCode: userData.countryCode,
+        club_id: clubId,
+        membership_plan_id: selectedPlan?._id,
+        username: userData.username || undefined,
       })
 
-      if (!userResponse.ok) {
-        const errorData = await userResponse.json()
-        throw new Error(errorData.message || 'Failed to create user')
+      if (!response.success) {
+        throw new Error((response as any).error || response.error || 'Failed to add member')
       }
 
-      const userResult = await userResponse.json()
-      const newUserId = userResult._id
+      const data = response.data as { existingUser?: boolean; alreadyMember?: boolean }
+      let status: AddMemberResultStatus = 'added'
+      if (data?.alreadyMember) status = 'already_member'
+      else if (data?.existingUser) status = 'updated'
+      setLastAddStatus(status)
 
-      const clubId = resolvedClubId
-      if (!clubId) {
-        throw new Error('Please select a club first')
-      }
-
-      if (selectedPlan) {
-        const startDate = new Date()
-        let endDate = null
-        
-        if (selectedPlan.duration > 0) {
-          endDate = new Date(startDate)
-          endDate.setMonth(endDate.getMonth() + selectedPlan.duration)
-          
-          if (isNaN(endDate.getTime())) {
-            throw new Error('Invalid end date calculated')
-          }
-        }
-
-        const membershipData: any = {
-          user_id: newUserId,
-          membership_level_id: selectedPlan._id,
-          level_name: selectedPlan.name,
-          club_id: clubId,
-          start_date: startDate,
-          duration_days: selectedPlan.duration > 0 ? selectedPlan.duration * 30 : undefined,
-        }
-
-        if (endDate) {
-          membershipData.end_date = endDate
-        }
-
-
-        const membershipResponse = await fetch(getApiUrl('/user-memberships'), {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(membershipData),
-        })
-
-        if (!membershipResponse.ok) {
-          const errorData = await membershipResponse.json()
-          throw new Error(errorData.message || 'Failed to create membership')
-        }
-
-      } else {
-        const defaultResp = await apiClient.addMemberWithDefaultPlan({ user_id: newUserId, club_id: clubId })
-        if (!defaultResp.success) {
-          throw new Error(defaultResp.error || 'Failed to add member to club')
-        }
-      }
-
-      toast.success("Member created successfully!")
+      toast.success(
+        status === 'already_member'
+          ? 'User is already a member'
+          : status === 'updated'
+          ? 'Membership added for existing user'
+          : 'Member created successfully!'
+      )
       setStep("success")
-      
+
+      const result = { name, email: userData.email, status }
+      onMemberAdded?.(result)
+
       setTimeout(() => {
         resetForm()
-    setOpen(false)
-        onMemberAdded?.()
+        setOpen(false)
       }, 2000)
-
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to create member')
     } finally {
@@ -561,13 +524,12 @@ export function AddMemberModal({ trigger, onMemberAdded, clubId: clubIdProp }: A
   const renderSuccessStep = () => (
     <div className="text-center space-y-4 py-8">
       <CheckCircle className="w-16 h-16 text-green-500 mx-auto" />
-      <h3 className="text-xl font-semibold">Member Created Successfully!</h3>
+      <h3 className="text-xl font-semibold">
+        {lastAddStatus === 'already_member' ? 'Already a Member' : lastAddStatus === 'updated' ? 'Membership Added' : 'Member Created Successfully!'}
+      </h3>
       <p className="text-muted-foreground">
-        {userData.first_name} {userData.last_name} has been added to the club.
-        {selectedPlan && ` They are now on the ${selectedPlan.name} plan.`}
-      </p>
-      <p className="text-sm text-muted-foreground">
-        {sendWelcomeEmail ? "A welcome email has been sent." : "No welcome email was sent."}
+        {userData.first_name} {userData.last_name} has been {lastAddStatus === 'already_member' ? 'confirmed as' : 'added to'} the club.
+        {selectedPlan && lastAddStatus !== 'already_member' && ` They are now on the ${selectedPlan.name} plan.`}
       </p>
     </div>
   )

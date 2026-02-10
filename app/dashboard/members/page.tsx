@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { DashboardLayout } from '@/components/dashboard-layout'
 import { ProtectedRoute } from '@/components/protected-route'
 import { formatDisplayDate } from '@/lib/utils'
@@ -109,6 +110,13 @@ export default function MembersPage() {
     countryCode: '',
     isActive: true
   })
+  type AddResultStatus = 'added' | 'updated' | 'already_member'
+  interface AddResultEntry {
+    name: string
+    email: string
+    status: AddResultStatus
+  }
+  const [addResultEntries, setAddResultEntries] = useState<AddResultEntry[]>([])
 
   useEffect(() => {
     fetchMembers()
@@ -297,7 +305,13 @@ export default function MembersPage() {
         club_id: clubId
       })
       if (response.success) {
-        toast.success('Member added successfully')
+        const existingUser = (response.data as any)?.existingUser
+        const alreadyMember = (response.data as any)?.alreadyMember
+        let status: AddResultStatus = 'added'
+        if (alreadyMember) status = 'already_member'
+        else if (existingUser) status = 'updated'
+        setAddResultEntries(prev => [{ name: data.name, email: data.email, status }, ...prev].slice(0, 50))
+        toast.success(alreadyMember ? 'User is already a member' : existingUser ? 'Membership added for existing user' : 'Member added successfully')
         setIsAddDialogOpen(false)
         fetchMembers()
       } else {
@@ -499,9 +513,11 @@ export default function MembersPage() {
                     Add Member
                   </Button>
                 }
-                onMemberAdded={() => {
+                onMemberAdded={(result) => {
                   fetchMembers()
-                  toast.success("Member added successfully!")
+                  if (result) {
+                    setAddResultEntries(prev => [result, ...prev].slice(0, 50))
+                  }
                 }}
               />
               {/* Bulk import modal */}
@@ -513,7 +529,12 @@ export default function MembersPage() {
                     Import Members in Bulk
                   </Button>
                 }
-                onImported={() => fetchMembers()}
+                onImported={(entries) => {
+                  fetchMembers()
+                  if (entries?.length) {
+                    setAddResultEntries(prev => [...entries, ...prev].slice(0, 50))
+                  }
+                }}
               />
             </div>
           </div>
@@ -559,6 +580,49 @@ export default function MembersPage() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Add member results table */}
+          {addResultEntries.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Add Member Results</CardTitle>
+                <CardDescription>Recently added or updated entries from Add Member</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {addResultEntries.map((entry, idx) => (
+                      <TableRow key={`${entry.email}-${idx}`}>
+                        <TableCell className="font-medium">{entry.name}</TableCell>
+                        <TableCell>{entry.email}</TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={entry.status === 'added' ? 'default' : entry.status === 'updated' ? 'secondary' : 'outline'}
+                            className={
+                              entry.status === 'added'
+                                ? 'bg-green-600 hover:bg-green-700'
+                                : entry.status === 'updated'
+                                ? 'bg-blue-600 hover:bg-blue-700'
+                                : ''
+                            }
+                          >
+                            {entry.status === 'added' ? 'Added' : entry.status === 'updated' ? 'Updated' : 'Already a member'}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Filters */}
           <Card>

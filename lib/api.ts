@@ -2125,7 +2125,8 @@ class ApiClient {
     countryCode?: string;
     club_id: string;
     membership_plan_id?: string;
-  }): Promise<ApiResponse<{ message: string; userMembership: unknown }>> {
+    username?: string;
+  }): Promise<ApiResponse<{ message: string; userMembership: unknown; existingUser?: boolean; alreadyMember?: boolean }>> {
     return this.request('/user-memberships/admin-add', {
       method: 'POST',
       body: JSON.stringify(data)
