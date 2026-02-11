@@ -1323,7 +1323,7 @@ class ApiClient {
     return this.request('/events/my-registrations');
   }
 
-  async getLeaderboard(): Promise<ApiResponse<{
+  async getLeaderboard(clubId?: string): Promise<ApiResponse<{
     leaderboard: Array<{
       userId: string;
       name?: string;
@@ -1334,13 +1334,15 @@ class ApiClient {
       points: number;
     }>;
   }>> {
-    return this.request('/leaderboard');
+    const params = clubId ? new URLSearchParams({ clubId }) : undefined;
+    const url = params ? `/leaderboard?${params.toString()}` : '/leaderboard';
+    return this.request(url);
   }
 
-  async updateLeaderboardPoints(userId: string, points: number): Promise<ApiResponse<any>> {
+  async updateLeaderboardPoints(userId: string, points: number, clubId?: string): Promise<ApiResponse<any>> {
     return this.request(`/leaderboard/${encodeURIComponent(userId)}/points`, {
       method: 'PATCH',
-      body: JSON.stringify({ points }),
+      body: JSON.stringify({ points, ...(clubId ? { clubId } : {}) }),
     });
   }
 

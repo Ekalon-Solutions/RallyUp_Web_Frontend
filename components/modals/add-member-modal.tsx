@@ -106,7 +106,7 @@ export function AddMemberModal({ trigger, onMemberAdded, clubId: clubIdProp }: A
       
       if (response.ok) {
         const data = await response.json()
-        setMembershipPlans(data.data || [])
+        setMembershipPlans(data.data.filter((plan: MembershipPlan) => plan.isActive) || [])
       }
     } catch (error) {
     }

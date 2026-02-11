@@ -21,7 +21,7 @@ interface MemberLeaderboardProps {
   season?: string;
 }
 
-export function MemberLeaderboard(_props: MemberLeaderboardProps) {
+export function MemberLeaderboard({ clubId }: MemberLeaderboardProps) {
   const { user } = useAuth();
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,7 +32,7 @@ export function MemberLeaderboard(_props: MemberLeaderboardProps) {
       setLoading(true);
       setError(null);
 
-      const response = await apiClient.getLeaderboard();
+      const response = await apiClient.getLeaderboard(clubId);
       if (response.success && response.data) {
         const data = response.data.leaderboard || [];
         setEntries(data);
@@ -45,7 +45,7 @@ export function MemberLeaderboard(_props: MemberLeaderboardProps) {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [clubId]);
 
   useEffect(() => {
     fetchLeaderboard();

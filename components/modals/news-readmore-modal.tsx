@@ -125,7 +125,7 @@ export default function NewsReadMoreModal({ news, isOpen, onClose }: NewsReadMor
                 <CardContent className="pt-6">
                   <h3 className="text-lg font-semibold mb-4 text-foreground">Content</h3>
                   <div 
-                    className="prose prose-gray dark:prose-invert max-w-none text-foreground leading-relaxed"
+                    className="prose prose-gray dark:prose-invert max-w-none text-foreground leading-relaxed whitespace-pre-line"
                     dangerouslySetInnerHTML={{ __html: news.content }}
                   />
                 </CardContent>

@@ -48,6 +48,13 @@ export default function MembershipCardsPage() {
       emerald: { primaryColor: '#10b981', secondaryColor: '#0d9488' }
     }
 
+  const FONT_FAMILIES = [
+    { label: "Inter", value: "Inter" },
+    { label: "Roboto", value: "Roboto" },
+    { label: "Open Sans", value: "Open Sans" },
+    { label: "Montserrat", value: "Montserrat" },
+  ];
+
   const { activeClubId } = useAuth()
   const [customization, setCustomization] = useState<{
     cardStyle: 'default' | 'premium' | 'vintage' | 'modern' | 'elite' | 'emerald';
@@ -57,12 +64,12 @@ export default function MembershipCardsPage() {
     fontFamily: string;
     logoSize: 'small' | 'medium' | 'large';
   }>({
-    cardStyle: 'default' as 'default' | 'premium' | 'vintage' | 'modern' | 'elite' | 'emerald',
+    cardStyle: 'default',
     showLogo: true,
-    primaryColor: CARD_STYLE_COLORS['default' as keyof typeof CARD_STYLE_COLORS].primaryColor,
-    secondaryColor: CARD_STYLE_COLORS['default' as keyof typeof CARD_STYLE_COLORS].secondaryColor,
+    primaryColor: CARD_STYLE_COLORS['default'].primaryColor,
+    secondaryColor: CARD_STYLE_COLORS['default'].secondaryColor,
     fontFamily: 'Inter',
-    logoSize: 'medium' as const
+    logoSize: 'medium'
   })
 
   const [cards, setCards] = useState<PublicMembershipCardDisplay[]>([])
@@ -481,8 +488,10 @@ export default function MembershipCardsPage() {
           showLogo: true
         }
       }
-    }
-    setEditingCard(cardCopy)
+    };
+    setCustomLogoFile(null);
+    setCustomLogoPreview(null);
+    setEditingCard(cardCopy);
   }
 
   const handleSaveEdit = async () => {
@@ -533,14 +542,21 @@ export default function MembershipCardsPage() {
         }
       }
 
+      const updatedCustomization = {
+        ...editingCard.card.customization,
+        customLogo: customLogoUrl,
+      };
+
+      // fontFamily fix: Ensure the font from select is saved
+      if (!updatedCustomization.fontFamily) {
+        updatedCustomization.fontFamily = "Inter";
+      }
+
       const updateData = {
         status: editingCard.card.status,
         accessLevel: editingCard.card.accessLevel,
         cardStyle: editingCard.card.cardStyle,
-        customization: {
-          ...editingCard.card.customization,
-          customLogo: customLogoUrl
-        }
+        customization: updatedCustomization
       }
 
       const planName = editingCard.membershipPlan?.name || 'Unknown Plan'
@@ -614,12 +630,8 @@ export default function MembershipCardsPage() {
         card: {
           ...prev.card,
           customization: {
+            ...(existingCustomization || {}),
             primaryColor: newColor,
-            secondaryColor: existingCustomization?.secondaryColor || '#1e40af',
-            fontFamily: existingCustomization?.fontFamily || 'Inter',
-            logoSize: (existingCustomization?.logoSize || 'medium') as 'small' | 'medium' | 'large',
-            showLogo: existingCustomization?.showLogo ?? true,
-            ...(existingCustomization?.customLogo && { customLogo: existingCustomization.customLogo })
           }
         }
       }
@@ -635,12 +647,8 @@ export default function MembershipCardsPage() {
         card: {
           ...prev.card,
           customization: {
-            primaryColor: existingCustomization?.primaryColor || '#3b82f6',
+            ...(existingCustomization || {}),
             secondaryColor: newColor,
-            fontFamily: existingCustomization?.fontFamily || 'Inter',
-            logoSize: (existingCustomization?.logoSize || 'medium') as 'small' | 'medium' | 'large',
-            showLogo: existingCustomization?.showLogo ?? true,
-            ...(existingCustomization?.customLogo && { customLogo: existingCustomization.customLogo })
           }
         }
       }
@@ -677,26 +685,23 @@ export default function MembershipCardsPage() {
     })
   }, [])
 
+  // Font family fix: Only set the fontFamily field, retain existing customization
   const handleFontFamilyChange = useCallback((value: string) => {
     setEditingCard(prev => {
-      if (!prev) return null
-      const existingCustomization = prev.card.customization
+      if (!prev) return null;
+      const existingCustomization = prev.card.customization || {};
       return {
         ...prev,
         card: {
           ...prev.card,
           customization: {
-            primaryColor: existingCustomization?.primaryColor || '#3b82f6',
-            secondaryColor: existingCustomization?.secondaryColor || '#1e40af',
-            fontFamily: value,
-            logoSize: (existingCustomization?.logoSize || 'medium') as 'small' | 'medium' | 'large',
-            showLogo: existingCustomization?.showLogo ?? true,
-            ...(existingCustomization?.customLogo && { customLogo: existingCustomization.customLogo })
+            ...existingCustomization,
+            fontFamily: value
           }
         }
       }
-    })
-  }, [])
+    });
+  }, []);
 
   const handleLogoSizeChange = useCallback((value: string) => {
     setEditingCard(prev => {
@@ -707,12 +712,8 @@ export default function MembershipCardsPage() {
         card: {
           ...prev.card,
           customization: {
-            primaryColor: existingCustomization?.primaryColor || '#3b82f6',
-            secondaryColor: existingCustomization?.secondaryColor || '#1e40af',
-            fontFamily: existingCustomization?.fontFamily || 'Inter',
-            logoSize: value as 'small' | 'medium' | 'large',
-            showLogo: existingCustomization?.showLogo ?? true,
-            ...(existingCustomization?.customLogo && { customLogo: existingCustomization.customLogo })
+            ...(existingCustomization || {}),
+            logoSize: value as 'small' | 'medium' | 'large'
           }
         }
       }
@@ -721,19 +722,15 @@ export default function MembershipCardsPage() {
 
   const handleShowLogoChange = useCallback((checked: boolean) => {
     setEditingCard(prev => {
-      if (!prev) return null
-      const existingCustomization = prev.card.customization
+      if (!prev) return null;
+      const existingCustomization = prev.card.customization || {};
       return {
         ...prev,
         card: {
           ...prev.card,
           customization: {
-            primaryColor: existingCustomization?.primaryColor || '#3b82f6',
-            secondaryColor: existingCustomization?.secondaryColor || '#1e40af',
-            fontFamily: existingCustomization?.fontFamily || 'Inter',
-            logoSize: (existingCustomization?.logoSize || 'medium') as 'small' | 'medium' | 'large',
+            ...existingCustomization,
             showLogo: checked,
-            ...(existingCustomization?.customLogo && { customLogo: existingCustomization.customLogo })
           }
         }
       }
@@ -915,7 +912,15 @@ export default function MembershipCardsPage() {
                           <Label htmlFor="createCardStyle">Card Style</Label>
                           <Select
                             value={customization.cardStyle}
-                            onValueChange={(v) => setCustomization(prev => ({ ...prev, cardStyle: v as typeof prev.cardStyle, primaryColor: CARD_STYLE_COLORS[v as keyof typeof CARD_STYLE_COLORS].primaryColor, secondaryColor: CARD_STYLE_COLORS[v as keyof typeof CARD_STYLE_COLORS].secondaryColor, fontFamily: prev.fontFamily, logoSize: prev.logoSize, showLogo: prev.showLogo || true || false   }))}
+                            onValueChange={(v) => setCustomization(prev => ({
+                              ...prev,
+                              cardStyle: v as typeof prev.cardStyle,
+                              primaryColor: CARD_STYLE_COLORS[v as keyof typeof CARD_STYLE_COLORS].primaryColor,
+                              secondaryColor: CARD_STYLE_COLORS[v as keyof typeof CARD_STYLE_COLORS].secondaryColor,
+                              fontFamily: prev.fontFamily,
+                              logoSize: prev.logoSize,
+                              showLogo: prev.showLogo || true || false
+                            }))}
                           >
                             <SelectTrigger id="createCardStyle">
                               <SelectValue placeholder="Select style" />
@@ -1153,10 +1158,9 @@ export default function MembershipCardsPage() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Inter">Inter</SelectItem>
-                        <SelectItem value="Roboto">Roboto</SelectItem>
-                        <SelectItem value="Open Sans">Open Sans</SelectItem>
-                        <SelectItem value="Montserrat">Montserrat</SelectItem>
+                        {FONT_FAMILIES.map((font) => (
+                          <SelectItem key={font.value} value={font.value}>{font.label}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -1181,7 +1185,7 @@ export default function MembershipCardsPage() {
                   <div className="flex items-center space-x-2">
                     <Switch
                       id="showLogo"
-                      checked={editingCard.card.customization?.showLogo || true}
+                      checked={editingCard.card.customization?.showLogo ?? true}
                       onCheckedChange={handleShowLogoChange}
                     />
                     <Label htmlFor="showLogo">Show Club Logo</Label>
