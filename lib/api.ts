@@ -599,6 +599,7 @@ class ApiClient {
           success: false,
           error: errorMessage,
           message: data.message,
+          data,
           errorDetails,
           status: response.status
         };
@@ -1200,6 +1201,21 @@ class ApiClient {
       method: 'PUT',
       body: JSON.stringify(data),
     });
+  }
+
+  async getRedemptionSettings(): Promise<ApiResponse<{ settings: any; onePointValue: number }>> {
+    return this.request('/redemption/admin');
+  }
+
+  async updateRedemptionSettings(data: any): Promise<ApiResponse<{ settings: any; onePointValue: number }>> {
+    return this.request('/redemption/admin', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getMemberRedemption(memberId: string): Promise<ApiResponse<{ settings: any; onePointValue: number; batches: any[] }>> {
+    return this.request(`/redemption/members/${memberId}`);
   }
 
   async deleteEvent(id: string): Promise<ApiResponse<{ message: string }>> {

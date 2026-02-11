@@ -41,6 +41,7 @@ export default function AdminLeaderboardPage() {
         return
       }
       const response = await apiClient.getLeaderboard()
+      console.log("response:", response, clubId)
 
       if (response.success && response.data) {
         const entries = (response.data.leaderboard || []).filter((e: any) => String(e?.club || '') === String(clubId))

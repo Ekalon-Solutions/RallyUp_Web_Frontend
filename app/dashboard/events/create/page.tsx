@@ -23,6 +23,7 @@ export default function CreateEventPage() {
     location: "",
     description: "",
     maxAttendees: 100,
+    attendancePoints: 0,
     isPublished: false,
     organizer: "",
     notes: "",
@@ -44,10 +45,20 @@ export default function CreateEventPage() {
     }
 
     try {
-      // Here you would typically call your API to create the event
-      // console.log('Event data to submit:', eventData)
-      alert('Event created successfully! (This is a demo - implement API call)')
-      
+      // attempt to POST to backend events API; best-effort (requires auth on backend)
+      const resp = await fetch('/api/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(eventData),
+      })
+
+      if (!resp.ok) {
+        const body = await resp.json().catch(() => ({}))
+        throw new Error(body?.message || 'Failed to create event')
+      }
+
+      alert('Event created successfully!')
+
       // Reset form
       setEventData({
         title: "",
@@ -57,13 +68,14 @@ export default function CreateEventPage() {
         location: "",
         description: "",
         maxAttendees: 100,
+        attendancePoints: 0,
         isPublished: false,
         organizer: "",
         notes: "",
       })
-    } catch (error) {
+    } catch (error: any) {
       // console.error('Error creating event:', error)
-      alert('Error creating event')
+      alert('Error creating event: ' + (error?.message || error))
     }
   }
 
@@ -172,6 +184,19 @@ export default function CreateEventPage() {
                   onChange={(e) => handleInputChange("location", e.target.value)}
                   required
                 />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="attendancePoints">Attendance Points</Label>
+                <Input
+                  id="attendancePoints"
+                  type="number"
+                  placeholder="Points awarded for attending"
+                  value={String(eventData.attendancePoints ?? 0)}
+                  onChange={(e) => handleInputChange("attendancePoints", parseInt(e.target.value || '0'))}
+                  min={0}
+                />
+                <p className="text-sm text-muted-foreground">Points awarded to members when attendance is recorded via QR scan.</p>
               </div>
             </CardContent>
           </Card>
