@@ -17,7 +17,6 @@ import { Calendar, MapPin, Clock, Users, Newspaper, Tag, User as UserIcon, Eye, 
 import EventDetailsModal from '@/components/modals/event-details-modal'
 import UserEventRegistrationModal from "@/components/modals/user-event-registration-modal"
 import { EventCheckoutModal } from "@/components/modals/event-checkout-modal"
-import { EventPaymentSimulationModal } from "@/components/modals/event-payment-simulation-modal"
 
 function AttendanceMarker({ event, userId }: { event: Event; userId?: string }) {
   const [registration, setRegistration] = useState<any | null>(null)
@@ -106,10 +105,9 @@ export default function UserDashboardPage() {
   const [showRegistrationModal, setShowRegistrationModal] = useState(false)
   const [cancellingEventId, setCancellingEventId] = useState<string | null>(null)
   const [showEventCheckoutModal, setShowEventCheckoutModal] = useState(false)
-  const [showEventPaymentSimulationModal, setShowEventPaymentSimulationModal] = useState(false)
   const [eventForPayment, setEventForPayment] = useState<Event | null>(null)
   const [attendeesForPayment, setAttendeesForPayment] = useState<any[]>([])
-  const [showLogo, setShowLogo] = useState(true)
+  const [showLogo, setShowLogo] = useState(false)
 
   const paymentEvent = eventForPayment
     ? {
@@ -117,7 +115,9 @@ export default function UserDashboardPage() {
         name: eventForPayment.title,
         price: eventForPayment.ticketPrice ?? 0,
         ticketPrice: eventForPayment.ticketPrice,
-        earlyBirdDiscount: eventForPayment.earlyBirdDiscount,
+        earlyBirdDiscount: (eventForPayment as any).earlyBirdDiscount,
+        memberDiscount: (eventForPayment as any).memberDiscount,
+        groupDiscount: (eventForPayment as any).groupDiscount,
         currency: (eventForPayment as any)?.currency,
       }
     : undefined
@@ -173,11 +173,16 @@ export default function UserDashboardPage() {
   }
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowLogo(false)
-    }, 2000)
-    return () => clearTimeout(timer)
-  }, [])
+    const hasSeenUserDashboardLogo = typeof window !== "undefined" && localStorage.getItem("hasSeenUserDashboardLogo")
+    if (!hasSeenUserDashboardLogo && user) {
+      setShowLogo(true)
+      const fadeOutTimer = setTimeout(() => {
+        setShowLogo(false)
+        if (typeof window !== "undefined") localStorage.setItem("hasSeenUserDashboardLogo", "true")
+      }, 2000)
+      return () => clearTimeout(fadeOutTimer)
+    }
+  }, [user])
 
   useEffect(() => {
     fetchData()
@@ -353,8 +358,18 @@ export default function UserDashboardPage() {
     return registration?.status ?? null
   }
 
-  const handleReadMore = (newsItem: News) => {
-    setSelectedNewsForReadMore(newsItem)
+  const handleReadMore = async (newsItem: News) => {
+    try {
+      const res = await apiClient.getPublicNewsById(newsItem._id)
+      if (res.success && res.data) {
+        setSelectedNewsForReadMore(res.data as News)
+        setNews((prev) => (prev || []).map((n) => (n._id === newsItem._id ? (res.data as News) : n)))
+      } else {
+        setSelectedNewsForReadMore(newsItem)
+      }
+    } catch {
+      setSelectedNewsForReadMore(newsItem)
+    }
     setShowReadMoreModal(true)
   }
 
@@ -628,7 +643,8 @@ export default function UserDashboardPage() {
 
   const handleEventCheckoutSuccess = () => {
     setShowEventCheckoutModal(false);
-    setShowEventPaymentSimulationModal(true);
+    fetchData();
+    toast.success("Payment successful!");
   };
 
   return (
@@ -1125,34 +1141,17 @@ export default function UserDashboardPage() {
           }}
           onRegister={handlePerformRegistration}
         />
-        {paymentEvent && (
-          <EventCheckoutModal
-            isOpen={showEventCheckoutModal}
-            onClose={() => setShowEventCheckoutModal(false)}
-            event={paymentEvent}
-            attendees={attendeesForPayment}
-            onSuccess={handleEventCheckoutSuccess}
-            onFailure={() => setShowEventCheckoutModal(false)}
-          />
-        )}
-
-        {paymentEvent && (
-          <EventPaymentSimulationModal
-            isOpen={showEventPaymentSimulationModal}
-            onClose={() => setShowEventPaymentSimulationModal(false)}
-            event={paymentEvent}
-            attendees={attendeesForPayment}
-            onPaymentSuccess={() => {
-              setShowEventPaymentSimulationModal(false);
-              fetchData();
-              toast.success("Payment successful!");
-            }}
-            onPaymentFailure={() => {
-              setShowEventPaymentSimulationModal(false);
-              toast.error("Payment failed. Please try again.");
-            }}
-          />
-        )}
+        <EventCheckoutModal
+          isOpen={showEventCheckoutModal}
+          onClose={() => setShowEventCheckoutModal(false)}
+          event={paymentEvent}
+          attendees={attendeesForPayment}
+          onSuccess={handleEventCheckoutSuccess}
+          onFailure={() => {
+            setShowEventCheckoutModal(false);
+            toast.error("Payment failed. Please try again.");
+          }}
+        />
       </DashboardLayout>
     </ProtectedRoute>
   )

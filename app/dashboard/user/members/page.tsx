@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { apiClient } from '@/lib/api'
+import { formatDisplayDate } from '@/lib/utils'
 import { toast } from 'sonner'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -124,13 +125,7 @@ export default function ClubMembersPage() {
     setCurrentPage(page)
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
-  }
+  const formatDate = (dateString: string) => formatDisplayDate(dateString)
 
   const formatPhoneNumber = (phoneNumber: string, countryCode: string) => {
     return `${countryCode} ${phoneNumber}`

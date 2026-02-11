@@ -41,6 +41,7 @@ import {
   BarChart3,
   Eye
 } from 'lucide-react'
+import { formatDisplayDate } from '@/lib/utils'
 import { DashboardLayout } from '@/components/dashboard-layout'
 import { ProtectedRoute } from '@/components/protected-route'
 import { AdminManagementModal } from '@/components/modals/admin-management-modal'
@@ -872,7 +873,7 @@ export default function ClubManagementPage() {
                       </TableCell>
                       <TableCell>
                         <div className="text-sm">
-                          {new Date(club.createdAt).toLocaleDateString()}
+                          {formatDisplayDate(club.createdAt)}
                         </div>
                       </TableCell>
                       <TableCell className="text-right">

@@ -178,14 +178,16 @@ export function LatestEventsWidget({ limit = 3, showManageButton = true }: Lates
               ))}
             </div>
             
-            <div className="pt-2">
-              <Button asChild variant="outline" size="sm" className="w-full">
-                <Link href={isAdmin ? "/dashboard/events" : "/dashboard/user"}>
-                  View All Events
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Link>
-              </Button>
-            </div>
+            {!isAdmin && (
+              <div className="pt-2">
+                <Button asChild variant="outline" size="sm" className="w-full">
+                  <Link href="/dashboard/user">
+                    View All Events
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Link>
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </CardContent>

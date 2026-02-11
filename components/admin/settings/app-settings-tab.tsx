@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch"
 import { Save, Bell, Shield } from "lucide-react"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
+import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { apiClient } from "@/lib/api"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
@@ -35,6 +36,7 @@ interface AppSettings {
 
 export function AppSettingsTab() {
   const { user, checkAuth } = useAuth()
+  const clubId = useRequiredClubId()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [clubDetailsLoading, setClubDetailsLoading] = useState(false)
@@ -62,8 +64,6 @@ export function AppSettingsTab() {
     openRegistration: true,
     publicEvents: false
   })
-
-  const clubId = (user as any)?.club?._id || (user as any)?.club_id?._id
 
   useEffect(() => {
     if (clubId) {

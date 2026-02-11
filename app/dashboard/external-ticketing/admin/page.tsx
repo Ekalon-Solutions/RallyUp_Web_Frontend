@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input'
 import { apiClient, ExternalTicketRequest, Event } from '@/lib/api'
 import { useAuth } from '@/contexts/auth-context'
 import { toast } from 'sonner'
-import { triggerBlobDownload } from '@/lib/utils'
+import { triggerBlobDownload, formatDisplayDate } from '@/lib/utils'
 import { 
   CheckCircle, 
   XCircle, 
@@ -218,13 +218,7 @@ export default function AdminExternalTicketsPage() {
     }
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
-  }
+  const formatDate = (dateString: string) => formatDisplayDate(dateString)
 
   const getStatusBadge = (status: string) => {
     const config = STATUS_COLORS[status] || STATUS_COLORS.pending

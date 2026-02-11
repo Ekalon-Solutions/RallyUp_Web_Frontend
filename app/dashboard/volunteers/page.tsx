@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import AdminVolunteerList from '@/components/volunteer/admin-volunteer-list';
 import { useAuth } from '@/contexts/auth-context';
+import { useSelectedClubId } from '@/hooks/useSelectedClubId';
 
 /**
  * Volunteer Management Demo Page
@@ -19,12 +20,7 @@ import { useAuth } from '@/contexts/auth-context';
  */
 export default function VolunteerManagementPage() {
   const { user } = useAuth();
-  // Get club ID based on user type
-  const clubId = (user && 'memberships' in user) 
-    ? user.memberships?.[0]?.club_id?._id 
-    : (user && 'club' in user) 
-      ? user.club?._id 
-      : undefined;
+  const clubId = useSelectedClubId() ?? undefined;
 
   return (
     <div className="container mx-auto p-6 max-w-7xl">

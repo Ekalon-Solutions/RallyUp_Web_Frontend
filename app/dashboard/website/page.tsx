@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/contexts/auth-context"
 import { apiClient, News, Event } from "@/lib/api"
+import { formatDisplayDate } from "@/lib/utils"
 import {
   WEBSITE_SECTION_OPTIONS,
   isWebsiteOptionEnabled,
@@ -22,13 +23,13 @@ import { toast } from "sonner"
 import { Loader2, ExternalLink, Newspaper, Calendar, User, Eye } from "lucide-react"
 
 export default function WebsitePage() {
-  const { user } = useAuth()
+  const { user , activeClubId} = useAuth()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [publishing, setPublishing] = useState(false)
   
-  const clubId = (user as any)?.club?._id || (user as any)?.club_id?._id
-  const clubSlug = (user as any)?.club?.slug || (user as any)?.club_id?.slug
+  const clubId = activeClubId
+  const clubSlug = (user as any)?.clubs?.find((c: any) => c._id === clubId)?.slug
 
   const [websiteSettings, setWebsiteSettings] = useState({
     published: false,
@@ -378,7 +379,7 @@ export default function WebsitePage() {
                                     </span>
                                     <span className="flex items-center gap-1">
                                       <Calendar className="w-3 h-3" />
-                                      {new Date(article.publishedAt || article.createdAt).toLocaleDateString()}
+                                      {formatDisplayDate(article.publishedAt || article.createdAt)}
                                     </span>
                                     {article.viewCount !== undefined && (
                                       <span className="flex items-center gap-1">
@@ -419,7 +420,7 @@ export default function WebsitePage() {
                                   <div className="flex items-center gap-4 text-xs text-muted-foreground">
                                     <span className="flex items-center gap-1">
                                       <Calendar className="w-3 h-3" />
-                                      {(event.eventDate || event.startTime) ? new Date(event.eventDate || event.startTime).toLocaleDateString() : 'TBD'}
+                                      {(event.eventDate || event.startTime) ? formatDisplayDate(event.eventDate || event.startTime) : 'TBD'}
                                     </span>
                                     {event.venue && (
                                       <span className="line-clamp-1">{event.venue}</span>

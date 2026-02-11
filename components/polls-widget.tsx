@@ -176,14 +176,16 @@ export function PollsWidget({ limit = 3, showCreateButton = true }: PollsWidgetP
               ))}
             </div>
             
-            <div className="pt-2">
-              <Button asChild variant="outline" size="sm" className="w-full">
-                <Link href={isAdmin ? "/dashboard/polls" : "/dashboard/user/polls"}>
-                  View All Polls
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Link>
-              </Button>
-            </div>
+            {!isAdmin && (
+              <div className="pt-2">
+                <Button asChild variant="outline" size="sm" className="w-full">
+                  <Link href="/dashboard/user/polls">
+                    View All Polls
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Link>
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </CardContent>

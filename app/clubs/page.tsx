@@ -37,6 +37,7 @@ import {
 import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import { getApiUrl, API_ENDPOINTS } from "@/lib/config"
+import { calculateTransactionFees } from "@/lib/transactionFees"
 import { PaymentSimulationModal } from "@/components/modals/payment-simulation-modal"
 import { SiteNavbar } from "@/components/site-navbar"
 import { SiteFooter } from "@/components/site-footer"
@@ -1437,25 +1438,32 @@ function ClubsPageContent() {
         </DialogContent>
       </Dialog>
 
-      {pendingOrder && (
-        <PaymentSimulationModal
-          isOpen={isPaymentModalOpen}
-          onClose={() => {
-            setIsPaymentModalOpen(false)
-            setPendingOrder(null)
-          }}
-          onPaymentSuccess={handlePaymentSuccess}
-          onPaymentFailure={handlePaymentFailure}
-          orderId={pendingOrder.orderId}
-          orderNumber={pendingOrder.orderNumber}
-          total={pendingOrder.total}
-          currency={pendingOrder.currency}
-          paymentMethod={pendingOrder.paymentMethod}
-          dialogTitle="Pay Now — Complete Your Membership"
-          dialogDescription="You're registered. Complete payment to activate your membership."
-          payButtonLabel={`Pay ${formatPrice(pendingOrder.total, pendingOrder.currency)} Now`}
-        />
-      )}
+      {pendingOrder && (() => {
+        const feeBreakdown = pendingOrder.total > 0 ? calculateTransactionFees(pendingOrder.total) : null
+        const amountToCharge = feeBreakdown ? feeBreakdown.finalAmount : pendingOrder.total
+        return (
+          <PaymentSimulationModal
+            isOpen={isPaymentModalOpen}
+            onClose={() => {
+              setIsPaymentModalOpen(false)
+              setPendingOrder(null)
+            }}
+            onPaymentSuccess={handlePaymentSuccess}
+            onPaymentFailure={handlePaymentFailure}
+            orderId={pendingOrder.orderId}
+            orderNumber={pendingOrder.orderNumber}
+            total={amountToCharge}
+            subtotal={pendingOrder.total}
+            currency={pendingOrder.currency}
+            paymentMethod={pendingOrder.paymentMethod}
+            platformFeeTotal={feeBreakdown ? feeBreakdown.platformFee + feeBreakdown.platformFeeGst : undefined}
+            razorpayFeeTotal={feeBreakdown ? feeBreakdown.razorpayFee + feeBreakdown.razorpayFeeGst : undefined}
+            dialogTitle="Pay Now — Complete Your Membership"
+            dialogDescription="You're registered. Complete payment to activate your membership."
+            payButtonLabel={`Pay ${formatPrice(amountToCharge, pendingOrder.currency)} Now`}
+          />
+        )
+      })()}
 
       <SiteFooter brandName="Wingman Pro" />
     </div>

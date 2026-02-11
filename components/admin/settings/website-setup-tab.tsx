@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useMemo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -12,6 +12,7 @@ import { Save, Globe, Eye, EyeOff, ExternalLink, Copy, Share2 } from "lucide-rea
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
+import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import {
   DEFAULT_WEBSITE_SECTIONS,
   WEBSITE_SECTION_OPTIONS,
@@ -31,6 +32,7 @@ interface WebsiteSettings {
 
 export function WebsiteSetupTab() {
   const { user, checkAuth } = useAuth()
+  const clubId = useRequiredClubId()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [slugInput, setSlugInput] = useState<string | null>(null)
@@ -46,15 +48,27 @@ export function WebsiteSetupTab() {
     },
   })
 
-  const clubId = (user as any)?.club?._id || (user as any)?.club_id?._id
+  const currentClubSlug = useMemo(() => {
+    if (!user || !clubId) return null
+    const u = user as any
+    const id = (c: any) => c?._id?.toString?.() ?? (typeof c === "string" ? c : null)
+    const fromClubs = u.clubs?.find((c: any) => id(c) === clubId)
+    if (fromClubs && typeof fromClubs === "object" && fromClubs.slug) return fromClubs.slug
+    const fromMembership = u.memberships?.find(
+      (m: any) => m?.status === "active" && (id(m.club_id) === clubId || id(m.club) === clubId)
+    )
+    const ref = fromMembership?.club_id ?? fromMembership?.club
+    if (ref && typeof ref === "object" && ref.slug) return ref.slug
+    if (u.club && id(u.club) === clubId && u.club.slug) return u.club.slug
+    return null
+  }, [user, clubId])
 
   useEffect(() => {
     if (clubId) {
       loadSettings()
     }
-    const existingSlug = (user as any)?.club?.slug || (user as any)?.club_id?.slug
-    if (existingSlug) setSlugInput(existingSlug)
-  }, [clubId])
+    if (currentClubSlug) setSlugInput(currentClubSlug)
+  }, [clubId, currentClubSlug])
 
     const loadSettings = async () => {
     if (!clubId) return
@@ -133,10 +147,7 @@ export function WebsiteSetupTab() {
 
   const copyPublicUrl = () => {
     if (!clubId) return
-    
-    const clubSlug = (user as any)?.club?.slug || (user as any)?.club_id?.slug
-    const identifier = clubSlug || clubId
-    
+    const identifier = slugInput || currentClubSlug || clubId
     const publicUrl = `${window.location.origin}/clubs/${identifier}`
     navigator.clipboard.writeText(publicUrl)
     toast.success("Public URL copied to clipboard!")
@@ -144,10 +155,7 @@ export function WebsiteSetupTab() {
 
   const openPublicPage = () => {
     if (!clubId) return
-    
-    const clubSlug = (user as any)?.club?.slug || (user as any)?.club_id?.slug
-    const identifier = clubSlug || clubId
-    
+    const identifier = slugInput || currentClubSlug || clubId
     const publicUrl = `${window.location.origin}/clubs/${identifier}`
     window.open(publicUrl, '_blank')
   }
@@ -177,7 +185,7 @@ export function WebsiteSetupTab() {
           <div className="flex items-center gap-2 p-3 bg-white dark:bg-gray-900 rounded-lg border">
             <Globe className="h-4 w-4 text-muted-foreground flex-shrink-0" />
             <code className="text-sm flex-1 truncate text-blue-600 dark:text-blue-400">
-              {(user as any)?.club?.slug ? `${typeof window !== 'undefined' ? window.location.origin : ''}/clubs/${(user as any)?.club?.slug}` : 'Loading...'}
+              {(slugInput || currentClubSlug || clubId) ? `${typeof window !== 'undefined' ? window.location.origin : ''}/clubs/${slugInput || currentClubSlug || clubId}` : 'Loading...'}
             </code>
           </div>
 

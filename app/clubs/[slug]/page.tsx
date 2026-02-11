@@ -8,9 +8,11 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { apiClient, News, Event, Poll, Chant } from "@/lib/api"
+import { formatDisplayDate } from "@/lib/utils"
 import { getNewsImageUrl } from "@/lib/config"
 import UserEventRegistrationModal from "@/components/modals/user-event-registration-modal"
 import { EventCheckoutModal } from "@/components/modals/event-checkout-modal"
+import NewsReadMoreModal from "@/components/modals/news-readmore-modal"
 import { 
   Globe, 
   Mail, 
@@ -78,9 +80,26 @@ export default function PublicClubPage() {
   const [showEventCheckoutModal, setShowEventCheckoutModal] = useState(false)
   const [attendeesForPayment, setAttendeesForPayment] = useState<any[]>([])
   const [couponCodeForPayment, setCouponCodeForPayment] = useState<string | undefined>(undefined)
+  const [showReadMoreModal, setShowReadMoreModal] = useState(false)
+  const [selectedNewsForReadMore, setSelectedNewsForReadMore] = useState<News | null>(null)
 
   const encodeSearchParam = (value: string) =>
     encodeURIComponent(value).replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`)
+
+  const handleReadMoreNews = async (article: News) => {
+    try {
+      const res = await apiClient.getPublicNewsById(article._id)
+      if (res.success && res.data) {
+        setSelectedNewsForReadMore(res.data as News)
+        setNews((prev) => prev.map((n) => (n._id === article._id ? (res.data as News) : n)))
+      } else {
+        setSelectedNewsForReadMore(article)
+      }
+    } catch {
+      setSelectedNewsForReadMore(article)
+    }
+    setShowReadMoreModal(true)
+  }
 
   useEffect(() => {
     if (slug) {
@@ -545,7 +564,7 @@ export default function PublicClubPage() {
                                     </span>
                                     <span className="flex items-center gap-1">
                                       <Calendar className="w-4 h-4" />
-                                      {new Date(article.publishedAt || article.createdAt).toLocaleDateString()}
+                                      {formatDisplayDate(article.publishedAt || article.createdAt)}
                                     </span>
                                   </div>
                                   {article.viewCount !== undefined && (
@@ -555,6 +574,16 @@ export default function PublicClubPage() {
                                     </div>
                                   )}
                                 </CardContent>
+                                <CardFooter className="pt-0">
+                                  <Button
+                                    variant="outline"
+                                    className="w-full"
+                                    style={{ borderColor: primaryColor, color: primaryColor }}
+                                    onClick={() => handleReadMoreNews(article)}
+                                  >
+                                    Read more
+                                  </Button>
+                                </CardFooter>
                               </Card>
                             ))}
                           </div>
@@ -585,9 +614,9 @@ export default function PublicClubPage() {
                           <div className="flex items-center justify-center py-12">
                             <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: primaryColor }} />
                           </div>
-                        ) : events.length > 0 ? (
+                        ) : events.filter((e: any) => !e?.memberOnly).length > 0 ? (
                           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                            {events.map((event) => (
+                            {events.filter((e: any) => !e?.memberOnly).map((event) => (
                               <Card key={event._id} className="hover:shadow-lg transition-all border-2">
                                 <CardHeader>
                                   <div className="flex items-start justify-between mb-2">
@@ -616,12 +645,7 @@ export default function PublicClubPage() {
                                   {(event.eventDate || event.startTime) && (
                                     <div className="flex items-center gap-2 text-sm">
                                       <Calendar className="w-4 h-4 text-muted-foreground" />
-                                      <span>{new Date(event.eventDate || event.startTime).toLocaleDateString('en-US', { 
-                                        weekday: 'long', 
-                                        year: 'numeric', 
-                                        month: 'long', 
-                                        day: 'numeric' 
-                                      })}</span>
+                                      <span>{formatDisplayDate(event.eventDate || event.startTime)}</span>
                                     </div>
                                   )}
                                   {(event.eventTime || event.startTime) && (
@@ -641,25 +665,36 @@ export default function PublicClubPage() {
                                       <span className="line-clamp-1">{event.venue}</span>
                                     </div>
                                   )}
-                                  {event.maxAttendees && (
+                                  {event.maxAttendees != null && (
                                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                       <Users className="w-4 h-4" />
                                       <span>
                                         {event.currentAttendees || 0} / {event.maxAttendees} attendees
+                                        {(event.currentAttendees ?? 0) >= event.maxAttendees && (
+                                          <span className="font-medium text-destructive ml-1">(Full)</span>
+                                        )}
                                       </span>
                                     </div>
                                   )}
 
-                                  <Button
-                                    className="w-full mt-2"
-                                    style={{ backgroundColor: primaryColor, color: "white" }}
-                                    onClick={() => {
-                                      setEventForRegistration(event)
-                                      setShowEventRegistrationModal(true)
-                                    }}
-                                  >
-                                    {event.ticketPrice && event.ticketPrice > 0 ? "Buy Tickets" : "Register"}
-                                  </Button>
+                                  {(() => {
+                                    const isEventFull = event.maxAttendees != null && (event.currentAttendees ?? 0) >= event.maxAttendees
+                                    return (
+                                      <Button
+                                        className="w-full mt-2"
+                                        style={isEventFull ? undefined : { backgroundColor: primaryColor, color: "white" }}
+                                        variant={isEventFull ? "secondary" : "default"}
+                                        disabled={isEventFull}
+                                        onClick={() => {
+                                          if (isEventFull) return
+                                          setEventForRegistration(event)
+                                          setShowEventRegistrationModal(true)
+                                        }}
+                                      >
+                                        {isEventFull ? "Event Full" : event.ticketPrice && event.ticketPrice > 0 ? "Buy Tickets" : "Register"}
+                                      </Button>
+                                    )
+                                  })()}
                                 </CardContent>
                               </Card>
                             ))}
@@ -853,24 +888,6 @@ export default function PublicClubPage() {
               </Tabs>
             </div>
           )}
-
-          {websiteSetup.sections.members && (
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-12">
-              <Card className="group hover:border-primary/50 transition-all duration-500 shadow-sm hover:shadow-2xl rounded-3xl overflow-hidden border-2">
-                <CardHeader className="space-y-6 p-8">
-                  <div className="w-16 h-16 rounded-[1.25rem] bg-primary/10 flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-all duration-500 shadow-inner">
-                    <Users className="h-8 w-8" style={{ color: primaryColor }} />
-                  </div>
-                  <div className="space-y-4">
-                    <CardTitle className="text-2xl font-bold">Member Directory</CardTitle>
-                    <CardDescription className="text-lg leading-relaxed font-medium">
-                      Connect with thousands of fellow supporters and expand our community.
-                    </CardDescription>
-                  </div>
-                </CardHeader>
-              </Card>
-            </div>
-          )}
         </div>
       </section>
 
@@ -944,6 +961,8 @@ export default function PublicClubPage() {
                 price: eventForRegistration.ticketPrice || 0,
                 ticketPrice: eventForRegistration.ticketPrice || 0,
                 earlyBirdDiscount: (eventForRegistration as any).earlyBirdDiscount,
+                memberDiscount: (eventForRegistration as any).memberDiscount,
+                groupDiscount: (eventForRegistration as any).groupDiscount,
                 currency: (eventForRegistration as any).currency || "INR",
               }
             : undefined
@@ -956,6 +975,15 @@ export default function PublicClubPage() {
           }
         }}
         onFailure={() => {
+        }}
+      />
+
+      <NewsReadMoreModal
+        news={selectedNewsForReadMore}
+        isOpen={showReadMoreModal}
+        onClose={() => {
+          setShowReadMoreModal(false)
+          setSelectedNewsForReadMore(null)
         }}
       />
     </div>

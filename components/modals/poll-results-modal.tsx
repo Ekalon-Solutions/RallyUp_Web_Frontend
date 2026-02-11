@@ -16,7 +16,7 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api"
-import { triggerBlobDownload } from '@/lib/utils'
+import { triggerBlobDownload, formatDisplayDate } from '@/lib/utils'
 
 interface PollResultsModalProps {
   pollId: string
@@ -114,15 +114,7 @@ export function PollResultsModal({ pollId, isOpen, onClose, refreshTrigger }: Po
     }
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
+  const formatDate = (dateString: string) => formatDisplayDate(dateString)
 
   const getStatusColor = (status: string) => {
     switch (status) {

@@ -28,6 +28,10 @@ export function useClubSettings(clubId?: string) {
       return
     }
 
+    // Clear previous club's settings immediately so we never show wrong club's data after switch
+    setSettings(null)
+    setLoading(true)
+
     const fetchSettings = async () => {
       try {
         const cacheKey = `clubSettings:${clubId}`

@@ -5,10 +5,44 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Save, Palette, Upload, Image as ImageIcon } from "lucide-react"
 import { toast } from "sonner"
-import { useAuth } from "@/contexts/auth-context"
+import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { apiClient } from "@/lib/api"
+
+const FONT_OPTIONS = [
+  "Oswald",
+  "Bebas Neue",
+  "Teko",
+  "Anton",
+  "Exo 2",
+  "Barlow",
+  "Archivo Black",
+  "Inter",
+  "Roboto",
+  "Montserrat",
+  "Poppins",
+  "Lato",
+  "Open Sans",
+  "Titillium Web",
+  "Merriweather",
+  "Playfair Display",
+  "Lora",
+  "Roboto Slab",
+  "Bitter",
+  "Aptos",
+  "Aptos Display",
+] as const
+
+const GOOGLE_FONTS_URL =
+  "https://fonts.googleapis.com/css2?family=Anton&family=Archivo+Black&family=Barlow:wght@400;500;600;700&family=Bebas+Neue&family=Bitter:wght@400;600;700&family=Exo+2:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Lato:wght@400;700&family=Lora:wght@400;600;700&family=Merriweather:wght@400;700&family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@400;600;700&family=Oswald:wght@400;500;600;700&family=Playfair+Display:wght@400;600;700&family=Poppins:wght@400;500;600;700&family=Roboto:wght@400;500;700&family=Roboto+Slab:wght@400;600;700&family=Teko:wght@400;500;600;700&family=Titillium+Web:wght@400;600;700&display=swap"
 
 interface DesignSettings {
   primaryColor: string
@@ -25,7 +59,7 @@ interface DesignSettings {
 }
 
 export function DesignSettingsTab() {
-  const { user } = useAuth()
+  const clubId = useRequiredClubId()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [settings, setSettings] = useState<DesignSettings>({
@@ -41,8 +75,19 @@ export function DesignSettingsTab() {
       youtube: ""
     }
   })
-
-  const clubId = (user as any)?.club?._id || (user as any)?.club_id?._id
+  
+  useEffect(() => {
+    const linkId = "design-settings-google-fonts"
+    if (document.getElementById(linkId)) return
+    const link = document.createElement("link")
+    link.id = linkId
+    link.rel = "stylesheet"
+    link.href = GOOGLE_FONTS_URL
+    document.head.appendChild(link)
+    return () => {
+      document.getElementById(linkId)?.remove()
+    }
+  }, [])
 
   useEffect(() => {
     if (clubId) {
@@ -133,15 +178,6 @@ export function DesignSettingsTab() {
     }
   }
 
-  const fontOptions = [
-    "Inter",
-    "Roboto",
-    "Open Sans",
-    "Lato",
-    "Montserrat",
-    "Poppins"
-  ]
-
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -225,26 +261,36 @@ export function DesignSettingsTab() {
         <CardHeader>
           <CardTitle>Typography</CardTitle>
           <CardDescription>
-            Choose a font family for your website
+            Choose a font family for your website. Each option is shown in that font.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
             <Label htmlFor="fontFamily">Font Family</Label>
-            <select
-              id="fontFamily"
-              value={settings.fontFamily}
-              onChange={(e) => setSettings({ ...settings, fontFamily: e.target.value })}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+            <Select
+              value={FONT_OPTIONS.includes(settings.fontFamily as any) ? settings.fontFamily : "Inter"}
+              onValueChange={(value) => setSettings({ ...settings, fontFamily: value })}
             >
-              {fontOptions.map((font) => (
-                <option key={font} value={font} style={{ fontFamily: font }}>
-                  {font}
-                </option>
-              ))}
-            </select>
-            <p className="text-sm text-muted-foreground" style={{ fontFamily: settings.fontFamily }}>
-              This is how text will look with {settings.fontFamily}
+              <SelectTrigger id="fontFamily" className="font-medium">
+                <SelectValue asChild>
+                  <span style={{ fontFamily: settings.fontFamily }}>
+                    {settings.fontFamily}
+                  </span>
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {FONT_OPTIONS.map((font) => (
+                  <SelectItem key={font} value={font}>
+                    <span style={{ fontFamily: font }}>{font}</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p
+              className="text-sm text-muted-foreground"
+              style={{ fontFamily: settings.fontFamily }}
+            >
+              This is how body text will look with {settings.fontFamily}.
             </p>
           </div>
         </CardContent>

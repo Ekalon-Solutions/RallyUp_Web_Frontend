@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { formatDisplayDate } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -174,7 +175,7 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
     const diffDays = Math.floor(diffHours / 24);
     if (diffDays < 7) return `${diffDays}d ago`;
     
-    return messageDate.toLocaleDateString();
+    return formatDisplayDate(messageDate);
   };
 
   // Real-time messaging hooks
@@ -824,7 +825,7 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
                           </h4>
                           <p className="text-xs text-gray-500">{request.requester.email}</p>
                           <p className="text-xs text-gray-400 mt-1">
-                            {new Date(request.createdAt).toLocaleDateString()}
+                            {formatDisplayDate(request.createdAt)}
                           </p>
                         </div>
                       </div>
@@ -905,7 +906,7 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
                             </h3>
                             <p className="text-sm text-gray-500">{otherUser.email}</p>
                             <p className="text-xs text-gray-400">
-                              Connected on {new Date(connection.updatedAt).toLocaleDateString()}
+                              Connected on {formatDisplayDate(connection.updatedAt)}
                             </p>
                           </div>
                         </div>

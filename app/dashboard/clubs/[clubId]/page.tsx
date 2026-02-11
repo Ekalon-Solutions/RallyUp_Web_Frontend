@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ArrowLeft, Users, Calendar, TrendingUp, Award, MapPin, Phone, Mail, Globe } from 'lucide-react'
 import { apiClient } from '@/lib/api'
 import { useAuth } from '@/contexts/auth-context'
+import { formatDisplayDate } from '@/lib/utils'
 
 interface ClubDetails {
   _id: string
@@ -296,11 +297,7 @@ export default function ClubDetailsPage() {
               <div>
                 <h4 className="font-semibold mb-2">Created</h4>
                 <p className="text-sm text-muted-foreground">
-                  {new Date(club.createdAt).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })}
+                  {formatDisplayDate(club.createdAt)}
                 </p>
               </div>
             </CardContent>

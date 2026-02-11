@@ -25,6 +25,7 @@ import {
 import { useCart, CartItem } from "@/contexts/cart-context"
 import { useAuth } from "@/contexts/auth-context"
 import { apiClient } from "@/lib/api"
+import { calculateTransactionFees, PLATFORM_FEE_PERCENT, RAZORPAY_FEE_PERCENT } from "@/lib/transactionFees"
 import { PaymentSimulationModal } from "./payment-simulation-modal"
 import { MemberValidationModal } from "./member-validation-modal"
 import { toast } from "sonner"
@@ -123,6 +124,8 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
   const shippingCost = calculateShipping()
   const taxAmount = calculateTax()
   const orderTotal = totalPrice + shippingCost + taxAmount
+  const feeBreakdown = orderTotal > 0 ? calculateTransactionFees(orderTotal) : null
+  const finalAmount = feeBreakdown ? feeBreakdown.finalAmount : orderTotal
 
   const currency = items.length > 0 ? (items[0].currency || 'USD') : 'USD'
 
@@ -526,16 +529,37 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                         <span>{formatCurrency(taxAmount, currency)}</span>
                       </div>
                     )}
+                    {feeBreakdown && feeBreakdown.totalFees > 0 && (
+                      <>
+                        <div className="flex justify-between text-sm text-muted-foreground">
+                          <span>Platform fee ({PLATFORM_FEE_PERCENT}% + GST):</span>
+                          <span>{formatCurrency(feeBreakdown.platformFee + feeBreakdown.platformFeeGst, currency)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm text-muted-foreground">
+                          <span>Payment gateway fee ({RAZORPAY_FEE_PERCENT}% + GST):</span>
+                          <span>{formatCurrency(feeBreakdown.razorpayFee + feeBreakdown.razorpayFeeGst, currency)}</span>
+                        </div>
+                      </>
+                    )}
                     <Separator />
                     <div className="flex justify-between text-lg font-bold">
                       <span>Total:</span>
                       <span>
-                        {formatCurrency(orderTotal, currency)}
+                        {formatCurrency(finalAmount, currency)}
                       </span>
                     </div>
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Refund Policy Notice */}
+              <p className="text-xs text-muted-foreground text-center">
+                By placing your order, you agree to our{" "}
+                <a href="/refund" target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:text-sky-500 underline">
+                  Refund and Cancellation Policy
+                </a>
+                .
+              </p>
 
               {/* Place Order Button */}
               <Button
@@ -601,12 +625,14 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
           onPaymentFailure={handlePaymentFailure}
           orderId={createdOrder._id}
           orderNumber={createdOrder.orderNumber}
-          total={createdOrder.total}
-          subtotal={createdOrder.subtotal}
-          shippingCost={createdOrder.shippingCost}
-          tax={createdOrder.tax}
-          currency={createdOrder.currency}
+          total={finalAmount}
+          subtotal={orderTotal}
+          shippingCost={createdOrder.shippingCost ?? shippingCost}
+          tax={createdOrder.tax ?? taxAmount}
+          currency={createdOrder.currency ?? currency}
           paymentMethod={createdOrder.paymentMethod || orderForm.paymentMethod || 'all'}
+          platformFeeTotal={feeBreakdown ? feeBreakdown.platformFee + feeBreakdown.platformFeeGst : undefined}
+          razorpayFeeTotal={feeBreakdown ? feeBreakdown.razorpayFee + feeBreakdown.razorpayFeeGst : undefined}
         />
       )}
     </Dialog>

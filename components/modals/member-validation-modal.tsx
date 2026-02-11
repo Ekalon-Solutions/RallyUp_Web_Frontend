@@ -68,7 +68,8 @@ export function MemberValidationModal({
       })
 
       if (response.success && response.data) {
-        setValidationResult(response.data)
+        const payload = (response.data as any)?.data ?? response.data
+        setValidationResult(payload)
       } else {
         toast.error(response.message || "Failed to validate member status")
       }

@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Calendar, Clock, MapPin, Users, Ticket, UserCheck, Bus, CheckCircle, XCircle, Plus, X, UserPlus, AlertCircle, Tag, Percent, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { apiClient, Event } from "@/lib/api"
+import { formatLocalDate } from "@/lib/timezone"
 
 interface EventRegistrationModalProps {
   isOpen: boolean
@@ -315,13 +316,7 @@ export function EventRegistrationModal({
 
   const formatDate = (dateString: string) => {
     try {
-      return new Date(dateString).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      })
+      return formatLocalDate(dateString, 'long')
     } catch (error) {
       return 'Invalid Date'
     }
@@ -360,8 +355,8 @@ export function EventRegistrationModal({
                     <Badge className={getCategoryColor(event.category)}>
                       {getCategoryIcon(event.category)} {event.category.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                     </Badge>
-                    {event.memberOnly && (
-                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                    {user && event.memberOnly && (
+                      <Badge variant="outline" className="bg-blue-50 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-700">
                         <UserCheck className="w-3 h-3 mr-1" />
                         Members Only
                       </Badge>

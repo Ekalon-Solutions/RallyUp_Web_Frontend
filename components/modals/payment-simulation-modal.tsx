@@ -33,6 +33,10 @@ interface PaymentSimulationModalProps {
   tax?: number
   currency: string
   paymentMethod: string
+  /** Platform fee (4.5% + GST) for display */
+  platformFeeTotal?: number
+  /** Payment gateway fee (2.5% + GST) for display */
+  razorpayFeeTotal?: number
   dialogTitle?: string
   dialogDescription?: string
   payButtonLabel?: string
@@ -51,6 +55,8 @@ export function PaymentSimulationModal({
   tax,
   currency,
   paymentMethod,
+  platformFeeTotal,
+  razorpayFeeTotal,
   dialogTitle,
   dialogDescription,
   payButtonLabel,
@@ -320,7 +326,19 @@ export function PaymentSimulationModal({
                   <span>{formatCurrency(tax, currency)}</span>
                 </div>
               )}
-              {(subtotal !== undefined || shippingCost !== undefined || tax !== undefined) && (
+              {platformFeeTotal !== undefined && platformFeeTotal > 0 && (
+                <div className="flex justify-between items-center text-sm text-muted-foreground">
+                  <span>Platform fee (4.5% + GST):</span>
+                  <span>{formatCurrency(platformFeeTotal, currency)}</span>
+                </div>
+              )}
+              {razorpayFeeTotal !== undefined && razorpayFeeTotal > 0 && (
+                <div className="flex justify-between items-center text-sm text-muted-foreground">
+                  <span>Payment gateway fee (2.5% + GST):</span>
+                  <span>{formatCurrency(razorpayFeeTotal, currency)}</span>
+                </div>
+              )}
+              {(subtotal !== undefined || shippingCost !== undefined || tax !== undefined || (platformFeeTotal ?? 0) > 0 || (razorpayFeeTotal ?? 0) > 0) && (
                 <Separator />
               )}
               <div className="flex justify-between items-center text-lg font-semibold">

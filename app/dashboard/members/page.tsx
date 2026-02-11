@@ -16,8 +16,10 @@ import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { DashboardLayout } from '@/components/dashboard-layout'
 import { ProtectedRoute } from '@/components/protected-route'
+import { formatDisplayDate } from '@/lib/utils'
 import { AddMemberModal } from '@/components/modals/add-member-modal'
 import ImportMembersModal from '@/components/modals/import-members-modal'
 import { 
@@ -47,7 +49,7 @@ interface Member {
   phoneNumber: string
   countryCode: string
   isPhoneVerified: boolean
-  role: string
+  role?: string
   club?: {
     _id: string
     name: string
@@ -85,6 +87,7 @@ export default function MembersPage() {
   })
   const [metadata, setMetadata] = useState({ total: 0, active: 0, verified: 0, thisMonth: 0 })
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isBulkDeleteDialogOpen, setIsBulkDeleteDialogOpen] = useState(false)
@@ -107,6 +110,13 @@ export default function MembersPage() {
     countryCode: '',
     isActive: true
   })
+  type AddResultStatus = 'added' | 'updated' | 'already_member'
+  interface AddResultEntry {
+    name: string
+    email: string
+    status: AddResultStatus
+  }
+  const [addResultEntries, setAddResultEntries] = useState<AddResultEntry[]>([])
 
   useEffect(() => {
     fetchMembers()
@@ -215,14 +225,6 @@ export default function MembersPage() {
 
   const pagesToShow = getVisiblePages(pagination.pages, currentPage)
 
-  const formatDate = (dateString: string): string => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
-  }
-
   const formatPhoneNumber = (phoneNumber: string, countryCode: string): string => {
     return `${countryCode} ${phoneNumber}`
   }
@@ -267,18 +269,15 @@ export default function MembersPage() {
   }
 
   const handleAddExistingUser = async (): Promise<void> => {
-    if (!selectedUser) {
-      toast.error('Please select a user to add');
+    if (!selectedUser || !clubId) {
+      toast.error(selectedUser ? 'Please select a club first' : 'Please select a user to add');
       return;
     }
-
     try {
-      const response = await apiClient.addUserToClub({
-        email: selectedUser.email,
-        name: selectedUser.name,
-        phoneNumber: selectedUser.phoneNumber
+      const response = await apiClient.addMemberWithDefaultPlan({
+        user_id: selectedUser._id,
+        club_id: clubId
       });
-      
       if (response.success) {
         toast.success('Member added successfully');
         setIsAddDialogOpen(false);
@@ -301,13 +300,18 @@ export default function MembersPage() {
         toast.error('Please select a club first')
         return
       }
-      const response = await apiClient.userRegister({
+      const response = await apiClient.adminAddMember({
         ...data,
-        clubId,
+        club_id: clubId
       })
-
       if (response.success) {
-        toast.success('Member added successfully')
+        const existingUser = (response.data as any)?.existingUser
+        const alreadyMember = (response.data as any)?.alreadyMember
+        let status: AddResultStatus = 'added'
+        if (alreadyMember) status = 'already_member'
+        else if (existingUser) status = 'updated'
+        setAddResultEntries(prev => [{ name: data.name, email: data.email, status }, ...prev].slice(0, 50))
+        toast.success(alreadyMember ? 'User is already a member' : existingUser ? 'Membership added for existing user' : 'Member added successfully')
         setIsAddDialogOpen(false)
         fetchMembers()
       } else {
@@ -340,7 +344,7 @@ export default function MembersPage() {
     if (!selectedMember) return
 
     try {
-      const response = await apiClient.deleteMember(selectedMember._id)
+      const response = await apiClient.deleteMember(selectedMember._id, clubId)
 
       if (response.success) {
         toast.success('Member deleted successfully')
@@ -352,6 +356,11 @@ export default function MembersPage() {
     } catch (error) {
       toast.error('Failed to delete member')
     }
+  }
+
+  const openViewDialog = (member: Member) => {
+    setSelectedMember(member)
+    setIsViewDialogOpen(true)
   }
 
   const openEditDialog = (member: Member) => {
@@ -397,7 +406,7 @@ export default function MembersPage() {
     if (selectedMemberIds.size === 0) return
 
     try {
-      const response = await apiClient.deleteMembersBulk(Array.from(selectedMemberIds))
+      const response = await apiClient.deleteMembersBulk(Array.from(selectedMemberIds), clubId)
 
       if (response.success) {
         toast.success(`Successfully deleted ${response.data?.deletedCount || selectedMemberIds.size} member(s)`)
@@ -431,7 +440,7 @@ export default function MembersPage() {
 
   const handleDeleteAllMembers = async () => {
     try {
-      const response = await apiClient.deleteAllClubMembers()
+      const response = await apiClient.deleteAllClubMembers(clubId ?? undefined)
 
       if (response.success) {
         const deletedCount = response.data?.deletedCount ?? 0
@@ -459,7 +468,7 @@ export default function MembersPage() {
         member.club?.name || 'N/A',
         member.membershipPlan?.name || 'N/A',
         member.isActive ? 'Active' : 'Inactive',
-        formatDate(member.createdAt)
+        formatDisplayDate(member.createdAt)
       ].join(','))
     ].join('\n')
 
@@ -497,26 +506,35 @@ export default function MembersPage() {
                 Export
               </Button>
               <AddMemberModal 
+                clubId={clubId}
                 trigger={
                   <Button className="w-full sm:w-auto">
                     <Plus className="w-4 h-4 mr-2" />
                     Add Member
                   </Button>
                 }
-                onMemberAdded={() => {
+                onMemberAdded={(result) => {
                   fetchMembers()
-                  toast.success("Member added successfully!")
+                  if (result) {
+                    setAddResultEntries(prev => [result, ...prev].slice(0, 50))
+                  }
                 }}
               />
               {/* Bulk import modal */}
               <ImportMembersModal
+                clubId={clubId}
                 trigger={
                   <Button className="w-full sm:w-auto">
                     <Plus className="w-4 h-4 mr-2" />
                     Import Members in Bulk
                   </Button>
                 }
-                onImported={() => fetchMembers()}
+                onImported={(entries) => {
+                  fetchMembers()
+                  if (entries?.length) {
+                    setAddResultEntries(prev => [...entries, ...prev].slice(0, 50))
+                  }
+                }}
               />
             </div>
           </div>
@@ -562,6 +580,49 @@ export default function MembersPage() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Add member results table */}
+          {addResultEntries.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Add Member Results</CardTitle>
+                <CardDescription>Recently added or updated entries from Add Member</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {addResultEntries.map((entry, idx) => (
+                      <TableRow key={`${entry.email}-${idx}`}>
+                        <TableCell className="font-medium">{entry.name}</TableCell>
+                        <TableCell>{entry.email}</TableCell>
+                        <TableCell>
+                          <Badge
+                            variant={entry.status === 'added' ? 'default' : entry.status === 'updated' ? 'secondary' : 'outline'}
+                            className={
+                              entry.status === 'added'
+                                ? 'bg-green-600 hover:bg-green-700'
+                                : entry.status === 'updated'
+                                ? 'bg-blue-600 hover:bg-blue-700'
+                                : ''
+                            }
+                          >
+                            {entry.status === 'added' ? 'Added' : entry.status === 'updated' ? 'Updated' : 'Already a member'}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Filters */}
           <Card>
@@ -710,7 +771,7 @@ export default function MembersPage() {
                       </div>
                       {(user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'system_owner') && (
                         <div className="flex items-center space-x-2 w-full sm:w-auto justify-end">
-                          <Button variant="ghost" size="sm" className="flex-1 sm:flex-initial">
+                          <Button variant="ghost" size="sm" onClick={() => openViewDialog(member)} className="flex-1 sm:flex-initial" title="View details">
                             <Eye className="w-4 h-4" />
                           </Button>
                           <Button variant="ghost" size="sm" onClick={() => openEditDialog(member)} className="flex-1 sm:flex-initial">
@@ -729,7 +790,8 @@ export default function MembersPage() {
                             size="sm"
                             onClick={() => {
                               setAdjustMemberId(member._id)
-                              setAdjustMemberClub(user?.club?._id || null)
+                              const primaryClub = (user as any)?.clubs?.[0]
+                              setAdjustMemberClub(primaryClub?._id ?? primaryClub ?? clubId ?? null)
                               setIsAdjustPointsOpen(true)
                             }}
                             className="flex-1 sm:flex-initial"
@@ -976,6 +1038,104 @@ export default function MembersPage() {
             </DialogContent>
           </Dialog>
 
+          {/* View Member Dialog */}
+          <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+            <DialogContent className="w-[95vw] sm:w-full max-w-lg max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Member Details</DialogTitle>
+                <DialogDescription>
+                  View member information and membership plan.
+                </DialogDescription>
+              </DialogHeader>
+              {selectedMember && (
+                <div className="space-y-4 py-4">
+                  <div className="flex items-center space-x-4 p-4 bg-muted/50 rounded-lg">
+                    <Avatar className="h-14 w-14 flex-shrink-0">
+                      <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-600 text-white text-lg font-bold">
+                        {selectedMember.name.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-lg break-words">{selectedMember.name}</h3>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        <Badge className={getStatusColor(selectedMember.isActive)}>
+                          {selectedMember.isActive ? 'Active' : 'Inactive'}
+                        </Badge>
+                        <Badge className={getVerificationColor(selectedMember.isPhoneVerified)}>
+                          {selectedMember.isPhoneVerified ? 'Verified' : 'Unverified'}
+                        </Badge>
+                        {selectedMember.role && (
+                          <Badge variant="outline">{selectedMember.role}</Badge>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="grid gap-3 text-sm">
+                    <div className="flex items-center gap-2">
+                      <Mail className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                      <span className="break-all">{selectedMember.email}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Phone className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                      <span>{formatPhoneNumber(selectedMember.phoneNumber, selectedMember.countryCode)}</span>
+                    </div>
+                    {selectedMember.club && (
+                      <div className="flex items-center gap-2">
+                        <Building2 className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                        <span>{selectedMember.club.name}</span>
+                      </div>
+                    )}
+                    {selectedMember.createdAt && (
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                        <span>Joined {formatDisplayDate(selectedMember.createdAt)}</span>
+                      </div>
+                    )}
+                  </div>
+                  {selectedMember.membershipPlan && (
+                    <div className="rounded-lg border p-4 space-y-2">
+                      <h4 className="font-semibold flex items-center gap-2">
+                        <Shield className="w-4 h-4" />
+                        Membership Plan
+                      </h4>
+                      <div className="text-sm space-y-1">
+                        <p className="font-medium">{selectedMember.membershipPlan.name}</p>
+                        {selectedMember.membershipPlan.description && (
+                          <p className="text-muted-foreground">{selectedMember.membershipPlan.description}</p>
+                        )}
+                        <p className="text-muted-foreground">
+                          {selectedMember.membershipPlan.price} {selectedMember.membershipPlan.currency}
+                          {selectedMember.membershipPlan.duration
+                            ? ` / ${selectedMember.membershipPlan.duration} day${selectedMember.membershipPlan.duration !== 1 ? 's' : ''}`
+                            : ''}
+                        </p>
+                        {selectedMember.membershipExpiry && (
+                          <p className="text-muted-foreground pt-1">
+                            Expires: {formatDisplayDate(selectedMember.membershipExpiry)}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  {!selectedMember.membershipPlan && (
+                    <div className="rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground">
+                      No membership plan assigned
+                    </div>
+                  )}
+                  <DialogFooter>
+                    <Button type="button" variant="outline" onClick={() => setIsViewDialogOpen(false)}>
+                      Close
+                    </Button>
+                    <Button type="button" onClick={() => { setIsViewDialogOpen(false); openEditDialog(selectedMember); }}>
+                      <Edit className="w-4 h-4 mr-2" />
+                      Edit Member
+                    </Button>
+                  </DialogFooter>
+                </div>
+              )}
+            </DialogContent>
+          </Dialog>
+
           <AdjustPointsModal
             isOpen={isAdjustPointsOpen}
             onClose={() => {
@@ -1002,6 +1162,45 @@ export default function MembersPage() {
                 handleEditMember()
               }}>
                 <div className="space-y-4 py-4">
+                  {selectedMember && (
+                    <div className="rounded-lg border bg-muted/30 p-4 space-y-3">
+                      <h4 className="text-sm font-semibold text-muted-foreground">Member details</h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                        <div className="flex items-center gap-2">
+                          <span className="text-muted-foreground">Status:</span>
+                          <Badge className={getStatusColor(selectedMember.isActive)}>
+                            {selectedMember.isActive ? 'Active' : 'Inactive'}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-muted-foreground">Verification:</span>
+                          <Badge className={getVerificationColor(selectedMember.isPhoneVerified)}>
+                            {selectedMember.isPhoneVerified ? 'Verified' : 'Unverified'}
+                          </Badge>
+                        </div>
+                        {selectedMember.membershipPlan && (
+                          <div className="sm:col-span-2 flex flex-wrap items-center gap-2">
+                            <span className="text-muted-foreground">Plan:</span>
+                            <span className="font-medium">{selectedMember.membershipPlan.name}</span>
+                            <span className="text-muted-foreground">
+                              ({selectedMember.membershipPlan.price} {selectedMember.membershipPlan.currency})
+                            </span>
+                            {selectedMember.membershipExpiry && (
+                              <span className="text-muted-foreground">
+                                · Expires {formatDisplayDate(selectedMember.membershipExpiry)}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        {selectedMember.createdAt && (
+                          <div className="sm:col-span-2 flex items-center gap-2 text-muted-foreground">
+                            <Calendar className="w-3 h-3" />
+                            Joined {formatDisplayDate(selectedMember.createdAt)}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                   <div className="space-y-2">
                     <Label htmlFor="edit-name">Full Name</Label>
                     <Input 

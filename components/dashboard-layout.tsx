@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { useAuth } from "@/contexts/auth-context"
 import { useClubSettings } from "@/hooks/useClubSettings"
 import { useDesignSettings } from "@/hooks/useDesignSettings"
@@ -39,6 +39,7 @@ import { cn } from "@/lib/utils"
 import { useTheme } from "next-themes"
 import { Sun, Moon } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import Image from "next/image"
 import { NotificationCenterModal } from "@/components/modals/notification-center-modal"
 
@@ -67,7 +68,6 @@ const adminNavigation = [
 ]
 
 const systemOwnerNavigation = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Club Management", href: "/dashboard/club-management", icon: Building },
   // { name: "Browse Clubs", href: "/dashboard/user/clubs", icon: Building2 },
   { name: "Onboarding & Promotions", href: "/dashboard/onboarding", icon: GraduationCap },
@@ -149,29 +149,60 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const pathname = usePathname()
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const { user, logout, isAdmin, activeClubId } = useAuth()
+  const { user, logout, isAdmin, activeClubId, setActiveClubId } = useAuth()
   
   const getUserClubId = () => {
     if (!user || user.role === 'system_owner') return undefined
     const userWithMemberships = user as any
-    
+
     if (activeClubId) {
       const activeMembership = userWithMemberships.memberships?.find(
         (m: any) => (m.club_id?._id || m.club_id) === activeClubId && m.status === 'active'
       )
-      if (activeMembership) {
-        return activeClubId
-      }
+      if (activeMembership) return activeClubId
+      const isAdmin = userWithMemberships.role === 'admin' || userWithMemberships.role === 'super_admin'
+      const inClubs = Array.isArray(userWithMemberships.clubs) &&
+        userWithMemberships.clubs.some((c: any) => (c?._id?.toString?.() ?? c?.toString?.()) === activeClubId)
+      if (isAdmin && inClubs) return activeClubId
     }
 
     const activeMembership = userWithMemberships.memberships?.find((m: any) => m.status === 'active')
-    return activeMembership?.club_id?._id
+    if (activeMembership?.club_id?._id) return activeMembership.club_id._id
+    const firstClub = Array.isArray(userWithMemberships.clubs) ? userWithMemberships.clubs[0] : null
+    const firstClubId = firstClub?._id?.toString?.() ?? (typeof firstClub === 'object' ? firstClub?._id : firstClub)
+    return firstClubId ?? undefined
   }
   
   const clubId = getUserClubId()
   const { isSectionVisible, settings, loading: settingsLoading } = useClubSettings(clubId)
   
   useDesignSettings(clubId)
+
+  const sidebarClubs = useMemo(() => {
+    if (!user || user.role === 'system_owner') return []
+    const userAny = user as any
+    const list: { _id: string; name: string; logo?: string }[] = []
+    const isAdmin = userAny.role === 'admin' || userAny.role === 'super_admin'
+    if (isAdmin && Array.isArray(userAny.clubs)) {
+      userAny.clubs.forEach((c: any) => {
+        const id = c?._id?.toString?.() ?? c?.toString?.() ?? c
+        if (!id) return
+        const name = typeof c === 'object' && c?.name ? c.name : 'Unknown Club'
+        const logo = typeof c === 'object' ? c.logo : undefined
+        if (!list.some((x) => x._id === id)) list.push({ _id: id, name, logo })
+      })
+    }
+    const memberships = userAny?.memberships?.filter((m: any) => m?.status === 'active') ?? []
+    memberships.forEach((m: any) => {
+      const club = m?.club_id ?? m?.club
+      const id = club?._id?.toString?.() ?? (typeof club === 'string' ? club : null)
+      if (!id || list.some((x) => x._id === id)) return
+      const name = typeof club === 'object' && club?.name ? club.name : 'Unknown Club'
+      const logo = typeof club === 'object' ? club.logo : undefined
+      list.push({ _id: id, name, logo })
+    })
+    return list
+  }, [user])
   
   const getNavigation = () => {
     if (!user) return userNavigation
@@ -271,83 +302,93 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
       <div className="p-6 border-t bg-muted/20">
         <div className="space-y-4">
-          {/* Club Name Display */}
+          {/* Selected Club - same multi-club behavior as splash */}
           {(() => {
-            const userAny = user as any
-            let clubName: string | undefined
-            let clubLogo: string | undefined
-            
-            if (activeClubId) {
-              const activeMembership = userAny?.memberships?.find(
-                (m: any) => (m.club_id?._id || m.club_id) === activeClubId && m.status === 'active'
-              )
-              if (activeMembership?.club_id) {
-                clubName = activeMembership.club_id.name
-                clubLogo = activeMembership.club_id.logo
-              }
-            }
-            
-            if (!clubName) {
-              clubName = userAny?.club?.name
-              clubLogo = userAny?.club?.logo
-            }
-            if (!clubName) {
-              const firstMembership = userAny?.memberships?.find((m: any) => m.status === 'active')
-              clubName = firstMembership?.club_id?.name
-              clubLogo = firstMembership?.club_id?.logo
-            }
-            
+            const currentClub = sidebarClubs.find((c) => c._id === activeClubId) ?? sidebarClubs[0]
             const settingsLogo = settings ? ((settings as any).designSettings?.logo) : undefined
-            const displayLogo = settingsLogo || clubLogo
-            
-            const activeMemberships = userAny?.memberships?.filter((m: any) => m.status === 'active') || []
-            const uniqueClubIds = new Set<string>()
-            activeMemberships.forEach((m: any) => {
-              const clubId = m.club_id?._id || m.club_id
-              if (clubId) uniqueClubIds.add(clubId)
-            })
-            const hasMultipleClubs = uniqueClubIds.size > 1
-            
-            if (clubName) {
-              return (
-                <div 
-                  className={cn(
-                    "px-3 py-2 rounded-xl bg-primary/5 border border-primary/10",
-                    hasMultipleClubs && "cursor-pointer hover:bg-primary/10 transition-colors"
-                  )}
-                  onClick={hasMultipleClubs ? () => router.push('/splash') : undefined}
-                  title={hasMultipleClubs ? "Click to switch club" : undefined}
-                >
-                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Selected Club</p>
-                  <div className="flex items-center gap-2">
-                    {displayLogo && (
-                      <div className="relative w-6 h-6 rounded-md overflow-hidden flex-shrink-0">
-                        <Image
-                          src={displayLogo}
-                          alt={clubName}
-                          fill
-                          sizes="24px"
-                          className="object-cover"
-                        />
-                      </div>
-                    )}
-                    <p className="text-sm font-bold text-foreground truncate">{clubName}</p>
-                    {hasMultipleClubs && (
-                      <span className="text-xs text-muted-foreground ml-auto">↗</span>
-                    )}
+            const displayLogo = settingsLogo || currentClub?.logo
+            const hasMultipleClubs = sidebarClubs.length > 1
+
+            if (!currentClub) return null
+
+            const trigger = (
+              <div className="flex items-center gap-2 min-w-0 w-full">
+                {displayLogo && (
+                  <div className="relative w-6 h-6 rounded-md overflow-hidden flex-shrink-0">
+                    <Image
+                      src={displayLogo}
+                      alt={currentClub.name}
+                      fill
+                      sizes="24px"
+                      className="object-cover"
+                    />
                   </div>
-                </div>
+                )}
+                <p className="text-sm font-bold text-foreground truncate flex-1">{currentClub.name}</p>
+                {hasMultipleClubs && (
+                  <span className="text-xs text-muted-foreground flex-shrink-0">↗</span>
+                )}
+              </div>
+            )
+
+            if (hasMultipleClubs) {
+              return (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <div
+                      className="px-3 py-2 rounded-xl bg-primary/5 border border-primary/10 cursor-pointer hover:bg-primary/10 transition-colors"
+                      title="Switch club"
+                    >
+                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Selected Club</p>
+                      {trigger}
+                    </div>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" side="right" className="w-[var(--radix-dropdown-menu-trigger-width)] min-w-56 p-2 rounded-xl border-2 shadow-xl">
+                    {sidebarClubs.map((club) => (
+                      <DropdownMenuItem
+                        key={club._id}
+                        onClick={() => {
+                          setActiveClubId(club._id)
+                          router.refresh()
+                          if (mobile) setSidebarOpen(false)
+                        }}
+                        className={cn(
+                          "rounded-lg gap-2 cursor-pointer",
+                          activeClubId === club._id && "bg-primary/10 font-bold"
+                        )}
+                      >
+                        {club.logo ? (
+                          <div className="relative w-8 h-8 rounded-md overflow-hidden flex-shrink-0">
+                            <Image src={club.logo} alt={club.name} fill sizes="32px" className="object-cover" />
+                          </div>
+                        ) : (
+                          <Building2 className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+                        )}
+                        <span className="truncate">{club.name}</span>
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               )
             }
-            return null
+
+            return (
+              <div className="px-3 py-2 rounded-xl bg-primary/5 border border-primary/10">
+                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Selected Club</p>
+                {trigger}
+              </div>
+            )
           })()}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="w-full h-14 px-4 justify-start bg-card border-2 hover:bg-muted/50 transition-all rounded-2xl group shadow-sm">
                 <div className="flex items-center gap-3 min-w-0 w-full">
-                  <div className="w-9 h-9 bg-primary/10 rounded-xl flex items-center justify-center text-sm font-black text-primary flex-shrink-0 ring-2 ring-primary/5 group-hover:scale-110 transition-transform">
-                    {user?.name?.charAt(0)?.toUpperCase() || 'U'}
-                  </div>
+                  <Avatar className="w-9 h-9 rounded-xl flex-shrink-0 ring-2 ring-primary/5 group-hover:scale-110 transition-transform">
+                    <AvatarImage src={(user as { profilePicture?: string })?.profilePicture} alt={user?.name ?? "User"} className="object-cover" />
+                    <AvatarFallback className="rounded-xl bg-primary/10 text-sm font-black text-primary">
+                      {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
                   <div className="flex flex-col items-start min-w-0 flex-1">
                     <span className="text-sm font-bold truncate w-full">{user?.name || 'User Account'}</span>
                     <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wide truncate w-full">

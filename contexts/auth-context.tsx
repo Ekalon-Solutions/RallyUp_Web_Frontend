@@ -37,6 +37,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const savedClubId = localStorage.getItem('activeClubId');
     if (savedClubId && savedClubId !== activeClubId) {
       setActiveClubIdState(savedClubId);
+      if (typeof window !== 'undefined') {
+        window.sessionStorage.setItem('selectedClubId', savedClubId);
+      }
     }
     checkAuth();
   }, []);
@@ -45,8 +48,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setActiveClubIdState(clubId);
     if (clubId) {
       localStorage.setItem('activeClubId', clubId);
+      if (typeof window !== 'undefined') {
+        window.sessionStorage.setItem('selectedClubId', clubId);
+      }
     } else {
       localStorage.removeItem('activeClubId');
+      if (typeof window !== 'undefined') {
+        window.sessionStorage.removeItem('selectedClubId');
+      }
     }
   };
 
@@ -54,6 +63,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!u) return null;
     if (u?.club?._id) return u.club._id;
     if (typeof u?.club === 'string') return u.club;
+    const clubs = Array.isArray(u?.clubs) ? u.clubs : [];
+    if (clubs[0]) {
+      const c = clubs[0];
+      return (typeof c === 'object' && c?._id ? c._id : c) ?? null;
+    }
 
     const memberships = Array.isArray(u?.memberships) ? u.memberships : [];
     const activeMembership = memberships.find((m: any) => m?.status === 'active');
@@ -319,6 +333,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem('userType');
     localStorage.removeItem('activeClubId');
     localStorage.removeItem('hasSeenDashboardLogo');
+    localStorage.removeItem('hasSeenUserDashboardLogo');
     setUser(null);
     setActiveClubIdState(null);
     window.location.href = '/';
@@ -328,25 +343,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const response = await apiClient.updateUserProfile(data);
       if (response.success && response.data) {
-        const updatedUser = (response.data as any).user || response.data;
-        
-        setUser(prevUser => ({
-          ...prevUser,
-          ...updatedUser,
-          name: updatedUser.role==='user' ? (updatedUser.first_name && updatedUser.last_name
-            ? `${updatedUser.first_name} ${updatedUser.last_name}`.trim()
-            : prevUser?.name || '') : updatedUser.name || prevUser?.name,
-          phoneNumber: updatedUser.phoneNumber || prevUser?.phoneNumber || '',
-          countryCode: updatedUser.countryCode || prevUser?.countryCode || '+1',
-        } as any));
-        
+        const raw = (response.data as any).user || response.data;
+
+        setUser(prevUser => {
+          if (!prevUser) return prevUser;
+          const prev = prevUser as any;
+          const name = raw.role === 'user'
+            ? (raw.first_name != null && raw.last_name != null
+              ? `${raw.first_name} ${raw.last_name}`.trim()
+              : raw.name ?? prev.name)
+            : (raw.name ?? prev.name);
+          return {
+            ...prevUser,
+            name: name || prev.name,
+            email: raw.email ?? prev.email,
+            phoneNumber: raw.phoneNumber ?? prev.phoneNumber,
+            countryCode: raw.countryCode ?? prev.countryCode,
+            profilePicture: raw.profilePicture ?? prev.profilePicture,
+            first_name: raw.first_name ?? prev.first_name,
+            last_name: raw.last_name ?? prev.last_name,
+            notificationPreferences: raw.notificationPreferences ?? prev.notificationPreferences,
+            isPhoneVerified: raw.isPhoneVerified ?? prev.isPhoneVerified,
+          } as any;
+        });
+
         return { success: true };
       } else {
-        // console.error('Profile update failed:', response.error);
         return { success: false, error: response.error || 'Profile update failed' };
       }
     } catch (error) {
-      // console.error('Profile update error:', error);
       return { success: false, error: 'Network error occurred' };
     }
   };

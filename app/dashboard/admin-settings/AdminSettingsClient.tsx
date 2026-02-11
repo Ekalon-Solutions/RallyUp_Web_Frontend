@@ -12,8 +12,10 @@ import { AppSettingsTab } from "@/components/admin/settings/app-settings-tab"
 import { HelpSectionTab } from "@/components/admin/settings/help-section-tab"
 import { GetStartedTab } from "@/components/admin/settings/get-started-tab"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
+import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 
 export default function AdminSettingsClient() {
+  const clubId = useRequiredClubId()
   const [activeTab, setActiveTab] = useState("website")
   const router = useRouter()
   const pathname = usePathname()
@@ -89,23 +91,23 @@ export default function AdminSettingsClient() {
             </TabsList>
 
             <TabsContent value="website" className="space-y-4">
-              <WebsiteSetupTab />
+              <WebsiteSetupTab key={clubId ?? "no-club"} />
             </TabsContent>
 
             <TabsContent value="directory" className="space-y-4">
-              <DirectoryTab />
+              <DirectoryTab key={clubId ?? "no-club"} />
             </TabsContent>
 
             <TabsContent value="design" className="space-y-4">
-              <DesignSettingsTab />
+              <DesignSettingsTab key={clubId ?? "no-club"} />
             </TabsContent>
 
             <TabsContent value="app" className="space-y-4">
-              <AppSettingsTab />
+              <AppSettingsTab key={clubId ?? "no-club"} />
             </TabsContent>
 
             <TabsContent value="help" className="space-y-4">
-              <HelpSectionTab />
+              <HelpSectionTab key={clubId ?? "no-club"} />
             </TabsContent>
 
             <TabsContent value="guide" className="space-y-4">

@@ -11,6 +11,7 @@ import { ProtectedRoute } from "@/components/protected-route"
 import { CreateNewsModal } from "@/components/modals/create-news-modal"
 import NewsReadMoreModal from "@/components/modals/news-readmore-modal"
 import { apiClient, News } from "@/lib/api"
+import { formatDisplayDate } from "@/lib/utils"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
 import { getNewsImageUrl } from "@/lib/config"
@@ -135,8 +136,18 @@ export default function ContentManagementPage() {
     setShowCreateModal(true)
   }
 
-  const handleReadMore = (newsItem: News) => {
-    setSelectedNewsForReadMore(newsItem)
+  const handleReadMore = async (newsItem: News) => {
+    try {
+      const res = await apiClient.getNewsById(newsItem._id)
+      if (res.success && res.data) {
+        setSelectedNewsForReadMore(res.data as News)
+        setNews((prev) => prev.map((n) => (n._id === newsItem._id ? (res.data as News) : n)))
+      } else {
+        setSelectedNewsForReadMore(newsItem)
+      }
+    } catch {
+      setSelectedNewsForReadMore(newsItem)
+    }
     setShowReadMoreModal(true)
   }
 
@@ -179,15 +190,7 @@ export default function ContentManagementPage() {
     }
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
+  const formatDate = (dateString: string) => formatDisplayDate(dateString)
 
   const truncateText = (text: string, maxLength: number = 200) => {
     if (text.length <= maxLength) return text
@@ -244,7 +247,7 @@ export default function ContentManagementPage() {
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold">Content Management</h1>
+              <h1 className="text-3xl font-bold">News & Updates</h1>
               <p className="text-muted-foreground">Manage all news articles and content for your club</p>
             </div>
             <div className="flex gap-2">

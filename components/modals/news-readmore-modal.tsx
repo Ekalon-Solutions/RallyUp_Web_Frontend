@@ -1,13 +1,14 @@
 "use client"
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Calendar, User, Eye, Tag, Building } from 'lucide-react'
+import { Calendar, User, Eye, Tag, Building, X } from 'lucide-react'
 import { News } from '@/lib/api'
 import { getNewsImageUrl } from '@/lib/config'
+import { formatLocalDate } from '@/lib/timezone'
 
 interface NewsReadMoreModalProps {
   news: News | null
@@ -16,18 +17,15 @@ interface NewsReadMoreModalProps {
 }
 
 export default function NewsReadMoreModal({ news, isOpen, onClose }: NewsReadMoreModalProps) {
+  const [enlargedImage, setEnlargedImage] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!isOpen) setEnlargedImage(null)
+  }, [isOpen])
+
   if (!news) return null
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-  }
+  const formatDate = (dateString: string) => formatLocalDate(dateString, 'long')
 
   const getCategoryIcon = (category: string) => {
     switch (category) {
@@ -60,12 +58,22 @@ export default function NewsReadMoreModal({ news, isOpen, onClose }: NewsReadMor
             <div className="space-y-6">
               {/* Featured Image */}
               {news.featuredImage && (
-                <div className="relative">
+                <div
+                  className="relative cursor-pointer group"
+                  onClick={() => setEnlargedImage(getNewsImageUrl(news.featuredImage!))}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => e.key === 'Enter' && setEnlargedImage(getNewsImageUrl(news.featuredImage!))}
+                  aria-label="Click to enlarge"
+                >
                   <img
                     src={getNewsImageUrl(news.featuredImage)}
                     alt={news.title}
-                    className="w-full h-64 object-cover rounded-lg"
+                    className="w-full h-64 object-cover rounded-lg group-hover:opacity-95"
                   />
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 bg-black/20 rounded-lg transition-opacity pointer-events-none">
+                    <span className="text-white text-sm font-medium">Click to enlarge</span>
+                  </div>
                   <div className="absolute top-4 right-4">
                     <Badge className={getPriorityColor(news.priority)}>
                       {news.priority.charAt(0).toUpperCase() + news.priority.slice(1)} Priority
@@ -117,7 +125,7 @@ export default function NewsReadMoreModal({ news, isOpen, onClose }: NewsReadMor
                 <CardContent className="pt-6">
                   <h3 className="text-lg font-semibold mb-4 text-foreground">Content</h3>
                   <div 
-                    className="prose prose-gray dark:prose-invert max-w-none text-foreground leading-relaxed"
+                    className="prose prose-gray dark:prose-invert max-w-none text-foreground leading-relaxed whitespace-pre-line"
                     dangerouslySetInnerHTML={{ __html: news.content }}
                   />
                 </CardContent>
@@ -150,27 +158,55 @@ export default function NewsReadMoreModal({ news, isOpen, onClose }: NewsReadMor
                       {news.images.map((image, index) => {
                         const imageUrl = getNewsImageUrl(image);
                         return (
-                          <div key={index} className="relative group">
+                          <div
+                            key={index}
+                            className="relative group cursor-pointer"
+                            onClick={() => setEnlargedImage(imageUrl)}
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(e) => e.key === 'Enter' && setEnlargedImage(imageUrl)}
+                            aria-label="Click to enlarge"
+                          >
                             <img
                               src={imageUrl}
                               alt={`${news.title} - Image ${index + 1}`}
-                              className="w-full h-32 object-cover rounded-lg cursor-pointer transition-transform group-hover:scale-105"
-                              onClick={() => {
-                                window.open(imageUrl, '_blank')
-                              }}
+                              className="w-full h-32 object-cover rounded-lg transition-transform group-hover:scale-105"
                             />
-                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-200 rounded-lg flex items-center justify-center">
-                            <span className="text-white opacity-0 group-hover:opacity-100 text-sm font-medium">
-                              Click to enlarge
-                            </span>
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-200 rounded-lg flex items-center justify-center pointer-events-none">
+                              <span className="text-white opacity-0 group-hover:opacity-100 text-sm font-medium">
+                                Click to enlarge
+                              </span>
+                            </div>
                           </div>
-                        </div>
                         );
                       })}
                     </div>
                   </CardContent>
                 </Card>
               )}
+
+              {/* Lightbox for enlarged image */}
+              <Dialog open={!!enlargedImage} onOpenChange={() => setEnlargedImage(null)}>
+                <DialogContent className="max-w-[95vw] max-h-[95vh] w-auto p-0 overflow-hidden border-0 bg-black/90">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-2 right-2 z-10 text-white hover:bg-white/20"
+                    onClick={() => setEnlargedImage(null)}
+                    aria-label="Close"
+                  >
+                    <X className="h-5 w-5" />
+                  </Button>
+                  {enlargedImage && (
+                    <img
+                      src={enlargedImage}
+                      alt="Enlarged"
+                      className="max-w-full max-h-[90vh] w-auto h-auto object-contain mx-auto"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  )}
+                </DialogContent>
+              </Dialog>
 
               {/* Footer Actions */}
               <div className="flex justify-end pt-4 border-t border-border">

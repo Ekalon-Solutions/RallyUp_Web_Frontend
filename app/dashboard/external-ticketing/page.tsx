@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { apiClient, ExternalTicketRequest } from '@/lib/api'
 import { useAuth } from '@/contexts/auth-context'
 import { toast } from 'sonner'
-import { triggerBlobDownload } from '@/lib/utils'
+import { triggerBlobDownload, formatDisplayDate } from '@/lib/utils'
 import { CheckCircle, XCircle } from 'lucide-react'
 import { ProtectedRoute } from '@/components/protected-route'
 import { useRequiredClubId } from '@/hooks/useRequiredClubId'
@@ -72,13 +72,7 @@ export default function ExternalTicketingPage() {
     }
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
-  }
+  const formatDate = (dateString: string) => formatDisplayDate(dateString)
 
   if (!clubId) {
     return (

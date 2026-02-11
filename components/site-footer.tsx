@@ -48,6 +48,8 @@ export function SiteFooter({ brandName = "Wingman Pro" }: SiteFooterProps) {
           <nav className="flex flex-col gap-4 text-base font-bold">
             <Link href="/privacy" className="hover:text-sky-600 dark:hover:text-sky-400 transition-colors">Privacy Policy</Link>
             <Link href="/terms" className="hover:text-sky-600 dark:hover:text-sky-400 transition-colors">Terms of Service</Link>
+            <Link href="/refund" className="hover:text-sky-600 dark:hover:text-sky-400 transition-colors">Refund Policy</Link>
+            <Link href="/ppsa" className="hover:text-sky-600 dark:hover:text-sky-400 transition-colors">Platform Partner Agreement</Link>
           </nav>
         </div>
 

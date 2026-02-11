@@ -9,37 +9,67 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
-import { 
-  Upload, 
-  Download, 
-  Share2, 
-  QrCode, 
-  CreditCard, 
-  Settings, 
+import {
+  Upload,
+  Download,
+  Share2,
+  QrCode,
+  CreditCard,
+  Settings,
   Eye,
   Plus,
   Edit,
   Trash2,
   RefreshCw,
   Palette,
-  Image
+  Image,
 } from "lucide-react"
 import { MembershipCard } from "@/components/membership-card"
 import { MembershipCardCustomizer } from "@/components/admin/membership-card-customizer"
 import { apiClient, PublicMembershipCardDisplay, CreateMembershipCardRequest } from "@/lib/api"
+import { formatDisplayDate } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
 import { getBaseUrl, getApiUrl } from "@/lib/config"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
+import { useAuth } from "@/contexts/auth-context"
+
 
 export default function MembershipCardsPage() {
-  const [customization, setCustomization] = useState({
-    cardStyle: 'default' as const,
+  const CARD_STYLE_COLORS: Record<
+    "default" | "premium" | "vintage" | "modern" | "elite" | "emerald",
+    { primaryColor: string; secondaryColor: string }
+  > =
+    { default: { primaryColor: '#2563eb', secondaryColor: '#1e40af' },
+      premium: { primaryColor: '#fbbf24', secondaryColor: '#dc2626' },
+      vintage: { primaryColor: '#b45309', secondaryColor: '#7c2d12' },
+      modern: { primaryColor: '#1e293b', secondaryColor: '#581c87' },
+      elite: { primaryColor: '#111827', secondaryColor: '#000000' },
+      emerald: { primaryColor: '#10b981', secondaryColor: '#0d9488' }
+    }
+
+  const FONT_FAMILIES = [
+    { label: "Inter", value: "Inter" },
+    { label: "Roboto", value: "Roboto" },
+    { label: "Open Sans", value: "Open Sans" },
+    { label: "Montserrat", value: "Montserrat" },
+  ];
+
+  const { activeClubId } = useAuth()
+  const [customization, setCustomization] = useState<{
+    cardStyle: 'default' | 'premium' | 'vintage' | 'modern' | 'elite' | 'emerald';
+    showLogo: boolean;
+    primaryColor: string;
+    secondaryColor: string;
+    fontFamily: string;
+    logoSize: 'small' | 'medium' | 'large';
+  }>({
+    cardStyle: 'default',
     showLogo: true,
-    primaryColor: '#3b82f6',
-    secondaryColor: '#1e40af',
+    primaryColor: CARD_STYLE_COLORS['default'].primaryColor,
+    secondaryColor: CARD_STYLE_COLORS['default'].secondaryColor,
     fontFamily: 'Inter',
-    logoSize: 'medium' as const
+    logoSize: 'medium'
   })
 
   const [cards, setCards] = useState<PublicMembershipCardDisplay[]>([])
@@ -49,15 +79,14 @@ export default function MembershipCardsPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [customLogoPreview, setCustomLogoPreview] = useState<string | null>(null)
   const [customLogoFile, setCustomLogoFile] = useState<File | null>(null)
-  const [clubId, setClubId] = useState<string | null>(null)
   const [membershipPlans, setMembershipPlans] = useState<any[]>([])
+  const effectiveClubId = activeClubId ?? null
   const [selectedPlanId, setSelectedPlanId] = useState<string>("")
   const [isCreating, setIsCreating] = useState(false)
   const [editingCard, setEditingCard] = useState<PublicMembershipCardDisplay | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const { toast } = useToast()
 
-  // Utility function to convert file to base64
   const convertFileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -75,8 +104,7 @@ export default function MembershipCardsPage() {
 
   const fetchCards = useCallback(async (targetClubId: string) => {
     try {
-      const cardsResponse = await apiClient.getClubMembershipCards(targetClubId)
-      
+      const cardsResponse = await apiClient.getClubMembershipCards(targetClubId, { isTemplate: true, limit: 100 })
       if (cardsResponse.success && cardsResponse.data) {
         let cardsData: any[] = []
         if (Array.isArray(cardsResponse.data)) {
@@ -84,23 +112,17 @@ export default function MembershipCardsPage() {
         } else if (cardsResponse.data.data && Array.isArray(cardsResponse.data.data)) {
           cardsData = cardsResponse.data.data
         }
-        
-        const validCards = cardsData.filter(card => {
-          if (card && card.success && card.data) {
-            return false
-          }
-          
-          const isValid = card && 
-            card.card && 
-            card.card._id && 
-            typeof card.card._id === 'string' &&
-            card.card.cardStyle &&
-            card.club &&
-            card.membershipPlan
-          
-          return isValid
-        })
-        
+
+        const validCards = cardsData.filter((item: any) =>
+          item &&
+          item.card &&
+          item.card._id &&
+          typeof item.card._id === 'string' &&
+          item.card.cardStyle &&
+          item.club &&
+          item.membershipPlan
+        )
+
         setCards(validCards)
       } else {
         const errorDetails = (cardsResponse as any).errorDetails || {}
@@ -130,28 +152,25 @@ export default function MembershipCardsPage() {
     const fetchInitialData = async () => {
       try {
         setLoading(true)
-        
-        const clubResponse = await apiClient.getAdminClub()
-        if (clubResponse.success && clubResponse.data?.club?._id) {
-          const currentClubId = clubResponse.data.club._id
-          setClubId(currentClubId)
-          
-          const plansResponse = await apiClient.getMembershipPlans(currentClubId)
-          if (plansResponse.success && plansResponse.data) {
-            const plansData = Array.isArray(plansResponse.data) ? plansResponse.data : (plansResponse.data?.data || [])
-            setMembershipPlans(plansData)
-          }
-          
-          await fetchCards(currentClubId)
-        } else {
-          const errorMsg = 'No club found for this admin account. Please ensure your account is associated with a club before managing membership cards.'
-          setError(errorMsg)
-          toast({
-            title: "Club Not Found",
-            description: errorMsg,
-            variant: "destructive",
-          })
+        setError(null)
+        let currentClubId = activeClubId
+
+        if (!currentClubId) {
+          setError("No club selected. Please select a club to continue.")
+          setLoading(false)
+          return
         }
+
+        // Fetch membership plans for selected club
+        const plansResponse = await apiClient.getMembershipPlans(currentClubId)
+        if (plansResponse.success && plansResponse.data) {
+          const plansData = Array.isArray(plansResponse.data) ? plansResponse.data : (plansResponse.data?.data || [])
+          setMembershipPlans(plansData)
+        } else {
+          setMembershipPlans([])
+        }
+        // Fetch cards
+        await fetchCards(currentClubId)
       } catch (err: any) {
         const errorMessage = err?.message || 'Network error or server unavailable'
         const errorDetails = err?.response?.data || {}
@@ -168,7 +187,7 @@ export default function MembershipCardsPage() {
     }
 
     fetchInitialData()
-  }, [toast, fetchCards])
+  }, [toast, fetchCards, activeClubId])
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
@@ -193,7 +212,6 @@ export default function MembershipCardsPage() {
   const handleRemoveCustomLogo = () => {
     setCustomLogoFile(null)
     setCustomLogoPreview(null)
-    // Update the editing card to remove custom logo
     if (editingCard) {
       setEditingCard(prev => prev ? {
         ...prev,
@@ -210,7 +228,6 @@ export default function MembershipCardsPage() {
 
   const handleSaveCustomization = async () => {
     try {
-      // Save customization settings to backend
       toast({
         title: "Success",
         description: "Card customization saved successfully",
@@ -226,7 +243,6 @@ export default function MembershipCardsPage() {
 
   const handleExportCards = async () => {
     try {
-      // Export cards functionality
       toast({
         title: "Success",
         description: "Cards exported successfully",
@@ -241,7 +257,7 @@ export default function MembershipCardsPage() {
   }
 
   const handleCreateCard = async () => {
-    if (!clubId || !selectedPlanId) {
+    if (!effectiveClubId || !selectedPlanId) {
       toast({
         title: "Error",
         description: "Please select a membership plan",
@@ -252,11 +268,28 @@ export default function MembershipCardsPage() {
 
     try {
       setIsCreating(true)
-      
+
+      let customLogoUrl: string | undefined
+      if (selectedFile) {
+        const formData = new FormData()
+        formData.append('image', selectedFile)
+        const uploadResponse = await fetch(getApiUrl('/upload/logo'), {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+          body: formData
+        })
+        if (!uploadResponse.ok) {
+          const errData = await uploadResponse.json().catch(() => ({}))
+          throw new Error(errData?.message || 'Logo upload failed')
+        }
+        const uploadData = await uploadResponse.json()
+        customLogoUrl = uploadData.url?.startsWith('http') ? uploadData.url : `${getBaseUrl()}${uploadData.url || ''}`
+      }
+
       const cardData: CreateMembershipCardRequest = {
         membershipPlanId: selectedPlanId,
-        clubId: clubId,
-        cardStyle: 'default',
+        clubId: effectiveClubId,
+        cardStyle: customization.cardStyle,
         accessLevel: 'basic',
         customization: {
           primaryColor: customization.primaryColor,
@@ -264,26 +297,26 @@ export default function MembershipCardsPage() {
           fontFamily: customization.fontFamily,
           logoSize: customization.logoSize,
           showLogo: customization.showLogo,
-          customLogo: previewUrl || undefined
+          customLogo: customLogoUrl
         }
       }
 
       const planName = membershipPlans.find(p => p._id === selectedPlanId)?.name || 'Unknown Plan'
-      
+
       const response = await apiClient.createMembershipCard(cardData)
-      
+
       if (response.success && response.data) {
         toast({
           title: "Membership Card Created Successfully",
           description: `Membership card for plan "${planName}" has been created successfully. Refreshing card list...`,
         })
-        
+
         setSelectedPlanId("")
         setPreviewUrl(null)
         setSelectedFile(null)
-        
-        if (clubId) {
-          await fetchCards(clubId)
+
+        if (effectiveClubId) {
+          await fetchCards(effectiveClubId)
         }
       } else {
         const errorDetails = (response as any).errorDetails || {}
@@ -319,9 +352,9 @@ export default function MembershipCardsPage() {
       const cardToDelete = cards.find(c => c.card._id === cardId)
       const planName = cardToDelete?.membershipPlan?.name || 'Unknown Plan'
       const cardNumber = cardToDelete?.card?.cardNumber || 'Unknown'
-      
+
       const response = await apiClient.deleteMembershipCard(cardId)
-      
+
       if (response.success) {
         setCards(prev => prev.filter(card => card.card._id !== cardId))
         toast({
@@ -349,63 +382,56 @@ export default function MembershipCardsPage() {
   }
 
   const handleRefresh = async () => {
-    if (clubId) {
-      try {
-        setLoading(true)
-        
-        // Fetch membership plans for this club
-        const plansResponse = await apiClient.getMembershipPlans(clubId)
-        if (plansResponse.success && plansResponse.data) {
-          const plansData = Array.isArray(plansResponse.data) ? plansResponse.data : (plansResponse.data?.data || [])
-          setMembershipPlans(plansData)
+    if (!effectiveClubId) return
+    try {
+      setLoading(true)
+      const plansResponse = await apiClient.getMembershipPlans(effectiveClubId)
+      if (plansResponse.success && plansResponse.data) {
+        const plansData = Array.isArray(plansResponse.data) ? plansResponse.data : (plansResponse.data?.data || [])
+        setMembershipPlans(plansData)
+      }
+
+      const cardsResponse = await apiClient.getClubMembershipCards(effectiveClubId, { isTemplate: true, limit: 100 })
+      if (cardsResponse.success && cardsResponse.data) {
+        let cardsData: any[] = []
+        if (Array.isArray(cardsResponse.data)) {
+          cardsData = cardsResponse.data
+        } else if (cardsResponse.data.data && Array.isArray(cardsResponse.data.data)) {
+          cardsData = cardsResponse.data.data
         }
-        
-        // Fetch existing membership cards
-        const cardsResponse = await apiClient.getClubMembershipCards(clubId)
-        
-        if (cardsResponse.success && cardsResponse.data) {
-          // Handle both array and nested data structure
-          let cardsData: any[] = []
-          if (Array.isArray(cardsResponse.data)) {
-            cardsData = cardsResponse.data
-          } else if (cardsResponse.data.data && Array.isArray(cardsResponse.data.data)) {
-            cardsData = cardsResponse.data.data
-          }
-          
-          // Filter out any invalid cards - ensure card structure is valid
-          const validCards = cardsData.filter(card => 
-            card && 
-            card.card && 
-            card.card._id && 
-            typeof card.card._id === 'string' &&
-            card.card.cardStyle && // Ensure cardStyle exists
-            card.club && // Ensure club exists
-            card.membershipPlan // Ensure membershipPlan exists
-          )
-          
-          setCards(validCards)
-        } else {
-          const errorDetails = (cardsResponse as any).errorDetails || {}
-          const errorMessage = cardsResponse.error || 'Unknown error occurred'
-          const statusCode = errorDetails.statusCode || (cardsResponse as any).statusCode || 'Unknown'
-          toast({
-            title: "Error Refreshing Membership Cards",
-            description: `Failed to refresh membership cards for club (ID: ${clubId}): ${errorMessage}. Status: ${statusCode}. ${errorDetails.message ? `Details: ${errorDetails.message}.` : ''} Please try again.`,
-            variant: "destructive",
-          })
-        }
-      } catch (err: any) {
-        const errorMessage = err?.message || 'Network error or server unavailable'
-        const errorDetails = err?.response?.data || {}
-        const statusCode = err?.response?.status || 'Unknown'
+
+        const validCards = cardsData.filter(card =>
+          card &&
+          card.card &&
+          card.card._id &&
+          typeof card.card._id === 'string' &&
+          card.card.cardStyle &&
+          card.club &&
+          card.membershipPlan
+        )
+
+        setCards(validCards)
+      } else {
+        const errorDetails = (cardsResponse as any).errorDetails || {}
+        const errorMessage = cardsResponse.error || 'Unknown error occurred'
+        const statusCode = errorDetails.statusCode || (cardsResponse as any).statusCode || 'Unknown'
         toast({
-          title: "Error Refreshing Data",
-          description: `Failed to refresh membership cards and plans for club (ID: ${clubId || 'Unknown'}) due to: ${errorMessage}. Status: ${statusCode}. ${errorDetails.message ? `Details: ${errorDetails.message}.` : ''} Please check your connection and try again.`,
+          title: "Error Refreshing Membership Cards",
+          description: `Failed to refresh membership cards for club (ID: ${effectiveClubId}): ${errorMessage}. Status: ${statusCode}. ${errorDetails.message ? `Details: ${errorDetails.message}.` : ''} Please try again.`,
           variant: "destructive",
         })
-      } finally {
-        setLoading(false)
       }
+    } catch (err: any) {
+      const errorMessage = err?.message || 'Network error or server unavailable'
+      const errorDetails = err?.response?.data || {}
+      const statusCode = err?.response?.status || 'Unknown'
+      toast({
+        title: "Error Refreshing Data",
+        description: `Failed to refresh membership cards and plans for club (ID: ${effectiveClubId || 'Unknown'}) due to: ${errorMessage}. Status: ${statusCode}. ${errorDetails.message ? `Details: ${errorDetails.message}.` : ''} Please check your connection and try again.`,
+        variant: "destructive",
+      })
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -414,12 +440,12 @@ export default function MembershipCardsPage() {
       const cardToUpdate = cards.find(c => c.card._id === cardId)
       const planName = cardToUpdate?.membershipPlan?.name || 'Unknown Plan'
       const cardNumber = cardToUpdate?.card?.cardNumber || 'Unknown'
-      
+
       const response = await apiClient.regenerateQRCode(cardId)
-      
+
       if (response.success) {
-        setCards(prev => prev.map(card => 
-          card.card._id === cardId 
+        setCards(prev => prev.map(card =>
+          card.card._id === cardId
             ? { ...card, card: { ...card.card, qrCode: response.data?.qrCode } }
             : card
         ))
@@ -462,22 +488,24 @@ export default function MembershipCardsPage() {
           showLogo: true
         }
       }
-    }
-    setEditingCard(cardCopy)
+    };
+    setCustomLogoFile(null);
+    setCustomLogoPreview(null);
+    setEditingCard(cardCopy);
   }
 
   const handleSaveEdit = async () => {
-    if (!editingCard) return;
+    if (!editingCard) return
 
     try {
-      setIsEditing(true);
-      
-      let customLogoUrl = editingCard.card.customization?.customLogo;
-      
+      setIsEditing(true)
+
+      let customLogoUrl = editingCard.card.customization?.customLogo
+
       if (customLogoFile) {
         try {
-          const formData = new FormData();
-          formData.append('image', customLogoFile);
+          const formData = new FormData()
+          formData.append('image', customLogoFile)
 
           const uploadResponse = await fetch(getApiUrl('/upload/logo'), {
             method: 'POST',
@@ -485,15 +513,15 @@ export default function MembershipCardsPage() {
               'Authorization': `Bearer ${localStorage.getItem('token')}`
             },
             body: formData
-          });
+          })
 
           if (!uploadResponse.ok) {
-            throw new Error('Upload failed');
+            throw new Error('Upload failed')
           }
 
-          const uploadData = await uploadResponse.json();
-          customLogoUrl = uploadData.url?.startsWith('http') ? uploadData.url : `${getBaseUrl()}${uploadData.url}`;
-          
+          const uploadData = await uploadResponse.json()
+          customLogoUrl = uploadData.url?.startsWith('http') ? uploadData.url : `${getBaseUrl()}${uploadData.url}`
+
           setEditingCard(prev => prev ? {
             ...prev,
             card: {
@@ -503,32 +531,39 @@ export default function MembershipCardsPage() {
                 customLogo: customLogoUrl
               }
             }
-          } : null);
+          } : null)
         } catch (error) {
-          // console.error('Error uploading logo:', error);
           toast({
             title: "Error",
             description: "Failed to upload logo file",
             variant: "destructive",
-          });
-          return;
+          })
+          return
         }
       }
-      
+
+      const updatedCustomization = {
+        ...editingCard.card.customization,
+        customLogo: customLogoUrl,
+      };
+
+      // fontFamily fix: Ensure the font from select is saved
+      if (!updatedCustomization.fontFamily) {
+        updatedCustomization.fontFamily = "Inter";
+      }
+
       const updateData = {
         status: editingCard.card.status,
         accessLevel: editingCard.card.accessLevel,
-        customization: {
-          ...editingCard.card.customization,
-          customLogo: customLogoUrl
-        }
-      };
+        cardStyle: editingCard.card.cardStyle,
+        customization: updatedCustomization
+      }
 
       const planName = editingCard.membershipPlan?.name || 'Unknown Plan'
       const cardNumber = editingCard.card.cardNumber || 'Unknown'
-      
+
       const response = await apiClient.updateMembershipCard(editingCard.card._id, updateData)
-      
+
       if (response.success && response.data) {
         setCards(prev => prev.map(card => {
           if (card.card._id === editingCard.card._id) {
@@ -545,14 +580,14 @@ export default function MembershipCardsPage() {
           }
           return card
         }))
-        
+
         const statusText = updateData.status ? ` Status: ${updateData.status}.` : ''
         const accessLevelText = updateData.accessLevel ? ` Access level: ${updateData.accessLevel}.` : ''
         toast({
           title: "Membership Card Updated Successfully",
           description: `Membership card "${cardNumber}" for plan "${planName}" has been updated successfully.${statusText}${accessLevelText} All changes have been saved.`,
         })
-        
+
         setEditingCard(null)
       } else {
         const errorDetails = (response as any).errorDetails || {}
@@ -578,140 +613,129 @@ export default function MembershipCardsPage() {
     } finally {
       setIsEditing(false)
     }
-  };
+  }
 
   const handleCancelEdit = () => {
-    setEditingCard(null);
-    setCustomLogoFile(null);
-    setCustomLogoPreview(null);
-  };
+    setEditingCard(null)
+    setCustomLogoFile(null)
+    setCustomLogoPreview(null)
+  }
 
   const handlePrimaryColorChange = useCallback((newColor: string) => {
     setEditingCard(prev => {
-      if (!prev) return null;
+      if (!prev) return null
       const existingCustomization = prev.card.customization
       return {
         ...prev,
         card: {
           ...prev.card,
           customization: {
+            ...(existingCustomization || {}),
             primaryColor: newColor,
-            secondaryColor: existingCustomization?.secondaryColor || '#1e40af',
-            fontFamily: existingCustomization?.fontFamily || 'Inter',
-            logoSize: (existingCustomization?.logoSize || 'medium') as 'small' | 'medium' | 'large',
-            showLogo: existingCustomization?.showLogo ?? true,
-            ...(existingCustomization?.customLogo && { customLogo: existingCustomization.customLogo })
           }
         }
-      };
-    });
-  }, []);
+      }
+    })
+  }, [])
 
   const handleSecondaryColorChange = useCallback((newColor: string) => {
     setEditingCard(prev => {
-      if (!prev) return null;
+      if (!prev) return null
       const existingCustomization = prev.card.customization
       return {
         ...prev,
         card: {
           ...prev.card,
           customization: {
-            primaryColor: existingCustomization?.primaryColor || '#3b82f6',
+            ...(existingCustomization || {}),
             secondaryColor: newColor,
-            fontFamily: existingCustomization?.fontFamily || 'Inter',
-            logoSize: (existingCustomization?.logoSize || 'medium') as 'small' | 'medium' | 'large',
-            showLogo: existingCustomization?.showLogo ?? true,
-            ...(existingCustomization?.customLogo && { customLogo: existingCustomization.customLogo })
           }
         }
-      };
-    });
-  }, []);
-
-
+      }
+    })
+  }, [])
 
   const handleStatusChange = useCallback((value: string) => {
     setEditingCard(prev => {
-      if (!prev) return null;
+      if (!prev) return null
       return {
         ...prev,
         card: { ...prev.card, status: value as 'active' | 'expired' | 'pending' | 'suspended' }
-      };
-    });
-  }, []);
+      }
+    })
+  }, [])
 
   const handleAccessLevelChange = useCallback((value: string) => {
     setEditingCard(prev => {
-      if (!prev) return null;
+      if (!prev) return null
       return {
         ...prev,
         card: { ...prev.card, accessLevel: value as 'basic' | 'premium' | 'vip' }
-      };
-    });
-  }, []);
+      }
+    })
+  }, [])
 
+  const handleCardStyleChange = useCallback((value: string) => {
+    setEditingCard(prev => {
+      if (!prev) return null
+      return {
+        ...prev,
+        card: { ...prev.card, cardStyle: value as 'default' | 'premium' | 'vintage' | 'modern' | 'elite' | 'emerald' }
+      }
+    })
+  }, [])
+
+  // Font family fix: Only set the fontFamily field, retain existing customization
   const handleFontFamilyChange = useCallback((value: string) => {
     setEditingCard(prev => {
       if (!prev) return null;
-      const existingCustomization = prev.card.customization
+      const existingCustomization = prev.card.customization || {};
       return {
         ...prev,
         card: {
           ...prev.card,
           customization: {
-            primaryColor: existingCustomization?.primaryColor || '#3b82f6',
-            secondaryColor: existingCustomization?.secondaryColor || '#1e40af',
-            fontFamily: value,
-            logoSize: (existingCustomization?.logoSize || 'medium') as 'small' | 'medium' | 'large',
-            showLogo: existingCustomization?.showLogo ?? true,
-            ...(existingCustomization?.customLogo && { customLogo: existingCustomization.customLogo })
+            ...existingCustomization,
+            fontFamily: value
           }
         }
-      };
+      }
     });
   }, []);
 
   const handleLogoSizeChange = useCallback((value: string) => {
     setEditingCard(prev => {
-      if (!prev) return null;
+      if (!prev) return null
       const existingCustomization = prev.card.customization
       return {
         ...prev,
         card: {
           ...prev.card,
           customization: {
-            primaryColor: existingCustomization?.primaryColor || '#3b82f6',
-            secondaryColor: existingCustomization?.secondaryColor || '#1e40af',
-            fontFamily: existingCustomization?.fontFamily || 'Inter',
-            logoSize: value as 'small' | 'medium' | 'large',
-            showLogo: existingCustomization?.showLogo ?? true,
-            ...(existingCustomization?.customLogo && { customLogo: existingCustomization.customLogo })
+            ...(existingCustomization || {}),
+            logoSize: value as 'small' | 'medium' | 'large'
           }
         }
-      };
-    });
-  }, []);
+      }
+    })
+  }, [])
 
   const handleShowLogoChange = useCallback((checked: boolean) => {
     setEditingCard(prev => {
       if (!prev) return null;
-      const existingCustomization = prev.card.customization
+      const existingCustomization = prev.card.customization || {};
       return {
         ...prev,
         card: {
           ...prev.card,
           customization: {
-            primaryColor: existingCustomization?.primaryColor || '#3b82f6',
-            secondaryColor: existingCustomization?.secondaryColor || '#1e40af',
-            fontFamily: existingCustomization?.fontFamily || 'Inter',
-            logoSize: (existingCustomization?.logoSize || 'medium') as 'small' | 'medium' | 'large',
+            ...existingCustomization,
             showLogo: checked,
-            ...(existingCustomization?.customLogo && { customLogo: existingCustomization.customLogo })
           }
         }
-      };
-    });
-  }, []);
+      }
+    })
+  }, [])
 
   if (loading) {
     return (
@@ -759,8 +783,8 @@ export default function MembershipCardsPage() {
                     Live Preview
                   </CardTitle>
                   <CardDescription>
-                    {editingCard ? 
-                      `Previewing edits for ${editingCard.membershipPlan?.name || 'Unknown Plan'} card` : 
+                    {editingCard ?
+                      `Previewing edits for ${editingCard.membershipPlan?.name || 'Unknown Plan'} card` :
                       "See how your membership cards will look with current settings"
                     }
                   </CardDescription>
@@ -778,12 +802,14 @@ export default function MembershipCardsPage() {
                                 cardData={editingCard}
                                 cardStyle={editingCard.card.cardStyle}
                                 showLogo={editingCard.card.customization?.showLogo ?? true}
+                                userName="John Doe"
+                                membershipId={editingCard.card.membershipId ?? 'MEM-XXXX'}
                               />
                             </div>
                           </div>
                         </div>
                       )}
-                      
+
                       {/* All Created Cards */}
                       <div>
                         <h4 className="font-medium mb-3 text-foreground">All Your Cards</h4>
@@ -804,6 +830,8 @@ export default function MembershipCardsPage() {
                                       cardData={card}
                                       cardStyle={card?.card?.cardStyle || 'default'}
                                       showLogo={card?.card?.customization?.showLogo ?? true}
+                                      userName="John Doe"
+                                      membershipId={card?.card?.membershipId ?? 'Membership ID'}
                                     />
                                   </div>
                                 </div>
@@ -832,38 +860,6 @@ export default function MembershipCardsPage() {
                   )}
                 </CardContent>
               </Card>
-
-              {/* Preset Catalog */}
-              {/* <Card>
-                <CardHeader>
-                  <CardTitle>Preset Card Styles</CardTitle>
-                  <CardDescription>
-                    Preview different card style variations with your customization
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {cards.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                      {(['default', 'premium', 'vintage', 'modern'] as const).map((style) => (
-                        <div key={style} className="text-center">
-                          <h4 className="font-medium mb-3 text-foreground capitalize">{style}</h4>
-                          <div className="flex justify-center">
-                            <MembershipCard
-                              cardData={cards[0]}
-                              cardStyle={style}
-                              showLogo={cards[0]?.card?.customization?.showLogo ?? customization.showLogo}
-                            />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center text-muted-foreground py-8">
-                      <p>Create a card first to see style variations</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card> */}
             </TabsContent>
 
             <TabsContent value="create" className="space-y-6">
@@ -888,57 +884,90 @@ export default function MembershipCardsPage() {
                     <>
                       <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                         <p className="text-sm text-blue-800 dark:text-blue-200">
-                          <strong>Note:</strong> Each membership plan can only have one template card. 
-                          If you get an error saying "A template card already exists for this membership plan", 
+                          <strong>Note:</strong> Each membership plan can only have one template card.
+                          If you get an error saying "A template card already exists for this membership plan",
                           it means a card has already been created for that plan.
                         </p>
                       </div>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <Label htmlFor="planId">Membership Plan</Label>
-                        <Select
-                          value={selectedPlanId}
-                          onValueChange={setSelectedPlanId}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a plan" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {membershipPlans.map((plan) => (
-                              <SelectItem key={plan._id} value={plan._id}>
-                                {plan.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <div>
+                          <Label htmlFor="planId">Membership Plan</Label>
+                          <Select
+                            value={selectedPlanId}
+                            onValueChange={setSelectedPlanId}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a plan" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {membershipPlans.map((plan) => (
+                                <SelectItem key={plan._id} value={plan._id}>
+                                  {plan.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor="createCardStyle">Card Style</Label>
+                          <Select
+                            value={customization.cardStyle}
+                            onValueChange={(v) => setCustomization(prev => ({
+                              ...prev,
+                              cardStyle: v as typeof prev.cardStyle,
+                              primaryColor: CARD_STYLE_COLORS[v as keyof typeof CARD_STYLE_COLORS].primaryColor,
+                              secondaryColor: CARD_STYLE_COLORS[v as keyof typeof CARD_STYLE_COLORS].secondaryColor,
+                              fontFamily: prev.fontFamily,
+                              logoSize: prev.logoSize,
+                              showLogo: prev.showLogo || true || false
+                            }))}
+                          >
+                            <SelectTrigger id="createCardStyle">
+                              <SelectValue placeholder="Select style" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="default">Classic Blue</SelectItem>
+                              <SelectItem value="premium">Premium Gold</SelectItem>
+                              <SelectItem value="vintage">Vintage Amber</SelectItem>
+                              <SelectItem value="modern">Modern Purple</SelectItem>
+                              <SelectItem value="elite">Elite Black</SelectItem>
+                              <SelectItem value="emerald">Emerald Green</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
-
-
-                    </div>
                     </>
                   )}
 
-                  {membershipPlans.length > 0 && (
-                    <div className="flex justify-end">
-                      <Button 
-                        onClick={handleCreateCard} 
-                        disabled={!clubId || !selectedPlanId || isCreating}
-                      >
-                        {isCreating ? "Creating..." : "Create Membership Card"}
-                      </Button>
-                    </div>
-                  )}
+                  {membershipPlans.length > 0 && (() => {
+                    const planIdsWithCards = cards.map(c => c.membershipPlan?._id).filter(Boolean);
+                    const selectedPlanHasCard = selectedPlanId && planIdsWithCards.includes(selectedPlanId);
+                    return (
+                      <div className="flex flex-col items-end gap-2">
+                        {selectedPlanHasCard && (
+                          <p className="text-sm text-amber-600 dark:text-amber-400">
+                            This plan already has a membership card. Only one card can be created per plan.
+                          </p>
+                        )}
+                        <Button
+                          onClick={handleCreateCard}
+                          disabled={!effectiveClubId || !selectedPlanId || isCreating || !!selectedPlanHasCard}
+                        >
+                          {isCreating ? "Creating..." : "Create Membership Card"}
+                        </Button>
+                      </div>
+                    );
+                  })()}
                 </CardContent>
               </Card>
             </TabsContent>
 
             <TabsContent value="customize" className="space-y-6">
-              <MembershipCardCustomizer 
-                clubId={clubId || undefined}
+              <MembershipCardCustomizer
+                clubId={effectiveClubId || undefined}
                 onSave={() => {
-                  // Refresh cards after saving customization  
                   window.location.reload();
-                }} 
+                }}
               />
             </TabsContent>
 
@@ -962,293 +991,286 @@ export default function MembershipCardsPage() {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                       {cards.map((card) => {
-                          // Debug: Log the card structure
-                          // // console.log('Card structure:', card);
-                          
-                          // Check if card has the expected structure
-                          if (!card || !card.card) {
-                            // // console.error('Invalid card structure:', card);
-                            return null; // Skip invalid cards
-                          }
-                          
-                          return (
-                            <div key={card.card._id} className="flex items-center justify-between p-4 border rounded-lg">
-                              <div className="flex items-center space-x-4">
-                                <div className="w-16 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded flex items-center justify-center">
-                                  <CreditCard className="w-5 h-5 text-white" />
-                                </div>
-                                <div>
-                                  <p className="font-medium">{card.membershipPlan?.name || 'No Plan Name'}</p>
-                                  <p className="text-sm text-muted-foreground">
-                                    {card.card.cardNumber}
-                                  </p>
-                                  <div className="flex items-center space-x-2 mt-1">
-                                    <Badge variant={card.card.status === 'active' ? 'default' : 'secondary'}>
-                                      {card.card.status}
-                                    </Badge>
-                                    <span className="text-xs text-muted-foreground">
-                                      Expires: {new Date(card.card.expiryDate).toLocaleDateString()}
-                                    </span>
-                                  </div>
-                                </div>
+                      {cards.map((card) => {
+                        if (!card || !card.card) {
+                          return null
+                        }
+
+                        return (
+                          <div key={card.card._id} className="flex items-center justify-between p-4 border rounded-lg">
+                            <div className="flex items-center space-x-4">
+                              <div className="w-16 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded flex items-center justify-center">
+                                <CreditCard className="w-5 h-5 text-white" />
                               </div>
-                              <div className="flex items-center space-x-2">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleRegenerateQR(card.card._id)}
-                                >
-                                  <RefreshCw className="w-4 h-4" />
-                                </Button>
-                                <Button 
-                                  size="sm" 
-                                  variant="outline"
-                                  onClick={() => handleEditCard(card)}
-                                >
-                                  <Edit className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="destructive"
-                                  onClick={() => handleDeleteCard(card.card._id)}
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </Button>
+                              <div>
+                                <p className="font-medium">{card.membershipPlan?.name || 'No Plan Name'}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {card.card.cardNumber}
+                                </p>
+                                <div className="flex items-center space-x-2 mt-1">
+                                  <Badge variant={card.card.status === 'active' ? 'default' : 'secondary'}>
+                                    {card.card.status}
+                                  </Badge>
+                                  <span className="text-xs text-muted-foreground">
+                                    Expires: {formatDisplayDate(card.card.expiryDate)}
+                                  </span>
+                                </div>
                               </div>
                             </div>
-                          );
-                        }).filter(Boolean)}
-                      </div>
+                            <div className="flex items-center space-x-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleRegenerateQR(card.card._id)}
+                              >
+                                <RefreshCw className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleEditCard(card)}
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => handleDeleteCard(card.card._id)}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        )
+                      }).filter(Boolean)}
+                    </div>
                   )}
                 </CardContent>
               </Card>
             </TabsContent>
-
-            {/* <TabsContent value="settings" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Export & Share</CardTitle>
-                  <CardDescription>
-                    Export cards and configure sharing settings
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex space-x-2">
-                    <Button onClick={handleExportCards} className="flex items-center gap-2">
-                      <Download className="w-4 h-4" />
-                      Export All Cards
-                    </Button>
-                    <Button variant="outline" className="flex items-center gap-2">
-                      <Share2 className="w-4 h-4" />
-                      Share Settings
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent> */}
           </Tabs>
         </div>
 
-      {/* Edit Card Modal */}
-      {editingCard && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
-          <div className="bg-background border rounded-lg w-full max-w-6xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
-            <div className="flex justify-between items-center mb-4 p-6 pb-4">
-              <h3 className="text-lg font-semibold text-foreground">Edit Membership Card</h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleCancelEdit}
-                className="h-8 w-8 p-0"
-              >
-                <span className="sr-only">Close</span>
-                ×
-              </Button>
-            </div>
-            
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 p-4 sm:p-6 pt-0 overflow-y-auto flex-1">
-              {/* Left Column - Input Fields */}
-              <div className="space-y-4">
-
-
-              <div>
-                <Label htmlFor="status">Status</Label>
-                <Select
-                  value={editingCard.card.status}
-                  onValueChange={handleStatusChange}
+        {/* Edit Card Modal */}
+        {editingCard && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
+            <div className="bg-background border rounded-lg w-full max-w-6xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
+              <div className="flex justify-between items-center mb-4 p-6 pb-4">
+                <h3 className="text-lg font-semibold text-foreground">Edit Membership Card</h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleCancelEdit}
+                  className="h-8 w-8 p-0"
                 >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="expired">Expired</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="suspended">Suspended</SelectItem>
-                  </SelectContent>
-                </Select>
+                  <span className="sr-only">Close</span>
+                  ×
+                </Button>
               </div>
 
-              <div>
-                <Label htmlFor="accessLevel">Access Level</Label>
-                <Select
-                  value={editingCard.card.accessLevel}
-                  onValueChange={handleAccessLevelChange}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="basic">Basic</SelectItem>
-                    <SelectItem value="premium">Premium</SelectItem>
-                    <SelectItem value="vip">VIP</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 p-4 sm:p-6 pt-0 overflow-y-auto flex-1 min-h-0">
+                {/* Left Column - Settings */}
+                <div className="flex-shrink-0 lg:w-[380px] xl:w-[420px] space-y-4 overflow-y-auto">
+                  <div>
+                    <Label htmlFor="status">Status</Label>
+                    <Select
+                      value={editingCard.card.status}
+                      onValueChange={handleStatusChange}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="expired">Expired</SelectItem>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="suspended">Suspended</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              <div>
-                <Label htmlFor="primaryColor">Secondary Color</Label>
-                <Input
-                  id="primaryColor"
-                  type="color"
-                  value={editingCard.card.customization?.primaryColor || '#3b82f6'}
-                  onChange={(e) => handlePrimaryColorChange(e.target.value)}
-                  className="h-10 w-full"
-                />
-              </div>
+                  <div>
+                    <Label htmlFor="accessLevel">Access Level</Label>
+                    <Select
+                      value={editingCard.card.accessLevel}
+                      onValueChange={handleAccessLevelChange}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="basic">Basic</SelectItem>
+                        <SelectItem value="premium">Premium</SelectItem>
+                        <SelectItem value="vip">VIP</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              <div>
-                <Label htmlFor="secondaryColor">Primary Color</Label>
-                <Input
-                  id="secondaryColor"
-                  type="color"
-                  value={editingCard.card.customization?.secondaryColor || '#1e40af'}
-                  onChange={(e) => handleSecondaryColorChange(e.target.value)}
-                  className="h-10 w-full"
-                />
-              </div>
+                  <div>
+                    <Label htmlFor="editCardStyle">Card Style</Label>
+                    <Select
+                      value={editingCard.card.cardStyle}
+                      onValueChange={handleCardStyleChange}
+                    >
+                      <SelectTrigger id="editCardStyle">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="default">Classic Blue</SelectItem>
+                        <SelectItem value="premium">Premium Gold</SelectItem>
+                        <SelectItem value="vintage">Vintage Amber</SelectItem>
+                        <SelectItem value="modern">Modern Purple</SelectItem>
+                        <SelectItem value="elite">Elite Black</SelectItem>
+                        <SelectItem value="emerald">Emerald Green</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              <div>
-                <Label htmlFor="fontFamily">Font Family</Label>
-                <Select
-                  value={editingCard.card.customization?.fontFamily || 'Inter'}
-                  onValueChange={handleFontFamilyChange}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Inter">Inter</SelectItem>
-                    <SelectItem value="Roboto">Roboto</SelectItem>
-                    <SelectItem value="Open Sans">Open Sans</SelectItem>
-                    <SelectItem value="Montserrat">Montserrat</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                  <div>
+                    <Label htmlFor="primaryColor">Primary Color</Label>
+                    <Input
+                      id="primaryColor"
+                      type="color"
+                      value={editingCard.card.customization?.primaryColor || '#3b82f6'}
+                      onChange={(e) => handlePrimaryColorChange(e.target.value)}
+                      className="h-10 w-full"
+                    />
+                  </div>
 
-              <div>
-                <Label htmlFor="logoSize">Logo Size</Label>
-                <Select
-                  value={editingCard.card.customization?.logoSize || 'medium'}
-                  onValueChange={handleLogoSizeChange}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="small">Small</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
-                    <SelectItem value="large">Large</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                  <div>
+                    <Label htmlFor="secondaryColor">Secondary Color</Label>
+                    <Input
+                      id="secondaryColor"
+                      type="color"
+                      value={editingCard.card.customization?.secondaryColor || '#1e40af'}
+                      onChange={(e) => handleSecondaryColorChange(e.target.value)}
+                      className="h-10 w-full"
+                    />
+                  </div>
 
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="showLogo"
-                  checked={editingCard.card.customization?.showLogo || true}
-                  onCheckedChange={handleShowLogoChange}
-                />
-                <Label htmlFor="showLogo">Show Club Logo</Label>
-              </div>
+                  <div>
+                    <Label htmlFor="fontFamily">Font Family</Label>
+                    <Select
+                      value={editingCard.card.customization?.fontFamily || 'Inter'}
+                      onValueChange={handleFontFamilyChange}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {FONT_FAMILIES.map((font) => (
+                          <SelectItem key={font.value} value={font.value}>{font.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              {/* Custom Logo Upload */}
-              <div>
-                <Label htmlFor="customLogo">Custom Logo</Label>
-                <div className="mt-2 space-y-3">
-                  <Input
-                    id="customLogo"
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleCustomLogoChange(e.target.files?.[0] ?? null)}
-                    className="mt-2"
-                  />
-                  
-                  {/* Current Logo Display */}
-                  {editingCard.card.customization?.customLogo && (
-                    <div className="mt-3">
-                      <Label className="text-sm text-muted-foreground">Current Logo</Label>
-                      <div className="mt-2 flex items-center space-x-3">
-                        <img
-                          src={editingCard.card.customization.customLogo.startsWith('http') || editingCard.card.customization.customLogo.startsWith('data:') 
-                            ? editingCard.card.customization.customLogo 
-                            : `${getBaseUrl()}${editingCard.card.customization.customLogo}`}
-                          alt="Current custom logo"
-                          className="w-16 h-16 object-cover rounded border"
-                          onError={(e) => {
-                            const customLogo = editingCard.card.customization?.customLogo;
-                            if (customLogo && !customLogo.startsWith('http') && !customLogo.startsWith('data:')) {
-                              e.currentTarget.src = `${getBaseUrl()}${customLogo}`;
-                            }
-                          }}
-                        />
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={handleRemoveCustomLogo}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          Remove
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Logo Preview */}
-                  {customLogoPreview && (
-                    <div className="mt-3">
-                      <Label className="text-sm text-muted-foreground">New Logo Preview</Label>
-                      <div className="mt-2">
-                        <img
-                          src={customLogoPreview}
-                          alt="New logo preview"
-                          className="w-16 h-16 object-cover rounded border"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-              </div>
+                  <div>
+                    <Label htmlFor="logoSize">Logo Size</Label>
+                    <Select
+                      value={editingCard.card.customization?.logoSize || 'medium'}
+                      onValueChange={handleLogoSizeChange}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="small">Small</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="large">Large</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-              {/* Right Column - Preview */}
-              <div className="lg:sticky lg:top-0 lg:self-start order-first lg:order-last">
-                <div className="border rounded-lg p-4 sm:p-6 bg-muted/20">
-                  <Label className="text-sm font-medium mb-4 block">Live Preview</Label>
-                  <div className="flex justify-center">
-                    <div className="w-full max-w-xs sm:max-w-sm">
-                      <MembershipCard
-                        cardData={editingCard}
-                        cardStyle={editingCard.card.cardStyle}
-                        showLogo={editingCard.card.customization?.showLogo ?? true}
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="showLogo"
+                      checked={editingCard.card.customization?.showLogo ?? true}
+                      onCheckedChange={handleShowLogoChange}
+                    />
+                    <Label htmlFor="showLogo">Show Club Logo</Label>
+                  </div>
+
+                  {/* Custom Logo Upload */}
+                  <div>
+                    <Label htmlFor="customLogo">Custom Logo</Label>
+                    <div className="mt-2 space-y-3">
+                      <Input
+                        id="customLogo"
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => handleCustomLogoChange(e.target.files?.[0] ?? null)}
+                        className="mt-2"
                       />
+
+                      {/* Current Logo Display */}
+                      {editingCard.card.customization?.customLogo && (
+                        <div className="mt-3">
+                          <Label className="text-sm text-muted-foreground">Current Logo</Label>
+                          <div className="mt-2 flex items-center space-x-3">
+                            <img
+                              src={editingCard.card.customization.customLogo.startsWith('http') || editingCard.card.customization.customLogo.startsWith('data:')
+                                ? editingCard.card.customization.customLogo
+                                : `${getBaseUrl()}${editingCard.card.customization.customLogo}`}
+                              alt="Current custom logo"
+                              className="w-16 h-16 object-cover rounded border"
+                              onError={(e) => {
+                                const customLogo = editingCard.card.customization?.customLogo;
+                                if (customLogo && !customLogo.startsWith('http') && !customLogo.startsWith('data:')) {
+                                  e.currentTarget.src = `${getBaseUrl()}${customLogo}`;
+                                }
+                              }}
+                            />
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={handleRemoveCustomLogo}
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              Remove
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Logo Preview */}
+                      {customLogoPreview && (
+                        <div className="mt-3">
+                          <Label className="text-sm text-muted-foreground">New Logo Preview</Label>
+                          <div className="mt-2">
+                            <img
+                              src={customLogoPreview}
+                              alt="New logo preview"
+                              className="w-16 h-16 object-cover rounded border"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column - Live Preview */}
+                <div className="flex-1 flex items-start justify-center lg:justify-end min-h-[320px] lg:min-h-0 lg:sticky lg:top-0">
+                  <div className="border rounded-lg p-4 sm:p-6 bg-muted/20 w-full max-w-sm">
+                    <Label className="text-sm font-medium mb-4 block">Live Preview</Label>
+                    <div className="flex justify-center">
+                      <div className="w-full max-w-xs sm:max-w-sm">
+                        <MembershipCard
+                          cardData={editingCard}
+                          cardStyle={editingCard.card.cardStyle}
+                          showLogo={editingCard.card.customization?.showLogo ?? true}
+                          userName="John Doe"
+                          membershipId={editingCard.card.membershipId ?? 'MEM-XXXX'}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row justify-end gap-2 mt-6 p-4 sm:p-6 pt-4 border-t bg-muted/20">
+              {/* Footer - Actions */}
+              <div className="flex flex-col sm:flex-row justify-end gap-2 p-4 sm:p-6 pt-4 border-t bg-muted/20 flex-shrink-0">
                 <Button variant="outline" onClick={handleCancelEdit} className="w-full sm:w-auto">
                   Cancel
                 </Button>
@@ -1258,7 +1280,6 @@ export default function MembershipCardsPage() {
               </div>
             </div>
           </div>
-        </div>
         )}
       </DashboardLayout>
     </ProtectedRoute>

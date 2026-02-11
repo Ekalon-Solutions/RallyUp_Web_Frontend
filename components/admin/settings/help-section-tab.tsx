@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Save, HelpCircle, Plus, Trash2, ChevronDown, ChevronUp, Mail, Phone, MessageCircle } from "lucide-react"
 import { toast } from "sonner"
-import { useAuth } from "@/contexts/auth-context"
+import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { apiClient } from "@/lib/api"
 
 interface FAQ {
@@ -25,7 +25,7 @@ interface ContactInfo {
 }
 
 export function HelpSectionTab() {
-  const { user } = useAuth()
+  const clubId = useRequiredClubId()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [faqs, setFaqs] = useState<FAQ[]>([])
@@ -37,7 +37,6 @@ export function HelpSectionTab() {
   })
 
   const faqRefs = useRef<{ [key: string]: HTMLDivElement | null }>({})
-  const clubId = (user as any)?.club?._id || (user as any)?.club_id?._id
 
   useEffect(() => {
     if (clubId) {

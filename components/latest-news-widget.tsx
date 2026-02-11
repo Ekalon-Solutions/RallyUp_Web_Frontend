@@ -168,7 +168,7 @@ export function LatestNewsWidget({ limit = 3, showManageButton = true }: LatestN
                   <div className="flex items-center justify-between mt-auto">
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <Eye className="w-3 h-3" />
-                      <span>{article.views || 0} views</span>
+                      <span>{article.viewCount ?? 0} views</span>
                     </div>
                     <Button asChild size="sm" variant="ghost" className="h-6 px-2">
                       <Link href={isAdmin ? "/dashboard/content" : "/dashboard/user/news"}>
@@ -181,14 +181,16 @@ export function LatestNewsWidget({ limit = 3, showManageButton = true }: LatestN
               ))}
             </div>
             
-            <div className="pt-2">
-              <Button asChild variant="outline" size="sm" className="w-full">
-                <Link href={isAdmin ? "/dashboard/content" : "/dashboard/user/news"}>
-                  View All News
-                  <ArrowRight className="w-4 h-4 ml-2" />
-                </Link>
-              </Button>
-            </div>
+            {!isAdmin && (
+              <div className="pt-2">
+                <Button asChild variant="outline" size="sm" className="w-full">
+                  <Link href="/dashboard/user/news">
+                    View All News
+                    <ArrowRight className="w-4 h-4 ml-2" />
+                  </Link>
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </CardContent>

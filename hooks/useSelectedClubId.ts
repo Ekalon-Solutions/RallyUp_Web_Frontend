@@ -26,13 +26,20 @@ export function useSelectedClubId(): string | null {
       const directClubId = normalizeClubId(userAny?.club)
       if (directClubId && directClubId === activeClubId) return activeClubId
       if (activeMembershipFor(activeClubId)) return activeClubId
+      const adminClubs = Array.isArray(userAny?.clubs) ? userAny.clubs : []
+      if (adminClubs.some((c: any) => normalizeClubId(c) === activeClubId)) return activeClubId
     }
 
     const directClubId = normalizeClubId(userAny?.club)
     if (directClubId) return directClubId
 
     const firstActive = memberships.find((m: any) => m?.status === "active")
-    return normalizeClubId(firstActive?.club_id) || normalizeClubId(firstActive?.club) || null
+    const fromMembership = normalizeClubId(firstActive?.club_id) || normalizeClubId(firstActive?.club)
+    if (fromMembership) return fromMembership
+
+    const adminClubs = Array.isArray(userAny?.clubs) ? userAny.clubs : []
+    const firstAdminClub = adminClubs[0]
+    return normalizeClubId(firstAdminClub) || null
   }, [user, activeClubId])
 }
 

@@ -46,23 +46,21 @@ export default function UserLeaderboardPage() {
                 setLoading(false)
                 return
             }
-            const response = await apiClient.getLeaderboard()
+            const response = await apiClient.getLeaderboard(clubId)
 
             if (response.success && response.data) {
-                const filtered = (response.data.leaderboard || []).filter(
-                    (e) => String((e as any)?.club || '') === String(clubId)
-                )
-                setLeaderboard(filtered)
+                const list = response.data.leaderboard || []
+                setLeaderboard(list)
 
                 // Find user's rank and event count
                 if (userId) {
-                    const userEntry = filtered.find(
+                    const userEntry = list.find(
                         (entry) => entry.userId === userId
                     )
                     if (userEntry) {
                         setUserEventCount(userEntry.eventCount)
                         setUserPoints(userEntry.points || 0)
-                        const rank = filtered.findIndex(
+                        const rank = list.findIndex(
                             (entry) => entry.userId === userId
                         ) + 1
                         setUserRank(rank)
@@ -290,11 +288,6 @@ export default function UserLeaderboardPage() {
                                                                             </Badge>
                                                                         )}
                                                                     </p>
-                                                                    {entry.club && (
-                                                                        <p className="text-xs text-muted-foreground">
-                                                                            Club: {entry.club}
-                                                                        </p>
-                                                                    )}
                                                                 </div>
                                                             </div>
                                                         </TableCell>

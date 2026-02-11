@@ -40,11 +40,10 @@ export default function AdminLeaderboardPage() {
         setLoading(false)
         return
       }
-      const response = await apiClient.getLeaderboard()
-      console.log("response:", response, clubId)
+      const response = await apiClient.getLeaderboard(clubId)
 
       if (response.success && response.data) {
-        const entries = (response.data.leaderboard || []).filter((e: any) => String(e?.club || '') === String(clubId))
+        const entries = response.data.leaderboard || []
         setLeaderboard(entries)
 
         const pointsMap: Record<string, string> = {}
@@ -98,7 +97,7 @@ export default function AdminLeaderboardPage() {
 
     try {
       setSavingId(userId)
-      const response = await apiClient.updateLeaderboardPoints(userId, numericValue)
+      const response = await apiClient.updateLeaderboardPoints(userId, numericValue, clubId ?? undefined)
 
       if (response.success) {
         toast.success('Points updated successfully')
@@ -221,12 +220,6 @@ export default function AdminLeaderboardPage() {
                                     {getInitials(entry.name)}
                                   </AvatarFallback>
                                 </Avatar>
-                                <div>
-                                  <p className="font-medium">{entry.name || 'Anonymous User'}</p>
-                                  {entry.club && (
-                                    <p className="text-xs text-muted-foreground">Club: {entry.club}</p>
-                                  )}
-                                </div>
                               </div>
                             </TableCell>
                             <TableCell>

@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Volunteer } from '@/lib/api';
+import { formatDisplayDate } from '@/lib/utils';
 import { 
   Clock, 
   MapPin, 
@@ -265,11 +266,11 @@ export function VolunteerDetailsModal({ volunteer, isOpen, onClose }: VolunteerD
                           <h4 className="font-medium">{cert.name}</h4>
                           <p className="text-sm text-muted-foreground">{cert.issuingOrganization}</p>
                           <p className="text-sm text-muted-foreground">
-                            Issued: {new Date(cert.issueDate).toLocaleDateString()}
+                            Issued: {formatDisplayDate(cert.issueDate)}
                           </p>
                           {cert.expiryDate && (
                             <p className="text-sm text-muted-foreground">
-                              Expires: {new Date(cert.expiryDate).toLocaleDateString()}
+                              Expires: {formatDisplayDate(cert.expiryDate)}
                             </p>
                           )}
                         </div>
