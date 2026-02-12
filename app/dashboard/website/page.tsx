@@ -313,7 +313,7 @@ export default function WebsitePage() {
             <CardHeader className="pb-6 border-b bg-muted/20">
               <CardTitle className="text-2xl font-bold">Navigation & Sections</CardTitle>
               <CardDescription className="text-base mt-2">
-                Select up to 8 navigation items. Sections do not need navigation in header for content to appear in
+                Select up to 6 navigation items. Sections do not need navigation in header for content to appear in
                 the site.
               </CardDescription>
             </CardHeader>

@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { useAuth } from "@/contexts/auth-context"
 import { useClubSettings } from "@/hooks/useClubSettings"
 import { useDesignSettings } from "@/hooks/useDesignSettings"
@@ -42,6 +42,19 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import Image from "next/image"
 import { NotificationCenterModal } from "@/components/modals/notification-center-modal"
+import type { WebsiteSectionKey } from "@/lib/websiteSections"
+
+/** User (member) pathnames that are gated by member section visibility. Feed (/dashboard/user) is always allowed. */
+const USER_PATH_TO_SECTION: Record<string, WebsiteSectionKey> = {
+  "/dashboard/user/news": "news",
+  "/dashboard/user/events": "events",
+  "/dashboard/user/polls": "polls",
+  "/dashboard/user/chants": "chants",
+  "/dashboard/user/members": "members",
+  "/merchandise": "merchandise",
+}
+
+const FEED_PATH = "/dashboard/user"
 
 const adminNavigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -177,6 +190,21 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { isSectionVisible, settings, loading: settingsLoading } = useClubSettings(clubId)
   
   useDesignSettings(clubId)
+
+  // Redirect to feed when current page is not allowed for the selected club (e.g. after switching clubs)
+  const isRegularUser = !user?.role || user.role === "member"
+  useEffect(() => {
+    if (!isRegularUser || !clubId || settingsLoading || !pathname) return
+    const section = USER_PATH_TO_SECTION[pathname]
+    if (!section) return
+    const visible =
+      section === "merchandise"
+        ? isSectionVisible("merchandise") || isSectionVisible("store")
+        : isSectionVisible(section)
+    if (!visible) {
+      router.replace(FEED_PATH)
+    }
+  }, [isRegularUser, clubId, settingsLoading, pathname, settings])
 
   const sidebarClubs = useMemo(() => {
     if (!user || user.role === 'system_owner') return []

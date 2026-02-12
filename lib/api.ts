@@ -2933,11 +2933,17 @@ class ApiClient {
     contactEmail: string;
     contactPhone: string;
     isPublished?: boolean;
-    sections: {
+    sections?: {
       [key: string]: boolean;
     };
   }): Promise<ApiResponse<any>> {
     return this.put(`/club-settings/${clubId}/website-setup`, data);
+  }
+
+  async updateMemberSectionVisibility(clubId: string, data: {
+    sections: { [key: string]: boolean };
+  }): Promise<ApiResponse<any>> {
+    return this.put(`/club-settings/${clubId}/member-section-visibility`, data);
   }
 
   async updateGroupListings(clubId: string, listings: Array<{
