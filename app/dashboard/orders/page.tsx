@@ -291,6 +291,7 @@ export default function OrdersPage() {
         toast({ title: 'Error', description: res.error || 'Failed to download report', variant: 'destructive' });
       } else {
         toast({ title: 'Report downloaded', description: 'Orders report downloaded successfully.' });
+        await loadStats();
       }
     } catch (error) {
       // // console.error('Error downloading report:', error);
