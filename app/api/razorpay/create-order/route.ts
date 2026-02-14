@@ -11,9 +11,21 @@ export async function POST(request: NextRequest) {
 
     // console.log('Create order request:', { amount, currency, orderId, orderNumber })
 
-    if (!amount || !currency || !orderId) {
+    if (currency == null || currency === '' || !orderId) {
       return NextResponse.json(
         { error: 'Missing required fields' },
+        { status: 400 }
+      )
+    }
+    if (typeof amount !== 'number' || amount < 0) {
+      return NextResponse.json(
+        { error: 'Amount must be a number greater than or equal to 0' },
+        { status: 400 }
+      )
+    }
+    if (amount === 0) {
+      return NextResponse.json(
+        { error: 'Amount must be greater than 0 to create a payment order' },
         { status: 400 }
       )
     }

@@ -3021,57 +3021,63 @@ class ApiClient {
     return this.put(`/club-settings/${clubId}/help-section`, data);
   }
 
-  async getCoupons(): Promise<ApiResponse<{ coupons: any[] }>> {
-    return this.request('/coupons');
+  async getCoupons(clubId: string): Promise<ApiResponse<{ coupons: any[] }>> {
+    return this.get('/coupons', { params: { clubId } });
   }
 
   async getActiveCoupons(): Promise<ApiResponse<{ coupons: any[] }>> {
     return this.request('/coupons/active');
   }
 
-  async createCoupon(data: any): Promise<ApiResponse<{ message: string; coupon: any }>> {
+  async createCoupon(data: { clubId: string; [key: string]: any }): Promise<ApiResponse<{ message: string; coupon: any }>> {
     return this.request('/coupons', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
-  async updateCoupon(id: string, data: any): Promise<ApiResponse<{ message: string; coupon: any }>> {
-    return this.request(`/coupons/${id}`, {
+  private couponUrl(id: string, clubId?: string): string {
+    const base = `/coupons/${id}`;
+    return clubId ? `${base}?clubId=${encodeURIComponent(clubId)}` : base;
+  }
+
+  async updateCoupon(id: string, data: any, clubId?: string): Promise<ApiResponse<{ message: string; coupon: any }>> {
+    return this.request(this.couponUrl(id, clubId), {
       method: 'PUT',
       body: JSON.stringify(data),
     });
   }
 
-  async deleteCoupon(id: string): Promise<ApiResponse<{ message: string }>> {
-    return this.request(`/coupons/${id}`, {
+  async deleteCoupon(id: string, clubId?: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request(this.couponUrl(id, clubId), {
       method: 'DELETE',
     });
   }
 
-  async toggleCouponStatus(id: string, isActive: boolean): Promise<ApiResponse<{ message: string; coupon: any }>> {
-    return this.request(`/coupons/${id}/toggle`, {
-      method: 'PATCH',
+  async toggleCouponStatus(id: string, isActive: boolean, clubId?: string): Promise<ApiResponse<{ message: string; coupon: any }>> {
+    const path = `/coupons/${id}/toggle` + (clubId ? `?clubId=${encodeURIComponent(clubId)}` : '');
+    return this.request(path, {
+      method: 'PUT',
       body: JSON.stringify({ isActive }),
     });
   }
 
-  async validateCoupon(code: string, eventId?: string, ticketPrice?: number): Promise<ApiResponse<{ coupon: { code: string; name: string; discountType: 'flat' | 'percentage'; discountValue: number; discount: number; originalPrice: number; finalPrice: number } }>> {
+  async validateCoupon(code: string, eventId?: string, ticketPrice?: number, clubId?: string): Promise<ApiResponse<{ coupon: { code: string; name: string; discountType: 'flat' | 'percentage'; discountValue: number; discount: number; originalPrice: number; finalPrice: number } }>> {
     return this.request('/coupons/validate', {
       method: 'POST',
-      body: JSON.stringify({ code, eventId, ticketPrice }),
+      body: JSON.stringify({ code, eventId, ticketPrice, clubId }),
     });
   }
 
-  async applyCoupon(code: string, eventId?: string, ticketPrice?: number): Promise<ApiResponse<{ message: string; discount: number; finalPrice: number }>> {
+  async applyCoupon(code: string, eventId?: string, ticketPrice?: number, clubId?: string): Promise<ApiResponse<{ message: string; discount: number; finalPrice: number }>> {
     return this.request('/coupons/apply', {
       method: 'POST',
-      body: JSON.stringify({ code, eventId, ticketPrice }),
+      body: JSON.stringify({ code, eventId, ticketPrice, clubId }),
     });
   }
 
-  async getCouponStats(id: string): Promise<ApiResponse<any>> {
-    return this.request(`/coupons/${id}/stats`);
+  async getCouponStats(id: string, clubId?: string): Promise<ApiResponse<any>> {
+    return this.get(`/coupons/${id}/stats`, { params: clubId ? { clubId } : undefined });
   }
   
   async getSystemStatus(): Promise<ApiResponse<{

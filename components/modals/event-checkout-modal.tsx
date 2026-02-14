@@ -155,7 +155,8 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
       if (couponCode && event?._id && isOpen) {
         try {
           const totalPrice = getDiscountedPricePerTicket() * attendees.length
-          const response = await apiClient.validateCoupon(couponCode, String(event._id), totalPrice)
+          const clubId = eventData?.clubId || (event as any)?.clubId
+          const response = await apiClient.validateCoupon(couponCode, String(event._id), totalPrice, clubId)
           
           if (response.success && response.data?.coupon) {
             setCouponDiscount(response.data.coupon.discount * attendees.length)

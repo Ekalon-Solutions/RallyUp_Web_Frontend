@@ -38,9 +38,10 @@ interface CreateCouponModalProps {
   onClose: () => void
   onSuccess: () => void
   editCoupon?: Coupon | null
+  clubId?: string
 }
 
-export function CreateCouponModal({ isOpen, onClose, onSuccess, editCoupon }: CreateCouponModalProps) {
+export function CreateCouponModal({ isOpen, onClose, onSuccess, editCoupon, clubId }: CreateCouponModalProps) {
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [formData, setFormData] = useState({
@@ -152,10 +153,15 @@ export function CreateCouponModal({ isOpen, onClose, onSuccess, editCoupon }: Cr
       return
     }
 
+    if (!clubId && !editCoupon) {
+      toast.error("Club context is required to create a coupon")
+      return
+    }
+
     setLoading(true)
 
     try {
-      const couponData = {
+      const couponData: Record<string, unknown> = {
         name: formData.name.trim(),
         description: formData.description.trim(),
         code: formData.code.toUpperCase().trim(),
@@ -167,12 +173,16 @@ export function CreateCouponModal({ isOpen, onClose, onSuccess, editCoupon }: Cr
         eligibility: formData.eligibility,
         minPurchaseAmount: formData.minPurchaseAmount ? parseFloat(formData.minPurchaseAmount) : undefined,
       }
+      if (!editCoupon && clubId) {
+        couponData.clubId = clubId
+      }
 
       const token = localStorage.getItem("token")
-      const url = editCoupon 
+      const baseUrl = editCoupon
         ? `${config.apiBaseUrl}/coupons/${editCoupon._id}`
         : `${config.apiBaseUrl}/coupons`
-      
+      const url = clubId && editCoupon ? `${baseUrl}?clubId=${encodeURIComponent(clubId)}` : baseUrl
+
       const response = await fetch(url, {
         method: editCoupon ? "PUT" : "POST",
         headers: {

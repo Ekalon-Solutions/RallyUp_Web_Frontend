@@ -59,7 +59,11 @@ interface CouponStats {
   }>
 }
 
-export function CouponsTab() {
+interface CouponsTabProps {
+  clubId: string
+}
+
+export function CouponsTab({ clubId }: CouponsTabProps) {
   const [coupons, setCoupons] = useState<Coupon[]>([])
   const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
@@ -72,13 +76,14 @@ export function CouponsTab() {
   const [viewingStats, setViewingStats] = useState<{ coupon: Coupon; stats: CouponStats } | null>(null)
 
   useEffect(() => {
-    fetchCoupons()
-  }, [])
+    if (clubId) fetchCoupons()
+  }, [clubId])
 
   const fetchCoupons = async () => {
+    if (!clubId) return
     try {
       setLoading(true)
-      const response = await apiClient.getCoupons()
+      const response = await apiClient.getCoupons(clubId)
       if (response.success && response.data?.coupons) {
         setCoupons(response.data.coupons)
       } else {
@@ -106,7 +111,7 @@ export function CouponsTab() {
     if (!deletingCoupon) return
 
     try {
-      const response = await apiClient.deleteCoupon(deletingCoupon._id)
+      const response = await apiClient.deleteCoupon(deletingCoupon._id, clubId)
       if (response.success) {
         toast.success(response.data?.message || "Coupon deleted successfully")
         fetchCoupons()
@@ -123,7 +128,7 @@ export function CouponsTab() {
 
   const handleToggleStatus = async (coupon: Coupon) => {
     try {
-      const response = await apiClient.toggleCouponStatus(coupon._id, !coupon.isActive)
+      const response = await apiClient.toggleCouponStatus(coupon._id, !coupon.isActive, clubId)
       if (response.success) {
         toast.success(response.data?.message || `Coupon ${!coupon.isActive ? 'activated' : 'deactivated'} successfully`)
         fetchCoupons()
@@ -138,7 +143,7 @@ export function CouponsTab() {
 
   const handleViewStats = async (coupon: Coupon) => {
     try {
-      const response = await apiClient.getCouponStats(coupon._id)
+      const response = await apiClient.getCouponStats(coupon._id, clubId)
       if (response.success && response.data) {
         setViewingStats({ coupon, stats: response.data.stats })
       } else {
@@ -260,7 +265,7 @@ export function CouponsTab() {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>Manage Coupons</CardTitle>
-              <CardDescription>Create and manage discount coupons for events</CardDescription>
+              <CardDescription>Create and manage discount coupons for events and merchandise</CardDescription>
             </div>
             <Button onClick={handleCreateCoupon}>
               <Plus className="w-4 h-4 mr-2" />
@@ -475,6 +480,7 @@ export function CouponsTab() {
           setEditingCoupon(null)
         }}
         editCoupon={editingCoupon}
+        clubId={clubId}
       />
 
       {/* Delete Confirmation Dialog */}

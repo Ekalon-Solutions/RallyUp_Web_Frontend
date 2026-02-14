@@ -17,8 +17,6 @@ import { formatDisplayDate } from "@/lib/utils"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
 import { useCallback, useEffect, useState } from "react"
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { CouponsTab } from "@/components/tabs/coupons-tab";
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 
 export default function EventsPage() {
@@ -168,14 +166,7 @@ export default function EventsPage() {
   return (
     <ProtectedRoute requireAdmin={true}>
       <DashboardLayout>
-        <Tabs defaultValue="events">
-          <TabsList>
-            <TabsTrigger value="events">Events</TabsTrigger>
-            <TabsTrigger value="coupons">Coupons</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="events">
-            <div className="space-y-6">
+        <div className="space-y-6">
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
                   <h1 className="text-2xl sm:text-3xl font-bold">Events Management</h1>
@@ -407,13 +398,6 @@ export default function EventsPage() {
                 </CardContent>
               </Card>
             </div>
-          </TabsContent>
-
-          <TabsContent value="coupons">
-            {/* Coupons Management Tab */}
-            <CouponsTab />
-          </TabsContent>
-        </Tabs>
       </DashboardLayout>
     </ProtectedRoute>
   )

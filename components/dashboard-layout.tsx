@@ -32,6 +32,7 @@ import {
   ShoppingCart,
   UserCheck,
   ChartNoAxesColumn,
+  Tag,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -68,6 +69,7 @@ const adminNavigation = [
   { name: "Merchandise", href: "/dashboard/merchandise", icon: Shirt },
   { name: "Order Management", href: "/dashboard/orders", icon: ShoppingCart },
   { name: "Events & Tickets", href: "/dashboard/events", icon: Ticket },
+  { name: "Coupons", href: "/dashboard/coupons", icon: Tag },
   { name: "Leaderboard", href: "/dashboard/leaderboard", icon: ChartNoAxesColumn },
   // { name: "Match Center", href: "/dashboard/match-center", icon: Calendar },
   { name: "Group Website", href: "/dashboard/website", icon: Globe },
@@ -101,6 +103,7 @@ const superAdminNavigation = [
   { name: "Merchandise", href: "/dashboard/merchandise", icon: Shirt },
   { name: "Order Management", href: "/dashboard/orders", icon: ShoppingCart },
   { name: "Events & Tickets", href: "/dashboard/events", icon: Ticket },
+  { name: "Coupons", href: "/dashboard/coupons", icon: Tag },
   { name: "Leaderboard", href: "/dashboard/leaderboard", icon: ChartNoAxesColumn },
   // { name: "Match Center", href: "/dashboard/match-center", icon: Calendar },
   { name: "Group Website", href: "/dashboard/website", icon: Globe },
