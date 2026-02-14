@@ -623,7 +623,7 @@ export function AddMemberModal({ trigger, onMemberAdded, clubId: clubIdProp }: A
             Cancel
           </Button>
           {step === "membership-selection" ? (
-            <Button onClick={handleSubmit} disabled={isLoading}>
+            <Button onClick={handleSubmit} disabled={isLoading || !selectedPlan}>
               {isLoading ? "Creating..." : "Create Member"}
             </Button>
           ) : (

@@ -93,14 +93,52 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
     memberDiscountEnabled: false,
     memberDiscountType: "percentage" as "percentage" | "fixed",
     memberDiscountValue: "",
-  groupDiscountEnabled: false,
-  groupDiscountType: "percentage" as "percentage" | "fixed",
-  groupDiscountValue: "",
-  groupDiscountMinQty: "2",
-  waitlistEnabled: false,
-  waitlistPercentage: "25",
-  waitlistPurchaseWindowHours: "12",
-})
+    groupDiscountEnabled: false,
+    groupDiscountType: "percentage" as "percentage" | "fixed",
+    groupDiscountValue: "",
+    groupDiscountMinQty: "2",
+    attendancePoints: "0",
+    waitlistEnabled: false,
+    waitlistPercentage: "25",
+    waitlistPurchaseWindowHours: "12",
+  })
+
+  const [clubs, setClubs] = useState<Array<{ _id: string; name: string }>>([])
+
+  useEffect(() => {
+    let mounted = true
+    
+    async function fetchClubs() {
+      try {
+        const userRole = user?.role
+        
+        if (userRole === 'admin' || userRole === 'super_admin') {
+          const adminUser = user as any
+          console.log("adminuser:", adminUser)
+          if (adminUser?.club) {
+            const adminClub = adminUser.club
+            if (mounted) {
+              setClubs([{ _id: adminClub._id, name: adminClub.name }])
+            }
+            return
+          }
+        }
+        
+        if (userRole === 'system_owner') {
+          const res: any = await apiClient.getPublicClubs()
+          if (mounted && res?.data) {
+            const list = res?.data?.clubs || []
+            setClubs(list.map((c: any) => ({ _id: c._id, name: c.name })))
+          }
+        }
+      } catch (err) {
+      }
+    }
+
+    if (isOpen && user) fetchClubs()
+    return () => { mounted = false }
+  }, [isOpen, user])
+
 
   useEffect(() => {
     if (isOpen) {
@@ -135,6 +173,7 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
           groupDiscountType: editEvent.groupDiscount?.type || "percentage",
           groupDiscountValue: editEvent.groupDiscount?.value?.toString() || "",
           groupDiscountMinQty: editEvent.groupDiscount?.minQuantity?.toString() || "2",
+          attendancePoints: (editEvent as any).attendancePoints?.toString() || "0",
           waitlistEnabled: (editEvent as any).waitlist?.enabled || false,
           waitlistPercentage: (editEvent as any).waitlist?.percentage?.toString() || "25",
           waitlistPurchaseWindowHours: (editEvent as any).waitlist?.purchaseWindowHours?.toString() || "12",
@@ -175,6 +214,7 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
           groupDiscountType: "percentage",
           groupDiscountValue: "",
           groupDiscountMinQty: "2",
+          attendancePoints: "0",
           waitlistEnabled: false,
           waitlistPercentage: "25",
           waitlistPurchaseWindowHours: "12",
@@ -447,6 +487,7 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
       groupDiscountType: "percentage",
       groupDiscountValue: "",
       groupDiscountMinQty: "2",
+      attendancePoints: "0",
       waitlistEnabled: false,
       waitlistPercentage: "25",
       waitlistPurchaseWindowHours: "12",
@@ -810,15 +851,28 @@ export function CreateEventModal({ isOpen, onClose, onSuccess, editEvent }: Crea
                     min="0"
                     step="1"
                   />
-                  {errors.ticketPrice && (
-                    <p className="text-red-500 text-sm flex items-center gap-1">
-                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                      </svg>
-                      {errors.ticketPrice}
-                    </p>
-                  )}
-                  <p className="text-xs text-gray-500">Set to 0 for free events</p>
+                    {errors.ticketPrice && (
+                      <p className="text-red-500 text-sm flex items-center gap-1">
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                        {errors.ticketPrice}
+                      </p>
+                    )}
+                    <p className="text-xs text-gray-500">Set to 0 for free events</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="attendancePoints" className="text-sm font-medium">Attendance Points</Label>
+                  <Input
+                    id="attendancePoints"
+                    type="number"
+                    placeholder="Points awarded for attending"
+                    value={formData.attendancePoints}
+                    onChange={(e) => setFormData({ ...formData, attendancePoints: e.target.value })}
+                    min="0"
+                  />
+                  <p className="text-xs text-gray-500">Points awarded to members when attendance is recorded via QR scan.</p>
                 </div>
               </div>
 

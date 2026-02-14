@@ -23,6 +23,7 @@ function AttendanceLandingPageInner() {
   const [state, setState] = useState<AttendanceState>('loading')
   const [errorMessage, setErrorMessage] = useState<string>('')
   const [attendeeInfo, setAttendeeInfo] = useState<AttendeeInfo | null>(null)
+  const [pointsAwarded, setPointsAwarded] = useState<number | null>(null)
 
   useEffect(() => {
     const fetchAttendeeInfo = async () => {
@@ -72,6 +73,10 @@ function AttendanceLandingPageInner() {
               phone: attendee.phone || 'N/A'
             })
           }
+        }
+        // capture awarded points if backend returned the value
+        if (response.success && typeof response.data?.pointsAwarded === 'number') {
+          setPointsAwarded(response.data.pointsAwarded)
         }
         
         if (!response.success) {
@@ -183,6 +188,9 @@ function AttendanceLandingPageInner() {
                 <p className="text-sm text-muted-foreground text-center mt-2">
                   The attendee is now marked as present for this event.
                 </p>
+                {pointsAwarded !== null && (
+                  <p className="text-center font-semibold text-green-700 mt-3">You earned {pointsAwarded} points</p>
+                )}
               </div>
               {renderAttendeeInfo()}
             </CardContent>
