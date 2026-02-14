@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useToast } from '@/hooks/use-toast'
 import { formatLocalDate } from '@/lib/timezone'
+import { RefundButton } from '@/components/refund-button'
 import {
   Search,
   RefreshCw,
@@ -534,6 +535,28 @@ export default function UserOrdersPage() {
                     <h3 className="font-semibold mb-3 text-foreground">Notes</h3>
                     <div className="bg-muted p-4 rounded-lg text-sm text-foreground">
                       {selectedOrder.notes}
+                    </div>
+                  </div>
+                )}
+
+                {selectedOrder.paymentStatus === 'paid' && 
+                 !['delivered', 'cancelled', 'refunded'].includes(selectedOrder.status) && (
+                  <div className="border-t pt-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-semibold text-foreground">Request Refund</h3>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Cancel your order and request a refund
+                        </p>
+                      </div>
+                      <RefundButton
+                        sourceType="store_order"
+                        orderId={selectedOrder._id}
+                        onRefundRequested={() => {
+                          setShowOrderModal(false)
+                          fetchOrders()
+                        }}
+                      />
                     </div>
                   </div>
                 )}

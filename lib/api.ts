@@ -3096,6 +3096,63 @@ class ApiClient {
       body: JSON.stringify(data),
     });
   }
+
+  async estimateRefund(data: {
+    sourceType: 'event_ticket' | 'store_order';
+    eventId?: string;
+    orderId?: string;
+  }): Promise<ApiResponse<{
+    ok: boolean;
+    eligible: boolean;
+    cutoff: string | null;
+    estimatedRefund: number;
+    currency: string;
+    breakdown: {
+      grossPaid: number;
+      taxesExcluded: number;
+      platformFeesExcluded: number;
+      paymentGatewayFeesExcluded: number;
+    };
+  }>> {
+    return this.request('/refunds/estimate', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async requestRefund(data: {
+    sourceType: 'event_ticket' | 'store_order';
+    eventId?: string;
+    orderId?: string;
+  }): Promise<ApiResponse<any>> {
+    return this.request('/refunds/request', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async listRefundsAdmin(params?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+  }): Promise<ApiResponse<{
+    refunds: any[];
+    pagination: {
+      currentPage: number;
+      totalPages: number;
+      totalItems: number;
+      itemsPerPage: number;
+    };
+  }>> {
+    return this.get('/refunds/admin', { params });
+  }
+
+  async markRefundProcessed(refundId: string, adminNotes?: string): Promise<ApiResponse<any>> {
+    return this.request(`/refunds/admin/${refundId}/processed`, {
+      method: 'PATCH',
+      body: JSON.stringify({ adminNotes }),
+    });
+  }
 }
 
 export const apiClient = new ApiClient(API_BASE_URL);
