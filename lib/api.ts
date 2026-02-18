@@ -1932,6 +1932,12 @@ class ApiClient {
     });
   }
 
+  async hardDeleteMembershipPlan(id: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request(`/membership-plans/${id}/permanent`, {
+      method: 'DELETE',
+    });
+  }
+
   async assignMembershipPlan(planId: string, userId: string): Promise<ApiResponse<{ message: string; user: User }>> {
     return this.request(`/membership-plans/${planId}/assign`, {
       method: 'POST',
@@ -1939,7 +1945,10 @@ class ApiClient {
     });
   }
 
-  async subscribeMembershipPlan(planId: string): Promise<ApiResponse<{ 
+  async subscribeMembershipPlan(
+    planId: string,
+    payment?: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }
+  ): Promise<ApiResponse<{ 
     message: string; 
     data: { 
       userMembership: any; 
@@ -1948,6 +1957,7 @@ class ApiClient {
   }>> {
     return this.request(`/membership-plans/${planId}/subscribe`, {
       method: 'POST',
+      body: payment ? JSON.stringify({ payment }) : undefined,
     });
   }
 
@@ -2166,6 +2176,13 @@ class ApiClient {
 
   async addMemberWithDefaultPlan(data: { user_id: string; club_id: string }): Promise<ApiResponse<{ message: string; userMembership: unknown }>> {
     return this.request('/user-memberships/add-with-default', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async migrateMemberPlan(data: { userId: string; clubId: string; newPlanId: string }): Promise<ApiResponse<{ message: string; membership: unknown; previousMembershipId?: string }>> {
+    return this.request('/user-memberships/migrate', {
       method: 'POST',
       body: JSON.stringify(data)
     });

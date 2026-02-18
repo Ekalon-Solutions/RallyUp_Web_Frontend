@@ -53,10 +53,14 @@ export async function POST(request: NextRequest) {
       key_secret: keySecret,
     })
 
+    // Razorpay receipt field has a max length of 40 characters
+    const receiptRaw = `rcpt_${(orderNumber ?? orderId).toString().replace(/[^a-zA-Z0-9-_]/g, '')}`
+    const receipt = receiptRaw.length > 40 ? receiptRaw.slice(0, 40) : receiptRaw
+
     const options = {
       amount: Math.round(amount * 100),
       currency: currency.toUpperCase(),
-      receipt: `rcpt_${orderId}`,
+      receipt,
       notes: {
         orderId: orderId,
         orderNumber: orderNumber,

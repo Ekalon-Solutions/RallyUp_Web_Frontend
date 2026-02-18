@@ -12,12 +12,22 @@ import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
 import { useAuth } from "@/contexts/auth-context"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
+import { PaymentSimulationModal } from "@/components/modals/payment-simulation-modal"
 
 export default function BrowseMembershipPlansPage() {
   const [plans, setPlans] = useState<MembershipPlan[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isAssigning, setIsAssigning] = useState<string | null>(null)
   const [currentMembership, setCurrentMembership] = useState<any>(null)
+  const [pendingPayment, setPendingPayment] = useState<{
+    planId: string
+    planName: string
+    orderId: string
+    orderNumber: string
+    total: number
+    currency: string
+    paymentMethod: string
+  } | null>(null)
   const { user, checkAuth } = useAuth()
   const clubId = useRequiredClubId()
 
@@ -82,25 +92,39 @@ export default function BrowseMembershipPlansPage() {
     }
   }
 
-  const handleSelectPlan = async (planId: string, isUpgrade: boolean) => {
+  const handleSelectPlan = async (plan: MembershipPlan) => {
     if (!user?._id) {
       toast.error("Please log in to select a plan")
       return
     }
+    const planId = plan._id
 
+    // Paid plan: show payment modal first, then subscribe with payment
+    if (plan.price > 0) {
+      const orderId = `membership-${planId}-${user._id}-${Date.now()}`
+      const orderNumber = `ORD-${Math.floor(Math.random() * 900000) + 100000}`
+      setPendingPayment({
+        planId,
+        planName: plan.name,
+        orderId,
+        orderNumber,
+        total: plan.price,
+        currency: plan.currency || "INR",
+        paymentMethod: "all",
+      })
+      return
+    }
+
+    // Free plan: subscribe directly
     try {
       setIsAssigning(planId)
-      
       const response = await apiClient.subscribeMembershipPlan(planId)
-      
       if (response.success) {
-        const message = response.data && 'isUpgrade' in response.data && response.data.isUpgrade
-          ? "Membership plan upgraded successfully!" 
+        const message = response.data && "isUpgrade" in response.data && response.data.isUpgrade
+          ? "Membership plan upgraded successfully!"
           : "Membership plan selected successfully!"
         toast.success(message)
-        
         await checkAuth()
-        
         if (clubId) {
           await loadPlans(clubId)
           await loadCurrentMembership(clubId)
@@ -113,6 +137,55 @@ export default function BrowseMembershipPlansPage() {
     } finally {
       setIsAssigning(null)
     }
+  }
+
+  const handlePaymentSuccess = async (
+    orderId: string,
+    paymentId: string,
+    razorpayOrderId: string,
+    razorpaySignature: string
+  ) => {
+    if (!pendingPayment) return
+    const { planId } = pendingPayment
+    try {
+      setIsAssigning(planId)
+      const response = await apiClient.subscribeMembershipPlan(planId, {
+        razorpay_payment_id: paymentId,
+        razorpay_order_id: razorpayOrderId,
+        razorpay_signature: razorpaySignature,
+      })
+      if (response.success) {
+        const message =
+          response.data && "isUpgrade" in response.data && response.data.isUpgrade
+            ? "Payment successful — membership upgraded!"
+            : "Payment successful — membership activated!"
+        toast.success(message)
+        setPendingPayment(null)
+        await checkAuth()
+        if (clubId) {
+          await loadPlans(clubId)
+          await loadCurrentMembership(clubId)
+        }
+      } else {
+        toast.error(response.error || "Failed to activate membership after payment")
+      }
+    } catch (error) {
+      toast.error("Failed to activate membership after payment")
+    } finally {
+      setIsAssigning(null)
+      setPendingPayment(null)
+    }
+  }
+
+  const handlePaymentFailure = (
+    _orderId: string,
+    _paymentId: string,
+    _razorpayOrderId: string,
+    _razorpaySignature: string,
+    _error?: any
+  ) => {
+    toast.error("Payment failed or was cancelled. Please try again.")
+    setPendingPayment(null)
   }
 
   const formatPrice = (price: number, currency: string) => {
@@ -408,7 +481,7 @@ export default function BrowseMembershipPlansPage() {
                       <Button 
                         className="w-full" 
                         variant={isCurrent ? "outline" : isPopular ? "default" : "outline"}
-                        onClick={() => handleSelectPlan(plan._id, isUpgrade)}
+                        onClick={() => handleSelectPlan(plan)}
                         disabled={isAssigning === plan._id || isDisabled}
                       >
                         {isCurrent ? (
@@ -444,6 +517,23 @@ export default function BrowseMembershipPlansPage() {
               })}
             </div>
           ) : null}
+
+          {pendingPayment && (
+            <PaymentSimulationModal
+              isOpen={!!pendingPayment}
+              onClose={() => setPendingPayment(null)}
+              onPaymentSuccess={handlePaymentSuccess}
+              onPaymentFailure={handlePaymentFailure}
+              orderId={pendingPayment.orderId}
+              orderNumber={pendingPayment.orderNumber}
+              total={pendingPayment.total}
+              currency={pendingPayment.currency}
+              paymentMethod={pendingPayment.paymentMethod}
+              dialogTitle="Pay for membership"
+              dialogDescription={`Complete payment for ${pendingPayment.planName}`}
+              payButtonLabel="Pay & activate"
+            />
+          )}
         </div>
       </DashboardLayout>
     </ProtectedRoute>

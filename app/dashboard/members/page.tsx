@@ -9,6 +9,7 @@ import { useRequiredClubId } from '@/hooks/useRequiredClubId'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
+import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -36,7 +37,10 @@ import {
   Filter,
   Download,
   Plus,
-  Check
+  Check,
+  ArrowRightLeft,
+  MapPin,
+  FileText
 } from 'lucide-react'
 import { Award } from 'lucide-react'
 import AdjustPointsModal from '@/components/modals/adjust-points-modal'
@@ -68,6 +72,20 @@ interface Member {
   isActive: boolean
   createdAt: string
   updatedAt: string
+  // Read-only details from user table (for member details modal)
+  username?: string
+  date_of_birth?: string
+  gender?: string
+  id_proof_type?: string
+  id_proof_number?: string
+  address_line1?: string
+  address_line2?: string
+  city?: string
+  state_province?: string
+  zip_code?: string
+  country?: string
+  registration_date?: string
+  last_login?: string
 }
 
 export default function MembersPage() {
@@ -95,6 +113,11 @@ export default function MembersPage() {
   const [isAdjustPointsOpen, setIsAdjustPointsOpen] = useState(false)
   const [adjustMemberId, setAdjustMemberId] = useState<string | null>(null)
   const [adjustMemberClub, setAdjustMemberClub] = useState<string | null>(null)
+  const [memberToMigrate, setMemberToMigrate] = useState<Member | null>(null)
+  const [isMigrateDialogOpen, setIsMigrateDialogOpen] = useState(false)
+  const [migratePlans, setMigratePlans] = useState<Array<{ _id: string; name: string; price: number; currency: string; isActive?: boolean }>>([])
+  const [migrateSelectedPlanId, setMigrateSelectedPlanId] = useState('')
+  const [isMigrating, setIsMigrating] = useState(false)
   const [selectedMember, setSelectedMember] = useState<Member | null>(null)
   const [selectedMemberIds, setSelectedMemberIds] = useState<Set<string>>(new Set())
   const [isSelectAll, setIsSelectAll] = useState(false)
@@ -378,6 +401,49 @@ export default function MembersPage() {
   const openDeleteDialog = (member: Member) => {
     setSelectedMember(member)
     setIsDeleteDialogOpen(true)
+  }
+
+  const openMigrateDialog = async (member: Member) => {
+    setMemberToMigrate(member)
+    setMigrateSelectedPlanId('')
+    setIsMigrateDialogOpen(true)
+    if (!clubId) return
+    try {
+      const res = await apiClient.getMembershipPlans(clubId)
+      const list = (res.success && res.data) ? (Array.isArray(res.data) ? res.data : (res.data as any)?.data ?? []) : []
+      const activePlans = (list as any[]).filter((p: any) => p.isActive !== false)
+      setMigratePlans(activePlans)
+    } catch {
+      setMigratePlans([])
+    }
+  }
+
+  const handleConfirmMigrate = async () => {
+    if (!memberToMigrate || !clubId || !migrateSelectedPlanId) {
+      toast.error('Please select a plan to migrate to')
+      return
+    }
+    setIsMigrating(true)
+    try {
+      const res = await apiClient.migrateMemberPlan({
+        userId: memberToMigrate._id,
+        clubId,
+        newPlanId: migrateSelectedPlanId
+      })
+      if (res.success) {
+        toast.success(res.message || 'Member migrated to new plan successfully')
+        setIsMigrateDialogOpen(false)
+        setMemberToMigrate(null)
+        setMigrateSelectedPlanId('')
+        fetchMembers()
+      } else {
+        toast.error((res as any).error || res.message || 'Failed to migrate plan')
+      }
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || err?.message || 'Failed to migrate plan')
+    } finally {
+      setIsMigrating(false)
+    }
   }
 
   const handleSelectMember = (memberId: string) => {
@@ -777,6 +843,15 @@ export default function MembersPage() {
                           <Button variant="ghost" size="sm" onClick={() => openEditDialog(member)} className="flex-1 sm:flex-initial">
                             <Edit className="w-4 h-4" />
                           </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openMigrateDialog(member)}
+                            className="flex-1 sm:flex-initial"
+                            title="Migrate to another plan"
+                          >
+                            <ArrowRightLeft className="w-4 h-4" />
+                          </Button>
                           <Button 
                             variant="ghost" 
                             size="sm" 
@@ -1122,6 +1197,77 @@ export default function MembersPage() {
                       No membership plan assigned
                     </div>
                   )}
+
+                  {/* Read-only member details (address, document, DOB, etc.) - same as profile Account Information */}
+                  <div className="rounded-lg border p-4 space-y-3">
+                    <h4 className="font-semibold text-sm text-muted-foreground">Account & details (read-only)</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                      {selectedMember.username != null && selectedMember.username !== '' && (
+                        <div>
+                          <Label className="text-muted-foreground text-xs">Username</Label>
+                          <p className="font-medium">{selectedMember.username}</p>
+                        </div>
+                      )}
+                      {selectedMember.date_of_birth != null && (
+                        <div>
+                          <Label className="text-muted-foreground text-xs flex items-center gap-1">
+                            <Calendar className="w-3 h-3" />
+                            Date of birth
+                          </Label>
+                          <p className="font-medium">{formatDisplayDate(selectedMember.date_of_birth)}</p>
+                        </div>
+                      )}
+                      {selectedMember.gender != null && selectedMember.gender !== '' && (
+                        <div>
+                          <Label className="text-muted-foreground text-xs">Gender</Label>
+                          <p className="font-medium capitalize">{selectedMember.gender}</p>
+                        </div>
+                      )}
+                      {selectedMember.id_proof_type != null && selectedMember.id_proof_type !== '' && (
+                        <div>
+                          <Label className="text-muted-foreground text-xs flex items-center gap-1">
+                            <FileText className="w-3 h-3" />
+                            ID proof type
+                          </Label>
+                          <p className="font-medium">{selectedMember.id_proof_type}</p>
+                        </div>
+                      )}
+                      {selectedMember.id_proof_number != null && selectedMember.id_proof_number !== '' && (
+                        <div>
+                          <Label className="text-muted-foreground text-xs">ID proof number</Label>
+                          <p className="font-medium font-mono">{selectedMember.id_proof_number}</p>
+                        </div>
+                      )}
+                      {selectedMember.registration_date != null && (
+                        <div>
+                          <Label className="text-muted-foreground text-xs">Joined (registration)</Label>
+                          <p className="font-medium">{formatDisplayDate(selectedMember.registration_date)}</p>
+                        </div>
+                      )}
+                      {selectedMember.last_login != null && (
+                        <div>
+                          <Label className="text-muted-foreground text-xs">Last login</Label>
+                          <p className="font-medium">{formatDisplayDate(selectedMember.last_login)}</p>
+                        </div>
+                      )}
+                    </div>
+                    {(selectedMember.address_line1 || selectedMember.address_line2 || selectedMember.city || selectedMember.state_province || selectedMember.zip_code || selectedMember.country) && (
+                      <div>
+                        <Label className="text-muted-foreground text-xs flex items-center gap-1">
+                          <MapPin className="w-3 h-3" />
+                          Address
+                        </Label>
+                        <div className="text-sm space-y-0.5 mt-1">
+                          {selectedMember.address_line1 && <p>{selectedMember.address_line1}</p>}
+                          {selectedMember.address_line2 && <p>{selectedMember.address_line2}</p>}
+                          {([selectedMember.city, selectedMember.state_province, selectedMember.zip_code, selectedMember.country].filter(Boolean).length > 0) && (
+                            <p>{[selectedMember.city, selectedMember.state_province, selectedMember.zip_code, selectedMember.country].filter(Boolean).join(', ')}</p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                   <DialogFooter>
                     <Button type="button" variant="outline" onClick={() => setIsViewDialogOpen(false)}>
                       Close
@@ -1297,6 +1443,71 @@ export default function MembersPage() {
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
                   Delete Member
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={isMigrateDialogOpen} onOpenChange={(open) => { if (!open) { setMemberToMigrate(null); setMigrateSelectedPlanId(''); } setIsMigrateDialogOpen(open); }}>
+            <DialogContent className="w-[95vw] sm:w-full max-w-md">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <ArrowRightLeft className="w-5 h-5" />
+                  Migrate plan
+                </DialogTitle>
+                <DialogDescription>
+                  Move this member to a different membership plan. Their current plan will be deactivated and the new plan activated.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                {memberToMigrate && (
+                  <>
+                    <div className="flex items-center space-x-4 p-4 bg-muted/50 rounded-lg">
+                      <Avatar className="h-10 w-10">
+                        <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
+                          {memberToMigrate.name.split(' ').map((n: string) => n[0]).join('').toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium break-words">{memberToMigrate.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Current plan: {memberToMigrate.membershipPlan?.name ?? 'None'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>New plan</Label>
+                      <Select value={migrateSelectedPlanId} onValueChange={setMigrateSelectedPlanId}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select plan to migrate to" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {migratePlans
+                            .filter((p) => p._id !== memberToMigrate.membershipPlan?._id)
+                            .map((p) => (
+                              <SelectItem key={p._id} value={p._id}>
+                                {p.name} ({p.price} {p.currency})
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                      {migratePlans.length === 0 && (
+                        <p className="text-sm text-muted-foreground">No other active plans available.</p>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setIsMigrateDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleConfirmMigrate}
+                  disabled={!migrateSelectedPlanId || isMigrating}
+                >
+                  {isMigrating ? 'Migrating...' : 'Migrate plan'}
                 </Button>
               </DialogFooter>
             </DialogContent>

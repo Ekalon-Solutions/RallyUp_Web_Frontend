@@ -306,8 +306,9 @@ function ClubsPageContent() {
         setRegisteredToken(registerData.token || null)
         toast.success("User registered successfully. Proceed to payment to activate membership.")
         if (selectedPlan && selectedPlan.price > 0) {
-          const orderId = `temp-${Date.now()}`
+          // orderNumber kept short so Razorpay receipt (rcpt_+orderNumber) stays ≤40 chars
           const orderNumber = `ORD-${Math.floor(Math.random() * 900000) + 100000}`
+          const orderId = `club-${Date.now()}`
           const total = selectedPlan.price
           const currency = selectedPlan.currency || 'INR'
           const paymentMethod = 'all'

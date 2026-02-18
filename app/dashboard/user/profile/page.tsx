@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useMemo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,7 +11,7 @@ import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
 import { useAuth } from "@/contexts/auth-context"
 import { toast } from "sonner"
-import { User, Mail, Phone, Shield, Save, CheckCircle, XCircle, Edit, Building2, MapPin, Globe, Loader2, Camera, Search, ArrowRight, Users } from "lucide-react"
+import { User, Mail, Phone, Shield, Save, CheckCircle, XCircle, Edit, Building2, MapPin, Loader2, Camera, Search, ArrowRight, Users, FileText, Calendar } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { MembershipRenewal } from "@/components/membership-renewal"
 import { useRouter } from "next/navigation"
@@ -32,8 +32,17 @@ declare global {
 const isSystemAdmin = (role: string | undefined) =>
   role === "admin" || role === "super_admin" || role === "system_owner"
 
+const isMember = (role: string | undefined) => role === "member" || !role
+
+function normalizeClubId(c: any): string | null {
+  if (!c) return null
+  const id = c?._id?.toString?.()
+  if (id) return id
+  return typeof c === "string" ? c : null
+}
+
 export default function UserProfilePage() {
-  const { user, updateProfile, checkAuth } = useAuth()
+  const { user, updateProfile, checkAuth, activeClubId } = useAuth()
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
@@ -53,6 +62,27 @@ export default function UserProfilePage() {
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const fileInputRef = React.useRef<HTMLInputElement>(null)
   const showSystemAdminProfile = user ? isSystemAdmin(user.role) : false
+
+  // Derive current club for membership renewal (when applicable)
+  const currentClub = useMemo(() => {
+    if (!user || (user as any).role === "system_owner") return null
+    const u = user as any
+    if (activeClubId) {
+      const fromClubs = Array.isArray(u.clubs) && u.clubs.find((c: any) => normalizeClubId(c) === activeClubId)
+      if (fromClubs) return typeof fromClubs === "object" ? fromClubs : null
+      const fromMembership = u.memberships?.find(
+        (m: any) => m?.status === "active" && (normalizeClubId(m.club_id) === activeClubId || normalizeClubId(m.club) === activeClubId)
+      )
+      const clubRef = fromMembership?.club_id ?? fromMembership?.club
+      if (clubRef) return typeof clubRef === "object" ? clubRef : null
+    }
+    if (u.club) return typeof u.club === "object" ? u.club : null
+    const firstMembership = u.memberships?.find((m: any) => m?.status === "active")
+    const ref = firstMembership?.club_id ?? firstMembership?.club
+    if (ref) return typeof ref === "object" ? ref : null
+    const firstAdminClub = Array.isArray(u.clubs) ? u.clubs[0] : null
+    return firstAdminClub && typeof firstAdminClub === "object" ? firstAdminClub : null
+  }, [user, activeClubId])
 
   useEffect(() => {
     if (user) {
@@ -497,6 +527,16 @@ export default function UserProfilePage() {
                           </div>
                         </div>
                       </div>
+                      {/* Other (read-only, not editable) */}
+                      {isMember(user?.role) && (user as any).other != null && (user as any).other !== "" && (
+                        <>
+                          <Separator className="my-4" />
+                          <div>
+                            <Label className="text-sm font-medium text-muted-foreground">Other</Label>
+                            <p className="text-sm whitespace-pre-wrap mt-1">{(user as any).other}</p>
+                          </div>
+                        </>
+                      )}
                     </div>
                   )}
                 </CardContent>
@@ -561,77 +601,6 @@ export default function UserProfilePage() {
               </Card>
               )}
             </div>
-
-            {(user as any).club && (
-              <Card className="overflow-hidden rounded-xl border shadow-sm">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Building2 className="w-5 h-5" />
-                    Club Information
-                  </CardTitle>
-                  <CardDescription>Your club details</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-muted-foreground">Club Name</Label>
-                    <p className="text-sm font-medium">{(user as any).club.name}</p>
-                  </div>
-                  {(user as any).club.description && (
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-muted-foreground">Description</Label>
-                      <p className="text-sm">{(user as any).club.description}</p>
-                    </div>
-                  )}
-                  {(user as any).club.website && (
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-muted-foreground">Website</Label>
-                      <a 
-                        href={(user as any).club.website} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1"
-                      >
-                        <Globe className="w-3 h-3" />
-                        Visit Website
-                      </a>
-                    </div>
-                  )}
-                  {(user as any).club.address && (
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-muted-foreground">Location</Label>
-                      <p className="text-sm flex items-center gap-1">
-                        <MapPin className="w-3 h-3" />
-                        {(user as any).club.address.city}, {(user as any).club.address.state}
-                      </p>
-                    </div>
-                  )}
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-muted-foreground">Contact</Label>
-                    <div className="space-y-1">
-                      <p className="text-sm flex items-center gap-1">
-                        <Mail className="w-3 h-3" />
-                        {(user as any).club.contactEmail}
-                      </p>
-                      <p className="text-sm flex items-center gap-1">
-                        <Phone className="w-3 h-3" />
-                        {(user as any).club.contactPhone}
-                      </p>
-                    </div>
-                  </div>
-                  <Separator />
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium text-muted-foreground">Member Since</Label>
-                    <p className="text-sm">{formatDate((user as any).createdAt || '')}</p>
-                  </div>
-                  {(user as any).membershipExpiry && (
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium text-muted-foreground">Membership Expires</Label>
-                      <p className="text-sm">{formatDate((user as any).membershipExpiry)}</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            )}
 
             {!showSystemAdminProfile && (
             <Card className="overflow-hidden rounded-xl border shadow-sm">
@@ -745,7 +714,7 @@ export default function UserProfilePage() {
                   <Shield className="w-5 h-5" />
                   Account Information
                 </CardTitle>
-                <CardDescription>Your account details and status</CardDescription>
+                <CardDescription>Your account details and status (read-only)</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
@@ -766,17 +735,84 @@ export default function UserProfilePage() {
                 </div>
                 <div className="space-y-2">
                   <Label className="text-sm font-medium text-muted-foreground">Joined</Label>
-                  <p className="text-sm">{formatDate(user.createdAt || '')}</p>
+                  <p className="text-sm">{formatDate((user as any).registration_date || user.createdAt || '')}</p>
                 </div>
                 <div className="space-y-2">
                   <Label className="text-sm font-medium text-muted-foreground">Last Updated</Label>
                   <p className="text-sm">{formatDate(user.updatedAt || '')}</p>
                 </div>
+
+                {/* Member-only read-only details from user table */}
+                {isMember(user?.role) && (
+                  <>
+                    <Separator />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {(user as any).username != null && (user as any).username !== '' && (
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-muted-foreground">Username</Label>
+                          <p className="text-sm">{((user as any).username)}</p>
+                        </div>
+                      )}
+                      {(user as any).date_of_birth != null && (
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                            <Calendar className="w-3.5 h-3.5" />
+                            Date of birth
+                          </Label>
+                          <p className="text-sm">{formatDate((user as any).date_of_birth)}</p>
+                        </div>
+                      )}
+                      {(user as any).gender != null && (user as any).gender !== '' && (
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-muted-foreground">Gender</Label>
+                          <p className="text-sm capitalize">{(user as any).gender}</p>
+                        </div>
+                      )}
+                      {(user as any).id_proof_type != null && (user as any).id_proof_type !== '' && (
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                            <FileText className="w-3.5 h-3.5" />
+                            ID proof type
+                          </Label>
+                          <p className="text-sm">{(user as any).id_proof_type}</p>
+                        </div>
+                      )}
+                      {(user as any).id_proof_number != null && (user as any).id_proof_number !== '' && (
+                        <div className="space-y-2">
+                          <Label className="text-sm font-medium text-muted-foreground">ID proof number</Label>
+                          <p className="text-sm font-mono">{(user as any).id_proof_number}</p>
+                        </div>
+                      )}
+                    </div>
+                    {((user as any).address_line1 ?? (user as any).city ?? (user as any).state_province ?? (user as any).zip_code ?? (user as any).country) != null && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                          <MapPin className="w-3.5 h-3.5" />
+                          Address
+                        </Label>
+                        <div className="text-sm space-y-0.5">
+                          {(user as any).address_line1 && <p>{(user as any).address_line1}</p>}
+                          {(user as any).address_line2 && <p>{(user as any).address_line2}</p>}
+                          {(() => {
+                            const parts = [(user as any).city, (user as any).state_province, (user as any).zip_code, (user as any).country].filter(Boolean);
+                            return parts.length > 0 ? <p>{parts.join(', ')}</p> : null;
+                          })()}
+                        </div>
+                      </div>
+                    )}
+                    {(user as any).last_login != null && (
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-muted-foreground">Last login</Label>
+                        <p className="text-sm">{formatDate((user as any).last_login)}</p>
+                      </div>
+                    )}
+                  </>
+                )}
               </CardContent>
             </Card>
           </div>
 
-          {(user as any).club && (user as any).membershipExpiry && (
+          {currentClub && (user as any).membershipExpiry && (
             <MembershipRenewal 
               user={(user as any)}
               membershipPlans={[]}
