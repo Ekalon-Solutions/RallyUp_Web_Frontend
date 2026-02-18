@@ -29,9 +29,7 @@ import { useAuth } from "@/contexts/auth-context"
 import { apiClient } from "@/lib/api"
 import { calculateTransactionFees, PLATFORM_FEE_PERCENT, RAZORPAY_FEE_PERCENT } from "@/lib/transactionFees"
 import { PaymentSimulationModal } from "./payment-simulation-modal"
-import { MemberValidationModal } from "./member-validation-modal"
 import { toast } from "sonner"
-import { useRouter } from "next/navigation"
 
 interface CheckoutModalProps {
   isOpen: boolean
@@ -66,7 +64,6 @@ interface AppliedCoupon {
 
 export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems }: CheckoutModalProps) {
   const { user } = useAuth()
-  const router = useRouter()
   const { items: cartItems, totalPrice: cartTotalPrice, clearCart } = useCart()
   const items = directCheckoutItems || cartItems
   const totalPrice = directCheckoutItems 
@@ -75,8 +72,6 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
   const [loading, setLoading] = useState(false)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [createdOrder, setCreatedOrder] = useState<any>(null)
-  const [showMemberValidation, setShowMemberValidation] = useState(false)
-  const [memberValidated, setMemberValidated] = useState(false)
   const [merchandiseSettings, setMerchandiseSettings] = useState<{
     shippingCost: number
     freeShippingThreshold: number
@@ -244,12 +239,6 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
     e.preventDefault()
     
     if (!validateForm()) {
-      return
-    }
-
-    // For non-authenticated users, show member validation first
-    if (!user && !memberValidated) {
-      setShowMemberValidation(true)
       return
     }
 
@@ -730,34 +719,6 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
           </div>
         </form>
       </DialogContent>
-
-      {/* Member Validation Modal */}
-      {items.length > 0 && (
-        <MemberValidationModal
-          isOpen={showMemberValidation}
-          onClose={() => setShowMemberValidation(false)}
-          clubId={typeof items[0]?.club === 'string' ? items[0].club : items[0]?.club?._id || ''}
-          clubName={typeof items[0]?.club === 'object' ? items[0].club?.name : undefined}
-          onMemberFound={() => {
-            router.push('/login')
-            onClose()
-          }}
-          onNonMemberContinue={() => {
-            setMemberValidated(true)
-            setShowMemberValidation(false)
-            // Retry form submission
-            const form = document.querySelector('form')
-            if (form) {
-              form.requestSubmit()
-            }
-          }}
-          onBecomeMember={() => {
-            const clubId = typeof items[0]?.club === 'string' ? items[0].club : items[0]?.club?._id
-            router.push(`/membership-plans?clubId=${clubId}`)
-            onClose()
-          }}
-        />
-      )}
 
       {/* Payment Simulation Modal - use backend order total (includes shipping/tax) + fees so amount is never 0 when order has total */}
       {createdOrder && (() => {
