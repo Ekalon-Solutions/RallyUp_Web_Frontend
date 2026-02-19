@@ -290,7 +290,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const Sidebar = ({ mobile = false }: { mobile?: boolean }) => (
     <div className={cn("flex flex-col h-full bg-card", mobile ? "w-full" : "w-72")}>
-      <div className="flex items-center gap-3 p-8 border-b">
+      <Link href="/" className="flex items-center gap-3 p-8 border-b hover:opacity-90 transition-opacity">
         <div className="relative w-10 h-10 overflow-hidden rounded-xl bg-white shadow-md border-2 ring-2 ring-primary/5">
           <Image
             src="/WingmanPro Logo (White BG).svg"
@@ -304,7 +304,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           <span className="text-xl font-black leading-none">Wingman Pro</span>
           <span className="text-[10px] font-bold text-primary uppercase tracking-[0.2em] mt-1">Platform</span>
         </div>
-      </div>
+      </Link>
 
       <nav className="flex-1 p-6 space-y-1.5 overflow-y-auto custom-scrollbar">
         {getNavigation().map((item) => (
@@ -485,7 +485,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             </Button>
             
             {/* Mobile Logo */}
-            <div className="flex items-center gap-2 lg:hidden">
+            <Link href="/" className="flex items-center gap-2 lg:hidden hover:opacity-90 transition-opacity">
               <div className="relative w-8 h-8 overflow-hidden rounded-lg bg-white shadow-sm border">
                 <Image
                   src="/WingmanPro Logo (White BG).svg"
@@ -496,7 +496,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 />
               </div>
               <span className="font-bold text-lg tracking-tight">Wingman Pro</span>
-            </div>
+            </Link>
           </div>
           
           <div className="flex items-center gap-3">

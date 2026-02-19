@@ -59,6 +59,7 @@ interface Club {
   description?: string
   logo?: string
   status: string
+  website?: string
 }
 
 export default function PublicClubPage() {
@@ -448,12 +449,26 @@ export default function PublicClubPage() {
                 {websiteSetup.contactPhone}
               </a>
             )}
-            <div className="flex items-center gap-3 text-muted-foreground group">
-              <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center">
-                <Globe className="h-5 w-5" style={{ color: primaryColor }} />
+            {club.website ? (
+              <a
+                href={club.website.startsWith("http") ? club.website : `https://${club.website}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 text-muted-foreground hover:text-primary transition-colors group"
+              >
+                <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                  <Globe className="h-5 w-5" style={{ color: primaryColor }} />
+                </div>
+                Official Website
+              </a>
+            ) : (
+              <div className="flex items-center gap-3 text-muted-foreground group">
+                <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center">
+                  <Globe className="h-5 w-5" style={{ color: primaryColor }} />
+                </div>
+                Official Supporters Club
               </div>
-              Official Supporters Club
-            </div>
+            )}
           </div>
         </div>
       </div>

@@ -13,6 +13,7 @@ import { ProtectedRoute } from "@/components/protected-route"
 import { useAuth } from "@/contexts/auth-context"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { PaymentSimulationModal } from "@/components/modals/payment-simulation-modal"
+import { calculateTransactionFees } from "@/lib/transactionFees"
 
 export default function BrowseMembershipPlansPage() {
   const [plans, setPlans] = useState<MembershipPlan[]>([])
@@ -25,8 +26,12 @@ export default function BrowseMembershipPlansPage() {
     orderId: string
     orderNumber: string
     total: number
+    subtotal?: number
+    platformFeeTotal?: number
+    razorpayFeeTotal?: number
     currency: string
     paymentMethod: string
+    isUpgrade?: boolean
   } | null>(null)
   const { user, checkAuth } = useAuth()
   const clubId = useRequiredClubId()
@@ -103,14 +108,24 @@ export default function BrowseMembershipPlansPage() {
     if (plan.price > 0) {
       const orderId = `membership-${planId}-${user._id}-${Date.now()}`
       const orderNumber = `ORD-${Math.floor(Math.random() * 900000) + 100000}`
+      const currency = plan.currency || "INR"
+      // On upgrade: charge only the difference; apply GST + platform fee on that difference (same as event purchase)
+      const currentPlanPrice = currentMembership?.membership_level_id?.price ?? 0
+      const isUpgrade = Boolean(currentMembership && !isMembershipExpired() && plan.price > currentPlanPrice)
+      const baseAmount = isUpgrade ? Math.max(0, plan.price - currentPlanPrice) : plan.price
+      const feeBreakdown = calculateTransactionFees(baseAmount)
       setPendingPayment({
         planId,
         planName: plan.name,
         orderId,
         orderNumber,
-        total: plan.price,
-        currency: plan.currency || "INR",
+        total: feeBreakdown.finalAmount,
+        subtotal: feeBreakdown.baseAmount,
+        platformFeeTotal: feeBreakdown.platformFee + feeBreakdown.platformFeeGst,
+        razorpayFeeTotal: feeBreakdown.razorpayFee + feeBreakdown.razorpayFeeGst,
+        currency,
         paymentMethod: "all",
+        isUpgrade,
       })
       return
     }
@@ -527,10 +542,17 @@ export default function BrowseMembershipPlansPage() {
               orderId={pendingPayment.orderId}
               orderNumber={pendingPayment.orderNumber}
               total={pendingPayment.total}
+              subtotal={pendingPayment.subtotal}
+              platformFeeTotal={pendingPayment.platformFeeTotal}
+              razorpayFeeTotal={pendingPayment.razorpayFeeTotal}
               currency={pendingPayment.currency}
               paymentMethod={pendingPayment.paymentMethod}
-              dialogTitle="Pay for membership"
-              dialogDescription={`Complete payment for ${pendingPayment.planName}`}
+              dialogTitle={pendingPayment.isUpgrade ? "Pay upgrade difference" : "Pay for membership"}
+              dialogDescription={
+                pendingPayment.isUpgrade
+                  ? `Pay the difference for ${pendingPayment.planName} (incl. GST & fees)`
+                  : `Complete payment for ${pendingPayment.planName}`
+              }
               payButtonLabel="Pay & activate"
             />
           )}
