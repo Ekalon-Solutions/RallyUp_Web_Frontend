@@ -87,6 +87,17 @@ export default function MembershipCardsPage() {
   const [isEditing, setIsEditing] = useState(false)
   const { toast } = useToast()
 
+  const normalizeCustomization = (
+    value?: Partial<NonNullable<PublicMembershipCardDisplay["card"]["customization"]>>
+  ): NonNullable<PublicMembershipCardDisplay["card"]["customization"]> => ({
+    primaryColor: value?.primaryColor ?? CARD_STYLE_COLORS.default.primaryColor,
+    secondaryColor: value?.secondaryColor ?? CARD_STYLE_COLORS.default.secondaryColor,
+    fontFamily: value?.fontFamily ?? "Inter",
+    logoSize: value?.logoSize ?? "medium",
+    showLogo: value?.showLogo ?? true,
+    ...(value?.customLogo ? { customLogo: value.customLogo } : {}),
+  })
+
   const convertFileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -474,6 +485,7 @@ export default function MembershipCardsPage() {
   }
 
   const handleEditCard = (card: PublicMembershipCardDisplay) => {
+    const fallbackStyleColors = CARD_STYLE_COLORS[card.card.cardStyle] || CARD_STYLE_COLORS.default;
     const cardCopy = {
       ...card,
       card: {
@@ -481,8 +493,8 @@ export default function MembershipCardsPage() {
         customization: card.card.customization ? {
           ...card.card.customization
         } : {
-          primaryColor: '#3b82f6',
-          secondaryColor: '#1e40af',
+          primaryColor: fallbackStyleColors.primaryColor,
+          secondaryColor: fallbackStyleColors.secondaryColor,
           fontFamily: 'Inter',
           logoSize: 'medium' as const,
           showLogo: true
@@ -678,12 +690,23 @@ export default function MembershipCardsPage() {
   const handleCardStyleChange = useCallback((value: string) => {
     setEditingCard(prev => {
       if (!prev) return null
+      const styleValue = value as 'default' | 'premium' | 'vintage' | 'modern' | 'elite' | 'emerald'
+      const styleColors = CARD_STYLE_COLORS[styleValue]
+      const existingCustomization = normalizeCustomization(prev.card.customization)
       return {
         ...prev,
-        card: { ...prev.card, cardStyle: value as 'default' | 'premium' | 'vintage' | 'modern' | 'elite' | 'emerald' }
+        card: {
+          ...prev.card,
+          cardStyle: styleValue,
+          customization: {
+            ...existingCustomization,
+            primaryColor: styleColors.primaryColor,
+            secondaryColor: styleColors.secondaryColor,
+          }
+        }
       }
     })
-  }, [])
+  }, [CARD_STYLE_COLORS, normalizeCustomization])
 
   // Font family fix: Only set the fontFamily field, retain existing customization
   const handleFontFamilyChange = useCallback((value: string) => {
@@ -919,7 +942,7 @@ export default function MembershipCardsPage() {
                               secondaryColor: CARD_STYLE_COLORS[v as keyof typeof CARD_STYLE_COLORS].secondaryColor,
                               fontFamily: prev.fontFamily,
                               logoSize: prev.logoSize,
-                              showLogo: prev.showLogo || true || false
+                              showLogo: prev.showLogo
                             }))}
                           >
                             <SelectTrigger id="createCardStyle">

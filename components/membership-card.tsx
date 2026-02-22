@@ -29,13 +29,18 @@ export function MembershipCard({
   membershipId,
 }: MembershipCardProps) {
   const { card, club, membershipPlan } = cardData;
+  const effectiveCardStyle = card.cardStyle || cardStyle;
   const displayMembershipId = membershipId ?? card.membershipId ?? '';
   const cardRef = useRef<HTMLDivElement>(null);
   const [transform, setTransform] = useState({ rotateX: 0, rotateY: 0, scale: 1 });
   const [isHovered, setIsHovered] = useState(false);
 
   const getStyleConfig = () => {
-    if (card.customization?.primaryColor && card.customization?.secondaryColor) {
+    if (
+      effectiveCardStyle === 'default' &&
+      card.customization?.primaryColor &&
+      card.customization?.secondaryColor
+    ) {
       return {
         bg: `bg-gradient-to-br`,
         text: 'text-white',
@@ -48,7 +53,7 @@ export function MembershipCard({
       };
     }
 
-    switch (cardStyle) {
+    switch (effectiveCardStyle) {
       case 'premium':
         return {
           bg: 'bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500',
