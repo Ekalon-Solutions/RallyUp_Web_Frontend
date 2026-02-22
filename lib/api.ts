@@ -534,11 +534,21 @@ export interface ExternalTicketRequest {
   tickets: number;
   preferred_date: string;
   comments?: string;
+  adminComment?: string;
   status: 'fulfilled' | 'rejected' | 'on_hold' | 'pending' | 'cancelled_by_member' | 'unfulfilled';
   fixture_id?: Event | string;
   competition?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ExternalTicketFixture {
+  _id: string;
+  title: string;
+  startTime: string;
+  competition: string;
+  isVisibleForMembers: boolean;
+  visibilityEndsAt?: string | null;
 }
 
 class ApiClient {
@@ -1114,11 +1124,44 @@ class ApiClient {
     tickets?: number;
     preferredDate: string;
     comments?: string;
+    fixtureId?: string;
+    competition?: string;
   }): Promise<ApiResponse<ExternalTicketRequest>> {
     return this.request('/external-tickets', {
       method: 'POST',
       body: JSON.stringify(data),
     });
+  }
+
+  async listAvailableExternalTicketFixtures(clubId: string, params?: { competition?: string }) {
+    const query: Record<string, any> = {};
+    if (params?.competition) query.competition = params.competition;
+    return this.request<ExternalTicketFixture[]>(
+      `/external-tickets/club/${clubId}/fixtures` +
+        (Object.keys(query).length ? `?${new URLSearchParams(query as any).toString()}` : '')
+    );
+  }
+
+  async listExternalTicketFixturesForAdmin(clubId: string, params?: { competition?: string }) {
+    const query: Record<string, any> = {};
+    if (params?.competition) query.competition = params.competition;
+    return this.request<ExternalTicketFixture[]>(
+      `/external-tickets/club/${clubId}/fixtures/admin` +
+        (Object.keys(query).length ? `?${new URLSearchParams(query as any).toString()}` : '')
+    );
+  }
+
+  async bulkUpdateExternalTicketFixtureVisibility(
+    clubId: string,
+    payload: { fixtureIds: string[]; enabled: boolean; visibilityEndsAt?: string | null }
+  ) {
+    return this.request<{ matchedCount: number; modifiedCount: number }>(
+      `/external-tickets/club/${clubId}/fixtures/visibility`,
+      {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      }
+    );
   }
 
   async getExternalTicketRequest(id: string): Promise<ApiResponse<ExternalTicketRequest>> {
@@ -1141,10 +1184,14 @@ class ApiClient {
     return this.request(`/external-tickets/club/${clubId}` + (Object.keys(query).length ? `?${new URLSearchParams(query as any).toString()}` : ''));
   }
 
-  async updateExternalTicketRequestStatus(id: string, status: 'fulfilled' | 'rejected' | 'on_hold' | 'pending' | 'cancelled_by_member' | 'unfulfilled') {
+  async updateExternalTicketRequestStatus(
+    id: string,
+    status: 'fulfilled' | 'rejected' | 'on_hold' | 'pending' | 'cancelled_by_member' | 'unfulfilled',
+    adminComment?: string
+  ) {
     return this.request(`/external-tickets/${id}/status`, {
       method: 'PUT',
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({ status, adminComment }),
     });
   }
 
@@ -1167,6 +1214,20 @@ class ApiClient {
     if (params?.competition) query.competition = params.competition;
     if (params?.format) query.format = params.format;
     return this.downloadFile(`/external-tickets/club/${clubId}/export` + (Object.keys(query).length ? `?${new URLSearchParams(query as any).toString()}` : ''));
+  }
+
+  async listMyExternalTicketRequests() {
+    return this.request<ExternalTicketRequest[]>('/external-tickets/my-requests');
+  }
+
+  async respondToRescheduledExternalTicketRequest(
+    id: string,
+    payload: { action: 'accept' | 'reject'; comment?: string }
+  ) {
+    return this.request<ExternalTicketRequest>(`/external-tickets/${id}/reschedule-response`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
   }
 
   async createEvent(data: {
