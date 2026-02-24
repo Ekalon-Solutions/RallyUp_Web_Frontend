@@ -63,6 +63,11 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
   const [loading, setLoading] = useState(false)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [createdOrder, setCreatedOrder] = useState<any>(null)
+  const [availablePoints, setAvailablePoints] = useState<number | null>(null)
+  const [redeemPoints, setRedeemPoints] = useState<number>(0)
+  const [reservationToken, setReservationToken] = useState<string | null>(null)
+  const [reservedDiscount, setReservedDiscount] = useState<number>(0)
+  const [reserving, setReserving] = useState(false)
   const [showMemberValidation, setShowMemberValidation] = useState(false)
   const [memberValidated, setMemberValidated] = useState(false)
   const [merchandiseSettings, setMerchandiseSettings] = useState<{
@@ -107,6 +112,24 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
       fetchSettings()
     }
   }, [isOpen, items])
+  useEffect(() => {
+    const fetchPoints = async () => {
+      try {
+        if (isOpen && user && items.length > 0) {
+          const clubId = typeof items[0]?.club === 'string' ? items[0].club : items[0]?.club?._id
+          if (clubId) {
+            const resp = await apiClient.getMemberPoints((user as any)._id, clubId)
+            if (resp && resp.success && resp.data) {
+              setAvailablePoints(resp.data.points || 0)
+            }
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+    fetchPoints()
+  }, [isOpen, user, items])
   
   const calculateShipping = () => {
     if (!merchandiseSettings?.enableShipping) return 0
@@ -124,8 +147,9 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
   const shippingCost = calculateShipping()
   const taxAmount = calculateTax()
   const orderTotal = totalPrice + shippingCost + taxAmount
-  const feeBreakdown = orderTotal > 0 ? calculateTransactionFees(orderTotal) : null
-  const finalAmount = feeBreakdown ? feeBreakdown.finalAmount : orderTotal
+  const netOrderTotal = Math.max(orderTotal - (reservedDiscount || 0), 0)
+  const feeBreakdown = netOrderTotal > 0 ? calculateTransactionFees(netOrderTotal) : null
+  const finalAmount = feeBreakdown ? feeBreakdown.finalAmount : netOrderTotal
 
   const currency = items.length > 0 ? (items[0].currency || 'USD') : 'USD'
 
@@ -211,6 +235,15 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
         notes: orderForm.notes
       }
 
+      // include reservation token and redeemed points for server-side audit
+      if (reservationToken) {
+        // attach reservation info to orderData
+        // server may persist these fields if supported
+        (orderData as any).reservationToken = reservationToken
+        ;(orderData as any).redeemedPoints = redeemPoints
+        ;(orderData as any).redeemedDiscount = reservedDiscount
+      }
+
       const response = await apiClient.post(user ? '/orders' : '/orders/public', orderData)
       
       if (response.success && response.data) {
@@ -229,6 +262,14 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
 
   const handlePaymentSuccess = async (orderId: string, paymentId: string, razorpayOrderId: string, razorpaySignature: string) => {
     try {
+      // confirm any reservation (consume points) after successful payment
+      if (reservationToken) {
+        try {
+          await apiClient.confirmReservation(reservationToken, orderId)
+        } catch (e) {
+          // non-fatal here; still try to update order
+        }
+      }
       await apiClient.patch(`/orders/admin/${orderId}/payment-status`, {
         paymentStatus: 'paid', paymentId, razorpayOrderId, razorpaySignature
       })
@@ -247,6 +288,13 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
 
   const handlePaymentFailure = async (orderId: string, paymentId: string, razorpayOrderId: string, razorpaySignature: string) => {
     try {
+      // release reservation on payment failure
+      if (reservationToken) {
+        try {
+          await apiClient.cancelReservation(reservationToken)
+        } catch (e) {
+        }
+      }
       await apiClient.patch(`/orders/admin/${orderId}/payment-status`, {
         paymentStatus: 'failed', paymentId, razorpayOrderId, razorpaySignature
       })
@@ -507,11 +555,82 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
               <Card>
                 <CardContent className="pt-6">
                   <div className="space-y-3">
+                    {/* Redeem Points */}
+                    <div className="mb-4">
+                      <Label>Redeem Points {availablePoints !== null && ` (Available: ${availablePoints} pts)`}</Label>
+                      <div className="flex gap-2 mt-2">
+                        <input
+                          type="number"
+                          min={0}
+                          value={redeemPoints}
+                          onChange={(e) => setRedeemPoints(Number(e.target.value || 0))}
+                          className="border rounded px-2 py-1 w-32"
+                          placeholder="Points"
+                        />
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={async () => {
+                            if (!user) {
+                              toast.error('Please log in to redeem points')
+                              return
+                            }
+                            if (!redeemPoints || redeemPoints <= 0) {
+                              toast.error('Enter points to redeem')
+                              return
+                            }
+                            if (availablePoints !== null && redeemPoints > availablePoints) {
+                              toast.error('You do not have enough points')
+                              return
+                            }
+                            setReserving(true)
+                            try {
+                              const clubId = typeof items[0]?.club === 'string' ? items[0].club : items[0]?.club?._id
+                              if (!clubId) {
+                                toast.error('Club information missing for redemption')
+                                setReserving(false)
+                                return
+                              }
+                              const resp = await apiClient.createReservation(redeemPoints, clubId)
+                              if (resp && resp.success) {
+                                setReservationToken(resp.data?.reservationToken || null)
+                                setReservedDiscount(resp.data?.discountAmount || 0)
+                                toast.success('Points reserved')
+                              } else {
+                                toast.error(resp?.message || 'Failed to reserve points')
+                              }
+                            } catch (err: any) {
+                              const msg = err?.message || 'Failed to reserve points'
+                              toast.error(msg)
+                            } finally {
+                              setReserving(false)
+                            }
+                          }}
+                        >
+                          {reserving ? 'Reserving...' : 'Reserve'}
+                        </Button>
+                        <Button type="button" variant="ghost" onClick={async () => {
+                          if (reservationToken) {
+                            try {
+                              await apiClient.cancelReservation(reservationToken)
+                            } catch (e) {
+                              // ignore
+                            }
+                          }
+                          setRedeemPoints(0);
+                          setReservationToken(null);
+                          setReservedDiscount(0);
+                        }}>
+                          Clear
+                        </Button>
+                      </div>
+                      {reservedDiscount > 0 && (
+                        <div className="text-sm text-green-600 mt-2">Discount: {formatCurrency(reservedDiscount, currency)}</div>
+                      )}
+                    </div>
                     <div className="flex justify-between">
                       <span>Subtotal:</span>
-                      <span>
-                        {formatCurrency(totalPrice, currency)}
-                      </span>
+                      <span>{formatCurrency(totalPrice, currency)}</span>
                     </div>
                     {merchandiseSettings?.enableShipping && (
                       <div className="flex justify-between">
@@ -529,6 +648,13 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                         <span>{formatCurrency(taxAmount, currency)}</span>
                       </div>
                     )}
+                    {reservedDiscount > 0 && (
+                      <div className="flex justify-between text-sm text-green-600">
+                        <span>- Points discount:</span>
+                        <span>-{formatCurrency(reservedDiscount, currency)}</span>
+                      </div>
+                    )}
+
                     {feeBreakdown && feeBreakdown.totalFees > 0 && (
                       <>
                         <div className="flex justify-between text-sm text-muted-foreground">
@@ -626,7 +752,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
           orderId={createdOrder._id}
           orderNumber={createdOrder.orderNumber}
           total={finalAmount}
-          subtotal={orderTotal}
+          subtotal={totalPrice}
           shippingCost={createdOrder.shippingCost ?? shippingCost}
           tax={createdOrder.tax ?? taxAmount}
           currency={createdOrder.currency ?? currency}

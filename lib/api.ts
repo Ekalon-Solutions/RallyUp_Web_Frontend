@@ -1244,10 +1244,10 @@ class ApiClient {
     });
   }
 
-  async registerForEvent(eventId: string, notes?: string, attendees?: Array<{ name: string; phone: string }>, couponCode?: string | null, orderID?: string, paymentID?: string, signature?: string, waitlistToken?: string): Promise<ApiResponse<{ message: string; event: Event }>> {
+  async registerForEvent(eventId: string, notes?: string, attendees?: Array<{ name: string; phone: string }>, couponCode?: string | null, orderID?: string, paymentID?: string, signature?: string, waitlistToken?: string, reservationToken?: string): Promise<ApiResponse<{ message: string; event: Event }>> {
     return this.request(`/events/${eventId}/register`, {
       method: 'POST',
-      body: JSON.stringify({ notes, attendees, couponCode, orderID, paymentID, signature, waitlistToken }),
+      body: JSON.stringify({ notes, attendees, couponCode, orderID, paymentID, signature, waitlistToken, reservationToken }),
     });
   }
 
@@ -1261,11 +1261,33 @@ class ApiClient {
     orderID?: string;
     paymentID?: string;
     signature?: string;
+    reservationToken?: string;
   }): Promise<ApiResponse<{ message: string; event: Event }>> {
     return this.request(`/events/public/${eventId}/register`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
+  }
+
+  async createReservation(points: number, clubId: string): Promise<ApiResponse<{ reservationToken: string; discountAmount?: number }>> {
+    return this.request('/points/reservations/create', {
+      method: 'POST',
+      body: JSON.stringify({ points, clubId }),
+    })
+  }
+
+  async confirmReservation(reservationToken: string, orderId?: string): Promise<ApiResponse> {
+    return this.request('/points/reservations/confirm', {
+      method: 'POST',
+      body: JSON.stringify({ reservationToken, orderId }),
+    })
+  }
+
+  async cancelReservation(reservationToken: string): Promise<ApiResponse> {
+    return this.request('/points/reservations/cancel', {
+      method: 'POST',
+      body: JSON.stringify({ reservationToken }),
+    })
   }
 
   async cancelEventRegistration(eventId: string): Promise<ApiResponse<{ message: string; event: Event }>> {

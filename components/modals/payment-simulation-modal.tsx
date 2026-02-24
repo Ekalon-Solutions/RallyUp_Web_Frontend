@@ -302,30 +302,65 @@ export function PaymentSimulationModal({
               </div>
               <Separator />
               {/* Price Breakdown */}
-              {subtotal !== undefined && (
-                <div className="flex justify-between items-center text-sm">
-                  <span>Subtotal:</span>
-                  <span>{formatCurrency(subtotal, currency)}</span>
-                </div>
-              )}
-              {shippingCost !== undefined && shippingCost > 0 && (
-                <div className="flex justify-between items-center text-sm">
-                  <span>Shipping:</span>
-                  <span>{formatCurrency(shippingCost, currency)}</span>
-                </div>
-              )}
-              {shippingCost !== undefined && shippingCost === 0 && subtotal !== undefined && (
-                <div className="flex justify-between items-center text-sm">
-                  <span>Shipping:</span>
-                  <span className="text-green-600">Free</span>
-                </div>
-              )}
-              {tax !== undefined && tax > 0 && (
-                <div className="flex justify-between items-center text-sm">
-                  <span>Tax:</span>
-                  <span>{formatCurrency(tax, currency)}</span>
-                </div>
-              )}
+              {(() => {
+                // Show a clear breakdown: items subtotal, shipping, tax
+                if (subtotal !== undefined) {
+                  return (
+                    <>
+                      <div className="flex justify-between items-center text-sm">
+                        <span>Items Subtotal:</span>
+                        <span>{formatCurrency(subtotal, currency)}</span>
+                      </div>
+                      {shippingCost !== undefined && (
+                        <div className="flex justify-between items-center text-sm">
+                          <span>Shipping:</span>
+                          {shippingCost === 0 ? (
+                            <span className="text-green-600">Free</span>
+                          ) : (
+                            <span>{formatCurrency(shippingCost, currency)}</span>
+                          )}
+                        </div>
+                      )}
+                      {tax !== undefined && tax > 0 && (
+                        <div className="flex justify-between items-center text-sm">
+                          <span>Tax:</span>
+                          <span>{formatCurrency(tax, currency)}</span>
+                        </div>
+                      )}
+                    </>
+                  )
+                }
+
+                // Fallback: show any available parts separately
+                return (
+                  <>
+                    {subtotal !== undefined && (
+                      <div className="flex justify-between items-center text-sm">
+                        <span>Subtotal:</span>
+                        <span>{formatCurrency(subtotal, currency)}</span>
+                      </div>
+                    )}
+                    {shippingCost !== undefined && shippingCost > 0 && (
+                      <div className="flex justify-between items-center text-sm">
+                        <span>Shipping:</span>
+                        <span>{formatCurrency(shippingCost, currency)}</span>
+                      </div>
+                    )}
+                    {shippingCost !== undefined && shippingCost === 0 && subtotal !== undefined && (
+                      <div className="flex justify-between items-center text-sm">
+                        <span>Shipping:</span>
+                        <span className="text-green-600">Free</span>
+                      </div>
+                    )}
+                    {tax !== undefined && tax > 0 && (
+                      <div className="flex justify-between items-center text-sm">
+                        <span>Tax:</span>
+                        <span>{formatCurrency(tax, currency)}</span>
+                      </div>
+                    )}
+                  </>
+                )
+              })()}
               {platformFeeTotal !== undefined && platformFeeTotal > 0 && (
                 <div className="flex justify-between items-center text-sm text-muted-foreground">
                   <span>Platform fee (4.5% + GST):</span>
