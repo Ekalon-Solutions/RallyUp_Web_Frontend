@@ -773,13 +773,13 @@ export default function PublicClubPage() {
                           </div>
                           Merchandise
                         </CardTitle>
-                        {club?._id && (
+                        {/* {club?._id && (
                           <Link href={`/merchandise?clubId=${club._id}`}>
                             <Button variant="outline" className="border-2 font-bold">
                               Shop All
                             </Button>
                           </Link>
-                        )}
+                        )} */}
                       </CardHeader>
                       <CardContent>
                         {loadingContent ? (
@@ -789,39 +789,44 @@ export default function PublicClubPage() {
                         ) : merchandise.length > 0 ? (
                           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                             {merchandise.map((item: any) => (
-                              <Card key={item._id} className="hover:shadow-lg transition-all border-2 overflow-hidden">
+                              <Card key={item._id} className="hover:shadow-lg transition-all border-2 overflow-hidden flex flex-col">
                                 {item.featuredImage && (
                                   <div className="relative h-44 overflow-hidden">
                                     <img src={item.featuredImage} alt={item.name} className="w-full h-full object-cover" />
                                   </div>
                                 )}
-                                <CardHeader>
-                                  <div className="flex items-start justify-between gap-3">
-                                    <CardTitle className="text-lg line-clamp-2">{item.name}</CardTitle>
-                                    {typeof item.price === "number" && (
-                                      <Badge variant="outline" className="text-xs font-bold shrink-0">
-                                        {item.currency || "USD"} {item.price}
-                                      </Badge>
+                                <div className="flex flex-col flex-1">
+                                  <CardHeader className="flex-1 flex flex-col">
+                                    <div className="flex items-start justify-between gap-3">
+                                      <CardTitle className="text-lg line-clamp-2">{item.name}</CardTitle>
+                                      {typeof item.price === "number" && (
+                                        <Badge variant="outline" className="text-xs font-bold shrink-0">
+                                          {item.currency || "USD"} {item.price}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    {item.description && (
+                                      <CardDescription className="line-clamp-3 mt-2">{item.description}</CardDescription>
                                     )}
-                                  </div>
-                                  {item.description && (
-                                    <CardDescription className="line-clamp-3 mt-2">{item.description}</CardDescription>
-                                  )}
-                                  {club?._id && (
-                                    <Button
-                                      size="sm"
-                                      className="w-full mt-2"
-                                      style={{ backgroundColor: primaryColor, color: "white" }}
-                                      onClick={() => {
-                                        setMerchandiseForQuickBuy(item)
-                                        setPurchaseFlowReason("merchandise")
-                                        setShowPurchaseFlowModal(true)
-                                      }}
-                                    >
-                                      Quick Buy
-                                    </Button>
-                                  )}
-                                </CardHeader>
+                                    <div className="flex-1" />
+                                    {club?._id && (
+                                      <div className="mt-auto">
+                                        <Button
+                                          size="sm"
+                                          className="w-full mt-2"
+                                          style={{ backgroundColor: primaryColor, color: "white" }}
+                                          onClick={() => {
+                                            setMerchandiseForQuickBuy(item)
+                                            setPurchaseFlowReason("merchandise")
+                                            setShowPurchaseFlowModal(true)
+                                          }}
+                                        >
+                                          Quick Buy
+                                        </Button>
+                                      </div>
+                                    )}
+                                  </CardHeader>
+                                </div>
                               </Card>
                             ))}
                           </div>
