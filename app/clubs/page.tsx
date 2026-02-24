@@ -130,7 +130,7 @@ function ClubsPageContent() {
     currency: string
     paymentMethod: string
   } | null>(null)
-  const [registeredToken, setRegisteredToken] = useState<string | null>(null)
+  const [pendingRegistrationData, setPendingRegistrationData] = useState<typeof registrationData | null>(null)
   const [userMemberships, setUserMemberships] = useState<string[]>([])
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -290,36 +290,61 @@ function ClubsPageContent() {
 
     setIsRegistering(true)
     try {
+      if (selectedPlan && selectedPlan.price > 0) {
+        // Pre-check existing account so users don't pay when they should login instead.
+        const checkResponse = await fetch(getApiUrl(API_ENDPOINTS.users.checkExistingUserPlan), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: registrationData.email,
+            phoneNumber: registrationData.phoneNumber,
+            countryCode: registrationData.countryCode || "+91",
+            clubId: selectedClub._id,
+            membershipPlanId: selectedPlan._id,
+          }),
+        })
+        const checkData = await checkResponse.json()
+        if (checkResponse.ok && checkData.planValid) {
+          toast.info("An account with this email or phone already exists. Please log in to join this club.")
+          try {
+            sessionStorage.setItem(
+              "clubs_pending_join",
+              JSON.stringify({ clubId: selectedClub._id, membershipPlanId: selectedPlan._id })
+            )
+          } catch (_) {}
+          router.push("/login?redirect=/clubs")
+          return
+        }
+
+        // For paid memberships, collect data now and create the account only after successful payment.
+        const orderNumber = `ORD-${Math.floor(Math.random() * 900000) + 100000}`
+        const orderId = `club-${Date.now()}`
+        const total = selectedPlan.price
+        const currency = selectedPlan.currency || 'INR'
+        const paymentMethod = 'all'
+
+        setPendingRegistrationData({ ...registrationData })
+        setPendingOrder({ orderId, orderNumber, total, currency, paymentMethod })
+        setIsPaymentModalOpen(true)
+        toast.info("Complete payment to create your account and activate membership.")
+      } else {
         const registerResponse = await fetch(getApiUrl(API_ENDPOINTS.users.register), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...registrationData,
-       }),
-      })
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            ...registrationData,
+          }),
+        })
 
-      const registerData = await registerResponse.json()
+        const registerData = await registerResponse.json()
 
-      if (registerResponse.ok) {
-        setRegisteredToken(registerData.token || null)
-        toast.success("User registered successfully. Proceed to payment to activate membership.")
-        if (selectedPlan && selectedPlan.price > 0) {
-          // orderNumber kept short so Razorpay receipt (rcpt_+orderNumber) stays ≤40 chars
-          const orderNumber = `ORD-${Math.floor(Math.random() * 900000) + 100000}`
-          const orderId = `club-${Date.now()}`
-          const total = selectedPlan.price
-          const currency = selectedPlan.currency || 'INR'
-          const paymentMethod = 'all'
-
-          setPendingOrder({ orderId, orderNumber, total, currency, paymentMethod })
-          setIsPaymentModalOpen(true)
-        } else {
+        if (registerResponse.ok) {
           if (registerData.token) {
             localStorage.setItem('token', registerData.token)
             localStorage.setItem('userType', 'member')
-            
+
             const joinResponse = await fetch(getApiUrl(API_ENDPOINTS.users.joinClubRequest), {
               method: 'POST',
               headers: {
@@ -366,37 +391,38 @@ function ClubsPageContent() {
             toast.error("Registration token missing")
           }
         }
-      } else {
-        const isExistingEmail = registerData.message === "Email already exists"
-        const isExistingPhone = registerData.message === "A user with this phone number and country code already exists"
-        if (isExistingEmail || isExistingPhone) {
-          // Don't show error; check if the requested membership plan exists for this club
-          const checkResponse = await fetch(getApiUrl(API_ENDPOINTS.users.checkExistingUserPlan), {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              email: registrationData.email,
-              phoneNumber: registrationData.phoneNumber,
-              countryCode: registrationData.countryCode || "+91",
-              clubId: selectedClub._id,
-              membershipPlanId: selectedPlan._id,
-            }),
-          })
-          const checkData = await checkResponse.json()
-          if (checkResponse.ok && checkData.planValid) {
-            toast.info("An account with this email or phone already exists. Please log in to join this club.")
-            try {
-              sessionStorage.setItem(
-                "clubs_pending_join",
-                JSON.stringify({ clubId: selectedClub._id, membershipPlanId: selectedPlan._id })
-              )
-            } catch (_) {}
-            router.push("/login?redirect=/clubs")
+        else {
+          const isExistingEmail = registerData.message === "Email already exists"
+          const isExistingPhone = registerData.message === "A user with this phone number and country code already exists"
+          if (isExistingEmail || isExistingPhone) {
+            // Don't show error; check if the requested membership plan exists for this club
+            const checkResponse = await fetch(getApiUrl(API_ENDPOINTS.users.checkExistingUserPlan), {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                email: registrationData.email,
+                phoneNumber: registrationData.phoneNumber,
+                countryCode: registrationData.countryCode || "+91",
+                clubId: selectedClub._id,
+                membershipPlanId: selectedPlan._id,
+              }),
+            })
+            const checkData = await checkResponse.json()
+            if (checkResponse.ok && checkData.planValid) {
+              toast.info("An account with this email or phone already exists. Please log in to join this club.")
+              try {
+                sessionStorage.setItem(
+                  "clubs_pending_join",
+                  JSON.stringify({ clubId: selectedClub._id, membershipPlanId: selectedPlan._id })
+                )
+              } catch (_) {}
+              router.push("/login?redirect=/clubs")
+            } else {
+              toast.error(checkData.message || "This membership plan is no longer available for this club.")
+            }
           } else {
-            toast.error(checkData.message || "This membership plan is no longer available for this club.")
+            toast.error(registerData.message || "Registration failed")
           }
-        } else {
-          toast.error(registerData.message || "Registration failed")
         }
       }
     } catch (error) {
@@ -450,18 +476,36 @@ function ClubsPageContent() {
     razorpaySignature: string
   ) => {
     if (!selectedClub || !selectedPlan) return
+    if (!pendingRegistrationData) {
+      toast.error("Registration data missing. Please try again.")
+      return
+    }
     setIsRegistering(true)
     try {
-      if (registeredToken) {
-        localStorage.setItem('token', registeredToken)
-        localStorage.setItem('userType', 'member')
+      const registerResponse = await fetch(getApiUrl(API_ENDPOINTS.users.register), {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...pendingRegistrationData,
+        }),
+      })
+      const registerData = await registerResponse.json()
+
+      if (!registerResponse.ok || !registerData.token) {
+        toast.error(registerData.message || "Payment succeeded, but account creation failed. Please contact support.")
+        return
       }
+
+      localStorage.setItem('token', registerData.token)
+      localStorage.setItem('userType', 'member')
 
       const response = await fetch(getApiUrl(API_ENDPOINTS.users.joinClubRequest), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(registeredToken ? { 'Authorization': `Bearer ${registeredToken}` } : {})
+          'Authorization': `Bearer ${registerData.token}`
         },
         body: JSON.stringify({
           clubId: selectedClub._id,
@@ -482,6 +526,7 @@ function ClubsPageContent() {
         setShowRegistrationDialog(false)
         setIsPaymentModalOpen(false)
         setPendingOrder(null)
+        setPendingRegistrationData(null)
         setRegistrationData({
           username: "",
           first_name: "",
@@ -514,6 +559,7 @@ function ClubsPageContent() {
       setIsRegistering(false)
       setIsPaymentModalOpen(false)
       setPendingOrder(null)
+      setPendingRegistrationData(null)
     }
   }
 
@@ -521,6 +567,7 @@ function ClubsPageContent() {
     toast.error('Payment failed or verification failed. Please try again or contact support.')
     setIsPaymentModalOpen(false)
     setPendingOrder(null)
+    setPendingRegistrationData(null)
   }
 
   if (loading) {
@@ -1189,10 +1236,10 @@ function ClubsPageContent() {
             <DialogDescription className="space-y-1">
               {selectedPlan?.price ? (
                 <>
-                  <span className="block font-medium">Step 1: Register</span>
-                  <span className="block text-muted-foreground">We create your account first.</span>
+                  <span className="block font-medium">Step 1: Fill your details</span>
+                  <span className="block text-muted-foreground">We collect your registration details.</span>
                   <span className="block font-medium mt-2">Step 2: Pay</span>
-                  <span className="block text-muted-foreground">Then you pay to activate your membership with the {selectedPlan?.name} plan.</span>
+                  <span className="block text-muted-foreground">After Razorpay success, we create your account and activate the {selectedPlan?.name} membership.</span>
                 </>
               ) : (
                 <>
@@ -1375,6 +1422,7 @@ function ClubsPageContent() {
                   <option value="Voter ID">Voter ID</option>
                   <option value="Passport">Passport</option>
                   <option value="Driver License">Driver License</option>
+                  <option value="PAN">PAN Card</option>
                 </select>
               </div>
 
@@ -1424,7 +1472,7 @@ function ClubsPageContent() {
               >
                 {isRegistering
                   ? (selectedPlan?.price ? "Registering, then Pay…" : "Registering…")
-                  : (selectedPlan?.price ? "Register & Pay" : "Register & Join")}
+                  : (selectedPlan?.price ? "Pay & Create Account" : "Register & Join")}
               </Button>
               <Button 
                 type="button" 
@@ -1448,6 +1496,7 @@ function ClubsPageContent() {
             onClose={() => {
               setIsPaymentModalOpen(false)
               setPendingOrder(null)
+              setPendingRegistrationData(null)
             }}
             onPaymentSuccess={handlePaymentSuccess}
             onPaymentFailure={handlePaymentFailure}

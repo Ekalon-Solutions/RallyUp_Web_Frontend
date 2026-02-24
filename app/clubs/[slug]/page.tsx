@@ -1086,7 +1086,7 @@ export default function PublicClubPage() {
             }
             router.push(`/login?next=${encodeURIComponent(returnUrl)}`)
           }}
-          onRegister={(returnUrl) => {
+          onRegister={(registerNextUrl) => {
             if (purchaseFlowReason === "event" && eventForRegistration) {
               setStoredPurchaseIntent({
                 type: "event",
@@ -1096,7 +1096,7 @@ export default function PublicClubPage() {
                 event: eventForRegistration,
                 attendees: attendeesForPayment,
                 couponCode: couponCodeForPayment,
-                returnPath: returnUrl,
+                returnPath: registerNextUrl,
               })
             } else if (purchaseFlowReason === "merchandise" && merchandiseForQuickBuy) {
               const item = merchandiseForQuickBuy
@@ -1115,10 +1115,10 @@ export default function PublicClubPage() {
                   tags: item.tags,
                   club: item.club || { _id: club._id, name: club.name },
                 },
-                returnPath: returnUrl,
+                returnPath: registerNextUrl,
               })
             }
-            router.push(`/login?tab=user-register&next=${encodeURIComponent(returnUrl)}`)
+            router.push(registerNextUrl)
           }}
         />
       )}

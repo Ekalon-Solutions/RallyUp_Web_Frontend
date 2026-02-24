@@ -74,7 +74,7 @@ export function AddMemberModal({ trigger, onMemberAdded, clubId: clubIdProp }: A
     state_province: "",
     zip_code: "",
     country: "",
-    id_proof_type: "Aadhar" as "Aadhar" | "Voter ID" | "Passport" | "Driver License",
+    id_proof_type: "Aadhar" as "Aadhar" | "Voter ID" | "Passport" | "Driver License" | "PAN",
     id_proof_number: "",
   })
 
@@ -455,6 +455,7 @@ export function AddMemberModal({ trigger, onMemberAdded, clubId: clubIdProp }: A
               <SelectItem value="Voter ID">Voter ID</SelectItem>
               <SelectItem value="Passport">Passport</SelectItem>
               <SelectItem value="Driver License">Driver License</SelectItem>
+              <SelectItem value="PAN">PAN Card</SelectItem>
             </SelectContent>
           </Select>
         </div>

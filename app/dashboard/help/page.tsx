@@ -20,11 +20,6 @@ const faqData = [
       "You can add members through the Members section using four different methods: individual email entry, bulk CSV upload, registration forms, or sharing QR codes/links for open access.",
   },
   {
-    question: "How do I set up payment processing?",
-    answer:
-      "Go to Settings > Payment Settings to configure your payment gateway. We support Razorpay with a processing fee of 2.5% + Wingman Pro fee of 3%.",
-  },
-  {
     question: "Can I customize my club website?",
     answer:
       "Yes! Visit the Club Website section to configure navigation, content sections, social media links, and publish your hosted website at wingmanpro.tech/yourclub.",
@@ -33,11 +28,6 @@ const faqData = [
     question: "How do I create and manage events?",
     answer:
       "Use the Events & Tickets section to create events, set up ticketing, manage registrations, and track attendance. You can also create coupons and manage volunteer access.",
-  },
-  {
-    question: "What's included in the store functionality?",
-    answer:
-      "The store allows you to sell merchandise with size/color variants, manage inventory, process orders, and configure delivery options (pickup, shipping, or both).",
   },
   {
     question: "How do member packages work?",
