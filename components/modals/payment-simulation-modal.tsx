@@ -37,6 +37,10 @@ interface PaymentSimulationModalProps {
   platformFeeTotal?: number
   /** Payment gateway fee (2.5% + GST) for display */
   razorpayFeeTotal?: number
+  /** Coupon discount amount (show as "Discount (Coupon): -₹X") */
+  couponDiscount?: number
+  /** Coupon code for display (e.g. "SUMMER2026") */
+  couponCode?: string
   dialogTitle?: string
   dialogDescription?: string
   payButtonLabel?: string
@@ -57,6 +61,8 @@ export function PaymentSimulationModal({
   paymentMethod,
   platformFeeTotal,
   razorpayFeeTotal,
+  couponDiscount,
+  couponCode,
   dialogTitle,
   dialogDescription,
   payButtonLabel,

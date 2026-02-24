@@ -16,6 +16,7 @@ import { SiteFooter } from "@/components/site-footer"
 import { RecaptchaVerifier, signInWithPhoneNumber, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink } from "firebase/auth"
 import { auth } from "@/lib/firebase/config"
 import { apiClient } from "@/lib/api"
+import { getStoredPurchaseIntent } from "@/components/modals/purchase-flow-modal"
 
 const DEBUG_OTP = "123456"
 
@@ -258,6 +259,21 @@ function AuthPageContent() {
       if (isSafeNext) {
         router.push(nextParam)
         return
+      }
+
+      // Email link sign-in may open in new tab without "next" param; use stored purchase intent return path
+      const purchaseIntent = getStoredPurchaseIntent()
+      if (purchaseIntent?.returnPath) {
+        const path = purchaseIntent.returnPath
+        const isSafePath =
+          typeof path === "string" &&
+          path.startsWith("/") &&
+          !path.startsWith("//") &&
+          !path.includes("://")
+        if (isSafePath) {
+          router.push(path)
+          return
+        }
       }
 
       const userAny = user as any
@@ -1122,13 +1138,6 @@ function AuthPageContent() {
 
                           ;(async () => {
                             if (userLoginData.email) {
-                              console.log("loggin in debug mode")
-                              const backendResult = await login(userLoginData.email, userLoginData.phoneNumber, userLoginData.countryCode, false)
-                                      if (backendResult?.success) {
-                                        toast.success("Login successful!")
-                                        router.push("/dashboard")
-                                        return
-                                      }
                               const emailError = validateEmail(userLoginData.email)
                               setUserLoginErrors({ ...userLoginErrors, email: emailError })
                               if (emailError) {
@@ -1146,11 +1155,12 @@ function AuthPageContent() {
                                 window.localStorage.setItem("emailSignInType", "user")
                                 toast.success(`Sign-in link sent to ${userLoginData.email}. Check your email to complete sign-in.`)
                                 setUserLoginOtpSent(true)
-                                setOtpButtonLoading(false)
                                 setUserLoginResendCountdown(10)
                               } catch (err) {
                                 // console.error("Error sending email sign-in link:", err)
                                 toast.error("Failed to send sign-in link. Please try again.")
+                              } finally {
+                                setOtpButtonLoading(false)
                               }
                             } else if (userLoginData.phoneNumber && userLoginData.countryCode) {
                               const phoneError = validatePhoneNumber(userLoginData.phoneNumber)

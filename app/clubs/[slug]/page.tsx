@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useParams, useRouter } from "next/navigation"
+import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -12,6 +12,8 @@ import { formatDisplayDate } from "@/lib/utils"
 import { getNewsImageUrl } from "@/lib/config"
 import UserEventRegistrationModal from "@/components/modals/user-event-registration-modal"
 import { EventCheckoutModal } from "@/components/modals/event-checkout-modal"
+import { PurchaseFlowModal, setStoredPurchaseIntent, getStoredPurchaseIntent, clearStoredPurchaseIntent } from "@/components/modals/purchase-flow-modal"
+import { CheckoutModal } from "@/components/modals/checkout-modal"
 import NewsReadMoreModal from "@/components/modals/news-readmore-modal"
 import { 
   Globe, 
@@ -57,11 +59,13 @@ interface Club {
   description?: string
   logo?: string
   status: string
+  website?: string
 }
 
 export default function PublicClubPage() {
   const params = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const slug = params.slug as string
   
   const [loading, setLoading] = useState(true)
@@ -77,11 +81,46 @@ export default function PublicClubPage() {
 
   const [showEventRegistrationModal, setShowEventRegistrationModal] = useState(false)
   const [eventForRegistration, setEventForRegistration] = useState<Event | null>(null)
+  const [showPurchaseFlowModal, setShowPurchaseFlowModal] = useState(false)
   const [showEventCheckoutModal, setShowEventCheckoutModal] = useState(false)
   const [attendeesForPayment, setAttendeesForPayment] = useState<any[]>([])
   const [couponCodeForPayment, setCouponCodeForPayment] = useState<string | undefined>(undefined)
   const [showReadMoreModal, setShowReadMoreModal] = useState(false)
   const [selectedNewsForReadMore, setSelectedNewsForReadMore] = useState<News | null>(null)
+  const [purchaseFlowReason, setPurchaseFlowReason] = useState<"event" | "merchandise" | null>(null)
+  const [merchandiseForQuickBuy, setMerchandiseForQuickBuy] = useState<any | null>(null)
+  const [showMerchandiseCheckoutModal, setShowMerchandiseCheckoutModal] = useState(false)
+  const [merchandiseCheckoutItems, setMerchandiseCheckoutItems] = useState<any[]>([])
+
+  // Resume purchase after login/register redirect (same tab or email link in new tab). Only clear intent when we consume it here.
+  useEffect(() => {
+    const resume = searchParams.get("resumePurchase")
+    if (resume !== "1" || !club?._id) return
+    const intent = getStoredPurchaseIntent()
+    if (!intent || intent.clubId !== club._id) return
+
+    if (intent.type === "event") {
+      const eventId = intent.eventId
+      const storedEvent = intent.event as Event | undefined
+      const ev = storedEvent && storedEvent._id === eventId ? storedEvent : events.find((e) => e._id === eventId)
+      if (!ev) return
+      setEventForRegistration(ev)
+      setAttendeesForPayment(intent.attendees || [])
+      setCouponCodeForPayment(intent.couponCode)
+      setShowEventCheckoutModal(true)
+    } else if (intent.type === "merchandise") {
+      const item = intent.item
+      if (item?._id && item?.club?._id) {
+        setMerchandiseCheckoutItems([{ ...item, quantity: item.quantity ?? 1 }])
+        setShowMerchandiseCheckoutModal(true)
+      }
+    }
+
+    clearStoredPurchaseIntent()
+    const url = new URL(window.location.href)
+    url.searchParams.delete("resumePurchase")
+    window.history.replaceState({}, "", url.pathname + url.search)
+  }, [searchParams, club?._id, events])
 
   const encodeSearchParam = (value: string) =>
     encodeURIComponent(value).replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`)
@@ -410,12 +449,26 @@ export default function PublicClubPage() {
                 {websiteSetup.contactPhone}
               </a>
             )}
-            <div className="flex items-center gap-3 text-muted-foreground group">
-              <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center">
-                <Globe className="h-5 w-5" style={{ color: primaryColor }} />
+            {club.website ? (
+              <a
+                href={club.website.startsWith("http") ? club.website : `https://${club.website}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 text-muted-foreground hover:text-primary transition-colors group"
+              >
+                <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                  <Globe className="h-5 w-5" style={{ color: primaryColor }} />
+                </div>
+                Official Website
+              </a>
+            ) : (
+              <div className="flex items-center gap-3 text-muted-foreground group">
+                <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center">
+                  <Globe className="h-5 w-5" style={{ color: primaryColor }} />
+                </div>
+                Official Supporters Club
               </div>
-              Official Supporters Club
-            </div>
+            )}
           </div>
         </div>
       </div>
@@ -720,13 +773,13 @@ export default function PublicClubPage() {
                           </div>
                           Merchandise
                         </CardTitle>
-                        {club?._id && (
+                        {/* {club?._id && (
                           <Link href={`/merchandise?clubId=${club._id}`}>
                             <Button variant="outline" className="border-2 font-bold">
                               Shop All
                             </Button>
                           </Link>
-                        )}
+                        )} */}
                       </CardHeader>
                       <CardContent>
                         {loadingContent ? (
@@ -736,25 +789,44 @@ export default function PublicClubPage() {
                         ) : merchandise.length > 0 ? (
                           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                             {merchandise.map((item: any) => (
-                              <Card key={item._id} className="hover:shadow-lg transition-all border-2 overflow-hidden">
+                              <Card key={item._id} className="hover:shadow-lg transition-all border-2 overflow-hidden flex flex-col">
                                 {item.featuredImage && (
                                   <div className="relative h-44 overflow-hidden">
                                     <img src={item.featuredImage} alt={item.name} className="w-full h-full object-cover" />
                                   </div>
                                 )}
-                                <CardHeader>
-                                  <div className="flex items-start justify-between gap-3">
-                                    <CardTitle className="text-lg line-clamp-2">{item.name}</CardTitle>
-                                    {typeof item.price === "number" && (
-                                      <Badge variant="outline" className="text-xs font-bold shrink-0">
-                                        {item.currency || "USD"} {item.price}
-                                      </Badge>
+                                <div className="flex flex-col flex-1">
+                                  <CardHeader className="flex-1 flex flex-col">
+                                    <div className="flex items-start justify-between gap-3">
+                                      <CardTitle className="text-lg line-clamp-2">{item.name}</CardTitle>
+                                      {typeof item.price === "number" && (
+                                        <Badge variant="outline" className="text-xs font-bold shrink-0">
+                                          {item.currency || "USD"} {item.price}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    {item.description && (
+                                      <CardDescription className="line-clamp-3 mt-2">{item.description}</CardDescription>
                                     )}
-                                  </div>
-                                  {item.description && (
-                                    <CardDescription className="line-clamp-3 mt-2">{item.description}</CardDescription>
-                                  )}
-                                </CardHeader>
+                                    <div className="flex-1" />
+                                    {club?._id && (
+                                      <div className="mt-auto">
+                                        <Button
+                                          size="sm"
+                                          className="w-full mt-2"
+                                          style={{ backgroundColor: primaryColor, color: "white" }}
+                                          onClick={() => {
+                                            setMerchandiseForQuickBuy(item)
+                                            setPurchaseFlowReason("merchandise")
+                                            setShowPurchaseFlowModal(true)
+                                          }}
+                                        >
+                                          Quick Buy
+                                        </Button>
+                                      </div>
+                                    )}
+                                  </CardHeader>
+                                </div>
                               </Card>
                             ))}
                           </div>
@@ -941,8 +1013,129 @@ export default function PublicClubPage() {
         onRegister={(payload) => {
           setAttendeesForPayment(payload.attendees || [])
           setCouponCodeForPayment(payload.couponCode)
-          setShowEventCheckoutModal(true)
+          setShowEventRegistrationModal(false)
+          setPurchaseFlowReason("event")
+          setShowPurchaseFlowModal(true)
         }}
+      />
+
+      {club?._id && (eventForRegistration || merchandiseForQuickBuy) && (
+        <PurchaseFlowModal
+          isOpen={showPurchaseFlowModal}
+          onClose={() => {
+            setShowPurchaseFlowModal(false)
+            setPurchaseFlowReason(null)
+            setMerchandiseForQuickBuy(null)
+          }}
+          clubId={club._id}
+          clubName={club.name}
+          returnPath={`/clubs/${slug}`}
+          onContinueToPayment={() => {
+            setShowPurchaseFlowModal(false)
+            if (purchaseFlowReason === "event" && eventForRegistration) {
+              setShowEventCheckoutModal(true)
+            } else if (purchaseFlowReason === "merchandise" && merchandiseForQuickBuy) {
+              const item = merchandiseForQuickBuy
+              setMerchandiseCheckoutItems([{
+                _id: item._id,
+                name: item.name,
+                price: item.price,
+                currency: item.currency || "INR",
+                quantity: 1,
+                featuredImage: item.featuredImage,
+                stockQuantity: item.stockQuantity ?? 0,
+                tags: item.tags,
+                club: item.club || { _id: club._id, name: club.name },
+              }])
+              setShowMerchandiseCheckoutModal(true)
+              setMerchandiseForQuickBuy(null)
+            }
+            setPurchaseFlowReason(null)
+          }}
+          onLogin={(returnUrl) => {
+            if (purchaseFlowReason === "event" && eventForRegistration) {
+              setStoredPurchaseIntent({
+                type: "event",
+                clubId: club._id,
+                slug,
+                eventId: eventForRegistration._id,
+                event: eventForRegistration,
+                attendees: attendeesForPayment,
+                couponCode: couponCodeForPayment,
+                returnPath: returnUrl,
+              })
+            } else if (purchaseFlowReason === "merchandise" && merchandiseForQuickBuy) {
+              const item = merchandiseForQuickBuy
+              setStoredPurchaseIntent({
+                type: "merchandise",
+                clubId: club._id,
+                slug,
+                item: {
+                  _id: item._id,
+                  name: item.name,
+                  price: item.price,
+                  currency: item.currency || "INR",
+                  quantity: 1,
+                  featuredImage: item.featuredImage,
+                  stockQuantity: item.stockQuantity,
+                  tags: item.tags,
+                  club: item.club || { _id: club._id, name: club.name },
+                },
+                returnPath: returnUrl,
+              })
+            }
+            router.push(`/login?next=${encodeURIComponent(returnUrl)}`)
+          }}
+          onRegister={(returnUrl) => {
+            if (purchaseFlowReason === "event" && eventForRegistration) {
+              setStoredPurchaseIntent({
+                type: "event",
+                clubId: club._id,
+                slug,
+                eventId: eventForRegistration._id,
+                event: eventForRegistration,
+                attendees: attendeesForPayment,
+                couponCode: couponCodeForPayment,
+                returnPath: returnUrl,
+              })
+            } else if (purchaseFlowReason === "merchandise" && merchandiseForQuickBuy) {
+              const item = merchandiseForQuickBuy
+              setStoredPurchaseIntent({
+                type: "merchandise",
+                clubId: club._id,
+                slug,
+                item: {
+                  _id: item._id,
+                  name: item.name,
+                  price: item.price,
+                  currency: item.currency || "INR",
+                  quantity: 1,
+                  featuredImage: item.featuredImage,
+                  stockQuantity: item.stockQuantity,
+                  tags: item.tags,
+                  club: item.club || { _id: club._id, name: club.name },
+                },
+                returnPath: returnUrl,
+              })
+            }
+            router.push(`/login?tab=user-register&next=${encodeURIComponent(returnUrl)}`)
+          }}
+        />
+      )}
+
+      <CheckoutModal
+        isOpen={showMerchandiseCheckoutModal}
+        onClose={() => {
+          setShowMerchandiseCheckoutModal(false)
+          setMerchandiseCheckoutItems([])
+        }}
+        onSuccess={() => {
+          setShowMerchandiseCheckoutModal(false)
+          setMerchandiseCheckoutItems([])
+          if (club?._id) loadContent(club._id)
+          router.push("/purchase/success")
+        }}
+        directCheckoutItems={merchandiseCheckoutItems.length > 0 ? merchandiseCheckoutItems : undefined}
       />
 
       <EventCheckoutModal

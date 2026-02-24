@@ -24,7 +24,6 @@ import {
   Edit,
   Trash2,
   EyeOff,
-  Filter,
   RefreshCw,
   Package,
   Star,
@@ -550,7 +549,7 @@ export default function MerchandiseManagementPage() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="min-w-[200px]">Product</TableHead>
+                        <TableHead className="min-w-[200px] max-w-[320px]">Product</TableHead>
                         <TableHead className="min-w-[120px]">Category</TableHead>
                         <TableHead className="min-w-[100px]">Price</TableHead>
                         <TableHead className="min-w-[100px]">Stock</TableHead>
@@ -591,8 +590,8 @@ export default function MerchandiseManagementPage() {
                         const stockStatus = getStockStatus(item.stockQuantity)
                         return (
                           <TableRow key={item._id}>
-                            <TableCell>
-                              <div className="flex items-center space-x-3 min-w-[200px]">
+                            <TableCell className="max-w-[320px]">
+                              <div className="flex items-center space-x-3 min-w-0">
                                 {item.featuredImage ? (
                                   <img
                                     src={item.featuredImage}
@@ -604,9 +603,9 @@ export default function MerchandiseManagementPage() {
                                     <ImageIcon className="w-4 h-4 text-gray-400" />
                                   </div>
                                 )}
-                                <div className="min-w-0 flex-1">
+                                <div className="min-w-0 flex-1 max-w-[280px]">
                                   <div className="font-medium break-words">{item.name}</div>
-                                  <div className="text-sm text-gray-500 truncate">
+                                  <div className="text-sm text-gray-500 break-words line-clamp-2">
                                     {item.description}
                                   </div>
                                 </div>
@@ -651,7 +650,7 @@ export default function MerchandiseManagementPage() {
                                 <DropdownMenuTrigger asChild>
                                   <Button variant="ghost" className="h-8 w-8 p-0">
                                     <span className="sr-only">Open menu</span>
-                                    <Filter className="h-4 w-4" />
+                                    <Edit className="h-4 w-4" />
                                   </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">

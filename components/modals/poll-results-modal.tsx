@@ -17,6 +17,7 @@ import {
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api"
 import { triggerBlobDownload, formatDisplayDate } from '@/lib/utils'
+import { useAuth } from "@/contexts/auth-context"
 
 interface PollResultsModalProps {
   pollId: string
@@ -53,9 +54,11 @@ interface PollData {
 }
 
 export function PollResultsModal({ pollId, isOpen, onClose, refreshTrigger }: PollResultsModalProps) {
+  const { user } = useAuth()
   const [poll, setPoll] = useState<PollData | null>(null)
   const [results, setResults] = useState<PollResult[]>([])
   const [loading, setLoading] = useState(false)
+  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin'
 
   useEffect(() => {
     if (isOpen && pollId) {
@@ -208,11 +211,21 @@ export function PollResultsModal({ pollId, isOpen, onClose, refreshTrigger }: Po
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
-              <DialogTitle className="text-xl font-semibold mb-2">
-                Poll Results
-              </DialogTitle>
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
+                <DialogTitle className="text-xl font-semibold mb-2">
+                  Poll Results
+                </DialogTitle>
+                {isAdmin && (
+                  <Badge variant="secondary" className="shrink-0">
+                    Admin
+                  </Badge>
+                )}
+                <Badge className={getStatusColor(poll.status)}>
+                  {poll.status}
+                </Badge>
+              </div>
               <DialogDescription className="text-base">
                 {poll.question}
               </DialogDescription>
@@ -222,9 +235,6 @@ export function PollResultsModal({ pollId, isOpen, onClose, refreshTrigger }: Po
                 </p>
               )}
             </div>
-            <Badge className={getStatusColor(poll.status)}>
-              {poll.status}
-            </Badge>
           </div>
 
           <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
@@ -360,8 +370,8 @@ export function PollResultsModal({ pollId, isOpen, onClose, refreshTrigger }: Po
           </div>
 
           {/* Actions */}
-          <div className="flex justify-end pt-4 border-t">
-            <Button onClick={onClose}>
+          <div className="flex justify-end gap-2 pt-4 border-t">
+            <Button variant="outline" onClick={onClose}>
               Close
             </Button>
           </div>

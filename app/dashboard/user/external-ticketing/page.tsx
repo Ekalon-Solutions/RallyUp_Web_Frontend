@@ -6,18 +6,19 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
 import { useAuth } from "@/contexts/auth-context"
-import { apiClient } from "@/lib/api"
+import { apiClient, ExternalTicketFixture } from "@/lib/api"
 import { toast } from "sonner"
 import { 
   Building2, 
   CheckCircle, 
   Clock,
-  Eye,
+  XCircle,
   CreditCard,
   UserCheck
 } from "lucide-react"
@@ -69,13 +70,23 @@ export default function ExternalTicketingPage() {
   const [error, setError] = useState<string | null>(null)
   const [showRequestDialog, setShowRequestDialog] = useState(false)
   const [requestingFor, setRequestingFor] = useState<UserMembership | null>(null)
-  const [requestForm, setRequestForm] = useState({ name: '', phone: '', countryCode: '', tickets: 1, preferredDate: '', comments: '' })
+  const [availableFixtures, setAvailableFixtures] = useState<ExternalTicketFixture[]>([])
+  const [loadingFixtures, setLoadingFixtures] = useState(false)
+  const [selectedCompetition, setSelectedCompetition] = useState<string>("")
+  const [selectedFixtureId, setSelectedFixtureId] = useState<string>("")
+  const [requestForm, setRequestForm] = useState({ name: '', phone: '', countryCode: '', tickets: 1, preferredDate: '', comments: '', memberId: '' })
   const [isSubmittingRequest, setIsSubmittingRequest] = useState(false)
   const [formErrors, setFormErrors] = useState<{ [key: string]: string }>({})
+  const [myRequests, setMyRequests] = useState<any[]>([])
+  const [loadingMyRequests, setLoadingMyRequests] = useState(false)
+  const [respondingRequestId, setRespondingRequestId] = useState<string | null>(null)
+  const [responseCommentById, setResponseCommentById] = useState<Record<string, string>>({})
+  const ticketCountOptions = Array.from({ length: 500 }, (_, idx) => idx + 1)
 
   useEffect(() => {
     if (user) {
       loadUserMemberships()
+      loadMyRequests()
     }
   }, [user, clubId])
 
@@ -167,6 +178,77 @@ export default function ExternalTicketingPage() {
 
   const navigateToPlans = () => {
     router.push('/dashboard/user/browse-plans')
+  }
+
+  const loadMyRequests = async () => {
+    try {
+      setLoadingMyRequests(true)
+      const resp = await apiClient.listMyExternalTicketRequests()
+      if (resp.success && resp.data) {
+        const payload: any = resp.data
+        const arr = Array.isArray(payload) ? payload : (payload.data || payload)
+        if (Array.isArray(arr)) {
+          const filtered = clubId
+            ? arr.filter((r: any) => String(r?.club_id?._id || r?.club_id) === String(clubId))
+            : arr
+          setMyRequests(filtered)
+        } else {
+          setMyRequests([])
+        }
+      } else {
+        setMyRequests([])
+      }
+    } catch {
+      setMyRequests([])
+    } finally {
+      setLoadingMyRequests(false)
+    }
+  }
+
+  const respondToReschedule = async (requestId: string, action: 'accept' | 'reject') => {
+    try {
+      setRespondingRequestId(requestId)
+      const comment = responseCommentById[requestId]
+      const resp = await apiClient.respondToRescheduledExternalTicketRequest(requestId, {
+        action,
+        comment: comment?.trim() ? comment.trim() : undefined,
+      })
+      if (resp.success) {
+        toast.success(action === 'accept' ? 'Reschedule accepted. Status moved to Approved.' : 'Reschedule rejected.')
+        await loadMyRequests()
+      } else {
+        toast.error(resp.error || 'Failed to submit response')
+      }
+    } catch {
+      toast.error('Failed to submit response')
+    } finally {
+      setRespondingRequestId(null)
+    }
+  }
+
+  const loadAvailableFixtures = async (clubIdToLoad: string) => {
+    setLoadingFixtures(true)
+    try {
+      const resp = await apiClient.listAvailableExternalTicketFixtures(clubIdToLoad)
+      if (resp.success && resp.data) {
+        const payload: any = resp.data
+        const arr = Array.isArray(payload) ? payload : (payload.data || payload)
+        if (Array.isArray(arr)) {
+          setAvailableFixtures(arr as ExternalTicketFixture[])
+        } else {
+          setAvailableFixtures([])
+          toast.error('Failed to load available fixtures')
+        }
+      } else {
+        setAvailableFixtures([])
+        toast.error(resp.error || 'Failed to load available fixtures')
+      }
+    } catch {
+      setAvailableFixtures([])
+      toast.error('Failed to load available fixtures')
+    } finally {
+      setLoadingFixtures(false)
+    }
   }
 
   return (
@@ -285,9 +367,29 @@ export default function ExternalTicketingPage() {
                                   <Button 
                                     variant="default" 
                                     size="sm" 
-                                    onClick={() => {
+                                    onClick={async () => {
+                                      const profilePhone = (user as any)?.phoneNumber || ''
+                                      const profileCountryCode = (user as any)?.countryCode || ''
+                                      const profileName = user?.name || ''
+                                      if (!profileName || !profilePhone || !profileCountryCode) {
+                                        toast.error('Your profile details are incomplete. Please update name and contact details first.')
+                                        router.push('/dashboard/user/profile')
+                                        return
+                                      }
                                       setRequestingFor(membership)
-                                      setRequestForm({ name: user?.name || '', phone: '', countryCode: (user as any)?.countryCode || '', tickets: 1, preferredDate: '', comments: '' })
+                                      setAvailableFixtures([])
+                                      setSelectedCompetition("")
+                                      setSelectedFixtureId("")
+                                      setRequestForm({
+                                        name: user?.name || '',
+                                        phone: (user as any)?.phoneNumber || '',
+                                        countryCode: (user as any)?.countryCode || '',
+                                        tickets: 1,
+                                        preferredDate: '',
+                                        comments: '',
+                                        memberId: membership.user_membership_id || (user as any)?._id || '',
+                                      })
+                                      await loadAvailableFixtures(membership.club_id._id)
                                       setShowRequestDialog(true)
                                     }}
                                   >
@@ -304,6 +406,112 @@ export default function ExternalTicketingPage() {
                   </CardContent>
                 </Card>
               )}
+
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="mb-4">
+                    <h3 className="text-lg font-semibold">My Ticket Applications</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Track your external ticket requests and respond when an event is rescheduled.
+                    </p>
+                  </div>
+                  <div className="rounded-md border">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Fixture</TableHead>
+                          <TableHead>Competition</TableHead>
+                          <TableHead>Preferred Date</TableHead>
+                          <TableHead>Tickets</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Admin Note</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {loadingMyRequests ? (
+                          <TableRow>
+                            <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                              Loading requests...
+                            </TableCell>
+                          </TableRow>
+                        ) : myRequests.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                              No requests submitted yet.
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          myRequests.map((r) => {
+                            const status = r.status
+                            const statusLabel =
+                              status === 'fulfilled'
+                                ? 'Approved'
+                                : status === 'on_hold'
+                                ? 'Event Rescheduled (On Hold)'
+                                : status === 'cancelled_by_member'
+                                ? 'Cancelled by Member'
+                                : status
+                            const fixtureTitle =
+                              typeof r.fixture_id === 'object' && r.fixture_id ? r.fixture_id.title : '—'
+                            return (
+                              <TableRow key={r._id}>
+                                <TableCell className="font-medium">{fixtureTitle}</TableCell>
+                                <TableCell>{r.competition || '—'}</TableCell>
+                                <TableCell>{formatDate(r.preferred_date)}</TableCell>
+                                <TableCell>{r.tickets}</TableCell>
+                                <TableCell>
+                                  <Badge variant={status === 'fulfilled' ? 'default' : status === 'rejected' ? 'destructive' : 'secondary'}>
+                                    {statusLabel}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell className="max-w-[220px]">
+                                  <div className="text-sm text-muted-foreground truncate" title={r.adminComment || ''}>
+                                    {r.adminComment || '—'}
+                                  </div>
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  {status === 'on_hold' ? (
+                                    <div className="flex items-center justify-end gap-2">
+                                      <Input
+                                        placeholder="Optional comment"
+                                        value={responseCommentById[r._id] || ''}
+                                        onChange={(e) =>
+                                          setResponseCommentById((prev) => ({ ...prev, [r._id]: e.target.value }))
+                                        }
+                                        className="max-w-[200px]"
+                                      />
+                                      <Button
+                                        size="sm"
+                                        onClick={() => respondToReschedule(r._id, 'accept')}
+                                        disabled={respondingRequestId === r._id}
+                                      >
+                                        <CheckCircle className="h-4 w-4 mr-1" />
+                                        Accept
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => respondToReschedule(r._id, 'reject')}
+                                        disabled={respondingRequestId === r._id}
+                                      >
+                                        <XCircle className="h-4 w-4 mr-1" />
+                                        Reject
+                                      </Button>
+                                    </div>
+                                  ) : (
+                                    <span className="text-sm text-muted-foreground">No action required</span>
+                                  )}
+                                </TableCell>
+                              </TableRow>
+                            )
+                          })
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
           
             {/* Request Dialog */}
             <Dialog open={showRequestDialog} onOpenChange={setShowRequestDialog}>
@@ -341,6 +549,12 @@ export default function ExternalTicketingPage() {
                       errors.preferredDate = 'Preferred date cannot be in the past'
                     }
                   }
+                  if (!selectedFixtureId) {
+                    errors.fixtureId = 'Please select a fixture'
+                  }
+                  if (!selectedCompetition) {
+                    errors.competition = 'Please select a competition'
+                  }
                   setFormErrors(errors)
                   if (Object.keys(errors).length > 0) {
                     // Focus first invalid field (optional)
@@ -351,6 +565,7 @@ export default function ExternalTicketingPage() {
                   }
                   setIsSubmittingRequest(true)
                   try {
+                    const selectedFixture = availableFixtures.find((f) => f._id === selectedFixtureId)
                     const payload = {
                       clubId: requestingFor.club_id._id,
                       userName: requestForm.name,
@@ -359,11 +574,14 @@ export default function ExternalTicketingPage() {
                       tickets: requestForm.tickets,
                       preferredDate: requestForm.preferredDate,
                       comments: requestForm.comments,
+                      fixtureId: selectedFixtureId || undefined,
+                      competition: selectedFixture?.competition || undefined,
                     }
                     const resp = await apiClient.createExternalTicketRequest(payload)
                     if (resp.success) {
                       toast.success('Request submitted — the club will contact you shortly')
                       setShowRequestDialog(false)
+                      loadMyRequests()
                     } else {
                       const message = resp.error || (resp.data as any)?.message || 'Failed to submit request'
                       toast.error(message)
@@ -376,33 +594,137 @@ export default function ExternalTicketingPage() {
                   }
                 }}>
                   <div>
+                    <Label>Member ID</Label>
+                    <Input name="memberId" value={requestForm.memberId} readOnly disabled />
+                  </div>
+                  <div>
                     <Label>Name</Label>
-                    <Input name="name" value={requestForm.name} onChange={(e) => setRequestForm({...requestForm, name: e.target.value})} />
+                    <Input name="name" value={requestForm.name} readOnly disabled />
                     {formErrors.name && <div className="text-destructive text-sm mt-1">{formErrors.name}</div>}
                   </div>
                   <div>
                     <Label>Phone</Label>
                     <div className="flex gap-2">
-                      <Input name="countryCode" placeholder="+1" style={{width: '100px'}} value={requestForm.countryCode} onChange={(e) => setRequestForm({...requestForm, countryCode: e.target.value})} />
-                      <Input name="phone" value={requestForm.phone} onChange={(e) => setRequestForm({...requestForm, phone: e.target.value})} />
+                      <Input name="countryCode" placeholder="+1" style={{width: '100px'}} value={requestForm.countryCode} readOnly disabled />
+                      <Input name="phone" value={requestForm.phone} readOnly disabled />
                     </div>
                     {formErrors.phone && <div className="text-destructive text-sm mt-1">{formErrors.phone}</div>}
                     {formErrors.countryCode && <div className="text-destructive text-sm mt-1">{formErrors.countryCode}</div>}
                   </div>
                   <div>
                     <Label>Number of Tickets</Label>
-                    <Input name="tickets" type="number" min={1} value={requestForm.tickets} onChange={(e) => setRequestForm({...requestForm, tickets: Number(e.target.value) || 1})} />
+                    <Select
+                      value={String(requestForm.tickets)}
+                      onValueChange={(value) => setRequestForm({ ...requestForm, tickets: Number(value) || 1 })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select ticket count" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ticketCountOptions.map((count) => (
+                          <SelectItem key={count} value={String(count)}>
+                            {count}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     {formErrors.tickets && <div className="text-destructive text-sm mt-1">{formErrors.tickets}</div>}
                   </div>
 
                   <div className="grid grid-cols-1 gap-3">
                     <div>
+                    <Label>Competition</Label>
+                    <Select
+                      value={selectedCompetition}
+                      onValueChange={(value) => {
+                        setSelectedCompetition(value)
+                        setSelectedFixtureId("")
+                        setRequestForm((prev) => ({ ...prev, preferredDate: "" }))
+                        if (formErrors.fixtureId || formErrors.competition) {
+                          setFormErrors((prev) => {
+                            const next = { ...prev }
+                            delete next.fixtureId
+                            delete next.competition
+                            return next
+                          })
+                        }
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={loadingFixtures ? "Loading competitions..." : "Select competition"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.from(new Set(availableFixtures.map((f) => f.competition).filter(Boolean))).map((competition) => (
+                          <SelectItem key={competition} value={competition}>
+                            {competition}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {formErrors.competition && <div className="text-destructive text-sm mt-1">{formErrors.competition}</div>}
+                  </div>
+
+                  <div>
+                    <Label>Fixture</Label>
+                    <Select
+                      value={selectedFixtureId}
+                      disabled={!selectedCompetition || loadingFixtures}
+                      onValueChange={(value) => {
+                        setSelectedFixtureId(value)
+                        const selected = availableFixtures.find((f) => f._id === value)
+                        const selectedDate = selected?.startTime ? new Date(selected.startTime) : null
+                        const yyyy = selectedDate ? selectedDate.getFullYear() : ''
+                        const mm = selectedDate ? String(selectedDate.getMonth() + 1).padStart(2, '0') : ''
+                        const dd = selectedDate ? String(selectedDate.getDate()).padStart(2, '0') : ''
+                        setRequestForm((prev) => ({ ...prev, preferredDate: selectedDate ? `${yyyy}-${mm}-${dd}` : '' }))
+                        if (formErrors.fixtureId || formErrors.preferredDate) {
+                          setFormErrors((prev) => {
+                            const next = { ...prev }
+                            delete next.fixtureId
+                            delete next.preferredDate
+                            return next
+                          })
+                        }
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue
+                          placeholder={
+                            loadingFixtures
+                              ? "Loading fixtures..."
+                              : selectedCompetition
+                              ? "Select fixture"
+                              : "Select competition first"
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableFixtures
+                          .filter((f) => (selectedCompetition ? f.competition === selectedCompetition : false))
+                          .map((fixture) => (
+                            <SelectItem key={fixture._id} value={fixture._id}>
+                              {fixture.title} ({new Date(fixture.startTime).toLocaleDateString()})
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                    {formErrors.fixtureId && <div className="text-destructive text-sm mt-1">{formErrors.fixtureId}</div>}
+                    {!loadingFixtures && availableFixtures.length === 0 && (
+                      <div className="text-sm text-muted-foreground mt-1">
+                        No published fixtures are currently available for external ticket requests.
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
                       <Label>Preferred Date</Label>
                       <Input
                         name="preferredDate"
                         type="date"
                         value={requestForm.preferredDate}
-                        onChange={(e) => setRequestForm({...requestForm, preferredDate: e.target.value})}
+                      onChange={(e) => setRequestForm({...requestForm, preferredDate: e.target.value})}
+                      readOnly
+                      disabled
                       />
                       {formErrors.preferredDate && <div className="text-destructive text-sm mt-1">{formErrors.preferredDate}</div>}
                     </div>
@@ -420,7 +742,7 @@ export default function ExternalTicketingPage() {
                   </div>
 
                   <div className="flex gap-2 justify-end">
-                    <Button type="submit" disabled={isSubmittingRequest}>
+                    <Button type="submit" disabled={isSubmittingRequest || loadingFixtures || availableFixtures.length === 0}>
                       {isSubmittingRequest ? 'Sending...' : 'Submit Request'}
                     </Button>
                     <Button type="button" variant="outline" onClick={() => setShowRequestDialog(false)}>Cancel</Button>

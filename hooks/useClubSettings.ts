@@ -10,6 +10,11 @@ interface ClubSettings {
     sections?: Record<string, any>
     [key: string]: any
   }
+  /** Member dashboard section visibility (user view). Used for sidebar/nav visibility. */
+  memberSectionVisibility?: {
+    sections?: Record<string, any>
+    [key: string]: any
+  }
   designSettings?: {
     logo?: string | null
     [key: string]: any
@@ -32,12 +37,15 @@ export function useClubSettings(clubId?: string) {
     setSettings(null)
     setLoading(true)
 
+    let cancelled = false
+
     const fetchSettings = async () => {
+      const currentClubId = clubId
       try {
-        const cacheKey = `clubSettings:${clubId}`
+        const cacheKey = `clubSettings:${currentClubId}`
         if (typeof window !== "undefined") {
           const cached = window.sessionStorage.getItem(cacheKey)
-          if (cached) {
+          if (cached && !cancelled) {
             try {
               const parsed = JSON.parse(cached)
               if (parsed && typeof parsed === "object") {
@@ -46,26 +54,31 @@ export function useClubSettings(clubId?: string) {
               }
             } catch {
             }
-          } else {
-            setLoading(true)
           }
-        } else {
-          setLoading(true)
         }
 
-        const response = await apiClient.getClubSettings(clubId)
+        const response = await apiClient.getClubSettings(currentClubId)
+        if (cancelled) return
         if (response.success && response.data) {
           const actualData = response.data.data || response.data
-          const sanitizedSections = {
+          const sanitizedWebsiteSections = {
             ...DEFAULT_WEBSITE_SECTIONS,
             ...sanitizeWebsiteSections(actualData?.websiteSetup?.sections),
+          }
+          const sanitizedMemberSections = {
+            ...DEFAULT_WEBSITE_SECTIONS,
+            ...sanitizeWebsiteSections(actualData?.memberSectionVisibility?.sections),
           }
 
           const normalized: ClubSettings = {
             ...(actualData || {}),
             websiteSetup: {
               ...(actualData?.websiteSetup || {}),
-              sections: sanitizedSections,
+              sections: sanitizedWebsiteSections,
+            },
+            memberSectionVisibility: {
+              ...(actualData?.memberSectionVisibility || {}),
+              sections: sanitizedMemberSections,
             },
           }
 
@@ -79,16 +92,23 @@ export function useClubSettings(clubId?: string) {
           }
         }
       } catch (error) {
-      } finally {
-        setLoading(false)
+        if (!cancelled) setLoading(false)
+        return
       }
+      if (!cancelled) setLoading(false)
     }
 
     fetchSettings()
+    return () => {
+      cancelled = true
+    }
   }, [clubId])
 
+  /** Uses memberSectionVisibility (dashboard) for visibility; falls back to websiteSetup.sections for backward compatibility. */
   const isSectionVisible = (section: WebsiteSectionKey) => {
-    const value = settings?.websiteSetup?.sections?.[section]
+    const value =
+      settings?.memberSectionVisibility?.sections?.[section] ??
+      settings?.websiteSetup?.sections?.[section]
     if (typeof value === "boolean") return value
     if (typeof value === "string") {
       const v = value.trim().toLowerCase()

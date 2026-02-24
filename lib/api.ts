@@ -534,11 +534,21 @@ export interface ExternalTicketRequest {
   tickets: number;
   preferred_date: string;
   comments?: string;
+  adminComment?: string;
   status: 'fulfilled' | 'rejected' | 'on_hold' | 'pending' | 'cancelled_by_member' | 'unfulfilled';
   fixture_id?: Event | string;
   competition?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface ExternalTicketFixture {
+  _id: string;
+  title: string;
+  startTime: string;
+  competition: string;
+  isVisibleForMembers: boolean;
+  visibilityEndsAt?: string | null;
 }
 
 class ApiClient {
@@ -1114,11 +1124,44 @@ class ApiClient {
     tickets?: number;
     preferredDate: string;
     comments?: string;
+    fixtureId?: string;
+    competition?: string;
   }): Promise<ApiResponse<ExternalTicketRequest>> {
     return this.request('/external-tickets', {
       method: 'POST',
       body: JSON.stringify(data),
     });
+  }
+
+  async listAvailableExternalTicketFixtures(clubId: string, params?: { competition?: string }) {
+    const query: Record<string, any> = {};
+    if (params?.competition) query.competition = params.competition;
+    return this.request<ExternalTicketFixture[]>(
+      `/external-tickets/club/${clubId}/fixtures` +
+        (Object.keys(query).length ? `?${new URLSearchParams(query as any).toString()}` : '')
+    );
+  }
+
+  async listExternalTicketFixturesForAdmin(clubId: string, params?: { competition?: string }) {
+    const query: Record<string, any> = {};
+    if (params?.competition) query.competition = params.competition;
+    return this.request<ExternalTicketFixture[]>(
+      `/external-tickets/club/${clubId}/fixtures/admin` +
+        (Object.keys(query).length ? `?${new URLSearchParams(query as any).toString()}` : '')
+    );
+  }
+
+  async bulkUpdateExternalTicketFixtureVisibility(
+    clubId: string,
+    payload: { fixtureIds: string[]; enabled: boolean; visibilityEndsAt?: string | null }
+  ) {
+    return this.request<{ matchedCount: number; modifiedCount: number }>(
+      `/external-tickets/club/${clubId}/fixtures/visibility`,
+      {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      }
+    );
   }
 
   async getExternalTicketRequest(id: string): Promise<ApiResponse<ExternalTicketRequest>> {
@@ -1141,10 +1184,14 @@ class ApiClient {
     return this.request(`/external-tickets/club/${clubId}` + (Object.keys(query).length ? `?${new URLSearchParams(query as any).toString()}` : ''));
   }
 
-  async updateExternalTicketRequestStatus(id: string, status: 'fulfilled' | 'rejected' | 'on_hold' | 'pending' | 'cancelled_by_member' | 'unfulfilled') {
+  async updateExternalTicketRequestStatus(
+    id: string,
+    status: 'fulfilled' | 'rejected' | 'on_hold' | 'pending' | 'cancelled_by_member' | 'unfulfilled',
+    adminComment?: string
+  ) {
     return this.request(`/external-tickets/${id}/status`, {
       method: 'PUT',
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({ status, adminComment }),
     });
   }
 
@@ -1167,6 +1214,20 @@ class ApiClient {
     if (params?.competition) query.competition = params.competition;
     if (params?.format) query.format = params.format;
     return this.downloadFile(`/external-tickets/club/${clubId}/export` + (Object.keys(query).length ? `?${new URLSearchParams(query as any).toString()}` : ''));
+  }
+
+  async listMyExternalTicketRequests() {
+    return this.request<ExternalTicketRequest[]>('/external-tickets/my-requests');
+  }
+
+  async respondToRescheduledExternalTicketRequest(
+    id: string,
+    payload: { action: 'accept' | 'reject'; comment?: string }
+  ) {
+    return this.request<ExternalTicketRequest>(`/external-tickets/${id}/reschedule-response`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
   }
 
   async createEvent(data: {
@@ -1954,6 +2015,12 @@ class ApiClient {
     });
   }
 
+  async hardDeleteMembershipPlan(id: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request(`/membership-plans/${id}/permanent`, {
+      method: 'DELETE',
+    });
+  }
+
   async assignMembershipPlan(planId: string, userId: string): Promise<ApiResponse<{ message: string; user: User }>> {
     return this.request(`/membership-plans/${planId}/assign`, {
       method: 'POST',
@@ -1961,7 +2028,10 @@ class ApiClient {
     });
   }
 
-  async subscribeMembershipPlan(planId: string): Promise<ApiResponse<{ 
+  async subscribeMembershipPlan(
+    planId: string,
+    payment?: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }
+  ): Promise<ApiResponse<{ 
     message: string; 
     data: { 
       userMembership: any; 
@@ -1970,6 +2040,7 @@ class ApiClient {
   }>> {
     return this.request(`/membership-plans/${planId}/subscribe`, {
       method: 'POST',
+      body: payment ? JSON.stringify({ payment }) : undefined,
     });
   }
 
@@ -2188,6 +2259,13 @@ class ApiClient {
 
   async addMemberWithDefaultPlan(data: { user_id: string; club_id: string }): Promise<ApiResponse<{ message: string; userMembership: unknown }>> {
     return this.request('/user-memberships/add-with-default', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async migrateMemberPlan(data: { userId: string; clubId: string; newPlanId: string }): Promise<ApiResponse<{ message: string; membership: unknown; previousMembershipId?: string }>> {
+    return this.request('/user-memberships/migrate', {
       method: 'POST',
       body: JSON.stringify(data)
     });
@@ -2971,11 +3049,17 @@ class ApiClient {
     contactEmail: string;
     contactPhone: string;
     isPublished?: boolean;
-    sections: {
+    sections?: {
       [key: string]: boolean;
     };
   }): Promise<ApiResponse<any>> {
     return this.put(`/club-settings/${clubId}/website-setup`, data);
+  }
+
+  async updateMemberSectionVisibility(clubId: string, data: {
+    sections: { [key: string]: boolean };
+  }): Promise<ApiResponse<any>> {
+    return this.put(`/club-settings/${clubId}/member-section-visibility`, data);
   }
 
   async updateGroupListings(clubId: string, listings: Array<{
@@ -3037,57 +3121,63 @@ class ApiClient {
     return this.put(`/club-settings/${clubId}/help-section`, data);
   }
 
-  async getCoupons(): Promise<ApiResponse<{ coupons: any[] }>> {
-    return this.request('/coupons');
+  async getCoupons(clubId: string): Promise<ApiResponse<{ coupons: any[] }>> {
+    return this.get('/coupons', { params: { clubId } });
   }
 
   async getActiveCoupons(): Promise<ApiResponse<{ coupons: any[] }>> {
     return this.request('/coupons/active');
   }
 
-  async createCoupon(data: any): Promise<ApiResponse<{ message: string; coupon: any }>> {
+  async createCoupon(data: { clubId: string; [key: string]: any }): Promise<ApiResponse<{ message: string; coupon: any }>> {
     return this.request('/coupons', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
-  async updateCoupon(id: string, data: any): Promise<ApiResponse<{ message: string; coupon: any }>> {
-    return this.request(`/coupons/${id}`, {
+  private couponUrl(id: string, clubId?: string): string {
+    const base = `/coupons/${id}`;
+    return clubId ? `${base}?clubId=${encodeURIComponent(clubId)}` : base;
+  }
+
+  async updateCoupon(id: string, data: any, clubId?: string): Promise<ApiResponse<{ message: string; coupon: any }>> {
+    return this.request(this.couponUrl(id, clubId), {
       method: 'PUT',
       body: JSON.stringify(data),
     });
   }
 
-  async deleteCoupon(id: string): Promise<ApiResponse<{ message: string }>> {
-    return this.request(`/coupons/${id}`, {
+  async deleteCoupon(id: string, clubId?: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request(this.couponUrl(id, clubId), {
       method: 'DELETE',
     });
   }
 
-  async toggleCouponStatus(id: string, isActive: boolean): Promise<ApiResponse<{ message: string; coupon: any }>> {
-    return this.request(`/coupons/${id}/toggle`, {
-      method: 'PATCH',
+  async toggleCouponStatus(id: string, isActive: boolean, clubId?: string): Promise<ApiResponse<{ message: string; coupon: any }>> {
+    const path = `/coupons/${id}/toggle` + (clubId ? `?clubId=${encodeURIComponent(clubId)}` : '');
+    return this.request(path, {
+      method: 'PUT',
       body: JSON.stringify({ isActive }),
     });
   }
 
-  async validateCoupon(code: string, eventId?: string, ticketPrice?: number): Promise<ApiResponse<{ coupon: { code: string; name: string; discountType: 'flat' | 'percentage'; discountValue: number; discount: number; originalPrice: number; finalPrice: number } }>> {
+  async validateCoupon(code: string, eventId?: string, ticketPrice?: number, clubId?: string): Promise<ApiResponse<{ coupon: { code: string; name: string; discountType: 'flat' | 'percentage'; discountValue: number; discount: number; originalPrice: number; finalPrice: number } }>> {
     return this.request('/coupons/validate', {
       method: 'POST',
-      body: JSON.stringify({ code, eventId, ticketPrice }),
+      body: JSON.stringify({ code, eventId, ticketPrice, clubId }),
     });
   }
 
-  async applyCoupon(code: string, eventId?: string, ticketPrice?: number): Promise<ApiResponse<{ message: string; discount: number; finalPrice: number }>> {
+  async applyCoupon(code: string, eventId?: string, ticketPrice?: number, clubId?: string): Promise<ApiResponse<{ message: string; discount: number; finalPrice: number }>> {
     return this.request('/coupons/apply', {
       method: 'POST',
-      body: JSON.stringify({ code, eventId, ticketPrice }),
+      body: JSON.stringify({ code, eventId, ticketPrice, clubId }),
     });
   }
 
-  async getCouponStats(id: string): Promise<ApiResponse<any>> {
-    return this.request(`/coupons/${id}/stats`);
+  async getCouponStats(id: string, clubId?: string): Promise<ApiResponse<any>> {
+    return this.get(`/coupons/${id}/stats`, { params: clubId ? { clubId } : undefined });
   }
   
   async getSystemStatus(): Promise<ApiResponse<{
@@ -3126,6 +3216,63 @@ class ApiClient {
     return this.request(`/users/members/${memberId}/points`, {
       method: 'POST',
       body: JSON.stringify(data),
+    });
+  }
+
+  async estimateRefund(data: {
+    sourceType: 'event_ticket' | 'store_order';
+    eventId?: string;
+    orderId?: string;
+  }): Promise<ApiResponse<{
+    ok: boolean;
+    eligible: boolean;
+    cutoff: string | null;
+    estimatedRefund: number;
+    currency: string;
+    breakdown: {
+      grossPaid: number;
+      taxesExcluded: number;
+      platformFeesExcluded: number;
+      paymentGatewayFeesExcluded: number;
+    };
+  }>> {
+    return this.request('/refunds/estimate', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async requestRefund(data: {
+    sourceType: 'event_ticket' | 'store_order';
+    eventId?: string;
+    orderId?: string;
+  }): Promise<ApiResponse<any>> {
+    return this.request('/refunds/request', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async listRefundsAdmin(params?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+  }): Promise<ApiResponse<{
+    refunds: any[];
+    pagination: {
+      currentPage: number;
+      totalPages: number;
+      totalItems: number;
+      itemsPerPage: number;
+    };
+  }>> {
+    return this.get('/refunds/admin', { params });
+  }
+
+  async markRefundProcessed(refundId: string, adminNotes?: string): Promise<ApiResponse<any>> {
+    return this.request(`/refunds/admin/${refundId}/processed`, {
+      method: 'PATCH',
+      body: JSON.stringify({ adminNotes }),
     });
   }
 }

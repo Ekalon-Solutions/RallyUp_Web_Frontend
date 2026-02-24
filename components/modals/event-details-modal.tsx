@@ -12,6 +12,7 @@ import { Event } from '@/lib/api'
 import { apiClient } from '@/lib/api'
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion'
 import { formatLocalDate } from '@/lib/timezone'
+import { RefundButton } from '@/components/refund-button'
 
 interface EventDetailsModalProps {
   event: Event | null
@@ -22,8 +23,13 @@ interface EventDetailsModalProps {
 export default function EventDetailsModal({ event, isOpen, onClose }: EventDetailsModalProps) {
   const { user } = useAuth()
   const [registration, setRegistration] = useState<any | null>(null)
-  // Use public NEXT variable for base URL so environments can configure the domain
   const baseUrl = (process.env.NEXT_PUBLIC_APP_URL as string) || "wingmanpro.tech";
+
+  const userRegistration = event?.registrations?.find(
+    r => r && String((r as any).userId) === String(user?._id)
+  )
+  const isRegistered = Boolean(userRegistration)
+  const isConfirmed = userRegistration && (userRegistration as any).status === 'confirmed'
 
   useEffect(() => {
     if (!event) {
@@ -142,6 +148,30 @@ export default function EventDetailsModal({ event, isOpen, onClose }: EventDetai
               </div>
             </CardContent>
           </Card>
+          
+          {isRegistered && isConfirmed && (
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-sm font-semibold mb-1">Request Refund</h3>
+                    <p className="text-xs text-muted-foreground">
+                      Cancel your registration and request a refund
+                    </p>
+                  </div>
+                  <RefundButton
+                    sourceType="event_ticket"
+                    eventId={event._id}
+                    onRefundRequested={() => {
+                      onClose()
+                      window.location.reload()
+                    }}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           <div className="flex justify-end pt-4 border-t border-border">
             <Button variant="outline" onClick={onClose}>Close</Button>
           </div>

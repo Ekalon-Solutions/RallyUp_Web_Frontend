@@ -55,7 +55,8 @@ export function EventPaymentSimulationModal({
       if (couponCode && event?._id && isOpen) {
         try {
           const totalPrice = event.price * attendees.length
-          const response = await apiClient.validateCoupon(couponCode, event._id, totalPrice)
+          const clubId = (event as any)?.clubId
+          const response = await apiClient.validateCoupon(couponCode, event._id, totalPrice, clubId)
           
           if (response.success && response.data?.coupon) {
             setCouponDiscount(response.data.coupon.discount * attendees.length)

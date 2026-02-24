@@ -20,16 +20,16 @@ import {
   Loader2,
   Wallet,
   Building2,
-  Smartphone
+  Smartphone,
+  Tag,
+  X
 } from "lucide-react"
 import { useCart, CartItem } from "@/contexts/cart-context"
 import { useAuth } from "@/contexts/auth-context"
 import { apiClient } from "@/lib/api"
 import { calculateTransactionFees, PLATFORM_FEE_PERCENT, RAZORPAY_FEE_PERCENT } from "@/lib/transactionFees"
 import { PaymentSimulationModal } from "./payment-simulation-modal"
-import { MemberValidationModal } from "./member-validation-modal"
 import { toast } from "sonner"
-import { useRouter } from "next/navigation"
 
 interface CheckoutModalProps {
   isOpen: boolean
@@ -52,9 +52,18 @@ interface OrderForm {
   paymentMethod: string
 }
 
+interface AppliedCoupon {
+  code: string
+  name: string
+  discountType: 'flat' | 'percentage'
+  discountValue: number
+  discount: number
+  originalPrice: number
+  finalPrice: number
+}
+
 export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems }: CheckoutModalProps) {
   const { user } = useAuth()
-  const router = useRouter()
   const { items: cartItems, totalPrice: cartTotalPrice, clearCart } = useCart()
   const items = directCheckoutItems || cartItems
   const totalPrice = directCheckoutItems 
@@ -90,6 +99,17 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
     notes: '',
     paymentMethod: 'all'
   })
+  const [couponCode, setCouponCode] = useState("")
+  const [validatingCoupon, setValidatingCoupon] = useState(false)
+  const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null)
+
+  // Reset coupon when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setCouponCode("")
+      setAppliedCoupon(null)
+    }
+  }, [isOpen])
 
   // Fetch merchandise settings when modal opens
   useEffect(() => {
@@ -130,10 +150,13 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
     }
     fetchPoints()
   }, [isOpen, user, items])
+
+  const couponDiscount = appliedCoupon?.discount ?? 0
+  const subtotalAfterCoupon = Math.max(0, totalPrice - couponDiscount)
   
   const calculateShipping = () => {
     if (!merchandiseSettings?.enableShipping) return 0
-    if (merchandiseSettings.freeShippingThreshold && totalPrice >= merchandiseSettings.freeShippingThreshold) {
+    if (merchandiseSettings.freeShippingThreshold && subtotalAfterCoupon >= merchandiseSettings.freeShippingThreshold) {
       return 0
     }
     return merchandiseSettings.shippingCost || 0
@@ -141,7 +164,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
 
   const calculateTax = () => {
     if (!merchandiseSettings?.enableTax || !merchandiseSettings.taxRate) return 0
-    return totalPrice * (merchandiseSettings.taxRate / 100)
+    return subtotalAfterCoupon * (merchandiseSettings.taxRate / 100)
   }
 
   const shippingCost = calculateShipping()
@@ -150,6 +173,49 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
   const netOrderTotal = Math.max(orderTotal - (reservedDiscount || 0), 0)
   const feeBreakdown = netOrderTotal > 0 ? calculateTransactionFees(netOrderTotal) : null
   const finalAmount = feeBreakdown ? feeBreakdown.finalAmount : netOrderTotal
+
+  const handleValidateCoupon = async () => {
+    if (!couponCode.trim()) {
+      toast.error("Please enter a coupon code")
+      return
+    }
+    if (totalPrice <= 0) {
+      toast.error("Coupons are not applicable for this order")
+      return
+    }
+    const clubId = items[0] ? (typeof items[0].club === 'string' ? items[0].club : (items[0].club as any)?._id) : undefined
+    if (!clubId) {
+      toast.error("Unable to validate coupon for this order")
+      return
+    }
+    setValidatingCoupon(true)
+    try {
+      const response = await apiClient.validateCoupon(
+        couponCode.trim().toUpperCase(),
+        undefined,
+        totalPrice,
+        clubId
+      )
+      if (response.success && response.data?.coupon) {
+        setAppliedCoupon(response.data.coupon)
+        toast.success("Coupon applied successfully!")
+      } else {
+        setAppliedCoupon(null)
+        toast.error(response.error || "Invalid coupon code")
+      }
+    } catch {
+      setAppliedCoupon(null)
+      toast.error("Failed to validate coupon")
+    } finally {
+      setValidatingCoupon(false)
+    }
+  }
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null)
+    setCouponCode("")
+    toast.info("Coupon removed")
+  }
 
   const currency = items.length > 0 ? (items[0].currency || 'USD') : 'USD'
 
@@ -202,12 +268,6 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
       return
     }
 
-    // For non-authenticated users, show member validation first
-    if (!user && !memberValidated) {
-      setShowMemberValidation(true)
-      return
-    }
-
     setLoading(true)
     
     try {
@@ -232,7 +292,8 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
           quantity: item.quantity
         })),
         paymentMethod: 'all',
-        notes: orderForm.notes
+        notes: orderForm.notes,
+        ...(appliedCoupon?.code ? { couponCode: appliedCoupon.code } : {})
       }
 
       // include reservation token and redeemed points for server-side audit
@@ -551,6 +612,73 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                 </CardContent>
               </Card>
 
+              {/* Coupon Section - same as events */}
+              {totalPrice > 0 && (
+                <Card className="border-2 border-dashed">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <Tag className="w-4 h-4" />
+                      Have a Coupon Code?
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      Apply a discount code to reduce your order total
+                    </p>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {!appliedCoupon ? (
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Enter coupon code"
+                          value={couponCode}
+                          onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                          disabled={validatingCoupon}
+                          className="font-mono flex-1"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault()
+                              handleValidateCoupon()
+                            }
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          onClick={handleValidateCoupon}
+                          disabled={!couponCode.trim() || validatingCoupon}
+                          variant="outline"
+                        >
+                          {validatingCoupon ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            "Apply"
+                          )}
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="w-5 h-5 text-green-600" />
+                          <div>
+                            <div className="font-medium text-green-900">{appliedCoupon.name}</div>
+                            <div className="text-sm text-green-700">
+                              Code: <code className="font-mono font-semibold">{appliedCoupon.code}</code>
+                            </div>
+                          </div>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleRemoveCoupon}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Order Total */}
               <Card>
                 <CardContent className="pt-6">
@@ -632,6 +760,15 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                       <span>Subtotal:</span>
                       <span>{formatCurrency(totalPrice, currency)}</span>
                     </div>
+                    {appliedCoupon && couponDiscount > 0 && (
+                      <div className="flex justify-between text-green-600">
+                        <span className="flex items-center gap-1">
+                          <Tag className="w-4 h-4" />
+                          Coupon ({appliedCoupon.code})
+                        </span>
+                        <span>-{formatCurrency(couponDiscount, currency)}</span>
+                      </div>
+                    )}
                     {merchandiseSettings?.enableShipping && (
                       <div className="flex justify-between">
                         <span>Shipping:</span>
@@ -759,6 +896,8 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
           paymentMethod={createdOrder.paymentMethod || orderForm.paymentMethod || 'all'}
           platformFeeTotal={feeBreakdown ? feeBreakdown.platformFee + feeBreakdown.platformFeeGst : undefined}
           razorpayFeeTotal={feeBreakdown ? feeBreakdown.razorpayFee + feeBreakdown.razorpayFeeGst : undefined}
+          couponDiscount={createdOrder.couponDiscount}
+          couponCode={createdOrder.couponCode}
         />
       )}
     </Dialog>

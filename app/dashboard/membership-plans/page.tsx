@@ -7,8 +7,17 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
-import { Plus, CreditCard, Users, Calendar, Edit } from "lucide-react"
+import { Plus, CreditCard, Users, Calendar, Edit, Trash2 } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api"
@@ -46,6 +55,12 @@ export default function MembershipPlansPage() {
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [editingPlan, setEditingPlan] = useState<MembershipPlan | null>(null)
   const [showEditDialog, setShowEditDialog] = useState(false)
+  const [planToDeactivate, setPlanToDeactivate] = useState<MembershipPlan | null>(null)
+  const [showDeactivateDialog, setShowDeactivateDialog] = useState(false)
+  const [isDeactivating, setIsDeactivating] = useState(false)
+  const [planToDelete, setPlanToDelete] = useState<MembershipPlan | null>(null)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
   const [plansWithCards, setPlansWithCards] = useState<Set<string>>(new Set())
   const [formData, setFormData] = useState({
@@ -283,6 +298,58 @@ export default function MembershipPlansPage() {
     if (months === 6) return "6 Months"
     if (months === 12) return "1 Year"
     return `${months} Months`
+  }
+
+  const handleDeactivatePlanClick = (plan: MembershipPlan) => {
+    setPlanToDeactivate(plan)
+    setShowDeactivateDialog(true)
+  }
+
+  const handleConfirmDeactivatePlan = async () => {
+    if (!planToDeactivate) return
+    setIsDeactivating(true)
+    try {
+      const response = await apiClient.deleteMembershipPlan(planToDeactivate._id)
+      if (response.success) {
+        toast.success(`Plan "${planToDeactivate.name}" has been deactivated.`)
+        setShowDeactivateDialog(false)
+        setPlanToDeactivate(null)
+        await loadPlans()
+      } else {
+        toast.error(response.error || "Failed to deactivate plan")
+      }
+    } catch (error: any) {
+      const msg = error?.response?.data?.error || error?.message || "Failed to deactivate plan"
+      toast.error(msg)
+    } finally {
+      setIsDeactivating(false)
+    }
+  }
+
+  const handleDeletePlanClick = (plan: MembershipPlan) => {
+    setPlanToDelete(plan)
+    setShowDeleteDialog(true)
+  }
+
+  const handleConfirmDeletePlan = async () => {
+    if (!planToDelete) return
+    setIsDeleting(true)
+    try {
+      const response = await apiClient.hardDeleteMembershipPlan(planToDelete._id)
+      if (response.success) {
+        toast.success(`Plan "${planToDelete.name}" has been permanently removed.`)
+        setShowDeleteDialog(false)
+        setPlanToDelete(null)
+        await loadPlans()
+      } else {
+        toast.error(response.error || "Failed to remove plan")
+      }
+    } catch (error: any) {
+      const msg = error?.response?.data?.error || error?.message || "Failed to remove plan"
+      toast.error(msg)
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   const handleEditPlan = (plan: MembershipPlan) => {
@@ -778,6 +845,56 @@ export default function MembershipPlansPage() {
                   </form>
                 </DialogContent>
               </Dialog>
+
+              <AlertDialog open={showDeactivateDialog} onOpenChange={setShowDeactivateDialog}>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Deactivate membership plan?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {planToDeactivate && (
+                        <>
+                          This will deactivate &quot;{planToDeactivate.name}&quot; and remove it from your club&apos;s list. It cannot be deactivated if any members are currently on this plan (active or pending)—move members to another plan first. You can activate the plan again later from the list.
+                        </>
+                      )}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel disabled={isDeactivating}>Cancel</AlertDialogCancel>
+                    <Button
+                      variant="secondary"
+                      disabled={isDeactivating}
+                      onClick={handleConfirmDeactivatePlan}
+                    >
+                      {isDeactivating ? "Deactivating..." : "Deactivate plan"}
+                    </Button>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+
+              <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Permanently remove membership plan?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      {planToDelete && (
+                        <>
+                          This will permanently remove &quot;{planToDelete.name}&quot; from the database. This cannot be undone. The plan must have no active or pending members—deactivate it or move members first if needed.
+                        </>
+                      )}
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+                    <Button
+                      variant="destructive"
+                      disabled={isDeleting}
+                      onClick={handleConfirmDeletePlan}
+                    >
+                      {isDeleting ? "Removing..." : "Remove permanently"}
+                    </Button>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </div>
           <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
@@ -851,13 +968,33 @@ export default function MembershipPlansPage() {
                         <Edit className="w-4 h-4 mr-2" />
                         Edit
                       </Button>
+                      {plan.isActive ? (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="flex-1"
+                          onClick={() => handleDeactivatePlanClick(plan)}
+                        >
+                          Deactivate
+                        </Button>
+                      ) : (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="flex-1"
+                          onClick={() => handleToggleStatus(plan._id, plan.isActive)}
+                        >
+                          Activate
+                        </Button>
+                      )}
                       <Button 
-                        variant="outline" 
+                        variant="destructive" 
                         size="sm" 
                         className="flex-1"
-                        onClick={() => handleToggleStatus(plan._id, plan.isActive)}
+                        onClick={() => handleDeletePlanClick(plan)}
                       >
-                        {plan.isActive ? "Deactivate" : "Activate"}
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete
                       </Button>
                     </div>
                     <TooltipProvider>

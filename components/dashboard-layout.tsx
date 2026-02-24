@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { useAuth } from "@/contexts/auth-context"
 import { useClubSettings } from "@/hooks/useClubSettings"
 import { useDesignSettings } from "@/hooks/useDesignSettings"
@@ -32,6 +32,7 @@ import {
   ShoppingCart,
   UserCheck,
   ChartNoAxesColumn,
+  Tag,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -42,6 +43,19 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import Image from "next/image"
 import { NotificationCenterModal } from "@/components/modals/notification-center-modal"
+import type { WebsiteSectionKey } from "@/lib/websiteSections"
+
+/** User (member) pathnames that are gated by member section visibility. Feed (/dashboard/user) is always allowed. */
+const USER_PATH_TO_SECTION: Record<string, WebsiteSectionKey> = {
+  "/dashboard/user/news": "news",
+  "/dashboard/user/events": "events",
+  "/dashboard/user/polls": "polls",
+  "/dashboard/user/chants": "chants",
+  "/dashboard/user/members": "members",
+  "/merchandise": "merchandise",
+}
+
+const FEED_PATH = "/dashboard/user"
 
 const adminNavigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -55,6 +69,7 @@ const adminNavigation = [
   { name: "Merchandise", href: "/dashboard/merchandise", icon: Shirt },
   { name: "Order Management", href: "/dashboard/orders", icon: ShoppingCart },
   { name: "Events & Tickets", href: "/dashboard/events", icon: Ticket },
+  { name: "Coupons", href: "/dashboard/coupons", icon: Tag },
   { name: "Leaderboard", href: "/dashboard/leaderboard", icon: ChartNoAxesColumn },
   // { name: "Match Center", href: "/dashboard/match-center", icon: Calendar },
   { name: "Group Website", href: "/dashboard/website", icon: Globe },
@@ -88,6 +103,7 @@ const superAdminNavigation = [
   { name: "Merchandise", href: "/dashboard/merchandise", icon: Shirt },
   { name: "Order Management", href: "/dashboard/orders", icon: ShoppingCart },
   { name: "Events & Tickets", href: "/dashboard/events", icon: Ticket },
+  { name: "Coupons", href: "/dashboard/coupons", icon: Tag },
   { name: "Leaderboard", href: "/dashboard/leaderboard", icon: ChartNoAxesColumn },
   // { name: "Match Center", href: "/dashboard/match-center", icon: Calendar },
   { name: "Group Website", href: "/dashboard/website", icon: Globe },
@@ -178,6 +194,21 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   
   useDesignSettings(clubId)
 
+  // Redirect to feed when current page is not allowed for the selected club (e.g. after switching clubs)
+  const isRegularUser = !user?.role || user.role === "member"
+  useEffect(() => {
+    if (!isRegularUser || !clubId || settingsLoading || !pathname) return
+    const section = USER_PATH_TO_SECTION[pathname]
+    if (!section) return
+    const visible =
+      section === "merchandise"
+        ? isSectionVisible("merchandise") || isSectionVisible("store")
+        : isSectionVisible(section)
+    if (!visible) {
+      router.replace(FEED_PATH)
+    }
+  }, [isRegularUser, clubId, settingsLoading, pathname, settings])
+
   const sidebarClubs = useMemo(() => {
     if (!user || user.role === 'system_owner') return []
     const userAny = user as any
@@ -259,7 +290,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const Sidebar = ({ mobile = false }: { mobile?: boolean }) => (
     <div className={cn("flex flex-col h-full bg-card", mobile ? "w-full" : "w-72")}>
-      <div className="flex items-center gap-3 p-8 border-b">
+      <Link href="/" className="flex items-center gap-3 p-8 border-b hover:opacity-90 transition-opacity">
         <div className="relative w-10 h-10 overflow-hidden rounded-xl bg-white shadow-md border-2 ring-2 ring-primary/5">
           <Image
             src="/WingmanPro Logo (White BG).svg"
@@ -273,7 +304,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           <span className="text-xl font-black leading-none">Wingman Pro</span>
           <span className="text-[10px] font-bold text-primary uppercase tracking-[0.2em] mt-1">Platform</span>
         </div>
-      </div>
+      </Link>
 
       <nav className="flex-1 p-6 space-y-1.5 overflow-y-auto custom-scrollbar">
         {getNavigation().map((item) => (
@@ -454,7 +485,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             </Button>
             
             {/* Mobile Logo */}
-            <div className="flex items-center gap-2 lg:hidden">
+            <Link href="/" className="flex items-center gap-2 lg:hidden hover:opacity-90 transition-opacity">
               <div className="relative w-8 h-8 overflow-hidden rounded-lg bg-white shadow-sm border">
                 <Image
                   src="/WingmanPro Logo (White BG).svg"
@@ -465,7 +496,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 />
               </div>
               <span className="font-bold text-lg tracking-tight">Wingman Pro</span>
-            </div>
+            </Link>
           </div>
           
           <div className="flex items-center gap-3">

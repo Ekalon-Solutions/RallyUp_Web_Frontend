@@ -80,10 +80,10 @@ export default function AdminSettingsClient() {
                 <Bell className="h-4 w-4" />
                 App Settings
               </TabsTrigger>
-              <TabsTrigger value="help" className="flex items-center gap-2">
+              {/* <TabsTrigger value="help" className="flex items-center gap-2">
                 <HelpCircle className="h-4 w-4" />
                 Help
-              </TabsTrigger>
+              </TabsTrigger> */}
               <TabsTrigger value="guide" className="flex items-center gap-2">
                 <BookOpen className="h-4 w-4" />
                 Get Started

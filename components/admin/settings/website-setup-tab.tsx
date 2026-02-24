@@ -21,13 +21,12 @@ import {
   setWebsiteOptionEnabled,
 } from "@/lib/websiteSections"
 
-interface WebsiteSettings {
+interface WebsiteInfo {
   title: string
   description: string
   contactEmail: string
   contactPhone: string
   isPublished: boolean
-  sections: Record<string, boolean>
 }
 
 export function WebsiteSetupTab() {
@@ -37,15 +36,15 @@ export function WebsiteSetupTab() {
   const [saving, setSaving] = useState(false)
   const [slugInput, setSlugInput] = useState<string | null>(null)
   const [slugSaving, setSlugSaving] = useState(false)
-  const [settings, setSettings] = useState<WebsiteSettings>({
+  const [websiteInfo, setWebsiteInfo] = useState<WebsiteInfo>({
     title: "",
     description: "",
     contactEmail: "",
     contactPhone: "",
     isPublished: false,
-    sections: {
-      ...DEFAULT_WEBSITE_SECTIONS,
-    },
+  })
+  const [memberSections, setMemberSections] = useState<Record<string, boolean>>({
+    ...DEFAULT_WEBSITE_SECTIONS,
   })
 
   const currentClubSlug = useMemo(() => {
@@ -70,7 +69,7 @@ export function WebsiteSetupTab() {
     if (currentClubSlug) setSlugInput(currentClubSlug)
   }, [clubId, currentClubSlug])
 
-    const loadSettings = async () => {
+  const loadSettings = async () => {
     if (!clubId) return
 
     try {
@@ -78,20 +77,18 @@ export function WebsiteSetupTab() {
       const response = await apiClient.getClubSettings(clubId)
       if (response.success && response.data) {
         const actualData = response.data.data || response.data
-        const websiteSetup = actualData.websiteSetup || {
-          title: '',
-          description: '',
-          contactEmail: '',
-          contactPhone: '',
-          isPublished: false,
-          sections: { ...DEFAULT_WEBSITE_SECTIONS }
-        }
-        setSettings({
-          ...websiteSetup,
-          sections: {
-            ...DEFAULT_WEBSITE_SECTIONS,
-            ...sanitizeWebsiteSections(websiteSetup.sections),
-          },
+        const websiteSetup = actualData.websiteSetup || {}
+        const memberVisibility = actualData.memberSectionVisibility || {}
+        setWebsiteInfo({
+          title: websiteSetup.title ?? '',
+          description: websiteSetup.description ?? '',
+          contactEmail: websiteSetup.contactEmail ?? '',
+          contactPhone: websiteSetup.contactPhone ?? '',
+          isPublished: Boolean(websiteSetup.isPublished),
+        })
+        setMemberSections({
+          ...DEFAULT_WEBSITE_SECTIONS,
+          ...sanitizeWebsiteSections(memberVisibility.sections),
         })
       } else {
         toast.error("Failed to load settings - invalid response")
@@ -105,7 +102,7 @@ export function WebsiteSetupTab() {
 
   const handleSave = async (e?: React.MouseEvent) => {
     e?.preventDefault()
-    
+
     if (!clubId) {
       toast.error("Club ID not found")
       return
@@ -113,11 +110,20 @@ export function WebsiteSetupTab() {
 
     try {
       setSaving(true)
-      
-      const response = await apiClient.updateWebsiteSetup(clubId, settings)
-      
-      if (response.success) {
-        toast.success("Website settings saved successfully!")
+
+      const [websiteRes, memberVisRes] = await Promise.all([
+        apiClient.updateWebsiteSetup(clubId, {
+          title: websiteInfo.title,
+          description: websiteInfo.description,
+          contactEmail: websiteInfo.contactEmail,
+          contactPhone: websiteInfo.contactPhone,
+          isPublished: websiteInfo.isPublished,
+        }),
+        apiClient.updateMemberSectionVisibility(clubId, { sections: memberSections }),
+      ])
+
+      if (websiteRes.success && memberVisRes.success) {
+        toast.success("Website and member visibility settings saved successfully!")
         if (typeof window !== "undefined") {
           try {
             window.sessionStorage.removeItem(`clubSettings:${clubId}`)
@@ -126,7 +132,7 @@ export function WebsiteSetupTab() {
         }
         await loadSettings()
       } else {
-        toast.error(response.message || "Failed to save settings")
+        toast.error(websiteRes.message || memberVisRes.message || "Failed to save settings")
       }
     } catch (error) {
       toast.error("Failed to save settings")
@@ -138,11 +144,8 @@ export function WebsiteSetupTab() {
   const toggleOption = (optionId: string) => {
     const option = WEBSITE_SECTION_OPTIONS.find((o) => o.id === optionId)
     if (!option) return
-    const currentlyEnabled = isWebsiteOptionEnabled(settings.sections, option)
-    setSettings((prev) => ({
-      ...prev,
-      sections: setWebsiteOptionEnabled(prev.sections, option, !currentlyEnabled),
-    }))
+    const currentlyEnabled = isWebsiteOptionEnabled(memberSections, option)
+    setMemberSections((prev) => setWebsiteOptionEnabled(prev, option, !currentlyEnabled))
   }
 
   const copyPublicUrl = () => {
@@ -178,7 +181,7 @@ export function WebsiteSetupTab() {
             Public Club Page
           </CardTitle>
           <CardDescription className="text-blue-600 dark:text-blue-400">
-            Your club's public page status: {settings.isPublished ? <Badge className="bg-green-500">Published</Badge> : <Badge variant="secondary">Not Published</Badge>}
+            Your club's public page status: {websiteInfo.isPublished ? <Badge className="bg-green-500">Published</Badge> : <Badge variant="secondary">Not Published</Badge>}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -265,10 +268,8 @@ export function WebsiteSetupTab() {
             <Label htmlFor="title">Website Title</Label>
             <Input
               id="title"
-              value={settings.title}
-              onChange={(e) => {
-                setSettings({ ...settings, title: e.target.value })
-              }}
+              value={websiteInfo.title}
+              onChange={(e) => setWebsiteInfo((prev) => ({ ...prev, title: e.target.value }))}
               placeholder="Enter your club name"
             />
           </div>
@@ -277,10 +278,8 @@ export function WebsiteSetupTab() {
             <Label htmlFor="description">Website Description</Label>
             <Textarea
               id="description"
-              value={settings.description}
-              onChange={(e) => {
-                setSettings({ ...settings, description: e.target.value })
-              }}
+              value={websiteInfo.description}
+              onChange={(e) => setWebsiteInfo((prev) => ({ ...prev, description: e.target.value }))}
               placeholder="Brief description of your club"
               rows={4}
             />
@@ -292,8 +291,8 @@ export function WebsiteSetupTab() {
               <Input
                 id="contactEmail"
                 type="email"
-                value={settings.contactEmail}
-                onChange={(e) => setSettings({ ...settings, contactEmail: e.target.value })}
+                value={websiteInfo.contactEmail}
+                onChange={(e) => setWebsiteInfo((prev) => ({ ...prev, contactEmail: e.target.value }))}
                 placeholder="contact@yourclub.com"
               />
             </div>
@@ -303,8 +302,8 @@ export function WebsiteSetupTab() {
               <Input
                 id="contactPhone"
                 type="tel"
-                value={settings.contactPhone}
-                onChange={(e) => setSettings({ ...settings, contactPhone: e.target.value })}
+                value={websiteInfo.contactPhone}
+                onChange={(e) => setWebsiteInfo((prev) => ({ ...prev, contactPhone: e.target.value }))}
                 placeholder="+1 (555) 123-4567"
               />
             </div>
@@ -314,38 +313,39 @@ export function WebsiteSetupTab() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Section Visibility</CardTitle>
+          <CardTitle>Member Dashboard Section Visibility</CardTitle>
           <CardDescription>
-            Enable or disable different sections of your website
+            Control which sections appear in the member dashboard sidebar (user view). This does not affect the public club page.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {WEBSITE_SECTION_OPTIONS.map((option) => {
-            const enabled = isWebsiteOptionEnabled(settings.sections, option)
+            const enabled = isWebsiteOptionEnabled(memberSections, option)
             return (
-            <div key={option.id} className="flex items-center justify-between py-2">
-              <div className="flex items-center gap-3">
-                {enabled ? (
-                  <Eye className="h-4 w-4 text-green-600" />
-                ) : (
-                  <EyeOff className="h-4 w-4 text-gray-400" />
-                )}
-                <div>
-                  <Label htmlFor={option.id} className="text-base font-medium cursor-pointer">
-                    {option.label}
-                  </Label>
-                  <p className="text-sm text-muted-foreground">
-                    {enabled ? "Visible on public site" : "Hidden on public site"}
-                  </p>
+              <div key={option.id} className="flex items-center justify-between py-2">
+                <div className="flex items-center gap-3">
+                  {enabled ? (
+                    <Eye className="h-4 w-4 text-green-600" />
+                  ) : (
+                    <EyeOff className="h-4 w-4 text-gray-400" />
+                  )}
+                  <div>
+                    <Label htmlFor={option.id} className="text-base font-medium cursor-pointer">
+                      {option.label}
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      {enabled ? "Visible in member dashboard" : "Hidden in member dashboard"}
+                    </p>
+                  </div>
                 </div>
+                <Switch
+                  id={option.id}
+                  checked={enabled}
+                  onCheckedChange={() => toggleOption(option.id)}
+                />
               </div>
-              <Switch
-                id={option.id}
-                checked={enabled}
-                onCheckedChange={() => toggleOption(option.id)}
-              />
-            </div>
-          )})}
+            )
+          })}
         </CardContent>
       </Card>
 

@@ -165,10 +165,12 @@ export default function UserEventRegistrationModal({ eventId, isOpen, onClose, o
         couponToApply = appliedCoupon.code
       } else {
         try {
+          const clubId = event?.clubId
           const applyResponse = await apiClient.applyCoupon(
             appliedCoupon.code,
             eventId,
-            priceAfterMemberDiscount * ticketCount
+            priceAfterMemberDiscount * ticketCount,
+            clubId
           )
           
           if (applyResponse.success) {
@@ -206,10 +208,12 @@ export default function UserEventRegistrationModal({ eventId, isOpen, onClose, o
     setValidatingCoupon(true)
     try {
       const totalPrice = priceAfterMemberDiscount * ticketCount
+      const clubId = event?.clubId
       const response = await apiClient.validateCoupon(
         couponCode.toUpperCase(),
         eventId,
-        totalPrice
+        totalPrice,
+        clubId
       )
 
       if (response.success && response.data?.coupon) {

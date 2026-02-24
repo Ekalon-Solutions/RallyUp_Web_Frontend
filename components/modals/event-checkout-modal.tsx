@@ -225,7 +225,8 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
       if (couponCode && event?._id && isOpen) {
         try {
           const totalPrice = getDiscountedPricePerTicket() * attendees.length
-          const response = await apiClient.validateCoupon(couponCode, String(event._id), totalPrice)
+          const clubId = eventData?.clubId || (event as any)?.clubId
+          const response = await apiClient.validateCoupon(couponCode, String(event._id), totalPrice, clubId)
           
           if (response.success && response.data?.coupon) {
             setCouponDiscount(response.data.coupon.discount * attendees.length)
@@ -287,8 +288,10 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
           toast.success("Successfully registered for event!")
           onSuccess()
           onClose()
+          router.push("/purchase/success")
         } else {
           onFailure()
+          router.push("/purchase/failure")
         }
         setLoading(false)
         return
@@ -386,6 +389,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
               toast.success("Payment successful! You are now registered for the event.")
               onSuccess()
               onClose()
+              router.push("/purchase/success")
             } else {
               toast.error("Payment successful but registration failed. Please contact support.")
             }
@@ -416,6 +420,9 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
       razorpay.on('payment.failed', function (response: any) {
         toast.error(response.error.description || "Payment processing failed. Please try again.")
         setLoading(false)
+        onFailure()
+        onClose()
+        router.push("/purchase/failure")
       })
 
       razorpay.open()
@@ -643,7 +650,6 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
           onNonMemberContinue={() => {
             setMemberValidated(true)
             setShowMemberValidation(false)
-            handlePayment()
           }}
           onBecomeMember={() => {
             router.push(`/membership-plans?clubId=${eventData.clubId}`)
