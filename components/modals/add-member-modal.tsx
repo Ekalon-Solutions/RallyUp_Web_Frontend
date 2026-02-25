@@ -30,7 +30,9 @@ interface MembershipPlan {
   description: string
   price: number
   currency: string
-  duration: number
+  duration?: number
+  planStartDate?: string
+  planEndDate?: string
   features: {
     maxEvents: number
     maxNews: number
@@ -499,7 +501,11 @@ export function AddMemberModal({ trigger, onMemberAdded, clubId: clubIdProp }: A
                   {plan.price === 0 ? 'Free' : `${plan.currency} ${plan.price}`}
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  {plan.duration === 0 ? 'Lifetime' : `${plan.duration} months`}
+                  {plan.planStartDate && plan.planEndDate
+                    ? `${new Date(plan.planStartDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} – ${new Date(plan.planEndDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`
+                    : plan.duration === 0
+                    ? 'Lifetime'
+                    : `${plan.duration ?? 0} months`}
                 </div>
               </div>
             </div>

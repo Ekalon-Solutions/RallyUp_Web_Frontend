@@ -74,7 +74,9 @@ interface MembershipPlan {
   description: string
   price: number
   currency: string
-  duration: number
+  duration?: number
+  planStartDate?: string
+  planEndDate?: string
   features: {
     maxEvents: number
     maxNews: number
@@ -440,7 +442,14 @@ function ClubsPageContent() {
     }).format(price)
   }
 
-  const formatDuration = (months: number) => {
+  const formatPlanPeriod = (plan: MembershipPlan) => {
+    if (plan.planStartDate && plan.planEndDate) {
+      const start = new Date(plan.planStartDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
+      const end = new Date(plan.planEndDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
+      return `${start} – ${end}`
+    }
+    const months = plan.duration ?? 0
+    if (months === 0) return "Lifetime"
     if (months === 1) return "1 Month"
     if (months === 3) return "3 Months"
     if (months === 6) return "6 Months"
@@ -798,7 +807,7 @@ function ClubsPageContent() {
                             <div className="flex items-center justify-between mt-4">
                               <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground">
                                 <Clock className="w-4 h-4" />
-                                <span>{formatDuration(plan.duration)}</span>
+                                <span>{formatPlanPeriod(plan)}</span>
                               </div>
                               <Button 
                                 size="sm" 
@@ -1025,7 +1034,7 @@ function ClubsPageContent() {
                                 {formatPrice(plan.price, plan.currency)}
                               </div>
                               <div className="text-sm text-muted-foreground">
-                                {formatDuration(plan.duration)}
+                                {formatPlanPeriod(plan)}
                               </div>
                             </div>
                           </div>
@@ -1451,7 +1460,7 @@ function ClubsPageContent() {
                     </div>
                     <div className="flex justify-between">
                       <span>Duration:</span>
-                      <span>{formatDuration(selectedPlan.duration)}</span>
+                      <span>{formatPlanPeriod(selectedPlan)}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Features:</span>

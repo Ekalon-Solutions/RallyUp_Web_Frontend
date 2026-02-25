@@ -17,7 +17,9 @@ type PublicMembershipPlan = {
   description: string
   price: number
   currency: string
-  duration: number
+  duration?: number
+  planStartDate?: string
+  planEndDate?: string
   features?: {
     maxEvents?: number
     maxNews?: number
@@ -76,7 +78,13 @@ export default function MembershipPlansClient({ clubId }: { clubId: string }) {
     }
   }
 
-  const formatDuration = (duration: number) => {
+  const formatPlanPeriod = (plan: PublicMembershipPlan) => {
+    if (plan.planStartDate && plan.planEndDate) {
+      const start = new Date(plan.planStartDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
+      const end = new Date(plan.planEndDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
+      return `${start} – ${end}`
+    }
+    const duration = plan.duration ?? 0
     if (duration === 0) return "Lifetime"
     if (duration === 1) return "1 month"
     if (duration < 12) return `${duration} months`
@@ -178,7 +186,7 @@ export default function MembershipPlansClient({ clubId }: { clubId: string }) {
                         <div className="text-3xl font-black">
                           {formatPrice(plan.price || 0, plan.currency || "INR")}
                         </div>
-                        <div className="text-sm text-muted-foreground">{formatDuration(plan.duration || 0)}</div>
+                        <div className="text-sm text-muted-foreground">{formatPlanPeriod(plan)}</div>
                       </div>
 
                       <div className="space-y-2">

@@ -475,7 +475,9 @@ export interface MembershipPlan {
   description: string;
   price: number;
   currency: string;
-  duration: number;
+  duration?: number;
+  planStartDate?: string;
+  planEndDate?: string;
   features: {
     maxEvents: number;
     maxNews: number;
@@ -1962,7 +1964,9 @@ class ApiClient {
     description: string;
     price: number;
     currency: string;
-    duration: number;
+    planStartDate?: string;
+    planEndDate?: string;
+    duration?: number;
     features: any;
   }): Promise<ApiResponse<{ message: string; membershipPlan: MembershipPlan }>> {
     return this.request('/membership-plans', {

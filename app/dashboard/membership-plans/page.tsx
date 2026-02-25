@@ -31,7 +31,9 @@ interface MembershipPlan {
   description: string
   price: number
   currency: string
-  duration: number
+  duration?: number
+  planStartDate?: string
+  planEndDate?: string
   features: {
     maxEvents: number
     maxNews: number
@@ -68,7 +70,8 @@ export default function MembershipPlansPage() {
     description: "",
     price: 0,
     currency: "INR",
-    duration: 1,
+    planStartDate: "",
+    planEndDate: "",
     features: {
       maxEvents: 10,
       maxNews: 5,
@@ -236,23 +239,39 @@ export default function MembershipPlansPage() {
         return
       }
 
-      if (formData.duration < 1 || formData.duration > 120) {
-        toast.error('Duration must be between 1 and 120 months. Please enter a valid duration for the membership plan.')
+      if (!formData.planStartDate || !formData.planEndDate) {
+        toast.error('Plan Start Date and Plan End Date are required.')
+        setIsCreating(false)
+        return
+      }
+      const start = new Date(formData.planStartDate)
+      const end = new Date(formData.planEndDate)
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+        toast.error('Please enter valid plan start and end dates.')
+        setIsCreating(false)
+        return
+      }
+      if (end <= start) {
+        toast.error('Plan End Date must be after Plan Start Date.')
         setIsCreating(false)
         return
       }
 
-      const response = await (apiClient as any).createMembershipPlan({ ...formData, clubId: activeClubId })
+      const payload: any = { ...formData, clubId: activeClubId }
+      if (formData.planStartDate) payload.planStartDate = formData.planStartDate
+      if (formData.planEndDate) payload.planEndDate = formData.planEndDate
+      const response = await (apiClient as any).createMembershipPlan(payload)
 
       if (response.success) {
-        toast.success(`Membership plan "${formData.name}" created successfully with price ${formData.currency} ${formData.price} for ${formData.duration} month(s).`)
+        toast.success(`Membership plan "${formData.name}" created successfully with price ${formData.currency} ${formData.price}.`)
         setShowCreateDialog(false)
         setFormData({
           name: "",
           description: "",
           price: 0,
           currency: "USD",
-          duration: 1,
+          planStartDate: "",
+          planEndDate: "",
           features: {
             maxEvents: 10,
             maxNews: 5,
@@ -292,12 +311,18 @@ export default function MembershipPlansPage() {
     }).format(price)
   }
 
-  const formatDuration = (months: number) => {
-    if (months === 1) return "1 Month"
-    if (months === 3) return "3 Months"
-    if (months === 6) return "6 Months"
-    if (months === 12) return "1 Year"
-    return `${months} Months`
+  const formatPlanPeriod = (plan: MembershipPlan) => {
+    if (plan.planStartDate && plan.planEndDate) {
+      const start = new Date(plan.planStartDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+      const end = new Date(plan.planEndDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+      return `${start} – ${end}`
+    }
+    if (plan.duration != null && plan.duration > 0) {
+      if (plan.duration === 1) return "1 Month"
+      if (plan.duration === 12) return "1 Year"
+      return `${plan.duration} Months`
+    }
+    return "Lifetime"
   }
 
   const handleDeactivatePlanClick = (plan: MembershipPlan) => {
@@ -352,6 +377,13 @@ export default function MembershipPlansPage() {
     }
   }
 
+  const toDateInputValue = (d: string | Date | undefined) => {
+    if (!d) return ""
+    const date = new Date(d)
+    if (isNaN(date.getTime())) return ""
+    return date.toISOString().slice(0, 10)
+  }
+
   const handleEditPlan = (plan: MembershipPlan) => {
     setEditingPlan(plan)
     setFormData({
@@ -359,7 +391,8 @@ export default function MembershipPlansPage() {
       description: plan.description,
       price: plan.price,
       currency: plan.currency,
-      duration: plan.duration,
+      planStartDate: toDateInputValue(plan.planStartDate),
+      planEndDate: toDateInputValue(plan.planEndDate),
       features: {
         maxEvents: plan.features.maxEvents,
         maxNews: plan.features.maxNews,
@@ -426,16 +459,31 @@ export default function MembershipPlansPage() {
         return
       }
 
-      if (formData.duration < 1 || formData.duration > 120) {
-        toast.error('Duration must be between 1 and 120 months. Please enter a valid duration for the membership plan.')
+      if (!formData.planStartDate || !formData.planEndDate) {
+        toast.error('Plan Start Date and Plan End Date are required.')
+        setIsUpdating(false)
+        return
+      }
+      const start = new Date(formData.planStartDate)
+      const end = new Date(formData.planEndDate)
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+        toast.error('Please enter valid plan start and end dates.')
+        setIsUpdating(false)
+        return
+      }
+      if (end <= start) {
+        toast.error('Plan End Date must be after Plan Start Date.')
         setIsUpdating(false)
         return
       }
 
-      const response = await apiClient.updateMembershipPlan(editingPlan._id, formData)
+      const updatePayload: any = { ...formData }
+      if (formData.planStartDate) updatePayload.planStartDate = formData.planStartDate
+      if (formData.planEndDate) updatePayload.planEndDate = formData.planEndDate
+      const response = await apiClient.updateMembershipPlan(editingPlan._id, updatePayload)
 
       if (response.success) {
-        toast.success(`Membership plan "${formData.name}" updated successfully with new price ${formData.currency} ${formData.price} and duration ${formData.duration} month(s).`)
+        toast.success(`Membership plan "${formData.name}" updated successfully with new price ${formData.currency} ${formData.price}.`)
         setShowEditDialog(false)
         setEditingPlan(null)
         setFormData({
@@ -443,7 +491,8 @@ export default function MembershipPlansPage() {
           description: "",
           price: 0,
           currency: "USD",
-          duration: 1,
+          planStartDate: "",
+          planEndDate: "",
           features: {
             maxEvents: 10,
             maxNews: 5,
@@ -561,57 +610,65 @@ export default function MembershipPlansPage() {
                       />
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="currency">Currency</Label>
+                      <select
+                        id="currency"
+                        value={formData.currency}
+                        onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+                        className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground"
+                      >
+                        <option value="INR">INR</option>
+                        <option value="USD">USD</option>
+                        <option value="EUR">EUR</option>
+                        <option value="GBP">GBP</option>
+                        <option value="AUD">AUD</option>
+                        <option value="CAD">CAD</option>
+                        <option value="CHF">CHF</option>
+                        <option value="CNY">CNY</option>
+                        <option value="HKD">HKD</option>
+                        <option value="JPY">JPY</option>
+                        <option value="NZD">NZD</option>
+                        <option value="NOK">NOK</option>
+                        <option value="SEK">SEK</option>
+                        <option value="SGD">SGD</option>
+                        <option value="ZAR">ZAR</option>
+                        <option value="BRL">BRL</option>
+                        <option value="MXN">MXN</option>
+                        <option value="TRY">TRY</option>
+                        <option value="DKK">DKK</option>
+                        <option value="ILS">ILS</option>
+                        <option value="PLN">PLN</option>
+                      </select>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="currency">Currency</Label>
-                        <select
-                          id="currency"
-                          value={formData.currency}
-                          onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
-                          className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground"
-                        >
-                          <option value="INR">INR</option>
-                          <option value="USD">USD</option>
-                          <option value="EUR">EUR</option>
-                          <option value="GBP">GBP</option>
-                          <option value="AUD">AUD</option>
-                          <option value="CAD">CAD</option>
-                          <option value="CHF">CHF</option>
-                          <option value="CNY">CNY</option>
-                          <option value="HKD">HKD</option>
-                          <option value="JPY">JPY</option>
-                          <option value="NZD">NZD</option>
-                          <option value="NOK">NOK</option>
-                          <option value="SEK">SEK</option>
-                          <option value="SGD">SGD</option>
-                          <option value="ZAR">ZAR</option>
-                          <option value="BRL">BRL</option>
-                          <option value="MXN">MXN</option>
-                          <option value="TRY">TRY</option>
-                          <option value="DKK">DKK</option>
-                          <option value="ILS">ILS</option>
-                          <option value="PLN">PLN</option>
-                        </select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="duration">Duration (Months)</Label>
+                        <Label htmlFor="planStartDate">Plan Start Date</Label>
                         <Input
-                          id="duration"
-                          type="number"
-                          value={formData.duration}
-                          onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) || 1 })}
-                          min="1"
-                          max="120"
+                          id="planStartDate"
+                          type="date"
+                          value={formData.planStartDate}
+                          onChange={(e) => setFormData({ ...formData, planStartDate: e.target.value })}
                           required
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label>Duration Display</Label>
-                        <div className="px-3 py-2 text-sm text-muted-foreground">
-                          {formatDuration(formData.duration)}
-                        </div>
+                        <Label htmlFor="planEndDate">Plan End Date</Label>
+                        <Input
+                          id="planEndDate"
+                          type="date"
+                          value={formData.planEndDate}
+                          onChange={(e) => setFormData({ ...formData, planEndDate: e.target.value })}
+                          required
+                        />
                       </div>
                     </div>
+                    {formData.planStartDate && formData.planEndDate && (
+                      <p className="text-sm text-muted-foreground">
+                        Plan period: {new Date(formData.planStartDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} – {new Date(formData.planEndDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </p>
+                    )}
 
                     <div className="border-t pt-4">
                       <h3 className="font-semibold mb-4 text-foreground">Plan Features</h3>
@@ -722,55 +779,58 @@ export default function MembershipPlansPage() {
                       />
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-currency">Currency</Label>
+                      <select
+                        id="edit-currency"
+                        value={formData.currency}
+                        onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+                        className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground"
+                      >
+                        <option value="INR">INR</option>
+                        <option value="USD">USD</option>
+                        <option value="EUR">EUR</option>
+                        <option value="GBP">GBP</option>
+                        <option value="AUD">AUD</option>
+                        <option value="CAD">CAD</option>
+                        <option value="CHF">CHF</option>
+                        <option value="CNY">CNY</option>
+                        <option value="HKD">HKD</option>
+                        <option value="JPY">JPY</option>
+                        <option value="NZD">NZD</option>
+                        <option value="NOK">NOK</option>
+                        <option value="SEK">SEK</option>
+                        <option value="SGD">SGD</option>
+                        <option value="ZAR">ZAR</option>
+                        <option value="BRL">BRL</option>
+                        <option value="MXN">MXN</option>
+                        <option value="TRY">TRY</option>
+                        <option value="DKK">DKK</option>
+                        <option value="ILS">ILS</option>
+                        <option value="PLN">PLN</option>
+                      </select>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="edit-currency">Currency</Label>
-                        <select
-                          id="edit-currency"
-                          value={formData.currency}
-                          onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
-                          className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground"
-                        >
-                          <option value="INR">INR</option>
-                          <option value="USD">USD</option>
-                          <option value="EUR">EUR</option>
-                          <option value="GBP">GBP</option>
-                          <option value="AUD">AUD</option>
-                          <option value="CAD">CAD</option>
-                          <option value="CHF">CHF</option>
-                          <option value="CNY">CNY</option>
-                          <option value="HKD">HKD</option>
-                          <option value="JPY">JPY</option>
-                          <option value="NZD">NZD</option>
-                          <option value="NOK">NOK</option>
-                          <option value="SEK">SEK</option>
-                          <option value="SGD">SGD</option>
-                          <option value="ZAR">ZAR</option>
-                          <option value="BRL">BRL</option>
-                          <option value="MXN">MXN</option>
-                          <option value="TRY">TRY</option>
-                          <option value="DKK">DKK</option>
-                          <option value="ILS">ILS</option>
-                          <option value="PLN">PLN</option>
-                        </select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="edit-duration">Duration (Months)</Label>
+                        <Label htmlFor="edit-planStartDate">Plan Start Date</Label>
                         <Input
-                          id="edit-duration"
-                          type="number"
-                          value={formData.duration}
-                          onChange={(e) => setFormData({ ...formData, duration: parseInt(e.target.value) || 1 })}
-                          min="1"
-                          max="120"
+                          id="edit-planStartDate"
+                          type="date"
+                          value={formData.planStartDate}
+                          onChange={(e) => setFormData({ ...formData, planStartDate: e.target.value })}
                           required
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label>Duration Display</Label>
-                        <div className="px-3 py-2 text-sm text-muted-foreground">
-                          {formatDuration(formData.duration)}
-                        </div>
+                        <Label htmlFor="edit-planEndDate">Plan End Date</Label>
+                        <Input
+                          id="edit-planEndDate"
+                          type="date"
+                          value={formData.planEndDate}
+                          onChange={(e) => setFormData({ ...formData, planEndDate: e.target.value })}
+                          required
+                        />
                       </div>
                     </div>
 
@@ -920,7 +980,7 @@ export default function MembershipPlansPage() {
                       {formatPrice(plan.price, plan.currency)}
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      per {formatDuration(plan.duration)}
+                      per {formatPlanPeriod(plan)}
                     </div>
                   </div>
 
