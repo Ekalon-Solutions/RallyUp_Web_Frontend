@@ -1263,7 +1263,9 @@ function AuthPageContent() {
                     <div className="space-y-3 pt-4">
                       <Button 
                         variant="outline" 
-                        onClick={() => setActiveTab("user-register")} 
+                        onClick={() => {
+                          window.location.href = "/clubs";
+                        }} 
                         className="w-full border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-11"
                       >
                         Create Account
