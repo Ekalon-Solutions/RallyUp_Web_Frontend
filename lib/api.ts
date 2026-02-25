@@ -2253,6 +2253,13 @@ class ApiClient {
     });
   }
 
+  async bulkMigrateMemberPlan(data: { clubId: string; newPlanId: string; userIds: string[] }): Promise<ApiResponse<{ message: string; migrated: number; total: number; failed: number; errors?: string[] }>> {
+    return this.request('/user-memberships/migrate-bulk', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
   async findUserByEmailOrPhone(data: {
     email?: string;
     phoneNumber?: string;

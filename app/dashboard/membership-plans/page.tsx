@@ -818,9 +818,13 @@ export default function MembershipPlansPage() {
                           id="edit-planStartDate"
                           type="date"
                           value={formData.planStartDate}
-                          onChange={(e) => setFormData({ ...formData, planStartDate: e.target.value })}
-                          required
+                          disabled
+                          className="opacity-90 cursor-not-allowed"
+                          aria-describedby="edit-planStartDate-hint"
                         />
+                        <p id="edit-planStartDate-hint" className="text-xs text-muted-foreground">
+                          Start date cannot be changed after the plan is created.
+                        </p>
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="edit-planEndDate">Plan End Date</Label>
@@ -831,6 +835,9 @@ export default function MembershipPlansPage() {
                           onChange={(e) => setFormData({ ...formData, planEndDate: e.target.value })}
                           required
                         />
+                        <p className="text-xs text-muted-foreground">
+                          Changing the end date updates all members on this plan and applies before renewal notifications.
+                        </p>
                       </div>
                     </div>
 
