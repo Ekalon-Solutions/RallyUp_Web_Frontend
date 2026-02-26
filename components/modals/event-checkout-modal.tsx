@@ -29,6 +29,7 @@ interface EventCheckoutModalProps {
     _id?: string
     name: string
     price: number
+  clubId?: string
     ticketPrice?: number
     earlyBirdDiscount?: {
       enabled?: boolean
@@ -68,6 +69,58 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
   const [showMemberValidation, setShowMemberValidation] = useState(false)
   const [memberValidated, setMemberValidated] = useState(false)
   const [eventData, setEventData] = useState<any>(null)
+  const [redeemPoints, setRedeemPoints] = useState<number>(0)
+  const [reservationToken, setReservationToken] = useState<string | null>(null)
+  const [reservedDiscount, setReservedDiscount] = useState<number>(0)
+  const [reserving, setReserving] = useState(false)
+  const [availablePoints, setAvailablePoints] = useState<number | null>(null)
+
+    const reservePointsNow = async () => {
+    if (!redeemPoints || redeemPoints <= 0) {
+      toast.error('Enter points to redeem')
+      return
+    }
+    if (!eventData?.clubId) {
+      toast.error('Club information is missing for redemption')
+      return
+    }
+    if (availablePoints !== null && redeemPoints > availablePoints) {
+      toast.error('You do not have enough points')
+      setReserving(false)
+      return
+    }
+    setReserving(true)
+    try {
+        const res = await apiClient.createReservation(redeemPoints, eventData.clubId)
+        if (res && res.success) {
+          setReservationToken(res.data?.reservationToken || null)
+          setReservedDiscount(res.data?.discountAmount || 0)
+          toast.success('Points reserved')
+        } else {
+          toast.error(res?.message || 'Failed to reserve points')
+        }
+    } catch (e) {
+      toast.error('Failed to reserve points')
+    } finally {
+      setReserving(false)
+    }
+  }
+
+  const clearReservation = async () => {
+    if (!reservationToken) {
+      setRedeemPoints(0)
+      setReservedDiscount(0)
+      return
+    }
+    try {
+      await apiClient.cancelReservation(reservationToken)
+    } catch (e) {
+      // ignore
+    }
+    setReservationToken(null)
+    setRedeemPoints(0)
+    setReservedDiscount(0)
+  }
 
   useEffect(() => {
     if (isOpen && !scriptLoaded) {
@@ -103,6 +156,23 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
     }
     fetchEventData()
   }, [event?._id, isOpen, eventData])
+
+  useEffect(() => {
+    const fetchPoints = async () => {
+      try {
+        if (isOpen && user && (eventData?.clubId || event?.clubId)) {
+          const clubId = eventData?.clubId || (event as any)?.clubId
+          const resp = await apiClient.getMemberPoints((user as any)._id, clubId)
+          if (resp && resp.success && resp.data) {
+            setAvailablePoints(resp.data.points || 0)
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+    fetchPoints()
+  }, [isOpen, user, eventData, event])
 
   const discountSource = eventData || event
   const isMember = Boolean(user && (user as any).membershipStatus === 'active')
@@ -200,8 +270,10 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
       const basePrice = getDiscountedPricePerTicket()
       const totalBeforeCoupon = basePrice * attendees.length
       const finalPrice = Math.max(totalBeforeCoupon - couponDiscount, 0)
+      // apply reserved discount (if any)
+      const adjustedFinalPrice = Math.max(finalPrice - (reservedDiscount || 0), 0)
 
-      if (finalPrice <= 0) {
+      if (adjustedFinalPrice <= 0) {
         const response = user
           ? await apiClient.registerForEvent(String(event._id), undefined, attendees, couponCode, undefined, undefined, undefined, waitlistToken || undefined)
           : await apiClient.registerForPublicEvent(String(event._id), {
@@ -231,7 +303,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          amount: amountToCharge,
+          amount: Math.round((feeBreakdown ? feeBreakdown.finalAmount : finalPrice) - (reservedDiscount || 0)),
           currency: event.currency || 'INR',
           orderId: `EVT-${Date.now()}`,
           orderNumber: `EVT-${Date.now()}`,
@@ -280,6 +352,15 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
               throw new Error('Payment verification failed')
             }
             
+            // confirm reservation before finalizing registration
+            if (reservationToken) {
+              try {
+                await apiClient.confirmReservation(reservationToken, response.razorpay_order_id)
+              } catch (e) {
+                // non-fatal
+              }
+            }
+
             const registerResponse = user
               ? await apiClient.registerForEvent(
                   String(event._id),
@@ -290,6 +371,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
                   response.razorpay_payment_id,
                   response.razorpay_signature,
                   waitlistToken || undefined,
+                  reservationToken || undefined,
                 )
               : await apiClient.registerForPublicEvent(String(event._id), {
                   registrantName: attendees?.[0]?.name || 'Guest',
@@ -300,6 +382,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
                   orderID: response.razorpay_order_id,
                   paymentID: response.razorpay_payment_id,
                   signature: response.razorpay_signature,
+                  reservationToken: reservationToken || undefined,
                 })
 
             if (registerResponse.success) {
@@ -355,6 +438,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
   const finalPrice = Math.max(totalBeforeCoupon - couponDiscount, 0);
   const feeBreakdown = finalPrice > 0 ? calculateTransactionFees(finalPrice) : null;
   const amountToCharge = feeBreakdown ? feeBreakdown.finalAmount : finalPrice;
+  const netSubtotal = Math.max(finalPrice - (reservedDiscount || 0), 0);
 
   const currencySymbols: Record<string, string> = {
     INR: '₹',
@@ -434,8 +518,30 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
               
               <div className="flex justify-between items-center font-medium">
                 <span>Subtotal:</span>
-                <span>{formatCurrency(totalBeforeCoupon, event.currency)}</span>
+                <span>
+                  {(couponDiscount > 0 || reservedDiscount > 0) ? (
+                    <>
+                      <span className="line-through text-muted-foreground mr-2">{formatCurrency(totalBeforeCoupon, event.currency)}</span>
+                      <span>{formatCurrency(netSubtotal, event.currency)}</span>
+                    </>
+                  ) : (
+                    <span>{formatCurrency(totalBeforeCoupon, event.currency)}</span>
+                  )}
+                </span>
               </div>
+              {couponDiscount > 0 && (
+                <div className="flex justify-between items-center text-sm text-green-600">
+                  <span>- Coupon discount:</span>
+                  <span>-{formatCurrency(couponDiscount, event.currency)}</span>
+                </div>
+              )}
+
+              {reservedDiscount > 0 && (
+                <div className="flex justify-between items-center text-sm text-green-600">
+                  <span>- Points discount:</span>
+                  <span>-{formatCurrency(reservedDiscount, event.currency)}</span>
+                </div>
+              )}
               
               {couponCode && couponDiscount > 0 && (
                 <>
@@ -469,9 +575,30 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
                 </>
               )}
               
+                <div className="space-y-2">
+                <label className="text-sm font-medium">Redeem Points {availablePoints !== null && ` (Available: ${availablePoints} pts)`}</label>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    min={0}
+                    value={redeemPoints}
+                    onChange={(e) => setRedeemPoints(Number(e.target.value))}
+                    className="w-32 input input-bordered"
+                    placeholder="Points"
+                  />
+                  <Button onClick={reservePointsNow} disabled={reserving || !!reservationToken} size="sm">{reserving ? 'Reserving...' : 'Reserve'}</Button>
+                  <Button variant="ghost" onClick={clearReservation} disabled={reserving}>Clear</Button>
+                </div>
+                {reservationToken && (
+                  <div className="text-sm text-green-600">
+                    Reserved discount: {formatCurrency(reservedDiscount, event.currency)}
+                  </div>
+                )}
+              </div>
+
               <div className="flex justify-between items-center font-bold text-lg">
                 <span>Total to Pay:</span>
-                <span className="text-primary">{formatCurrency(amountToCharge, event.currency)}</span>
+                <span className="text-primary">{formatCurrency(Math.max((feeBreakdown ? feeBreakdown.finalAmount : finalPrice) - (reservedDiscount || 0), 0), event.currency)}</span>
               </div>
             </div>
             

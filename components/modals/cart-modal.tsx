@@ -32,6 +32,28 @@ export function CartModal({ isOpen, onClose, onCheckout }: CartModalProps) {
     removeFromCart, 
     clearCart 
   } = useCart()
+  const [merchandiseSettings, setMerchandiseSettings] = React.useState<{
+    shippingCost: number
+    freeShippingThreshold?: number
+    taxRate?: number
+    enableTax?: boolean
+    enableShipping?: boolean
+  } | null>(null)
+
+  const calculateShipping = () => {
+    if (!merchandiseSettings?.enableShipping) return 0
+    if (merchandiseSettings.freeShippingThreshold && totalPrice >= merchandiseSettings.freeShippingThreshold) return 0
+    return merchandiseSettings.shippingCost || 0
+  }
+
+  const calculateTax = () => {
+    if (!merchandiseSettings?.enableTax || !merchandiseSettings.taxRate) return 0
+    return totalPrice * ((merchandiseSettings.taxRate || 0) / 100)
+  }
+
+  const shippingCost = calculateShipping()
+  const taxAmount = calculateTax()
+  const orderTotal = totalPrice + shippingCost + taxAmount
 
   const currency = items.length > 0 ? (items[0].currency || 'USD') : 'USD'
 
@@ -78,6 +100,25 @@ export function CartModal({ isOpen, onClose, onCheckout }: CartModalProps) {
     onCheckout()
     onClose()
   }
+
+  React.useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const club = items[0]?.club
+        const clubId = typeof club === 'string' ? club : club?._id
+        if (clubId) {
+          const response = await (await import('@/lib/api')).apiClient.getPublicMerchandiseSettings(clubId)
+          if (response.success && response.data?.settings) {
+            setMerchandiseSettings(response.data.settings)
+          }
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    if (items.length > 0) fetchSettings()
+  }, [items])
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -238,12 +279,32 @@ export function CartModal({ isOpen, onClose, onCheckout }: CartModalProps) {
             
             {/* Cart Summary */}
             <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-lg font-semibold">Total ({totalItems} items):</span>
-                <span className="text-2xl font-bold">
-                  {formatCurrency(totalPrice, currency)}
-                </span>
-              </div>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span>Subtotal:</span>
+                    <span>{formatCurrency(totalPrice, currency)}</span>
+                  </div>
+                  {merchandiseSettings?.enableShipping && (
+                    <div className="flex justify-between items-center">
+                      <span>Shipping:</span>
+                      {shippingCost === 0 ? (
+                        <span className="text-green-600">Free</span>
+                      ) : (
+                        <span>{formatCurrency(shippingCost, currency)}</span>
+                      )}
+                    </div>
+                  )}
+                  {merchandiseSettings?.enableTax && taxAmount > 0 && (
+                    <div className="flex justify-between items-center">
+                      <span>Tax ({merchandiseSettings.taxRate}%):</span>
+                      <span>{formatCurrency(taxAmount, currency)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between items-center text-2xl font-bold">
+                    <span>Total ({totalItems} items):</span>
+                    <span>{formatCurrency(orderTotal, currency)}</span>
+                  </div>
+                </div>
 
               {/* Action Buttons */}
               <div className="flex gap-3">

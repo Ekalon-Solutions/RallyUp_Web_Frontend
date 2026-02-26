@@ -59,11 +59,12 @@ export default function RedemptionSettingsPage() {
         setOnePointValue(resp.data?.onePointValue || 0)
         setAffectedCount(null)
         setConfirming(false)
-      } else if (resp.status === 409 && resp.data && resp.data.affectedCount) {
+      } else if (resp.status === 409 && resp.data && (resp.data as any).affectedCount) {
         // show warning
-        setAffectedCount(resp.data.affectedCount)
+        const count = (resp.data as any).affectedCount
+        setAffectedCount(count)
         setConfirming(true)
-        toast.warning(`Retroactive expiry will affect ${resp.data.affectedCount} batches. Confirm to apply.`)
+        toast.warning(`Retroactive expiry will affect ${count} batches. Confirm to apply.`)
       } else {
         toast.error(resp.error || resp.message || 'Failed to save settings')
       }
