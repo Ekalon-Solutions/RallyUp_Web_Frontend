@@ -33,6 +33,7 @@ export default function AddProductPage() {
     description: "",
     category: "",
     tags: "",
+    weight: "",
   })
 
   const [variants, setVariants] = useState<ProductVariant[]>([
@@ -166,6 +167,19 @@ export default function AddProductPage() {
                     <SelectItem value="Tickets">Tickets</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="weight">Weight (g)</Label>
+                <Input
+                  id="weight"
+                  type="number"
+                  min={0}
+                  step={1}
+                  placeholder="e.g. 200"
+                  value={productData.weight}
+                  onChange={(e) => handleInputChange("weight", e.target.value)}
+                />
               </div>
             </CardContent>
           </Card>

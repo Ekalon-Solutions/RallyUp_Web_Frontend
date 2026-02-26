@@ -475,7 +475,9 @@ export interface MembershipPlan {
   description: string;
   price: number;
   currency: string;
-  duration: number;
+  duration?: number;
+  planStartDate?: string;
+  planEndDate?: string;
   features: {
     maxEvents: number;
     maxNews: number;
@@ -1984,7 +1986,9 @@ class ApiClient {
     description: string;
     price: number;
     currency: string;
-    duration: number;
+    planStartDate?: string;
+    planEndDate?: string;
+    duration?: number;
     features: any;
   }): Promise<ApiResponse<{ message: string; membershipPlan: MembershipPlan }>> {
     return this.request('/membership-plans', {
@@ -2266,6 +2270,13 @@ class ApiClient {
 
   async migrateMemberPlan(data: { userId: string; clubId: string; newPlanId: string }): Promise<ApiResponse<{ message: string; membership: unknown; previousMembershipId?: string }>> {
     return this.request('/user-memberships/migrate', {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  }
+
+  async bulkMigrateMemberPlan(data: { clubId: string; newPlanId: string; userIds: string[] }): Promise<ApiResponse<{ message: string; migrated: number; total: number; failed: number; errors?: string[] }>> {
+    return this.request('/user-memberships/migrate-bulk', {
       method: 'POST',
       body: JSON.stringify(data)
     });

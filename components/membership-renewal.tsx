@@ -17,7 +17,9 @@ interface MembershipPlan {
   description: string
   price: number
   currency: string
-  duration: number
+  duration?: number
+  planStartDate?: string
+  planEndDate?: string
   features: {
     maxEvents: number
     maxNews: number
@@ -49,12 +51,18 @@ export function MembershipRenewal({ user, membershipPlans, onRenewal }: Membersh
     }).format(price)
   }
 
-  const formatDuration = (months: number) => {
-    if (months === 1) return "1 Month"
-    if (months === 3) return "3 Months"
-    if (months === 6) return "6 Months"
-    if (months === 12) return "1 Year"
-    return `${months} Months`
+  const formatPlanPeriod = (plan: MembershipPlan) => {
+    if (plan.planStartDate && plan.planEndDate) {
+      const start = new Date(plan.planStartDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+      const end = new Date(plan.planEndDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+      return `${start} – ${end}`
+    }
+    if (plan.duration === 0) return 'Lifetime'
+    if (plan.duration === 1) return '1 month'
+    if (plan.duration && plan.duration < 12) return `${plan.duration} months`
+    if (plan.duration === 12) return '1 year'
+    if (plan.duration) return `${plan.duration} months`
+    return '—'
   }
 
   const handleRenewal = async () => {
@@ -178,7 +186,7 @@ export function MembershipRenewal({ user, membershipPlans, onRenewal }: Membersh
                         <p className="text-sm text-muted-foreground">{plan.description}</p>
                         <div className="grid grid-cols-2 gap-2 text-sm">
                           <div>Price: {formatPrice(plan.price, plan.currency)}</div>
-                          <div>Duration: {formatDuration(plan.duration)}</div>
+                          <div>Plan period: {formatPlanPeriod(plan)}</div>
                           <div>Events: {plan.features.maxEvents}</div>
                           <div>News: {plan.features.maxNews}</div>
                         </div>

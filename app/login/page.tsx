@@ -138,7 +138,7 @@ function AuthPageContent() {
     zip_code: "",
     country: "",
     level_name: "",
-    id_proof_type: "Aadhar" as "Aadhar" | "Voter ID" | "Passport" | "Driver License",
+    id_proof_type: "Aadhar" as "Aadhar" | "Voter ID" | "Passport" | "Driver License" | "PAN",
     id_proof_number: "",
     clubId: "",
     membershipPlanId: ""
@@ -521,7 +521,7 @@ function AuthPageContent() {
           zip_code: "",
           country: "",
           level_name: "",
-          id_proof_type: "Aadhar" as "Aadhar" | "Voter ID" | "Passport" | "Driver License",
+          id_proof_type: "Aadhar" as "Aadhar" | "Voter ID" | "Passport" | "Driver License" | "PAN",
           id_proof_number: "",
           clubId: "",
           membershipPlanId: ""
@@ -1263,7 +1263,9 @@ function AuthPageContent() {
                     <div className="space-y-3 pt-4">
                       <Button 
                         variant="outline" 
-                        onClick={() => setActiveTab("user-register")} 
+                        onClick={() => {
+                          window.location.href = "/clubs";
+                        }} 
                         className="w-full border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-11"
                       >
                         Create Account
@@ -1614,7 +1616,7 @@ function AuthPageContent() {
                               id="user-id-proof-type"
                               value={userRegisterData.id_proof_type}
                               onChange={(e) => {
-                                const idType = e.target.value as "Aadhar" | "Voter ID" | "Passport" | "Driver License"
+                                const idType = e.target.value as "Aadhar" | "Voter ID" | "Passport" | "Driver License" | "PAN"
                                 setUserRegisterData({ ...userRegisterData, id_proof_type: idType, id_proof_number: "" })
                                 setUserRegisterErrors({ ...userRegisterErrors, id_proof_number: "" })
                               }}
@@ -1624,6 +1626,7 @@ function AuthPageContent() {
                               <option value="Voter ID">Voter ID</option>
                               <option value="Passport">Passport</option>
                               <option value="Driver License">Driver License</option>
+                              <option value="PAN">PAN Card</option>
                             </select>
                           </div>
                           <div className="space-y-2">

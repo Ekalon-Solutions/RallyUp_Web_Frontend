@@ -32,6 +32,7 @@ export function AddProductModal({ trigger }: AddProductModalProps) {
     category: "",
     description: "",
     price: "",
+    weight: "",
     stock: "",
     status: "Live",
     displayOn: {
@@ -53,6 +54,7 @@ export function AddProductModal({ trigger }: AddProductModalProps) {
       category: "",
       description: "",
       price: "",
+      weight: "",
       stock: "",
       status: "Live",
       displayOn: {
@@ -151,6 +153,19 @@ export function AddProductModal({ trigger }: AddProductModalProps) {
                 required
               />
             </div>
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="weight">Weight (g)</Label>
+            <Input
+              id="weight"
+              type="number"
+              min="0"
+              step="1"
+              placeholder="e.g. 200"
+              value={formData.weight}
+              onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
+            />
           </div>
 
           <div className="grid gap-2">

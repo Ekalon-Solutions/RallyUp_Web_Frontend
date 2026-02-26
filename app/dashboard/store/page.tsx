@@ -26,6 +26,7 @@ const sampleProducts = [
     name: "Club Jersey 2025",
     category: "Apparel",
     price: "₹1,299",
+    weight: "280 g",
     stock: 45,
     status: "Active",
     sales: 23,
@@ -38,6 +39,7 @@ const sampleProducts = [
     name: "Club Scarf",
     category: "Scarves & Banners",
     price: "₹599",
+    weight: "150 g",
     stock: 12,
     status: "Low Stock",
     sales: 67,
@@ -50,6 +52,7 @@ const sampleProducts = [
     name: "Club Away Day T-Shirt",
     category: "Away Day Gear",
     price: "₹799",
+    weight: "200 g",
     stock: 100,
     status: "Active",
     sales: 42,
@@ -138,6 +141,7 @@ export default function StorePage() {
                   <TableHead>Product Name</TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead>Price</TableHead>
+                  <TableHead>Weight</TableHead>
                   <TableHead>Stock</TableHead>
                   <TableHead>Sales</TableHead>
                   <TableHead>Status</TableHead>
@@ -153,6 +157,7 @@ export default function StorePage() {
                     <TableCell className="font-medium">{product.name}</TableCell>
                     <TableCell>{product.category}</TableCell>
                     <TableCell>{product.price}</TableCell>
+                    <TableCell>{product.weight}</TableCell>
                     <TableCell>{product.stock}</TableCell>
                     <TableCell>{product.sales}</TableCell>
                     <TableCell>

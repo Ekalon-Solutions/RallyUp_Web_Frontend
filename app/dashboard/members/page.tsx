@@ -118,6 +118,9 @@ export default function MembersPage() {
   const [migratePlans, setMigratePlans] = useState<Array<{ _id: string; name: string; price: number; currency: string; isActive?: boolean }>>([])
   const [migrateSelectedPlanId, setMigrateSelectedPlanId] = useState('')
   const [isMigrating, setIsMigrating] = useState(false)
+  const [isBulkMigrateDialogOpen, setIsBulkMigrateDialogOpen] = useState(false)
+  const [bulkMigratePlanId, setBulkMigratePlanId] = useState('')
+  const [isBulkMigrating, setIsBulkMigrating] = useState(false)
   const [selectedMember, setSelectedMember] = useState<Member | null>(null)
   const [selectedMemberIds, setSelectedMemberIds] = useState<Set<string>>(new Set())
   const [isSelectAll, setIsSelectAll] = useState(false)
@@ -418,6 +421,60 @@ export default function MembersPage() {
     }
   }
 
+  const openBulkMigrateDialog = async () => {
+    if (selectedMemberIds.size === 0) {
+      toast.error('Please select at least one member to move')
+      return
+    }
+    setBulkMigratePlanId('')
+    setIsBulkMigrateDialogOpen(true)
+    if (!clubId) return
+    try {
+      const res = await apiClient.getMembershipPlans(clubId)
+      const list = (res.success && res.data) ? (Array.isArray(res.data) ? res.data : (res.data as any)?.data ?? []) : []
+      const activePlans = (list as any[]).filter((p: any) => p.isActive !== false)
+      setMigratePlans(activePlans)
+    } catch {
+      setMigratePlans([])
+    }
+  }
+
+  const handleConfirmBulkMigrate = async () => {
+    if (!clubId || !bulkMigratePlanId) {
+      toast.error('Please select a plan to move members to')
+      return
+    }
+    setIsBulkMigrating(true)
+    try {
+      const res = await apiClient.bulkMigrateMemberPlan({
+        clubId,
+        newPlanId: bulkMigratePlanId,
+        userIds: Array.from(selectedMemberIds)
+      })
+      const payload = (res as any).data ?? res
+      if (res.success && payload.migrated !== undefined) {
+        const msg = payload.failed === 0
+          ? `All ${payload.migrated} member(s) moved to the selected plan.`
+          : `Moved ${payload.migrated} of ${payload.total} member(s).${payload.failed > 0 && payload.errors?.length ? ` ${payload.failed} failed.` : ''}`
+        toast.success(msg)
+        if (payload.errors?.length) {
+          toast.info(payload.errors.slice(0, 3).join('; ') + (payload.errors.length > 3 ? ` and ${payload.errors.length - 3} more` : ''))
+        }
+        setIsBulkMigrateDialogOpen(false)
+        setBulkMigratePlanId('')
+        setSelectedMemberIds(new Set())
+        setIsSelectAll(false)
+        fetchMembers()
+      } else {
+        toast.error(payload?.message || (res as any)?.error || 'Failed to move members')
+      }
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || err?.message || 'Failed to move members')
+    } finally {
+      setIsBulkMigrating(false)
+    }
+  }
+
   const handleConfirmMigrate = async () => {
     if (!memberToMigrate || !clubId || !migrateSelectedPlanId) {
       toast.error('Please select a plan to migrate to')
@@ -562,10 +619,16 @@ export default function MembersPage() {
                 </Button>
               )}
               {(user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'system_owner') && selectedMemberIds.size > 0 && (
-                <Button variant="destructive" onClick={openBulkDeleteDialog} className="w-full sm:w-auto shadow-md hover:shadow-lg transition-shadow">
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Delete Members ({selectedMemberIds.size})
-                </Button>
+                <>
+                  <Button variant="outline" onClick={openBulkMigrateDialog} className="w-full sm:w-auto shadow-md hover:shadow-lg transition-shadow">
+                    <ArrowRightLeft className="w-4 h-4 mr-2" />
+                    Move to plan ({selectedMemberIds.size})
+                  </Button>
+                  <Button variant="destructive" onClick={openBulkDeleteDialog} className="w-full sm:w-auto shadow-md hover:shadow-lg transition-shadow">
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete Members ({selectedMemberIds.size})
+                  </Button>
+                </>
               )}
               <Button variant="outline" onClick={exportMembers} className="w-full sm:w-auto">
                 <Download className="w-4 h-4 mr-2" />
@@ -1508,6 +1571,52 @@ export default function MembersPage() {
                   disabled={!migrateSelectedPlanId || isMigrating}
                 >
                   {isMigrating ? 'Migrating...' : 'Migrate plan'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={isBulkMigrateDialogOpen} onOpenChange={(open) => { if (!open) { setBulkMigratePlanId(''); } setIsBulkMigrateDialogOpen(open); }}>
+            <DialogContent className="w-[95vw] sm:w-full max-w-md">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <ArrowRightLeft className="w-5 h-5" />
+                  Bulk move to plan
+                </DialogTitle>
+                <DialogDescription>
+                  Move {selectedMemberIds.size} selected member{selectedMemberIds.size !== 1 ? 's' : ''} to a different membership plan. Their current plan will be deactivated and the new plan activated.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label>Target plan</Label>
+                  <Select value={bulkMigratePlanId} onValueChange={setBulkMigratePlanId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select plan to move members to" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {migratePlans.map((p) => (
+                        <SelectItem key={p._id} value={p._id}>
+                          {p.name} ({p.price} {p.currency})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {migratePlans.length === 0 && (
+                    <p className="text-sm text-muted-foreground">No active plans available.</p>
+                  )}
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => setIsBulkMigrateDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  onClick={handleConfirmBulkMigrate}
+                  disabled={!bulkMigratePlanId || isBulkMigrating}
+                >
+                  {isBulkMigrating ? 'Moving...' : `Move ${selectedMemberIds.size} to plan`}
                 </Button>
               </DialogFooter>
             </DialogContent>

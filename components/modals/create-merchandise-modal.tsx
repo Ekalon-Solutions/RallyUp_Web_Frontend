@@ -36,6 +36,7 @@ interface Merchandise {
   images: string[]
   featuredImage?: string
   stockQuantity: number
+  weight?: number
   isAvailable: boolean
   isFeatured: boolean
   tags: string[]
@@ -76,9 +77,10 @@ export function CreateMerchandiseModal({
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
   const [price, setPrice] = useState("")
-  const [currency, setCurrency] = useState("USD")
+  const [currency, setCurrency] = useState("INR")
   const [category, setCategory] = useState<'apparel' | 'accessories' | 'collectibles' | 'digital' | 'other'>('other')
   const [stockQuantity, setStockQuantity] = useState("")
+  const [weight, setWeight] = useState("")
   const [isAvailable, setIsAvailable] = useState(true)
   const [isFeatured, setIsFeatured] = useState(false)
   const [tags, setTags] = useState<string[]>([])
@@ -92,6 +94,7 @@ export function CreateMerchandiseModal({
         setCurrency(editMerchandise.currency)
         setCategory(editMerchandise.category)
         setStockQuantity(editMerchandise.stockQuantity.toString())
+        setWeight(editMerchandise.weight != null ? String(editMerchandise.weight) : "")
         setIsAvailable(editMerchandise.isAvailable)
         setIsFeatured(editMerchandise.isFeatured)
         setTags(editMerchandise.tags)
@@ -100,9 +103,10 @@ export function CreateMerchandiseModal({
         setName("")
         setDescription("")
         setPrice("")
-        setCurrency("USD")
+        setCurrency("INR")
         setCategory("other")
         setStockQuantity("")
+        setWeight("")
         setIsAvailable(true)
         setIsFeatured(false)
         setTags([])
@@ -201,6 +205,9 @@ export function CreateMerchandiseModal({
       formData.append('currency', currency)
       formData.append('category', category)
       formData.append('stockQuantity', stockQuantity)
+      if (weight.trim() !== "" && !isNaN(Number(weight)) && Number(weight) >= 0) {
+        formData.append('weight', weight)
+      }
       formData.append('isAvailable', isAvailable.toString())
       formData.append('isFeatured', isFeatured.toString())
       formData.append('tags', JSON.stringify(tags))
@@ -386,13 +393,13 @@ export function CreateMerchandiseModal({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="INR">INR</SelectItem>
                       <SelectItem value="USD">USD</SelectItem>
                       <SelectItem value="EUR">EUR</SelectItem>
                       <SelectItem value="GBP">GBP</SelectItem>
                       <SelectItem value="CAD">CAD</SelectItem>
                       <SelectItem value="AUD">AUD</SelectItem>
                       <SelectItem value="JPY">JPY</SelectItem>
-                      <SelectItem value="INR">INR</SelectItem>
                       <SelectItem value="BRL">BRL</SelectItem>
                       <SelectItem value="MXN">MXN</SelectItem>
                       <SelectItem value="ZAR">ZAR</SelectItem>
@@ -411,6 +418,19 @@ export function CreateMerchandiseModal({
                   onChange={(e) => setStockQuantity(e.target.value)}
                   placeholder="Enter available quantity"
                   required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="weight">Weight (g)</Label>
+                <Input
+                  id="weight"
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={weight}
+                  onChange={(e) => setWeight(e.target.value)}
+                  placeholder="e.g. 200"
                 />
               </div>
             </CardContent>

@@ -111,6 +111,10 @@ export function PurchaseFlowModal({
 
   const returnUrl =
     returnPath + (returnPath.includes("?") ? "&" : "?") + "resumePurchase=1"
+  const registerNextUrl =
+    clubName && clubName.trim()
+      ? `/clubs?search=${encodeURIComponent(clubName.trim())}`
+      : "/clubs"
 
   const handleValidate = async () => {
     if (!mobileNumber || !mobileNumber.trim()) {
@@ -159,9 +163,9 @@ export function PurchaseFlowModal({
   const handleRegister = () => {
     onClose()
     if (onRegister) {
-      onRegister(returnUrl)
+      onRegister(registerNextUrl)
     } else {
-      window.location.href = `/login?tab=user-register&next=${encodeURIComponent(returnUrl)}`
+      window.location.href = registerNextUrl
     }
   }
 
