@@ -3025,6 +3025,29 @@ class ApiClient {
     return this.get(`/merchandise/public/settings/${clubId}`);
   }
 
+  /**
+   * Shiprocket shipping rate calculation.
+   * Returns courier serviceability/rates for given pickup, delivery, weight and declared value.
+   */
+  async getShiprocketShippingRate(params: {
+    pickupPostcode: number;
+    deliveryPostcode: number;
+    weight: number;
+    declaredValue: number;
+    cod?: boolean;
+  }): Promise<ApiResponse<{ data?: unknown }>> {
+    return this.request<{ data?: unknown }>('/merchandise/shipping-rate', {
+      method: 'POST',
+      body: JSON.stringify({
+        pickupPostcode: params.pickupPostcode,
+        deliveryPostcode: params.deliveryPostcode,
+        weight: params.weight,
+        declaredValue: params.declaredValue,
+        cod: params.cod !== false,
+      }),
+    });
+  }
+
   async getClubSettings(clubId: string, isPublic: boolean = false): Promise<ApiResponse<any>> {
     const endpoint = isPublic ? `/club-settings/${clubId}/public` : `/club-settings/${clubId}`;
     

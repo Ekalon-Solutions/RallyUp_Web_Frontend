@@ -65,6 +65,7 @@ interface AppliedCoupon {
 }
 
 export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems }: CheckoutModalProps) {
+  const SHIPROCKET_PICKUP_POSTCODE = 700008 // fallback pickup pincode; adjust as needed
   const { user } = useAuth()
   const router = useRouter()
   const { items: cartItems, totalPrice: cartTotalPrice, clearCart } = useCart()
@@ -82,6 +83,9 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
   const [reserving, setReserving] = useState(false)
   const [showMemberValidation, setShowMemberValidation] = useState(false)
   const [memberValidated, setMemberValidated] = useState(false)
+  const [shiprocketLoading, setShiprocketLoading] = useState(false)
+  const [shiprocketShippingCost, setShiprocketShippingCost] = useState<number | null>(null)
+  const [shiprocketMessage, setShiprocketMessage] = useState<string | null>(null)
   const [merchandiseSettings, setMerchandiseSettings] = useState<{
     shippingCost: number
     freeShippingThreshold: number
@@ -156,7 +160,13 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
 
   const couponDiscount = appliedCoupon?.discount ?? 0
   const subtotalAfterCoupon = Math.max(0, totalPrice - couponDiscount)
-  
+
+  const calculateTotalWeight = () => {
+    // Approximate weight based on quantity (1 kg per item as a simple default)
+    const totalQuantity = items.reduce((sum, item) => sum + (item.quantity || 0), 0)
+    return totalQuantity > 0 ? totalQuantity : 1
+  }
+
   const calculateShipping = () => {
     if (!merchandiseSettings?.enableShipping) return 0
     if (merchandiseSettings.freeShippingThreshold && subtotalAfterCoupon >= merchandiseSettings.freeShippingThreshold) {
@@ -170,7 +180,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
     return subtotalAfterCoupon * (merchandiseSettings.taxRate / 100)
   }
 
-  const shippingCost = calculateShipping()
+  const shippingCost = shiprocketShippingCost != null ? shiprocketShippingCost : calculateShipping()
   const taxAmount = calculateTax()
   const orderTotal = totalPrice + shippingCost + taxAmount
   const netOrderTotal = Math.max(orderTotal - (reservedDiscount || 0), 0)
@@ -218,6 +228,75 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
     setAppliedCoupon(null)
     setCouponCode("")
     toast.info("Coupon removed")
+  }
+
+  const handleCalculateShiprocketShipping = async () => {
+    if (!orderForm.zipCode) {
+      toast.error('Please enter your ZIP Code before calculating shipping')
+      return
+    }
+
+    const deliveryPostcode = Number(orderForm.zipCode)
+    if (!Number.isFinite(deliveryPostcode)) {
+      toast.error('ZIP Code must be a number for Shiprocket calculation')
+      return
+    }
+
+    try {
+      setShiprocketLoading(true)
+      setShiprocketMessage(null)
+
+      const weight = calculateTotalWeight()
+      const declaredValue = subtotalAfterCoupon || totalPrice
+
+      const response = await apiClient.getShiprocketShippingRate({
+        pickupPostcode: SHIPROCKET_PICKUP_POSTCODE,
+        deliveryPostcode,
+        weight,
+        declaredValue,
+        cod: true,
+      })
+
+      if (!response.success) {
+        const msg = response.message || 'Failed to calculate shipping via Shiprocket'
+        setShiprocketMessage(msg)
+        toast.error(msg)
+        setShiprocketShippingCost(null)
+        return
+      }
+
+      const raw = (response as any).data?.data ?? (response as any).data
+      let cost = 0
+
+      // Try to pick the cheapest courier rate if available
+      const companies = raw?.available_courier_companies as Array<{ rate?: number; courier_company_id?: number; courier_name?: string }> | undefined
+      if (Array.isArray(companies) && companies.length > 0) {
+        const cheapest = companies.reduce((min, c) => {
+          if (typeof c.rate !== 'number') return min
+          if (typeof min.rate !== 'number' || c.rate < min.rate) return c
+          return min
+        }, companies[0])
+        if (typeof cheapest.rate === 'number') {
+          cost = cheapest.rate
+          const label = cheapest.courier_name || `Courier ${cheapest.courier_company_id ?? ''}`.trim()
+          setShiprocketMessage(`Using Shiprocket rate from ${label}: ${formatCurrency(cost, items[0]?.currency || 'INR')}`)
+        } else {
+          setShiprocketMessage('Shiprocket did not return a numeric rate; using 0')
+        }
+      } else {
+        setShiprocketMessage('No courier options returned from Shiprocket for this address')
+      }
+
+      setShiprocketShippingCost(cost)
+      toast.success(`Shipping calculated: ${formatCurrency(cost, items[0]?.currency || 'INR')}`)
+    } catch (error: any) {
+      const msg = error?.message || 'Error while calculating shipping via Shiprocket'
+      setShiprocketMessage(msg)
+      setShiprocketShippingCost(null)
+      toast.error(msg)
+    } finally {
+      setShiprocketLoading(false)
+    }
   }
 
   const currency = items.length > 0 ? (items[0].currency || 'USD') : 'USD'
@@ -520,6 +599,38 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                       />
                     </div>
                   </div>
+                  {items.length > 0 && (
+                    <div className="flex flex-col gap-2 mt-2">
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={handleCalculateShiprocketShipping}
+                          disabled={shiprocketLoading}
+                        >
+                          {shiprocketLoading ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Calculating shipping...
+                            </>
+                          ) : (
+                            'Calculate Shiprocket Shipping'
+                          )}
+                        </Button>
+                        {shiprocketShippingCost != null && (
+                          <span className="text-sm text-muted-foreground">
+                            Estimated shipping: {formatCurrency(shiprocketShippingCost, items[0]?.currency || currency)}
+                          </span>
+                        )}
+                      </div>
+                      {shiprocketMessage && (
+                        <p className="text-xs text-muted-foreground">
+                          {shiprocketMessage}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
               {/* Order Notes */}
