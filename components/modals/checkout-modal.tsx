@@ -402,7 +402,18 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
         })),
         paymentMethod: 'all',
         notes: orderForm.notes,
-        ...(appliedCoupon?.code ? { couponCode: appliedCoupon.code } : {})
+        ...(appliedCoupon?.code ? { couponCode: appliedCoupon.code } : {}),
+        shippingCost,
+        tax: taxAmount,
+        ...(feeBreakdown
+          ? {
+              platformFee: feeBreakdown.platformFee,
+              platformFeeGst: feeBreakdown.platformFeeGst,
+              razorpayFee: feeBreakdown.razorpayFee,
+              razorpayFeeGst: feeBreakdown.razorpayFeeGst,
+              finalAmount: feeBreakdown.finalAmount
+            }
+          : {})
       }
 
       // include reservation token and redeemed points for server-side audit
@@ -1018,7 +1029,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
           orderNumber={createdOrder.orderNumber}
           total={finalAmount}
           subtotal={totalPrice}
-          shippingCost={createdOrder.shippingCost ?? shippingCost}
+          shippingCost={shippingCost}
           tax={createdOrder.tax ?? taxAmount}
           currency={createdOrder.currency ?? currency}
           paymentMethod={createdOrder.paymentMethod || orderForm.paymentMethod || 'all'}

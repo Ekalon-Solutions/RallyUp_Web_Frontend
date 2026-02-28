@@ -59,6 +59,11 @@ interface Order {
   shippingCost: number
   tax: number
   total: number
+  platformFee?: number
+  platformFeeGst?: number
+  razorpayFee?: number
+  razorpayFeeGst?: number
+  finalAmount?: number
   currency: string
   status: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded'
   paymentMethod: 'card' | 'paypal' | 'bank_transfer'
@@ -519,14 +524,43 @@ export default function UserOrdersPage() {
                       <span className="text-foreground">Shipping:</span>
                       <span className="text-foreground">{formatCurrency(selectedOrder.shippingCost, selectedOrder.currency)}</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-foreground">Tax:</span>
-                      <span className="text-foreground">{formatCurrency(selectedOrder.tax, selectedOrder.currency)}</span>
-                    </div>
+                    {(() => {
+                      const hasFees = ((selectedOrder.platformFee ?? 0) + (selectedOrder.platformFeeGst ?? 0) + (selectedOrder.razorpayFee ?? 0) + (selectedOrder.razorpayFeeGst ?? 0)) > 0;
+                      if (hasFees) {
+                        return (
+                          <>
+                            {((selectedOrder.platformFee ?? 0) + (selectedOrder.platformFeeGst ?? 0)) > 0 && (
+                              <div className="flex justify-between text-muted-foreground">
+                                <span>Platform fee (+ GST):</span>
+                                <span>{formatCurrency((selectedOrder.platformFee ?? 0) + (selectedOrder.platformFeeGst ?? 0), selectedOrder.currency)}</span>
+                              </div>
+                            )}
+                            {((selectedOrder.razorpayFee ?? 0) + (selectedOrder.razorpayFeeGst ?? 0)) > 0 && (
+                              <div className="flex justify-between text-muted-foreground">
+                                <span>Payment gateway fee (+ GST):</span>
+                                <span>{formatCurrency((selectedOrder.razorpayFee ?? 0) + (selectedOrder.razorpayFeeGst ?? 0), selectedOrder.currency)}</span>
+                              </div>
+                            )}
+                          </>
+                        );
+                      }
+                      return (
+                        <div className="flex justify-between">
+                          <span className="text-foreground">Tax:</span>
+                          <span className="text-foreground">{formatCurrency(selectedOrder.tax, selectedOrder.currency)}</span>
+                        </div>
+                      );
+                    })()}
                     <div className="flex justify-between font-semibold text-lg border-t pt-2">
                       <span className="text-foreground">Total:</span>
                       <span className="text-foreground">{formatCurrency(selectedOrder.total, selectedOrder.currency)}</span>
                     </div>
+                    {selectedOrder.finalAmount != null && selectedOrder.finalAmount !== selectedOrder.total && (
+                      <div className="flex justify-between font-semibold text-muted-foreground">
+                        <span>Amount charged:</span>
+                        <span>{formatCurrency(selectedOrder.finalAmount, selectedOrder.currency)}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
