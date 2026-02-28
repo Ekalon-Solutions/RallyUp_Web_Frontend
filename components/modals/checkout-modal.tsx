@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useRef, useCallback } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -187,6 +187,27 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
   const feeBreakdown = netOrderTotal > 0 ? calculateTransactionFees(netOrderTotal) : null
   const finalAmount = feeBreakdown ? feeBreakdown.finalAmount : netOrderTotal
 
+  const currency = items.length > 0 ? (items[0].currency || 'USD') : 'USD'
+  const formatCurrency = (amount: number, currencyCode: string = currency) => {
+    const localeMap: Record<string, string> = {
+      'USD': 'en-US',
+      'INR': 'en-IN',
+      'EUR': 'en-EU',
+      'GBP': 'en-GB',
+      'CAD': 'en-CA',
+      'AUD': 'en-AU',
+      'JPY': 'ja-JP',
+      'BRL': 'pt-BR',
+      'MXN': 'es-MX',
+      'ZAR': 'en-ZA'
+    }
+    const locale = localeMap[currencyCode] || 'en-US'
+    return new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency: currencyCode
+    }).format(amount)
+  }
+
   const handleValidateCoupon = async () => {
     if (!couponCode.trim()) {
       toast.error("Please enter a coupon code")
@@ -230,17 +251,11 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
     toast.info("Coupon removed")
   }
 
-  const handleCalculateShiprocketShipping = async () => {
-    if (!orderForm.zipCode) {
-      toast.error('Please enter your ZIP Code before calculating shipping')
-      return
-    }
+  const fetchShiprocketShipping = useCallback(async (zipCode: string) => {
+    if (!zipCode?.trim()) return
 
-    const deliveryPostcode = Number(orderForm.zipCode)
-    if (!Number.isFinite(deliveryPostcode)) {
-      toast.error('ZIP Code must be a number for Shiprocket calculation')
-      return
-    }
+    const deliveryPostcode = Number(zipCode.trim())
+    if (!Number.isFinite(deliveryPostcode)) return
 
     try {
       setShiprocketLoading(true)
@@ -260,66 +275,78 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
       if (!response.success) {
         const msg = response.message || 'Failed to calculate shipping via Shiprocket'
         setShiprocketMessage(msg)
-        toast.error(msg)
         setShiprocketShippingCost(null)
         return
       }
 
-      const raw = (response as any).data?.data ?? (response as any).data
+      // API returns: { data: { data: { available_courier_companies } } } - handle nested structure
+      const payload = (response as any).data?.data ?? (response as any).data
+      const innerData = payload?.data ?? payload
+      const companies = (innerData?.available_courier_companies ?? payload?.available_courier_companies) as Array<{ rate?: number; courier_company_id?: number; courier_name?: string; courier_disabled?: number }> | undefined
       let cost = 0
 
-      // Try to pick the cheapest courier rate if available
-      const companies = raw?.available_courier_companies as Array<{ rate?: number; courier_company_id?: number; courier_name?: string }> | undefined
+      // Pick the courier with the least rate; exclude disabled couriers (courier_disabled: 1)
       if (Array.isArray(companies) && companies.length > 0) {
-        const cheapest = companies.reduce((min, c) => {
+        const enabled = companies.filter((c) => c.courier_disabled !== 1)
+        const candidates = enabled.length > 0 ? enabled : companies
+        const cheapest = candidates.reduce((min, c) => {
           if (typeof c.rate !== 'number') return min
           if (typeof min.rate !== 'number' || c.rate < min.rate) return c
           return min
-        }, companies[0])
+        }, candidates[0])
         if (typeof cheapest.rate === 'number') {
           cost = cheapest.rate
-          const label = cheapest.courier_name || `Courier ${cheapest.courier_company_id ?? ''}`.trim()
-          setShiprocketMessage(`Using Shiprocket rate from ${label}: ${formatCurrency(cost, items[0]?.currency || 'INR')}`)
+          setShiprocketMessage(null)
         } else {
           setShiprocketMessage('Shiprocket did not return a numeric rate; using 0')
         }
       } else {
         setShiprocketMessage('No courier options returned from Shiprocket for this address')
+        setShiprocketShippingCost(null)
+        return
       }
 
       setShiprocketShippingCost(cost)
-      toast.success(`Shipping calculated: ${formatCurrency(cost, items[0]?.currency || 'INR')}`)
     } catch (error: any) {
       const msg = error?.message || 'Error while calculating shipping via Shiprocket'
       setShiprocketMessage(msg)
       setShiprocketShippingCost(null)
-      toast.error(msg)
     } finally {
       setShiprocketLoading(false)
     }
-  }
+  }, [subtotalAfterCoupon, totalPrice, items])
 
-  const currency = items.length > 0 ? (items[0].currency || 'USD') : 'USD'
+  // Auto-fetch Shiprocket rate when zip code is entered or prefilled
+  const shiprocketDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(() => {
+    if (!isOpen || items.length === 0) return
 
-  const formatCurrency = (amount: number, currencyCode: string = currency) => {
-    const localeMap: Record<string, string> = {
-      'USD': 'en-US',
-      'INR': 'en-IN',
-      'EUR': 'en-EU',
-      'GBP': 'en-GB',
-      'CAD': 'en-CA',
-      'AUD': 'en-AU',
-      'JPY': 'ja-JP',
-      'BRL': 'pt-BR',
-      'MXN': 'es-MX',
-      'ZAR': 'en-ZA'
+    const zip = orderForm.zipCode?.trim()
+    if (!zip) {
+      setShiprocketShippingCost(null)
+      setShiprocketMessage(null)
+      return
     }
-    const locale = localeMap[currencyCode] || 'en-US'
-    return new Intl.NumberFormat(locale, {
-      style: 'currency',
-      currency: currencyCode
-    }).format(amount)
-  }
+
+    const deliveryPostcode = Number(zip)
+    if (!Number.isFinite(deliveryPostcode)) return
+
+    if (shiprocketDebounceRef.current) {
+      clearTimeout(shiprocketDebounceRef.current)
+    }
+
+    shiprocketDebounceRef.current = setTimeout(() => {
+      shiprocketDebounceRef.current = null
+      fetchShiprocketShipping(zip)
+    }, 500)
+
+    return () => {
+      if (shiprocketDebounceRef.current) {
+        clearTimeout(shiprocketDebounceRef.current)
+        shiprocketDebounceRef.current = null
+      }
+    }
+  }, [isOpen, orderForm.zipCode, items.length, fetchShiprocketShipping])
 
   useEffect(() => {
     if (isOpen && user) {
@@ -449,6 +476,10 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
     }
   }
 
+  const zipEntered = !!orderForm.zipCode?.trim()
+  const deliveryUnavailable = zipEntered && !shiprocketLoading && shiprocketShippingCost == null
+  const orderBlocked = zipEntered && (shiprocketLoading || shiprocketShippingCost == null)
+
   const validateForm = () => {
     const required = ['firstName', 'lastName', 'email', 'phone', 'address', 'city', 'state', 'zipCode']
     
@@ -462,6 +493,11 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(orderForm.email)) {
       toast.error('Please enter a valid email address')
+      return false
+    }
+
+    if (orderBlocked) {
+      toast.error(deliveryUnavailable ? "Can't place order as order can't be delivered to this pincode" : "Please wait for shipping calculation")
       return false
     }
 
@@ -599,37 +635,10 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                       />
                     </div>
                   </div>
-                  {items.length > 0 && (
-                    <div className="flex flex-col gap-2 mt-2">
-                      <div className="flex items-center gap-2">
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          onClick={handleCalculateShiprocketShipping}
-                          disabled={shiprocketLoading}
-                        >
-                          {shiprocketLoading ? (
-                            <>
-                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                              Calculating shipping...
-                            </>
-                          ) : (
-                            'Calculate Shiprocket Shipping'
-                          )}
-                        </Button>
-                        {shiprocketShippingCost != null && (
-                          <span className="text-sm text-muted-foreground">
-                            Estimated shipping: {formatCurrency(shiprocketShippingCost, items[0]?.currency || currency)}
-                          </span>
-                        )}
-                      </div>
-                      {shiprocketMessage && (
-                        <p className="text-xs text-muted-foreground">
-                          {shiprocketMessage}
-                        </p>
-                      )}
-                    </div>
+                  {items.length > 0 && shiprocketMessage && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      {shiprocketMessage}
+                    </p>
                   )}
                 </CardContent>
               </Card>
@@ -883,7 +892,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                         <span>-{formatCurrency(couponDiscount, currency)}</span>
                       </div>
                     )}
-                    {merchandiseSettings?.enableShipping && (
+                    {(merchandiseSettings?.enableShipping || shiprocketShippingCost != null) && (
                       <div className="flex justify-between">
                         <span>Shipping:</span>
                         {shippingCost === 0 ? (
@@ -938,12 +947,17 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                 .
               </p>
 
+              {deliveryUnavailable && (
+                <p className="text-sm text-destructive text-center">
+                  Can&apos;t place order as order can&apos;t be delivered to this pincode
+                </p>
+              )}
               {/* Place Order Button */}
               <Button
                 type="submit"
                 className="w-full"
                 size="lg"
-                disabled={loading || items.length === 0}
+                disabled={loading || items.length === 0 || orderBlocked}
               >
                 {loading ? (
                   <>
