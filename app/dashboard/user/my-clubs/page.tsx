@@ -106,6 +106,7 @@ export default function MyClubsPage() {
         } else if (data.data && Array.isArray(data.data)) {
           membershipData = data.data
         }
+        membershipData = membershipData.filter((m: any) => m.status === 'active')
         
         // console.log('Setting memberships:', membershipData)
         setMemberships(membershipData)

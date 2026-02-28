@@ -52,8 +52,8 @@ export default function UserMembershipCardPage() {
   
   const userName = getUserName()
 
-  const displayCards = cards
-  const displaySelectedCard = selectedCard
+  const displayCards = cards.filter((c) => c.card.status === 'active')
+  const displaySelectedCard = selectedCard?.card.status === 'active' ? selectedCard : null
   useEffect(() => {
     const fetchCards = async () => {
       try {
@@ -72,14 +72,14 @@ export default function UserMembershipCardPage() {
           const cardsData = Array.isArray(response.data) ? response.data : (response.data as any)?.data
           
           if (cardsData && Array.isArray(cardsData)) {
-            const filtered = cardsData.filter((c: any) => String(c?.club?._id) === String(clubId))
+            const filtered = cardsData.filter((c: any) => String(c?.club?._id) === String(clubId)).filter((c: any) => c.card.status === 'active')
             setCards(filtered)
             setResponseInfo(response)
             if (filtered.length > 0) {
-              setSelectedCard(filtered[0])
+              setSelectedCard(filtered[0] || null)
             } else {
               setSelectedCard(null)
-            }
+            } 
           } else {
             setError('Invalid data structure received from server')
           }
