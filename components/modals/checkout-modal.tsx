@@ -30,6 +30,8 @@ import { apiClient } from "@/lib/api"
 import { calculateTransactionFees, PLATFORM_FEE_PERCENT, RAZORPAY_FEE_PERCENT } from "@/lib/transactionFees"
 import { PaymentSimulationModal } from "./payment-simulation-modal"
 import { toast } from "sonner"
+import { MemberValidationModal } from "./member-validation-modal"
+import { useRouter } from "next/navigation"
 
 interface CheckoutModalProps {
   isOpen: boolean
@@ -64,6 +66,7 @@ interface AppliedCoupon {
 
 export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems }: CheckoutModalProps) {
   const { user } = useAuth()
+  const router = useRouter()
   const { items: cartItems, totalPrice: cartTotalPrice, clearCart } = useCart()
   const items = directCheckoutItems || cartItems
   const totalPrice = directCheckoutItems 
@@ -72,6 +75,10 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
   const [loading, setLoading] = useState(false)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [createdOrder, setCreatedOrder] = useState<any>(null)
+  const [orderShipping, setOrderShipping] = useState<number | null>(null)
+  const [orderTax, setOrderTax] = useState<number | null>(null)
+  const [estimatedShipping, setEstimatedShipping] = useState<number | null>(null)
+  const [estimatedTax, setEstimatedTax] = useState<number | null>(null)
   const [availablePoints, setAvailablePoints] = useState<number | null>(null)
   const [redeemPoints, setRedeemPoints] = useState<number>(0)
   const [reservationToken, setReservationToken] = useState<string | null>(null)
@@ -169,10 +176,55 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
 
   const shippingCost = calculateShipping()
   const taxAmount = calculateTax()
-  const orderTotal = totalPrice + shippingCost + taxAmount
-  const netOrderTotal = Math.max(orderTotal - (reservedDiscount || 0), 0)
+
+  // compute estimated shipping/tax once merchandiseSettings are available
+  useEffect(() => {
+    if (merchandiseSettings && isOpen) {
+      setEstimatedShipping(calculateShipping())
+      setEstimatedTax(calculateTax())
+
+      // call server estimate endpoint to get authoritative shipping/tax
+      (async () => {
+        try {
+          const clubId = typeof items[0]?.club === 'string' ? items[0].club : items[0]?.club?._id
+          const orderData = {
+            customer: {
+              firstName: orderForm.firstName || 'Guest',
+              lastName: orderForm.lastName || '',
+              email: orderForm.email || ''
+            },
+            shippingAddress: {
+              address: orderForm.address || '',
+              city: orderForm.city || '',
+              state: orderForm.state || '',
+              zipCode: orderForm.zipCode || '',
+              country: orderForm.country || ''
+            },
+            items: items.map(i => ({ productId: i._id, quantity: i.quantity })),
+            couponCode: appliedCoupon?.code || undefined
+          }
+
+          const resp = await apiClient.post('/orders/estimate', orderData)
+          if (resp && resp.success && resp.data) {
+            setEstimatedShipping(resp.data.shippingCost ?? calculateShipping())
+            setEstimatedTax(resp.data.tax ?? calculateTax())
+          }
+        } catch (e) {
+          // ignore - fall back to local estimates
+        }
+      })()
+    }
+  }, [merchandiseSettings, subtotalAfterCoupon])
+
+  // Prefer locally-updated orderShipping/orderTax (set on order creation),
+  // then the createdOrder values returned from server, otherwise fall back to locally computed values.
+  const displayShipping = orderShipping ?? (createdOrder ? (createdOrder.shippingCost ?? (estimatedShipping ?? shippingCost)) : (estimatedShipping ?? shippingCost))
+  const displayTax = orderTax ?? (createdOrder ? (createdOrder.tax ?? (estimatedTax ?? taxAmount)) : (estimatedTax ?? taxAmount))
+
+  const orderTotal = subtotalAfterCoupon + displayShipping + displayTax
+  const netOrderTotal = Math.max(orderTotal, 0)
   const feeBreakdown = netOrderTotal > 0 ? calculateTransactionFees(netOrderTotal) : null
-  const finalAmount = feeBreakdown ? feeBreakdown.finalAmount : netOrderTotal
+  const finalAmount = (feeBreakdown ? feeBreakdown.finalAmount : netOrderTotal) - (reservedDiscount || 0)
 
   const handleValidateCoupon = async () => {
     if (!couponCode.trim()) {
@@ -307,8 +359,11 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
 
       const response = await apiClient.post(user ? '/orders' : '/orders/public', orderData)
       
-      if (response.success && response.data) {
+        if (response.success && response.data) {
         const order = response.data.data
+        // update local shipping/tax immediately so the checkout summary reflects server-calculated values
+        setOrderShipping(order.shippingCost ?? null)
+        setOrderTax(order.tax ?? null)
         setCreatedOrder(order)
         setShowPaymentModal(true)
       } else {
@@ -719,7 +774,9 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                                 setReserving(false)
                                 return
                               }
-                              const resp = await apiClient.createReservation(redeemPoints, clubId)
+                              // pass order total so backend can cap reserved points to order value
+                              const orderTotalForReservation = Math.max(calculateTransactionFees(totalPrice - couponDiscount + displayShipping + displayTax).finalAmount, 0)
+                              const resp = await apiClient.createReservation(redeemPoints, clubId, orderTotalForReservation)
                               if (resp && resp.success) {
                                 setReservationToken(resp.data?.reservationToken || null)
                                 setReservedDiscount(resp.data?.discountAmount || 0)
@@ -769,22 +826,19 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                         <span>-{formatCurrency(couponDiscount, currency)}</span>
                       </div>
                     )}
-                    {merchandiseSettings?.enableShipping && (
-                      <div className="flex justify-between">
-                        <span>Shipping:</span>
-                        {shippingCost === 0 ? (
-                          <span className="text-green-600">Free</span>
-                        ) : (
-                          <span>{formatCurrency(shippingCost, currency)}</span>
-                        )}
-                      </div>
-                    )}
-                    {merchandiseSettings?.enableTax && taxAmount > 0 && (
-                      <div className="flex justify-between">
-                        <span>Tax ({merchandiseSettings.taxRate}%):</span>
-                        <span>{formatCurrency(taxAmount, currency)}</span>
-                      </div>
-                    )}
+                    {/** show displayShipping (may be server-provided on createdOrder) */}
+                    <div className="flex justify-between">
+                      <span>Shipping:</span>
+                      {displayShipping === 0 ? (
+                        <span className="text-green-600">Free</span>
+                      ) : (
+                        <span>{formatCurrency(displayShipping, currency)}</span>
+                      )}
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Tax{merchandiseSettings?.taxRate ? ` (${merchandiseSettings.taxRate}%)` : ''}:</span>
+                      <span>{formatCurrency(displayTax, currency)}</span>
+                    </div>
                     {reservedDiscount > 0 && (
                       <div className="flex justify-between text-sm text-green-600">
                         <span>- Points discount:</span>
@@ -877,29 +931,39 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
       )}
 
       {/* Payment Simulation Modal */}
-      {createdOrder && (
-        <PaymentSimulationModal
-          isOpen={showPaymentModal}
-          onClose={() => {
-            setShowPaymentModal(false)
-            setCreatedOrder(null)
-          }}
-          onPaymentSuccess={handlePaymentSuccess}
-          onPaymentFailure={handlePaymentFailure}
-          orderId={createdOrder._id}
-          orderNumber={createdOrder.orderNumber}
-          total={finalAmount}
-          subtotal={totalPrice}
-          shippingCost={createdOrder.shippingCost ?? shippingCost}
-          tax={createdOrder.tax ?? taxAmount}
-          currency={createdOrder.currency ?? currency}
-          paymentMethod={createdOrder.paymentMethod || orderForm.paymentMethod || 'all'}
-          platformFeeTotal={feeBreakdown ? feeBreakdown.platformFee + feeBreakdown.platformFeeGst : undefined}
-          razorpayFeeTotal={feeBreakdown ? feeBreakdown.razorpayFee + feeBreakdown.razorpayFeeGst : undefined}
-          couponDiscount={createdOrder.couponDiscount}
-          couponCode={createdOrder.couponCode}
-        />
-      )}
+      {createdOrder && (() => {
+        const paymentSubtotal = subtotalAfterCoupon
+        const paymentShipping = (createdOrder.shippingCost ?? shippingCost) || 0
+        const paymentTax = (createdOrder.tax ?? taxAmount) || 0
+        const paymentNet = Math.max(paymentSubtotal + paymentShipping + paymentTax , 0)
+        const paymentFeeBreakdown = paymentNet > 0 ? calculateTransactionFees(paymentNet) : null
+        const paymentTotal = (paymentFeeBreakdown ? paymentFeeBreakdown.finalAmount : paymentNet) - (reservedDiscount || 0)
+
+        return (
+          <PaymentSimulationModal
+            isOpen={showPaymentModal}
+            onClose={() => {
+              setShowPaymentModal(false)
+              setCreatedOrder(null)
+            }}
+            onPaymentSuccess={handlePaymentSuccess}
+            onPaymentFailure={handlePaymentFailure}
+            orderId={createdOrder._id}
+            orderNumber={createdOrder.orderNumber}
+            total={paymentTotal}
+            subtotal={paymentSubtotal}
+            shippingCost={paymentShipping}
+            tax={paymentTax}
+            currency={createdOrder.currency ?? currency}
+            paymentMethod={createdOrder.paymentMethod || orderForm.paymentMethod || 'all'}
+            platformFeeTotal={paymentFeeBreakdown ? paymentFeeBreakdown.platformFee + paymentFeeBreakdown.platformFeeGst : undefined}
+            razorpayFeeTotal={paymentFeeBreakdown ? paymentFeeBreakdown.razorpayFee + paymentFeeBreakdown.razorpayFeeGst : undefined}
+            couponDiscount={createdOrder.couponDiscount}
+            pointsDiscount={reservedDiscount || createdOrder.redeemedDiscount}
+            couponCode={createdOrder.couponCode}
+          />
+        )
+      })()}
     </Dialog>
   )
 }

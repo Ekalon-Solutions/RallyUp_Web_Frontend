@@ -10,6 +10,7 @@ import { Calendar, CreditCard, AlertTriangle, CheckCircle } from "lucide-react"
 import { toast } from "sonner"
 import { Label } from "@/components/ui/label"
 import { formatDisplayDate } from "@/lib/utils"
+import { apiClient } from "@/lib/api"
 
 interface MembershipPlan {
   _id: string
@@ -36,13 +37,18 @@ interface MembershipPlan {
 interface MembershipRenewalProps {
   user: any
   membershipPlans: MembershipPlan[]
-  onRenewal: (planId: string) => Promise<void>
+  // onRenewal may receive optional reservation info: (planId, reservationToken?, redeemedPoints?)
+  onRenewal: (planId: string, reservationToken?: string | null, redeemedPoints?: number) => Promise<void>
 }
 
 export function MembershipRenewal({ user, membershipPlans, onRenewal }: MembershipRenewalProps) {
   const [selectedPlan, setSelectedPlan] = useState<string>("")
   const [isRenewing, setIsRenewing] = useState(false)
   const [showRenewalDialog, setShowRenewalDialog] = useState(false)
+  const [availablePoints, setAvailablePoints] = useState<number | null>(null)
+  const [redeemPoints, setRedeemPoints] = useState<number>(0)
+  const [reservationToken, setReservationToken] = useState<string | null>(null)
+  const [reserving, setReserving] = useState(false)
 
   const formatPrice = (price: number, currency: string) => {
     return new Intl.NumberFormat('en-US', {
@@ -65,6 +71,21 @@ export function MembershipRenewal({ user, membershipPlans, onRenewal }: Membersh
     return '—'
   }
 
+  React.useEffect(() => {
+    const fetchPoints = async () => {
+      try {
+        if (showRenewalDialog && user) {
+          const clubId = (user as any)?.memberships?.[0]?.club_id?._id || (user as any)?.club || undefined
+          if (clubId) {
+            const resp = await apiClient.getMemberPoints((user as any)._id, clubId)
+            if (resp && resp.success && resp.data) setAvailablePoints(resp.data.points || 0)
+          }
+        }
+      } catch (e) {}
+    }
+    fetchPoints()
+  }, [showRenewalDialog, user])
+
   const handleRenewal = async () => {
     if (!selectedPlan) {
       toast.error("Please select a membership plan")
@@ -73,7 +94,7 @@ export function MembershipRenewal({ user, membershipPlans, onRenewal }: Membersh
 
     setIsRenewing(true)
     try {
-      await onRenewal(selectedPlan)
+      await onRenewal(selectedPlan, reservationToken, redeemPoints)
       toast.success("Membership renewed successfully!")
       setShowRenewalDialog(false)
       setSelectedPlan("")
@@ -204,6 +225,37 @@ export function MembershipRenewal({ user, membershipPlans, onRenewal }: Membersh
                         )}
                       </div>
                     )
+
+                  {/* Redeem Points for renewal */}
+                  <div className="mt-3">
+                    <Label className="text-sm font-medium">Redeem Points {availablePoints !== null && ` (Available: ${availablePoints} pts)`}</Label>
+                    <div className="flex gap-2 mt-2">
+                      <input type="number" min={0} value={redeemPoints} onChange={(e) => setRedeemPoints(Number(e.target.value || 0))} className="border rounded px-2 py-1 w-32" placeholder="Points" />
+                      <Button type="button" size="sm" onClick={async () => {
+                        if (!redeemPoints || redeemPoints <= 0) { toast.error('Enter points to redeem'); return }
+                        setReserving(true)
+                        try {
+                          const plan = membershipPlans.find(p => p._id === selectedPlan)
+                          const orderTotal = plan ? plan.price : undefined
+                          const resp = await apiClient.createReservation(redeemPoints, (user as any)?.memberships?.[0]?.club_id?._id || (user as any)?.club, orderTotal)
+                          if (resp && resp.success) {
+                            setReservationToken(resp.data?.reservationToken || null)
+                            toast.success('Points reserved')
+                          } else {
+                            toast.error(resp?.message || 'Failed to reserve points')
+                          }
+                        } catch (e) {
+                          toast.error('Failed to reserve points')
+                        } finally { setReserving(false) }
+                      }}>{reserving ? 'Reserving...' : 'Reserve'}</Button>
+                      <Button type="button" variant="ghost" onClick={async () => {
+                        if (reservationToken) {
+                          try { await apiClient.cancelReservation(reservationToken) } catch (e) {}
+                        }
+                        setReservationToken(null); setRedeemPoints(0)
+                      }}>Clear</Button>
+                    </div>
+                  </div>
                   })()}
                 </div>
               )}

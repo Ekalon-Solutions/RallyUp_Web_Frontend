@@ -41,6 +41,8 @@ interface PaymentSimulationModalProps {
   couponDiscount?: number
   /** Coupon code for display (e.g. "SUMMER2026") */
   couponCode?: string
+  /** Points discount amount (show as "- Points discount: -₹X") */
+  pointsDiscount?: number
   dialogTitle?: string
   dialogDescription?: string
   payButtonLabel?: string
@@ -66,6 +68,7 @@ export function PaymentSimulationModal({
   dialogTitle,
   dialogDescription,
   payButtonLabel,
+  pointsDiscount,
 }: PaymentSimulationModalProps) {
   const { toast } = useToast()
   const [processing, setProcessing] = useState(false)
@@ -331,6 +334,12 @@ export function PaymentSimulationModal({
                         <div className="flex justify-between items-center text-sm">
                           <span>Tax:</span>
                           <span>{formatCurrency(tax, currency)}</span>
+                        </div>
+                      )}
+                      {pointsDiscount !== undefined && pointsDiscount > 0 && (
+                        <div className="flex justify-between items-center text-sm text-green-600">
+                          <span>- Points discount:</span>
+                          <span>-{formatCurrency(pointsDiscount, currency)}</span>
                         </div>
                       )}
                     </>

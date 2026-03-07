@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { apiClient, Club, Admin } from '@/lib/api'
+// getApiUrl removed (cron trigger moved to admin dashboard)
 import { toast } from 'sonner'
 import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth"
 import { auth } from "@/lib/firebase/config"
@@ -767,6 +768,8 @@ export default function ClubManagementPage() {
               </DialogContent>
             </Dialog>
           </div>
+
+          
 
           {/* Filters */}
           <div className="flex flex-col sm:flex-row gap-4">

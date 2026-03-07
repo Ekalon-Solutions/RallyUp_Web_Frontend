@@ -91,7 +91,12 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
     }
     setReserving(true)
     try {
-        const res = await apiClient.createReservation(redeemPoints, eventData.clubId)
+      // pass order total so backend can cap reserved points to order value
+      const basePrice = getDiscountedPricePerTicket()
+      const totalBeforeCoupon = basePrice * attendees.length
+      const finalPrice = Math.max(totalBeforeCoupon - couponDiscount, 0)
+      const orderTotalForReservation = finalPrice
+      const res = await apiClient.createReservation(redeemPoints, eventData.clubId, orderTotalForReservation)
         if (res && res.success) {
           setReservationToken(res.data?.reservationToken || null)
           setReservedDiscount(res.data?.discountAmount || 0)
@@ -269,9 +274,15 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
     try {
       const basePrice = getDiscountedPricePerTicket()
       const totalBeforeCoupon = basePrice * attendees.length
-      const finalPrice = Math.max(totalBeforeCoupon - couponDiscount, 0)
-      // apply reserved discount (if any)
-      const adjustedFinalPrice = Math.max(finalPrice - (reservedDiscount || 0), 0)
+
+      const eventSubtotalAfterCoupon = Math.max(totalBeforeCoupon - couponDiscount, 0)
+
+      // events do not use shipping/tax by default
+      const displayShipping = 0
+      const displayTax = 0
+
+      // apply reserved discount (if any) and include shipping/tax
+      const adjustedFinalPrice = Math.max(eventSubtotalAfterCoupon + displayShipping + displayTax - (reservedDiscount || 0), 0)
 
       if (adjustedFinalPrice <= 0) {
         const response = user
@@ -297,13 +308,21 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
         return
       }
 
+      // Recompute payment amount including shipping and tax (reuse `eventSubtotalAfterCoupon` from above)
+      const paymentSubtotal = eventSubtotalAfterCoupon
+      const paymentShipping = displayShipping
+      const paymentTax = displayTax
+      const paymentNet = Math.max(paymentSubtotal + paymentShipping + paymentTax - (reservedDiscount || 0), 0)
+      const paymentFeeBreakdown = paymentNet > 0 ? calculateTransactionFees(paymentNet) : null
+      const amountToCharge = paymentFeeBreakdown ? paymentFeeBreakdown.finalAmount : paymentNet
+
       const response = await fetch('/api/razorpay/create-order', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          amount: Math.round((feeBreakdown ? feeBreakdown.finalAmount : finalPrice) - (reservedDiscount || 0)),
+          amount: Math.round(amountToCharge),
           currency: event.currency || 'INR',
           orderId: `EVT-${Date.now()}`,
           orderNumber: `EVT-${Date.now()}`,
@@ -384,8 +403,15 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
                   signature: response.razorpay_signature,
                   reservationToken: reservationToken || undefined,
                 })
-
             if (registerResponse.success) {
+              // if server returned any order-level shipping/tax info, record locally for immediate display
+              try {
+                const returnedOrder = (registerResponse.data && (registerResponse as any).data.order) || null
+                // server may return order info; no local shipping/tax handling for events
+                // (we rely on server registration response for final records)
+              } catch (e) {
+                // ignore
+              }
               toast.success("Payment successful! You are now registered for the event.")
               onSuccess()
               onClose()

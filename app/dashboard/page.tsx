@@ -10,9 +10,11 @@ import { useAuth } from "@/contexts/auth-context"
 import { PollsWidget } from "@/components/polls-widget"
 import { LatestEventsWidget } from "@/components/latest-events-widget"
 import { LatestNewsWidget } from "@/components/latest-news-widget"
+import { Button } from "@/components/ui/button"
 import { getApiUrl } from "@/lib/config"
-import axios from "axios"
+import { apiClient } from "@/lib/api"
 import { useClubSettings } from "@/hooks/useClubSettings"
+import { toast } from 'sonner'
 
 interface DashboardStats {
   totalMembers: number
@@ -21,12 +23,75 @@ interface DashboardStats {
   storeRevenue: number
 }
 
+// Component: display upcoming fixtures for the user's active club
+function FixturesCards({ clubId }: { clubId?: string | undefined }) {
+  const [fixtures, setFixtures] = useState<any[]>([])
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (!clubId) return
+    const fetchFixtures = async () => {
+      setLoading(true)
+      try {
+        const resp = await apiClient.listAvailableExternalTicketFixtures(clubId)
+        const data = resp?.data?.data || []
+        console.log("data:", data)
+        setFixtures(Array.isArray(data) ? data.slice(0, 5) : [])
+
+        // If no fixtures found, attempt to fetch from sports proxy and persist (uses default team 'Arsenal')
+        if (Array.isArray(data) && data.length === 0) {
+          try {
+            await apiClient.proxyInternalNextMatches({ team: 'Arsenal', clubId: String(clubId) })
+            // refetch fixtures after persistence
+            const retry = await apiClient.listAvailableExternalTicketFixtures(clubId)
+            const retryData = retry.data || []
+            setFixtures(Array.isArray(retryData) ? retryData.slice(0, 5) : [])
+          } catch (e) {
+            // ignore
+          }
+        }
+      } catch (e) {
+        setFixtures([])
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchFixtures()
+  }, [clubId])
+
+  return (
+    <div>
+      <h3 className="text-lg font-medium mb-2">Upcoming Matches</h3>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+        {loading ? (
+          <div className="p-4">Loading matches...</div>
+        ) : fixtures.length ? (
+          fixtures.map((f) => (
+            <Card key={String(f._id)}>
+              <CardHeader className="flex items-center justify-between pb-2">
+                <CardTitle className="text-sm font-medium">{f.title}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-sm text-muted-foreground">{f.competition}</div>
+                <div className="text-base font-semibold mt-2">{new Date(f.startTime).toLocaleString()}</div>
+              </CardContent>
+            </Card>
+          ))
+        ) : (
+          <div className="p-4">No upcoming matches</div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function DashboardPage() {
   const { user, isAdmin, isLoading: authLoading, activeClubId } = useAuth()
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [showLogo, setShowLogo] = useState(false)
   const [logoFadeIn, setLogoFadeIn] = useState(false)
+  const [cronLoading, setCronLoading] = useState(false)
   
   useEffect(() => {
     if (user && !isAdmin) {
@@ -174,15 +239,29 @@ export default function DashboardPage() {
   const getUserClubId = () => {
     if (!user || user.role === 'system_owner') return undefined
     const userAny = user as any
-    
+    const {activeClubId} = useAuth();
+
+    // If the user is an admin, prefer the admin's selected/active club
+    if (user.role === 'admin') {
+      const adminClubs = user.clubs || [];
+      const currentClub = adminClubs.find((c) => c._id === activeClubId) ?? adminClubs?.[0];
+      if (currentClub) return currentClub?._id;
+      if (userAny?.club?._id) return userAny.club._id
+      if (Array.isArray(userAny?.clubs) && userAny.clubs.length) {
+        const firstClub = userAny.clubs[0]
+        return firstClub?._id || firstClub
+      }
+      // fallthrough to memberships if present
+    }
+
     if (activeClubId) {
       return activeClubId
     }
-    
+
     if (userAny?.club?._id) {
       return userAny.club._id
     }
-    
+
     const firstMembership = userAny?.memberships?.find((m: any) => m.status === 'active')
     return firstMembership?.club_id?._id || firstMembership?.club_id
   }
@@ -226,6 +305,34 @@ export default function DashboardPage() {
               <h1 className="text-2xl sm:text-3xl font-bold">Dashboard</h1>
               <p className="text-muted-foreground text-sm sm:text-base">Welcome back! Here's what's happening with your supporter group.</p>
             </div>
+            {isAdmin && (
+              <div>
+                <Button
+                  variant="outline"
+                  onClick={async () => {
+                    if (!confirm('Run fetch-next-matches for all clubs now?')) return
+                    try {
+                      setCronLoading(true)
+                      const token = localStorage.getItem('token')
+                      const cronResp = await apiClient.get('/cron/sports/fetch-next-matches')
+                      if (cronResp.success) {
+                        const data = cronResp.data || { processed: 0 }
+                        toast.success(`Cron completed: ${data.processed} clubs`)
+                      } else {
+                        toast.error(`Cron failed: ${cronResp.status || ''} ${cronResp.message || cronResp.error || ''}`)
+                      }
+                    } catch (e: any) {
+                      toast.error('Cron request failed')
+                    } finally {
+                      setCronLoading(false)
+                    }
+                  }}
+                  disabled={cronLoading}
+                >
+                  {cronLoading ? 'Running...' : 'Fetch Next Matches'}
+                </Button>
+              </div>
+            )}
           </div>
 
           {/* Stats Grid */}
@@ -280,6 +387,10 @@ export default function DashboardPage() {
 
           {user && (clubName || ('club' in user && user.club)) && (
             <div className="space-y-6">
+              {/* Upcoming matches (fixtures) */}
+              <div className="w-full rounded-[2.5rem] overflow-hidden border-2 shadow-xl bg-card p-4">
+                <FixturesCards clubId={clubId} />
+              </div>
               <div className="w-full rounded-[2.5rem] overflow-hidden border-2 shadow-xl bg-card p-2">
                 <LatestEventsWidget limit={5} showManageButton={true} />
               </div>

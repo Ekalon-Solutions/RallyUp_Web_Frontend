@@ -816,7 +816,20 @@ export default function UserProfilePage() {
             <MembershipRenewal 
               user={(user as any)}
               membershipPlans={[]}
-              onRenewal={async () => {}}
+              onRenewal={async (planId: string, reservationToken?: string | null, redeemedPoints?: number) => {
+                try {
+                  const params = new URLSearchParams()
+                  const clubId = currentClub?._id || currentClub?.slug || ''
+                  if (clubId) params.set('clubId', String(clubId))
+                  params.set('planId', planId)
+                  if (reservationToken) params.set('reservationToken', reservationToken)
+                  if (typeof redeemedPoints === 'number') params.set('redeemedPoints', String(redeemedPoints))
+                  router.push(`/membership-plans?${params.toString()}`)
+                } catch (e) {
+                  // fallback: navigate to membership plans
+                  router.push('/membership-plans')
+                }
+              }}
             />
           )}
         </div>

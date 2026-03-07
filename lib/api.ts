@@ -1135,13 +1135,45 @@ class ApiClient {
     });
   }
 
-  async listAvailableExternalTicketFixtures(clubId: string, params?: { competition?: string }) {
+  async listAvailableExternalTicketFixtures(clubId: string, params?: { competition?: string }):Promise<ApiResponse<ExternalTicketFixture[]>> {
     const query: Record<string, any> = {};
     if (params?.competition) query.competition = params.competition;
     return this.request<ExternalTicketFixture[]>(
       `/external-tickets/club/${clubId}/fixtures` +
         (Object.keys(query).length ? `?${new URLSearchParams(query as any).toString()}` : '')
     );
+  }
+
+  // Proxy call to Next.js internal API which forwards to backend sports endpoint
+  async proxyInternalNextMatches(params: { team?: string; teamId?: string; clubId?: string; leagueId?: string } = {}) : Promise<ApiResponse<any>> {
+    if (typeof window === 'undefined') {
+      return { success: false, error: 'Client-only endpoint', status: 500 };
+    }
+
+    const url = new URL('/api/internal/sports/next-matches', window.location.origin);
+    if (params.team) url.searchParams.set('team', params.team);
+    if (params.teamId) url.searchParams.set('teamId', params.teamId);
+    if (params.clubId) url.searchParams.set('clubId', params.clubId);
+    if (params.leagueId) url.searchParams.set('leagueId', params.leagueId);
+
+    try {
+      const resp = await fetch(url.toString(), { method: 'GET' });
+      const contentType = resp.headers.get('content-type') || '';
+      let data: any = null;
+      if (contentType.includes('application/json')) {
+        data = await resp.json();
+      } else {
+        data = await resp.text();
+      }
+
+      if (!resp.ok) {
+        return { success: false, data, message: (data && data.message) || `HTTP ${resp.status}`, status: resp.status };
+      }
+
+      return { success: true, data };
+    } catch (err: any) {
+      return { success: false, error: err?.message || String(err), status: 500 };
+    }
   }
 
   async listExternalTicketFixturesForAdmin(clubId: string, params?: { competition?: string }) {
@@ -1332,10 +1364,12 @@ class ApiClient {
     });
   }
 
-  async createReservation(points: number, clubId: string): Promise<ApiResponse<{ reservationToken: string; discountAmount?: number }>> {
+  async createReservation(points: number, clubId: string, orderTotal?: number): Promise<ApiResponse<{ reservationToken: string; discountAmount?: number }>> {
+    const body: any = { points, clubId };
+    if (orderTotal !== undefined) body.orderTotal = Number(orderTotal);
     return this.request('/points/reservations/create', {
       method: 'POST',
-      body: JSON.stringify({ points, clubId }),
+      body: JSON.stringify(body),
     })
   }
 

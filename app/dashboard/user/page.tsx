@@ -94,6 +94,8 @@ export default function UserDashboardPage() {
   const clubId = useRequiredClubId()
   const [events, setEvents] = useState<Event[]>([])
   const [news, setNews] = useState<News[]>([])
+  const [totalPoints, setTotalPoints] = useState<number | null>(null)
+  const [onePointValue, setOnePointValue] = useState<number>(0)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("events")
   const [showReadMoreModal, setShowReadMoreModal] = useState(false)
@@ -214,6 +216,26 @@ export default function UserDashboardPage() {
       if (eventsResponse.success && eventsResponse.data) {
         const eventsData = Array.isArray(eventsResponse.data) ? eventsResponse.data : (eventsResponse.data as any).events || []
         setEvents(eventsData)
+      }
+
+      // fetch member points and redemption rate for display
+      try {
+        if (user && clubId) {
+          const [ptsResp, settingsResp] = await Promise.all([
+            apiClient.getMemberPoints((user as any)._id, clubId),
+            apiClient.getRedemptionSettings()
+          ])
+          if (ptsResp && ptsResp.success && ptsResp.data) {
+            setTotalPoints(ptsResp.data.points || 0)
+          }
+          if (settingsResp && settingsResp.success && settingsResp.data) {
+            setOnePointValue(Number(settingsResp.data.onePointValue) || 0)
+          }
+        } else {
+          setTotalPoints(null)
+        }
+      } catch (e) {
+        // ignore
       }
 
       if (user) {
@@ -680,7 +702,7 @@ export default function UserDashboardPage() {
           </div>
 
           {/* User Stats */}
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Upcoming Events</CardTitle>
@@ -704,6 +726,20 @@ export default function UserDashboardPage() {
                 <div className="text-2xl font-bold">{(news || []).length}</div>
                 <p className="text-xs text-muted-foreground">
                   Published articles
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Redeemable Points</CardTitle>
+                <Star className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {totalPoints !== null ? totalPoints : '—'}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {totalPoints !== null && onePointValue > 0 ? `${totalPoints} Points worth ${process.env.NEXT_PUBLIC_CURRENCY_SYMBOL || '₹'}${Number(totalPoints * onePointValue).toLocaleString()}` : 'Conversion not configured'}
                 </p>
               </CardContent>
             </Card>
