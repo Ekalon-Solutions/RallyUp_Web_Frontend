@@ -336,18 +336,18 @@ export default function ExternalTicketingPage() {
                                   <div>
                                     <div className="font-medium">{membership.club_id.name}</div>
                                     <div className="text-sm text-muted-foreground line-clamp-1">
-                                      {membership.club_id.description}
+                                      {membership.club_id?.description}
                                     </div>
                                   </div>
                                 </TableCell>
                                 <TableCell>
-                                  {getStatusBadge(membership.status)}
+                                  {getStatusBadge(membership?.status)}
                                 </TableCell>
                                 <TableCell>
                                   <div>
                                     <div className="font-medium">{membership.level_name}</div>
                                     <div className="text-sm text-muted-foreground">
-                                      {membership.membership_level_id.name}
+                                      {membership.membership_level_id?.name}
                                     </div>
                                   </div>
                                 </TableCell>

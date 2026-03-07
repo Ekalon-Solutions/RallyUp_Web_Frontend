@@ -1264,8 +1264,8 @@ function AuthPageContent() {
                       <Button 
                         variant="outline" 
                         onClick={() => {
-                          window.location.href = "/clubs";
-                        }} 
+                          router.push("/clubs");
+                        }}
                         className="w-full border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-11"
                       >
                         Create Account

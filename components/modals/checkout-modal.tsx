@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useRef, useCallback } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -65,6 +65,7 @@ interface AppliedCoupon {
 }
 
 export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems }: CheckoutModalProps) {
+  const SHIPROCKET_PICKUP_POSTCODE = 700008 // fallback pickup pincode; adjust as needed
   const { user } = useAuth()
   const router = useRouter()
   const { items: cartItems, totalPrice: cartTotalPrice, clearCart } = useCart()
@@ -86,6 +87,9 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
   const [reserving, setReserving] = useState(false)
   const [showMemberValidation, setShowMemberValidation] = useState(false)
   const [memberValidated, setMemberValidated] = useState(false)
+  const [shiprocketLoading, setShiprocketLoading] = useState(false)
+  const [shiprocketShippingCost, setShiprocketShippingCost] = useState<number | null>(null)
+  const [shiprocketMessage, setShiprocketMessage] = useState<string | null>(null)
   const [merchandiseSettings, setMerchandiseSettings] = useState<{
     shippingCost: number
     freeShippingThreshold: number
@@ -160,7 +164,13 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
 
   const couponDiscount = appliedCoupon?.discount ?? 0
   const subtotalAfterCoupon = Math.max(0, totalPrice - couponDiscount)
-  
+
+  const calculateTotalWeight = () => {
+    // Approximate weight based on quantity (1 kg per item as a simple default)
+    const totalQuantity = items.reduce((sum, item) => sum + (item.quantity || 0), 0)
+    return totalQuantity > 0 ? totalQuantity : 1
+  }
+
   const calculateShipping = () => {
     if (!merchandiseSettings?.enableShipping) return 0
     if (merchandiseSettings.freeShippingThreshold && subtotalAfterCoupon >= merchandiseSettings.freeShippingThreshold) {
@@ -174,7 +184,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
     return subtotalAfterCoupon * (merchandiseSettings.taxRate / 100)
   }
 
-  const shippingCost = calculateShipping()
+  const shippingCost = shiprocketShippingCost != null ? shiprocketShippingCost : calculateShipping()
   const taxAmount = calculateTax()
 
   // compute estimated shipping/tax once merchandiseSettings are available
@@ -224,7 +234,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
   const orderTotal = subtotalAfterCoupon + displayShipping + displayTax
   const netOrderTotal = Math.max(orderTotal, 0)
   const feeBreakdown = netOrderTotal > 0 ? calculateTransactionFees(netOrderTotal) : null
-  const finalAmount = (feeBreakdown ? feeBreakdown.finalAmount : netOrderTotal) - (reservedDiscount || 0)
+  const finalAmount = feeBreakdown ? feeBreakdown.finalAmount : netOrderTotal
 
   const handleValidateCoupon = async () => {
     if (!couponCode.trim()) {
@@ -269,27 +279,102 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
     toast.info("Coupon removed")
   }
 
-  const currency = items.length > 0 ? (items[0].currency || 'USD') : 'USD'
+  const fetchShiprocketShipping = useCallback(async (zipCode: string) => {
+    if (!zipCode?.trim()) return
 
-  const formatCurrency = (amount: number, currencyCode: string = currency) => {
-    const localeMap: Record<string, string> = {
-      'USD': 'en-US',
-      'INR': 'en-IN',
-      'EUR': 'en-EU',
-      'GBP': 'en-GB',
-      'CAD': 'en-CA',
-      'AUD': 'en-AU',
-      'JPY': 'ja-JP',
-      'BRL': 'pt-BR',
-      'MXN': 'es-MX',
-      'ZAR': 'en-ZA'
+    const deliveryPostcode = Number(zipCode.trim())
+    if (!Number.isFinite(deliveryPostcode)) return
+
+    try {
+      setShiprocketLoading(true)
+      setShiprocketMessage(null)
+
+      const weight = calculateTotalWeight()
+      const declaredValue = subtotalAfterCoupon || totalPrice
+
+      const response = await apiClient.getShiprocketShippingRate({
+        pickupPostcode: SHIPROCKET_PICKUP_POSTCODE,
+        deliveryPostcode,
+        weight,
+        declaredValue,
+        cod: true,
+      })
+
+      if (!response.success) {
+        const msg = response.message || 'Failed to calculate shipping via Shiprocket'
+        setShiprocketMessage(msg)
+        setShiprocketShippingCost(null)
+        return
+      }
+
+      // API returns: { data: { data: { available_courier_companies } } } - handle nested structure
+      const payload = (response as any).data?.data ?? (response as any).data
+      const innerData = payload?.data ?? payload
+      const companies = (innerData?.available_courier_companies ?? payload?.available_courier_companies) as Array<{ rate?: number; courier_company_id?: number; courier_name?: string; courier_disabled?: number }> | undefined
+      let cost = 0
+
+      // Pick the courier with the least rate; exclude disabled couriers (courier_disabled: 1)
+      if (Array.isArray(companies) && companies.length > 0) {
+        const enabled = companies.filter((c) => c.courier_disabled !== 1)
+        const candidates = enabled.length > 0 ? enabled : companies
+        const cheapest = candidates.reduce((min, c) => {
+          if (typeof c.rate !== 'number') return min
+          if (typeof min.rate !== 'number' || c.rate < min.rate) return c
+          return min
+        }, candidates[0])
+        if (typeof cheapest.rate === 'number') {
+          cost = cheapest.rate
+          setShiprocketMessage(null)
+        } else {
+          setShiprocketMessage('Shiprocket did not return a numeric rate; using 0')
+        }
+      } else {
+        setShiprocketMessage('No courier options returned from Shiprocket for this address')
+        setShiprocketShippingCost(null)
+        return
+      }
+
+      setShiprocketShippingCost(cost)
+    } catch (error: any) {
+      const msg = error?.message || 'Error while calculating shipping via Shiprocket'
+      setShiprocketMessage(msg)
+      setShiprocketShippingCost(null)
+    } finally {
+      setShiprocketLoading(false)
     }
-    const locale = localeMap[currencyCode] || 'en-US'
-    return new Intl.NumberFormat(locale, {
-      style: 'currency',
-      currency: currencyCode
-    }).format(amount)
-  }
+  }, [subtotalAfterCoupon, totalPrice, items])
+
+  // Auto-fetch Shiprocket rate when zip code is entered or prefilled
+  const shiprocketDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(() => {
+    if (!isOpen || items.length === 0) return
+
+    const zip = orderForm.zipCode?.trim()
+    if (!zip) {
+      setShiprocketShippingCost(null)
+      setShiprocketMessage(null)
+      return
+    }
+
+    const deliveryPostcode = Number(zip)
+    if (!Number.isFinite(deliveryPostcode)) return
+
+    if (shiprocketDebounceRef.current) {
+      clearTimeout(shiprocketDebounceRef.current)
+    }
+
+    shiprocketDebounceRef.current = setTimeout(() => {
+      shiprocketDebounceRef.current = null
+      fetchShiprocketShipping(zip)
+    }, 500)
+
+    return () => {
+      if (shiprocketDebounceRef.current) {
+        clearTimeout(shiprocketDebounceRef.current)
+        shiprocketDebounceRef.current = null
+      }
+    }
+  }, [isOpen, orderForm.zipCode, items.length, fetchShiprocketShipping])
 
   useEffect(() => {
     if (isOpen && user) {
@@ -345,7 +430,18 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
         })),
         paymentMethod: 'all',
         notes: orderForm.notes,
-        ...(appliedCoupon?.code ? { couponCode: appliedCoupon.code } : {})
+        ...(appliedCoupon?.code ? { couponCode: appliedCoupon.code } : {}),
+        shippingCost,
+        tax: taxAmount,
+        ...(feeBreakdown
+          ? {
+              platformFee: feeBreakdown.platformFee,
+              platformFeeGst: feeBreakdown.platformFeeGst,
+              razorpayFee: feeBreakdown.razorpayFee,
+              razorpayFeeGst: feeBreakdown.razorpayFeeGst,
+              finalAmount: feeBreakdown.finalAmount
+            }
+          : {})
       }
 
       // include reservation token and redeemed points for server-side audit
@@ -422,6 +518,10 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
     }
   }
 
+  const zipEntered = !!orderForm.zipCode?.trim()
+  const deliveryUnavailable = zipEntered && !shiprocketLoading && shiprocketShippingCost == null
+  const orderBlocked = zipEntered && (shiprocketLoading || shiprocketShippingCost == null)
+
   const validateForm = () => {
     const required = ['firstName', 'lastName', 'email', 'phone', 'address', 'city', 'state', 'zipCode']
     
@@ -435,6 +535,11 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(orderForm.email)) {
       toast.error('Please enter a valid email address')
+      return false
+    }
+
+    if (orderBlocked) {
+      toast.error(deliveryUnavailable ? "Can't place order as order can't be delivered to this pincode" : "Please wait for shipping calculation")
       return false
     }
 
@@ -572,6 +677,11 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                       />
                     </div>
                   </div>
+                  {items.length > 0 && shiprocketMessage && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      {shiprocketMessage}
+                    </p>
+                  )}
                 </CardContent>
               </Card>
               {/* Order Notes */}
@@ -826,19 +936,22 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                         <span>-{formatCurrency(couponDiscount, currency)}</span>
                       </div>
                     )}
-                    {/** show displayShipping (may be server-provided on createdOrder) */}
-                    <div className="flex justify-between">
-                      <span>Shipping:</span>
-                      {displayShipping === 0 ? (
-                        <span className="text-green-600">Free</span>
-                      ) : (
-                        <span>{formatCurrency(displayShipping, currency)}</span>
-                      )}
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Tax{merchandiseSettings?.taxRate ? ` (${merchandiseSettings.taxRate}%)` : ''}:</span>
-                      <span>{formatCurrency(displayTax, currency)}</span>
-                    </div>
+                    {merchandiseSettings?.enableShipping && (
+                      <div className="flex justify-between">
+                        <span>Shipping:</span>
+                        {shippingCost === 0 ? (
+                          <span className="text-green-600">Free</span>
+                        ) : (
+                          <span>{formatCurrency(shippingCost, currency)}</span>
+                        )}
+                      </div>
+                    )}
+                    {merchandiseSettings?.enableTax && taxAmount > 0 && (
+                      <div className="flex justify-between">
+                        <span>Tax ({merchandiseSettings.taxRate}%):</span>
+                        <span>{formatCurrency(taxAmount, currency)}</span>
+                      </div>
+                    )}
                     {reservedDiscount > 0 && (
                       <div className="flex justify-between text-sm text-green-600">
                         <span>- Points discount:</span>
@@ -878,12 +991,17 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                 .
               </p>
 
+              {deliveryUnavailable && (
+                <p className="text-sm text-destructive text-center">
+                  Can&apos;t place order as order can&apos;t be delivered to this pincode
+                </p>
+              )}
               {/* Place Order Button */}
               <Button
                 type="submit"
                 className="w-full"
                 size="lg"
-                disabled={loading || items.length === 0}
+                disabled={loading || items.length === 0 || orderBlocked}
               >
                 {loading ? (
                   <>
@@ -931,39 +1049,29 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
       )}
 
       {/* Payment Simulation Modal */}
-      {createdOrder && (() => {
-        const paymentSubtotal = subtotalAfterCoupon
-        const paymentShipping = (createdOrder.shippingCost ?? shippingCost) || 0
-        const paymentTax = (createdOrder.tax ?? taxAmount) || 0
-        const paymentNet = Math.max(paymentSubtotal + paymentShipping + paymentTax , 0)
-        const paymentFeeBreakdown = paymentNet > 0 ? calculateTransactionFees(paymentNet) : null
-        const paymentTotal = (paymentFeeBreakdown ? paymentFeeBreakdown.finalAmount : paymentNet) - (reservedDiscount || 0)
-
-        return (
-          <PaymentSimulationModal
-            isOpen={showPaymentModal}
-            onClose={() => {
-              setShowPaymentModal(false)
-              setCreatedOrder(null)
-            }}
-            onPaymentSuccess={handlePaymentSuccess}
-            onPaymentFailure={handlePaymentFailure}
-            orderId={createdOrder._id}
-            orderNumber={createdOrder.orderNumber}
-            total={paymentTotal}
-            subtotal={paymentSubtotal}
-            shippingCost={paymentShipping}
-            tax={paymentTax}
-            currency={createdOrder.currency ?? currency}
-            paymentMethod={createdOrder.paymentMethod || orderForm.paymentMethod || 'all'}
-            platformFeeTotal={paymentFeeBreakdown ? paymentFeeBreakdown.platformFee + paymentFeeBreakdown.platformFeeGst : undefined}
-            razorpayFeeTotal={paymentFeeBreakdown ? paymentFeeBreakdown.razorpayFee + paymentFeeBreakdown.razorpayFeeGst : undefined}
-            couponDiscount={createdOrder.couponDiscount}
-            pointsDiscount={reservedDiscount || createdOrder.redeemedDiscount}
-            couponCode={createdOrder.couponCode}
-          />
-        )
-      })()}
+      {createdOrder && (
+        <PaymentSimulationModal
+          isOpen={showPaymentModal}
+          onClose={() => {
+            setShowPaymentModal(false)
+            setCreatedOrder(null)
+          }}
+          onPaymentSuccess={handlePaymentSuccess}
+          onPaymentFailure={handlePaymentFailure}
+          orderId={createdOrder._id}
+          orderNumber={createdOrder.orderNumber}
+          total={finalAmount}
+          subtotal={totalPrice}
+          shippingCost={createdOrder.shippingCost ?? shippingCost}
+          tax={createdOrder.tax ?? taxAmount}
+          currency={createdOrder.currency ?? currency}
+          paymentMethod={createdOrder.paymentMethod || orderForm.paymentMethod || 'all'}
+          platformFeeTotal={feeBreakdown ? feeBreakdown.platformFee + feeBreakdown.platformFeeGst : undefined}
+          razorpayFeeTotal={feeBreakdown ? feeBreakdown.razorpayFee + feeBreakdown.razorpayFeeGst : undefined}
+          couponDiscount={createdOrder.couponDiscount}
+          couponCode={createdOrder.couponCode}
+        />
+      )}
     </Dialog>
   )
 }
