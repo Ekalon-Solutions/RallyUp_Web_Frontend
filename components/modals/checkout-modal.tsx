@@ -116,7 +116,6 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
   const [validatingCoupon, setValidatingCoupon] = useState(false)
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null)
 
-  // Reset coupon when modal closes
   useEffect(() => {
     if (!isOpen) {
       setCouponCode("")
@@ -161,7 +160,6 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
           }
         }
       } catch (e) {
-        // ignore
       }
     }
     fetchPoints()
@@ -170,8 +168,28 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
   const couponDiscount = appliedCoupon?.discount ?? 0
   const subtotalAfterCoupon = Math.max(0, totalPrice - couponDiscount)
 
+  const currency = items.length > 0 ? (items[0].currency || 'USD') : 'USD'
+  const formatCurrency = (amount: number, currencyCode: string = currency) => {
+    const localeMap: Record<string, string> = {
+      USD: 'en-US',
+      INR: 'en-IN',
+      EUR: 'en-EU',
+      GBP: 'en-GB',
+      CAD: 'en-CA',
+      AUD: 'en-AU',
+      JPY: 'ja-JP',
+      BRL: 'pt-BR',
+      MXN: 'es-MX',
+      ZAR: 'en-ZA',
+    }
+    const locale = localeMap[currencyCode] || 'en-US'
+    return new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency: currencyCode,
+    }).format(amount)
+  }
+
   const calculateTotalWeight = () => {
-    // Approximate weight based on quantity (1 kg per item as a simple default)
     const totalQuantity = items.reduce((sum, item) => sum + (item.quantity || 0), 0)
     return totalQuantity > 0 ? totalQuantity : 1
   }
@@ -192,14 +210,12 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
   const shippingCost = shiprocketShippingCost != null ? shiprocketShippingCost : calculateShipping()
   const taxAmount = calculateTax()
 
-  // compute estimated shipping/tax once merchandiseSettings are available
   useEffect(() => {
     if (merchandiseSettings && isOpen) {
       setEstimatedShipping(calculateShipping())
       setEstimatedTax(calculateTax())
 
-      // call server estimate endpoint to get authoritative shipping/tax
-      (async () => {
+      ;(async () => {
         try {
           const clubId = typeof items[0]?.club === 'string' ? items[0].club : items[0]?.club?._id
           const orderData = {
@@ -225,14 +241,11 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
             setEstimatedTax(resp.data.tax ?? calculateTax())
           }
         } catch (e) {
-          // ignore - fall back to local estimates
         }
       })()
     }
   }, [merchandiseSettings, subtotalAfterCoupon])
 
-  // Prefer locally-updated orderShipping/orderTax (set on order creation),
-  // then the createdOrder values returned from server, otherwise fall back to locally computed values.
   const displayShipping = orderShipping ?? (createdOrder ? (createdOrder.shippingCost ?? (estimatedShipping ?? shippingCost)) : (estimatedShipping ?? shippingCost))
   const displayTax = orderTax ?? (createdOrder ? (createdOrder.tax ?? (estimatedTax ?? taxAmount)) : (estimatedTax ?? taxAmount))
 
@@ -314,13 +327,11 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
         return
       }
 
-      // API returns: { data: { data: { available_courier_companies } } } - handle nested structure
       const payload = (response as any).data?.data ?? (response as any).data
       const innerData = payload?.data ?? payload
       const companies = (innerData?.available_courier_companies ?? payload?.available_courier_companies) as Array<{ rate?: number; courier_company_id?: number; courier_name?: string; courier_disabled?: number }> | undefined
       let cost = 0
 
-      // Pick the courier with the least rate; exclude disabled couriers (courier_disabled: 1)
       if (Array.isArray(companies) && companies.length > 0) {
         const enabled = companies.filter((c) => c.courier_disabled !== 1)
         const candidates = enabled.length > 0 ? enabled : companies
@@ -451,10 +462,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
           : {})
       }
 
-      // include reservation token and redeemed points for server-side audit
       if (reservationToken) {
-        // attach reservation info to orderData
-        // server may persist these fields if supported
         (orderData as any).reservationToken = reservationToken
         ;(orderData as any).redeemedPoints = redeemPoints
         ;(orderData as any).redeemedDiscount = reservedDiscount
@@ -464,7 +472,6 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
       
         if (response.success && response.data) {
         const order = response.data.data
-        // update local shipping/tax immediately so the checkout summary reflects server-calculated values
         setOrderShipping(order.shippingCost ?? null)
         setOrderTax(order.tax ?? null)
         setCreatedOrder(order)
@@ -481,12 +488,10 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
 
   const handlePaymentSuccess = async (orderId: string, paymentId: string, razorpayOrderId: string, razorpaySignature: string) => {
     try {
-      // confirm any reservation (consume points) after successful payment
       if (reservationToken) {
         try {
           await apiClient.confirmReservation(reservationToken, orderId)
         } catch (e) {
-          // non-fatal here; still try to update order
         }
       }
       await apiClient.patch(`/orders/admin/${orderId}/payment-status`, {
@@ -500,14 +505,12 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
       onSuccess()
       onClose()
     } catch (error) {
-      // console.error('Error updating payment status:', error)
       toast.error('Payment successful but failed to update order status.')
     }
   }
 
   const handlePaymentFailure = async (orderId: string, paymentId: string, razorpayOrderId: string, razorpaySignature: string) => {
     try {
-      // release reservation on payment failure
       if (reservationToken) {
         try {
           await apiClient.cancelReservation(reservationToken)
@@ -520,7 +523,6 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
       
       toast.error('Payment failed. Please try again.')
     } catch (error) {
-      // console.error('Error updating payment status:', error)
       toast.error('Failed to update payment status.')
     }
   }
@@ -741,7 +743,6 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                           {item.tags && Array.isArray(item.tags) && item.tags.length > 0 && (
                             <div className="flex flex-wrap gap-1 mt-1">
                               {(() => {
-                                // Handle case where tags might be stored as JSON string
                                 let parsedTags = item.tags;
                                 if (item.tags.length === 1 && typeof item.tags[0] === 'string' && item.tags[0].startsWith('[')) {
                                   try {
@@ -784,7 +785,6 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                 </CardContent>
               </Card>
 
-              {/* Coupon Section - same as events */}
               {totalPrice > 0 && (
                 <Card className="border-2 border-dashed">
                   <CardHeader className="pb-3">
@@ -891,7 +891,6 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                                 setReserving(false)
                                 return
                               }
-                              // pass order total so backend can cap reserved points to order value
                               const orderTotalForReservation = Math.max(calculateTransactionFees(totalPrice - couponDiscount + displayShipping + displayTax).finalAmount, 0)
                               const resp = await apiClient.createReservation(redeemPoints, clubId, orderTotalForReservation)
                               if (resp && resp.success) {
@@ -916,7 +915,6 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                             try {
                               await apiClient.cancelReservation(reservationToken)
                             } catch (e) {
-                              // ignore
                             }
                           }
                           setRedeemPoints(0);
@@ -1041,7 +1039,6 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
           onNonMemberContinue={() => {
             setMemberValidated(true)
             setShowMemberValidation(false)
-            // Retry form submission
             const form = document.querySelector('form')
             if (form) {
               form.requestSubmit()
