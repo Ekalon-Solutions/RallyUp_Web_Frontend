@@ -64,8 +64,9 @@ interface AppliedCoupon {
   finalPrice: number
 }
 
+const SHIPROCKET_PICKUP_FALLBACK = 700008
+
 export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems }: CheckoutModalProps) {
-  const SHIPROCKET_PICKUP_POSTCODE = 700008 // fallback pickup pincode; adjust as needed
   const { user } = useAuth()
   const router = useRouter()
   const { items: cartItems, totalPrice: cartTotalPrice, clearCart } = useCart()
@@ -96,6 +97,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
     taxRate: number
     enableTax: boolean
     enableShipping: boolean
+    pickupPostcode?: number | null
   } | null>(null)
   const [orderForm, setOrderForm] = useState<OrderForm>({
     firstName: user?.name?.split(' ')[0] || '',
@@ -122,23 +124,26 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
     }
   }, [isOpen])
 
-  // Fetch merchandise settings when modal opens
   useEffect(() => {
     const fetchSettings = async () => {
       try {
         const club = items[0]?.club
         const clubId = typeof club === 'string' ? club : club?._id
-        
+
         if (clubId) {
           const response = await apiClient.getPublicMerchandiseSettings(clubId)
-          if (response.success && response.data?.settings) {
-            setMerchandiseSettings(response.data.settings)
+          if (response.success) {
+            const payload = (response.data as any)?.data ?? response.data
+            const settings = payload?.settings
+            if (settings && typeof settings === 'object') {
+              setMerchandiseSettings(settings)
+            }
           }
         }
-      } catch (error) {
+      } catch {
       }
     }
-    
+
     if (isOpen && items.length > 0) {
       fetchSettings()
     }
@@ -285,6 +290,8 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
     const deliveryPostcode = Number(zipCode.trim())
     if (!Number.isFinite(deliveryPostcode)) return
 
+    const pickupPostcode = merchandiseSettings?.pickupPostcode ?? SHIPROCKET_PICKUP_FALLBACK
+
     try {
       setShiprocketLoading(true)
       setShiprocketMessage(null)
@@ -293,7 +300,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
       const declaredValue = subtotalAfterCoupon || totalPrice
 
       const response = await apiClient.getShiprocketShippingRate({
-        pickupPostcode: SHIPROCKET_PICKUP_POSTCODE,
+        pickupPostcode,
         deliveryPostcode,
         weight,
         declaredValue,
@@ -342,9 +349,8 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
     } finally {
       setShiprocketLoading(false)
     }
-  }, [subtotalAfterCoupon, totalPrice, items])
+  }, [subtotalAfterCoupon, totalPrice, items, merchandiseSettings?.pickupPostcode])
 
-  // Auto-fetch Shiprocket rate when zip code is entered or prefilled
   const shiprocketDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
     if (!isOpen || items.length === 0) return
@@ -363,10 +369,11 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
       clearTimeout(shiprocketDebounceRef.current)
     }
 
+    const delay = merchandiseSettings === null ? 1500 : 500
     shiprocketDebounceRef.current = setTimeout(() => {
       shiprocketDebounceRef.current = null
       fetchShiprocketShipping(zip)
-    }, 500)
+    }, delay)
 
     return () => {
       if (shiprocketDebounceRef.current) {
@@ -374,7 +381,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
         shiprocketDebounceRef.current = null
       }
     }
-  }, [isOpen, orderForm.zipCode, items.length, fetchShiprocketShipping])
+  }, [isOpen, orderForm.zipCode, items.length, fetchShiprocketShipping, merchandiseSettings])
 
   useEffect(() => {
     if (isOpen && user) {

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { AlertCircle } from 'lucide-react'
 import { RefundConfirmationModal } from './modals/refund-confirmation-modal'
 import { getApiUrl } from '@/lib/config'
+import { useToast } from '@/hooks/use-toast'
 
 interface RefundButtonProps {
   sourceType: 'event_ticket' | 'store_order'
@@ -27,6 +28,7 @@ interface RefundEstimate {
 }
 
 export function RefundButton({ sourceType, eventId, orderId, onRefundRequested }: RefundButtonProps) {
+  const { toast } = useToast()
   const [estimate, setEstimate] = useState<RefundEstimate | null>(null)
   const [loading, setLoading] = useState(false)
   const [showModal, setShowModal] = useState(false)
@@ -51,7 +53,7 @@ export function RefundButton({ sourceType, eventId, orderId, onRefundRequested }
 
       const data = await response.json()
       
-      if (response.ok && data.success && data.data.ok) {
+      if (response.ok && data.success && data.data) {
         setEstimate(data.data)
       } else {
         setError(data.message || 'Failed to load refund information')
@@ -82,12 +84,10 @@ export function RefundButton({ sourceType, eventId, orderId, onRefundRequested }
       if (response.ok && data.success) {
         setShowModal(false)
         onRefundRequested?.()
-        
-        const message = sourceType === 'event_ticket'
+        const msg = sourceType === 'event_ticket'
           ? 'Ticket cancelled : Refund will be processed in 5-7 working days excluding the platform fees, payment gateway fees and taxes. Please refer to the refund policy for more details.'
           : 'Order cancelled : Refund will be processed in 5-7 working days excluding the platform fees, payment gateway fees and taxes. Please refer to the refund policy for more details.'
-        
-        alert(message)
+        toast({ title: sourceType === 'event_ticket' ? 'Ticket cancelled' : 'Order cancelled', description: msg })
       } else {
         setError(data.message || 'Failed to request refund')
       }
@@ -117,8 +117,18 @@ export function RefundButton({ sourceType, eventId, orderId, onRefundRequested }
   const isPastCutoff = !estimate.eligible
   const cutoffDate = estimate.cutoff ? new Date(estimate.cutoff) : null
 
+  const formatCurrency = (amt: number, cur: string) => {
+    const symbols: Record<string, string> = { INR: '₹', USD: '$', EUR: '€', GBP: '£' }
+    return `${symbols[cur] || cur} ${amt.toFixed(2)}`
+  }
+
   return (
     <>
+      {!isPastCutoff && (
+        <p className="text-sm font-medium text-green-600 dark:text-green-500 mb-2">
+          Estimated Refund: {formatCurrency(estimate.estimatedRefund, estimate.currency)}
+        </p>
+      )}
       <Button
         onClick={() => setShowModal(true)}
         disabled={isPastCutoff || loading}

@@ -1357,6 +1357,7 @@ class ApiClient {
     paymentID?: string;
     signature?: string;
     reservationToken?: string;
+    amountPaid?: number;
   }): Promise<ApiResponse<{ message: string; event: Event }>> {
     return this.request(`/events/public/${eventId}/register`, {
       method: 'POST',
@@ -3189,6 +3190,14 @@ class ApiClient {
     return this.put(`/club-settings/${clubId}/help-section`, data);
   }
 
+  async getClubAddress(clubId: string): Promise<ApiResponse<{ street?: string; city?: string; state?: string; country?: string; zipCode?: string }>> {
+    return this.get(`/club-settings/${clubId}/address`);
+  }
+
+  async updateClubAddress(clubId: string, address: { street?: string; city?: string; state?: string; country?: string; zipCode?: string }): Promise<ApiResponse<any>> {
+    return this.put(`/club-settings/${clubId}/address`, address);
+  }
+
   async getCoupons(clubId: string): Promise<ApiResponse<{ coupons: any[] }>> {
     return this.get('/coupons', { params: { clubId } });
   }
@@ -3335,6 +3344,16 @@ class ApiClient {
     };
   }>> {
     return this.get('/refunds/admin', { params });
+  }
+
+  async getRefundRecalculate(refundId: string): Promise<ApiResponse<{
+    recalculatedRefund: number;
+    percentage: number;
+    breakdown: any;
+    originalRefund: number;
+    differs: boolean;
+  }>> {
+    return this.get(`/refunds/admin/${refundId}/recalculate`);
   }
 
   async markRefundProcessed(refundId: string, adminNotes?: string): Promise<ApiResponse<any>> {

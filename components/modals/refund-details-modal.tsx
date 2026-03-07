@@ -5,6 +5,14 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Info } from 'lucide-react'
+
+interface RecalculatedRefund {
+  recalculatedRefund: number
+  percentage: number
+  differs: boolean
+}
 
 interface RefundRequest {
   _id: string
@@ -18,6 +26,7 @@ interface RefundRequest {
   eventId?: {
     title: string
     startTime: string
+    venue?: string
   }
   orderId?: {
     orderNumber: string
@@ -39,11 +48,12 @@ interface RefundRequest {
 
 interface RefundDetailsModalProps {
   refund: RefundRequest | null
+  recalculated?: RecalculatedRefund | null
   onClose: () => void
   onMarkProcessed: (refundId: string, adminNotes: string) => Promise<void>
 }
 
-export function RefundDetailsModal({ refund, onClose, onMarkProcessed }: RefundDetailsModalProps) {
+export function RefundDetailsModal({ refund, recalculated, onClose, onMarkProcessed }: RefundDetailsModalProps) {
   const [adminNotes, setAdminNotes] = useState('')
   const [processing, setProcessing] = useState(false)
 
@@ -86,7 +96,13 @@ export function RefundDetailsModal({ refund, onClose, onMarkProcessed }: RefundD
               {refund.sourceType === 'event_ticket' && refund.eventId && (
                 <>
                   <Label className="font-semibold mt-2">Event</Label>
-                  <p className="text-sm">{refund.eventId.title}</p>
+                  <p className="text-sm font-medium">{refund.eventId.title}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {new Date(refund.eventId.startTime).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+                  </p>
+                  {refund.eventId.venue && (
+                    <p className="text-xs text-muted-foreground">{refund.eventId.venue}</p>
+                  )}
                 </>
               )}
               
@@ -128,12 +144,24 @@ export function RefundDetailsModal({ refund, onClose, onMarkProcessed }: RefundD
                 {refund.currency} {refund.estimatedRefund.toFixed(2)}
               </span>
             </div>
+            {recalculated?.differs && refund.status === 'requested' && (
+              <Alert className="mt-3 border-amber-200 bg-amber-50/50 dark:border-amber-800 dark:bg-amber-950/30">
+                <Info className="h-4 w-4" />
+                <AlertDescription>
+                  <span className="font-medium">Per current refund rules:</span>{' '}
+                  <span className="font-bold text-green-600 dark:text-green-500">
+                    {refund.currency} {recalculated.recalculatedRefund.toFixed(2)}
+                  </span>
+                  {' '}({recalculated.percentage}% applies). This amount will be used when you mark as processed.
+                </AlertDescription>
+              </Alert>
+            )}
           </div>
 
           <div className="space-y-2">
             <div>
               <Label className="font-semibold">Status</Label>
-              <p className="text-sm capitalize">{refund.status}</p>
+              <p className="text-sm">{refund.status === 'processed' ? 'Refund Processed' : refund.status}</p>
             </div>
             
             <div>
