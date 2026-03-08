@@ -805,11 +805,11 @@ class ApiClient {
     });
   }
 
-  /** Verify email magic link token (SendGrid login link). Returns token and user data. */
-  async verifyEmailLink(token: string): Promise<ApiResponse<{ token: string } & (User | Admin | SystemOwner)>> {
-    return this.request('/otp/verify-email-link', {
+  /** Verify email OTP (6-digit code sent via SendGrid). Returns token and user data. */
+  async verifyEmailOTP(params: { email: string; otp: string; role: 'user' | 'admin' | 'system_owner' }): Promise<ApiResponse<{ token: string } & (User | Admin | SystemOwner)>> {
+    return this.request('/otp/verify-email-otp', {
       method: 'POST',
-      body: JSON.stringify({ token }),
+      body: JSON.stringify(params),
     });
   }
 
