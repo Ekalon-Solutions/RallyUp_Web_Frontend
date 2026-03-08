@@ -13,7 +13,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import { SiteNavbar } from "@/components/site-navbar"
 import { SiteFooter } from "@/components/site-footer"
-import { RecaptchaVerifier, signInWithPhoneNumber, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink } from "firebase/auth"
+import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth"
 import { auth } from "@/lib/firebase/config"
 import { apiClient } from "@/lib/api"
 import { getStoredPurchaseIntent } from "@/components/modals/purchase-flow-modal"
@@ -350,51 +350,29 @@ function AuthPageContent() {
 
   useEffect(() => {
     if (typeof window === "undefined") return
-    const url = window.location.href
-    try {
-      if (isSignInWithEmailLink(auth, url)) {
-        let email = window.localStorage.getItem("emailForSignIn")
-        if (!email) {
-          email = window.prompt("Please provide your email for confirmation") || null
-        }
-        if (!email) {
-          toast.error("Email is required to complete sign-in.")
+    const params = new URLSearchParams(window.location.search)
+    const emailLinkToken = params.get("emailLinkToken")
+    if (!emailLinkToken) return
+    ;(async () => {
+      try {
+        const res = await apiClient.verifyEmailLink(emailLinkToken)
+        if (!res.success || !res.data?.token) {
+          toast.error(res.message || res.error || "Invalid or expired link. Please request a new sign-in link.")
+          window.history.replaceState({}, "", "/login")
           return
         }
-
-        signInWithEmailLink(auth, email, url)
-          .then(async (result) => {
-            const signInType = window.localStorage.getItem("emailSignInType") || "user"
-            let loginResult;
-            try {
-              if (signInType === "user") {
-                loginResult = await login(email, "", "", false)
-              } else if (signInType === "admin") {
-                loginResult = await login(email, "", "", true)
-              } else if (signInType === "system") {
-                loginResult = await login(email, "", "", false, true)
-              }
-            } catch (err) {
-              loginResult = { success: false, error: err instanceof Error ? err.message : 'Login failed' }
-            }
-            
-            window.localStorage.removeItem("emailForSignIn")
-            window.localStorage.removeItem("emailSignInType")
-            
-            if (loginResult?.success) {
-              toast.success("Signed in successfully via email link")
-            } else {
-              toast.error(loginResult?.error || "Backend login failed. Please try again.")
-            }
-          })
-          .catch((err) => {
-            // console.error("Error completing email sign-in:", err)
-            toast.error("Failed to sign in with email link.")
-          })
+        const data = res.data as any
+        localStorage.setItem("token", data.token)
+        const userType = data.role === "system_owner" ? "system_owner" : data.username ? "member" : (data.role || "member")
+        localStorage.setItem("userType", userType)
+        toast.success("Signed in successfully via email link")
+        window.history.replaceState({}, "", "/login")
+        window.location.href = "/login"
+      } catch {
+        toast.error("Failed to sign in with email link.")
+        window.history.replaceState({}, "", "/login")
       }
-    } catch (err) {
-      // console.error("Error checking email sign-in link:", err)
-    }
+    })()
   }, [])
 
   const handleUserLogin = async (e: React.FormEvent) => {
@@ -1144,20 +1122,17 @@ function AuthPageContent() {
                                 toast.error("Please fix the email validation error")
                                 return
                               }
-                              const actionCodeSettings = {
-                                url: window.location.origin + "/login",
-                                handleCodeInApp: true,
-                              }
                               try {
                                 setOtpButtonLoading(true)
-                                await sendSignInLinkToEmail(auth, userLoginData.email, actionCodeSettings)
-                                window.localStorage.setItem("emailForSignIn", userLoginData.email)
-                                window.localStorage.setItem("emailSignInType", "user")
-                                toast.success(`Sign-in link sent to ${userLoginData.email}. Check your email to complete sign-in.`)
-                                setUserLoginOtpSent(true)
-                                setUserLoginResendCountdown(10)
+                                const res = await apiClient.sendOtp({ email: userLoginData.email, role: "user" })
+                                if (res.success) {
+                                  toast.success(`Sign-in link sent to ${userLoginData.email}. Check your email to complete sign-in.`)
+                                  setUserLoginOtpSent(true)
+                                  setUserLoginResendCountdown(10)
+                                } else {
+                                  toast.error(res.message || res.error || "Failed to send sign-in link.")
+                                }
                               } catch (err) {
-                                // console.error("Error sending email sign-in link:", err)
                                 toast.error("Failed to send sign-in link. Please try again.")
                               } finally {
                                 setOtpButtonLoading(false)
@@ -1195,20 +1170,18 @@ function AuthPageContent() {
                             <p className="text-slate-300">A sign-in link has been sent to <strong className="text-white">{userLoginData.email}</strong>. Open the link in your email to complete sign-in. If you opened the link in another device, return to this browser to complete the flow.</p>
                             <div className="flex items-center gap-2">
                               <Button
-                                onClick={() => {
-                                  ;(async () => {
-                                    const actionCodeSettings = { url: window.location.origin + "/login", handleCodeInApp: true }
-                                    try {
-                                      await sendSignInLinkToEmail(auth, userLoginData.email, actionCodeSettings)
-                                      window.localStorage.setItem("emailForSignIn", userLoginData.email)
-                                      window.localStorage.setItem("emailSignInType", "user")
+                                onClick={async () => {
+                                  try {
+                                    const res = await apiClient.sendOtp({ email: userLoginData.email, role: "user" })
+                                    if (res.success) {
                                       toast.success(`Sign-in link resent to ${userLoginData.email}.`)
                                       setUserLoginResendCountdown(10)
-                                    } catch (err) {
-                                      // console.error("Error resending email sign-in link:", err)
-                                      toast.error("Failed to resend sign-in link. Please try again.")
+                                    } else {
+                                      toast.error(res.message || res.error || "Failed to resend sign-in link.")
                                     }
-                                  })()
+                                  } catch {
+                                    toast.error("Failed to resend sign-in link. Please try again.")
+                                  }
                                 }}
                                 className="flex-1 bg-sky-400 text-slate-900 hover:bg-sky-300 h-12 text-lg font-medium"
                               >
@@ -1805,22 +1778,20 @@ function AuthPageContent() {
                         onClick={() => {
                           ;(async () => {
                             if (adminLoginData.email) {
-                              const actionCodeSettings = {
-                                url: window.location.origin + "/login",
-                                handleCodeInApp: true,
-                              }
                               try {
                                 setOtpButtonLoading(true)
-                                await sendSignInLinkToEmail(auth, adminLoginData.email, actionCodeSettings)
-                                window.localStorage.setItem("emailForSignIn", adminLoginData.email)
-                                window.localStorage.setItem("emailSignInType", "admin")
-                                toast.success(`Sign-in link sent to ${adminLoginData.email}. Check your email to complete sign-in.`)
-                                setOtpButtonLoading(false)
-                                setAdminLoginOtpSent(true)
-                                setAdminLoginResendCountdown(10)
+                                const res = await apiClient.sendOtp({ email: adminLoginData.email, role: "admin" })
+                                if (res.success) {
+                                  toast.success(`Sign-in link sent to ${adminLoginData.email}. Check your email to complete sign-in.`)
+                                  setAdminLoginOtpSent(true)
+                                  setAdminLoginResendCountdown(10)
+                                } else {
+                                  toast.error(res.message || res.error || "Failed to send sign-in link.")
+                                }
                               } catch (err) {
-                                // console.error("Error sending email sign-in link:", err)
                                 toast.error("Failed to send sign-in link. Please try again.")
+                              } finally {
+                                setOtpButtonLoading(false)
                               }
                             } else if (adminLoginData.phoneNumber && adminLoginData.countryCode) {
                               const phoneError = validatePhoneNumber(adminLoginData.phoneNumber)
@@ -1855,20 +1826,18 @@ function AuthPageContent() {
                             <p className="text-slate-300">A sign-in link has been sent to <strong className="text-white">{adminLoginData.email}</strong>. Open the link in your email to complete sign-in.</p>
                             <div className="flex items-center gap-2">
                               <Button
-                                onClick={() => {
-                                  ;(async () => {
-                                    const actionCodeSettings = { url: window.location.origin + "/login", handleCodeInApp: true }
-                                    try {
-                                      await sendSignInLinkToEmail(auth, adminLoginData.email, actionCodeSettings)
-                                      window.localStorage.setItem("emailForSignIn", adminLoginData.email)
-                                      window.localStorage.setItem("emailSignInType", "admin")
+                                onClick={async () => {
+                                  try {
+                                    const res = await apiClient.sendOtp({ email: adminLoginData.email, role: "admin" })
+                                    if (res.success) {
                                       toast.success(`Sign-in link resent to ${adminLoginData.email}.`)
                                       setAdminLoginResendCountdown(10)
-                                    } catch (err) {
-                                      // console.error("Error resending email sign-in link:", err)
-                                      toast.error("Failed to resend sign-in link. Please try again.")
+                                    } else {
+                                      toast.error(res.message || res.error || "Failed to resend sign-in link.")
                                     }
-                                  })()
+                                  } catch {
+                                    toast.error("Failed to resend sign-in link. Please try again.")
+                                  }
                                 }}
                                 className="flex-1 bg-sky-400 text-slate-900 hover:bg-sky-300 h-12 text-lg font-medium"
                               >
@@ -2176,23 +2145,20 @@ function AuthPageContent() {
                           ;(async () => {
                             // console.log("system ownder login data",systemOwnerLoginData)
                             if (systemOwnerLoginData.email) {
-                              const actionCodeSettings = {
-                                url: window.location.origin + "/login",
-                                handleCodeInApp: true,
-                              }
                               try {
-                                // console.log("hey email")
                                 setOtpButtonLoading(true)
-                                await sendSignInLinkToEmail(auth, systemOwnerLoginData.email, actionCodeSettings)
-                                window.localStorage.setItem("emailForSignIn", systemOwnerLoginData.email)
-                                window.localStorage.setItem("emailSignInType", "system")
-                                toast.success(`Sign-in link sent to ${systemOwnerLoginData.email}. Check your email to complete sign-in.`)
-                                setOtpButtonLoading(false)
-                                setSystemOwnerLoginOtpSent(true)
-                                setSystemOwnerLoginResendCountdown(10)
+                                const res = await apiClient.sendOtp({ email: systemOwnerLoginData.email, role: "system_owner" })
+                                if (res.success) {
+                                  toast.success(`Sign-in link sent to ${systemOwnerLoginData.email}. Check your email to complete sign-in.`)
+                                  setSystemOwnerLoginOtpSent(true)
+                                  setSystemOwnerLoginResendCountdown(10)
+                                } else {
+                                  toast.error(res.message || res.error || "Failed to send sign-in link.")
+                                }
                               } catch (err) {
-                                // console.error("Error sending email sign-in link:", err)
                                 toast.error("Failed to send sign-in link. Please try again.")
+                              } finally {
+                                setOtpButtonLoading(false)
                               }
                             } else if (systemOwnerLoginData.phoneNumber && systemOwnerLoginData.countryCode) {
                               // console.log("hey mobile")
@@ -2217,20 +2183,18 @@ function AuthPageContent() {
                             <p className="text-slate-300">A sign-in link has been sent to <strong className="text-white">{systemOwnerLoginData.email}</strong>. Open the link in your email to complete sign-in.</p>
                             <div className="flex items-center gap-2">
                               <Button
-                                onClick={() => {
-                                  ;(async () => {
-                                    const actionCodeSettings = { url: window.location.origin + "/login", handleCodeInApp: true }
-                                    try {
-                                      await sendSignInLinkToEmail(auth, systemOwnerLoginData.email, actionCodeSettings)
-                                      window.localStorage.setItem("emailForSignIn", systemOwnerLoginData.email)
-                                      window.localStorage.setItem("emailSignInType", "system")
+                                onClick={async () => {
+                                  try {
+                                    const res = await apiClient.sendOtp({ email: systemOwnerLoginData.email, role: "system_owner" })
+                                    if (res.success) {
                                       toast.success(`Sign-in link resent to ${systemOwnerLoginData.email}.`)
                                       setSystemOwnerLoginResendCountdown(10)
-                                    } catch (err) {
-                                      // console.error("Error resending email sign-in link:", err)
-                                      toast.error("Failed to resend sign-in link. Please try again.")
+                                    } else {
+                                      toast.error(res.message || res.error || "Failed to resend sign-in link.")
                                     }
-                                  })()
+                                  } catch {
+                                    toast.error("Failed to resend sign-in link. Please try again.")
+                                  }
                                 }}
                                 className="flex-1 bg-sky-400 text-slate-900 hover:bg-sky-300 h-12 text-lg font-medium"
                               >

@@ -790,6 +790,29 @@ class ApiClient {
     });
   }
 
+  /** Send OTP: for email sends magic link via SendGrid; for phone uses Firebase. */
+  async sendOtp(data: {
+    email?: string;
+    phoneNumber?: string;
+    countryCode?: string;
+    role: 'user' | 'admin' | 'system_owner';
+    username?: string;
+    recaptchaToken?: string;
+  }): Promise<ApiResponse<{ userData?: any; sessionInfo?: string }>> {
+    return this.request('/otp/send', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  /** Verify email magic link token (SendGrid login link). Returns token and user data. */
+  async verifyEmailLink(token: string): Promise<ApiResponse<{ token: string } & (User | Admin | SystemOwner)>> {
+    return this.request('/otp/verify-email-link', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    });
+  }
+
   async userProfile(): Promise<ApiResponse<User>> {
     return this.request('/users/profile');
   }
