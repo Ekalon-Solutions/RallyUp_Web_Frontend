@@ -3357,6 +3357,7 @@ class ApiClient {
     page?: number;
     limit?: number;
     status?: string;
+    clubId?: string;
   }): Promise<ApiResponse<{
     refunds: any[];
     pagination: {

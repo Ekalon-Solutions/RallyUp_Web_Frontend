@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,6 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/contexts/auth-context"
+import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { apiClient } from "@/lib/api"
 import {
   WEBSITE_SECTION_OPTIONS,
@@ -22,13 +23,28 @@ import { toast } from "sonner"
 import { Loader2, ExternalLink } from "lucide-react"
 
 export default function WebsitePage() {
-  const { user , activeClubId} = useAuth()
+  const { user } = useAuth()
+  const clubId = useRequiredClubId()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [publishing, setPublishing] = useState(false)
-  
-  const clubId = activeClubId
-  const clubSlug = (user as any)?.clubs?.find((c: any) => c._id === clubId)?.slug
+
+  // Resolve the selected club from activeClubId so we only use this club's data (not user.club or another club)
+  const selectedClub = useMemo(() => {
+    if (!user || !clubId) return null
+    const u = user as any
+    const normalizeId = (x: any) => (x?._id?.toString?.() ?? (typeof x === "string" ? x : null))
+    const fromClubs = Array.isArray(u.clubs) && u.clubs.find((c: any) => normalizeId(c) === clubId)
+    if (fromClubs && typeof fromClubs === "object") return fromClubs
+    const fromMembership = u.memberships?.find(
+      (m: any) => m?.status === "active" && (normalizeId(m.club_id) === clubId || normalizeId(m.club) === clubId)
+    )
+    const clubRef = fromMembership?.club_id ?? fromMembership?.club
+    if (clubRef && typeof clubRef === "object") return clubRef
+    return null
+  }, [user, clubId])
+
+  const clubSlug = selectedClub?.slug ?? (user as any)?.clubs?.find((c: any) => c._id === clubId)?.slug
 
   const [websiteSettings, setWebsiteSettings] = useState({
     published: false,
@@ -116,10 +132,10 @@ export default function WebsitePage() {
       setSaving(true)
       
       const websiteResponse = await apiClient.updateWebsiteSetup(clubId, {
-        title: (user as any)?.club?.name || "My Club",
+        title: selectedClub?.name || "My Club",
         description: websiteSettings.welcomeText,
-        contactEmail: (user as any)?.club?.contactEmail || "",
-        contactPhone: (user as any)?.club?.contactPhone || "",
+        contactEmail: selectedClub?.contactEmail || "",
+        contactPhone: selectedClub?.contactPhone || "",
         isPublished: websiteSettings.published,
         sections: sanitizeWebsiteSections(websiteSettings.navigation),
       })
@@ -154,10 +170,10 @@ export default function WebsitePage() {
     try {
       setPublishing(true)
       const response = await apiClient.updateWebsiteSetup(clubId, {
-        title: (user as any)?.club?.name || "My Club",
+        title: selectedClub?.name || "My Club",
         description: websiteSettings.welcomeText,
-        contactEmail: (user as any)?.club?.contactEmail || "",
-        contactPhone: (user as any)?.club?.contactPhone || "",
+        contactEmail: selectedClub?.contactEmail || "",
+        contactPhone: selectedClub?.contactPhone || "",
         isPublished: true,
         sections: sanitizeWebsiteSections(websiteSettings.navigation),
       })

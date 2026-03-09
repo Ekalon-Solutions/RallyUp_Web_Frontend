@@ -76,7 +76,7 @@ export default function RefundsPage() {
 
   useEffect(() => {
     fetchRefunds()
-  }, [page, statusFilter])
+  }, [page, statusFilter, clubId])
 
   useEffect(() => {
     if (clubId) fetchRules()
@@ -203,8 +203,14 @@ export default function RefundsPage() {
     try {
       setLoading(true)
       const token = localStorage.getItem('token')
+      const searchParams = new URLSearchParams({
+        page: String(page),
+        limit: '20',
+        status: statusFilter,
+      })
+      if (clubId) searchParams.set('clubId', clubId)
       const response = await fetch(
-        getApiUrl(`/refunds/admin?page=${page}&limit=20&status=${statusFilter}`),
+        getApiUrl(`/refunds/admin?${searchParams.toString()}`),
         {
           headers: {
             'Authorization': `Bearer ${token}`
