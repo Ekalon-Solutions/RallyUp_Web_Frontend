@@ -108,12 +108,15 @@ export function CartModal({ isOpen, onClose, onCheckout }: CartModalProps) {
         const clubId = typeof club === 'string' ? club : club?._id
         if (clubId) {
           const response = await (await import('@/lib/api')).apiClient.getPublicMerchandiseSettings(clubId)
-          if (response.success && response.data?.settings) {
-            setMerchandiseSettings(response.data.settings)
+          if (response.success) {
+            const payload = (response.data as any)?.data ?? response.data
+            const settings = payload?.settings
+            if (settings && typeof settings === 'object') {
+              setMerchandiseSettings(settings)
+            }
           }
         }
       } catch (e) {
-        // ignore
       }
     }
 

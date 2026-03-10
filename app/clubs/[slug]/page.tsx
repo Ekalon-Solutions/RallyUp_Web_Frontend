@@ -462,12 +462,14 @@ export default function PublicClubPage() {
                 Official Website
               </a>
             ) : (
-              <div className="flex items-center gap-3 text-muted-foreground group">
-                <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center">
-                  <Globe className="h-5 w-5" style={{ color: primaryColor }} />
-                </div>
-                Official Supporters Club
-              </div>
+              // <div className="flex items-center gap-3 text-muted-foreground group">
+              //   <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center">
+              //     <Globe className="h-5 w-5" style={{ color: primaryColor }} />
+              //   </div>
+              //   Official Supporters Club
+              // </div>
+              <>
+              </>
             )}
           </div>
         </div>

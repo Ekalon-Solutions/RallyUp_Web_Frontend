@@ -120,7 +120,6 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
     try {
       await apiClient.cancelReservation(reservationToken)
     } catch (e) {
-      // ignore
     }
     setReservationToken(null)
     setRedeemPoints(0)
@@ -173,7 +172,6 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
           }
         }
       } catch (e) {
-        // ignore
       }
     }
     fetchPoints()
@@ -192,7 +190,6 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
     if (discountSource.earlyBirdDiscount?.enabled) {
       const eb = discountSource.earlyBirdDiscount
       if (eb.membersOnly && !isMember) {
-        // early bird is members-only and user is not a member
       } else {
         const now = new Date()
         const startTime = new Date(eb.startTime ?? 0)
@@ -276,12 +273,8 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
       const totalBeforeCoupon = basePrice * attendees.length
 
       const eventSubtotalAfterCoupon = Math.max(totalBeforeCoupon - couponDiscount, 0)
-
-      // events do not use shipping/tax by default
       const displayShipping = 0
       const displayTax = 0
-
-      // apply reserved discount (if any) and include shipping/tax
       const adjustedFinalPrice = Math.max(eventSubtotalAfterCoupon + displayShipping + displayTax - (reservedDiscount || 0), 0)
 
       if (adjustedFinalPrice <= 0) {
@@ -371,15 +364,14 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
               throw new Error('Payment verification failed')
             }
             
-            // confirm reservation before finalizing registration
             if (reservationToken) {
               try {
                 await apiClient.confirmReservation(reservationToken, response.razorpay_order_id)
               } catch (e) {
-                // non-fatal
               }
             }
 
+            const amountCharged = Math.max((feeBreakdown ? feeBreakdown.finalAmount : finalPrice) - (reservedDiscount || 0), 0)
             const registerResponse = user
               ? await apiClient.registerForEvent(
                   String(event._id),
@@ -391,6 +383,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
                   response.razorpay_signature,
                   waitlistToken || undefined,
                   reservationToken || undefined,
+                  amountCharged,
                 )
               : await apiClient.registerForPublicEvent(String(event._id), {
                   registrantName: attendees?.[0]?.name || 'Guest',
@@ -402,6 +395,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
                   paymentID: response.razorpay_payment_id,
                   signature: response.razorpay_signature,
                   reservationToken: reservationToken || undefined,
+                  amountPaid: amountCharged,
                 })
             if (registerResponse.success) {
               // if server returned any order-level shipping/tax info, record locally for immediate display

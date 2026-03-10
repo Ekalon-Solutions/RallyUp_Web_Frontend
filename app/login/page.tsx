@@ -13,7 +13,7 @@ import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
 import { SiteNavbar } from "@/components/site-navbar"
 import { SiteFooter } from "@/components/site-footer"
-import { RecaptchaVerifier, signInWithPhoneNumber, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink } from "firebase/auth"
+import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth"
 import { auth } from "@/lib/firebase/config"
 import { apiClient } from "@/lib/api"
 import { getStoredPurchaseIntent } from "@/components/modals/purchase-flow-modal"
@@ -348,60 +348,12 @@ function AuthPageContent() {
     return () => { document.getElementById(linkId)?.remove() }
   }, [clubFontFamily])
 
-  useEffect(() => {
-    if (typeof window === "undefined") return
-    const url = window.location.href
-    try {
-      if (isSignInWithEmailLink(auth, url)) {
-        let email = window.localStorage.getItem("emailForSignIn")
-        if (!email) {
-          email = window.prompt("Please provide your email for confirmation") || null
-        }
-        if (!email) {
-          toast.error("Email is required to complete sign-in.")
-          return
-        }
-
-        signInWithEmailLink(auth, email, url)
-          .then(async (result) => {
-            const signInType = window.localStorage.getItem("emailSignInType") || "user"
-            let loginResult;
-            try {
-              if (signInType === "user") {
-                loginResult = await login(email, "", "", false)
-              } else if (signInType === "admin") {
-                loginResult = await login(email, "", "", true)
-              } else if (signInType === "system") {
-                loginResult = await login(email, "", "", false, true)
-              }
-            } catch (err) {
-              loginResult = { success: false, error: err instanceof Error ? err.message : 'Login failed' }
-            }
-            
-            window.localStorage.removeItem("emailForSignIn")
-            window.localStorage.removeItem("emailSignInType")
-            
-            if (loginResult?.success) {
-              toast.success("Signed in successfully via email link")
-            } else {
-              toast.error(loginResult?.error || "Backend login failed. Please try again.")
-            }
-          })
-          .catch((err) => {
-            // console.error("Error completing email sign-in:", err)
-            toast.error("Failed to sign in with email link.")
-          })
-      }
-    } catch (err) {
-      // console.error("Error checking email sign-in link:", err)
-    }
-  }, [])
 
   const handleUserLogin = async (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!userLoginOtpSent) {
-      toast.error("Please verify your phone number first.")
+      toast.error("Please request the OTP first.")
       return
     }
 
@@ -410,21 +362,28 @@ function AuthPageContent() {
       return
     }
 
-    try {
-      /* if (isDevelopment()) {
-        debugLog("Debug mode: Skipping Firebase OTP confirmation")
-        if (userLoginOtp !== DEBUG_OTP) {
-          toast.error(`[DEBUG MODE] Invalid OTP. Use: ${DEBUG_OTP}`)
-          return
+    if (userLoginData.email) {
+      try {
+        setIsLoading(true)
+        const res = await apiClient.verifyEmailOTP({ email: userLoginData.email, otp: userLoginOtp, role: "user" })
+        if (res.success && res.data?.token) {
+          const data = res.data as any
+          localStorage.setItem("token", data.token)
+          localStorage.setItem("userType", "member")
+          toast.success("Signed in successfully!")
+          window.location.href = "/login"
+        } else {
+          toast.error(res.message || res.error || "Invalid or expired code. Please try again.")
         }
-        const backendResult = await login(userLoginData.email, userLoginData.phoneNumber, userLoginData.countryCode, false)
-        if (backendResult?.success) {
-          toast.success("Login successful!")
-          router.push("/dashboard")
-        }
-        return
-      } */
+      } catch {
+        toast.error("Invalid or expired code. Please try again.")
+      } finally {
+        setIsLoading(false)
+      }
+      return
+    }
 
+    try {
       const confirmationResult = window.confirmationResult
       const firebaseResult = await confirmationResult.confirm(userLoginOtp)
       let backendResult;
@@ -596,12 +555,33 @@ function AuthPageContent() {
     e.preventDefault()
 
     if (!adminLoginOtpSent) {
-      toast.error("Please verify your phone number first.")
+      toast.error("Please request the OTP first.")
       return
     }
 
     if (!adminLoginOtp) {
       toast.error("Please enter the OTP.")
+      return
+    }
+
+    if (adminLoginData.email) {
+      try {
+        setIsLoading(true)
+        const res = await apiClient.verifyEmailOTP({ email: adminLoginData.email, otp: adminLoginOtp, role: "admin" })
+        if (res.success && res.data?.token) {
+          const data = res.data as any
+          localStorage.setItem("token", data.token)
+          localStorage.setItem("userType", data.role || "admin")
+          toast.success("Admin signed in successfully!")
+          window.location.href = "/login"
+        } else {
+          toast.error(res.message || res.error || "Invalid or expired code. Please try again.")
+        }
+      } catch {
+        toast.error("Invalid or expired code. Please try again.")
+      } finally {
+        setIsLoading(false)
+      }
       return
     }
 
@@ -930,18 +910,37 @@ function AuthPageContent() {
     e.preventDefault()
 
     if (!systemOwnerLoginOtpSent) {
-      toast.error("Please verify your phone number first")
+      toast.error("Please request the OTP first.")
       return
     }
-/* 
-    const expectedOtp = isDevelopment() ? DEBUG_OTP : generatedLoginOtp
-    if (systemOwnerLoginOtp !== expectedOtp) {
-      toast.error(isDevelopment() ? `[DEBUG MODE] Invalid OTP. Use: ${DEBUG_OTP}` : "Invalid OTP. Please check and try again")
+
+    if (!systemOwnerLoginOtp) {
+      toast.error("Please enter the OTP.")
       return
     }
- */
+
+    if (systemOwnerLoginData.email) {
+      try {
+        setIsLoading(true)
+        const res = await apiClient.verifyEmailOTP({ email: systemOwnerLoginData.email, otp: systemOwnerLoginOtp, role: "system_owner" })
+        if (res.success && res.data?.token) {
+          const data = res.data as any
+          localStorage.setItem("token", data.token)
+          localStorage.setItem("userType", "system_owner")
+          toast.success("System Owner signed in successfully!")
+          window.location.href = "/login"
+        } else {
+          toast.error(res.message || res.error || "Invalid or expired code. Please try again.")
+        }
+      } catch {
+        toast.error("Invalid or expired code. Please try again.")
+      } finally {
+        setIsLoading(false)
+      }
+      return
+    }
+
     setIsLoading(true)
-    
     try {
       const result = await login(systemOwnerLoginData.email, systemOwnerLoginData.phoneNumber, systemOwnerLoginData.countryCode, false, true)
       if (result?.success) {
@@ -951,7 +950,6 @@ function AuthPageContent() {
         toast.error(result?.error || "System Owner login failed. Please check your credentials.")
       }
     } catch (error) {
-      // console.error("System Owner login error:", error)
       toast.error("An error occurred during System Owner login.")
     } finally {
       setIsLoading(false)
@@ -1144,20 +1142,17 @@ function AuthPageContent() {
                                 toast.error("Please fix the email validation error")
                                 return
                               }
-                              const actionCodeSettings = {
-                                url: window.location.origin + "/login",
-                                handleCodeInApp: true,
-                              }
                               try {
                                 setOtpButtonLoading(true)
-                                await sendSignInLinkToEmail(auth, userLoginData.email, actionCodeSettings)
-                                window.localStorage.setItem("emailForSignIn", userLoginData.email)
-                                window.localStorage.setItem("emailSignInType", "user")
-                                toast.success(`Sign-in link sent to ${userLoginData.email}. Check your email to complete sign-in.`)
-                                setUserLoginOtpSent(true)
-                                setUserLoginResendCountdown(10)
+                                const res = await apiClient.sendOtp({ email: userLoginData.email, role: "user" })
+                                if (res.success) {
+                                  toast.success(`Code sent to ${userLoginData.email}. Check your email.`)
+                                  setUserLoginOtpSent(true)
+                                  setUserLoginResendCountdown(10)
+                                } else {
+                                  toast.error(res.message || res.error || "Failed to send code.")
+                                }
                               } catch (err) {
-                                // console.error("Error sending email sign-in link:", err)
                                 toast.error("Failed to send sign-in link. Please try again.")
                               } finally {
                                 setOtpButtonLoading(false)
@@ -1191,72 +1186,68 @@ function AuthPageContent() {
                     ) : (
                       <div className="space-y-4">
                         {userLoginData.email ? (
-                          <div className="space-y-3">
-                            <p className="text-slate-300">A sign-in link has been sent to <strong className="text-white">{userLoginData.email}</strong>. Open the link in your email to complete sign-in. If you opened the link in another device, return to this browser to complete the flow.</p>
-                            <div className="flex items-center gap-2">
-                              <Button
-                                onClick={() => {
-                                  ;(async () => {
-                                    const actionCodeSettings = { url: window.location.origin + "/login", handleCodeInApp: true }
-                                    try {
-                                      await sendSignInLinkToEmail(auth, userLoginData.email, actionCodeSettings)
-                                      window.localStorage.setItem("emailForSignIn", userLoginData.email)
-                                      window.localStorage.setItem("emailSignInType", "user")
-                                      toast.success(`Sign-in link resent to ${userLoginData.email}.`)
-                                      setUserLoginResendCountdown(10)
-                                    } catch (err) {
-                                      // console.error("Error resending email sign-in link:", err)
-                                      toast.error("Failed to resend sign-in link. Please try again.")
-                                    }
-                                  })()
-                                }}
-                                className="flex-1 bg-sky-400 text-slate-900 hover:bg-sky-300 h-12 text-lg font-medium"
-                              >
-                                Resend Link
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => {
-                                  setUserLoginOtpSent(false)
-                                }}
-                                className="border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-12 px-4"
-                              >
-                                Use Phone Instead
-                              </Button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="space-y-4">
-                            <div className="space-y-2">
-                              <Label htmlFor="user-login-otp" className="text-white font-medium">OTP Code</Label>
-                              <Input
-                                id="user-login-otp"
-                                type="text"
-                                placeholder="Enter 6-digit OTP"
-                                value={userLoginOtp}
-                                onChange={(e) => setUserLoginOtp(e.target.value)}
-                                className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 h-12 text-center text-lg"
-                                maxLength={6}
-                              />
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Button onClick={handleUserLogin} className="flex-1 bg-sky-400 text-slate-900 hover:bg-sky-300 h-12 text-lg font-medium" disabled={isLoading}>
-                                {isLoading ? "Signing in..." : "Sign In"}
-                                <LogIn className="ml-2 w-4 h-4" />
-                              </Button>
-                              <Button 
-                                type="button"
-                                variant="outline"
-                                onClick={handleUserLoginResendOTP}
-                                disabled={userLoginResendCountdown > 0}
-                                className="border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-12 px-4"
-                              >
-                                {userLoginResendCountdown > 0 ? `Resend (${userLoginResendCountdown}s)` : "Resend"}
-                              </Button>
-                            </div>
-                          </div>
-                        )}
+                          <p className="text-slate-300">A 6-digit code has been sent to <strong className="text-white">{userLoginData.email}</strong>. Enter it below.</p>
+                        ) : null}
+                        <div className="space-y-2">
+                          <Label htmlFor="user-login-otp" className="text-white font-medium">OTP Code</Label>
+                          <Input
+                            id="user-login-otp"
+                            type="text"
+                            placeholder="Enter 6-digit OTP"
+                            value={userLoginOtp}
+                            onChange={(e) => setUserLoginOtp(e.target.value)}
+                            className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 h-12 text-center text-lg"
+                            maxLength={6}
+                          />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button onClick={handleUserLogin} className="flex-1 bg-sky-400 text-slate-900 hover:bg-sky-300 h-12 text-lg font-medium" disabled={isLoading}>
+                            {isLoading ? "Signing in..." : "Sign In"}
+                            <LogIn className="ml-2 w-4 h-4" />
+                          </Button>
+                          {userLoginData.email ? (
+                            <Button
+                              type="button"
+                              onClick={async () => {
+                                try {
+                                  const res = await apiClient.sendOtp({ email: userLoginData.email, role: "user" })
+                                  if (res.success) {
+                                    toast.success(`Code resent to ${userLoginData.email}.`)
+                                    setUserLoginResendCountdown(10)
+                                  } else {
+                                    toast.error(res.message || res.error || "Failed to resend code.")
+                                  }
+                                } catch {
+                                  toast.error("Failed to resend code. Please try again.")
+                                }
+                              }}
+                              disabled={userLoginResendCountdown > 0}
+                              className="border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-12 px-4"
+                            >
+                              {userLoginResendCountdown > 0 ? `Resend (${userLoginResendCountdown}s)` : "Resend"}
+                            </Button>
+                          ) : (
+                            <Button 
+                              type="button"
+                              variant="outline"
+                              onClick={handleUserLoginResendOTP}
+                              disabled={userLoginResendCountdown > 0}
+                              className="border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-12 px-4"
+                            >
+                              {userLoginResendCountdown > 0 ? `Resend (${userLoginResendCountdown}s)` : "Resend"}
+                            </Button>
+                          )}
+                        </div>
+                        {userLoginData.email ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setUserLoginOtpSent(false)}
+                            className="w-full border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-11"
+                          >
+                            Use Phone Instead
+                          </Button>
+                        ) : null}
                       </div>
                     )}
                     
@@ -1805,22 +1796,20 @@ function AuthPageContent() {
                         onClick={() => {
                           ;(async () => {
                             if (adminLoginData.email) {
-                              const actionCodeSettings = {
-                                url: window.location.origin + "/login",
-                                handleCodeInApp: true,
-                              }
                               try {
                                 setOtpButtonLoading(true)
-                                await sendSignInLinkToEmail(auth, adminLoginData.email, actionCodeSettings)
-                                window.localStorage.setItem("emailForSignIn", adminLoginData.email)
-                                window.localStorage.setItem("emailSignInType", "admin")
-                                toast.success(`Sign-in link sent to ${adminLoginData.email}. Check your email to complete sign-in.`)
-                                setOtpButtonLoading(false)
-                                setAdminLoginOtpSent(true)
-                                setAdminLoginResendCountdown(10)
+                                const res = await apiClient.sendOtp({ email: adminLoginData.email, role: "admin" })
+                                if (res.success) {
+                                  toast.success(`Code sent to ${adminLoginData.email}. Check your email.`)
+                                  setAdminLoginOtpSent(true)
+                                  setAdminLoginResendCountdown(10)
+                                } else {
+                                  toast.error(res.message || res.error || "Failed to send code.")
+                                }
                               } catch (err) {
-                                // console.error("Error sending email sign-in link:", err)
                                 toast.error("Failed to send sign-in link. Please try again.")
+                              } finally {
+                                setOtpButtonLoading(false)
                               }
                             } else if (adminLoginData.phoneNumber && adminLoginData.countryCode) {
                               const phoneError = validatePhoneNumber(adminLoginData.phoneNumber)
@@ -1851,70 +1840,68 @@ function AuthPageContent() {
                     ) : (
                       <div className="space-y-4">
                         {adminLoginData.email ? (
-                          <div className="space-y-3">
-                            <p className="text-slate-300">A sign-in link has been sent to <strong className="text-white">{adminLoginData.email}</strong>. Open the link in your email to complete sign-in.</p>
-                            <div className="flex items-center gap-2">
-                              <Button
-                                onClick={() => {
-                                  ;(async () => {
-                                    const actionCodeSettings = { url: window.location.origin + "/login", handleCodeInApp: true }
-                                    try {
-                                      await sendSignInLinkToEmail(auth, adminLoginData.email, actionCodeSettings)
-                                      window.localStorage.setItem("emailForSignIn", adminLoginData.email)
-                                      window.localStorage.setItem("emailSignInType", "admin")
-                                      toast.success(`Sign-in link resent to ${adminLoginData.email}.`)
-                                      setAdminLoginResendCountdown(10)
-                                    } catch (err) {
-                                      // console.error("Error resending email sign-in link:", err)
-                                      toast.error("Failed to resend sign-in link. Please try again.")
-                                    }
-                                  })()
-                                }}
-                                className="flex-1 bg-sky-400 text-slate-900 hover:bg-sky-300 h-12 text-lg font-medium"
-                              >
-                                Resend Link
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => setAdminLoginOtpSent(false)}
-                                className="border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-12 px-4"
-                              >
-                                Use Phone Instead
-                              </Button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="space-y-4">
-                            <div className="space-y-2">
-                              <Label htmlFor="admin-login-otp" className="text-white font-medium">OTP Code</Label>
-                              <Input
-                                id="admin-login-otp"
-                                type="text"
-                                placeholder="Enter 6-digit OTP"
-                                value={adminLoginOtp}
-                                onChange={(e) => setAdminLoginOtp(e.target.value)}
-                                className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 h-12 text-center text-lg"
-                                maxLength={6}
-                              />
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Button onClick={handleAdminLogin} className="flex-1 bg-sky-400 text-slate-900 hover:bg-sky-300 h-12 text-lg font-medium" disabled={isLoading}>
-                                {isLoading ? "Signing in..." : "Admin Sign In"}
-                                <Shield className="ml-2 h-4 w-4" />
-                              </Button>
-                              <Button 
-                                type="button"
-                                variant="outline"
-                                onClick={handleAdminLoginResendOTP}
-                                disabled={adminLoginResendCountdown > 0}
-                                className="border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-12 px-4"
-                              >
-                                {adminLoginResendCountdown > 0 ? `Resend (${adminLoginResendCountdown}s)` : "Resend"}
-                              </Button>
-                            </div>
-                          </div>
-                        )}
+                          <p className="text-slate-300">A 6-digit code has been sent to <strong className="text-white">{adminLoginData.email}</strong>. Enter it below.</p>
+                        ) : null}
+                        <div className="space-y-2">
+                          <Label htmlFor="admin-login-otp" className="text-white font-medium">OTP Code</Label>
+                          <Input
+                            id="admin-login-otp"
+                            type="text"
+                            placeholder="Enter 6-digit OTP"
+                            value={adminLoginOtp}
+                            onChange={(e) => setAdminLoginOtp(e.target.value)}
+                            className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 h-12 text-center text-lg"
+                            maxLength={6}
+                          />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button onClick={handleAdminLogin} className="flex-1 bg-sky-400 text-slate-900 hover:bg-sky-300 h-12 text-lg font-medium" disabled={isLoading}>
+                            {isLoading ? "Signing in..." : "Admin Sign In"}
+                            <Shield className="ml-2 h-4 w-4" />
+                          </Button>
+                          {adminLoginData.email ? (
+                            <Button
+                              type="button"
+                              onClick={async () => {
+                                try {
+                                  const res = await apiClient.sendOtp({ email: adminLoginData.email, role: "admin" })
+                                  if (res.success) {
+                                    toast.success(`Code resent to ${adminLoginData.email}.`)
+                                    setAdminLoginResendCountdown(10)
+                                  } else {
+                                    toast.error(res.message || res.error || "Failed to resend code.")
+                                  }
+                                } catch {
+                                  toast.error("Failed to resend code. Please try again.")
+                                }
+                              }}
+                              disabled={adminLoginResendCountdown > 0}
+                              className="border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-12 px-4"
+                            >
+                              {adminLoginResendCountdown > 0 ? `Resend (${adminLoginResendCountdown}s)` : "Resend"}
+                            </Button>
+                          ) : (
+                            <Button 
+                              type="button"
+                              variant="outline"
+                              onClick={handleAdminLoginResendOTP}
+                              disabled={adminLoginResendCountdown > 0}
+                              className="border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-12 px-4"
+                            >
+                              {adminLoginResendCountdown > 0 ? `Resend (${adminLoginResendCountdown}s)` : "Resend"}
+                            </Button>
+                          )}
+                        </div>
+                        {adminLoginData.email ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setAdminLoginOtpSent(false)}
+                            className="w-full border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-11"
+                          >
+                            Use Phone Instead
+                          </Button>
+                        ) : null}
                       </div>
                     )}
                     
@@ -2176,23 +2163,20 @@ function AuthPageContent() {
                           ;(async () => {
                             // console.log("system ownder login data",systemOwnerLoginData)
                             if (systemOwnerLoginData.email) {
-                              const actionCodeSettings = {
-                                url: window.location.origin + "/login",
-                                handleCodeInApp: true,
-                              }
                               try {
-                                // console.log("hey email")
                                 setOtpButtonLoading(true)
-                                await sendSignInLinkToEmail(auth, systemOwnerLoginData.email, actionCodeSettings)
-                                window.localStorage.setItem("emailForSignIn", systemOwnerLoginData.email)
-                                window.localStorage.setItem("emailSignInType", "system")
-                                toast.success(`Sign-in link sent to ${systemOwnerLoginData.email}. Check your email to complete sign-in.`)
-                                setOtpButtonLoading(false)
-                                setSystemOwnerLoginOtpSent(true)
-                                setSystemOwnerLoginResendCountdown(10)
+                                const res = await apiClient.sendOtp({ email: systemOwnerLoginData.email, role: "system_owner" })
+                                if (res.success) {
+                                  toast.success(`Code sent to ${systemOwnerLoginData.email}. Check your email.`)
+                                  setSystemOwnerLoginOtpSent(true)
+                                  setSystemOwnerLoginResendCountdown(10)
+                                } else {
+                                  toast.error(res.message || res.error || "Failed to send code.")
+                                }
                               } catch (err) {
-                                // console.error("Error sending email sign-in link:", err)
                                 toast.error("Failed to send sign-in link. Please try again.")
+                              } finally {
+                                setOtpButtonLoading(false)
                               }
                             } else if (systemOwnerLoginData.phoneNumber && systemOwnerLoginData.countryCode) {
                               // console.log("hey mobile")
@@ -2213,70 +2197,68 @@ function AuthPageContent() {
                     ) : (
                       <div className="space-y-4">
                         {systemOwnerLoginData.email ? (
-                          <div className="space-y-3">
-                            <p className="text-slate-300">A sign-in link has been sent to <strong className="text-white">{systemOwnerLoginData.email}</strong>. Open the link in your email to complete sign-in.</p>
-                            <div className="flex items-center gap-2">
-                              <Button
-                                onClick={() => {
-                                  ;(async () => {
-                                    const actionCodeSettings = { url: window.location.origin + "/login", handleCodeInApp: true }
-                                    try {
-                                      await sendSignInLinkToEmail(auth, systemOwnerLoginData.email, actionCodeSettings)
-                                      window.localStorage.setItem("emailForSignIn", systemOwnerLoginData.email)
-                                      window.localStorage.setItem("emailSignInType", "system")
-                                      toast.success(`Sign-in link resent to ${systemOwnerLoginData.email}.`)
-                                      setSystemOwnerLoginResendCountdown(10)
-                                    } catch (err) {
-                                      // console.error("Error resending email sign-in link:", err)
-                                      toast.error("Failed to resend sign-in link. Please try again.")
-                                    }
-                                  })()
-                                }}
-                                className="flex-1 bg-sky-400 text-slate-900 hover:bg-sky-300 h-12 text-lg font-medium"
-                              >
-                                Resend Link
-                              </Button>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => setSystemOwnerLoginOtpSent(false)}
-                                className="border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-12 px-4"
-                              >
-                                Use Phone Instead
-                              </Button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="space-y-4">
-                            <div className="space-y-2">
-                              <Label htmlFor="system-owner-login-otp" className="text-white font-medium">OTP Code</Label>
-                              <Input
-                                id="system-owner-login-otp"
-                                type="text"
-                                placeholder="Enter 6-digit OTP"
-                                value={systemOwnerLoginOtp}
-                                onChange={(e) => setSystemOwnerLoginOtp(e.target.value)}
-                                className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 h-12 text-center text-lg"
-                                maxLength={6}
-                              />
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Button onClick={handleSystemOwnerLogin} className="flex-1 bg-sky-400 text-slate-900 hover:bg-sky-300 h-12 text-lg font-medium" disabled={isLoading}>
-                                {isLoading ? "Signing in..." : "System Owner Sign In"}
-                                <Crown className="ml-2 w-4 h-4" />
-                              </Button>
-                              <Button 
-                                type="button"
-                                variant="outline"
-                                onClick={handleSystemOwnerLoginResendOTP}
-                                disabled={systemOwnerLoginResendCountdown > 0}
-                                className="border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-12 px-4"
-                              >
-                                {systemOwnerLoginResendCountdown > 0 ? `Resend (${systemOwnerLoginResendCountdown}s)` : "Resend"}
-                              </Button>
-                            </div>
-                          </div>
-                        )}
+                          <p className="text-slate-300">A 6-digit code has been sent to <strong className="text-white">{systemOwnerLoginData.email}</strong>. Enter it below.</p>
+                        ) : null}
+                        <div className="space-y-2">
+                          <Label htmlFor="system-owner-login-otp" className="text-white font-medium">OTP Code</Label>
+                          <Input
+                            id="system-owner-login-otp"
+                            type="text"
+                            placeholder="Enter 6-digit OTP"
+                            value={systemOwnerLoginOtp}
+                            onChange={(e) => setSystemOwnerLoginOtp(e.target.value)}
+                            className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 h-12 text-center text-lg"
+                            maxLength={6}
+                          />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button onClick={handleSystemOwnerLogin} className="flex-1 bg-sky-400 text-slate-900 hover:bg-sky-300 h-12 text-lg font-medium" disabled={isLoading}>
+                            {isLoading ? "Signing in..." : "System Owner Sign In"}
+                            <Crown className="ml-2 w-4 h-4" />
+                          </Button>
+                          {systemOwnerLoginData.email ? (
+                            <Button
+                              type="button"
+                              onClick={async () => {
+                                try {
+                                  const res = await apiClient.sendOtp({ email: systemOwnerLoginData.email, role: "system_owner" })
+                                  if (res.success) {
+                                    toast.success(`Code resent to ${systemOwnerLoginData.email}.`)
+                                    setSystemOwnerLoginResendCountdown(10)
+                                  } else {
+                                    toast.error(res.message || res.error || "Failed to resend code.")
+                                  }
+                                } catch {
+                                  toast.error("Failed to resend code. Please try again.")
+                                }
+                              }}
+                              disabled={systemOwnerLoginResendCountdown > 0}
+                              className="border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-12 px-4"
+                            >
+                              {systemOwnerLoginResendCountdown > 0 ? `Resend (${systemOwnerLoginResendCountdown}s)` : "Resend"}
+                            </Button>
+                          ) : (
+                            <Button 
+                              type="button"
+                              variant="outline"
+                              onClick={handleSystemOwnerLoginResendOTP}
+                              disabled={systemOwnerLoginResendCountdown > 0}
+                              className="border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-12 px-4"
+                            >
+                              {systemOwnerLoginResendCountdown > 0 ? `Resend (${systemOwnerLoginResendCountdown}s)` : "Resend"}
+                            </Button>
+                          )}
+                        </div>
+                        {systemOwnerLoginData.email ? (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setSystemOwnerLoginOtpSent(false)}
+                            className="w-full border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-11"
+                          >
+                            Use Phone Instead
+                          </Button>
+                        ) : null}
                       </div>
                     )}
                     

@@ -790,6 +790,29 @@ class ApiClient {
     });
   }
 
+  /** Send OTP: for email sends magic link via SendGrid; for phone uses Firebase. */
+  async sendOtp(data: {
+    email?: string;
+    phoneNumber?: string;
+    countryCode?: string;
+    role: 'user' | 'admin' | 'system_owner';
+    username?: string;
+    recaptchaToken?: string;
+  }): Promise<ApiResponse<{ userData?: any; sessionInfo?: string }>> {
+    return this.request('/otp/send', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  /** Verify email OTP (6-digit code sent via SendGrid). Returns token and user data. */
+  async verifyEmailOTP(params: { email: string; otp: string; role: 'user' | 'admin' | 'system_owner' }): Promise<ApiResponse<{ token: string } & (User | Admin | SystemOwner)>> {
+    return this.request('/otp/verify-email-otp', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    });
+  }
+
   async userProfile(): Promise<ApiResponse<User>> {
     return this.request('/users/profile');
   }
@@ -1357,6 +1380,7 @@ class ApiClient {
     paymentID?: string;
     signature?: string;
     reservationToken?: string;
+    amountPaid?: number;
   }): Promise<ApiResponse<{ message: string; event: Event }>> {
     return this.request(`/events/public/${eventId}/register`, {
       method: 'POST',
@@ -3196,6 +3220,13 @@ class ApiClient {
   async updateClubSportsSettings(clubId: string, data: { teamName?: string; teamId?: string; teamBadge?: string; teamLogo?: string }): Promise<ApiResponse<any>> {
     return this.put(`/club-settings/${clubId}/sports`, data);
   }
+  async getClubAddress(clubId: string): Promise<ApiResponse<{ street?: string; city?: string; state?: string; country?: string; zipCode?: string }>> {
+    return this.get(`/club-settings/${clubId}/address`);
+  }
+
+  async updateClubAddress(clubId: string, address: { street?: string; city?: string; state?: string; country?: string; zipCode?: string }): Promise<ApiResponse<any>> {
+    return this.put(`/club-settings/${clubId}/address`, address);
+  }
 
   async getCoupons(clubId: string): Promise<ApiResponse<{ coupons: any[] }>> {
     return this.get('/coupons', { params: { clubId } });
@@ -3333,6 +3364,7 @@ class ApiClient {
     page?: number;
     limit?: number;
     status?: string;
+    clubId?: string;
   }): Promise<ApiResponse<{
     refunds: any[];
     pagination: {
@@ -3343,6 +3375,16 @@ class ApiClient {
     };
   }>> {
     return this.get('/refunds/admin', { params });
+  }
+
+  async getRefundRecalculate(refundId: string): Promise<ApiResponse<{
+    recalculatedRefund: number;
+    percentage: number;
+    breakdown: any;
+    originalRefund: number;
+    differs: boolean;
+  }>> {
+    return this.get(`/refunds/admin/${refundId}/recalculate`);
   }
 
   async markRefundProcessed(refundId: string, adminNotes?: string): Promise<ApiResponse<any>> {

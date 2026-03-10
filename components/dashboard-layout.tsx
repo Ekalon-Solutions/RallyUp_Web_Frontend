@@ -33,6 +33,7 @@ import {
   UserCheck,
   ChartNoAxesColumn,
   Tag,
+  RotateCcw,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -68,6 +69,7 @@ const adminNavigation = [
   { name: "Club Chants", href: "/dashboard/chants", icon: Music },
   { name: "Merchandise", href: "/dashboard/merchandise", icon: Shirt },
   { name: "Order Management", href: "/dashboard/orders", icon: ShoppingCart },
+  { name: "Refunds", href: "/dashboard/admin/refunds", icon: RotateCcw },
   { name: "Events & Tickets", href: "/dashboard/events", icon: Ticket },
   { name: "Coupons", href: "/dashboard/coupons", icon: Tag },
   { name: "Leaderboard", href: "/dashboard/leaderboard", icon: ChartNoAxesColumn },
@@ -102,6 +104,7 @@ const superAdminNavigation = [
   { name: "Club Chants", href: "/dashboard/chants", icon: Music },
   { name: "Merchandise", href: "/dashboard/merchandise", icon: Shirt },
   { name: "Order Management", href: "/dashboard/orders", icon: ShoppingCart },
+  { name: "Refunds", href: "/dashboard/admin/refunds", icon: RotateCcw },
   { name: "Events & Tickets", href: "/dashboard/events", icon: Ticket },
   { name: "Coupons", href: "/dashboard/coupons", icon: Tag },
   { name: "Leaderboard", href: "/dashboard/leaderboard", icon: ChartNoAxesColumn },

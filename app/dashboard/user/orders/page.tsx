@@ -588,7 +588,7 @@ export default function UserOrdersPage() {
                         orderId={selectedOrder._id}
                         onRefundRequested={() => {
                           setShowOrderModal(false)
-                          fetchOrders()
+                          loadOrders()
                         }}
                       />
                     </div>

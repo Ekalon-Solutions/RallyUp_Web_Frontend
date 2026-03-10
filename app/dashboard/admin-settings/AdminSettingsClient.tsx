@@ -4,14 +4,15 @@ import { useEffect, useState } from "react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Settings, Globe, List, Palette, Bell, HelpCircle, BookOpen, Tag } from "lucide-react"
+import { Settings, Globe, Palette, Bell, BookOpen, MapPin, Tag } from "lucide-react"
 import { WebsiteSetupTab } from "@/components/admin/settings/website-setup-tab"
-import { DirectoryTab } from "@/components/admin/settings/directory-tab"
 import { DesignSettingsTab } from "@/components/admin/settings/design-settings-tab"
 import { AppSettingsTab } from "@/components/admin/settings/app-settings-tab"
 import { HelpSectionTab } from "@/components/admin/settings/help-section-tab"
 import { GetStartedTab } from "@/components/admin/settings/get-started-tab"
 import SportsSettingsTab from "@/components/admin/settings/sports-settings-tab"
+import RedemptionSettingsTab from "@/components/admin/settings/redemption-settings-tab"
+import { ClubAddressTab } from "@/components/admin/settings/club-address-tab"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 
@@ -28,7 +29,7 @@ export default function AdminSettingsClient() {
     if (raw === "app-settings") return "app"
     if (raw === "get-started") return "guide"
 
-    const allowedTabs = new Set(["website", "directory", "design", "app", "help", "guide", "redemption"])
+    const allowedTabs = new Set(["website", "design", "app", "address", "redemption", "help", "guide"])
     return allowedTabs.has(raw) ? raw : null
   }
 
@@ -69,10 +70,6 @@ export default function AdminSettingsClient() {
                 <Globe className="h-4 w-4" />
                 Website
               </TabsTrigger>
-              <TabsTrigger value="directory" className="flex items-center gap-2">
-                <List className="h-4 w-4" />
-                Directory
-              </TabsTrigger>
               <TabsTrigger value="design" className="flex items-center gap-2">
                 <Palette className="h-4 w-4" />
                 Design
@@ -85,10 +82,10 @@ export default function AdminSettingsClient() {
                 <Settings className="h-4 w-4" />
                 Sports
               </TabsTrigger>
-              {/* <TabsTrigger value="help" className="flex items-center gap-2">
-                <HelpCircle className="h-4 w-4" />
-                Help
-              </TabsTrigger> */}
+              <TabsTrigger value="address" className="flex items-center gap-2">
+                <MapPin className="h-4 w-4" />
+                Club Address
+              </TabsTrigger>
               <TabsTrigger value="guide" className="flex items-center gap-2">
                 <BookOpen className="h-4 w-4" />
                 Get Started
@@ -97,10 +94,6 @@ export default function AdminSettingsClient() {
 
             <TabsContent value="website" className="space-y-4">
               <WebsiteSetupTab key={clubId ?? "no-club"} />
-            </TabsContent>
-
-            <TabsContent value="directory" className="space-y-4">
-              <DirectoryTab key={clubId ?? "no-club"} />
             </TabsContent>
 
             <TabsContent value="design" className="space-y-4">
@@ -113,6 +106,9 @@ export default function AdminSettingsClient() {
 
             <TabsContent value="sports" className="space-y-4">
               <SportsSettingsTab key={clubId ?? "no-club"} />
+            </TabsContent>
+            <TabsContent value="address" className="space-y-4">
+              <ClubAddressTab key={clubId ?? "no-club"} />
             </TabsContent>
 
             <TabsContent value="help" className="space-y-4">
@@ -128,4 +124,3 @@ export default function AdminSettingsClient() {
     </ProtectedRoute>
   )
 }
-
