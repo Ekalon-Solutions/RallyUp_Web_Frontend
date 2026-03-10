@@ -10,6 +10,7 @@ import { DesignSettingsTab } from "@/components/admin/settings/design-settings-t
 import { AppSettingsTab } from "@/components/admin/settings/app-settings-tab"
 import { HelpSectionTab } from "@/components/admin/settings/help-section-tab"
 import { GetStartedTab } from "@/components/admin/settings/get-started-tab"
+import SportsSettingsTab from "@/components/admin/settings/sports-settings-tab"
 import RedemptionSettingsTab from "@/components/admin/settings/redemption-settings-tab"
 import { ClubAddressTab } from "@/components/admin/settings/club-address-tab"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
@@ -77,13 +78,13 @@ export default function AdminSettingsClient() {
                 <Bell className="h-4 w-4" />
                 App Settings
               </TabsTrigger>
+              <TabsTrigger value="sports" className="flex items-center gap-2">
+                <Settings className="h-4 w-4" />
+                Sports
+              </TabsTrigger>
               <TabsTrigger value="address" className="flex items-center gap-2">
                 <MapPin className="h-4 w-4" />
                 Club Address
-              </TabsTrigger>
-              <TabsTrigger value="redemption" className="flex items-center gap-2">
-                <Tag className="h-4 w-4" />
-                Redemption
               </TabsTrigger>
               <TabsTrigger value="guide" className="flex items-center gap-2">
                 <BookOpen className="h-4 w-4" />
@@ -103,12 +104,11 @@ export default function AdminSettingsClient() {
               <AppSettingsTab key={clubId ?? "no-club"} />
             </TabsContent>
 
+            <TabsContent value="sports" className="space-y-4">
+              <SportsSettingsTab key={clubId ?? "no-club"} />
+            </TabsContent>
             <TabsContent value="address" className="space-y-4">
               <ClubAddressTab key={clubId ?? "no-club"} />
-            </TabsContent>
-
-            <TabsContent value="redemption" className="space-y-4">
-              <RedemptionSettingsTab key={clubId ?? "no-club"} />
             </TabsContent>
 
             <TabsContent value="help" className="space-y-4">

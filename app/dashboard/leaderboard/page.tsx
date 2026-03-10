@@ -9,10 +9,12 @@ import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Loader2, Trophy, Medal, Award, Calendar, Star, RefreshCw } from 'lucide-react'
+import { Loader2, Trophy, Medal, Award, Calendar, Star, RefreshCw, Settings } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { apiClient } from '@/lib/api'
 import { toast } from 'sonner'
 import { useRequiredClubId } from '@/hooks/useRequiredClubId'
+import RedemptionSettingsTab from '@/components/admin/settings/redemption-settings-tab'
 
 interface LeaderboardEntry {
   userId: string
@@ -30,6 +32,7 @@ export default function AdminLeaderboardPage() {
   const [loading, setLoading] = useState(true)
   const [editedPoints, setEditedPoints] = useState<Record<string, string>>({})
   const [savingId, setSavingId] = useState<string | null>(null)
+  const [showSettings, setShowSettings] = useState(false)
 
   const fetchLeaderboard = useCallback(async () => {
     try {
@@ -153,10 +156,24 @@ export default function AdminLeaderboardPage() {
                 Review member rankings and adjust points awarded for event attendance. Updates are applied immediately.
               </p>
             </div>
-            <Button variant="outline" onClick={fetchLeaderboard} disabled={loading || savingId !== null}>
-              <RefreshCw className="w-4 h-4 mr-2" /> Refresh
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={() => setShowSettings(true)}>
+                <Settings className="w-4 h-4" />
+              </Button>
+              <Button variant="outline" onClick={fetchLeaderboard} disabled={loading || savingId !== null}>
+                <RefreshCw className="w-4 h-4 mr-2" /> Refresh
+              </Button>
+            </div>
           </div>
+
+          <Dialog open={showSettings} onOpenChange={setShowSettings}>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Redemption Settings</DialogTitle>
+              </DialogHeader>
+              <RedemptionSettingsTab />
+            </DialogContent>
+          </Dialog>
 
           <Card>
             <CardHeader>

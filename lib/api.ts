@@ -3213,6 +3213,13 @@ class ApiClient {
     return this.put(`/club-settings/${clubId}/help-section`, data);
   }
 
+  async searchSportsTeams(clubId: string, q: string): Promise<ApiResponse<any[]>> {
+    return this.get(`/club-settings/${clubId}/sports/search`, { params: { q } });
+  }
+
+  async updateClubSportsSettings(clubId: string, data: { teamName?: string; teamId?: string; teamBadge?: string; teamLogo?: string }): Promise<ApiResponse<any>> {
+    return this.put(`/club-settings/${clubId}/sports`, data);
+  }
   async getClubAddress(clubId: string): Promise<ApiResponse<{ street?: string; city?: string; state?: string; country?: string; zipCode?: string }>> {
     return this.get(`/club-settings/${clubId}/address`);
   }
