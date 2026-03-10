@@ -29,6 +29,7 @@ import { MembershipCardCustomizer } from "@/components/admin/membership-card-cus
 import { apiClient, PublicMembershipCardDisplay, CreateMembershipCardRequest } from "@/lib/api"
 import { formatDisplayDate } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
+import { toast as sonnerToast } from "sonner"
 import { getBaseUrl, getApiUrl } from "@/lib/config"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
@@ -135,11 +136,13 @@ export default function MembershipCardsPage() {
         )
 
         setCards(validCards)
+        setError(null)
       } else {
         const errorDetails = (cardsResponse as any).errorDetails || {}
         const errorMessage = cardsResponse.error || 'Unknown error occurred'
         const statusCode = errorDetails.statusCode || (cardsResponse as any).statusCode || 'Unknown'
         setError(errorMessage)
+        setCards([])
         toast({
           title: "Error Loading Membership Cards",
           description: `Failed to fetch membership cards for club (ID: ${targetClubId}): ${errorMessage}. Status: ${statusCode}. ${errorDetails.message ? `Details: ${errorDetails.message}.` : ''} Please check your authentication and try again.`,
@@ -151,6 +154,7 @@ export default function MembershipCardsPage() {
       const errorDetails = err?.response?.data || {}
       const statusCode = err?.response?.status || 'Unknown'
       setError(errorMessage)
+      setCards([])
       toast({
         title: "Error Fetching Cards",
         description: `Failed to fetch membership cards for club (ID: ${targetClubId}): ${errorMessage}. Status: ${statusCode}. ${errorDetails.message ? `Details: ${errorDetails.message}.` : ''} Please check your connection and try again.`,
@@ -164,6 +168,7 @@ export default function MembershipCardsPage() {
       try {
         setLoading(true)
         setError(null)
+        setEditingCard(null)
         let currentClubId = activeClubId
 
         if (!currentClubId) {
@@ -316,16 +321,19 @@ export default function MembershipCardsPage() {
 
       const response = await apiClient.createMembershipCard(cardData)
 
-      if (response.success && response.data) {
-        toast({
-          title: "Membership Card Created Successfully",
-          description: `Membership card for plan "${planName}" has been created successfully. Refreshing card list...`,
-        })
+      // API returns { success: true, data: { card, club, membershipPlan } }; client passes body as response.data
+      const isSuccess = response?.success === true
+      const raw = response?.data as { data?: { card?: unknown }; card?: unknown } | undefined
+      const payload = raw?.data ?? raw
+      const hasCreatedCard = !!(payload && (payload as { card?: unknown }).card)
 
+      if (isSuccess || hasCreatedCard) {
+        sonnerToast.success("Card created successfully", {
+          description: `Membership card for plan "${planName}" has been created.`,
+        })
         setSelectedPlanId("")
         setPreviewUrl(null)
         setSelectedFile(null)
-
         if (effectiveClubId) {
           await fetchCards(effectiveClubId)
         }
@@ -485,19 +493,19 @@ export default function MembershipCardsPage() {
   }
 
   const handleEditCard = (card: PublicMembershipCardDisplay) => {
-    const fallbackStyleColors = CARD_STYLE_COLORS[card.card.cardStyle] || CARD_STYLE_COLORS.default;
+    const fallbackStyleColors = CARD_STYLE_COLORS[card.card.cardStyle ?? "default"] || CARD_STYLE_COLORS.default;
+    const fullCustomization = normalizeCustomization(card.card.customization);
     const cardCopy = {
       ...card,
       card: {
         ...card.card,
-        customization: card.card.customization ? {
-          ...card.card.customization
-        } : {
-          primaryColor: fallbackStyleColors.primaryColor,
-          secondaryColor: fallbackStyleColors.secondaryColor,
-          fontFamily: 'Inter',
-          logoSize: 'medium' as const,
-          showLogo: true
+        status: (card.card.status ?? "active") as "active" | "expired" | "pending" | "suspended",
+        accessLevel: (card.card.accessLevel ?? "basic") as "basic" | "premium" | "vip",
+        cardStyle: (card.card.cardStyle ?? "default") as "default" | "premium" | "vintage" | "modern" | "elite" | "emerald",
+        customization: {
+          ...fullCustomization,
+          primaryColor: fullCustomization.primaryColor ?? fallbackStyleColors.primaryColor,
+          secondaryColor: fullCustomization.secondaryColor ?? fallbackStyleColors.secondaryColor,
         }
       }
     };
@@ -554,20 +562,21 @@ export default function MembershipCardsPage() {
         }
       }
 
+      const baseCustomization = normalizeCustomization(editingCard.card.customization)
       const updatedCustomization = {
-        ...editingCard.card.customization,
-        customLogo: customLogoUrl,
-      };
-
-      // fontFamily fix: Ensure the font from select is saved
-      if (!updatedCustomization.fontFamily) {
-        updatedCustomization.fontFamily = "Inter";
+        primaryColor: baseCustomization.primaryColor,
+        secondaryColor: baseCustomization.secondaryColor,
+        fontFamily: baseCustomization.fontFamily,
+        logoSize: baseCustomization.logoSize,
+        showLogo: baseCustomization.showLogo,
+        ...(baseCustomization.customLogo !== undefined && { customLogo: baseCustomization.customLogo }),
+        ...(customLogoUrl !== undefined && { customLogo: customLogoUrl }),
       }
 
       const updateData = {
-        status: editingCard.card.status,
-        accessLevel: editingCard.card.accessLevel,
-        cardStyle: editingCard.card.cardStyle,
+        status: editingCard.card.status ?? "active",
+        accessLevel: editingCard.card.accessLevel ?? "basic",
+        cardStyle: editingCard.card.cardStyle ?? "default",
         customization: updatedCustomization
       }
 
@@ -636,15 +645,12 @@ export default function MembershipCardsPage() {
   const handlePrimaryColorChange = useCallback((newColor: string) => {
     setEditingCard(prev => {
       if (!prev) return null
-      const existingCustomization = prev.card.customization
+      const base = normalizeCustomization(prev.card.customization)
       return {
         ...prev,
         card: {
           ...prev.card,
-          customization: {
-            ...(existingCustomization || {}),
-            primaryColor: newColor,
-          }
+          customization: { ...base, primaryColor: newColor }
         }
       }
     })
@@ -653,15 +659,12 @@ export default function MembershipCardsPage() {
   const handleSecondaryColorChange = useCallback((newColor: string) => {
     setEditingCard(prev => {
       if (!prev) return null
-      const existingCustomization = prev.card.customization
+      const base = normalizeCustomization(prev.card.customization)
       return {
         ...prev,
         card: {
           ...prev.card,
-          customization: {
-            ...(existingCustomization || {}),
-            secondaryColor: newColor,
-          }
+          customization: { ...base, secondaryColor: newColor }
         }
       }
     })
@@ -708,36 +711,29 @@ export default function MembershipCardsPage() {
     })
   }, [CARD_STYLE_COLORS, normalizeCustomization])
 
-  // Font family fix: Only set the fontFamily field, retain existing customization
   const handleFontFamilyChange = useCallback((value: string) => {
     setEditingCard(prev => {
-      if (!prev) return null;
-      const existingCustomization = prev.card.customization || {};
+      if (!prev) return null
+      const base = normalizeCustomization(prev.card.customization)
       return {
         ...prev,
         card: {
           ...prev.card,
-          customization: {
-            ...existingCustomization,
-            fontFamily: value
-          }
+          customization: { ...base, fontFamily: value }
         }
       }
-    });
-  }, []);
+    })
+  }, [])
 
   const handleLogoSizeChange = useCallback((value: string) => {
     setEditingCard(prev => {
       if (!prev) return null
-      const existingCustomization = prev.card.customization
+      const base = normalizeCustomization(prev.card.customization)
       return {
         ...prev,
         card: {
           ...prev.card,
-          customization: {
-            ...(existingCustomization || {}),
-            logoSize: value as 'small' | 'medium' | 'large'
-          }
+          customization: { ...base, logoSize: value as "small" | "medium" | "large" }
         }
       }
     })
@@ -745,16 +741,13 @@ export default function MembershipCardsPage() {
 
   const handleShowLogoChange = useCallback((checked: boolean) => {
     setEditingCard(prev => {
-      if (!prev) return null;
-      const existingCustomization = prev.card.customization || {};
+      if (!prev) return null
+      const base = normalizeCustomization(prev.card.customization)
       return {
         ...prev,
         card: {
           ...prev.card,
-          customization: {
-            ...existingCustomization,
-            showLogo: checked,
-          }
+          customization: { ...base, showLogo: checked }
         }
       }
     })
@@ -1091,17 +1084,17 @@ export default function MembershipCardsPage() {
                 </Button>
               </div>
 
-              <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 p-4 sm:p-6 pt-0 overflow-y-auto flex-1 min-h-0">
+              <div key={editingCard.card._id} className="flex flex-col lg:flex-row gap-4 sm:gap-6 p-4 sm:p-6 pt-0 overflow-y-auto flex-1 min-h-0">
                 {/* Left Column - Settings */}
                 <div className="flex-shrink-0 lg:w-[380px] xl:w-[420px] space-y-4 overflow-y-auto">
                   <div>
                     <Label htmlFor="status">Status</Label>
                     <Select
-                      value={editingCard.card.status}
+                      value={editingCard.card.status ?? "active"}
                       onValueChange={handleStatusChange}
                     >
-                      <SelectTrigger>
-                        <SelectValue />
+                      <SelectTrigger id="status">
+                        <SelectValue placeholder="Select status" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="active">Active</SelectItem>
@@ -1115,7 +1108,7 @@ export default function MembershipCardsPage() {
                   <div>
                     <Label htmlFor="accessLevel">Access Level</Label>
                     <Select
-                      value={editingCard.card.accessLevel}
+                      value={editingCard.card.accessLevel ?? "basic"}
                       onValueChange={handleAccessLevelChange}
                     >
                       <SelectTrigger>
@@ -1132,11 +1125,11 @@ export default function MembershipCardsPage() {
                   <div>
                     <Label htmlFor="editCardStyle">Card Style</Label>
                     <Select
-                      value={editingCard.card.cardStyle}
+                      value={editingCard.card.cardStyle ?? "default"}
                       onValueChange={handleCardStyleChange}
                     >
                       <SelectTrigger id="editCardStyle">
-                        <SelectValue />
+                        <SelectValue placeholder="Select style" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="default">Classic Blue</SelectItem>
@@ -1154,9 +1147,9 @@ export default function MembershipCardsPage() {
                     <Input
                       id="primaryColor"
                       type="color"
-                      value={editingCard.card.customization?.primaryColor || '#3b82f6'}
+                      value={normalizeCustomization(editingCard.card.customization).primaryColor}
                       onChange={(e) => handlePrimaryColorChange(e.target.value)}
-                      className="h-10 w-full"
+                      className="h-10 w-full cursor-pointer"
                     />
                   </div>
 
@@ -1165,9 +1158,9 @@ export default function MembershipCardsPage() {
                     <Input
                       id="secondaryColor"
                       type="color"
-                      value={editingCard.card.customization?.secondaryColor || '#1e40af'}
+                      value={normalizeCustomization(editingCard.card.customization).secondaryColor}
                       onChange={(e) => handleSecondaryColorChange(e.target.value)}
-                      className="h-10 w-full"
+                      className="h-10 w-full cursor-pointer"
                     />
                   </div>
 

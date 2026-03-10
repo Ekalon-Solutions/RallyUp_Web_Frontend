@@ -36,11 +36,8 @@ export function MembershipCard({
   const [isHovered, setIsHovered] = useState(false);
 
   const getStyleConfig = () => {
-    if (
-      effectiveCardStyle === 'default' &&
-      card.customization?.primaryColor &&
-      card.customization?.secondaryColor
-    ) {
+    // Use custom colors whenever both are provided (for any card style) so preview and saved cards reflect edits
+    if (card.customization?.primaryColor && card.customization?.secondaryColor) {
       return {
         bg: `bg-gradient-to-br`,
         text: 'text-white',
