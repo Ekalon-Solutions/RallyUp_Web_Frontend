@@ -28,6 +28,17 @@ function FixturesCards({ clubId }: { clubId?: string | undefined }) {
   const [fixtures, setFixtures] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
 
+  // helper to format startTime into "DD Month YYYY (Weekday)"
+  const formatFixtureDate = (isoDate: string) => {
+    const d = new Date(isoDate)
+    if (isNaN(d.getTime())) return ''
+    const day = d.getDate()
+    const month = d.toLocaleString('default', { month: 'long' })
+    const year = d.getFullYear()
+    const weekday = d.toLocaleString('default', { weekday: 'long' })
+    return `${day} ${month} ${year} (${weekday})`
+  }
+
   useEffect(() => {
     if (!clubId) return
     const fetchFixtures = async () => {
@@ -65,15 +76,25 @@ function FixturesCards({ clubId }: { clubId?: string | undefined }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
         {loading ? (
           <div className="p-4">Loading matches...</div>
-        ) : fixtures.length ? (
+          ) : fixtures.length ? (
           fixtures.map((f) => (
             <Card key={String(f._id)}>
               <CardHeader className="flex items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium">{f.title}</CardTitle>
+                <div className="flex items-center gap-3">
+                  {f.homeTeamBadge ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={f.homeTeamBadge} alt={f.homeTeam || 'home'} className="w-8 h-8 object-contain" />
+                  ) : null}
+                  <CardTitle className="text-sm font-medium">{f.title}</CardTitle>
+                  {f.awayTeamBadge ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={f.awayTeamBadge} alt={f.awayTeam || 'away'} className="w-8 h-8 object-contain" />
+                  ) : null}
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="text-sm text-muted-foreground">{f.competition}</div>
-                <div className="text-base font-semibold mt-2">{new Date(f.startTime).toLocaleString()}</div>
+                <div className="text-base font-semibold mt-2">{formatFixtureDate(f.startTime)}</div>
               </CardContent>
             </Card>
           ))

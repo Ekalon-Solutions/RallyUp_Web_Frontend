@@ -114,6 +114,30 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
   const [validatingCoupon, setValidatingCoupon] = useState(false)
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null)
 
+  // Default currency
+  const currency = 'INR'
+
+  // Format currency function
+  const formatCurrency = (amount: number, currencyCode: string = currency) => {
+    const localeMap: Record<string, string> = {
+      'USD': 'en-US',
+      'INR': 'en-IN',
+      'EUR': 'en-EU',
+      'GBP': 'en-GB',
+      'CAD': 'en-CA',
+      'AUD': 'en-AU',
+      'JPY': 'ja-JP',
+      'BRL': 'pt-BR',
+      'MXN': 'es-MX',
+      'ZAR': 'en-ZA'
+    }
+    const locale = localeMap[currencyCode] || 'en-US'
+    return new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency: currencyCode
+    }).format(amount)
+  }
+
   // Reset coupon when modal closes
   useEffect(() => {
     if (!isOpen) {

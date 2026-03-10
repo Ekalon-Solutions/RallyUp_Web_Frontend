@@ -89,6 +89,89 @@ import { PollsWidget } from "@/components/polls-widget"
 import { useClubSettings } from "@/hooks/useClubSettings"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 
+// Component: display upcoming fixtures for the user's active club
+function FixturesCards({ clubId }: { clubId?: string | undefined }) {
+  const [fixtures, setFixtures] = useState<any[]>([])
+  const [loading, setLoading] = useState(false)
+
+  // helper to format startTime into "DD Month YYYY (Weekday)"
+  const formatFixtureDate = (isoDate: string) => {
+    const d = new Date(isoDate)
+    if (isNaN(d.getTime())) return ''
+    const day = d.getDate()
+    const month = d.toLocaleString('default', { month: 'long' })
+    const year = d.getFullYear()
+    const weekday = d.toLocaleString('default', { weekday: 'long' })
+    return `${day} ${month} ${year} (${weekday})`
+  }
+
+  useEffect(() => {
+    if (!clubId) return
+    const fetchFixtures = async () => {
+      setLoading(true)
+      try {
+        const resp = await apiClient.listAvailableExternalTicketFixtures(clubId)
+        const data = resp?.data?.data || []
+        console.log("data:", data)
+        setFixtures(Array.isArray(data) ? data.slice(0, 5) : [])
+
+        // If no fixtures found, attempt to fetch from sports proxy and persist (uses default team 'Arsenal')
+        if (Array.isArray(data) && data.length === 0) {
+          try {
+            await apiClient.proxyInternalNextMatches({ team: 'Arsenal', clubId: String(clubId) })
+            // refetch fixtures after persistence
+            const retry = await apiClient.listAvailableExternalTicketFixtures(clubId)
+            const retryData = retry.data || []
+            setFixtures(Array.isArray(retryData) ? retryData.slice(0, 5) : [])
+          } catch (e) {
+            // ignore
+          }
+        }
+      } catch (e) {
+        setFixtures([])
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchFixtures()
+  }, [clubId])
+
+  return (
+    <div>
+      <h3 className="text-lg font-medium mb-2">Upcoming Matches</h3>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+        {loading ? (
+          <div className="p-4">Loading matches...</div>
+          ) : fixtures.length ? (
+          fixtures.map((f) => (
+            <Card key={String(f._id)}>
+              <CardHeader className="flex items-center justify-between pb-2">
+                <div className="flex items-center gap-3">
+                  {f.homeTeamBadge ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={f.homeTeamBadge} alt={f.homeTeam || 'home'} className="w-8 h-8 object-contain" />
+                  ) : null}
+                  <CardTitle className="text-sm font-medium">{f.title}</CardTitle>
+                  {f.awayTeamBadge ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={f.awayTeamBadge} alt={f.awayTeam || 'away'} className="w-8 h-8 object-contain" />
+                  ) : null}
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="text-sm text-muted-foreground">{f.competition}</div>
+                <div className="text-base font-semibold mt-2">{formatFixtureDate(f.startTime)}</div>
+              </CardContent>
+            </Card>
+          ))
+        ) : (
+          <div className="p-4">No upcoming matches</div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function UserDashboardPage() {
   const { user } = useAuth()
   const clubId = useRequiredClubId()
@@ -768,6 +851,11 @@ export default function UserDashboardPage() {
 
           {/* Club Membership Status */}
           <MembershipStatus />
+
+          {/* Upcoming Matches */}
+          <div className="w-full rounded-[2.5rem] overflow-hidden border-2 shadow-xl bg-card p-4">
+            <FixturesCards clubId={clubId} />
+          </div>
 
           {/* Events and News Tabs - Only show if sections are visible */}
           {(isSectionVisible('events') || isSectionVisible('news')) && (
