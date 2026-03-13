@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useState, useEffect, useCallback } from "react"
+import { useSearchParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -25,7 +26,6 @@ import {
   Image,
 } from "lucide-react"
 import { MembershipCard } from "@/components/membership-card"
-import { MembershipCardCustomizer } from "@/components/admin/membership-card-customizer"
 import { apiClient, PublicMembershipCardDisplay, CreateMembershipCardRequest } from "@/lib/api"
 import { formatDisplayDate } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
@@ -57,6 +57,10 @@ export default function MembershipCardsPage() {
   ];
 
   const { activeClubId } = useAuth()
+  const searchParams = useSearchParams()
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    return searchParams.get("planId") ? "create" : "preview"
+  })
   const [customization, setCustomization] = useState<{
     cardStyle: 'default' | 'premium' | 'vintage' | 'modern' | 'elite' | 'emerald';
     showLogo: boolean;
@@ -182,6 +186,11 @@ export default function MembershipCardsPage() {
         if (plansResponse.success && plansResponse.data) {
           const plansData = Array.isArray(plansResponse.data) ? plansResponse.data : (plansResponse.data?.data || [])
           setMembershipPlans(plansData)
+          const urlPlanId = searchParams.get("planId")
+          if (urlPlanId && plansData.some((p: any) => p._id === urlPlanId)) {
+            setSelectedPlanId(urlPlanId)
+            setActiveTab("create")
+          }
         } else {
           setMembershipPlans([])
         }
@@ -782,13 +791,11 @@ export default function MembershipCardsPage() {
             </Button>
           </div>
 
-          <Tabs defaultValue="preview" className="space-y-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <TabsList>
               <TabsTrigger value="preview">Live Preview</TabsTrigger>
               <TabsTrigger value="create">Create Card</TabsTrigger>
-              <TabsTrigger value="customize">Customize Default Card</TabsTrigger>
               <TabsTrigger value="manage">Manage Cards</TabsTrigger>
-              {/* <TabsTrigger value="settings">Settings</TabsTrigger> */}
             </TabsList>
 
             <TabsContent value="preview" className="space-y-6">
@@ -813,7 +820,7 @@ export default function MembershipCardsPage() {
                         <div className="text-center">
                           <h4 className="font-medium mb-3 text-foreground">Currently Editing</h4>
                           <div className="flex justify-center">
-                            <div className="w-full max-w-xs sm:max-w-sm">
+                            <div className="w-full max-w-xs">
                               <MembershipCard
                                 cardData={editingCard}
                                 cardStyle={editingCard.card.cardStyle}
@@ -836,20 +843,18 @@ export default function MembershipCardsPage() {
                             <p className="text-sm">Create your first membership card to see a preview</p>
                           </div>
                         ) : (
-                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
                             {cards.map((card, index) => (
                               <div key={card?.card?._id || index} className="text-center">
                                 <p className="text-sm text-muted-foreground mb-2">{card?.membershipPlan?.name || 'Unknown Plan'}</p>
-                                <div className="flex justify-center">
-                                  <div className="w-full max-w-xs sm:max-w-sm">
-                                    <MembershipCard
-                                      cardData={card}
-                                      cardStyle={card?.card?.cardStyle || 'default'}
-                                      showLogo={card?.card?.customization?.showLogo ?? true}
-                                      userName="John Doe"
-                                      membershipId={card?.card?.membershipId ?? 'Membership ID'}
-                                    />
-                                  </div>
+                                <div className="w-full max-w-xs mx-auto">
+                                  <MembershipCard
+                                    cardData={card}
+                                    cardStyle={card?.card?.cardStyle || 'default'}
+                                    showLogo={card?.card?.customization?.showLogo ?? true}
+                                    userName="John Doe"
+                                    membershipId={card?.card?.membershipId ?? 'Membership ID'}
+                                  />
                                 </div>
                               </div>
                             ))}
@@ -976,15 +981,6 @@ export default function MembershipCardsPage() {
                   })()}
                 </CardContent>
               </Card>
-            </TabsContent>
-
-            <TabsContent value="customize" className="space-y-6">
-              <MembershipCardCustomizer
-                clubId={effectiveClubId || undefined}
-                onSave={() => {
-                  window.location.reload();
-                }}
-              />
             </TabsContent>
 
             <TabsContent value="manage" className="space-y-6">
@@ -1267,19 +1263,26 @@ export default function MembershipCardsPage() {
                 </div>
 
                 {/* Right Column - Live Preview */}
-                <div className="flex-1 flex items-start justify-center lg:justify-end min-h-[320px] lg:min-h-0 lg:sticky lg:top-0">
-                  <div className="border rounded-lg p-4 sm:p-6 bg-muted/20 w-full max-w-sm">
-                    <Label className="text-sm font-medium mb-4 block">Live Preview</Label>
-                    <div className="flex justify-center">
-                      <div className="w-full max-w-xs sm:max-w-sm">
-                        <MembershipCard
-                          cardData={editingCard}
-                          cardStyle={editingCard.card.cardStyle}
-                          showLogo={editingCard.card.customization?.showLogo ?? true}
-                          userName="John Doe"
-                          membershipId={editingCard.card.membershipId ?? 'MEM-XXXX'}
-                        />
-                      </div>
+                <div className="flex-1 flex items-start justify-center lg:justify-center min-h-[220px] lg:min-h-0 lg:sticky lg:top-0">
+                  <div className="border rounded-lg p-4 bg-muted/20 w-full max-w-xs">
+                    <Label className="text-sm font-medium mb-3 block">Live Preview</Label>
+                    <div className="w-full">
+                      <MembershipCard
+                        cardData={customLogoPreview ? {
+                          ...editingCard,
+                          card: {
+                            ...editingCard.card,
+                            customization: {
+                              ...normalizeCustomization(editingCard.card.customization),
+                              customLogo: customLogoPreview,
+                            }
+                          }
+                        } : editingCard}
+                        cardStyle={editingCard.card.cardStyle}
+                        showLogo={editingCard.card.customization?.showLogo ?? true}
+                        userName="John Doe"
+                        membershipId={editingCard.card.membershipId ?? 'MEM-XXXX'}
+                      />
                     </div>
                   </div>
                 </div>

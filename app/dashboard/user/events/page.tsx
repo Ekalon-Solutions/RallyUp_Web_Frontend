@@ -44,16 +44,19 @@ import { EventCheckoutModal } from "@/components/modals/event-checkout-modal";
 
 const eventCategories = [
   "all",
-  "general",
-  "sports",
-  "music",
-  "business",
-  "education",
-  "community",
-  "charity",
-  "technology",
-  "health",
-  "entertainment",
+  "screenings",
+  "footy-meets",
+  "tournaments",
+  "auctions",
+  "club-events",
+  "social-events",
+  "csr-events",
+  "watch-parties",
+  "travel-days",
+  "workshops",
+  "general-meeting",
+  "matchday",
+  "others",
 ];
 
 function AttendanceMarker({
@@ -321,23 +324,16 @@ function UserEventsPageInner() {
       toast.error("Event not found. Please refresh and try again.");
       return;
     }
-    if (true) {
-      if (payload.couponCode) {
-        setCouponForPayment({ code: payload.couponCode, discount: 0 });
-      } else {
-        setCouponForPayment(null);
-      }
-      setShowEventCheckoutModal(true);
-      setEventForPayment({ ...event, price: event.ticketPrice ?? 0 } as Event & {
-        price: number;
-      });
-      setAttendeesForPayment(
-        payload.attendees
-      );
-      return;
+    if (payload.couponCode) {
+      setCouponForPayment({ code: payload.couponCode, discount: 0 });
+    } else {
+      setCouponForPayment(null);
     }
-    setRegistrationEventId(event?._id || "");
-    setShowRegistrationModal(true);
+    setShowEventCheckoutModal(true);
+    setEventForPayment({ ...event, price: event.ticketPrice ?? 0 } as Event & {
+      price: number;
+    });
+    setAttendeesForPayment(payload.attendees);
   };
 
   const formatDate = (dateString: string) => {
@@ -387,7 +383,7 @@ function UserEventsPageInner() {
   };
 
   const isEventUpcoming = (event: Event) => {
-    return new Date(event.bookingEndTime) > new Date() && new Date(event.bookingStartTime) < new Date();
+    return new Date(event.startTime) > new Date();
   };
   
   const isEventMembersOnly = (event: Event) => {
