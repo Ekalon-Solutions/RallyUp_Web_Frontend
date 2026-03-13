@@ -44,7 +44,9 @@ export function VolunteerOpportunityCard({
   );
 
   const isSignedUpForTimeSlot = (slot: any) => {
-    return currentVolunteerId && slot.volunteersAssigned.includes(currentVolunteerId);
+    if (!currentVolunteerId) return false;
+    const assigned = slot.volunteersAssigned ?? [];
+    return assigned.some((id: any) => String(id) === String(currentVolunteerId));
   };
 
   return (
