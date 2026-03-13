@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useCallback } from "react"
+import React, { Suspense, useState, useEffect, useCallback } from "react"
 import { useSearchParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -36,7 +36,7 @@ import { ProtectedRoute } from "@/components/protected-route"
 import { useAuth } from "@/contexts/auth-context"
 
 
-export default function MembershipCardsPage() {
+function MembershipCardsPage() {
   const CARD_STYLE_COLORS: Record<
     "default" | "premium" | "vintage" | "modern" | "elite" | "emerald",
     { primaryColor: string; secondaryColor: string }
@@ -1302,5 +1302,17 @@ export default function MembershipCardsPage() {
         )}
       </DashboardLayout>
     </ProtectedRoute>
+  )
+}
+
+export default function MembershipCardsPageWrapper() {
+  return (
+    <Suspense fallback={
+      <div className="p-6 flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    }>
+      <MembershipCardsPage />
+    </Suspense>
   )
 }
