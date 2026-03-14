@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/auth-context"
 import { PollsWidget } from "@/components/polls-widget"
 import { LatestEventsWidget } from "@/components/latest-events-widget"
 import { LatestNewsWidget } from "@/components/latest-news-widget"
+import LeagueTableWidget from "@/components/league-table-widget"
 import { Button } from "@/components/ui/button"
 import { getApiUrl } from "@/lib/config"
 import { apiClient } from "@/lib/api"
@@ -311,6 +312,7 @@ export default function DashboardPage() {
   
   const clubId = getUserClubId()
   const { settings: clubSettings } = useClubSettings(clubId)
+  console.log("club settings:", clubSettings)
   
   const settingsLogo = clubSettings ? ((clubSettings as any).designSettings?.logo) : undefined
   const displayLogo = settingsLogo || clubLogo
@@ -374,6 +376,29 @@ export default function DashboardPage() {
                 >
                   {cronLoading ? 'Running...' : 'Fetch Next Matches'}
                 </Button>
+                <Button
+                  variant="outline"
+                  onClick={async () => {
+                    if (!confirm('Refresh league tables for all clubs now?')) return
+                    try {
+                      setCronLoading(true)
+                      const cronResp = await apiClient.post('/cron/sports/refresh-league-tables', {})
+                      if (cronResp.success) {
+                        toast.success('League tables refreshed successfully')
+                      } else {
+                        toast.error(`Refresh failed: ${cronResp.status || ''} ${cronResp.message || cronResp.error || ''}`)
+                      }
+                    } catch (e: any) {
+                      toast.error('Refresh request failed')
+                    } finally {
+                      setCronLoading(false)
+                    }
+                  }}
+                  disabled={cronLoading}
+                  className="ml-2"
+                >
+                  {cronLoading ? 'Running...' : 'Refresh League Tables'}
+                </Button>
               </div>
             )}
           </div>
@@ -434,6 +459,14 @@ export default function DashboardPage() {
               <div className="w-full rounded-[2.5rem] overflow-hidden border-2 shadow-xl bg-card p-4">
                 <FixturesCards clubId={clubId} />
               </div>
+
+              {/* League Table Widget */}
+              {clubSettings?.sports?.teamId && (
+                <div className="w-full rounded-[2.5rem] overflow-hidden border-2 shadow-xl bg-card p-4">
+                  <LeagueTableWidget leagueId={clubSettings.sports.leagueId} />
+                </div>
+              )}
+
               <div className="w-full rounded-[2.5rem] overflow-hidden border-2 shadow-xl bg-card p-2">
                 <LatestEventsWidget limit={5} showManageButton={true} />
               </div>

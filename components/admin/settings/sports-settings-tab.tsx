@@ -16,6 +16,8 @@ export default function SportsSettingsTab() {
   const [results, setResults] = useState<any[]>([])
   const [selected, setSelected] = useState<any>(null)
   const [currentTeam, setCurrentTeam] = useState<any>(null)
+  const [fetchingEvents, setFetchingEvents] = useState(false)
+  const [refreshingTable, setRefreshingTable] = useState(false)
 
   useEffect(() => {
     if (clubId) loadCurrent()
@@ -87,6 +89,39 @@ export default function SportsSettingsTab() {
     }
   }
 
+  const handleFetchNextEvents = async () => {
+    if (!currentTeam) return toast.error('No team configured')
+    try {
+      setFetchingEvents(true)
+      const resp = await apiClient.proxyInternalNextMatches({ team: currentTeam.teamName, clubId: String(clubId) })
+      if (resp.success) {
+        toast.success('Next events fetched successfully')
+      } else {
+        toast.error('Failed to fetch next events')
+      }
+    } catch (err) {
+      toast.error('Failed to fetch next events')
+    } finally {
+      setFetchingEvents(false)
+    }
+  }
+
+  const handleRefreshLeagueTable = async () => {
+    try {
+      setRefreshingTable(true)
+      const resp = await apiClient.refreshLeagueTables()
+      if (resp.success) {
+        toast.success('League table refreshed successfully')
+      } else {
+        toast.error('Failed to refresh league table')
+      }
+    } catch (err) {
+      toast.error('Failed to refresh league table')
+    } finally {
+      setRefreshingTable(false)
+    }
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -115,6 +150,15 @@ export default function SportsSettingsTab() {
               )}
             </div>
           </div>
+        </div>
+
+        <div className="flex gap-2">
+          <Button onClick={handleFetchNextEvents} disabled={!currentTeam || fetchingEvents}>
+            {fetchingEvents ? 'Fetching Events…' : 'Fetch Next Events'}
+          </Button>
+          <Button onClick={handleRefreshLeagueTable} disabled={refreshingTable}>
+            {refreshingTable ? 'Refreshing Table…' : 'Refresh League Table'}
+          </Button>
         </div>
 
         {results.length > 0 && (

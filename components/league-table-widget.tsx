@@ -30,9 +30,12 @@ interface Standing {
 
 interface LeagueTableWidgetProps {
   leagueId: string;
+  // Optionally highlight a specific team (by SportsDB teamId or team name)
+  highlightTeamId?: string;
+  highlightTeamName?: string;
 }
 
-export default function LeagueTableWidget({ leagueId }: LeagueTableWidgetProps) {
+export default function LeagueTableWidget({ leagueId, highlightTeamId, highlightTeamName }: LeagueTableWidgetProps) {
   const [standings, setStandings] = useState<Standing[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -47,8 +50,9 @@ export default function LeagueTableWidget({ leagueId }: LeagueTableWidgetProps) 
       setLoading(true);
       setError(null);
       const resp = await apiClient.getLeagueTable(leagueId);
-      if (resp.success && resp.data?.standings) {
-        setStandings(resp.data.standings);
+      console.log("llt resp:", resp)
+      if (resp.success && resp.data?.data?.standings) {
+        setStandings(resp.data.data.standings);
       } else {
         setError('Failed to load league table');
       }
@@ -102,8 +106,7 @@ export default function LeagueTableWidget({ leagueId }: LeagueTableWidgetProps) 
             <thead className="border-b bg-muted/50">
               <tr>
                 <th className="text-left px-2 py-2 font-semibold">Rank</th>
-                <th className="text-left px-2 py-2 font-semibold">Team</th>
-                <th className="text-center px-2 py-2 font-semibold">P</th>
+                <th className="text-left px-2 py-2 font-semibold">Team</th>              <th className="text-center px-2 py-2 font-semibold">Form</th>                <th className="text-center px-2 py-2 font-semibold">P</th>
                 <th className="text-center px-2 py-2 font-semibold">W</th>
                 <th className="text-center px-2 py-2 font-semibold">D</th>
                 <th className="text-center px-2 py-2 font-semibold">L</th>
@@ -126,6 +129,9 @@ export default function LeagueTableWidget({ leagueId }: LeagueTableWidgetProps) 
                       )}
                       <span className="font-medium">{standing.strTeam}</span>
                     </div>
+                  </td>
+                  <td className="text-center px-2 py-3 font-mono tracking-wider">
+                    {standing.strForm || '-'}
                   </td>
                   <td className="text-center px-2 py-3">{standing.intPlayed}</td>
                   <td className="text-center px-2 py-3 text-green-600 font-semibold">{standing.intWin}</td>

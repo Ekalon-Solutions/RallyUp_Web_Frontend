@@ -2042,10 +2042,6 @@ class ApiClient {
     });
   }
 
-  async getClubStats(id: string): Promise<ApiResponse<any>> {
-    return this.request(`/clubs/${id}/stats`);
-  }
-
   async createMembershipPlan(data: {
     name: string;
     description: string;
