@@ -192,28 +192,6 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
 
   const couponDiscount = appliedCoupon?.discount ?? 0
   const subtotalAfterCoupon = Math.max(0, totalPrice - couponDiscount)
-
-  const currency = items.length > 0 ? (items[0].currency || 'USD') : 'USD'
-  const formatCurrency = (amount: number, currencyCode: string = currency) => {
-    const localeMap: Record<string, string> = {
-      USD: 'en-US',
-      INR: 'en-IN',
-      EUR: 'en-EU',
-      GBP: 'en-GB',
-      CAD: 'en-CA',
-      AUD: 'en-AU',
-      JPY: 'ja-JP',
-      BRL: 'pt-BR',
-      MXN: 'es-MX',
-      ZAR: 'en-ZA',
-    }
-    const locale = localeMap[currencyCode] || 'en-US'
-    return new Intl.NumberFormat(locale, {
-      style: 'currency',
-      currency: currencyCode,
-    }).format(amount)
-  }
-
   const calculateTotalWeight = () => {
     const totalQuantity = items.reduce((sum, item) => sum + (item.quantity || 0), 0)
     return totalQuantity > 0 ? totalQuantity : 1

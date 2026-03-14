@@ -86,6 +86,7 @@ function AttendanceMarker({ event, userId }: { event: Event; userId?: string }) 
 }
 import { MembershipStatus } from "@/components/membership-status"
 import { PollsWidget } from "@/components/polls-widget"
+import LeagueTableWidget from "@/components/league-table-widget"
 import { useClubSettings } from "@/hooks/useClubSettings"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 
@@ -113,16 +114,35 @@ function FixturesCards({ clubId }: { clubId?: string | undefined }) {
         const resp = await apiClient.listAvailableExternalTicketFixtures(clubId)
         const data = resp?.data?.data || []
         console.log("data:", data)
-        setFixtures(Array.isArray(data) ? data.slice(0, 5) : [])
+
+        const fixturesArr = Array.isArray(data) ? data : []
+        const now = new Date()
+        const past = fixturesArr.filter((f) => new Date(f.startTime) < now)
+        const future = fixturesArr.filter((f) => new Date(f.startTime) >= now)
+        const selected = [
+          ...past.slice(-1),
+          ...future.slice(0, 4),
+        ].slice(0, 5)
+
+        setFixtures(selected)
 
         // If no fixtures found, attempt to fetch from sports proxy and persist (uses default team 'Arsenal')
-        if (Array.isArray(data) && data.length === 0) {
+        if (fixturesArr.length === 0) {
           try {
             await apiClient.proxyInternalNextMatches({ team: 'Arsenal', clubId: String(clubId) })
             // refetch fixtures after persistence
             const retry = await apiClient.listAvailableExternalTicketFixtures(clubId)
             const retryData = retry.data || []
-            setFixtures(Array.isArray(retryData) ? retryData.slice(0, 5) : [])
+
+            const retryArr = Array.isArray(retryData) ? retryData : []
+            const retryPast = retryArr.filter((f) => new Date(f.startTime) < now)
+            const retryFuture = retryArr.filter((f) => new Date(f.startTime) >= now)
+            const retrySelected = [
+              ...retryPast.slice(-1),
+              ...retryFuture.slice(0, 4),
+            ].slice(0, 5)
+
+            setFixtures(retrySelected)
           } catch (e) {
             // ignore
           }
@@ -143,27 +163,41 @@ function FixturesCards({ clubId }: { clubId?: string | undefined }) {
         {loading ? (
           <div className="p-4">Loading matches...</div>
           ) : fixtures.length ? (
-          fixtures.map((f) => (
-            <Card key={String(f._id)}>
-              <CardHeader className="flex items-center justify-between pb-2">
-                <div className="flex items-center gap-3">
-                  {f.homeTeamBadge ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={f.homeTeamBadge} alt={f.homeTeam || 'home'} className="w-8 h-8 object-contain" />
-                  ) : null}
-                  <CardTitle className="text-sm font-medium">{f.title}</CardTitle>
-                  {f.awayTeamBadge ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={f.awayTeamBadge} alt={f.awayTeam || 'away'} className="w-8 h-8 object-contain" />
-                  ) : null}
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-sm text-muted-foreground">{f.competition}</div>
-                <div className="text-base font-semibold mt-2">{formatFixtureDate(f.startTime)}</div>
-              </CardContent>
-            </Card>
-          ))
+          fixtures.map((f) => {
+            const fixtureDate = new Date(f.startTime)
+            const isPast = fixtureDate < new Date()
+            const hasScore = typeof f.homeScore === 'number' && typeof f.awayScore === 'number'
+            const scoreText = hasScore ? `${f.homeScore} - ${f.awayScore}` : null
+            const detailedScoreText = hasScore && f.homeTeam && f.awayTeam 
+              ? `${f.homeTeam} ${f.homeScore} - ${f.awayScore} ${f.awayTeam}` 
+              : scoreText
+
+            return (
+              <Card key={String(f._id)}>
+                <CardHeader className="flex items-center justify-between pb-2">
+                  <div className="flex items-center gap-3">
+                    {f.homeTeamBadge ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={f.homeTeamBadge} alt={f.homeTeam || 'home'} className="w-8 h-8 object-contain" />
+                    ) : null}
+                    <CardTitle className="text-sm font-medium">{f.title}</CardTitle>
+                    {f.awayTeamBadge ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={f.awayTeamBadge} alt={f.awayTeam || 'away'} className="w-8 h-8 object-contain" />
+                    ) : null}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-sm text-muted-foreground">{f.competition}</div>
+                  {isPast && detailedScoreText ? (
+                    <div className="text-base font-semibold mt-2 text-green-600">{detailedScoreText}</div>
+                  ) : (
+                    <div className="text-base font-semibold mt-2">{formatFixtureDate(f.startTime)}</div>
+                  )}
+                </CardContent>
+              </Card>
+            )
+          })
         ) : (
           <div className="p-4">No upcoming matches</div>
         )}
@@ -856,6 +890,13 @@ export default function UserDashboardPage() {
           <div className="w-full rounded-[2.5rem] overflow-hidden border-2 shadow-xl bg-card p-4">
             <FixturesCards clubId={clubId} />
           </div>
+
+          {/* League Table Widget */}
+          {userClub?.sports?.teamId && userClub?.sports?.leagueId && (
+            <div className="w-full rounded-[2.5rem] overflow-hidden border-2 shadow-xl bg-card p-4">
+              <LeagueTableWidget leagueId={userClub.sports.leagueId} />
+            </div>
+          )}
 
           {/* Events and News Tabs - Only show if sections are visible */}
           {(isSectionVisible('events') || isSectionVisible('news')) && (

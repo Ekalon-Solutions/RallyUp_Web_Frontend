@@ -47,16 +47,35 @@ function FixturesCards({ clubId }: { clubId?: string | undefined }) {
         const resp = await apiClient.listAvailableExternalTicketFixtures(clubId)
         const data = resp?.data?.data || []
         console.log("data:", data)
-        setFixtures(Array.isArray(data) ? data.slice(0, 5) : [])
+
+        const fixturesArr = Array.isArray(data) ? data : []
+        const now = new Date()
+        const past = fixturesArr.filter((f) => new Date(f.startTime) < now)
+        const future = fixturesArr.filter((f) => new Date(f.startTime) >= now)
+        const selected = [
+          ...past.slice(-1),
+          ...future.slice(0, 4),
+        ].slice(0, 5)
+
+        setFixtures(selected)
 
         // If no fixtures found, attempt to fetch from sports proxy and persist (uses default team 'Arsenal')
-        if (Array.isArray(data) && data.length === 0) {
+        if (fixturesArr.length === 0) {
           try {
             await apiClient.proxyInternalNextMatches({ team: 'Arsenal', clubId: String(clubId) })
             // refetch fixtures after persistence
             const retry = await apiClient.listAvailableExternalTicketFixtures(clubId)
             const retryData = retry.data || []
-            setFixtures(Array.isArray(retryData) ? retryData.slice(0, 5) : [])
+
+            const retryArr = Array.isArray(retryData) ? retryData : []
+            const retryPast = retryArr.filter((f) => new Date(f.startTime) < now)
+            const retryFuture = retryArr.filter((f) => new Date(f.startTime) >= now)
+            const retrySelected = [
+              ...retryPast.slice(-1),
+              ...retryFuture.slice(0, 4),
+            ].slice(0, 5)
+
+            setFixtures(retrySelected)
           } catch (e) {
             // ignore
           }
@@ -77,27 +96,41 @@ function FixturesCards({ clubId }: { clubId?: string | undefined }) {
         {loading ? (
           <div className="p-4">Loading matches...</div>
           ) : fixtures.length ? (
-          fixtures.map((f) => (
-            <Card key={String(f._id)}>
-              <CardHeader className="flex items-center justify-between pb-2">
-                <div className="flex items-center gap-3">
-                  {f.homeTeamBadge ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={f.homeTeamBadge} alt={f.homeTeam || 'home'} className="w-8 h-8 object-contain" />
-                  ) : null}
-                  <CardTitle className="text-sm font-medium">{f.title}</CardTitle>
-                  {f.awayTeamBadge ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={f.awayTeamBadge} alt={f.awayTeam || 'away'} className="w-8 h-8 object-contain" />
-                  ) : null}
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="text-sm text-muted-foreground">{f.competition}</div>
-                <div className="text-base font-semibold mt-2">{formatFixtureDate(f.startTime)}</div>
-              </CardContent>
-            </Card>
-          ))
+          fixtures.map((f) => {
+            const fixtureDate = new Date(f.startTime)
+            const isPast = fixtureDate < new Date()
+            const hasScore = typeof f.homeScore === 'number' && typeof f.awayScore === 'number'
+            const scoreText = hasScore ? `${f.homeScore} - ${f.awayScore}` : null
+            const detailedScoreText = hasScore && f.homeTeam && f.awayTeam 
+              ? `${f.homeTeam} ${f.homeScore} - ${f.awayScore} ${f.awayTeam}` 
+              : scoreText
+
+            return (
+              <Card key={String(f._id)}>
+                <CardHeader className="flex items-center justify-between pb-2">
+                  <div className="flex items-center gap-3">
+                    {f.homeTeamBadge ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={f.homeTeamBadge} alt={f.homeTeam || 'home'} className="w-8 h-8 object-contain" />
+                    ) : null}
+                    <CardTitle className="text-sm font-medium">{f.title}</CardTitle>
+                    {f.awayTeamBadge ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={f.awayTeamBadge} alt={f.awayTeam || 'away'} className="w-8 h-8 object-contain" />
+                    ) : null}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-sm text-muted-foreground">{f.competition}</div>
+                  {isPast && detailedScoreText ? (
+                    <div className="text-base font-semibold mt-2 text-green-600">{detailedScoreText}</div>
+                  ) : (
+                    <div className="text-base font-semibold mt-2">{formatFixtureDate(f.startTime)}</div>
+                  )}
+                </CardContent>
+              </Card>
+            )
+          })
         ) : (
           <div className="p-4">No upcoming matches</div>
         )}
@@ -179,33 +212,22 @@ export default function DashboardPage() {
         setLoading(true)
         const token = localStorage.getItem('token')
 
-        const clubStatsResponse = await axios.get(
-          getApiUrl(`/clubs/${clubId}/stats`),
-          { headers: { Authorization: `Bearer ${token}` } }
-        )
+        const clubStatsResponse = await apiClient.getClubStats(clubId)
 
-        const eventsResponse = await axios.get(
-          getApiUrl(`/events/public`),
-          {
-            headers: { Authorization: `Bearer ${token}` },
-            params: { clubId, limit: 100 }
-          }
-        )
+        const eventsResponse = await apiClient.getPublicEvents(clubId)
         const eventsList = Array.isArray(eventsResponse.data) ? eventsResponse.data : (eventsResponse.data?.events || [])
         const upcomingEvents = eventsList.filter((event: any) =>
           new Date(event.startTime || event.date) >= new Date()
         ).length
 
-        const orderStatsResponse = await axios.get(
-          getApiUrl(`/orders/admin/stats`),
-          { headers: { Authorization: `Bearer ${token}` } }
-        ).catch(() => ({ data: { totalRevenue: 0 } }))
+        const orderStatsResponse = await apiClient.getOrderStats()
+        const orderStatsData = orderStatsResponse.success ? orderStatsResponse.data : { totalRevenue: 0 }
 
         setStats({
-          totalMembers: clubStatsResponse.data.totalMembers || 0,
-          activeMembers: clubStatsResponse.data.activeMembers || 0,
+          totalMembers: clubStatsResponse.data?.totalMembers || 0,
+          activeMembers: clubStatsResponse.data?.activeMembers || 0,
           upcomingEvents,
-          storeRevenue: orderStatsResponse.data.totalRevenue || 0
+          storeRevenue: orderStatsData.totalRevenue || 0
         })
       } catch (error) {
         setStats({

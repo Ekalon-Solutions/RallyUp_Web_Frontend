@@ -551,6 +551,13 @@ export interface ExternalTicketFixture {
   competition: string;
   isVisibleForMembers: boolean;
   visibilityEndsAt?: string | null;
+  homeTeam?: string | null;
+  awayTeam?: string | null;
+  homeScore?: number | null;
+  awayScore?: number | null;
+  homeTeamBadge?: string | null;
+  awayTeamBadge?: string | null;
+  externalEventId?: string | null;
 }
 
 class ApiClient {
@@ -3220,6 +3227,15 @@ class ApiClient {
   async updateClubSportsSettings(clubId: string, data: { teamName?: string; teamId?: string; teamBadge?: string; teamLogo?: string }): Promise<ApiResponse<any>> {
     return this.put(`/club-settings/${clubId}/sports`, data);
   }
+
+  async refreshLeagueTables(): Promise<ApiResponse<any>> {
+    return this.post(`/sports/refresh-league-tables`, {});
+  }
+
+  async getLeagueTable(leagueId: string): Promise<ApiResponse<any>> {
+    return this.get(`/sports/league-table`, { params: { leagueId } });
+  }
+
   async getClubAddress(clubId: string): Promise<ApiResponse<{ street?: string; city?: string; state?: string; country?: string; zipCode?: string }>> {
     return this.get(`/club-settings/${clubId}/address`);
   }
@@ -3392,6 +3408,27 @@ class ApiClient {
       method: 'PATCH',
       body: JSON.stringify({ adminNotes }),
     });
+  }
+
+  async getClubStats(clubId: string): Promise<ApiResponse<{
+    totalMembers: number;
+    activeMembers: number;
+    verifiedMembers: number;
+    newMembersThisMonth: number;
+    inactiveMembers: number;
+    unverifiedMembers: number;
+  }>> {
+    return this.request(`/clubs/${clubId}/stats`);
+  }
+
+  async getOrderStats(): Promise<ApiResponse<{
+    totalRevenue: number;
+    totalOrders: number;
+    pendingOrders: number;
+    completedOrders: number;
+    cancelledOrders: number;
+  }>> {
+    return this.request('/orders/admin/stats');
   }
 }
 

@@ -159,7 +159,15 @@ export const API_ENDPOINTS = {
   buildWsUrl: (endpoint: string) => `${currentConfig.wsBaseUrl}${endpoint}`,
 };
 
-export const getApiUrl = (endpoint: string) => `${currentConfig.apiBaseUrl}${endpoint}`;
+export const getApiUrl = (endpoint: string) => {
+  if (typeof window !== 'undefined') {
+    const clientBase = (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL)
+      ? process.env.NEXT_PUBLIC_API_URL
+      : `${window.location.origin.replace(/\/$/, '')}/api`;
+    return `${clientBase}${endpoint}`;
+  }
+  return `${currentConfig.apiBaseUrl}${endpoint}`;
+};
 
 export const getWsUrl = (endpoint: string) => `${currentConfig.wsBaseUrl}${endpoint}`;
 
