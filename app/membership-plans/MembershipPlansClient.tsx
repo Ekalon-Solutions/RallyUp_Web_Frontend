@@ -187,6 +187,16 @@ export default function MembershipPlansClient({ clubId }: { clubId: string }) {
                           {formatPrice(plan.price || 0, plan.currency || "INR")}
                         </div>
                         <div className="text-sm text-muted-foreground">{formatPlanPeriod(plan)}</div>
+                        {(plan.planStartDate || plan.planEndDate) && (
+                          <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground mt-2 justify-center">
+                            {plan.planStartDate && (
+                              <span>Start: {new Date(plan.planStartDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</span>
+                            )}
+                            {plan.planEndDate && (
+                              <span>End: {new Date(plan.planEndDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</span>
+                            )}
+                          </div>
+                        )}
                       </div>
 
                       <div className="space-y-2">

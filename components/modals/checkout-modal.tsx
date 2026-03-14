@@ -116,8 +116,8 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
   const [validatingCoupon, setValidatingCoupon] = useState(false)
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null)
 
-  // Default currency
-  const currency = 'INR'
+  // Currency from first item or fallback
+  const currency = items.length > 0 ? (items[0].currency || 'INR') : 'INR'
 
   // Format currency function
   const formatCurrency = (amount: number, currencyCode: string = currency) => {
@@ -192,6 +192,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
 
   const couponDiscount = appliedCoupon?.discount ?? 0
   const subtotalAfterCoupon = Math.max(0, totalPrice - couponDiscount)
+
   const calculateTotalWeight = () => {
     const totalQuantity = items.reduce((sum, item) => sum + (item.quantity || 0), 0)
     return totalQuantity > 0 ? totalQuantity : 1
