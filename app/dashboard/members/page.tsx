@@ -928,8 +928,7 @@ export default function MembersPage() {
                             size="sm"
                             onClick={() => {
                               setAdjustMemberId(member._id)
-                              const primaryClub = (user as any)?.clubs?.[0]
-                              setAdjustMemberClub(primaryClub?._id ?? primaryClub ?? clubId ?? null)
+                              setAdjustMemberClub(clubId ?? null)
                               setIsAdjustPointsOpen(true)
                             }}
                             className="flex-1 sm:flex-initial"
