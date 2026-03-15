@@ -1906,6 +1906,24 @@ class ApiClient {
     }
   }
 
+  async updatePendingOrderPayment(orderId: string, data: {
+    couponCode?: string;
+    clearCoupon?: boolean;
+    reservationToken?: string | null;
+    redeemedPoints?: number;
+    redeemedDiscount?: number;
+    finalAmount?: number;
+    platformFee?: number;
+    platformFeeGst?: number;
+    razorpayFee?: number;
+    razorpayFeeGst?: number;
+  }): Promise<ApiResponse<any>> {
+    return this.request(`/orders/my-orders/${orderId}/update-payment`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
   async createClub(data: {
     name: string;
     description?: string;

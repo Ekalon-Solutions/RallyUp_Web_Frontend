@@ -314,12 +314,35 @@ export function PaymentSimulationModal({
               {(() => {
                 // Show a clear breakdown: items subtotal, shipping, tax
                 if (subtotal !== undefined) {
+                  const hasDiscount = (couponDiscount ?? 0) > 0 || (pointsDiscount ?? 0) > 0
+                  const netSubtotal = Math.max(subtotal - (couponDiscount ?? 0) - (pointsDiscount ?? 0), 0)
                   return (
                     <>
                       <div className="flex justify-between items-center text-sm">
                         <span>Items Subtotal:</span>
-                        <span>{formatCurrency(subtotal, currency)}</span>
+                        <span className="flex items-center gap-2">
+                          {hasDiscount ? (
+                            <>
+                              <span className="line-through text-muted-foreground">{formatCurrency(subtotal, currency)}</span>
+                              <span>{formatCurrency(netSubtotal, currency)}</span>
+                            </>
+                          ) : (
+                            <span>{formatCurrency(subtotal, currency)}</span>
+                          )}
+                        </span>
                       </div>
+                      {(couponDiscount ?? 0) > 0 && (
+                        <div className="flex justify-between items-center text-sm text-green-600">
+                          <span>Coupon {couponCode ? `(${couponCode})` : 'discount'}:</span>
+                          <span>-{formatCurrency(couponDiscount!, currency)}</span>
+                        </div>
+                      )}
+                      {(pointsDiscount ?? 0) > 0 && (
+                        <div className="flex justify-between items-center text-sm text-green-600">
+                          <span>- Points discount:</span>
+                          <span>-{formatCurrency(pointsDiscount!, currency)}</span>
+                        </div>
+                      )}
                       {shippingCost !== undefined && (
                         <div className="flex justify-between items-center text-sm">
                           <span>Shipping:</span>
@@ -334,12 +357,6 @@ export function PaymentSimulationModal({
                         <div className="flex justify-between items-center text-sm">
                           <span>Tax:</span>
                           <span>{formatCurrency(tax, currency)}</span>
-                        </div>
-                      )}
-                      {pointsDiscount !== undefined && pointsDiscount > 0 && (
-                        <div className="flex justify-between items-center text-sm text-green-600">
-                          <span>- Points discount:</span>
-                          <span>-{formatCurrency(pointsDiscount, currency)}</span>
                         </div>
                       )}
                     </>

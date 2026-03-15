@@ -7,12 +7,16 @@ import { DashboardLayout } from '@/components/dashboard-layout'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Label } from '@/components/ui/label'
+import { Separator } from '@/components/ui/separator'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useToast } from '@/hooks/use-toast'
 import { formatLocalDate } from '@/lib/timezone'
 import { RefundButton } from '@/components/refund-button'
+import { PaymentSimulationModal } from '@/components/modals/payment-simulation-modal'
+import { calculateTransactionFees, PLATFORM_FEE_PERCENT, RAZORPAY_FEE_PERCENT } from '@/lib/transactionFees'
 import {
   Search,
   RefreshCw,
@@ -22,7 +26,12 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  Download
+  Download,
+  Tag,
+  X,
+  Loader2,
+  CreditCard,
+  Wallet
 } from 'lucide-react'
 import { useRequiredClubId } from '@/hooks/useRequiredClubId'
 
@@ -56,15 +65,22 @@ interface Order {
   }
   items: OrderItem[]
   subtotal: number
+  couponCode?: string
+  couponDiscount?: number
+  redeemedDiscount?: number
+  pointsDiscount?: number
+  redeemedPoints?: number
+  reservationToken?: string
   shippingCost: number
   tax: number
   total: number
+  finalAmount?: number
   platformFee?: number
   platformFeeGst?: number
   razorpayFee?: number
   razorpayFeeGst?: number
-  finalAmount?: number
   currency: string
+  club?: string
   status: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded'
   paymentMethod: 'card' | 'paypal' | 'bank_transfer'
   paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded'
@@ -76,6 +92,16 @@ interface Order {
   cancelledReason?: string
   createdAt: string
   updatedAt: string
+}
+
+interface AppliedCoupon {
+  code: string
+  name: string
+  discountType: 'flat' | 'percentage'
+  discountValue: number
+  discount: number
+  originalPrice: number
+  finalPrice: number
 }
 
 const statusConfig = {
@@ -108,6 +134,22 @@ export default function UserOrdersPage() {
   const [totalPages, setTotalPages] = useState(1)
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [showOrderModal, setShowOrderModal] = useState(false)
+
+  // ── Continue Payment state ──────────────────────────────────────────────────
+  const [showContinuePayment, setShowContinuePayment] = useState(false)
+  const [cpOrder, setCpOrder] = useState<Order | null>(null)
+  const [cpCouponCode, setCpCouponCode] = useState('')
+  const [cpAppliedCoupon, setCpAppliedCoupon] = useState<AppliedCoupon | null>(null)
+  const [cpValidatingCoupon, setCpValidatingCoupon] = useState(false)
+  const [cpRedeemPoints, setCpRedeemPoints] = useState(0)
+  const [cpReservationToken, setCpReservationToken] = useState<string | null>(null)
+  const [cpReservedDiscount, setCpReservedDiscount] = useState(0)
+  const [cpReserving, setCpReserving] = useState(false)
+  const [cpAvailablePoints, setCpAvailablePoints] = useState<number | null>(null)
+  const [cpLoading, setCpLoading] = useState(false)
+  const [showCpPayment, setShowCpPayment] = useState(false)
+  const [cpUpdatedOrder, setCpUpdatedOrder] = useState<any>(null)
+  // ────────────────────────────────────────────────────────────────────────────
 
   useEffect(() => {
     if (user) {
@@ -200,7 +242,7 @@ export default function UserOrdersPage() {
     return formatLocalDate(dateString, 'long')
   }
 
-  const formatCurrency = (amount: number, currency: string = 'INR') => {
+  const formatCurrency = (amount: number, _currency: string = 'INR') => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
       currency: 'INR'
@@ -219,6 +261,256 @@ export default function UserOrdersPage() {
         return 'Razorpay'
     }
   }
+
+  // ── Continue Payment helpers ────────────────────────────────────────────────
+  const openContinuePayment = async (order: Order) => {
+    setCpOrder(order)
+    // Pre-fill coupon if one was on the order
+    if (order.couponCode) {
+      setCpCouponCode(order.couponCode)
+      // Reconstruct applied coupon display data from order
+      setCpAppliedCoupon({
+        code: order.couponCode,
+        name: order.couponCode,
+        discountType: 'flat',
+        discountValue: order.couponDiscount ?? 0,
+        discount: order.couponDiscount ?? 0,
+        originalPrice: order.subtotal,
+        finalPrice: order.subtotal - (order.couponDiscount ?? 0),
+      })
+    } else {
+      setCpCouponCode('')
+      setCpAppliedCoupon(null)
+    }
+    // Points: don't pre-fill — reservation may have expired; let user re-reserve
+    setCpRedeemPoints(0)
+    setCpReservationToken(null)
+    setCpReservedDiscount(0)
+    setCpAvailablePoints(null)
+    setCpUpdatedOrder(null)
+    setShowContinuePayment(true)
+
+    // Fetch available points
+    try {
+      const userAny = user as any
+      const orderClubId = order.club
+      if (userAny?._id && orderClubId) {
+        const resp = await apiClient.getMemberPoints(userAny._id, orderClubId)
+        if (resp.success && resp.data) {
+          setCpAvailablePoints(resp.data.points ?? 0)
+        }
+      }
+    } catch {
+      // non-blocking
+    }
+  }
+
+  const closeContinuePayment = () => {
+    // Cancel any pending reservation made in this flow
+    if (cpReservationToken) {
+      apiClient.cancelReservation(cpReservationToken).catch(() => {})
+    }
+    setShowContinuePayment(false)
+    setCpOrder(null)
+    setCpCouponCode('')
+    setCpAppliedCoupon(null)
+    setCpRedeemPoints(0)
+    setCpReservationToken(null)
+    setCpReservedDiscount(0)
+    setCpAvailablePoints(null)
+    setCpUpdatedOrder(null)
+    setShowCpPayment(false)
+  }
+
+  const cpHandleValidateCoupon = async () => {
+    if (!cpOrder || !cpCouponCode.trim()) {
+      toast({ title: 'Error', description: 'Please enter a coupon code', variant: 'destructive' })
+      return
+    }
+    const orderClubId = cpOrder.club
+    if (!orderClubId) {
+      toast({ title: 'Error', description: 'Unable to validate coupon for this order', variant: 'destructive' })
+      return
+    }
+    setCpValidatingCoupon(true)
+    try {
+      const response = await apiClient.validateCoupon(
+        cpCouponCode.trim().toUpperCase(),
+        undefined,
+        cpOrder.subtotal,
+        orderClubId
+      )
+      if (response.success && response.data?.coupon) {
+        setCpAppliedCoupon(response.data.coupon)
+        toast({ title: 'Success', description: 'Coupon applied!' })
+      } else {
+        setCpAppliedCoupon(null)
+        toast({ title: 'Error', description: response.error || 'Invalid coupon code', variant: 'destructive' })
+      }
+    } catch {
+      setCpAppliedCoupon(null)
+      toast({ title: 'Error', description: 'Failed to validate coupon', variant: 'destructive' })
+    } finally {
+      setCpValidatingCoupon(false)
+    }
+  }
+
+  const cpHandleRemoveCoupon = () => {
+    setCpAppliedCoupon(null)
+    setCpCouponCode('')
+  }
+
+  const cpHandleReservePoints = async () => {
+    if (!cpOrder || !user) return
+    if (!cpRedeemPoints || cpRedeemPoints <= 0) {
+      toast({ title: 'Error', description: 'Enter points to redeem', variant: 'destructive' })
+      return
+    }
+    if ((cpOrder.subtotal - cpCouponDiscount) <= 0) {
+      toast({ title: 'Error', description: 'Subtotal is already zero — no need to redeem points', variant: 'destructive' })
+      return
+    }
+    if (cpAvailablePoints !== null && cpRedeemPoints > cpAvailablePoints) {
+      toast({ title: 'Error', description: 'You do not have enough points', variant: 'destructive' })
+      return
+    }
+    const orderClubId = cpOrder.club
+    if (!orderClubId) {
+      toast({ title: 'Error', description: 'Club information missing', variant: 'destructive' })
+      return
+    }
+    setCpReserving(true)
+    try {
+      const cpCouponDiscount = cpAppliedCoupon?.discount ?? 0
+      const orderTotalForReservation = Math.max(
+        cpOrder.subtotal - cpCouponDiscount + cpOrder.shippingCost + cpOrder.tax,
+        0
+      )
+      const resp = await apiClient.createReservation(cpRedeemPoints, orderClubId, orderTotalForReservation)
+      if (resp && resp.success) {
+        setCpReservationToken(resp.data?.reservationToken || null)
+        setCpReservedDiscount(resp.data?.discountAmount || 0)
+        toast({ title: 'Success', description: 'Points reserved!' })
+      } else {
+        toast({ title: 'Error', description: resp?.message || 'Failed to reserve points', variant: 'destructive' })
+      }
+    } catch (err: any) {
+      toast({ title: 'Error', description: err?.message || 'Failed to reserve points', variant: 'destructive' })
+    } finally {
+      setCpReserving(false)
+    }
+  }
+
+  const cpHandleClearPoints = async () => {
+    if (cpReservationToken) {
+      try {
+        await apiClient.cancelReservation(cpReservationToken)
+      } catch { }
+    }
+    setCpRedeemPoints(0)
+    setCpReservationToken(null)
+    setCpReservedDiscount(0)
+  }
+
+  // Compute derived totals for Continue Payment
+  const cpCouponDiscount = cpAppliedCoupon?.discount ?? 0
+  const cpNetSubtotal = cpOrder ? Math.max(cpOrder.subtotal - cpCouponDiscount - cpReservedDiscount, 0) : 0
+  const cpFeeBreakdown = cpNetSubtotal > 0 ? calculateTransactionFees(cpNetSubtotal) : null
+  const cpFinalAmount = cpOrder
+    ? cpNetSubtotal + cpOrder.shippingCost + cpOrder.tax + (cpFeeBreakdown?.totalFees ?? 0)
+    : 0
+
+  const cpHandlePayNow = async () => {
+    if (!cpOrder) return
+    setCpLoading(true)
+    try {
+      const updatePayload: any = {
+        finalAmount: cpFinalAmount,
+      }
+
+      if (cpAppliedCoupon) {
+        updatePayload.couponCode = cpAppliedCoupon.code
+      } else {
+        updatePayload.clearCoupon = true
+      }
+
+      if (cpReservationToken) {
+        updatePayload.reservationToken = cpReservationToken
+        updatePayload.redeemedPoints = cpRedeemPoints
+        updatePayload.redeemedDiscount = cpReservedDiscount
+      } else {
+        // Clear any old reservation from order
+        updatePayload.reservationToken = null
+        updatePayload.redeemedPoints = 0
+        updatePayload.redeemedDiscount = 0
+      }
+
+      if (cpFeeBreakdown) {
+        updatePayload.platformFee = cpFeeBreakdown.platformFee
+        updatePayload.platformFeeGst = cpFeeBreakdown.platformFeeGst
+        updatePayload.razorpayFee = cpFeeBreakdown.razorpayFee
+        updatePayload.razorpayFeeGst = cpFeeBreakdown.razorpayFeeGst
+      } else {
+        updatePayload.platformFee = 0
+        updatePayload.platformFeeGst = 0
+        updatePayload.razorpayFee = 0
+        updatePayload.razorpayFeeGst = 0
+      }
+
+      const resp = await apiClient.updatePendingOrderPayment(cpOrder._id, updatePayload)
+      if (!resp.success) {
+        toast({ title: 'Error', description: resp.message || 'Failed to update order', variant: 'destructive' })
+        return
+      }
+      setCpUpdatedOrder(resp.data?.data ?? cpOrder)
+      setShowCpPayment(true)
+    } catch {
+      toast({ title: 'Error', description: 'Failed to update order', variant: 'destructive' })
+    } finally {
+      setCpLoading(false)
+    }
+  }
+
+  const cpHandlePaymentSuccess = async (orderId: string, paymentId: string, razorpayOrderId: string, razorpaySignature: string) => {
+    try {
+      if (cpReservationToken) {
+        try {
+          await apiClient.confirmReservation(cpReservationToken, orderId)
+        } catch { }
+        setCpReservationToken(null)
+      }
+      await apiClient.patch(`/orders/admin/${orderId}/payment-status`, {
+        paymentStatus: 'paid', paymentId, razorpayOrderId, razorpaySignature
+      })
+      toast({ title: 'Success', description: 'Payment successful! Order confirmed.' })
+      setShowCpPayment(false)
+      closeContinuePayment()
+      loadOrders()
+    } catch {
+      toast({ title: 'Error', description: 'Payment successful but failed to update order status.', variant: 'destructive' })
+    }
+  }
+
+  const cpHandlePaymentFailure = async (orderId: string, paymentId: string, razorpayOrderId: string, razorpaySignature: string, _error?: any) => {
+    try {
+      if (cpReservationToken) {
+        try {
+          await apiClient.cancelReservation(cpReservationToken)
+        } catch { }
+        setCpReservationToken(null)
+        setCpReservedDiscount(0)
+        setCpRedeemPoints(0)
+      }
+      await apiClient.patch(`/orders/admin/${orderId}/payment-status`, {
+        paymentStatus: 'failed', paymentId, razorpayOrderId, razorpaySignature
+      })
+      toast({ title: 'Error', description: 'Payment failed. Please try again.', variant: 'destructive' })
+      setShowCpPayment(false)
+    } catch {
+      toast({ title: 'Error', description: 'Failed to update payment status.', variant: 'destructive' })
+    }
+  }
+  // ────────────────────────────────────────────────────────────────────────────
 
   if (!user) {
     return (
@@ -308,8 +600,8 @@ export default function UserOrdersPage() {
                 <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-foreground">No orders found</h3>
                 <p className="text-muted-foreground">
-                  {searchTerm || statusFilter !== 'all' 
-                    ? "No orders match your current filters." 
+                  {searchTerm || statusFilter !== 'all'
+                    ? "No orders match your current filters."
                     : "You haven't placed any orders yet."}
                 </p>
                 {!searchTerm && statusFilter === 'all' && (
@@ -322,6 +614,7 @@ export default function UserOrdersPage() {
               <div className="space-y-4">
                 {orders.map((order) => {
                   const StatusIcon = statusConfig[order.status].icon
+                  const canContinuePayment = order.status === 'pending' && order.paymentStatus === 'pending'
                   return (
                     <div key={order._id} className="border rounded-lg p-4 hover:shadow-md transition-shadow bg-card">
                       <div className="flex items-center justify-between mb-3">
@@ -351,7 +644,7 @@ export default function UserOrdersPage() {
                         </div>
                         <div>
                           <p className="text-sm text-muted-foreground">Total</p>
-                          <p className="font-medium text-foreground">{formatCurrency(order.total, order.currency)}</p>
+                          <p className="font-medium text-foreground">{formatCurrency(order.finalAmount ?? order.total, order.currency)}</p>
                         </div>
                         <div>
                           <p className="text-sm text-muted-foreground">Payment Method</p>
@@ -379,6 +672,15 @@ export default function UserOrdersPage() {
                             <Eye className="w-4 h-4 mr-2" />
                             View Details
                           </Button>
+                          {canContinuePayment && (
+                            <Button
+                              size="sm"
+                              onClick={() => openContinuePayment(order)}
+                            >
+                              <CreditCard className="w-4 h-4 mr-2" />
+                              Continue Payment
+                            </Button>
+                          )}
                         </div>
                         <div className="text-sm text-muted-foreground">
                           Order #{order.orderNumber}
@@ -516,10 +818,40 @@ export default function UserOrdersPage() {
                 {/* Order Summary */}
                 <div className="border-t pt-4">
                   <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-foreground">Subtotal:</span>
-                      <span className="text-foreground">{formatCurrency(selectedOrder.subtotal, selectedOrder.currency)}</span>
-                    </div>
+                    {(() => {
+                      const pts = selectedOrder.redeemedDiscount ?? selectedOrder.pointsDiscount ?? 0
+                      const cpn = selectedOrder.couponDiscount ?? 0
+                      const hasDiscount = cpn > 0 || pts > 0
+                      return (
+                        <>
+                          <div className="flex justify-between items-center">
+                            <span className="text-foreground">Subtotal:</span>
+                            <span className="flex items-center gap-2">
+                              {hasDiscount ? (
+                                <>
+                                  <span className="line-through text-muted-foreground">{formatCurrency(selectedOrder.subtotal, selectedOrder.currency)}</span>
+                                  <span className="text-foreground">{formatCurrency(Math.max(selectedOrder.subtotal - cpn - pts, 0), selectedOrder.currency)}</span>
+                                </>
+                              ) : (
+                                <span className="text-foreground">{formatCurrency(selectedOrder.subtotal, selectedOrder.currency)}</span>
+                              )}
+                            </span>
+                          </div>
+                          {cpn > 0 && (
+                            <div className="flex justify-between text-green-600">
+                              <span>Coupon {selectedOrder.couponCode ? `(${selectedOrder.couponCode})` : 'discount'}:</span>
+                              <span>-{formatCurrency(cpn, selectedOrder.currency)}</span>
+                            </div>
+                          )}
+                          {pts > 0 && (
+                            <div className="flex justify-between text-green-600">
+                              <span>- Points discount:</span>
+                              <span>-{formatCurrency(pts, selectedOrder.currency)}</span>
+                            </div>
+                          )}
+                        </>
+                      )
+                    })()}
                     <div className="flex justify-between">
                       <span className="text-foreground">Shipping:</span>
                       <span className="text-foreground">{formatCurrency(selectedOrder.shippingCost, selectedOrder.currency)}</span>
@@ -553,14 +885,8 @@ export default function UserOrdersPage() {
                     })()}
                     <div className="flex justify-between font-semibold text-lg border-t pt-2">
                       <span className="text-foreground">Total:</span>
-                      <span className="text-foreground">{formatCurrency(selectedOrder.total, selectedOrder.currency)}</span>
+                      <span className="text-foreground">{formatCurrency(selectedOrder.finalAmount ?? selectedOrder.total, selectedOrder.currency)}</span>
                     </div>
-                    {selectedOrder.finalAmount != null && selectedOrder.finalAmount !== selectedOrder.total && (
-                      <div className="flex justify-between font-semibold text-muted-foreground">
-                        <span>Amount charged:</span>
-                        <span>{formatCurrency(selectedOrder.finalAmount, selectedOrder.currency)}</span>
-                      </div>
-                    )}
                   </div>
                 </div>
 
@@ -573,7 +899,7 @@ export default function UserOrdersPage() {
                   </div>
                 )}
 
-                {selectedOrder.paymentStatus === 'paid' && 
+                {selectedOrder.paymentStatus === 'paid' &&
                  !['delivered', 'cancelled', 'refunded'].includes(selectedOrder.status) && (
                   <div className="border-t pt-4">
                     <div className="flex items-center justify-between">
@@ -603,6 +929,239 @@ export default function UserOrdersPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* ── Continue Payment Modal ────────────────────────────────────────── */}
+        <Dialog open={showContinuePayment} onOpenChange={(open) => { if (!open) closeContinuePayment() }}>
+          <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <CreditCard className="w-5 h-5" />
+                Continue Payment — {cpOrder?.orderNumber}
+              </DialogTitle>
+              <DialogDescription>
+                Update your coupon or points and complete payment for this pending order.
+              </DialogDescription>
+            </DialogHeader>
+
+            {cpOrder && (
+              <div className="space-y-5">
+                {/* Order Items (read-only) */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <Package className="w-4 h-4" />
+                      Order Items
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {cpOrder.items.map((item, index) => (
+                      <div key={index} className="flex items-center gap-3">
+                        {item.productImage && (
+                          <img src={item.productImage} alt={item.productName} className="w-10 h-10 object-cover rounded" />
+                        )}
+                        <div className="flex-1">
+                          <p className="font-medium text-sm text-foreground">{item.productName}</p>
+                          <p className="text-xs text-muted-foreground">Qty: {item.quantity}</p>
+                        </div>
+                        <span className="text-sm font-medium">{formatCurrency(item.price * item.quantity, item.currency)}</span>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+
+                {/* Coupon */}
+                <Card className="border-2 border-dashed">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <Tag className="w-4 h-4" />
+                      Coupon Code
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {!cpAppliedCoupon ? (
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Enter coupon code"
+                          value={cpCouponCode}
+                          onChange={(e) => setCpCouponCode(e.target.value.toUpperCase())}
+                          disabled={cpValidatingCoupon}
+                          className="font-mono flex-1"
+                          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); cpHandleValidateCoupon() } }}
+                        />
+                        <Button
+                          type="button"
+                          onClick={cpHandleValidateCoupon}
+                          disabled={!cpCouponCode.trim() || cpValidatingCoupon}
+                          variant="outline"
+                        >
+                          {cpValidatingCoupon ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Apply'}
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <CheckCircle className="w-5 h-5 text-green-600" />
+                          <div>
+                            <div className="font-medium text-green-900">{cpAppliedCoupon.name}</div>
+                            <div className="text-sm text-green-700">
+                              Code: <code className="font-mono font-semibold">{cpAppliedCoupon.code}</code>
+                            </div>
+                          </div>
+                        </div>
+                        <Button type="button" variant="ghost" size="sm" onClick={cpHandleRemoveCoupon} className="text-red-600 hover:text-red-700 hover:bg-red-50">
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Points Redemption */}
+                <Card>
+                  <CardContent className="pt-4">
+                    <Label>
+                      Redeem Points
+                      {cpAvailablePoints !== null && (
+                        <span className="text-muted-foreground font-normal ml-1">(Available: {cpAvailablePoints} pts)</span>
+                      )}
+                    </Label>
+                    <div className="flex gap-2 mt-2">
+                      <input
+                        type="number"
+                        min={0}
+                        value={cpRedeemPoints}
+                        onChange={(e) => setCpRedeemPoints(Number(e.target.value || 0))}
+                        className="border rounded px-2 py-1 w-32"
+                        placeholder="Points"
+                        disabled={!!cpReservationToken}
+                      />
+                      {!cpReservationToken ? (
+                        <Button type="button" size="sm" onClick={cpHandleReservePoints} disabled={cpReserving || !cpRedeemPoints}>
+                          {cpReserving ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Reserve'}
+                        </Button>
+                      ) : (
+                        <Button type="button" size="sm" variant="ghost" onClick={cpHandleClearPoints}>
+                          Clear
+                        </Button>
+                      )}
+                    </div>
+                    {cpReservedDiscount > 0 && (
+                      <p className="text-sm text-green-600 mt-2 flex items-center gap-1">
+                        <Wallet className="w-4 h-4" />
+                        Points discount: {formatCurrency(cpReservedDiscount, cpOrder.currency)}
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Order Total */}
+                <Card>
+                  <CardContent className="pt-4 space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-foreground">Subtotal:</span>
+                      <span className="flex items-center gap-2">
+                        {cpCouponDiscount > 0 ? (
+                          <>
+                            <span className="line-through text-muted-foreground">{formatCurrency(cpOrder.subtotal, cpOrder.currency)}</span>
+                            <span>{formatCurrency(Math.max(cpOrder.subtotal - cpCouponDiscount, 0), cpOrder.currency)}</span>
+                          </>
+                        ) : (
+                          <span>{formatCurrency(cpOrder.subtotal, cpOrder.currency)}</span>
+                        )}
+                      </span>
+                    </div>
+                    {cpCouponDiscount > 0 && (
+                      <div className="flex justify-between text-green-600">
+                        <span>Coupon ({cpAppliedCoupon?.code}):</span>
+                        <span>-{formatCurrency(cpCouponDiscount, cpOrder.currency)}</span>
+                      </div>
+                    )}
+                    {cpReservedDiscount > 0 && (
+                      <div className="flex justify-between text-green-600">
+                        <span>Points discount:</span>
+                        <span>-{formatCurrency(cpReservedDiscount, cpOrder.currency)}</span>
+                      </div>
+                    )}
+                    {cpOrder.shippingCost > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-foreground">Shipping:</span>
+                        <span>{formatCurrency(cpOrder.shippingCost, cpOrder.currency)}</span>
+                      </div>
+                    )}
+                    {cpOrder.tax > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-foreground">Tax:</span>
+                        <span>{formatCurrency(cpOrder.tax, cpOrder.currency)}</span>
+                      </div>
+                    )}
+                    {cpFeeBreakdown && cpFeeBreakdown.totalFees > 0 && (
+                      <>
+                        <div className="flex justify-between text-muted-foreground">
+                          <span>Platform fee ({PLATFORM_FEE_PERCENT}% + GST):</span>
+                          <span>{formatCurrency(cpFeeBreakdown.platformFee + cpFeeBreakdown.platformFeeGst, cpOrder.currency)}</span>
+                        </div>
+                        <div className="flex justify-between text-muted-foreground">
+                          <span>Payment gateway fee ({RAZORPAY_FEE_PERCENT}% + GST):</span>
+                          <span>{formatCurrency(cpFeeBreakdown.razorpayFee + cpFeeBreakdown.razorpayFeeGst, cpOrder.currency)}</span>
+                        </div>
+                      </>
+                    )}
+                    <Separator />
+                    <div className="flex justify-between font-bold text-lg">
+                      <span>Total:</span>
+                      <span>{formatCurrency(cpFinalAmount, cpOrder.currency)}</span>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            <DialogFooter className="gap-2">
+              <Button variant="outline" onClick={closeContinuePayment}>
+                Cancel
+              </Button>
+              <Button onClick={cpHandlePayNow} disabled={cpLoading || !cpOrder}>
+                {cpLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <CreditCard className="w-4 h-4 mr-2" />
+                    Pay Now
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Payment modal for continue payment flow */}
+        {cpUpdatedOrder && (
+          <PaymentSimulationModal
+            isOpen={showCpPayment}
+            onClose={() => {
+              setShowCpPayment(false)
+              setCpUpdatedOrder(null)
+            }}
+            onPaymentSuccess={cpHandlePaymentSuccess}
+            onPaymentFailure={cpHandlePaymentFailure}
+            orderId={cpUpdatedOrder._id ?? cpOrder?._id ?? ''}
+            orderNumber={cpUpdatedOrder.orderNumber ?? cpOrder?.orderNumber ?? ''}
+            total={cpFinalAmount}
+            subtotal={cpOrder?.subtotal}
+            shippingCost={cpOrder?.shippingCost}
+            tax={cpOrder?.tax}
+            currency={cpOrder?.currency ?? 'INR'}
+            paymentMethod={cpOrder?.paymentMethod ?? 'all'}
+            platformFeeTotal={cpFeeBreakdown ? cpFeeBreakdown.platformFee + cpFeeBreakdown.platformFeeGst : undefined}
+            razorpayFeeTotal={cpFeeBreakdown ? cpFeeBreakdown.razorpayFee + cpFeeBreakdown.razorpayFeeGst : undefined}
+            couponDiscount={cpCouponDiscount > 0 ? cpCouponDiscount : undefined}
+            couponCode={cpAppliedCoupon?.code}
+            pointsDiscount={cpReservedDiscount > 0 ? cpReservedDiscount : undefined}
+          />
+        )}
       </div>
     </DashboardLayout>
   )
