@@ -14,7 +14,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DashboardLayout } from '@/components/dashboard-layout'
 import { ProtectedRoute } from '@/components/protected-route'
 import MemberConnections from '@/components/member-connections'
-import { useRequiredClubId } from '@/hooks/useRequiredClubId'
 import { 
   Search, 
   Users, 
@@ -47,8 +46,8 @@ interface ClubMember {
 }
 
 export default function ClubMembersPage() {
-  const { user } = useAuth()
-  const clubId = useRequiredClubId()
+  const { user, activeClubId } = useAuth()
+  const clubId = activeClubId
   const [members, setMembers] = useState<ClubMember[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
