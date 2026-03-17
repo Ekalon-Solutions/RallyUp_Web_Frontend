@@ -265,23 +265,9 @@ export default function UserOrdersPage() {
   // ── Continue Payment helpers ────────────────────────────────────────────────
   const openContinuePayment = async (order: Order) => {
     setCpOrder(order)
-    // Pre-fill coupon if one was on the order
-    if (order.couponCode) {
-      setCpCouponCode(order.couponCode)
-      // Reconstruct applied coupon display data from order
-      setCpAppliedCoupon({
-        code: order.couponCode,
-        name: order.couponCode,
-        discountType: 'flat',
-        discountValue: order.couponDiscount ?? 0,
-        discount: order.couponDiscount ?? 0,
-        originalPrice: order.subtotal,
-        finalPrice: order.subtotal - (order.couponDiscount ?? 0),
-      })
-    } else {
-      setCpCouponCode('')
-      setCpAppliedCoupon(null)
-    }
+    // Always start fresh – user must re-enter coupon and points each time
+    setCpCouponCode('')
+    setCpAppliedCoupon(null)
     // Points: don't pre-fill — reservation may have expired; let user re-reserve
     setCpRedeemPoints(0)
     setCpReservationToken(null)
@@ -383,7 +369,7 @@ export default function UserOrdersPage() {
     try {
       const cpCouponDiscount = cpAppliedCoupon?.discount ?? 0
       const orderTotalForReservation = Math.max(
-        cpOrder.subtotal - cpCouponDiscount + cpOrder.shippingCost + cpOrder.tax,
+        cpOrder.subtotal - cpCouponDiscount + cpOrder.shippingCost + cpOrder.tax + (cpFeeBreakdown?.totalFees ?? 0),
         0
       )
       const resp = await apiClient.createReservation(cpRedeemPoints, orderClubId, orderTotalForReservation)
@@ -413,9 +399,10 @@ export default function UserOrdersPage() {
   }
 
   // Compute derived totals for Continue Payment
+  // Fees are fixed on the original order subtotal (before coupon and redeem points)
   const cpCouponDiscount = cpAppliedCoupon?.discount ?? 0
   const cpNetSubtotal = cpOrder ? Math.max(cpOrder.subtotal - cpCouponDiscount - cpReservedDiscount, 0) : 0
-  const cpFeeBreakdown = cpNetSubtotal > 0 ? calculateTransactionFees(cpNetSubtotal) : null
+  const cpFeeBreakdown = cpOrder && cpOrder.subtotal > 0 ? calculateTransactionFees(cpOrder.subtotal) : null
   const cpFinalAmount = cpOrder
     ? cpNetSubtotal + cpOrder.shippingCost + cpOrder.tax + (cpFeeBreakdown?.totalFees ?? 0)
     : 0
@@ -644,7 +631,18 @@ export default function UserOrdersPage() {
                         </div>
                         <div>
                           <p className="text-sm text-muted-foreground">Total</p>
-                          <p className="font-medium text-foreground">{formatCurrency(order.finalAmount ?? order.total, order.currency)}</p>
+                          <p className="font-medium text-foreground">
+                            {formatCurrency(
+                              order.paymentStatus === 'pending'
+                                ? (() => {
+                                    const net = Math.max(order.subtotal - (order.couponDiscount ?? 0) - (order.redeemedDiscount ?? order.pointsDiscount ?? 0), 0)
+                                    const fees = order.subtotal > 0 ? calculateTransactionFees(order.subtotal) : null
+                                    return net + (order.shippingCost ?? 0) + (order.tax ?? 0) + (fees?.totalFees ?? 0)
+                                  })()
+                                : (order.finalAmount ?? order.total),
+                              order.currency
+                            )}
+                          </p>
                         </div>
                         <div>
                           <p className="text-sm text-muted-foreground">Payment Method</p>
@@ -885,7 +883,18 @@ export default function UserOrdersPage() {
                     })()}
                     <div className="flex justify-between font-semibold text-lg border-t pt-2">
                       <span className="text-foreground">Total:</span>
-                      <span className="text-foreground">{formatCurrency(selectedOrder.finalAmount ?? selectedOrder.total, selectedOrder.currency)}</span>
+                      <span className="text-foreground">
+                        {formatCurrency(
+                          selectedOrder.paymentStatus === 'pending'
+                            ? (() => {
+                                const net = Math.max(selectedOrder.subtotal - (selectedOrder.couponDiscount ?? 0) - (selectedOrder.redeemedDiscount ?? selectedOrder.pointsDiscount ?? 0), 0)
+                                const fees = selectedOrder.subtotal > 0 ? calculateTransactionFees(selectedOrder.subtotal) : null
+                                return net + (selectedOrder.shippingCost ?? 0) + (selectedOrder.tax ?? 0) + (fees?.totalFees ?? 0)
+                              })()
+                            : (selectedOrder.finalAmount ?? selectedOrder.total),
+                          selectedOrder.currency
+                        )}
+                      </span>
                     </div>
                   </div>
                 </div>

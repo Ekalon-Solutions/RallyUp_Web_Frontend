@@ -456,8 +456,9 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
   const totalBeforeCoupon = basePrice * attendees.length;
   const finalPrice = Math.max(totalBeforeCoupon - couponDiscount, 0);
   const netSubtotal = Math.max(finalPrice - (reservedDiscount || 0), 0);
-  const feeBreakdown = netSubtotal > 0 ? calculateTransactionFees(netSubtotal) : null;
-  const amountToCharge = feeBreakdown ? feeBreakdown.finalAmount : netSubtotal;
+  // Fees are fixed on the subtotal before coupon and redeem points
+  const feeBreakdown = totalBeforeCoupon > 0 ? calculateTransactionFees(totalBeforeCoupon) : null;
+  const amountToCharge = netSubtotal + (feeBreakdown ? feeBreakdown.totalFees : 0);
 
   const currencySymbols: Record<string, string> = {
     INR: '₹',

@@ -260,7 +260,8 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
   const displayTax = orderTax ?? (createdOrder ? (createdOrder.tax ?? (estimatedTax ?? taxAmount)) : (estimatedTax ?? taxAmount))
 
   const netSubtotal = Math.max(subtotalAfterCoupon - (reservedDiscount || 0), 0)
-  const feeBreakdown = netSubtotal > 0 ? calculateTransactionFees(netSubtotal) : null
+  // Fees are fixed on the original subtotal (before coupon and redeem points)
+  const feeBreakdown = totalPrice > 0 ? calculateTransactionFees(totalPrice) : null
   const finalAmount = netSubtotal + shippingCost + taxAmount + (feeBreakdown ? feeBreakdown.totalFees : 0)
 
   const handleValidateCoupon = async () => {
@@ -917,7 +918,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                                 setReserving(false)
                                 return
                               }
-                              const orderTotalForReservation = Math.max(calculateTransactionFees(totalPrice - couponDiscount + displayShipping + displayTax).finalAmount, 0)
+                              const orderTotalForReservation = Math.max(subtotalAfterCoupon + displayShipping + displayTax + (feeBreakdown ? feeBreakdown.totalFees : 0), 0)
                               const resp = await apiClient.createReservation(redeemPoints, clubId, orderTotalForReservation)
                               if (resp && resp.success) {
                                 setReservationToken(resp.data?.reservationToken || null)
