@@ -121,26 +121,7 @@ function FixturesCards({ clubId }: { clubId?: string | undefined }) {
         const now = new Date()
         const past = fixturesArr.filter((f) => new Date(f.startTime) < now)
         const future = fixturesArr.filter((f) => new Date(f.startTime) >= now)
-        const selected = [...past.slice(-1), ...future]
-
-        setFixtures(selected)
-
-        // If no fixtures found, attempt to fetch from sports proxy and persist (uses default team 'Arsenal')
-        if (fixturesArr.length === 0) {
-          try {
-            await apiClient.proxyInternalNextMatches({ team: 'Arsenal', clubId: String(clubId) })
-            // refetch fixtures after persistence
-            const retry = await apiClient.listAvailableExternalTicketFixtures(clubId)
-            const retryData = retry.data || []
-
-            const retryArr = Array.isArray(retryData) ? retryData : []
-            const retryPast = retryArr.filter((f) => new Date(f.startTime) < now)
-            const retryFuture = retryArr.filter((f) => new Date(f.startTime) >= now)
-            setFixtures([...retryPast.slice(-1), ...retryFuture])
-          } catch (e) {
-            // ignore
-          }
-        }
+        setFixtures([...past.slice(-1), ...future])
       } catch (e) {
         setFixtures([])
       } finally {

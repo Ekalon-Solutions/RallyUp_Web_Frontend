@@ -234,7 +234,12 @@ export default function ExternalTicketingPage() {
         const payload: any = resp.data
         const arr = Array.isArray(payload) ? payload : (payload.data || payload)
         if (Array.isArray(arr)) {
-          setAvailableFixtures(arr as ExternalTicketFixture[])
+          const now = new Date()
+          const published = arr.filter((f: ExternalTicketFixture) =>
+            f.isVisibleForMembers === true &&
+            (!f.visibilityEndsAt || new Date(f.visibilityEndsAt) > now)
+          )
+          setAvailableFixtures(published as ExternalTicketFixture[])
         } else {
           setAvailableFixtures([])
           toast.error('Failed to load available fixtures')
