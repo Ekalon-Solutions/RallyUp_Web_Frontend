@@ -62,8 +62,8 @@ export default function BrowseMembershipPlansPage() {
         let membership = null
         if (clubMemberships.length > 0) {
           membership = clubMemberships.reduce((latest: any, current: any) => {
-            const latestDate = new Date(latest.start_date)
-            const currentDate = new Date(current.start_date)
+            const latestDate = new Date(getMembershipStartDate(latest))
+            const currentDate = new Date(getMembershipStartDate(current))
             return currentDate > latestDate ? current : latest
           })
         }
@@ -212,6 +212,9 @@ export default function BrowseMembershipPlansPage() {
 
   const formatDate = (dateString: string) => (dateString ? formatDisplayDate(dateString) : 'N/A')
 
+  const getMembershipStartDate = (m: any) => m?.start_date ?? m?.startDate ?? ''
+  const getMembershipEndDate = (m: any) => m?.end_date ?? m?.endDate ?? ''
+
   const formatDuration = (duration: number) => {
     if (duration === 0) return "Lifetime"
     if (duration === 1) return "1 month"
@@ -220,6 +223,27 @@ export default function BrowseMembershipPlansPage() {
     const months = duration % 12
     if (months === 0) return `${years} year${years > 1 ? 's' : ''}`
     return `${years} year${years > 1 ? 's' : ''} ${months} month${months > 1 ? 's' : ''}`
+  }
+
+  const getPlanDurationMonths = (plan: MembershipPlan & { duration_days?: number }) => {
+    if (plan.duration != null && plan.duration > 0) return plan.duration
+    const start = plan.planStartDate ? new Date(plan.planStartDate).getTime() : 0
+    const end = plan.planEndDate ? new Date(plan.planEndDate).getTime() : 0
+    if (start && end && end > start) {
+      const months = Math.round((end - start) / (30.44 * 24 * 60 * 60 * 1000))
+      return months > 0 ? months : 0
+    }
+    if (plan.duration_days != null && plan.duration_days > 0) {
+      return Math.round(plan.duration_days / 30.44)
+    }
+    return 0
+  }
+
+  const getPlanDateRangeLabel = (plan: MembershipPlan) => {
+    if (plan.planStartDate && plan.planEndDate) {
+      return `${formatDate(plan.planStartDate)} – ${formatDate(plan.planEndDate)}`
+    }
+    return formatDuration(getPlanDurationMonths(plan))
   }
 
   const getFeatureList = (features: MembershipPlan['features']) => {
@@ -272,13 +296,11 @@ export default function BrowseMembershipPlansPage() {
   }
 
   const isMembershipExpired = () => {
-    if (!currentMembership?.end_date) {
-      return false
-    }
-    const endDate = new Date(currentMembership.end_date)
+    const endDateStr = getMembershipEndDate(currentMembership)
+    if (!endDateStr) return false
+    const endDate = new Date(endDateStr)
     const now = new Date()
-    const isExpired = endDate <= now
-    return isExpired
+    return endDate <= now
   }
 
   const isCurrentPlan = (plan: MembershipPlan) => {
@@ -392,15 +414,30 @@ export default function BrowseMembershipPlansPage() {
                       {currentMembership.membership_level_id?.name} - {formatPrice(currentMembership.membership_level_id?.price || 0, currentMembership.membership_level_id?.currency || 'USD')}
                     </p>
                   </div>
-                  {isMembershipExpired() ? (
-                    <p className="text-center text-sm text-red-700 dark:text-red-300">
-                      Your membership expired on {formatDate(currentMembership.end_date || '')}. You can now upgrade or downgrade to any plan.
-                    </p>
-                  ) : (
-                    <p className="text-center text-sm text-blue-700 dark:text-blue-300">
-                      Active until {formatDate(currentMembership.end_date || '')}. You can upgrade to a higher-tier plan anytime.
-                    </p>
-                  )}
+                  <div className="text-center text-sm space-y-1">
+                    {getMembershipStartDate(currentMembership) && (
+                      <p className={isMembershipExpired() ? 'text-red-700 dark:text-red-300' : 'text-blue-700 dark:text-blue-300'}>
+                        Member since {formatDate(getMembershipStartDate(currentMembership))}
+                      </p>
+                    )}
+                    {isMembershipExpired() ? (
+                      getMembershipEndDate(currentMembership) && (
+                        <p className="text-red-700 dark:text-red-300">
+                          Expired on {formatDate(getMembershipEndDate(currentMembership))}. You can now upgrade or downgrade to any plan.
+                        </p>
+                      )
+                    ) : (
+                      getMembershipEndDate(currentMembership) ? (
+                        <p className="text-blue-700 dark:text-blue-300">
+                          Active until {formatDate(getMembershipEndDate(currentMembership))}. You can upgrade to a higher-tier plan anytime.
+                        </p>
+                      ) : (
+                        <p className="text-blue-700 dark:text-blue-300">
+                          Active (lifetime). You can upgrade to a higher-tier plan anytime.
+                        </p>
+                      )
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -474,7 +511,7 @@ export default function BrowseMembershipPlansPage() {
                         </div>
                         <div className="text-sm text-muted-foreground flex items-center justify-center gap-1">
                           <Calendar className="w-3 h-3" />
-                          {formatDuration(plan.duration)}
+                          {getPlanDateRangeLabel(plan)}
                         </div>
                       </div>
                       

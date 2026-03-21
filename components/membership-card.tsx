@@ -36,11 +36,8 @@ export function MembershipCard({
   const [isHovered, setIsHovered] = useState(false);
 
   const getStyleConfig = () => {
-    if (
-      effectiveCardStyle === 'default' &&
-      card.customization?.primaryColor &&
-      card.customization?.secondaryColor
-    ) {
+    // Use custom colors whenever both are provided (for any card style) so preview and saved cards reflect edits
+    if (card.customization?.primaryColor && card.customization?.secondaryColor) {
       return {
         bg: `bg-gradient-to-br`,
         text: 'text-white',
@@ -206,7 +203,6 @@ export function MembershipCard({
               background: `linear-gradient(to bottom right, ${style.customColors.primary}, ${style.customColors.secondary})`,
               borderColor: style.customColors.primary
             } : {}),
-            aspectRatio: '1.586 / 1',
             transform: `
               perspective(1000px)
               rotateX(${transform.rotateX}deg)
@@ -221,26 +217,25 @@ export function MembershipCard({
             filter: isHovered ? 'brightness(1.1)' : 'brightness(1)',
           }}
         >
-      <CardContent className="p-4 h-full flex flex-col">
+      <CardContent className="p-3 flex flex-col gap-1.5">
         {/* Header */}
-        <div className="flex justify-between items-start mb-1 flex-shrink-0">
-          <div className="flex items-center gap-2">
-            {/* Use customization.showLogo if available, otherwise use prop */}
-            {((card.customization?.showLogo !== undefined ? card.customization.showLogo : showLogo) && 
+        <div className="flex justify-between items-start">
+          <div className="flex items-center gap-1.5 min-w-0">
+            {((card.customization?.showLogo !== undefined ? card.customization.showLogo : showLogo) &&
               (card.customization?.customLogo || club.logo)) && (
               <Avatar className={getLogoSize()}>
-                <AvatarImage 
+                <AvatarImage
                   src={(() => {
                     const logoUrl = card.customization?.customLogo || club.logo;
                     if (!logoUrl) return '';
-                    if (logoUrl.startsWith('http') || logoUrl.startsWith('data:')) {
+                    if (logoUrl.startsWith('http') || logoUrl.startsWith('data:') || logoUrl.startsWith('blob:')) {
                       return logoUrl;
                     }
                     return `${getBaseUrl()}${logoUrl}`;
-                  })()} 
-                  alt={club.name} 
+                  })()}
+                  alt={club.name}
                 />
-                <AvatarFallback 
+                <AvatarFallback
                   className={style.accent}
                   style={style.customColors ? { backgroundColor: style.customColors.primary } : {}}
                 >
@@ -248,43 +243,39 @@ export function MembershipCard({
                 </AvatarFallback>
               </Avatar>
             )}
-            <div>
-              <h3 className="font-bold text-sm truncate">{club.name}</h3>
-              <p className="text-xs opacity-80 truncate">{club.location || 'Location'}</p>
+            <div className="min-w-0">
+              <h3 className="font-bold text-xs truncate">{club.name}</h3>
+              <p className="text-[10px] opacity-80 truncate">{club.location || 'Location'}</p>
             </div>
           </div>
         </div>
 
-        {/* User Name - Main Display (Debit Card Style) */}
-        <div className="text-center mb-1 flex-shrink-0">
-          <p className="font-bold text-2xl tracking-wide mb-2">
+        {/* User Name */}
+        <div className="text-center">
+          <p className="font-bold text-base tracking-wide truncate">
             {userName || 'Member'}
           </p>
-                     {/* Display Membership ID prominently like a card number */}
-           <div className="mb-2">
-             <p className="text-xs opacity-80">Membership ID</p>
-             <p className="text-lg font-mono tracking-widest font-semibold opacity-90">
-               {displayMembershipId || ''}
-             </p>
-           </div>
+          <p className="text-[10px] opacity-80">Membership ID</p>
+          <p className="text-xs font-mono tracking-wider font-semibold opacity-90 truncate">
+            {displayMembershipId || ''}
+          </p>
         </div>
 
-        {/* Plan Info - Less prominent for debit card style */}
-        <div className="text-center flex-shrink-0">
-          <p className="text-xs opacity-70 ">Plan</p>
-          <p className="text-sm font-medium truncate">{membershipPlan.name}</p>
+        {/* Plan Info */}
+        <div className="text-center">
+          <p className="text-[10px] opacity-70">Plan</p>
+          <p className="text-xs font-medium truncate">{membershipPlan.name}</p>
         </div>
 
-
-        {/* Footer - Debit Card Style */}
-        <div className="flex justify-between items-center flex-shrink-0 gap-4 mt-auto">
+        {/* Footer */}
+        <div className="flex justify-between items-center gap-2 pt-0.5 border-t border-white/10">
           <div className="flex-shrink-0 min-w-0">
-            <p className="text-xs opacity-70 mb-1 whitespace-nowrap">Valid Thru</p>
-            <p className="text-sm font-medium whitespace-nowrap">{formatDate(card.expiryDate)}</p>
+            <p className="text-[10px] opacity-70 whitespace-nowrap">Valid Thru</p>
+            <p className="text-xs font-medium whitespace-nowrap">{formatDate(card.expiryDate)}</p>
           </div>
           <div className="text-right flex-shrink-0">
-            <p className="text-xs opacity-70 mb-1">Status</p>
-            <Badge variant={getStatusVariant(card.status)} className="text-xs">
+            <p className="text-[10px] opacity-70">Status</p>
+            <Badge variant={getStatusVariant(card.status)} className="text-[10px] px-1.5 py-0">
               {card.status}
             </Badge>
           </div>

@@ -207,36 +207,22 @@ export default function VolunteerDashboard() {
   };
 
   const handleWithdraw = async (opportunityId: string, timeSlotId: string) => {
-    // // console.log('🚫 Attempting to withdraw from opportunity:', { opportunityId, timeSlotId });
-    // // console.log('👥 Volunteer profile:', volunteerProfile);
-    
-    // Frontend validation
-    if (!volunteerProfile) {
-      // // console.log('❌ No volunteer profile found for withdrawal');
+    // Optional frontend check: ensure at least one of user's profiles is in this slot (string-safe for API ObjectIds)
+    const isAssigned = allVolunteerProfileIds.some((profileId) => {
+      const opportunity = opportunities.find((o: any) => o._id === opportunityId);
+      const timeSlot = opportunity?.timeSlots?.find((s: any) => s._id === timeSlotId);
+      const assigned = timeSlot?.volunteersAssigned ?? [];
+      return assigned.some((id: any) => String(id) === String(profileId));
+    });
+    if (allVolunteerProfileIds.length > 0 && !isAssigned) {
       toast({
-        title: 'Error',
-        description: 'Volunteer profile not found',
+        title: 'Not Signed Up',
+        description: 'You are not signed up for this time slot',
         variant: 'destructive',
       });
       return;
     }
-    
-    // // console.log('✅ Volunteer profile found for withdrawal:', volunteerProfile._id);
-    
-    // Check if actually signed up for this time slot
-    const opportunity = opportunities.find(o => o._id === opportunityId);
-    if (opportunity) {
-      const timeSlot = opportunity.timeSlots.find(slot => slot._id === timeSlotId);
-      if (!timeSlot || !timeSlot.volunteersAssigned.includes(volunteerProfile._id)) {
-        toast({
-          title: 'Not Signed Up',
-          description: 'You are not signed up for this time slot',
-          variant: 'destructive',
-        });
-        return;
-      }
-    }
-    
+
     try {
       const response = await apiClient.withdrawFromVolunteerOpportunity(opportunityId, timeSlotId);
       // // console.log('📝 Withdraw response:', {
@@ -561,9 +547,10 @@ export default function VolunteerDashboard() {
                     key={opportunity._id}
                     opportunity={opportunity}
                     onSignUp={handleSignUp}
-                    currentVolunteerId={allVolunteerProfileIds.find(profileId => 
-                      opportunity.timeSlots.some((slot: any) => 
-                        slot.volunteersAssigned.includes(profileId)
+                    onWithdraw={handleWithdraw}
+                    currentVolunteerId={allVolunteerProfileIds.find(profileId =>
+                      opportunity.timeSlots.some((slot: any) =>
+                        (slot.volunteersAssigned ?? []).some((id: any) => String(id) === String(profileId))
                       )
                     )}
                     signingUp={signingUp}
@@ -586,12 +573,14 @@ export default function VolunteerDashboard() {
                   <VolunteerOpportunityCard
                     key={opportunity._id}
                     opportunity={opportunity}
+                    onSignUp={handleSignUp}
                     onWithdraw={handleWithdraw}
-                    currentVolunteerId={allVolunteerProfileIds.find(profileId => 
-                      opportunity.timeSlots.some((slot: any) => 
-                        slot.volunteersAssigned.includes(profileId)
+                    currentVolunteerId={allVolunteerProfileIds.find(profileId =>
+                      opportunity.timeSlots.some((slot: any) =>
+                        (slot.volunteersAssigned ?? []).some((id: any) => String(id) === String(profileId))
                       )
                     )}
+                    signingUp={signingUp}
                   />
                 ))}
               </div>

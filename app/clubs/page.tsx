@@ -804,6 +804,22 @@ function ClubsPageContent() {
                                 </p>
                               </div>
                             )}
+                            {/* {(plan.planStartDate || plan.planEndDate) && (
+                              <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground mb-2">
+                                {plan.planStartDate && (
+                                  <span className="flex items-center gap-1">
+                                    <CalendarDays className="w-3.5 h-3.5" />
+                                    Start: {new Date(plan.planStartDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+                                  </span>
+                                )}
+                                {plan.planEndDate && (
+                                  <span className="flex items-center gap-1">
+                                    <CalendarDays className="w-3.5 h-3.5" />
+                                    End: {new Date(plan.planEndDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}
+                                  </span>
+                                )}
+                              </div>
+                            )} */}
                             <div className="flex items-center justify-between mt-4">
                               <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground">
                                 <Clock className="w-4 h-4" />
@@ -1036,6 +1052,16 @@ function ClubsPageContent() {
                               <div className="text-sm text-muted-foreground">
                                 {formatPlanPeriod(plan)}
                               </div>
+                              {(plan.planStartDate || plan.planEndDate) && (
+                                <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground mt-2 justify-end">
+                                  {plan.planStartDate && (
+                                    <span>Start: {new Date(plan.planStartDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</span>
+                                  )}
+                                  {plan.planEndDate && (
+                                    <span>End: {new Date(plan.planEndDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</span>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           </div>
                         </CardHeader>
@@ -1462,6 +1488,22 @@ function ClubsPageContent() {
                       <span>Duration:</span>
                       <span>{formatPlanPeriod(selectedPlan)}</span>
                     </div>
+                    {/* {(selectedPlan.planStartDate || selectedPlan.planEndDate) && (
+                      <>
+                        {selectedPlan.planStartDate && (
+                          <div className="flex justify-between">
+                            <span>Start:</span>
+                            <span>{new Date(selectedPlan.planStartDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</span>
+                          </div>
+                        )}
+                        {selectedPlan.planEndDate && (
+                          <div className="flex justify-between">
+                            <span>End:</span>
+                            <span>{new Date(selectedPlan.planEndDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</span>
+                          </div>
+                        )}
+                      </>
+                    )} */}
                     <div className="flex justify-between">
                       <span>Features:</span>
                       <span>{selectedPlan.features.maxEvents} events, {selectedPlan.features.maxNews} news items</span>

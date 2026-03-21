@@ -1,6 +1,7 @@
 "use client"
 
-import React, { useState, useEffect, useCallback } from "react"
+import React, { Suspense, useState, useEffect, useCallback } from "react"
+import { useSearchParams } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -25,17 +26,17 @@ import {
   Image,
 } from "lucide-react"
 import { MembershipCard } from "@/components/membership-card"
-import { MembershipCardCustomizer } from "@/components/admin/membership-card-customizer"
 import { apiClient, PublicMembershipCardDisplay, CreateMembershipCardRequest } from "@/lib/api"
 import { formatDisplayDate } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
+import { toast as sonnerToast } from "sonner"
 import { getBaseUrl, getApiUrl } from "@/lib/config"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
 import { useAuth } from "@/contexts/auth-context"
 
 
-export default function MembershipCardsPage() {
+function MembershipCardsPage() {
   const CARD_STYLE_COLORS: Record<
     "default" | "premium" | "vintage" | "modern" | "elite" | "emerald",
     { primaryColor: string; secondaryColor: string }
@@ -56,6 +57,10 @@ export default function MembershipCardsPage() {
   ];
 
   const { activeClubId } = useAuth()
+  const searchParams = useSearchParams()
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    return searchParams.get("planId") ? "create" : "preview"
+  })
   const [customization, setCustomization] = useState<{
     cardStyle: 'default' | 'premium' | 'vintage' | 'modern' | 'elite' | 'emerald';
     showLogo: boolean;
@@ -135,11 +140,13 @@ export default function MembershipCardsPage() {
         )
 
         setCards(validCards)
+        setError(null)
       } else {
         const errorDetails = (cardsResponse as any).errorDetails || {}
         const errorMessage = cardsResponse.error || 'Unknown error occurred'
         const statusCode = errorDetails.statusCode || (cardsResponse as any).statusCode || 'Unknown'
         setError(errorMessage)
+        setCards([])
         toast({
           title: "Error Loading Membership Cards",
           description: `Failed to fetch membership cards for club (ID: ${targetClubId}): ${errorMessage}. Status: ${statusCode}. ${errorDetails.message ? `Details: ${errorDetails.message}.` : ''} Please check your authentication and try again.`,
@@ -151,6 +158,7 @@ export default function MembershipCardsPage() {
       const errorDetails = err?.response?.data || {}
       const statusCode = err?.response?.status || 'Unknown'
       setError(errorMessage)
+      setCards([])
       toast({
         title: "Error Fetching Cards",
         description: `Failed to fetch membership cards for club (ID: ${targetClubId}): ${errorMessage}. Status: ${statusCode}. ${errorDetails.message ? `Details: ${errorDetails.message}.` : ''} Please check your connection and try again.`,
@@ -164,6 +172,7 @@ export default function MembershipCardsPage() {
       try {
         setLoading(true)
         setError(null)
+        setEditingCard(null)
         let currentClubId = activeClubId
 
         if (!currentClubId) {
@@ -177,6 +186,11 @@ export default function MembershipCardsPage() {
         if (plansResponse.success && plansResponse.data) {
           const plansData = Array.isArray(plansResponse.data) ? plansResponse.data : (plansResponse.data?.data || [])
           setMembershipPlans(plansData)
+          const urlPlanId = searchParams.get("planId")
+          if (urlPlanId && plansData.some((p: any) => p._id === urlPlanId)) {
+            setSelectedPlanId(urlPlanId)
+            setActiveTab("create")
+          }
         } else {
           setMembershipPlans([])
         }
@@ -316,16 +330,19 @@ export default function MembershipCardsPage() {
 
       const response = await apiClient.createMembershipCard(cardData)
 
-      if (response.success && response.data) {
-        toast({
-          title: "Membership Card Created Successfully",
-          description: `Membership card for plan "${planName}" has been created successfully. Refreshing card list...`,
-        })
+      // API returns { success: true, data: { card, club, membershipPlan } }; client passes body as response.data
+      const isSuccess = response?.success === true
+      const raw = response?.data as { data?: { card?: unknown }; card?: unknown } | undefined
+      const payload = raw?.data ?? raw
+      const hasCreatedCard = !!(payload && (payload as { card?: unknown }).card)
 
+      if (isSuccess || hasCreatedCard) {
+        sonnerToast.success("Card created successfully", {
+          description: `Membership card for plan "${planName}" has been created.`,
+        })
         setSelectedPlanId("")
         setPreviewUrl(null)
         setSelectedFile(null)
-
         if (effectiveClubId) {
           await fetchCards(effectiveClubId)
         }
@@ -485,19 +502,19 @@ export default function MembershipCardsPage() {
   }
 
   const handleEditCard = (card: PublicMembershipCardDisplay) => {
-    const fallbackStyleColors = CARD_STYLE_COLORS[card.card.cardStyle] || CARD_STYLE_COLORS.default;
+    const fallbackStyleColors = CARD_STYLE_COLORS[card.card.cardStyle ?? "default"] || CARD_STYLE_COLORS.default;
+    const fullCustomization = normalizeCustomization(card.card.customization);
     const cardCopy = {
       ...card,
       card: {
         ...card.card,
-        customization: card.card.customization ? {
-          ...card.card.customization
-        } : {
-          primaryColor: fallbackStyleColors.primaryColor,
-          secondaryColor: fallbackStyleColors.secondaryColor,
-          fontFamily: 'Inter',
-          logoSize: 'medium' as const,
-          showLogo: true
+        status: (card.card.status ?? "active") as "active" | "expired" | "pending" | "suspended",
+        accessLevel: (card.card.accessLevel ?? "basic") as "basic" | "premium" | "vip",
+        cardStyle: (card.card.cardStyle ?? "default") as "default" | "premium" | "vintage" | "modern" | "elite" | "emerald",
+        customization: {
+          ...fullCustomization,
+          primaryColor: fullCustomization.primaryColor ?? fallbackStyleColors.primaryColor,
+          secondaryColor: fullCustomization.secondaryColor ?? fallbackStyleColors.secondaryColor,
         }
       }
     };
@@ -554,20 +571,21 @@ export default function MembershipCardsPage() {
         }
       }
 
+      const baseCustomization = normalizeCustomization(editingCard.card.customization)
       const updatedCustomization = {
-        ...editingCard.card.customization,
-        customLogo: customLogoUrl,
-      };
-
-      // fontFamily fix: Ensure the font from select is saved
-      if (!updatedCustomization.fontFamily) {
-        updatedCustomization.fontFamily = "Inter";
+        primaryColor: baseCustomization.primaryColor,
+        secondaryColor: baseCustomization.secondaryColor,
+        fontFamily: baseCustomization.fontFamily,
+        logoSize: baseCustomization.logoSize,
+        showLogo: baseCustomization.showLogo,
+        ...(baseCustomization.customLogo !== undefined && { customLogo: baseCustomization.customLogo }),
+        ...(customLogoUrl !== undefined && { customLogo: customLogoUrl }),
       }
 
       const updateData = {
-        status: editingCard.card.status,
-        accessLevel: editingCard.card.accessLevel,
-        cardStyle: editingCard.card.cardStyle,
+        status: editingCard.card.status ?? "active",
+        accessLevel: editingCard.card.accessLevel ?? "basic",
+        cardStyle: editingCard.card.cardStyle ?? "default",
         customization: updatedCustomization
       }
 
@@ -636,15 +654,12 @@ export default function MembershipCardsPage() {
   const handlePrimaryColorChange = useCallback((newColor: string) => {
     setEditingCard(prev => {
       if (!prev) return null
-      const existingCustomization = prev.card.customization
+      const base = normalizeCustomization(prev.card.customization)
       return {
         ...prev,
         card: {
           ...prev.card,
-          customization: {
-            ...(existingCustomization || {}),
-            primaryColor: newColor,
-          }
+          customization: { ...base, primaryColor: newColor }
         }
       }
     })
@@ -653,15 +668,12 @@ export default function MembershipCardsPage() {
   const handleSecondaryColorChange = useCallback((newColor: string) => {
     setEditingCard(prev => {
       if (!prev) return null
-      const existingCustomization = prev.card.customization
+      const base = normalizeCustomization(prev.card.customization)
       return {
         ...prev,
         card: {
           ...prev.card,
-          customization: {
-            ...(existingCustomization || {}),
-            secondaryColor: newColor,
-          }
+          customization: { ...base, secondaryColor: newColor }
         }
       }
     })
@@ -708,36 +720,29 @@ export default function MembershipCardsPage() {
     })
   }, [CARD_STYLE_COLORS, normalizeCustomization])
 
-  // Font family fix: Only set the fontFamily field, retain existing customization
   const handleFontFamilyChange = useCallback((value: string) => {
     setEditingCard(prev => {
-      if (!prev) return null;
-      const existingCustomization = prev.card.customization || {};
+      if (!prev) return null
+      const base = normalizeCustomization(prev.card.customization)
       return {
         ...prev,
         card: {
           ...prev.card,
-          customization: {
-            ...existingCustomization,
-            fontFamily: value
-          }
+          customization: { ...base, fontFamily: value }
         }
       }
-    });
-  }, []);
+    })
+  }, [])
 
   const handleLogoSizeChange = useCallback((value: string) => {
     setEditingCard(prev => {
       if (!prev) return null
-      const existingCustomization = prev.card.customization
+      const base = normalizeCustomization(prev.card.customization)
       return {
         ...prev,
         card: {
           ...prev.card,
-          customization: {
-            ...(existingCustomization || {}),
-            logoSize: value as 'small' | 'medium' | 'large'
-          }
+          customization: { ...base, logoSize: value as "small" | "medium" | "large" }
         }
       }
     })
@@ -745,16 +750,13 @@ export default function MembershipCardsPage() {
 
   const handleShowLogoChange = useCallback((checked: boolean) => {
     setEditingCard(prev => {
-      if (!prev) return null;
-      const existingCustomization = prev.card.customization || {};
+      if (!prev) return null
+      const base = normalizeCustomization(prev.card.customization)
       return {
         ...prev,
         card: {
           ...prev.card,
-          customization: {
-            ...existingCustomization,
-            showLogo: checked,
-          }
+          customization: { ...base, showLogo: checked }
         }
       }
     })
@@ -789,13 +791,11 @@ export default function MembershipCardsPage() {
             </Button>
           </div>
 
-          <Tabs defaultValue="preview" className="space-y-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <TabsList>
               <TabsTrigger value="preview">Live Preview</TabsTrigger>
               <TabsTrigger value="create">Create Card</TabsTrigger>
-              <TabsTrigger value="customize">Customize Default Card</TabsTrigger>
               <TabsTrigger value="manage">Manage Cards</TabsTrigger>
-              {/* <TabsTrigger value="settings">Settings</TabsTrigger> */}
             </TabsList>
 
             <TabsContent value="preview" className="space-y-6">
@@ -820,7 +820,7 @@ export default function MembershipCardsPage() {
                         <div className="text-center">
                           <h4 className="font-medium mb-3 text-foreground">Currently Editing</h4>
                           <div className="flex justify-center">
-                            <div className="w-full max-w-xs sm:max-w-sm">
+                            <div className="w-full max-w-xs">
                               <MembershipCard
                                 cardData={editingCard}
                                 cardStyle={editingCard.card.cardStyle}
@@ -843,20 +843,18 @@ export default function MembershipCardsPage() {
                             <p className="text-sm">Create your first membership card to see a preview</p>
                           </div>
                         ) : (
-                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
                             {cards.map((card, index) => (
                               <div key={card?.card?._id || index} className="text-center">
                                 <p className="text-sm text-muted-foreground mb-2">{card?.membershipPlan?.name || 'Unknown Plan'}</p>
-                                <div className="flex justify-center">
-                                  <div className="w-full max-w-xs sm:max-w-sm">
-                                    <MembershipCard
-                                      cardData={card}
-                                      cardStyle={card?.card?.cardStyle || 'default'}
-                                      showLogo={card?.card?.customization?.showLogo ?? true}
-                                      userName="John Doe"
-                                      membershipId={card?.card?.membershipId ?? 'Membership ID'}
-                                    />
-                                  </div>
+                                <div className="w-full max-w-xs mx-auto">
+                                  <MembershipCard
+                                    cardData={card}
+                                    cardStyle={card?.card?.cardStyle || 'default'}
+                                    showLogo={card?.card?.customization?.showLogo ?? true}
+                                    userName="John Doe"
+                                    membershipId={card?.card?.membershipId ?? 'Membership ID'}
+                                  />
                                 </div>
                               </div>
                             ))}
@@ -985,15 +983,6 @@ export default function MembershipCardsPage() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="customize" className="space-y-6">
-              <MembershipCardCustomizer
-                clubId={effectiveClubId || undefined}
-                onSave={() => {
-                  window.location.reload();
-                }}
-              />
-            </TabsContent>
-
             <TabsContent value="manage" className="space-y-6">
               <Card>
                 <CardHeader>
@@ -1091,17 +1080,17 @@ export default function MembershipCardsPage() {
                 </Button>
               </div>
 
-              <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 p-4 sm:p-6 pt-0 overflow-y-auto flex-1 min-h-0">
+              <div key={editingCard.card._id} className="flex flex-col lg:flex-row gap-4 sm:gap-6 p-4 sm:p-6 pt-0 overflow-y-auto flex-1 min-h-0">
                 {/* Left Column - Settings */}
                 <div className="flex-shrink-0 lg:w-[380px] xl:w-[420px] space-y-4 overflow-y-auto">
                   <div>
                     <Label htmlFor="status">Status</Label>
                     <Select
-                      value={editingCard.card.status}
+                      value={editingCard.card.status ?? "active"}
                       onValueChange={handleStatusChange}
                     >
-                      <SelectTrigger>
-                        <SelectValue />
+                      <SelectTrigger id="status">
+                        <SelectValue placeholder="Select status" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="active">Active</SelectItem>
@@ -1115,7 +1104,7 @@ export default function MembershipCardsPage() {
                   <div>
                     <Label htmlFor="accessLevel">Access Level</Label>
                     <Select
-                      value={editingCard.card.accessLevel}
+                      value={editingCard.card.accessLevel ?? "basic"}
                       onValueChange={handleAccessLevelChange}
                     >
                       <SelectTrigger>
@@ -1132,11 +1121,11 @@ export default function MembershipCardsPage() {
                   <div>
                     <Label htmlFor="editCardStyle">Card Style</Label>
                     <Select
-                      value={editingCard.card.cardStyle}
+                      value={editingCard.card.cardStyle ?? "default"}
                       onValueChange={handleCardStyleChange}
                     >
                       <SelectTrigger id="editCardStyle">
-                        <SelectValue />
+                        <SelectValue placeholder="Select style" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="default">Classic Blue</SelectItem>
@@ -1154,9 +1143,9 @@ export default function MembershipCardsPage() {
                     <Input
                       id="primaryColor"
                       type="color"
-                      value={editingCard.card.customization?.primaryColor || '#3b82f6'}
+                      value={normalizeCustomization(editingCard.card.customization).primaryColor}
                       onChange={(e) => handlePrimaryColorChange(e.target.value)}
-                      className="h-10 w-full"
+                      className="h-10 w-full cursor-pointer"
                     />
                   </div>
 
@@ -1165,9 +1154,9 @@ export default function MembershipCardsPage() {
                     <Input
                       id="secondaryColor"
                       type="color"
-                      value={editingCard.card.customization?.secondaryColor || '#1e40af'}
+                      value={normalizeCustomization(editingCard.card.customization).secondaryColor}
                       onChange={(e) => handleSecondaryColorChange(e.target.value)}
-                      className="h-10 w-full"
+                      className="h-10 w-full cursor-pointer"
                     />
                   </div>
 
@@ -1274,19 +1263,26 @@ export default function MembershipCardsPage() {
                 </div>
 
                 {/* Right Column - Live Preview */}
-                <div className="flex-1 flex items-start justify-center lg:justify-end min-h-[320px] lg:min-h-0 lg:sticky lg:top-0">
-                  <div className="border rounded-lg p-4 sm:p-6 bg-muted/20 w-full max-w-sm">
-                    <Label className="text-sm font-medium mb-4 block">Live Preview</Label>
-                    <div className="flex justify-center">
-                      <div className="w-full max-w-xs sm:max-w-sm">
-                        <MembershipCard
-                          cardData={editingCard}
-                          cardStyle={editingCard.card.cardStyle}
-                          showLogo={editingCard.card.customization?.showLogo ?? true}
-                          userName="John Doe"
-                          membershipId={editingCard.card.membershipId ?? 'MEM-XXXX'}
-                        />
-                      </div>
+                <div className="flex-1 flex items-start justify-center lg:justify-center min-h-[220px] lg:min-h-0 lg:sticky lg:top-0">
+                  <div className="border rounded-lg p-4 bg-muted/20 w-full max-w-xs">
+                    <Label className="text-sm font-medium mb-3 block">Live Preview</Label>
+                    <div className="w-full">
+                      <MembershipCard
+                        cardData={customLogoPreview ? {
+                          ...editingCard,
+                          card: {
+                            ...editingCard.card,
+                            customization: {
+                              ...normalizeCustomization(editingCard.card.customization),
+                              customLogo: customLogoPreview,
+                            }
+                          }
+                        } : editingCard}
+                        cardStyle={editingCard.card.cardStyle}
+                        showLogo={editingCard.card.customization?.showLogo ?? true}
+                        userName="John Doe"
+                        membershipId={editingCard.card.membershipId ?? 'MEM-XXXX'}
+                      />
                     </div>
                   </div>
                 </div>
@@ -1306,5 +1302,17 @@ export default function MembershipCardsPage() {
         )}
       </DashboardLayout>
     </ProtectedRoute>
+  )
+}
+
+export default function MembershipCardsPageWrapper() {
+  return (
+    <Suspense fallback={
+      <div className="p-6 flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    }>
+      <MembershipCardsPage />
+    </Suspense>
   )
 }

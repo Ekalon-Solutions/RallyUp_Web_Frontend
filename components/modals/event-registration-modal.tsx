@@ -12,6 +12,7 @@ import { Calendar, Clock, MapPin, Users, Ticket, UserCheck, Bus, CheckCircle, XC
 import { toast } from "sonner"
 import { apiClient, Event } from "@/lib/api"
 import { formatLocalDate } from "@/lib/timezone"
+import { useAuth } from "@/contexts/auth-context"
 
 interface EventRegistrationModalProps {
   isOpen: boolean
@@ -67,6 +68,8 @@ export function EventRegistrationModal({
       setAppliedCoupon(null)
     }
   }, [isOpen, isRegistered])
+
+  const { user } = useAuth()
 
   if (!event) return null
 
