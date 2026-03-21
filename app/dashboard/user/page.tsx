@@ -103,7 +103,8 @@ function FixturesCards({ clubId }: { clubId?: string | undefined }) {
     const month = d.toLocaleString('default', { month: 'long' })
     const year = d.getFullYear()
     const weekday = d.toLocaleString('default', { weekday: 'long' })
-    return `${day} ${month} ${year} (${weekday})`
+    const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    return `${day} ${month} ${year} (${weekday}) • ${time}`
   }
 
   useEffect(() => {
@@ -263,7 +264,7 @@ export default function UserDashboardPage() {
 
   const userClub = (activeMembership as any)?.club_id || (activeMembership as any)?.club || null
 
-  const { isSectionVisible } = useClubSettings(clubId || undefined)
+  const { settings: clubSettings, isSectionVisible } = useClubSettings(clubId || undefined)
 
   // Get user's display name
   const getUserDisplayName = () => {
@@ -892,11 +893,13 @@ export default function UserDashboardPage() {
           </div>
 
           {/* League Table Widget */}
-          {userClub?.sports?.teamId && userClub?.sports?.leagueId && (
+          {clubSettings?.sports?.teamId && clubSettings?.sports?.leagueId && (
             <div className="w-full rounded-[2.5rem] overflow-hidden border-2 shadow-xl bg-card p-4">
-              <LeagueTableWidget leagueId={userClub.sports.leagueId} />
+              <LeagueTableWidget leagueId={clubSettings.sports.leagueId} />
             </div>
           )}
+
+          {/* Team League leaderboard is shown above when teamId and leagueId exist */}
 
           {/* Events and News Tabs - Only show if sections are visible */}
           {(isSectionVisible('events') || isSectionVisible('news')) && (

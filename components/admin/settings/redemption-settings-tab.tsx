@@ -12,7 +12,7 @@ export default function RedemptionSettingsTab() {
   const [loading, setLoading] = useState(true)
   const [settings, setSettings] = useState<any>(null)
   const [onePointValue, setOnePointValue] = useState<number>(0)
-  const [form, setForm] = useState<any>({ points: 100, currencyAmount: 0, currency: 'INR', expiryPolicy: 'never' })
+  const [form, setForm] = useState<any>({ points: 100, currencyAmount: 0, currency: 'INR', expiryPolicy: 'never', expiryCustomEndDate: '' })
   const [confirming, setConfirming] = useState(false)
   const [affectedCount, setAffectedCount] = useState<number | null>(null)
 
@@ -29,7 +29,8 @@ export default function RedemptionSettingsTab() {
           currency: resp.data.settings?.currency || 'INR',
           expiryPolicy: resp.data.settings?.expiryPolicy || 'never',
           expiryMonths: resp.data.settings?.expiryMonths || '',
-          expiryMonthDay: resp.data.settings?.expiryMonthDay || { month: '', day: '' }
+          expiryMonthDay: resp.data.settings?.expiryMonthDay || { month: '', day: '' },
+          expiryCustomEndDate: resp.data.settings?.expiryCustomEndDate || ''
         })
       } else {
         toast.error('Failed to load redemption settings')
@@ -49,6 +50,10 @@ export default function RedemptionSettingsTab() {
       }
       if (form.expiryPolicy === 'months') payload.expiryMonths = Number(form.expiryMonths)
       if (form.expiryPolicy === 'annual_date') payload.expiryMonthDay = form.expiryMonthDay
+      if (form.expiryPolicy === 'custom_date' && form.expiryCustomEndDate) {
+        const dt = new Date(form.expiryCustomEndDate)
+        if (!Number.isNaN(dt.getTime())) payload.expiryCustomEndDate = dt.toISOString()
+      }
       if (confirmFlag) payload.confirm = true
 
       const resp = await apiClient.updateRedemptionSettings(payload)
@@ -88,12 +93,23 @@ export default function RedemptionSettingsTab() {
           <Label>Expiry Policy</Label>
           <Select value={form.expiryPolicy} onValueChange={(v) => setForm({ ...form, expiryPolicy: v })}>
             <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="never">Never expire</SelectItem>
-              <SelectItem value="months">Expire after N months</SelectItem>
-              <SelectItem value="annual_date">Expire on annual date</SelectItem>
-            </SelectContent>
-          </Select>
+              <SelectContent>
+                <SelectItem value="never">Never expire</SelectItem>
+                <SelectItem value="months">Expire after N months</SelectItem>
+                <SelectItem value="annual_date">Expire on annual date</SelectItem>
+                <SelectItem value="custom_date">Expire until custom end date</SelectItem>
+              </SelectContent>
+            </Select>
+            {form.expiryPolicy === 'custom_date' && (
+              <div className="mt-2">
+                <Label>Custom end date (local)</Label>
+                <Input
+                  type="datetime-local"
+                  value={form.expiryCustomEndDate || ''}
+                  onChange={(e: any) => setForm({ ...form, expiryCustomEndDate: e.target.value })}
+                />
+              </div>
+            )}
           {form.expiryPolicy === 'months' && (
             <div className="mt-2">
               <Label>Expiry months</Label>

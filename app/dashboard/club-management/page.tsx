@@ -888,6 +888,25 @@ export default function ClubManagementPage() {
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuItem onSelect={(e) => { 
+                              e.preventDefault();
+                              (async () => {
+                                try {
+                                  const resp = await apiClient.post(`/system-owner/clubs/${club._id}/fetch-next-events`)
+                                  if (resp.success) {
+                                    toast.success('Club next events refreshed')
+                                    fetchClubs()
+                                  } else {
+                                    toast.error(resp.error || 'Failed to refresh club events')
+                                  }
+                                } catch (err) {
+                                  toast.error('Failed to refresh club events')
+                                }
+                              })()
+                            }}>
+                              <Calendar className="mr-2 h-4 w-4" />
+                              Fetch Next Events
+                            </DropdownMenuItem>
                             <ClubStatsModal 
                               club={club}
                               trigger={

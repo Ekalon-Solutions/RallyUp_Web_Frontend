@@ -172,10 +172,32 @@ export default function ExternalTicketingPage() {
   }
 
   const uniqueCompetitions = Array.from(new Set(fixtures.map((f) => f.competition).filter(Boolean))).sort()
-  const filteredFixtures =
-    competitionFilter === 'all'
-      ? fixtures
-      : fixtures.filter((f) => f.competition === competitionFilter)
+
+  const isFixtureAvailable = (f: ExternalTicketFixture) => {
+    const now = new Date()
+    // If explicit enabled flag exists, prefer it
+    if (typeof (f as any).isVisibleForMembers === 'boolean') {
+      if ((f as any).isVisibleForMembers) return true
+      // if disabled but a visibility end is set in the future, treat as available until that time
+      if (f.visibilityEndsAt) {
+        const dt = new Date(f.visibilityEndsAt)
+        if (!Number.isNaN(dt.getTime()) && dt > now) return true
+      }
+      return false
+    }
+
+    // If only visibilityEndsAt exists, check it's in the future
+    if (f.visibilityEndsAt) {
+      const dt = new Date(f.visibilityEndsAt)
+      return !Number.isNaN(dt.getTime()) && dt > now
+    }
+
+    // If no flags present, consider the fixture available
+    return true
+  }
+
+  const filteredFixtures = (competitionFilter === 'all' ? fixtures : fixtures.filter((f) => f.competition === competitionFilter))
+    .filter((f) => isFixtureAvailable(f))
 
   const allVisibleSelected =
     filteredFixtures.length > 0 && filteredFixtures.every((f) => selectedFixtureIds.has(f._id))

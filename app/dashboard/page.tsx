@@ -37,7 +37,8 @@ function FixturesCards({ clubId }: { clubId?: string | undefined }) {
     const month = d.toLocaleString('default', { month: 'long' })
     const year = d.getFullYear()
     const weekday = d.toLocaleString('default', { weekday: 'long' })
-    return `${day} ${month} ${year} (${weekday})`
+    const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    return `${day} ${month} ${year} (${weekday}) • ${time}`
   }
 
   useEffect(() => {
@@ -146,7 +147,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [showLogo, setShowLogo] = useState(false)
   const [logoFadeIn, setLogoFadeIn] = useState(false)
-  const [cronLoading, setCronLoading] = useState(false)
+  
   
   useEffect(() => {
     if (user && !isAdmin) {
@@ -350,57 +351,7 @@ export default function DashboardPage() {
               <h1 className="text-2xl sm:text-3xl font-bold">Dashboard</h1>
               <p className="text-muted-foreground text-sm sm:text-base">Welcome back! Here's what's happening with your supporter group.</p>
             </div>
-            {isAdmin && (
-              <div>
-                <Button
-                  variant="outline"
-                  onClick={async () => {
-                    if (!confirm('Run fetch-next-matches for all clubs now?')) return
-                    try {
-                      setCronLoading(true)
-                      const token = localStorage.getItem('token')
-                      const cronResp = await apiClient.get('/cron/sports/fetch-next-matches')
-                      if (cronResp.success) {
-                        const data = cronResp.data || { processed: 0 }
-                        toast.success(`Cron completed: ${data.processed} clubs`)
-                      } else {
-                        toast.error(`Cron failed: ${cronResp.status || ''} ${cronResp.message || cronResp.error || ''}`)
-                      }
-                    } catch (e: any) {
-                      toast.error('Cron request failed')
-                    } finally {
-                      setCronLoading(false)
-                    }
-                  }}
-                  disabled={cronLoading}
-                >
-                  {cronLoading ? 'Running...' : 'Fetch Next Matches'}
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={async () => {
-                    if (!confirm('Refresh league tables for all clubs now?')) return
-                    try {
-                      setCronLoading(true)
-                      const cronResp = await apiClient.post('/cron/sports/refresh-league-tables', {})
-                      if (cronResp.success) {
-                        toast.success('League tables refreshed successfully')
-                      } else {
-                        toast.error(`Refresh failed: ${cronResp.status || ''} ${cronResp.message || cronResp.error || ''}`)
-                      }
-                    } catch (e: any) {
-                      toast.error('Refresh request failed')
-                    } finally {
-                      setCronLoading(false)
-                    }
-                  }}
-                  disabled={cronLoading}
-                  className="ml-2"
-                >
-                  {cronLoading ? 'Running...' : 'Refresh League Tables'}
-                </Button>
-              </div>
-            )}
+            {isAdmin && null}
           </div>
 
           {/* Stats Grid */}
