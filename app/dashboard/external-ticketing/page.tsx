@@ -80,6 +80,8 @@ export default function ExternalTicketingPage() {
   const [selectedRequestIds, setSelectedRequestIds] = useState<Set<string>>(new Set())
   const [rowStatusById, setRowStatusById] = useState<Record<string, string>>({})
   const [rowCommentById, setRowCommentById] = useState<Record<string, string>>({})
+  const [fixturePage, setFixturePage] = useState(1)
+  const FIXTURES_PER_PAGE = 5
 
   useEffect(() => {
     if (!clubId) return
@@ -171,11 +173,15 @@ export default function ExternalTicketingPage() {
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
   }
 
-  const uniqueCompetitions = Array.from(new Set(fixtures.map((f) => f.competition).filter(Boolean))).sort()
+  const now = new Date()
+  const upcomingFixtures = fixtures.filter((f) => new Date(f.startTime) >= now)
+  const uniqueCompetitions = Array.from(new Set(upcomingFixtures.map((f) => f.competition).filter(Boolean))).sort()
   const filteredFixtures =
     competitionFilter === 'all'
-      ? fixtures
-      : fixtures.filter((f) => f.competition === competitionFilter)
+      ? upcomingFixtures
+      : upcomingFixtures.filter((f) => f.competition === competitionFilter)
+  const totalFixturePages = Math.max(1, Math.ceil(filteredFixtures.length / FIXTURES_PER_PAGE))
+  const pagedFixtures = filteredFixtures.slice((fixturePage - 1) * FIXTURES_PER_PAGE, fixturePage * FIXTURES_PER_PAGE)
 
   const allVisibleSelected =
     filteredFixtures.length > 0 && filteredFixtures.every((f) => selectedFixtureIds.has(f._id))
@@ -390,7 +396,7 @@ export default function ExternalTicketingPage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
                   <Label>Competition</Label>
-                  <Select value={competitionFilter} onValueChange={setCompetitionFilter}>
+                  <Select value={competitionFilter} onValueChange={(v) => { setCompetitionFilter(v); setFixturePage(1); }}>
                     <SelectTrigger>
                       <SelectValue placeholder="All competitions" />
                     </SelectTrigger>
@@ -454,7 +460,7 @@ export default function ExternalTicketingPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredFixtures.map((fixture) => (
+                        {pagedFixtures.map((fixture) => (
                           <TableRow key={fixture._id}>
                             <TableCell>
                               <Checkbox
@@ -508,6 +514,22 @@ export default function ExternalTicketingPage() {
                         ))}
                       </TableBody>
                     </Table>
+                  </div>
+                </div>
+              )}
+
+              {totalFixturePages > 1 && (
+                <div className="mt-4 flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">
+                    Page {fixturePage} of {totalFixturePages} ({filteredFixtures.length} fixtures)
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={() => setFixturePage((p) => Math.max(1, p - 1))} disabled={fixturePage === 1}>
+                      Previous
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => setFixturePage((p) => Math.min(totalFixturePages, p + 1))} disabled={fixturePage === totalFixturePages}>
+                      Next
+                    </Button>
                   </div>
                 </div>
               )}

@@ -4,14 +4,12 @@ import { useEffect, useState } from "react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Settings, Globe, Palette, Bell, BookOpen, MapPin, Tag } from "lucide-react"
+import { Settings, Globe, Palette, Bell, BookOpen, MapPin } from "lucide-react"
 import { WebsiteSetupTab } from "@/components/admin/settings/website-setup-tab"
 import { DesignSettingsTab } from "@/components/admin/settings/design-settings-tab"
 import { AppSettingsTab } from "@/components/admin/settings/app-settings-tab"
 import { HelpSectionTab } from "@/components/admin/settings/help-section-tab"
 import { GetStartedTab } from "@/components/admin/settings/get-started-tab"
-import SportsSettingsTab from "@/components/admin/settings/sports-settings-tab"
-import RedemptionSettingsTab from "@/components/admin/settings/redemption-settings-tab"
 import { ClubAddressTab } from "@/components/admin/settings/club-address-tab"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
@@ -65,7 +63,7 @@ export default function AdminSettingsClient() {
             }}
             className="space-y-4"
           >
-            <TabsList className="flex overflow-auto justify-start sm:justify-between w-full grid-cols-6">
+            <TabsList className="flex overflow-auto justify-start sm:justify-between w-full grid-cols-5">
               <TabsTrigger value="website" className="flex items-center gap-2">
                 <Globe className="h-4 w-4" />
                 Website
@@ -77,10 +75,6 @@ export default function AdminSettingsClient() {
               <TabsTrigger value="app" className="flex items-center gap-2">
                 <Bell className="h-4 w-4" />
                 App Settings
-              </TabsTrigger>
-              <TabsTrigger value="sports" className="flex items-center gap-2">
-                <Settings className="h-4 w-4" />
-                Sports
               </TabsTrigger>
               <TabsTrigger value="address" className="flex items-center gap-2">
                 <MapPin className="h-4 w-4" />
@@ -104,9 +98,6 @@ export default function AdminSettingsClient() {
               <AppSettingsTab key={clubId ?? "no-club"} />
             </TabsContent>
 
-            <TabsContent value="sports" className="space-y-4">
-              <SportsSettingsTab key={clubId ?? "no-club"} />
-            </TabsContent>
             <TabsContent value="address" className="space-y-4">
               <ClubAddressTab key={clubId ?? "no-club"} />
             </TabsContent>

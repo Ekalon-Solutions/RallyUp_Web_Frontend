@@ -30,7 +30,6 @@ interface Standing {
 
 interface LeagueTableWidgetProps {
   leagueId: string;
-  // Optionally highlight a specific team (by SportsDB teamId or team name)
   highlightTeamId?: string;
   highlightTeamName?: string;
 }
@@ -117,7 +116,7 @@ export default function LeagueTableWidget({ leagueId, highlightTeamId, highlight
             <tbody>
               {displayedStandings.map((standing) => (
                 <tr key={standing.idStanding} className="border-b hover:bg-muted/40">
-                  <td className="text-center px-2 py-3 font-semibold text-primary">{standing.intRank}</td>
+                  <td className="text-center px-2 py-3 font-semibold text-white">{standing.intRank}</td>
                   <td className="px-2 py-3">
                     <div className="flex items-center gap-2">
                       {standing.strBadge && (
@@ -131,7 +130,18 @@ export default function LeagueTableWidget({ leagueId, highlightTeamId, highlight
                     </div>
                   </td>
                   <td className="text-center px-2 py-3 font-mono tracking-wider">
-                    {standing.strForm || '-'}
+                    {standing.strForm
+                      ? standing.strForm.split('').map((ch, i) => (
+                          <span
+                            key={i}
+                            className={
+                              ch === 'W' ? 'text-green-600 font-semibold' :
+                              ch === 'D' ? 'text-yellow-600' :
+                              ch === 'L' ? 'text-red-600 font-semibold' : ''
+                            }
+                          >{ch}</span>
+                        ))
+                      : '-'}
                   </td>
                   <td className="text-center px-2 py-3">{standing.intPlayed}</td>
                   <td className="text-center px-2 py-3 text-green-600 font-semibold">{standing.intWin}</td>
