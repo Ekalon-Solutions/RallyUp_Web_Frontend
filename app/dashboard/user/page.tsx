@@ -891,11 +891,13 @@ export default function UserDashboardPage() {
           </div>
 
           {/* League Table Widget */}
-          {(userClub?.sports?.teamId || clubSettings?.sports?.teamId) && (userClub?.sports?.leagueId || clubSettings?.sports?.leagueId) && (
+          {clubSettings?.sports?.teamId && clubSettings?.sports?.leagueId && (
             <div className="w-full rounded-[2.5rem] overflow-hidden border-2 shadow-xl bg-card p-4">
-              <LeagueTableWidget leagueId={userClub?.sports?.leagueId || clubSettings?.sports?.leagueId || ''} />
+              <LeagueTableWidget leagueId={clubSettings.sports.leagueId} />
             </div>
           )}
+
+          {/* Team League leaderboard is shown above when teamId and leagueId exist */}
 
           {/* Events and News Tabs - Only show if sections are visible */}
           {(isSectionVisible('events') || isSectionVisible('news')) && (

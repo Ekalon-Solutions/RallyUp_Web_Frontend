@@ -143,7 +143,7 @@ export default function SportsSettingsTab() {
               {currentTeam ? (
                 <div className="flex items-center gap-2">
                   {currentTeam.teamBadge ? <img src={currentTeam.teamBadge} alt="badge" className="w-8 h-8 object-contain" /> : null}
-                  <div>{currentTeam.teamName} {currentTeam.teamId ? `(${currentTeam.teamId})` : ''}</div>
+                  <div>{currentTeam.teamName}</div>
                 </div>
               ) : (
                 <div className="text-sm text-muted-foreground">No team configured</div>
@@ -172,7 +172,7 @@ export default function SportsSettingsTab() {
                     <div className="font-medium">{r.name}</div>
                     <div className="text-sm text-muted-foreground">{r.country}</div>
                   </div>
-                  <div className="text-sm text-muted-foreground">{r.idTeam}</div>
+                  {/* team id intentionally hidden from UI */}
                 </div>
               ))}
             </div>
