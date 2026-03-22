@@ -9,16 +9,16 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { 
-  Building2, 
-  Users, 
-  MapPin, 
-  Globe, 
-  Mail, 
-  Phone, 
-  Calendar, 
-  DollarSign, 
-  CheckCircle, 
+import {
+  Building2,
+  Users,
+  MapPin,
+  Globe,
+  Mail,
+  Phone,
+  Calendar,
+  DollarSign,
+  CheckCircle,
   ArrowRight,
   Search,
   Filter,
@@ -52,6 +52,7 @@ interface Club {
   website?: string
   contactEmail: string
   contactPhone: string
+  dev: string
   address?: {
     street: string
     city: string
@@ -151,7 +152,7 @@ function ClubsPageContent() {
     try {
       const raw = typeof window !== "undefined" ? sessionStorage.getItem("clubs_pending_join") : null
       if (raw) pending = JSON.parse(raw) as { clubId: string; membershipPlanId: string }
-    } catch (_) {}
+    } catch (_) { }
     if (!token || !pending) return
 
     sessionStorage.removeItem("clubs_pending_join")
@@ -192,7 +193,7 @@ function ClubsPageContent() {
       setLoading(true)
       const response = await fetch(getApiUrl(API_ENDPOINTS.clubs.public))
       const data = await response.json()
-      
+
       if (response.ok) {
         setClubs((data.clubs || []) as unknown as Club[])
       } else {
@@ -216,7 +217,7 @@ function ClubsPageContent() {
           'Authorization': `Bearer ${token}`
         }
       })
-      
+
       if (response.ok) {
         const data = await response.json()
         const clubIds = data.user?.memberships?.map((m: any) => m.club_id?._id || m.club_id) || []
@@ -232,7 +233,7 @@ function ClubsPageContent() {
   }
 
   const filterClubs = () => {
-    let filtered = clubs
+    let filtered = clubs.filter(club => club.dev !== 'true')
 
     if (searchTerm) {
       filtered = filtered.filter(club =>
@@ -313,7 +314,7 @@ function ClubsPageContent() {
               "clubs_pending_join",
               JSON.stringify({ clubId: selectedClub._id, membershipPlanId: selectedPlan._id })
             )
-          } catch (_) {}
+          } catch (_) { }
           router.push("/login?redirect=/clubs")
           return
         }
@@ -417,7 +418,7 @@ function ClubsPageContent() {
                   "clubs_pending_join",
                   JSON.stringify({ clubId: selectedClub._id, membershipPlanId: selectedPlan._id })
                 )
-              } catch (_) {}
+              } catch (_) { }
               router.push("/login?redirect=/clubs")
             } else {
               toast.error(checkData.message || "This membership plan is no longer available for this club.")
@@ -593,7 +594,7 @@ function ClubsPageContent() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-sky-50 dark:from-slate-950 dark:via-slate-900 dark:to-blue-950">
       <SiteNavbar brandName="Wingman Pro" />
-      
+
       {/* Hero Section */}
       <div className="relative overflow-hidden bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-600 py-24 md:py-32">
         <div className="absolute inset-0 bg-black/10"></div>
@@ -727,16 +728,16 @@ function ClubsPageContent() {
                       <Eye className="w-5 h-5" />
                     </Button>
                   </div>
-                  
+
                   <h3 className="text-2xl font-black tracking-tight mb-3 relative z-10 group-hover:translate-x-1 transition-transform">{club.name}</h3>
-                  
+
                   {club.description && (
                     <p className="text-sky-50/80 text-sm font-medium line-clamp-2 relative z-10">
                       {club.description}
                     </p>
                   )}
                 </div>
-            
+
                 <CardContent className="p-8 space-y-6 flex-1 flex flex-col">
                   {/* Club Info */}
                   <div className="grid gap-3">
@@ -746,13 +747,13 @@ function ClubsPageContent() {
                         <span>{club.address.city}, {club.address.state}</span>
                       </div>
                     )}
-                    
+
                     {club.website && (
                       <div className="flex items-center gap-3 text-sm font-bold text-sky-600">
                         <Globe className="w-5 h-5" />
-                        <a 
-                          href={club.website} 
-                          target="_blank" 
+                        <a
+                          href={club.website}
+                          target="_blank"
                           rel="noopener noreferrer"
                           className="hover:underline flex items-center gap-1"
                         >
@@ -825,8 +826,8 @@ function ClubsPageContent() {
                                 <Clock className="w-4 h-4" />
                                 <span>{formatPlanPeriod(plan)}</span>
                               </div>
-                              <Button 
-                                size="sm" 
+                              <Button
+                                size="sm"
                                 onClick={() => handleJoinClub(club, plan)}
                                 disabled={isDisabled}
                                 className={cn(
@@ -850,7 +851,7 @@ function ClubsPageContent() {
                         )
                       })}
                     </div>
-                    
+
                     {club.membershipPlans?.filter(plan => plan.isActive).length > 2 && (
                       <Button variant="ghost" size="sm" className="w-full font-bold text-muted-foreground hover:text-sky-600 hover:bg-sky-50 rounded-xl" onClick={() => handleViewClubDetails(club)}>
                         + {club.membershipPlans?.filter(plan => plan.isActive).length - 2} more plans
@@ -871,7 +872,7 @@ function ClubsPageContent() {
                       <div className="bg-gradient-to-br from-sky-500 to-indigo-600 rounded-[1.5rem] p-5 shadow-lg group-hover:scale-105 transition-transform duration-500 ring-4 ring-sky-500/10">
                         <Building2 className="w-10 h-10 text-white" />
                       </div>
-                      
+
                       <div className="flex-1 space-y-4">
                         <div className="flex flex-wrap items-center gap-4">
                           <h3 className="text-3xl font-black tracking-tight">{club.name}</h3>
@@ -879,13 +880,13 @@ function ClubsPageContent() {
                             {club.status}
                           </Badge>
                         </div>
-                        
+
                         {club.description && (
                           <p className="text-muted-foreground text-lg leading-relaxed line-clamp-2 max-w-2xl font-medium">
                             {club.description}
                           </p>
                         )}
-                        
+
                         <div className="flex flex-wrap items-center gap-x-8 gap-y-3 text-sm font-bold text-muted-foreground">
                           {club.address && (
                             <div className="flex items-center gap-2.5">
@@ -893,16 +894,16 @@ function ClubsPageContent() {
                               <span>{club.address.city}, {club.address.state}</span>
                             </div>
                           )}
-                          
+
                           <div className="flex items-center gap-2.5">
                             <Users className="w-5 h-5 text-indigo-600" />
                             <span>{club.membershipPlans?.filter(plan => plan.isActive).length || 0} active plans</span>
                           </div>
-                          
+
                           {club.website && (
-                            <a 
-                              href={club.website} 
-                              target="_blank" 
+                            <a
+                              href={club.website}
+                              target="_blank"
                               rel="noopener noreferrer"
                               className="flex items-center gap-2.5 text-sky-600 hover:underline"
                             >
@@ -913,7 +914,7 @@ function ClubsPageContent() {
                         </div>
                       </div>
                     </div>
-                    
+
                     <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto mt-4 md:mt-0">
                       <Button
                         variant="outline"
@@ -924,47 +925,47 @@ function ClubsPageContent() {
                         <Eye className="w-5 h-5 mr-2" />
                         View Details
                       </Button>
-                      
+
                       {club.membershipPlans?.filter(plan => plan.isActive).length > 0 && (() => {
                         const isJoined = isClubJoined(club._id)
                         const isLimitReached = club.memberInfo?.isLimitReached || false
                         const isDisabled = isJoined || isLimitReached
                         return (
-                        <>
-                          {isLimitReached && !isJoined && club.memberInfo && (
-                            <div className="mb-2 p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
-                              <p className="text-xs font-bold text-red-700 dark:text-red-300 text-center">
-                                Maximum member limit reached ({club.memberInfo.currentCount}/{club.memberInfo.maxLimit})
-                              </p>
-                            </div>
-                          )}
-                          <Button 
-                            size="lg"
-                            onClick={() => handleJoinClub(club, club.membershipPlans?.filter(plan => plan.isActive)[0]!)}
-                            disabled={isDisabled}
-                            className={cn(
-                              "flex-1 md:w-full h-14 rounded-2xl font-black shadow-xl transition-all active:scale-95",
-                              isJoined ? "bg-green-500/10 text-green-600 hover:bg-green-500/10" : isLimitReached ? "bg-gray-300 text-gray-500 cursor-not-allowed" : "bg-gradient-to-r from-sky-600 to-indigo-700 text-white"
+                          <>
+                            {isLimitReached && !isJoined && club.memberInfo && (
+                              <div className="mb-2 p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
+                                <p className="text-xs font-bold text-red-700 dark:text-red-300 text-center">
+                                  Maximum member limit reached ({club.memberInfo.currentCount}/{club.memberInfo.maxLimit})
+                                </p>
+                              </div>
                             )}
-                          >
-                            {isJoined ? (
-                              <>
-                                <CheckCircle className="w-5 h-5 mr-2" />
-                                Already Joined
-                              </>
-                            ) : isLimitReached ? (
-                              "Club Full"
-                            ) : (
-                              'Join Now'
-                            )}
-                          </Button>
-                        </>
+                            <Button
+                              size="lg"
+                              onClick={() => handleJoinClub(club, club.membershipPlans?.filter(plan => plan.isActive)[0]!)}
+                              disabled={isDisabled}
+                              className={cn(
+                                "flex-1 md:w-full h-14 rounded-2xl font-black shadow-xl transition-all active:scale-95",
+                                isJoined ? "bg-green-500/10 text-green-600 hover:bg-green-500/10" : isLimitReached ? "bg-gray-300 text-gray-500 cursor-not-allowed" : "bg-gradient-to-r from-sky-600 to-indigo-700 text-white"
+                              )}
+                            >
+                              {isJoined ? (
+                                <>
+                                  <CheckCircle className="w-5 h-5 mr-2" />
+                                  Already Joined
+                                </>
+                              ) : isLimitReached ? (
+                                "Club Full"
+                              ) : (
+                                'Join Now'
+                              )}
+                            </Button>
+                          </>
                         )
                       })()}
                     </div>
-                </div>
-              </CardContent>
-            </Card>
+                  </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
         )}
@@ -1025,117 +1026,117 @@ function ClubsPageContent() {
                       const isLimitReached = selectedClub.memberInfo?.isLimitReached || false
                       const isDisabled = isJoined || isLimitReached
                       return (
-                      <Card key={plan._id} className={cn(
-                        "border-2 transition-colors",
-                        isJoined ? "border-green-300 bg-green-50/50 dark:bg-green-950/20" : isLimitReached ? "border-red-300 bg-red-50/50 dark:bg-red-950/20" : "hover:border-blue-300"
-                      )}>
-                        <CardHeader>
-                          <div className="flex items-center justify-between">
-                            <CardTitle className="text-lg flex items-center gap-2">
-                              {plan.name}
-                              {isJoined && (
-                                <Badge className="bg-green-100 text-green-800 border-green-200">
-                                  <CheckCircle className="w-3 h-3 mr-1" />
-                                  Joined
-                                </Badge>
-                              )}
-                              {isLimitReached && !isJoined && (
-                                <Badge className="bg-red-100 text-red-800 border-red-200">
-                                  Full
-                                </Badge>
-                              )}
-                            </CardTitle>
-                            <div className="text-right">
-                              <div className="text-2xl font-bold text-primary">
-                                {formatPrice(plan.price, plan.currency)}
-                              </div>
-                              <div className="text-sm text-muted-foreground">
-                                {formatPlanPeriod(plan)}
-                              </div>
-                              {(plan.planStartDate || plan.planEndDate) && (
-                                <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground mt-2 justify-end">
-                                  {plan.planStartDate && (
-                                    <span>Start: {new Date(plan.planStartDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</span>
-                                  )}
-                                  {plan.planEndDate && (
-                                    <span>End: {new Date(plan.planEndDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</span>
-                                  )}
+                        <Card key={plan._id} className={cn(
+                          "border-2 transition-colors",
+                          isJoined ? "border-green-300 bg-green-50/50 dark:bg-green-950/20" : isLimitReached ? "border-red-300 bg-red-50/50 dark:bg-red-950/20" : "hover:border-blue-300"
+                        )}>
+                          <CardHeader>
+                            <div className="flex items-center justify-between">
+                              <CardTitle className="text-lg flex items-center gap-2">
+                                {plan.name}
+                                {isJoined && (
+                                  <Badge className="bg-green-100 text-green-800 border-green-200">
+                                    <CheckCircle className="w-3 h-3 mr-1" />
+                                    Joined
+                                  </Badge>
+                                )}
+                                {isLimitReached && !isJoined && (
+                                  <Badge className="bg-red-100 text-red-800 border-red-200">
+                                    Full
+                                  </Badge>
+                                )}
+                              </CardTitle>
+                              <div className="text-right">
+                                <div className="text-2xl font-bold text-primary">
+                                  {formatPrice(plan.price, plan.currency)}
                                 </div>
-                              )}
+                                <div className="text-sm text-muted-foreground">
+                                  {formatPlanPeriod(plan)}
+                                </div>
+                                {(plan.planStartDate || plan.planEndDate) && (
+                                  <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground mt-2 justify-end">
+                                    {plan.planStartDate && (
+                                      <span>Start: {new Date(plan.planStartDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</span>
+                                    )}
+                                    {plan.planEndDate && (
+                                      <span>End: {new Date(plan.planEndDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</span>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                          <p className="text-muted-foreground">{plan.description}</p>
-                          
-                          {isLimitReached && !isJoined && selectedClub.memberInfo && (
-                            <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-lg">
-                              <p className="text-sm font-bold text-red-700 dark:text-red-300">
-                                Maximum member limit reached ({selectedClub.memberInfo.currentCount}/{selectedClub.memberInfo.maxLimit})
-                              </p>
-                            </div>
-                          )}
-                          
-                          <div className="space-y-2">
-                            <h4 className="font-semibold text-sm">Features:</h4>
-                            <div className="grid grid-cols-2 gap-2 text-sm">
-                              <div className="flex items-center gap-2">
-                                {getFeatureIcon('events')}
-                                <span>{plan.features.maxEvents} Events</span>
+                          </CardHeader>
+                          <CardContent className="space-y-4">
+                            <p className="text-muted-foreground">{plan.description}</p>
+
+                            {isLimitReached && !isJoined && selectedClub.memberInfo && (
+                              <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-lg">
+                                <p className="text-sm font-bold text-red-700 dark:text-red-300">
+                                  Maximum member limit reached ({selectedClub.memberInfo.currentCount}/{selectedClub.memberInfo.maxLimit})
+                                </p>
                               </div>
-                              <div className="flex items-center gap-2">
-                                {getFeatureIcon('news')}
-                                <span>{plan.features.maxNews} News Items</span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                {getFeatureIcon('members')}
-                                <span>{plan.features.maxMembers} Members</span>
-                              </div>
-                              {plan.features.advancedAnalytics && (
-                                <div className="flex items-center gap-2">
-                                  {getFeatureIcon('analytics')}
-                                  <span>Analytics</span>
-                                </div>
-                              )}
-                              {plan.features.prioritySupport && (
-                                <div className="flex items-center gap-2">
-                                  {getFeatureIcon('support')}
-                                  <span>Priority Support</span>
-                                </div>
-                              )}
-                              {plan.features.apiAccess && (
-                                <div className="flex items-center gap-2">
-                                  {getFeatureIcon('api')}
-                                  <span>API Access</span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                          
-                          <Button 
-                            className={cn(
-                              "w-full",
-                              isJoined || isLimitReached ? "opacity-50 cursor-not-allowed bg-gray-300 text-gray-500" : "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
                             )}
-                            onClick={() => handleJoinClub(selectedClub, plan)}
-                            disabled={isDisabled}
-                          >
-                            {isJoined ? (
-                              <>
-                                <CheckCircle className="w-4 h-4 mr-2" />
-                                Already Joined
-                              </>
-                            ) : isLimitReached ? (
-                              "Club Full"
-                            ) : (
-                              <>
-                                Join with {plan.name}
-                                <ArrowRight className="w-4 h-4 ml-2" />
-                              </>
-                            )}
-                          </Button>
-                        </CardContent>
-                      </Card>
+
+                            <div className="space-y-2">
+                              <h4 className="font-semibold text-sm">Features:</h4>
+                              <div className="grid grid-cols-2 gap-2 text-sm">
+                                <div className="flex items-center gap-2">
+                                  {getFeatureIcon('events')}
+                                  <span>{plan.features.maxEvents} Events</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {getFeatureIcon('news')}
+                                  <span>{plan.features.maxNews} News Items</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {getFeatureIcon('members')}
+                                  <span>{plan.features.maxMembers} Members</span>
+                                </div>
+                                {plan.features.advancedAnalytics && (
+                                  <div className="flex items-center gap-2">
+                                    {getFeatureIcon('analytics')}
+                                    <span>Analytics</span>
+                                  </div>
+                                )}
+                                {plan.features.prioritySupport && (
+                                  <div className="flex items-center gap-2">
+                                    {getFeatureIcon('support')}
+                                    <span>Priority Support</span>
+                                  </div>
+                                )}
+                                {plan.features.apiAccess && (
+                                  <div className="flex items-center gap-2">
+                                    {getFeatureIcon('api')}
+                                    <span>API Access</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            <Button
+                              className={cn(
+                                "w-full",
+                                isJoined || isLimitReached ? "opacity-50 cursor-not-allowed bg-gray-300 text-gray-500" : "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                              )}
+                              onClick={() => handleJoinClub(selectedClub, plan)}
+                              disabled={isDisabled}
+                            >
+                              {isJoined ? (
+                                <>
+                                  <CheckCircle className="w-4 h-4 mr-2" />
+                                  Already Joined
+                                </>
+                              ) : isLimitReached ? (
+                                "Club Full"
+                              ) : (
+                                <>
+                                  Join with {plan.name}
+                                  <ArrowRight className="w-4 h-4 ml-2" />
+                                </>
+                              )}
+                            </Button>
+                          </CardContent>
+                        </Card>
                       )
                     })}
                   </div>
@@ -1162,9 +1163,9 @@ function ClubsPageContent() {
                         {selectedClub.website && (
                           <div className="flex items-center gap-3">
                             <Globe className="w-4 h-4 text-purple-600" />
-                            <a 
-                              href={selectedClub.website} 
-                              target="_blank" 
+                            <a
+                              href={selectedClub.website}
+                              target="_blank"
                               rel="noopener noreferrer"
                               className="text-blue-600 hover:underline"
                             >
@@ -1284,211 +1285,211 @@ function ClubsPageContent() {
               )}
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="max-h-[70vh] overflow-y-auto pr-2">
             <form onSubmit={handleRegistration} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-               <div className="space-y-2">
-                <Label htmlFor="username">Username</Label>
-                <Input
-                  id="username"
-                  value={registrationData.username}
-                  onChange={(e) => setRegistrationData({ ...registrationData, username: e.target.value })}
-                  required
-                  className="h-12"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="first_name">First Name</Label>
-                <Input
-                  id="first_name"
-                  value={registrationData.first_name}
-                  onChange={(e) => setRegistrationData({ ...registrationData, first_name: e.target.value })}
-                  required
-                  className="h-12"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="last_name">Last Name</Label>
-                <Input
-                  id="last_name"
-                  value={registrationData.last_name}
-                  onChange={(e) => setRegistrationData({ ...registrationData, last_name: e.target.value })}
-                  required
-                  className="h-12"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="date_of_birth">Date of Birth</Label>
-                <Input
-                  id="date_of_birth"
-                  type="date"
-                  value={registrationData.date_of_birth}
-                  onChange={(e) => setRegistrationData({ ...registrationData, date_of_birth: e.target.value })}
-                  className="h-12"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="gender">Gender</Label>
-                <select
-                  id="gender"
-                  value={registrationData.gender}
-                  onChange={(e) => setRegistrationData({ ...registrationData, gender: e.target.value })}
-                  className="w-full h-12 rounded-md border px-3"
-                >
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                  <option value="non-binary">Non-binary</option>
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={registrationData.email}
-                  onChange={(e) => setRegistrationData({ ...registrationData, email: e.target.value })}
-                  required
-                  className="h-12"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 gap-2">
                 <div className="space-y-2">
-                  <Label htmlFor="countryCode">Country Code</Label>
+                  <Label htmlFor="username">Username</Label>
                   <Input
-                    id="countryCode"
-                    value={registrationData.countryCode}
-                    onChange={(e) => setRegistrationData({ ...registrationData, countryCode: e.target.value })}
+                    id="username"
+                    value={registrationData.username}
+                    onChange={(e) => setRegistrationData({ ...registrationData, username: e.target.value })}
                     required
-                    className="h-12 w-full"
+                    className="h-12"
                   />
                 </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="phoneNumber">Phone Number</Label>
+                  <Label htmlFor="first_name">First Name</Label>
                   <Input
-                    id="phoneNumber"
-                    type="tel"
-                    value={registrationData.phoneNumber}
-                    onChange={(e) => setRegistrationData({ ...registrationData, phoneNumber: e.target.value })}
+                    id="first_name"
+                    value={registrationData.first_name}
+                    onChange={(e) => setRegistrationData({ ...registrationData, first_name: e.target.value })}
                     required
-                    className="h-12 w-full"
+                    className="h-12"
                   />
-                  {registrationErrors.phoneNumber && (
-                    <p className="text-destructive text-sm mt-1">{registrationErrors.phoneNumber}</p>
-                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="last_name">Last Name</Label>
+                  <Input
+                    id="last_name"
+                    value={registrationData.last_name}
+                    onChange={(e) => setRegistrationData({ ...registrationData, last_name: e.target.value })}
+                    required
+                    className="h-12"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="date_of_birth">Date of Birth</Label>
+                  <Input
+                    id="date_of_birth"
+                    type="date"
+                    value={registrationData.date_of_birth}
+                    onChange={(e) => setRegistrationData({ ...registrationData, date_of_birth: e.target.value })}
+                    className="h-12"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="gender">Gender</Label>
+                  <select
+                    id="gender"
+                    value={registrationData.gender}
+                    onChange={(e) => setRegistrationData({ ...registrationData, gender: e.target.value })}
+                    className="w-full h-12 rounded-md border px-3"
+                  >
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                    <option value="non-binary">Non-binary</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email Address</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={registrationData.email}
+                    onChange={(e) => setRegistrationData({ ...registrationData, email: e.target.value })}
+                    required
+                    className="h-12"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 gap-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="countryCode">Country Code</Label>
+                    <Input
+                      id="countryCode"
+                      value={registrationData.countryCode}
+                      onChange={(e) => setRegistrationData({ ...registrationData, countryCode: e.target.value })}
+                      required
+                      className="h-12 w-full"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phoneNumber">Phone Number</Label>
+                    <Input
+                      id="phoneNumber"
+                      type="tel"
+                      value={registrationData.phoneNumber}
+                      onChange={(e) => setRegistrationData({ ...registrationData, phoneNumber: e.target.value })}
+                      required
+                      className="h-12 w-full"
+                    />
+                    {registrationErrors.phoneNumber && (
+                      <p className="text-destructive text-sm mt-1">{registrationErrors.phoneNumber}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="address_line1">Address Line 1</Label>
+                  <Input
+                    id="address_line1"
+                    value={registrationData.address_line1}
+                    onChange={(e) => setRegistrationData({ ...registrationData, address_line1: e.target.value })}
+                    className="h-12"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="address_line2">Address Line 2</Label>
+                  <Input
+                    id="address_line2"
+                    value={registrationData.address_line2}
+                    onChange={(e) => setRegistrationData({ ...registrationData, address_line2: e.target.value })}
+                    className="h-12"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="city">City</Label>
+                  <Input
+                    id="city"
+                    value={registrationData.city}
+                    onChange={(e) => setRegistrationData({ ...registrationData, city: e.target.value })}
+                    className="h-12"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="state_province">State / Province</Label>
+                  <Input
+                    id="state_province"
+                    value={registrationData.state_province}
+                    onChange={(e) => setRegistrationData({ ...registrationData, state_province: e.target.value })}
+                    className="h-12"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="zip_code">ZIP / Postal Code</Label>
+                  <Input
+                    id="zip_code"
+                    value={registrationData.zip_code}
+                    onChange={(e) => setRegistrationData({ ...registrationData, zip_code: e.target.value })}
+                    className="h-12"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="country">Country</Label>
+                  <Input
+                    id="country"
+                    value={registrationData.country}
+                    onChange={(e) => setRegistrationData({ ...registrationData, country: e.target.value })}
+                    className="h-12"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="id_proof_type">ID Proof Type</Label>
+                  <select
+                    id="id_proof_type"
+                    value={registrationData.id_proof_type}
+                    onChange={(e) => setRegistrationData({ ...registrationData, id_proof_type: e.target.value })}
+                    className="w-full h-12 rounded-md border px-3"
+                  >
+                    <option value="Aadhar">Aadhar</option>
+                    <option value="Voter ID">Voter ID</option>
+                    <option value="Passport">Passport</option>
+                    <option value="Driver License">Driver License</option>
+                    <option value="PAN">PAN Card</option>
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="id_proof_number">ID Proof Number</Label>
+                  <Input
+                    id="id_proof_number"
+                    value={registrationData.id_proof_number}
+                    onChange={(e) => setRegistrationData({ ...registrationData, id_proof_number: e.target.value })}
+                    className="h-12"
+                  />
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="address_line1">Address Line 1</Label>
-                <Input
-                  id="address_line1"
-                  value={registrationData.address_line1}
-                  onChange={(e) => setRegistrationData({ ...registrationData, address_line1: e.target.value })}
-                  className="h-12"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="address_line2">Address Line 2</Label>
-                <Input
-                  id="address_line2"
-                  value={registrationData.address_line2}
-                  onChange={(e) => setRegistrationData({ ...registrationData, address_line2: e.target.value })}
-                  className="h-12"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="city">City</Label>
-                <Input
-                  id="city"
-                  value={registrationData.city}
-                  onChange={(e) => setRegistrationData({ ...registrationData, city: e.target.value })}
-                  className="h-12"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="state_province">State / Province</Label>
-                <Input
-                  id="state_province"
-                  value={registrationData.state_province}
-                  onChange={(e) => setRegistrationData({ ...registrationData, state_province: e.target.value })}
-                  className="h-12"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="zip_code">ZIP / Postal Code</Label>
-                <Input
-                  id="zip_code"
-                  value={registrationData.zip_code}
-                  onChange={(e) => setRegistrationData({ ...registrationData, zip_code: e.target.value })}
-                  className="h-12"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="country">Country</Label>
-                <Input
-                  id="country"
-                  value={registrationData.country}
-                  onChange={(e) => setRegistrationData({ ...registrationData, country: e.target.value })}
-                  className="h-12"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="id_proof_type">ID Proof Type</Label>
-                <select
-                  id="id_proof_type"
-                  value={registrationData.id_proof_type}
-                  onChange={(e) => setRegistrationData({ ...registrationData, id_proof_type: e.target.value })}
-                  className="w-full h-12 rounded-md border px-3"
-                >
-                  <option value="Aadhar">Aadhar</option>
-                  <option value="Voter ID">Voter ID</option>
-                  <option value="Passport">Passport</option>
-                  <option value="Driver License">Driver License</option>
-                  <option value="PAN">PAN Card</option>
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="id_proof_number">ID Proof Number</Label>
-                <Input
-                  id="id_proof_number"
-                  value={registrationData.id_proof_number}
-                  onChange={(e) => setRegistrationData({ ...registrationData, id_proof_number: e.target.value })}
-                  className="h-12"
-                />
-              </div>
-            </div>
-
-            {selectedPlan && (
-              <div className="space-y-4">
-                <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/50 dark:to-purple-950/50 border border-blue-200 dark:border-blue-800 p-4 rounded-lg">
-                  <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
-                    <Award className="w-4 h-4 text-yellow-500" />
-                    Selected Plan: {selectedPlan.name}
-                  </h4>
-                  <div className="text-sm text-muted-foreground space-y-1">
-                    <div className="flex justify-between">
-                      <span>Price:</span>
-                      <span className="font-semibold text-primary">{formatPrice(selectedPlan.price, selectedPlan.currency)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Duration:</span>
-                      <span>{formatPlanPeriod(selectedPlan)}</span>
-                    </div>
-                    {/* {(selectedPlan.planStartDate || selectedPlan.planEndDate) && (
+              {selectedPlan && (
+                <div className="space-y-4">
+                  <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/50 dark:to-purple-950/50 border border-blue-200 dark:border-blue-800 p-4 rounded-lg">
+                    <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
+                      <Award className="w-4 h-4 text-yellow-500" />
+                      Selected Plan: {selectedPlan.name}
+                    </h4>
+                    <div className="text-sm text-muted-foreground space-y-1">
+                      <div className="flex justify-between">
+                        <span>Price:</span>
+                        <span className="font-semibold text-primary">{formatPrice(selectedPlan.price, selectedPlan.currency)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Duration:</span>
+                        <span>{formatPlanPeriod(selectedPlan)}</span>
+                      </div>
+                      {/* {(selectedPlan.planStartDate || selectedPlan.planEndDate) && (
                       <>
                         {selectedPlan.planStartDate && (
                           <div className="flex justify-between">
@@ -1504,36 +1505,36 @@ function ClubsPageContent() {
                         )}
                       </>
                     )} */}
-                    <div className="flex justify-between">
-                      <span>Features:</span>
-                      <span>{selectedPlan.features.maxEvents} events, {selectedPlan.features.maxNews} news items</span>
+                      <div className="flex justify-between">
+                        <span>Features:</span>
+                        <span>{selectedPlan.features.maxEvents} events, {selectedPlan.features.maxNews} news items</span>
+                      </div>
                     </div>
                   </div>
+
+                  {/* Payment section removed from UI */}
                 </div>
+              )}
 
-                {/* Payment section removed from UI */}
+              <div className="flex gap-2">
+                <Button
+                  type="submit"
+                  disabled={isRegistering}
+                  className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                >
+                  {isRegistering
+                    ? (selectedPlan?.price ? "Registering, then Pay…" : "Registering…")
+                    : (selectedPlan?.price ? "Pay & Create Account" : "Register & Join")}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowRegistrationDialog(false)}
+                >
+                  Cancel
+                </Button>
               </div>
-            )}
-
-            <div className="flex gap-2">
-              <Button 
-                type="submit" 
-                disabled={isRegistering} 
-                className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-              >
-                {isRegistering
-                  ? (selectedPlan?.price ? "Registering, then Pay…" : "Registering…")
-                  : (selectedPlan?.price ? "Pay & Create Account" : "Register & Join")}
-              </Button>
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => setShowRegistrationDialog(false)}
-              >
-                Cancel
-              </Button>
-            </div>
-          </form>
+            </form>
           </div>
         </DialogContent>
       </Dialog>
