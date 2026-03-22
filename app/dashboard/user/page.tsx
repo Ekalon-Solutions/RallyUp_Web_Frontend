@@ -97,15 +97,21 @@ function FixturesCards({ clubId }: { clubId?: string | undefined }) {
   const [showAll, setShowAll] = useState(false)
   const INITIAL_COUNT = 6
 
-  // helper to format startTime into "DD Month YYYY (Weekday)"
+  // helper to format startTime into "DD Month YYYY (Weekday) HH:MM IST"
+  // The backend (IST server) stores TheSportsDB UTC times as-if they were IST,
+  // effectively saving them 5:30h behind the real UTC. We add 5:30h back before displaying.
   const formatFixtureDate = (isoDate: string) => {
     const d = new Date(isoDate)
     if (isNaN(d.getTime())) return ''
-    const day = d.getDate()
-    const month = d.toLocaleString('default', { month: 'long' })
-    const year = d.getFullYear()
-    const weekday = d.toLocaleString('default', { weekday: 'long' })
-    return `${day} ${month} ${year} (${weekday})`
+    const corrected = new Date(d.getTime() + 5.5 * 60 * 60 * 1000)
+    const ist = { timeZone: 'Asia/Kolkata' }
+    const day = Number(corrected.toLocaleString('en-IN', { ...ist, day: 'numeric' }))
+    const month = corrected.toLocaleString('en-IN', { ...ist, month: 'long' })
+    const year = corrected.toLocaleString('en-IN', { ...ist, year: 'numeric' })
+    const weekday = corrected.toLocaleString('en-IN', { ...ist, weekday: 'long' })
+    const hours = corrected.toLocaleString('en-IN', { ...ist, hour: '2-digit', hour12: false }).padStart(2, '0')
+    const minutes = corrected.toLocaleString('en-IN', { ...ist, minute: '2-digit' }).padStart(2, '0')
+    return `${day} ${month} ${year} (${weekday}) ${hours}:${minutes} IST`
   }
 
   useEffect(() => {
@@ -113,14 +119,20 @@ function FixturesCards({ clubId }: { clubId?: string | undefined }) {
     const fetchFixtures = async () => {
       setLoading(true)
       try {
-        const resp = await apiClient.listAvailableExternalTicketFixtures(clubId)
+        const resp = await apiClient.listAvailableExternalTicketFixtures(clubId) as any
         const data = resp?.data?.data || []
         console.log("data:", data)
 
-        const fixturesArr = Array.isArray(data) ? data : []
+        const rawArr = Array.isArray(data) ? data : []
+        // Deduplicate by _id to prevent double-rendering
+        const seen = new Map<string, any>()
+        rawArr.forEach((f) => seen.set(String(f._id), f))
+        const fixturesArr = Array.from(seen.values())
+        // Use corrected time (add 5.5h) for past/future split to match display logic
+        const OFFSET_MS = 5.5 * 60 * 60 * 1000
         const now = new Date()
-        const past = fixturesArr.filter((f) => new Date(f.startTime) < now)
-        const future = fixturesArr.filter((f) => new Date(f.startTime) >= now)
+        const past = fixturesArr.filter((f) => new Date(new Date(f.startTime).getTime() + OFFSET_MS) < now)
+        const future = fixturesArr.filter((f) => new Date(new Date(f.startTime).getTime() + OFFSET_MS) >= now)
         setFixtures([...past.slice(-1), ...future])
       } catch (e) {
         setFixtures([])
@@ -250,7 +262,7 @@ export default function UserDashboardPage() {
 
   const userClub = (activeMembership as any)?.club_id || (activeMembership as any)?.club || null
 
-  const { isSectionVisible } = useClubSettings(clubId || undefined)
+  const { settings: clubSettings, isSectionVisible } = useClubSettings(clubId || undefined)
 
   // Get user's display name
   const getUserDisplayName = () => {
@@ -875,13 +887,13 @@ export default function UserDashboardPage() {
 
           {/* Upcoming Matches */}
           <div className="w-full rounded-[2.5rem] overflow-hidden border-2 shadow-xl bg-card p-4">
-            <FixturesCards clubId={clubId} />
+            <FixturesCards clubId={clubId ?? undefined} />
           </div>
 
           {/* League Table Widget */}
-          {userClub?.sports?.teamId && userClub?.sports?.leagueId && (
+          {(userClub?.sports?.teamId || clubSettings?.sports?.teamId) && (userClub?.sports?.leagueId || clubSettings?.sports?.leagueId) && (
             <div className="w-full rounded-[2.5rem] overflow-hidden border-2 shadow-xl bg-card p-4">
-              <LeagueTableWidget leagueId={userClub.sports.leagueId} />
+              <LeagueTableWidget leagueId={userClub?.sports?.leagueId || clubSettings?.sports?.leagueId || ''} />
             </div>
           )}
 

@@ -291,6 +291,19 @@ export default function ExternalTicketingPage() {
 
   const formatDate = (dateString: string) => formatDisplayDate(dateString)
 
+  const formatFixtureDateTime = (isoDate: string) => {
+    const d = new Date(isoDate)
+    if (isNaN(d.getTime())) return ''
+    const corrected = new Date(d.getTime() + 5.5 * 60 * 60 * 1000)
+    const ist = { timeZone: 'Asia/Kolkata' }
+    const day = Number(corrected.toLocaleString('en-IN', { ...ist, day: 'numeric' }))
+    const month = corrected.toLocaleString('en-IN', { ...ist, month: 'long' })
+    const year = corrected.toLocaleString('en-IN', { ...ist, year: 'numeric' })
+    const hours = corrected.toLocaleString('en-IN', { ...ist, hour: '2-digit', hour12: false }).padStart(2, '0')
+    const minutes = corrected.toLocaleString('en-IN', { ...ist, minute: '2-digit' }).padStart(2, '0')
+    return `${day} ${month} ${year}, ${hours}:${minutes} IST`
+  }
+
   const getStatusBadge = (status: string) => {
     const config = STATUS_COLORS[status] || STATUS_COLORS.pending
     const displayStatus = STATUS_OPTIONS.find((s) => s.value === status)?.label || status
@@ -470,7 +483,7 @@ export default function ExternalTicketingPage() {
                             </TableCell>
                             <TableCell className="font-medium">{fixture.title}</TableCell>
                             <TableCell>{fixture.competition || '—'}</TableCell>
-                            <TableCell>{formatDate(fixture.startTime)}</TableCell>
+                            <TableCell>{formatFixtureDateTime(fixture.startTime)}</TableCell>
                             <TableCell>
                               <Badge className={fixture.isVisibleForMembers ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
                                 {fixture.isVisibleForMembers ? 'Published' : 'Hidden'}
@@ -573,7 +586,7 @@ export default function ExternalTicketingPage() {
                       <SelectItem value="all">All Fixtures</SelectItem>
                       {events.map((event) => (
                         <SelectItem key={event._id} value={event._id}>
-                          {event.title} - {formatDate(event.startTime)}
+                          {event.title} - {formatFixtureDateTime(event.startTime)}
                         </SelectItem>
                       ))}
                     </SelectContent>

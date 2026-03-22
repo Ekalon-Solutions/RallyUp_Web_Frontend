@@ -104,7 +104,7 @@ export default function LeagueTableWidget({ leagueId, highlightTeamId, highlight
           <table className="w-full text-sm">
             <thead className="border-b bg-muted/50">
               <tr>
-                <th className="text-left px-2 py-2 font-semibold">Rank</th>
+                <th className="text-left px-2 py-2 font-semibold">Position</th>
                 <th className="text-left px-2 py-2 font-semibold">Team</th>              <th className="text-center px-2 py-2 font-semibold">Form</th>                <th className="text-center px-2 py-2 font-semibold">P</th>
                 <th className="text-center px-2 py-2 font-semibold">W</th>
                 <th className="text-center px-2 py-2 font-semibold">D</th>
@@ -132,15 +132,15 @@ export default function LeagueTableWidget({ leagueId, highlightTeamId, highlight
                   <td className="text-center px-2 py-3 font-mono tracking-wider">
                     {standing.strForm
                       ? standing.strForm.split('').map((ch, i) => (
-                          <span
-                            key={i}
-                            className={
-                              ch === 'W' ? 'text-green-600 font-semibold' :
+                        <span
+                          key={i}
+                          className={
+                            ch === 'W' ? 'text-green-600 font-semibold' :
                               ch === 'D' ? 'text-yellow-600' :
-                              ch === 'L' ? 'text-red-600 font-semibold' : ''
-                            }
-                          >{ch}</span>
-                        ))
+                                ch === 'L' ? 'text-red-600 font-semibold' : ''
+                          }
+                        >{ch}</span>
+                      ))
                       : '-'}
                   </td>
                   <td className="text-center px-2 py-3">{standing.intPlayed}</td>
