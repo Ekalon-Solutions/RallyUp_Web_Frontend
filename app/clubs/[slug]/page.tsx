@@ -15,6 +15,7 @@ import { EventCheckoutModal } from "@/components/modals/event-checkout-modal"
 import { PurchaseFlowModal, setStoredPurchaseIntent, getStoredPurchaseIntent, clearStoredPurchaseIntent } from "@/components/modals/purchase-flow-modal"
 import { CheckoutModal } from "@/components/modals/checkout-modal"
 import NewsReadMoreModal from "@/components/modals/news-readmore-modal"
+import { SocialBrandButton } from "@/components/club-public/social-platform-icons"
 import { 
   Globe, 
   Mail, 
@@ -31,7 +32,7 @@ import {
   User,
   Eye,
   MapPin,
-  Clock
+  Clock,
 } from "lucide-react"
 import Link from "next/link"
 
@@ -44,13 +45,80 @@ interface ClubSettings {
     isPublished: boolean
     sections: Record<string, boolean>
   }
+  /** Matches ClubSettings in API: social links live on designSettings.socialMedia */
   designSettings: {
     primaryColor: string
     secondaryColor: string
     fontFamily: string
     logo: string | null
     motto: string
+    socialMedia?: ClubSettingsSocialMedia | null
   }
+}
+
+/** Subdocument on club settings (Mongo designSettings.socialMedia) */
+interface ClubSettingsSocialMedia {
+  facebook?: string
+  twitter?: string
+  instagram?: string
+  youtube?: string
+}
+
+type SocialPlatform = "facebook" | "twitter" | "instagram" | "youtube"
+
+function socialProfileHref(platform: SocialPlatform, raw: string | undefined | null): string | null {
+  if (raw == null) return null
+  const s = String(raw).trim()
+  if (!s) return null
+  if (/^https?:\/\//i.test(s)) return s
+  if (s.startsWith("//")) return `https:${s}`
+
+  const handleMatch = s.match(/^@([\w.]+)$/)
+  if (handleMatch) {
+    const h = handleMatch[1]
+    switch (platform) {
+      case "facebook":
+        return `https://www.facebook.com/${h}`
+      case "twitter":
+        return `https://twitter.com/${h}`
+      case "instagram":
+        return `https://www.instagram.com/${h}/`
+      case "youtube":
+        return `https://www.youtube.com/@${h}`
+    }
+  }
+  return `https://${s.replace(/^\/+/, "")}`
+}
+
+function isSocialMediaObject(v: unknown): v is Record<string, unknown> {
+  return v != null && typeof v === "object" && !Array.isArray(v)
+}
+
+/** Club settings Mongo schema: `designSettings.socialMedia`. Returns null if missing or not a plain object. */
+function getSocialMediaRecordFromClubSettings(settings: ClubSettings): Record<string, unknown> | null {
+  const nested = settings.designSettings?.socialMedia
+  if (!isSocialMediaObject(nested)) return null
+  return nested
+}
+
+function pickSocialString(obj: Record<string, unknown>, key: string): string | undefined {
+  const v = obj[key]
+  return typeof v === "string" ? v : undefined
+}
+
+function buildSocialLinksFromSocialMediaRecord(
+  sm: Record<string, unknown>
+): { platform: SocialPlatform; label: string; href: string }[] {
+  const links: { platform: SocialPlatform; label: string; href: string }[] = []
+  const fb = socialProfileHref("facebook", pickSocialString(sm, "facebook"))
+  const tw = socialProfileHref("twitter", pickSocialString(sm, "twitter"))
+  const ig = socialProfileHref("instagram", pickSocialString(sm, "instagram"))
+  const yt = socialProfileHref("youtube", pickSocialString(sm, "youtube"))
+  if (fb) links.push({ platform: "facebook", label: "Facebook", href: fb })
+  if (tw) links.push({ platform: "twitter", label: "X (Twitter)", href: tw })
+  if (ig) links.push({ platform: "instagram", label: "Instagram", href: ig })
+  if (yt) links.push({ platform: "youtube", label: "YouTube", href: yt })
+  return links
 }
 
 interface Club {
@@ -298,8 +366,17 @@ export default function PublicClubPage() {
     )
   }
 
-  const { websiteSetup, designSettings } = settings
-  
+  const { websiteSetup, designSettings: designSettingsRaw } = settings
+  /** Club-settings API: `data.designSettings` (includes `socialMedia` with facebook, twitter, instagram, youtube). */
+  const designSettings = designSettingsRaw ?? {
+    primaryColor: "#3b82f6",
+    secondaryColor: "",
+    fontFamily: "",
+    logo: null,
+    motto: "",
+    socialMedia: undefined,
+  }
+
   if (!websiteSetup.isPublished) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
@@ -341,6 +418,11 @@ export default function PublicClubPage() {
   const primaryColor = designSettings.primaryColor || "#3b82f6"
   const clubSearchHref = club?.name ? `/clubs?search=${encodeSearchParam(club.name)}` : "/clubs"
 
+  const clubSettingsSocialMedia = getSocialMediaRecordFromClubSettings(settings)
+  const socialLinks = clubSettingsSocialMedia
+    ? buildSocialLinksFromSocialMediaRecord(clubSettingsSocialMedia)
+    : []
+
   return (
     <div className="min-h-screen bg-background">
       <section className="relative overflow-hidden py-24 lg:py-40">
@@ -364,12 +446,20 @@ export default function PublicClubPage() {
             {(designSettings.logo || club.logo) && (
               <div className="flex justify-center animate-scale-in">
                 <div className="relative group">
-                  <div className="absolute -inset-6 bg-primary/10 rounded-full blur-2xl group-hover:bg-primary/20 transition-all duration-700 opacity-60" />
-                  <div className="relative w-36 h-36 md:w-48 md:h-48 rounded-[2.5rem] bg-card border shadow-2xl flex items-center justify-center overflow-hidden rotate-3 hover:rotate-0 transition-all duration-500 ring-4 ring-background">
-                    <img 
-                      src={designSettings.logo || club.logo} 
-                      alt={title}
-                      className="w-full h-full object-cover p-3"
+                  <div
+                    className="absolute -inset-10 rounded-[2rem] opacity-35 blur-3xl transition-opacity duration-700 group-hover:opacity-55"
+                    style={{
+                      background: `radial-gradient(circle, ${primaryColor} 0%, transparent 72%)`,
+                    }}
+                  />
+                  <div
+                    className="relative flex h-36 w-36 items-center justify-center overflow-hidden rounded-3xl border-2 bg-gradient-to-br from-card via-card to-muted/40 shadow-2xl ring-4 ring-background/80 transition-all duration-300 md:h-44 md:w-44 md:rounded-[1.85rem]"
+                    style={{ borderColor: `${primaryColor}4d` }}
+                  >
+                    <img
+                      src={designSettings.logo || club.logo}
+                      alt={`${title} logo`}
+                      className="max-h-[82%] max-w-[82%] object-contain object-center transition-transform duration-300 group-hover:scale-[1.04]"
                     />
                   </div>
                 </div>
@@ -424,53 +514,68 @@ export default function PublicClubPage() {
         </div>
       </section>
 
-      <div className="border-y bg-background/80 backdrop-blur-xl sticky top-0 z-50 shadow-sm">
-        <div className="container mx-auto px-6 py-5">
-          <div className="flex flex-wrap items-center justify-center gap-x-16 gap-y-5 text-base font-bold">
-            {websiteSetup.contactEmail && (
-              <a 
-                href={`mailto:${websiteSetup.contactEmail}`}
-                className="flex items-center gap-3 text-muted-foreground hover:text-primary transition-colors group"
-              >
-                <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-                  <Mail className="h-5 w-5" style={{ color: primaryColor }} />
+      <div className="border-y bg-background/85 backdrop-blur-xl sticky top-0 z-50 shadow-sm">
+        <div className="container mx-auto px-6 py-4 md:py-5">
+          <div className="mx-auto flex max-w-5xl flex-col items-center gap-6 sm:gap-5 md:flex-row md:flex-wrap md:justify-center md:gap-x-10 md:gap-y-4">
+            <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-4 text-sm font-semibold md:text-base">
+              {websiteSetup.contactEmail && (
+                <a
+                  href={`mailto:${websiteSetup.contactEmail}`}
+                  className="flex max-w-[min(100%,20rem)] items-center gap-3 text-muted-foreground transition-colors hover:text-foreground group"
+                >
+                  <div
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/[0.08] transition-colors group-hover:bg-primary/[0.14]"
+                    style={{ color: primaryColor }}
+                  >
+                    <Mail className="h-5 w-5" />
+                  </div>
+                  <span className="truncate">{websiteSetup.contactEmail}</span>
+                </a>
+              )}
+              {websiteSetup.contactPhone && (
+                <a
+                  href={`tel:${websiteSetup.contactPhone}`}
+                  className="flex items-center gap-3 text-muted-foreground transition-colors hover:text-foreground group"
+                >
+                  <div
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/[0.08] transition-colors group-hover:bg-primary/[0.14]"
+                    style={{ color: primaryColor }}
+                  >
+                    <Phone className="h-5 w-5" />
+                  </div>
+                  {websiteSetup.contactPhone}
+                </a>
+              )}
+              {club.website ? (
+                <a
+                  href={club.website.startsWith("http") ? club.website : `https://${club.website}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 text-muted-foreground transition-colors hover:text-foreground group"
+                >
+                  <div
+                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/[0.08] transition-colors group-hover:bg-primary/[0.14]"
+                    style={{ color: primaryColor }}
+                  >
+                    <Globe className="h-5 w-5" />
+                  </div>
+                  Official Website
+                </a>
+              ) : null}
+            </div>
+
+            {clubSettingsSocialMedia != null && socialLinks.length > 0 ? (
+              <div className="flex w-full flex-col items-center gap-3 border-t border-border/60 pt-5 sm:w-auto sm:flex-row sm:border-l sm:border-t-0 sm:pl-8 sm:pt-0">
+                <span className="text-[11px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
+                  Follow us
+                </span>
+                <div className="flex flex-wrap justify-center gap-2.5">
+                  {socialLinks.map(({ platform, href, label }) => (
+                    <SocialBrandButton key={`${platform}-${href}`} platform={platform} href={href} label={label} />
+                  ))}
                 </div>
-                {websiteSetup.contactEmail}
-              </a>
-            )}
-            {websiteSetup.contactPhone && (
-              <a 
-                href={`tel:${websiteSetup.contactPhone}`}
-                className="flex items-center gap-3 text-muted-foreground hover:text-primary transition-colors group"
-              >
-                <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-                  <Phone className="h-5 w-5" style={{ color: primaryColor }} />
-                </div>
-                {websiteSetup.contactPhone}
-              </a>
-            )}
-            {club.website ? (
-              <a
-                href={club.website.startsWith("http") ? club.website : `https://${club.website}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-3 text-muted-foreground hover:text-primary transition-colors group"
-              >
-                <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-                  <Globe className="h-5 w-5" style={{ color: primaryColor }} />
-                </div>
-                Official Website
-              </a>
-            ) : (
-              // <div className="flex items-center gap-3 text-muted-foreground group">
-              //   <div className="w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center">
-              //     <Globe className="h-5 w-5" style={{ color: primaryColor }} />
-              //   </div>
-              //   Official Supporters Club
-              // </div>
-              <>
-              </>
-            )}
+              </div>
+            ) : null}
           </div>
         </div>
       </div>

@@ -75,12 +75,12 @@ export default function WebsitePage() {
     try {
       setLoading(true)
       const response = await apiClient.getClubSettings(clubId)
-      
+
       if (response.success && response.data) {
         const actualData = response.data.data || response.data
         const websiteSetup = actualData.websiteSetup || {}
         const currentDesignSettings = actualData.designSettings || {}
-        
+
         setDesignSettings({
           primaryColor: currentDesignSettings.primaryColor || "#3b82f6",
           secondaryColor: currentDesignSettings.secondaryColor || "#8b5cf6",
@@ -130,7 +130,7 @@ export default function WebsitePage() {
 
     try {
       setSaving(true)
-      
+
       const websiteResponse = await apiClient.updateWebsiteSetup(clubId, {
         title: selectedClub?.name || "My Club",
         description: websiteSettings.welcomeText,
@@ -214,8 +214,8 @@ export default function WebsitePage() {
             <Badge variant={websiteSettings.published ? "default" : "secondary"} className="px-4 py-1.5 text-sm font-bold uppercase tracking-wider">
               {websiteSettings.published ? "Live & Published" : "Draft / Unpublished"}
             </Badge>
-            <Button 
-              onClick={handlePublish} 
+            <Button
+              onClick={handlePublish}
               disabled={publishing || websiteSettings.published}
               className="min-w-[160px] h-11 font-bold shadow-lg"
               size="lg"
@@ -378,7 +378,7 @@ export default function WebsitePage() {
             </CardContent>
           </Card>
 
-          <Card className="border-2 shadow-sm">
+          <Card className="border-2 shadow-sm hidden">
             <CardHeader className="pb-6 border-b bg-muted/20">
               <CardTitle className="text-2xl font-bold">Live Match Updates</CardTitle>
               <CardDescription className="text-base mt-2">Integrate live match day updates via Twitter/X feed</CardDescription>
@@ -410,8 +410,8 @@ export default function WebsitePage() {
 
         <div className="flex flex-col md:flex-row items-center justify-between gap-6 border-t pt-10 mt-6 pb-12">
           <p className="text-base text-muted-foreground font-medium italic">Changes are only visible on your site after saving.</p>
-          <Button 
-            size="lg" 
+          <Button
+            size="lg"
             onClick={handleSave}
             disabled={saving}
             className="w-full md:w-auto min-w-[240px] h-14 text-xl font-black shadow-xl"
