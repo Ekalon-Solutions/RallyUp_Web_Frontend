@@ -22,8 +22,7 @@ import {
   RefreshCw, 
   Eye, 
   Package, 
-  Truck, 
-  CheckCircle, 
+  CheckCircle,
   XCircle, 
   Clock,
   Calendar,
@@ -73,7 +72,7 @@ interface Order {
   razorpayFeeGst?: number
   finalAmount?: number
   currency: string
-  status: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded'
+  status: 'pending' | 'cancelled' | 'completed'
   paymentMethod: 'card' | 'paypal' | 'bank_transfer'
   paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded'
   notes?: string
@@ -90,20 +89,14 @@ interface OrderStats {
   totalOrders: number
   totalRevenue: number
   pendingOrders: number
-  confirmedOrders: number
-  shippedOrders: number
-  deliveredOrders: number
+  completedOrders: number
   cancelledOrders: number
 }
 
 const statusConfig = {
   pending: { label: 'Pending', color: 'bg-yellow-100 text-yellow-800', icon: Clock },
-  confirmed: { label: 'Confirmed', color: 'bg-blue-100 text-blue-800', icon: CheckCircle },
-  processing: { label: 'Processing', color: 'bg-purple-100 text-purple-800', icon: Package },
-  shipped: { label: 'Shipped', color: 'bg-indigo-100 text-indigo-800', icon: Truck },
-  delivered: { label: 'Delivered', color: 'bg-green-100 text-green-800', icon: CheckCircle },
   cancelled: { label: 'Cancelled', color: 'bg-red-100 text-red-800', icon: XCircle },
-  refunded: { label: 'Refunded', color: 'bg-gray-100 text-gray-800', icon: XCircle }
+  completed: { label: 'Completed', color: 'bg-green-100 text-green-800', icon: CheckCircle },
 }
 
 const paymentStatusConfig = {
@@ -465,20 +458,11 @@ export default function OrdersPage() {
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Shipped</CardTitle>
-                <Truck className="h-4 w-4 text-indigo-600" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-indigo-600">{stats.shippedOrders}</div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Delivered</CardTitle>
+                <CardTitle className="text-sm font-medium">Completed</CardTitle>
                 <CheckCircle className="h-4 w-4 text-green-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-green-600">{stats.deliveredOrders}</div>
+                <div className="text-2xl font-bold text-green-600">{stats.completedOrders}</div>
               </CardContent>
             </Card>
           </div>

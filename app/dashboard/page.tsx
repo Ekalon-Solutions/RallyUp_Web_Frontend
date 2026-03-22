@@ -28,6 +28,8 @@ interface DashboardStats {
 function FixturesCards({ clubId }: { clubId?: string | undefined }) {
   const [fixtures, setFixtures] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
+  const [showAll, setShowAll] = useState(false)
+  const INITIAL_COUNT = 6
 
   // helper to format startTime into "DD Month YYYY (Weekday)"
   const formatFixtureDate = (isoDate: string) => {
@@ -54,34 +56,7 @@ function FixturesCards({ clubId }: { clubId?: string | undefined }) {
         const now = new Date()
         const past = fixturesArr.filter((f) => new Date(f.startTime) < now)
         const future = fixturesArr.filter((f) => new Date(f.startTime) >= now)
-        const selected = [
-          ...past.slice(-1),
-          ...future.slice(0, 4),
-        ].slice(0, 5)
-
-        setFixtures(selected)
-
-        // If no fixtures found, attempt to fetch from sports proxy and persist (uses default team 'Arsenal')
-        if (fixturesArr.length === 0) {
-          try {
-            await apiClient.proxyInternalNextMatches({ team: 'Arsenal', clubId: String(clubId) })
-            // refetch fixtures after persistence
-            const retry = await apiClient.listAvailableExternalTicketFixtures(clubId)
-            const retryData = retry.data || []
-
-            const retryArr = Array.isArray(retryData) ? retryData : []
-            const retryPast = retryArr.filter((f) => new Date(f.startTime) < now)
-            const retryFuture = retryArr.filter((f) => new Date(f.startTime) >= now)
-            const retrySelected = [
-              ...retryPast.slice(-1),
-              ...retryFuture.slice(0, 4),
-            ].slice(0, 5)
-
-            setFixtures(retrySelected)
-          } catch (e) {
-            // ignore
-          }
-        }
+        setFixtures([...past.slice(-1), ...future])
       } catch (e) {
         setFixtures([])
       } finally {
@@ -91,20 +66,22 @@ function FixturesCards({ clubId }: { clubId?: string | undefined }) {
     fetchFixtures()
   }, [clubId])
 
+  const displayed = showAll ? fixtures : fixtures.slice(0, INITIAL_COUNT)
+
   return (
     <div>
       <h3 className="text-lg font-medium mb-2">Upcoming Matches</h3>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
         {loading ? (
           <div className="p-4">Loading matches...</div>
-          ) : fixtures.length ? (
-          fixtures.map((f) => {
+        ) : fixtures.length ? (
+          displayed.map((f) => {
             const fixtureDate = new Date(f.startTime)
             const isPast = fixtureDate < new Date()
             const hasScore = typeof f.homeScore === 'number' && typeof f.awayScore === 'number'
             const scoreText = hasScore ? `${f.homeScore} - ${f.awayScore}` : null
-            const detailedScoreText = hasScore && f.homeTeam && f.awayTeam 
-              ? `${f.homeTeam} ${f.homeScore} - ${f.awayScore} ${f.awayTeam}` 
+            const detailedScoreText = hasScore && f.homeTeam && f.awayTeam
+              ? `${f.homeTeam} ${f.homeScore} - ${f.awayScore} ${f.awayTeam}`
               : scoreText
 
             return (
@@ -137,6 +114,16 @@ function FixturesCards({ clubId }: { clubId?: string | undefined }) {
           <div className="p-4">No upcoming matches</div>
         )}
       </div>
+      {fixtures.length > INITIAL_COUNT && (
+        <div className="mt-4 flex justify-center">
+          <button
+            onClick={() => setShowAll((v) => !v)}
+            className="text-sm text-primary underline underline-offset-2 hover:opacity-80 transition-opacity"
+          >
+            {showAll ? 'Show Less' : `Show More (${fixtures.length - INITIAL_COUNT} more)`}
+          </button>
+        </div>
+      )}
     </div>
   )
 }
@@ -147,8 +134,8 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [showLogo, setShowLogo] = useState(false)
   const [logoFadeIn, setLogoFadeIn] = useState(false)
-  
-  
+  const [cronLoading, setCronLoading] = useState(false)
+
   useEffect(() => {
     if (user && !isAdmin) {
       window.location.href = "/dashboard/user"
@@ -160,23 +147,23 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const hasSeenDashboardLogo = localStorage.getItem('hasSeenDashboardLogo')
-    
+
     if (!hasSeenDashboardLogo && user) {
       setShowLogo(true)
       setTimeout(() => {
         setLogoFadeIn(true)
       }, 50)
-      
+
       const fadeOutTimer = setTimeout(() => {
         setShowLogo(false)
         localStorage.setItem('hasSeenDashboardLogo', 'true')
       }, 2000)
-      
+
       return () => clearTimeout(fadeOutTimer)
     }
   }, [user])
 
-  useEffect(() => { 
+  useEffect(() => {
     if (authLoading) {
       return
     }
@@ -249,12 +236,12 @@ export default function DashboardPage() {
       if (noClubTimer) clearTimeout(noClubTimer)
     }
   }, [user, authLoading, activeClubId])
-  
+
   const getClubInfo = () => {
     const userAny = user as any
     let clubLogo: string | undefined
     let clubName: string | undefined
-    
+
     if (activeClubId) {
       const activeMembership = userAny?.memberships?.find(
         (m: any) => (m.club_id?._id || m.club_id) === activeClubId && m.status === 'active'
@@ -264,27 +251,27 @@ export default function DashboardPage() {
         clubName = activeMembership.club_id.name
       }
     }
-    
+
     if (!clubName && userAny?.club) {
       clubLogo = userAny.club.logo
       clubName = userAny.club.name
     }
-    
+
     if (!clubName) {
       const firstMembership = userAny?.memberships?.find((m: any) => m.status === 'active')
       clubLogo = firstMembership?.club_id?.logo
       clubName = firstMembership?.club_id?.name
     }
-    
+
     return { clubLogo, clubName }
   }
-  
+
   const { clubLogo, clubName } = getClubInfo()
-  
+
   const getUserClubId = () => {
     if (!user || user.role === 'system_owner') return undefined
     const userAny = user as any
-    const {activeClubId} = useAuth();
+    const { activeClubId } = useAuth();
 
     // If the user is an admin, prefer the admin's selected/active club
     if (user.role === 'admin') {
@@ -310,11 +297,11 @@ export default function DashboardPage() {
     const firstMembership = userAny?.memberships?.find((m: any) => m.status === 'active')
     return firstMembership?.club_id?._id || firstMembership?.club_id
   }
-  
+
   const clubId = getUserClubId()
   const { settings: clubSettings } = useClubSettings(clubId)
   console.log("club settings:", clubSettings)
-  
+
   const settingsLogo = clubSettings ? ((clubSettings as any).designSettings?.logo) : undefined
   const displayLogo = settingsLogo || clubLogo
 
@@ -351,7 +338,6 @@ export default function DashboardPage() {
               <h1 className="text-2xl sm:text-3xl font-bold">Dashboard</h1>
               <p className="text-muted-foreground text-sm sm:text-base">Welcome back! Here's what's happening with your supporter group.</p>
             </div>
-            {isAdmin && null}
           </div>
 
           {/* Stats Grid */}

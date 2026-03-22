@@ -30,7 +30,6 @@ interface Standing {
 
 interface LeagueTableWidgetProps {
   leagueId: string;
-  // Optionally highlight a specific team (by SportsDB teamId or team name)
   highlightTeamId?: string;
   highlightTeamName?: string;
 }

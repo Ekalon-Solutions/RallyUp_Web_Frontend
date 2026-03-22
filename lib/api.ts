@@ -1174,36 +1174,14 @@ class ApiClient {
     );
   }
 
-  // Proxy call to Next.js internal API which forwards to backend sports endpoint
+  // Call backend sports endpoint directly (public, no auth required)
   async proxyInternalNextMatches(params: { team?: string; teamId?: string; clubId?: string; leagueId?: string } = {}) : Promise<ApiResponse<any>> {
-    if (typeof window === 'undefined') {
-      return { success: false, error: 'Client-only endpoint', status: 500 };
-    }
-
-    const url = new URL('/api/internal/sports/next-matches', window.location.origin);
-    if (params.team) url.searchParams.set('team', params.team);
-    if (params.teamId) url.searchParams.set('teamId', params.teamId);
-    if (params.clubId) url.searchParams.set('clubId', params.clubId);
-    if (params.leagueId) url.searchParams.set('leagueId', params.leagueId);
-
-    try {
-      const resp = await fetch(url.toString(), { method: 'GET' });
-      const contentType = resp.headers.get('content-type') || '';
-      let data: any = null;
-      if (contentType.includes('application/json')) {
-        data = await resp.json();
-      } else {
-        data = await resp.text();
-      }
-
-      if (!resp.ok) {
-        return { success: false, data, message: (data && data.message) || `HTTP ${resp.status}`, status: resp.status };
-      }
-
-      return { success: true, data };
-    } catch (err: any) {
-      return { success: false, error: err?.message || String(err), status: 500 };
-    }
+    const query: Record<string, string> = {};
+    if (params.team) query.team = params.team;
+    if (params.teamId) query.teamId = params.teamId;
+    if (params.leagueId) query.leagueId = params.leagueId;
+    const qs = Object.keys(query).length ? `?${new URLSearchParams(query).toString()}` : '';
+    return this.request<any>(`/sports/next-matches${qs}`);
   }
 
   async listExternalTicketFixturesForAdmin(clubId: string, params?: { competition?: string }) {
@@ -1904,6 +1882,24 @@ class ApiClient {
     } catch (error: any) {
       return { success: false, error: error?.message || 'Failed to download my orders report' };
     }
+  }
+
+  async updatePendingOrderPayment(orderId: string, data: {
+    couponCode?: string;
+    clearCoupon?: boolean;
+    reservationToken?: string | null;
+    redeemedPoints?: number;
+    redeemedDiscount?: number;
+    finalAmount?: number;
+    platformFee?: number;
+    platformFeeGst?: number;
+    razorpayFee?: number;
+    razorpayFeeGst?: number;
+  }): Promise<ApiResponse<any>> {
+    return this.request(`/orders/my-orders/${orderId}/update-payment`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
   }
 
   async createClub(data: {

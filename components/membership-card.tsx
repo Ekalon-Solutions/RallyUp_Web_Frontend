@@ -139,13 +139,12 @@ export function MembershipCard({
     return 'w-8 h-8';
   };
 
-  const getStatusVariant = (status: string) => {
+  const getStatusClassName = (status: string) => {
     switch (status) {
-      case 'active': return 'default';
-      case 'expired': return 'destructive';
-      case 'pending': return 'secondary';
-      case 'suspended': return 'outline';
-      default: return 'secondary';
+      case 'active': return 'bg-green-500 text-white hover:bg-green-600 border-transparent';
+      case 'expired': return 'bg-red-500 text-white hover:bg-red-600 border-transparent';
+      case 'transferred': return 'bg-yellow-400 text-black hover:bg-yellow-500 border-transparent';
+      default: return 'bg-gray-400 text-white hover:bg-gray-500 border-transparent';
     }
   };
 
@@ -275,7 +274,7 @@ export function MembershipCard({
           </div>
           <div className="text-right flex-shrink-0">
             <p className="text-[10px] opacity-70">Status</p>
-            <Badge variant={getStatusVariant(card.status)} className="text-[10px] px-1.5 py-0">
+            <Badge className={`text-[10px] px-1.5 py-0 ${getStatusClassName(card.status)}`}>
               {card.status}
             </Badge>
           </div>

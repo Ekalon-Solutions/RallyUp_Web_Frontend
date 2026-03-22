@@ -34,6 +34,7 @@ import {
   ChartNoAxesColumn,
   Tag,
   RotateCcw,
+  Trophy,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -88,6 +89,7 @@ const systemOwnerNavigation = [
   { name: "Club Management", href: "/dashboard/club-management", icon: Building },
   // { name: "Browse Clubs", href: "/dashboard/user/clubs", icon: Building2 },
   { name: "Onboarding & Promotions", href: "/dashboard/onboarding", icon: GraduationCap },
+  { name: "Sports", href: "/dashboard/sports", icon: Trophy },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
   { name: "Help", href: "/dashboard/help", icon: HelpCircle },
 ]

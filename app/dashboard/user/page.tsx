@@ -94,6 +94,8 @@ import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 function FixturesCards({ clubId }: { clubId?: string | undefined }) {
   const [fixtures, setFixtures] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
+  const [showAll, setShowAll] = useState(false)
+  const INITIAL_COUNT = 6
 
   // helper to format startTime into "DD Month YYYY (Weekday)"
   const formatFixtureDate = (isoDate: string) => {
@@ -120,34 +122,7 @@ function FixturesCards({ clubId }: { clubId?: string | undefined }) {
         const now = new Date()
         const past = fixturesArr.filter((f) => new Date(f.startTime) < now)
         const future = fixturesArr.filter((f) => new Date(f.startTime) >= now)
-        const selected = [
-          ...past.slice(-1),
-          ...future.slice(0, 4),
-        ].slice(0, 5)
-
-        setFixtures(selected)
-
-        // If no fixtures found, attempt to fetch from sports proxy and persist (uses default team 'Arsenal')
-        if (fixturesArr.length === 0) {
-          try {
-            await apiClient.proxyInternalNextMatches({ team: 'Arsenal', clubId: String(clubId) })
-            // refetch fixtures after persistence
-            const retry = await apiClient.listAvailableExternalTicketFixtures(clubId)
-            const retryData = retry.data || []
-
-            const retryArr = Array.isArray(retryData) ? retryData : []
-            const retryPast = retryArr.filter((f) => new Date(f.startTime) < now)
-            const retryFuture = retryArr.filter((f) => new Date(f.startTime) >= now)
-            const retrySelected = [
-              ...retryPast.slice(-1),
-              ...retryFuture.slice(0, 4),
-            ].slice(0, 5)
-
-            setFixtures(retrySelected)
-          } catch (e) {
-            // ignore
-          }
-        }
+        setFixtures([...past.slice(-1), ...future])
       } catch (e) {
         setFixtures([])
       } finally {
@@ -157,6 +132,8 @@ function FixturesCards({ clubId }: { clubId?: string | undefined }) {
     fetchFixtures()
   }, [clubId])
 
+  const displayed = showAll ? fixtures : fixtures.slice(0, INITIAL_COUNT)
+
   return (
     <div>
       <h3 className="text-lg font-medium mb-2">Upcoming Matches</h3>
@@ -164,13 +141,13 @@ function FixturesCards({ clubId }: { clubId?: string | undefined }) {
         {loading ? (
           <div className="p-4">Loading matches...</div>
           ) : fixtures.length ? (
-          fixtures.map((f) => {
+          displayed.map((f) => {
             const fixtureDate = new Date(f.startTime)
             const isPast = fixtureDate < new Date()
             const hasScore = typeof f.homeScore === 'number' && typeof f.awayScore === 'number'
             const scoreText = hasScore ? `${f.homeScore} - ${f.awayScore}` : null
-            const detailedScoreText = hasScore && f.homeTeam && f.awayTeam 
-              ? `${f.homeTeam} ${f.homeScore} - ${f.awayScore} ${f.awayTeam}` 
+            const detailedScoreText = hasScore && f.homeTeam && f.awayTeam
+              ? `${f.homeTeam} ${f.homeScore} - ${f.awayScore} ${f.awayTeam}`
               : scoreText
 
             return (
@@ -203,6 +180,16 @@ function FixturesCards({ clubId }: { clubId?: string | undefined }) {
           <div className="p-4">No upcoming matches</div>
         )}
       </div>
+      {fixtures.length > INITIAL_COUNT && (
+        <div className="mt-4 flex justify-center">
+          <button
+            onClick={() => setShowAll((v) => !v)}
+            className="text-sm text-primary underline underline-offset-2 hover:opacity-80 transition-opacity"
+          >
+            {showAll ? 'Show Less' : `Show More (${fixtures.length - INITIAL_COUNT} more)`}
+          </button>
+        </div>
+      )}
     </div>
   )
 }

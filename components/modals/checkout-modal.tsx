@@ -140,11 +140,17 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
     }).format(amount)
   }
 
-  // Reset coupon when modal closes
+  // Reset coupon and points state when modal closes; cancel any pending reservation
   useEffect(() => {
     if (!isOpen) {
+      if (reservationToken) {
+        apiClient.cancelReservation(reservationToken).catch(() => {})
+      }
       setCouponCode("")
       setAppliedCoupon(null)
+      setRedeemPoints(0)
+      setReservationToken(null)
+      setReservedDiscount(0)
     }
   }, [isOpen])
 
@@ -253,10 +259,10 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
   const displayShipping = orderShipping ?? (createdOrder ? (createdOrder.shippingCost ?? (estimatedShipping ?? shippingCost)) : (estimatedShipping ?? shippingCost))
   const displayTax = orderTax ?? (createdOrder ? (createdOrder.tax ?? (estimatedTax ?? taxAmount)) : (estimatedTax ?? taxAmount))
 
-  const orderTotal = subtotalAfterCoupon + displayShipping + displayTax
-  const netOrderTotal = Math.max(orderTotal, 0)
-  const feeBreakdown = netOrderTotal > 0 ? calculateTransactionFees(netOrderTotal) : null
-  const finalAmount = feeBreakdown ? feeBreakdown.finalAmount : netOrderTotal
+  const netSubtotal = Math.max(subtotalAfterCoupon - (reservedDiscount || 0), 0)
+  // Fees are fixed on the original subtotal (before coupon and redeem points)
+  const feeBreakdown = totalPrice > 0 ? calculateTransactionFees(totalPrice) : null
+  const finalAmount = netSubtotal + shippingCost + taxAmount + (feeBreakdown ? feeBreakdown.totalFees : 0)
 
   const handleValidateCoupon = async () => {
     if (!couponCode.trim()) {
@@ -455,15 +461,20 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
         ...(appliedCoupon?.code ? { couponCode: appliedCoupon.code } : {}),
         shippingCost,
         tax: taxAmount,
+        finalAmount,
         ...(feeBreakdown
           ? {
               platformFee: feeBreakdown.platformFee,
               platformFeeGst: feeBreakdown.platformFeeGst,
               razorpayFee: feeBreakdown.razorpayFee,
               razorpayFeeGst: feeBreakdown.razorpayFeeGst,
-              finalAmount: feeBreakdown.finalAmount
             }
-          : {})
+          : {
+              platformFee: 0,
+              platformFeeGst: 0,
+              razorpayFee: 0,
+              razorpayFeeGst: 0,
+            })
       }
 
       if (reservationToken) {
@@ -497,11 +508,15 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
           await apiClient.confirmReservation(reservationToken, orderId)
         } catch (e) {
         }
+        // Clear so the modal-close effect doesn't try to cancel the confirmed reservation
+        setReservationToken(null)
+        setReservedDiscount(0)
+        setRedeemPoints(0)
       }
       await apiClient.patch(`/orders/admin/${orderId}/payment-status`, {
         paymentStatus: 'paid', paymentId, razorpayOrderId, razorpaySignature
       })
-      
+
       toast.success('Payment successful! Order confirmed.')
       if (!directCheckoutItems) {
         clearCart()
@@ -520,11 +535,15 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
           await apiClient.cancelReservation(reservationToken)
         } catch (e) {
         }
+        // Clear so the modal-close effect doesn't try to cancel again
+        setReservationToken(null)
+        setReservedDiscount(0)
+        setRedeemPoints(0)
       }
       await apiClient.patch(`/orders/admin/${orderId}/payment-status`, {
         paymentStatus: 'failed', paymentId, razorpayOrderId, razorpaySignature
       })
-      
+
       toast.error('Payment failed. Please try again.')
     } catch (error) {
       toast.error('Failed to update payment status.')
@@ -860,7 +879,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                 <CardContent className="pt-6">
                   <div className="space-y-3">
                     {/* Redeem Points */}
-                    <div className="mb-4">
+                    {user && <div className="mb-4">
                       <Label>Redeem Points {availablePoints !== null && ` (Available: ${availablePoints} pts)`}</Label>
                       <div className="flex gap-2 mt-2">
                         <input
@@ -883,6 +902,10 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                               toast.error('Enter points to redeem')
                               return
                             }
+                            if (subtotalAfterCoupon <= 0) {
+                              toast.error('Subtotal is already zero — no need to redeem points')
+                              return
+                            }
                             if (availablePoints !== null && redeemPoints > availablePoints) {
                               toast.error('You do not have enough points')
                               return
@@ -895,7 +918,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                                 setReserving(false)
                                 return
                               }
-                              const orderTotalForReservation = Math.max(calculateTransactionFees(totalPrice - couponDiscount + displayShipping + displayTax).finalAmount, 0)
+                              const orderTotalForReservation = Math.max(subtotalAfterCoupon + displayShipping + displayTax + (feeBreakdown ? feeBreakdown.totalFees : 0), 0)
                               const resp = await apiClient.createReservation(redeemPoints, clubId, orderTotalForReservation)
                               if (resp && resp.success) {
                                 setReservationToken(resp.data?.reservationToken || null)
@@ -931,10 +954,19 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                       {reservedDiscount > 0 && (
                         <div className="text-sm text-green-600 mt-2">Discount: {formatCurrency(reservedDiscount, currency)}</div>
                       )}
-                    </div>
+                    </div>}
                     <div className="flex justify-between">
                       <span>Subtotal:</span>
-                      <span>{formatCurrency(totalPrice, currency)}</span>
+                      <span className="flex items-center gap-2">
+                        {(couponDiscount > 0 || reservedDiscount > 0) ? (
+                          <>
+                            <span className="line-through text-muted-foreground">{formatCurrency(totalPrice, currency)}</span>
+                            <span>{formatCurrency(Math.max(totalPrice - couponDiscount - reservedDiscount, 0), currency)}</span>
+                          </>
+                        ) : (
+                          <span>{formatCurrency(totalPrice, currency)}</span>
+                        )}
+                      </span>
                     </div>
                     {appliedCoupon && couponDiscount > 0 && (
                       <div className="flex justify-between text-green-600">
@@ -943,6 +975,12 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                           Coupon ({appliedCoupon.code})
                         </span>
                         <span>-{formatCurrency(couponDiscount, currency)}</span>
+                      </div>
+                    )}
+                    {reservedDiscount > 0 && (
+                      <div className="flex justify-between text-sm text-green-600">
+                        <span>- Points discount:</span>
+                        <span>-{formatCurrency(reservedDiscount, currency)}</span>
                       </div>
                     )}
                     {merchandiseSettings?.enableShipping && (
@@ -959,12 +997,6 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                       <div className="flex justify-between">
                         <span>Tax ({merchandiseSettings.taxRate}%):</span>
                         <span>{formatCurrency(taxAmount, currency)}</span>
-                      </div>
-                    )}
-                    {reservedDiscount > 0 && (
-                      <div className="flex justify-between text-sm text-green-600">
-                        <span>- Points discount:</span>
-                        <span>-{formatCurrency(reservedDiscount, currency)}</span>
                       </div>
                     )}
 
@@ -1076,8 +1108,9 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
           paymentMethod={createdOrder.paymentMethod || orderForm.paymentMethod || 'all'}
           platformFeeTotal={feeBreakdown ? feeBreakdown.platformFee + feeBreakdown.platformFeeGst : undefined}
           razorpayFeeTotal={feeBreakdown ? feeBreakdown.razorpayFee + feeBreakdown.razorpayFeeGst : undefined}
-          couponDiscount={createdOrder.couponDiscount}
-          couponCode={createdOrder.couponCode}
+          couponDiscount={createdOrder.couponDiscount ?? (couponDiscount > 0 ? couponDiscount : undefined)}
+          couponCode={createdOrder.couponCode ?? appliedCoupon?.code}
+          pointsDiscount={reservedDiscount > 0 ? reservedDiscount : undefined}
         />
       )}
     </Dialog>

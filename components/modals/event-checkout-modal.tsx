@@ -371,7 +371,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
               }
             }
 
-            const amountCharged = Math.max((feeBreakdown ? feeBreakdown.finalAmount : finalPrice) - (reservedDiscount || 0), 0)
+            const amountCharged = amountToCharge
             const registerResponse = user
               ? await apiClient.registerForEvent(
                   String(event._id),
@@ -383,7 +383,6 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
                   response.razorpay_signature,
                   waitlistToken || undefined,
                   reservationToken || undefined,
-                  amountCharged,
                 )
               : await apiClient.registerForPublicEvent(String(event._id), {
                   registrantName: attendees?.[0]?.name || 'Guest',
@@ -456,9 +455,10 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
   const basePrice = getDiscountedPricePerTicket()
   const totalBeforeCoupon = basePrice * attendees.length;
   const finalPrice = Math.max(totalBeforeCoupon - couponDiscount, 0);
-  const feeBreakdown = finalPrice > 0 ? calculateTransactionFees(finalPrice) : null;
-  const amountToCharge = feeBreakdown ? feeBreakdown.finalAmount : finalPrice;
   const netSubtotal = Math.max(finalPrice - (reservedDiscount || 0), 0);
+  // Fees are fixed on the subtotal before coupon and redeem points
+  const feeBreakdown = totalBeforeCoupon > 0 ? calculateTransactionFees(totalBeforeCoupon) : null;
+  const amountToCharge = netSubtotal + (feeBreakdown ? feeBreakdown.totalFees : 0);
 
   const currencySymbols: Record<string, string> = {
     INR: '₹',
@@ -618,7 +618,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
 
               <div className="flex justify-between items-center font-bold text-lg">
                 <span>Total to Pay:</span>
-                <span className="text-primary">{formatCurrency(Math.max((feeBreakdown ? feeBreakdown.finalAmount : finalPrice) - (reservedDiscount || 0), 0), event.currency)}</span>
+                <span className="text-primary">{formatCurrency(amountToCharge, event.currency)}</span>
               </div>
             </div>
             

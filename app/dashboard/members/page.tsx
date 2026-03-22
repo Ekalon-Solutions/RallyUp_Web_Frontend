@@ -89,8 +89,9 @@ interface Member {
 }
 
 export default function MembersPage() {
-  const { user } = useAuth()
+  const { user, activeClubId } = useAuth()
   const clubId = useRequiredClubId()
+  const effectiveClubId =  clubId ?? activeClubId
   const [members, setMembers] = useState<Member[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -928,8 +929,7 @@ export default function MembersPage() {
                             size="sm"
                             onClick={() => {
                               setAdjustMemberId(member._id)
-                              const primaryClub = (user as any)?.clubs?.[0]
-                              setAdjustMemberClub(primaryClub?._id ?? primaryClub ?? clubId ?? null)
+                              setAdjustMemberClub(effectiveClubId ?? null)
                               setIsAdjustPointsOpen(true)
                             }}
                             className="flex-1 sm:flex-initial"

@@ -508,7 +508,7 @@ function MembershipCardsPage() {
       ...card,
       card: {
         ...card.card,
-        status: (card.card.status ?? "active") as "active" | "expired" | "pending" | "suspended",
+        status: (card.card.status ?? "active") as "active" | "expired" | "transferred",
         accessLevel: (card.card.accessLevel ?? "basic") as "basic" | "premium" | "vip",
         cardStyle: (card.card.cardStyle ?? "default") as "default" | "premium" | "vintage" | "modern" | "elite" | "emerald",
         customization: {
@@ -684,7 +684,7 @@ function MembershipCardsPage() {
       if (!prev) return null
       return {
         ...prev,
-        card: { ...prev.card, status: value as 'active' | 'expired' | 'pending' | 'suspended' }
+        card: { ...prev.card, status: value as 'active' | 'expired' | 'transferred' }
       }
     })
   }, [])
@@ -1095,8 +1095,7 @@ function MembershipCardsPage() {
                       <SelectContent>
                         <SelectItem value="active">Active</SelectItem>
                         <SelectItem value="expired">Expired</SelectItem>
-                        <SelectItem value="pending">Pending</SelectItem>
-                        <SelectItem value="suspended">Suspended</SelectItem>
+                        <SelectItem value="transferred">Transferred</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

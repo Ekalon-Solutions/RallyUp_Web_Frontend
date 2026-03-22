@@ -287,7 +287,7 @@ export function CartModal({ isOpen, onClose, onCheckout }: CartModalProps) {
                     <span>Subtotal:</span>
                     <span>{formatCurrency(totalPrice, currency)}</span>
                   </div>
-                  {merchandiseSettings?.enableShipping && (
+                  {/* {merchandiseSettings?.enableShipping && (
                     <div className="flex justify-between items-center">
                       <span>Shipping:</span>
                       {shippingCost === 0 ? (
@@ -302,7 +302,7 @@ export function CartModal({ isOpen, onClose, onCheckout }: CartModalProps) {
                       <span>Tax ({merchandiseSettings.taxRate}%):</span>
                       <span>{formatCurrency(taxAmount, currency)}</span>
                     </div>
-                  )}
+                  )} */}
                   <div className="flex justify-between items-center text-2xl font-bold">
                     <span>Total ({totalItems} items):</span>
                     <span>{formatCurrency(orderTotal, currency)}</span>
