@@ -17,16 +17,22 @@ import { useState, useMemo } from 'react'
  */
 function getActiveClubMembershipForUser(user: any, activeClubId: string | null) {
   if (!user || user.role === 'system_owner') return null
-  if (!activeClubId) return null
 
   const memberships: any[] = Array.isArray(user.memberships) ? user.memberships : []
-  // match club id string or club object _id
-  return memberships.find(m => {
-    // Defensive for missing fields.
-    if (!m || !m.club_id) return false
-    let clubId = typeof m.club_id === 'string' ? m.club_id : m.club_id._id
-    return m.status === 'active' && clubId === activeClubId
-  }) || null
+
+  if (activeClubId) {
+    // Prefer the membership for the explicitly selected club
+    const match = memberships.find(m => {
+      if (!m || !m.club_id) return false
+      const clubId = typeof m.club_id === 'string' ? m.club_id : m.club_id._id
+      return m.status === 'active' && clubId === activeClubId
+    })
+    if (match) return match
+  }
+
+  // Fallback: return the first active membership (e.g. right after signup before
+  // activeClubId has been persisted to localStorage)
+  return memberships.find(m => m && m.status === 'active' && m.club_id) || null
 }
 
 export function MembershipStatus() {
@@ -80,6 +86,19 @@ export function MembershipStatus() {
     if (lowerPlan.includes('basic') || lowerPlan.includes('standard')) return "secondary"
     if (lowerPlan.includes('advanced') || lowerPlan.includes('pro')) return "outline"
     return "secondary"
+  }
+
+  const getStatusClassName = (status?: string) => {
+    switch ((status || "").toLowerCase()) {
+      case "active":
+        return "bg-green-500 text-white hover:bg-green-600 border-transparent"
+      case "expired":
+        return "bg-red-500 text-white hover:bg-red-600 border-transparent"
+      case "transferred":
+        return "bg-yellow-400 text-black hover:bg-yellow-500 border-transparent"
+      default:
+        return "bg-gray-400 text-white hover:bg-gray-500 border-transparent"
+    }
   }
 
   if (!activeMembership || !userClub) {
@@ -174,7 +193,7 @@ export function MembershipStatus() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Club status:</span>
-                  <Badge variant={userClub.status === 'active' ? 'default' : 'secondary'}>
+                  <Badge variant="outline" className={getStatusClassName(userClub.status)}>
                     {userClub.status}
                   </Badge>
                 </div>

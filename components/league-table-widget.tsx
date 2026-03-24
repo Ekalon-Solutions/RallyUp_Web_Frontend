@@ -116,7 +116,7 @@ export default function LeagueTableWidget({ leagueId, highlightTeamId, highlight
             <tbody>
               {displayedStandings.map((standing) => (
                 <tr key={standing.idStanding} className="border-b hover:bg-muted/40">
-                  <td className="text-center px-2 py-3 font-semibold text-white">{standing.intRank}</td>
+                  <td className="text-center px-2 py-3 font-semibold text-black dark:text-white">{standing.intRank}</td>
                   <td className="px-2 py-3">
                     <div className="flex items-center gap-2">
                       {standing.strBadge && (
@@ -162,7 +162,7 @@ export default function LeagueTableWidget({ leagueId, highlightTeamId, highlight
               variant="outline"
               size="sm"
               onClick={() => setShowAll(!showAll)}
-              className="gap-2"
+              className="gap-2 text-black dark:text-white"
             >
               {showAll ? (
                 <>

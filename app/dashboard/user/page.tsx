@@ -195,7 +195,7 @@ function FixturesCards({ clubId }: { clubId?: string | undefined }) {
         <div className="mt-4 flex justify-center">
           <button
             onClick={() => setShowAll((v) => !v)}
-            className="text-sm text-primary underline underline-offset-2 hover:opacity-80 transition-opacity"
+            className="text-sm text-black dark:text-white underline underline-offset-2 hover:opacity-80 transition-opacity"
           >
             {showAll ? 'Show Less' : `Show More (${fixtures.length - INITIAL_COUNT} more)`}
           </button>
@@ -206,7 +206,7 @@ function FixturesCards({ clubId }: { clubId?: string | undefined }) {
 }
 
 export default function UserDashboardPage() {
-  const { user } = useAuth()
+  const { user, isLoading: authLoading } = useAuth()
   const clubId = useRequiredClubId()
   const [events, setEvents] = useState<Event[]>([])
   const [news, setNews] = useState<News[]>([])
@@ -303,8 +303,9 @@ export default function UserDashboardPage() {
   }, [user])
 
   useEffect(() => {
+    if (authLoading) return
     fetchData()
-  }, [clubId, user])
+  }, [clubId, user, authLoading])
 
   useEffect(() => {
     if (user) {
@@ -319,7 +320,8 @@ export default function UserDashboardPage() {
       setLoading(true)
 
       if (!clubId) {
-        toast.error("You need to have an active club membership to view news and events")
+        // clubId may still be resolving after login/signup – don't toast here,
+        // the empty-state UI already communicates the lack of membership.
         setLoading(false)
         return
       }

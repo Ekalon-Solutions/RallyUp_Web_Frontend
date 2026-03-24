@@ -49,9 +49,9 @@ export default function SystemOwnerLoginPage() {
     setGeneratedOtp(otp)
     
     if (formData.email) {
-      toast.success(`OTP sent to ${formData.email}. Code: ${otp}`)
+      toast.success(`OTP sent to ${formData.email}.`)
     } else {
-      toast.success(`OTP sent to ${formData.countryCode}${formData.phoneNumber}. Code: ${otp}`)
+      toast.success(`OTP sent to ${formData.countryCode}${formData.phoneNumber}.`)
     }
     setOtpSent(true)
     setResendCountdown(10)
@@ -59,10 +59,10 @@ export default function SystemOwnerLoginPage() {
 
   const handleResendOTP = () => {
     if (formData.phoneNumber && formData.countryCode) {
-      toast.success(`OTP resent to ${formData.countryCode}${formData.phoneNumber}. Code: ${generatedOtp}`)
+      toast.success(`OTP resent to ${formData.countryCode}${formData.phoneNumber}.`)
       setResendCountdown(10)
     } else if (formData.email) {
-      toast.success(`OTP resent to ${formData.email}. Code: ${generatedOtp}`)
+      toast.success(`OTP resent to ${formData.email}.`)
       setResendCountdown(10)
     }
   }

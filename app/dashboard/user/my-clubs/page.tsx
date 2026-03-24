@@ -133,17 +133,30 @@ export default function MyClubsPage() {
 
   const formatDate = (dateString: string) => formatDisplayDate(dateString)
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'active':
-        return <Badge variant="default" className="bg-green-500"><CheckCircle className="w-3 h-3 mr-1" />Active</Badge>
-      case 'expired':
-        return <Badge variant="destructive"><Clock className="w-3 h-3 mr-1" />Expired</Badge>
-      case 'pending':
-        return <Badge variant="secondary"><Clock className="w-3 h-3 mr-1" />Pending</Badge>
+  const getStatusClassName = (status?: string) => {
+    switch ((status || "").toLowerCase()) {
+      case "active":
+        return "bg-green-500 text-white hover:bg-green-600 border-transparent"
+      case "expired":
+        return "bg-red-500 text-white hover:bg-red-600 border-transparent"
+      case "transferred":
+        return "bg-yellow-400 text-black hover:bg-yellow-500 border-transparent"
       default:
-        return <Badge variant="outline">{status}</Badge>
+        return "bg-gray-400 text-white hover:bg-gray-500 border-transparent"
     }
+  }
+
+  const getStatusBadge = (status: string) => {
+    return (
+      <Badge variant="outline" className={getStatusClassName(status)}>
+        {status.toLowerCase() === "active" ? (
+          <CheckCircle className="w-3 h-3 mr-1" />
+        ) : (
+          <Clock className="w-3 h-3 mr-1" />
+        )}
+        {status}
+      </Badge>
+    )
   }
 
   const navigateToClub = (clubName?: string, clubWebsite?: string, clubSlug?: string) => {
@@ -271,7 +284,7 @@ export default function MyClubsPage() {
                         {/* Club Info */}
                         <div className="grid grid-cols-2 gap-3 text-sm">
                           <div className="flex items-center gap-2">
-                            <Badge variant="outline">{clubStatus}</Badge>
+                            <Badge variant="outline" className={getStatusClassName(clubStatus)}>{clubStatus}</Badge>
                           </div>
                           <div className="flex items-center gap-2">
                             <Badge variant="secondary">{membership.level_name}</Badge>

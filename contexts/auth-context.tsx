@@ -44,6 +44,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     checkAuth();
   }, []);
 
+  useEffect(() => {
+    if (!user || (user as any).role === 'system_owner') return;
+    const existingClubId = localStorage.getItem('activeClubId');
+    if (existingClubId) return; // already set – don't override an explicit selection
+    const clubId = deriveActiveClubIdFromUser(user as any);
+    if (clubId) {
+      setActiveClubId(clubId);
+    }
+  }, [user]);
+
   const setActiveClubId = (clubId: string | null) => {
     setActiveClubIdState(clubId);
     if (clubId) {
@@ -118,14 +128,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const token = localStorage.getItem('token');
       const userType = localStorage.getItem('userType');
       // console.log('Checking auth with token:', token ? 'exists' : 'missing', 'UserType:', userType);
-      
+
       if (!token) {
         setIsLoading(false);
         return;
       }
 
       let profileResponse = null;
-      
+
       if (userType === 'admin') {
         try {
           // console.log('Trying admin profile (from userType)...');
@@ -203,7 +213,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (error) {
       }
-      
+
       localStorage.removeItem('token');
       localStorage.removeItem('userType');
       setUser(null);
@@ -243,7 +253,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (response.success && response.data) {
         localStorage.setItem('token', (response.data as any).token);
         let userData: any;
-        
+
         if (isSystemOwner) {
           userData = (response.data as any).systemOwner || response.data;
           localStorage.setItem('userType', 'system_owner');
@@ -254,7 +264,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           userData = (response.data as any).user || response.data;
           localStorage.setItem('userType', 'member');
         }
-        
+
         setUser(userData);
         const hydrated = await hydrateUserProfile({
           isAdmin,
@@ -264,14 +274,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(hydrated);
         return { success: true };
       } else {
-        const errorMessage = response.error || response.message || 
-          (response.errorDetails?.type === 'network_error' 
+        const errorMessage = response.error || response.message ||
+          (response.errorDetails?.type === 'network_error'
             ? 'Connection failed. Please check your internet connection or try again later.'
             : 'Login failed. Please check your credentials and try again.');
         return { success: false, error: errorMessage };
       }
     } catch (error) {
-      const errorMessage = error instanceof Error 
+      const errorMessage = error instanceof Error
         ? (error.message.includes('fetch') || error.message.includes('network') || error.message.includes('Failed to fetch')
           ? 'Connection failed. Please check your internet connection or try again later.'
           : error.message)
@@ -294,9 +304,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (response.success && response.data) {
         localStorage.setItem('token', (response.data as any).token);
         let createdUserData;
-        
+
         let userType: string;
-        
+
         if (isSystemOwner) {
           createdUserData = (response.data as any).systemOwner || response.data;
           userType = 'system_owner';
@@ -307,9 +317,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           createdUserData = (response.data as any).user || response.data;
           userType = 'member';
         }
-        
+
         localStorage.setItem('userType', userType);
-        
+
         setUser(createdUserData);
         const hydrated = await hydrateUserProfile({
           isAdmin,

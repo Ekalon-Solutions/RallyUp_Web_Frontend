@@ -76,21 +76,21 @@ const validateDOB = (dob: string): string => {
   const birthDate = new Date(dob)
   const age = today.getFullYear() - birthDate.getFullYear()
   const monthDiff = today.getMonth() - birthDate.getMonth()
-  
+
   if (birthDate > today) {
     return "Date of birth cannot be in the future"
   }
-  
+
   const actualAge = monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate()) ? age - 1 : age
-  
+
   if (actualAge < 13) {
     return "You must be at least 13 years old"
   }
-  
+
   if (actualAge > 120) {
     return "Please enter a valid date of birth"
   }
-  
+
   return ""
 }
 
@@ -304,7 +304,7 @@ function AuthPageContent() {
     if (tab && ["user-login", "user-register", "admin-login", "admin-register", "system-owner-login", "system-owner-register"].includes(tab)) {
       setActiveTab(tab)
     }
-    
+
     if (club) {
       setUserRegisterData(prev => ({
         ...prev,
@@ -422,8 +422,8 @@ function AuthPageContent() {
       id_proof_number: idProofError
     })
 
-    if (!userRegisterData.username || !userRegisterData.email || !userRegisterData.first_name || 
-        !userRegisterData.last_name || !userRegisterData.phoneNumber || !userRegisterData.countryCode) {
+    if (!userRegisterData.username || !userRegisterData.email || !userRegisterData.first_name ||
+      !userRegisterData.last_name || !userRegisterData.phoneNumber || !userRegisterData.countryCode) {
       toast.error("Please fill in all required fields")
       return
     }
@@ -505,10 +505,10 @@ function AuthPageContent() {
       }
     } catch (error: any) {
       // console.error("Registration error:", error)
-      
+
       if (error.response) {
         const { status, data } = error.response
-        
+
         if (status === 400) {
           if (data?.message) {
             toast.error(data.message)
@@ -586,26 +586,26 @@ function AuthPageContent() {
     }
 
     try {
-/*       if (isDevelopment()) {
-        debugLog("Debug mode: Skipping Firebase OTP confirmation for admin")
-        if (adminLoginOtp !== DEBUG_OTP) {
-          toast.error(`[DEBUG MODE] Invalid OTP. Use: ${DEBUG_OTP}`)
-          return
-        }
-        const loginResult = await login(
-          adminLoginData.email,
-          adminLoginData.phoneNumber,
-          adminLoginData.countryCode,
-          true
-        )
-        if (loginResult.success) {
-          toast.success("Admin login successful!")
-        } else {
-          toast.error("Admin login failed. Please try again.")
-        }
-        return
-      }
- */
+      /*       if (isDevelopment()) {
+              debugLog("Debug mode: Skipping Firebase OTP confirmation for admin")
+              if (adminLoginOtp !== DEBUG_OTP) {
+                toast.error(`[DEBUG MODE] Invalid OTP. Use: ${DEBUG_OTP}`)
+                return
+              }
+              const loginResult = await login(
+                adminLoginData.email,
+                adminLoginData.phoneNumber,
+                adminLoginData.countryCode,
+                true
+              )
+              if (loginResult.success) {
+                toast.success("Admin login successful!")
+              } else {
+                toast.error("Admin login failed. Please try again.")
+              }
+              return
+            }
+       */
       const confirmationResult = window.confirmationResult
       const result = await confirmationResult.confirm(adminLoginOtp)
 
@@ -643,15 +643,15 @@ function AuthPageContent() {
 
     const phoneNumber = `${userRegisterData.countryCode}${userRegisterData.phoneNumber}`
 
-/*     if (isDevelopment()) {
-      debugLog("Debug mode: Skipping Firebase OTP verification for user registration")
-      toast.success(`[DEBUG MODE] OTP sent to ${phoneNumber}. Use code: ${DEBUG_OTP}`)
-      setUserOtpSent(true)
-      setUserOtp(DEBUG_OTP)
-      setUserRegisterResendCountdown(10)
-      return
-    }
- */
+    /*     if (isDevelopment()) {
+          debugLog("Debug mode: Skipping Firebase OTP verification for user registration")
+          toast.success(`[DEBUG MODE] OTP sent to ${phoneNumber}. Use code: ${DEBUG_OTP}`)
+          setUserOtpSent(true)
+          setUserOtp(DEBUG_OTP)
+          setUserRegisterResendCountdown(10)
+          return
+        }
+     */
     try {
       const recaptchaVerifier = setupRecaptcha(phoneNumber)
       // console.log("recaptchaVerifier", recaptchaVerifier)
@@ -675,15 +675,15 @@ function AuthPageContent() {
 
     const phoneNumber = `${adminRegisterData.countryCode}${adminRegisterData.phoneNumber}`
 
-/*     if (isDevelopment()) {
-      debugLog("Debug mode: Skipping Firebase OTP verification for admin registration")
-      toast.success(`[DEBUG MODE] OTP sent to ${phoneNumber}. Use code: ${DEBUG_OTP}`)
-      setAdminOtpSent(true)
-      setAdminOtp(DEBUG_OTP)
-      setAdminRegisterResendCountdown(10)
-      return
-    }
- */
+    /*     if (isDevelopment()) {
+          debugLog("Debug mode: Skipping Firebase OTP verification for admin registration")
+          toast.success(`[DEBUG MODE] OTP sent to ${phoneNumber}. Use code: ${DEBUG_OTP}`)
+          setAdminOtpSent(true)
+          setAdminOtp(DEBUG_OTP)
+          setAdminRegisterResendCountdown(10)
+          return
+        }
+     */
     try {
       const recaptchaVerifier = setupRecaptcha(phoneNumber)
       const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier)
@@ -706,15 +706,15 @@ function AuthPageContent() {
 
     const phoneNumber = `${systemOwnerRegisterData.countryCode}${systemOwnerRegisterData.phoneNumber}`
 
-/*     if (isDevelopment()) {
-      debugLog("Debug mode: Skipping Firebase OTP verification for system owner registration")
-      toast.success(`[DEBUG MODE] OTP sent to ${phoneNumber}. Use code: ${DEBUG_OTP}`)
-      setSystemOwnerOtpSent(true)
-      setSystemOwnerOtp(DEBUG_OTP)
-      setSystemOwnerRegisterResendCountdown(10)
-      return
-    }
- */
+    /*     if (isDevelopment()) {
+          debugLog("Debug mode: Skipping Firebase OTP verification for system owner registration")
+          toast.success(`[DEBUG MODE] OTP sent to ${phoneNumber}. Use code: ${DEBUG_OTP}`)
+          setSystemOwnerOtpSent(true)
+          setSystemOwnerOtp(DEBUG_OTP)
+          setSystemOwnerRegisterResendCountdown(10)
+          return
+        }
+     */
     try {
       const recaptchaVerifier = setupRecaptcha(phoneNumber)
       const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier)
@@ -737,15 +737,15 @@ function AuthPageContent() {
 
     const phoneNumber = `${userLoginData.countryCode}${userLoginData.phoneNumber}`
 
-/*     if (isDevelopment()) {
-      debugLog("Debug mode: Skipping Firebase OTP verification")
-      toast.success(`[DEBUG MODE] OTP sent to ${phoneNumber}. Use code: ${DEBUG_OTP}`)
-      setUserLoginOtpSent(true)
-      setUserLoginOtp(DEBUG_OTP)
-      setUserLoginResendCountdown(10)
-      return
-    }
- */
+    /*     if (isDevelopment()) {
+          debugLog("Debug mode: Skipping Firebase OTP verification")
+          toast.success(`[DEBUG MODE] OTP sent to ${phoneNumber}. Use code: ${DEBUG_OTP}`)
+          setUserLoginOtpSent(true)
+          setUserLoginOtp(DEBUG_OTP)
+          setUserLoginResendCountdown(10)
+          return
+        }
+     */
     try {
       const recaptchaVerifier = setupRecaptcha(phoneNumber)
       // console.log("recaptchaVerifier", recaptchaVerifier)
@@ -768,15 +768,15 @@ function AuthPageContent() {
 
     const phoneNumber = `${adminLoginData.countryCode}${adminLoginData.phoneNumber}`
 
-/*     if (isDevelopment()) {
-      debugLog("Debug mode: Skipping Firebase OTP verification for admin")
-      toast.success(`[DEBUG MODE] OTP sent to ${phoneNumber}. Use code: ${DEBUG_OTP}`)
-      setAdminLoginOtpSent(true)
-      setAdminLoginOtp(DEBUG_OTP)
-      setAdminLoginResendCountdown(10)
-      return
-    }
- */
+    /*     if (isDevelopment()) {
+          debugLog("Debug mode: Skipping Firebase OTP verification for admin")
+          toast.success(`[DEBUG MODE] OTP sent to ${phoneNumber}. Use code: ${DEBUG_OTP}`)
+          setAdminLoginOtpSent(true)
+          setAdminLoginOtp(DEBUG_OTP)
+          setAdminLoginResendCountdown(10)
+          return
+        }
+     */
     try {
       const recaptchaVerifier = setupRecaptcha(phoneNumber)
       const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier)
@@ -797,16 +797,16 @@ function AuthPageContent() {
     }
 
     const phoneNumber = `${systemOwnerLoginData.countryCode}${systemOwnerLoginData.phoneNumber}`
-    
-/*     if (isDevelopment()) {
-      debugLog("Debug mode: Skipping Firebase OTP verification for system owner")
-      toast.success(`[DEBUG MODE] OTP sent to ${phoneNumber}. Use code: ${DEBUG_OTP}`)
-      setSystemOwnerLoginOtpSent(true)
-      setSystemOwnerLoginOtp(DEBUG_OTP)
-      setSystemOwnerLoginResendCountdown(10)
-      return
-    }
- */
+
+    /*     if (isDevelopment()) {
+          debugLog("Debug mode: Skipping Firebase OTP verification for system owner")
+          toast.success(`[DEBUG MODE] OTP sent to ${phoneNumber}. Use code: ${DEBUG_OTP}`)
+          setSystemOwnerLoginOtpSent(true)
+          setSystemOwnerLoginOtp(DEBUG_OTP)
+          setSystemOwnerLoginResendCountdown(10)
+          return
+        }
+     */
     try {
       const recaptchaVerifier = setupRecaptcha(phoneNumber)
       const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier)
@@ -822,46 +822,46 @@ function AuthPageContent() {
 
   const handleUserLoginResendOTP = () => {
     if (userLoginData.email) {
-      toast.success(`OTP resent to ${userLoginData.email}. Code: ${generatedLoginOtp}`)
+      toast.success(`OTP resent to ${userLoginData.email}.`)
       setUserLoginResendCountdown(10)
     } else if (userLoginData.phoneNumber && userLoginData.countryCode) {
-      toast.success(`OTP resent to ${userLoginData.countryCode}${userLoginData.phoneNumber}. Code: ${generatedLoginOtp}`)
+      toast.success(`OTP resent to ${userLoginData.countryCode}${userLoginData.phoneNumber}.`)
       setUserLoginResendCountdown(10)
     }
   }
 
   const handleAdminLoginResendOTP = () => {
     if (adminLoginData.email) {
-      toast.success(`OTP resent to ${adminLoginData.email}. Code: ${generatedLoginOtp}`)
+      toast.success(`OTP resent to ${adminLoginData.email}.`)
       setAdminLoginResendCountdown(10)
     } else if (adminLoginData.phoneNumber && adminLoginData.countryCode) {
-      toast.success(`OTP resent to ${adminLoginData.countryCode}${adminLoginData.phoneNumber}. Code: ${generatedLoginOtp}`)
+      toast.success(`OTP resent to ${adminLoginData.countryCode}${adminLoginData.phoneNumber}.`)
       setAdminLoginResendCountdown(10)
     }
   }
 
   const handleSystemOwnerLoginResendOTP = () => {
     if (systemOwnerLoginData.email) {
-      toast.success(`OTP resent to ${systemOwnerLoginData.email}. Code: ${generatedLoginOtp}`)
+      toast.success(`OTP resent to ${systemOwnerLoginData.email}.`)
       setSystemOwnerLoginResendCountdown(10)
     } else if (systemOwnerLoginData.phoneNumber && systemOwnerLoginData.countryCode) {
-      toast.success(`OTP resent to ${systemOwnerLoginData.countryCode}${systemOwnerLoginData.phoneNumber}. Code: ${generatedLoginOtp}`)
+      toast.success(`OTP resent to ${systemOwnerLoginData.countryCode}${systemOwnerLoginData.phoneNumber}.`)
       setSystemOwnerLoginResendCountdown(10)
     }
   }
 
   const handleUserRegisterResendOTP = () => {
-    toast.success(`OTP resent to ${userRegisterData.countryCode}${userRegisterData.phoneNumber}. Code: ${generatedOtp}`)
+    toast.success(`OTP resent to ${userRegisterData.countryCode}${userRegisterData.phoneNumber}.`)
     setUserRegisterResendCountdown(10)
   }
 
   const handleAdminRegisterResendOTP = () => {
-    toast.success(`OTP resent to ${adminRegisterData.countryCode}${adminRegisterData.phoneNumber}. Code: ${generatedOtp}`)
+    toast.success(`OTP resent to ${adminRegisterData.countryCode}${adminRegisterData.phoneNumber}.`)
     setAdminRegisterResendCountdown(10)
   }
 
   const handleSystemOwnerRegisterResendOTP = () => {
-    toast.success(`OTP resent to ${systemOwnerRegisterData.countryCode}${systemOwnerRegisterData.phoneNumber}. Code: ${generatedOtp}`)
+    toast.success(`OTP resent to ${systemOwnerRegisterData.countryCode}${systemOwnerRegisterData.phoneNumber}.`)
     setSystemOwnerRegisterResendCountdown(10)
   }
 
@@ -881,7 +881,7 @@ function AuthPageContent() {
     */
 
     setIsLoading(true)
-    
+
     try {
       const result = await register({
         first_name: adminRegisterData.first_name,
@@ -891,7 +891,7 @@ function AuthPageContent() {
         countryCode: adminRegisterData.countryCode,
         adminCode: adminRegisterData.adminCode
       }, true)
-      
+
       if (result.success) {
         toast.success("Admin registration successful!")
         router.push("/dashboard")
@@ -972,7 +972,7 @@ function AuthPageContent() {
     */
 
     setIsLoading(true)
-    
+
     try {
       const result = await register({
         first_name: systemOwnerRegisterData.first_name,
@@ -982,7 +982,7 @@ function AuthPageContent() {
         countryCode: systemOwnerRegisterData.countryCode,
         accessKey: systemOwnerRegisterData.accessKey
       }, false, true)
-      
+
       if (result.success) {
         toast.success("System Owner registration successful!")
         router.push("/dashboard")
@@ -1003,661 +1003,661 @@ function AuthPageContent() {
         style={clubFontFamily ? { fontFamily: `"${clubFontFamily}", sans-serif` } : undefined}
         className="min-h-screen"
       >
-      <SiteNavbar brandName="Wingman Pro" />
-      <div className="relative min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
-        {/* Background Pattern */}
-        <div className="absolute inset-0">
-          <div className="absolute top-0 z-[-2] h-screen w-screen bg-[#000000] bg-[radial-gradient(#ffffff33_1px,#000000_1px)] bg-[size:20px_20px]"></div>
-        </div>
-        
-        {/* Hero Content */}
-        <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-4 py-8">
-          <div className={`w-full ${activeTab.includes('register') ? 'max-w-6xl' : 'max-w-2xl'} transition-all duration-300`}>
-            <Card className="backdrop-blur-sm bg-black/20 border-white/20 shadow-2xl">
-            <CardHeader className="text-center pb-6">
-              <div className="mx-auto mb-4 relative w-24 h-24">
-                <Image
-                  src={clubLogoFromUrl || "/WingmanPro Logo (White BG).svg"}
-                  alt={clubNameFromUrl ? `${clubNameFromUrl} logo` : "Wingman Pro logo"}
-                  fill
-                  sizes="96px"
-                  className="object-contain"
-                  priority
-                />
-              </div>
-              <CardTitle className="text-3xl font-bold text-white">
-                {clubNameFromUrl ? `Welcome to ${clubNameFromUrl}` : "Welcome to Wingman Pro"}
-              </CardTitle>
-              <CardDescription className="text-slate-300 text-lg">
-                Manage your supporter group with ease
-              </CardDescription>
-              <div className="mx-auto mt-4 flex flex-col items-center gap-2 text-xs uppercase tracking-wider text-slate-400">
-                <span>Powered by</span>
-                <div className="relative h-8 w-40">
-                  <Image
-                    src="/RallyUpSolutions Logo (Transparent Background).svg"
-                    alt="RallyUp Solutions logo"
-                    fill
-                    sizes="160px"
-                    className="object-contain"
-                  />
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="px-6 pb-6">
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-3 bg-white/10 border-white/20 mb-6">
-                  <TabsTrigger value="user-login" className="text-white data-[state=active]:bg-sky-400 data-[state=active]:text-slate-900">User</TabsTrigger>
-                  <TabsTrigger value="admin-login" className="text-white data-[state=active]:bg-sky-400 data-[state=active]:text-slate-900">Admin</TabsTrigger>
-                  <TabsTrigger value="system-owner-login" className="text-white data-[state=active]:bg-sky-400 data-[state=active]:text-slate-900">System</TabsTrigger>
-                </TabsList>
-                
-                <div className="max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
-                  <TabsContent value="user-login" className="space-y-4 mt-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="user-email" className="text-white font-medium">Email</Label>
-                      <div className="flex items-center gap-2">
-                        <Mail className="w-4 h-4 text-slate-300 flex-shrink-0" />
-                        <Input
-                          id="user-email"
-                          type="email"
-                          placeholder="Enter your email"
-                          value={userLoginData.email}
-                          onChange={(e) => {
-                            const email = e.target.value
-                            setUserLoginData({ ...userLoginData, email, phoneNumber: "", countryCode: "+91" })
-                            setUserLoginErrors({ ...userLoginErrors, email: validateEmail(email) })
-                          }}
-                          onBlur={(e) => {
-                            setUserLoginErrors({ ...userLoginErrors, email: validateEmail(e.target.value) })
-                          }}
-                          className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 ${userLoginErrors.email ? "border-red-500" : ""}`}
-                        />
-                      </div>
-                      {userLoginErrors.email && (
-                        <p className="text-red-400 text-sm">{userLoginErrors.email}</p>
-                      )}
-                    </div>
-                    
-                    <div className="flex items-center justify-center">
-                      <div className="flex items-center gap-3 w-full">
-                        <div className="flex-1 h-px bg-white/30"></div>
-                        <div className="text-white text-sm font-medium px-3">OR</div>
-                        <div className="flex-1 h-px bg-white/30"></div>
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-3 gap-2">
-                      <div className="space-y-2 flex flex-col justify-between">
-                        <Label htmlFor="user-login-country-code" className="text-white font-medium">Country Code</Label>
-                        <div className="flex items-center gap-2">
-                          <Phone className="w-4 h-4 text-slate-300 flex-shrink-0" />
-                          <Input
-                            id="user-login-country-code"
-                            type="text"
-                            placeholder="+91"
-                            value={userLoginData.countryCode}
-                            onChange={(e) => setUserLoginData({ ...userLoginData, countryCode: e.target.value })}
-                            disabled={!!userLoginData.email}
-                            className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 disabled:opacity-50 disabled:cursor-not-allowed focus:ring-2 focus:ring-sky-400"
-                          />
-                        </div>
-                      </div>
-                      <div className="col-span-2 space-y-2 flex flex-col justify-between">
-                        <Label htmlFor="user-login-phone" className="text-white font-medium">Phone Number</Label>
-                        <div className="flex items-center gap-2">
-                          <Phone className="w-4 h-4 text-slate-300 flex-shrink-0" />
-                          <Input
-                            id="user-login-phone"
-                            type="tel"
-                            placeholder="Enter your phone number"
-                            value={userLoginData.phoneNumber}
-                            onChange={(e) => {
-                              const phone = e.target.value.replace(/\D/g, "")
-                              setUserLoginData({ ...userLoginData, phoneNumber: phone, email: "" })
-                              setUserLoginErrors({ ...userLoginErrors, phoneNumber: validatePhoneNumber(phone) })
-                            }}
-                            onBlur={(e) => {
-                              setUserLoginErrors({ ...userLoginErrors, phoneNumber: validatePhoneNumber(e.target.value) })
-                            }}
-                            disabled={!!userLoginData.email}
-                            className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 disabled:opacity-50 disabled:cursor-not-allowed focus:ring-2 focus:ring-sky-400 ${userLoginErrors.phoneNumber ? "border-red-500" : ""}`}
-                          />
-                        </div>
-                        {userLoginErrors.phoneNumber && (
-                          <p className="text-red-400 text-sm">{userLoginErrors.phoneNumber}</p>
-                        )}
-                      </div>
-                    </div>
-                    
-                    {!userLoginOtpSent ? (
-                      <Button 
-                        onClick={() => {
+        <SiteNavbar brandName="Wingman Pro" />
+        <div className="relative min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
+          {/* Background Pattern */}
+          <div className="absolute inset-0">
+            <div className="absolute top-0 z-[-2] h-screen w-screen bg-[#000000] bg-[radial-gradient(#ffffff33_1px,#000000_1px)] bg-[size:20px_20px]"></div>
+          </div>
 
-                          ;(async () => {
-                            if (userLoginData.email) {
-                              const emailError = validateEmail(userLoginData.email)
-                              setUserLoginErrors({ ...userLoginErrors, email: emailError })
-                              if (emailError) {
-                                toast.error("Please fix the email validation error")
-                                return
-                              }
-                              try {
-                                setOtpButtonLoading(true)
-                                const res = await apiClient.sendOtp({ email: userLoginData.email, role: "user" })
-                                if (res.success) {
-                                  toast.success(`Code sent to ${userLoginData.email}. Check your email.`)
-                                  setUserLoginOtpSent(true)
-                                  setUserLoginResendCountdown(10)
-                                } else {
-                                  toast.error(res.message || res.error || "Failed to send code.")
-                                }
-                              } catch (err) {
-                                toast.error("Failed to send sign-in link. Please try again.")
-                              } finally {
-                                setOtpButtonLoading(false)
-                              }
-                            } else if (userLoginData.phoneNumber && userLoginData.countryCode) {
-                              const phoneError = validatePhoneNumber(userLoginData.phoneNumber)
-                              setUserLoginErrors({ ...userLoginErrors, phoneNumber: phoneError })
-                              if (phoneError) {
-                                toast.error("Please fix the phone number validation error")
-                                return
-                              }
-                              setOtpButtonLoading(true)
-                              await handleUserLoginVerifyNumber()
-                              setOtpButtonLoading(false)
-                            } else {
-                              toast.error("Please enter either email or phone number")
-                            }
-                          })()
-                        }}
-                        disabled={
-                          (!userLoginData.email && (!userLoginData.phoneNumber || !userLoginData.countryCode)) ||
-                          (userLoginData.email ? !!userLoginErrors.email : false) ||
-                          (userLoginData.phoneNumber ? !!userLoginErrors.phoneNumber : false) ||
-                          otpButtonLoading
-                        }
-                        className="w-full bg-sky-400 text-slate-900 hover:bg-sky-300 h-12 text-lg font-medium"
-                      >
-                        {!otpButtonLoading ? "Send OTP" : "Sending OTP"}
-                        <Phone className="ml-2 w-4 h-4" />
-                      </Button>
-                    ) : (
-                      <div className="space-y-4">
-                        {userLoginData.email ? (
-                          <p className="text-slate-300">A 6-digit code has been sent to <strong className="text-white">{userLoginData.email}</strong>. Enter it below.</p>
-                        ) : null}
-                        <div className="space-y-2">
-                          <Label htmlFor="user-login-otp" className="text-white font-medium">OTP Code</Label>
-                          <Input
-                            id="user-login-otp"
-                            type="text"
-                            placeholder="Enter 6-digit OTP"
-                            value={userLoginOtp}
-                            onChange={(e) => setUserLoginOtp(e.target.value)}
-                            className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 h-12 text-center text-lg"
-                            maxLength={6}
-                          />
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button onClick={handleUserLogin} className="flex-1 bg-sky-400 text-slate-900 hover:bg-sky-300 h-12 text-lg font-medium" disabled={isLoading}>
-                            {isLoading ? "Signing in..." : "Sign In"}
-                            <LogIn className="ml-2 w-4 h-4" />
-                          </Button>
-                          {userLoginData.email ? (
-                            <Button
-                              type="button"
-                              onClick={async () => {
-                                try {
-                                  const res = await apiClient.sendOtp({ email: userLoginData.email, role: "user" })
-                                  if (res.success) {
-                                    toast.success(`Code resent to ${userLoginData.email}.`)
-                                    setUserLoginResendCountdown(10)
-                                  } else {
-                                    toast.error(res.message || res.error || "Failed to resend code.")
-                                  }
-                                } catch {
-                                  toast.error("Failed to resend code. Please try again.")
-                                }
-                              }}
-                              disabled={userLoginResendCountdown > 0}
-                              className="border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-12 px-4"
-                            >
-                              {userLoginResendCountdown > 0 ? `Resend (${userLoginResendCountdown}s)` : "Resend"}
-                            </Button>
-                          ) : (
-                            <Button 
-                              type="button"
-                              variant="outline"
-                              onClick={handleUserLoginResendOTP}
-                              disabled={userLoginResendCountdown > 0}
-                              className="border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-12 px-4"
-                            >
-                              {userLoginResendCountdown > 0 ? `Resend (${userLoginResendCountdown}s)` : "Resend"}
-                            </Button>
-                          )}
-                        </div>
-                        {userLoginData.email ? (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => setUserLoginOtpSent(false)}
-                            className="w-full border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-11"
-                          >
-                            Use Phone Instead
-                          </Button>
-                        ) : null}
-                      </div>
-                    )}
-                    
-                    <div className="space-y-3 pt-4">
-                      <Button 
-                        variant="outline" 
-                        onClick={() => {
-                          router.push("/clubs");
-                        }}
-                        className="w-full border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-11"
-                      >
-                        Create Account
-                        <UserPlus className="ml-2 w-4 h-4" />
-                      </Button>
+          {/* Hero Content */}
+          <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-4 py-8">
+            <div className={`w-full ${activeTab.includes('register') ? 'max-w-6xl' : 'max-w-2xl'} transition-all duration-300`}>
+              <Card className="backdrop-blur-sm bg-black/20 border-white/20 shadow-2xl">
+                <CardHeader className="text-center pb-6">
+                  <div className="mx-auto mb-4 relative w-24 h-24">
+                    <Image
+                      src={clubLogoFromUrl || "/WingmanPro Logo (White BG).svg"}
+                      alt={clubNameFromUrl ? `${clubNameFromUrl} logo` : "Wingman Pro logo"}
+                      fill
+                      sizes="96px"
+                      className="object-contain"
+                      priority
+                    />
+                  </div>
+                  <CardTitle className="text-3xl font-bold text-white">
+                    {clubNameFromUrl ? `Welcome to ${clubNameFromUrl}` : "Welcome to Wingman Pro"}
+                  </CardTitle>
+                  <CardDescription className="text-slate-300 text-lg">
+                    Manage your supporter group with ease
+                  </CardDescription>
+                  <div className="mx-auto mt-4 flex flex-col items-center gap-2 text-xs uppercase tracking-wider text-slate-400">
+                    <span>Powered by</span>
+                    <div className="relative h-8 w-40">
+                      <Image
+                        src="/RallyUpSolutions Logo (Transparent Background).svg"
+                        alt="RallyUp Solutions logo"
+                        fill
+                        sizes="160px"
+                        className="object-contain"
+                      />
                     </div>
-                  </TabsContent>
+                  </div>
+                </CardHeader>
+                <CardContent className="px-6 pb-6">
+                  <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                    <TabsList className="grid w-full grid-cols-3 bg-white/10 border-white/20 mb-6">
+                      <TabsTrigger value="user-login" className="text-white data-[state=active]:bg-sky-400 data-[state=active]:text-slate-900">User</TabsTrigger>
+                      <TabsTrigger value="admin-login" className="text-white data-[state=active]:bg-sky-400 data-[state=active]:text-slate-900">Admin</TabsTrigger>
+                      <TabsTrigger value="system-owner-login" className="text-white data-[state=active]:bg-sky-400 data-[state=active]:text-slate-900">System</TabsTrigger>
+                    </TabsList>
 
-                  <TabsContent value="user-register" className="space-y-4 mt-4">
-                    <div className="flex flex-col lg:flex-row gap-8">
-                      {/* Left Column */}
-                      <div className="flex-1 space-y-4">
+                    <div className="max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar">
+                      <TabsContent value="user-login" className="space-y-4 mt-4">
                         <div className="space-y-2">
-                          <Label htmlFor="user-username" className="text-white font-medium">Username</Label>
-                          <div className="flex items-center gap-2">
-                            <User className="w-4 h-4 text-slate-300 flex-shrink-0" />
-                            <Input
-                              id="user-username"
-                              type="text"
-                              placeholder="Enter your username"
-                              value={userRegisterData.username}
-                              onChange={(e) => setUserRegisterData({ ...userRegisterData, username: e.target.value })}
-                              className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400"
-                            />
-                          </div>
-                          <p className="text-xs text-slate-400">
-                            Username can only contain letters, numbers, underscores, periods, apostrophes, and hyphens (e.g., john_doe123, dr.harish, heston'souza)
-                          </p>
-                        </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="user-first-name" className="text-white font-medium">First Name</Label>
-                            <Input
-                              id="user-first-name"
-                              type="text"
-                              placeholder="Enter your first name"
-                              value={userRegisterData.first_name}
-                              onChange={(e) => setUserRegisterData({ ...userRegisterData, first_name: e.target.value })}
-                              className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="user-last-name" className="text-white font-medium">Last Name</Label>
-                            <Input
-                              id="user-last-name"
-                              type="text"
-                              placeholder="Enter your last name"
-                              value={userRegisterData.last_name}
-                              onChange={(e) => setUserRegisterData({ ...userRegisterData, last_name: e.target.value })}
-                              className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400"
-                            />
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label htmlFor="user-register-email" className="text-white font-medium">Email</Label>
+                          <Label htmlFor="user-email" className="text-white font-medium">Email</Label>
                           <div className="flex items-center gap-2">
                             <Mail className="w-4 h-4 text-slate-300 flex-shrink-0" />
                             <Input
-                              id="user-register-email"
+                              id="user-email"
                               type="email"
                               placeholder="Enter your email"
-                              value={userRegisterData.email}
+                              value={userLoginData.email}
                               onChange={(e) => {
                                 const email = e.target.value
-                                setUserRegisterData({ ...userRegisterData, email })
-                                setUserRegisterErrors({ ...userRegisterErrors, email: validateEmail(email) })
+                                setUserLoginData({ ...userLoginData, email, phoneNumber: "", countryCode: "+91" })
+                                setUserLoginErrors({ ...userLoginErrors, email: validateEmail(email) })
                               }}
                               onBlur={(e) => {
-                                setUserRegisterErrors({ ...userRegisterErrors, email: validateEmail(e.target.value) })
+                                setUserLoginErrors({ ...userLoginErrors, email: validateEmail(e.target.value) })
                               }}
-                              className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 ${userRegisterErrors.email ? "border-red-500" : ""}`}
+                              className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 ${userLoginErrors.email ? "border-red-500" : ""}`}
                             />
                           </div>
-                          {userRegisterErrors.email && (
-                            <p className="text-red-400 text-sm">{userRegisterErrors.email}</p>
+                          {userLoginErrors.email && (
+                            <p className="text-red-400 text-sm">{userLoginErrors.email}</p>
                           )}
                         </div>
-                        
+
+                        <div className="flex items-center justify-center">
+                          <div className="flex items-center gap-3 w-full">
+                            <div className="flex-1 h-px bg-white/30"></div>
+                            <div className="text-white text-sm font-medium px-3">OR</div>
+                            <div className="flex-1 h-px bg-white/30"></div>
+                          </div>
+                        </div>
+
                         <div className="grid grid-cols-3 gap-2">
-                          <div className="space-y-2 flex flex flex-col justify-between">
-                            <Label htmlFor="user-country-code" className="text-white font-medium">Country Code</Label>
+                          <div className="space-y-2 flex flex-col justify-between">
+                            <Label htmlFor="user-login-country-code" className="text-white font-medium">Country Code</Label>
                             <div className="flex items-center gap-2">
                               <Phone className="w-4 h-4 text-slate-300 flex-shrink-0" />
                               <Input
-                                id="user-country-code"
+                                id="user-login-country-code"
                                 type="text"
                                 placeholder="+91"
-                                value={userRegisterData.countryCode}
-                                onChange={(e) => setUserRegisterData({ ...userRegisterData, countryCode: e.target.value })}
-                                className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400"
+                                value={userLoginData.countryCode}
+                                onChange={(e) => setUserLoginData({ ...userLoginData, countryCode: e.target.value })}
+                                disabled={!!userLoginData.email}
+                                className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 disabled:opacity-50 disabled:cursor-not-allowed focus:ring-2 focus:ring-sky-400"
                               />
                             </div>
                           </div>
                           <div className="col-span-2 space-y-2 flex flex-col justify-between">
-                            <Label htmlFor="user-phone" className="text-white font-medium">Phone Number</Label>
+                            <Label htmlFor="user-login-phone" className="text-white font-medium">Phone Number</Label>
                             <div className="flex items-center gap-2">
                               <Phone className="w-4 h-4 text-slate-300 flex-shrink-0" />
                               <Input
-                                id="user-phone"
+                                id="user-login-phone"
                                 type="tel"
                                 placeholder="Enter your phone number"
-                                value={userRegisterData.phoneNumber}
+                                value={userLoginData.phoneNumber}
                                 onChange={(e) => {
                                   const phone = e.target.value.replace(/\D/g, "")
-                                  setUserRegisterData({ ...userRegisterData, phoneNumber: phone })
-                                  setUserRegisterErrors({ ...userRegisterErrors, phoneNumber: validatePhoneNumber(phone) })
+                                  setUserLoginData({ ...userLoginData, phoneNumber: phone, email: "" })
+                                  setUserLoginErrors({ ...userLoginErrors, phoneNumber: validatePhoneNumber(phone) })
                                 }}
                                 onBlur={(e) => {
-                                  setUserRegisterErrors({ ...userRegisterErrors, phoneNumber: validatePhoneNumber(e.target.value) })
+                                  setUserLoginErrors({ ...userLoginErrors, phoneNumber: validatePhoneNumber(e.target.value) })
                                 }}
-                                className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 ${userRegisterErrors.phoneNumber ? "border-red-500" : ""}`}
+                                disabled={!!userLoginData.email}
+                                className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 disabled:opacity-50 disabled:cursor-not-allowed focus:ring-2 focus:ring-sky-400 ${userLoginErrors.phoneNumber ? "border-red-500" : ""}`}
                               />
                             </div>
-                            {userRegisterErrors.phoneNumber && (
-                              <p className="text-red-400 text-sm">{userRegisterErrors.phoneNumber}</p>
+                            {userLoginErrors.phoneNumber && (
+                              <p className="text-red-400 text-sm">{userLoginErrors.phoneNumber}</p>
                             )}
                           </div>
                         </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="user-date-of-birth" className="text-white font-medium">Date of Birth</Label>
-                            <Input
-                              id="user-date-of-birth"
-                              type="date"
-                              value={userRegisterData.date_of_birth}
-                              onChange={(e) => {
-                                const dob = e.target.value
-                                setUserRegisterData({ ...userRegisterData, date_of_birth: dob })
-                                setUserRegisterErrors({ ...userRegisterErrors, date_of_birth: validateDOB(dob) })
-                              }}
-                              onBlur={(e) => {
-                                setUserRegisterErrors({ ...userRegisterErrors, date_of_birth: validateDOB(e.target.value) })
-                              }}
-                              max={new Date().toISOString().split('T')[0]}
-                              className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 ${userRegisterErrors.date_of_birth ? "border-red-500" : ""}`}
-                            />
-                            {userRegisterErrors.date_of_birth && (
-                              <p className="text-red-400 text-sm">{userRegisterErrors.date_of_birth}</p>
-                            )}
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="user-gender" className="text-white font-medium">Gender</Label>
-                            <select
-                              id="user-gender"
-                              value={userRegisterData.gender}
-                              onChange={(e) => setUserRegisterData({ ...userRegisterData, gender: e.target.value as "male" | "female" | "non-binary" })}
-                              className="w-full bg-white/10 border border-white/20 text-white rounded-md px-3 py-2 focus:ring-2 focus:ring-sky-400 focus:outline-none"
-                            >
-                              <option value="male">Male</option>
-                              <option value="female">Female</option>
-                              <option value="non-binary">Non-binary</option>
-                            </select>
-                          </div>
-                        </div>
-                      </div>
 
-                      {/* Right Column */}
-                      <div className="flex-1 space-y-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="user-address-line1" className="text-white font-medium">Address Line 1</Label>
-                          <Input
-                            id="user-address-line1"
-                            type="text"
-                            placeholder="Enter your address"
-                            value={userRegisterData.address_line1}
-                            onChange={(e) => setUserRegisterData({ ...userRegisterData, address_line1: e.target.value })}
-                            className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400"
-                          />
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label htmlFor="user-address-line2" className="text-white font-medium">Address Line 2 (Optional)</Label>
-                          <Input
-                            id="user-address-line2"
-                            type="text"
-                            placeholder="Apartment, suite, etc."
-                            value={userRegisterData.address_line2}
-                            onChange={(e) => setUserRegisterData({ ...userRegisterData, address_line2: e.target.value })}
-                            className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400"
-                          />
-                        </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="user-city" className="text-white font-medium">City</Label>
-                            <Input
-                              id="user-city"
-                              type="text"
-                              placeholder="Enter city"
-                              value={userRegisterData.city}
-                              onChange={(e) => setUserRegisterData({ ...userRegisterData, city: e.target.value })}
-                              className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="user-state" className="text-white font-medium">State/Province</Label>
-                            <Input
-                              id="user-state"
-                              type="text"
-                              placeholder="Enter state"
-                              value={userRegisterData.state_province}
-                              onChange={(e) => setUserRegisterData({ ...userRegisterData, state_province: e.target.value })}
-                              className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="user-zip" className="text-white font-medium">ZIP Code</Label>
-                            <Input
-                              id="user-zip"
-                              type="text"
-                              placeholder="Enter ZIP code"
-                              value={userRegisterData.zip_code}
-                              onChange={(e) => {
-                                const zipCode = e.target.value
-                                setUserRegisterData({ ...userRegisterData, zip_code: zipCode })
-                                setUserRegisterErrors({ ...userRegisterErrors, zip_code: validateZipCode(zipCode, userRegisterData.country) })
-                              }}
-                              onBlur={(e) => {
-                                setUserRegisterErrors({ ...userRegisterErrors, zip_code: validateZipCode(e.target.value, userRegisterData.country) })
-                              }}
-                              className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 ${userRegisterErrors.zip_code ? "border-red-500" : ""}`}
-                            />
-                            {userRegisterErrors.zip_code && (
-                              <p className="text-red-400 text-sm">{userRegisterErrors.zip_code}</p>
-                            )}
-                          </div>
-                        </div>
-                        
-                        <div className="space-y-2">
-                          <Label htmlFor="user-country" className="text-white font-medium">Country</Label>
-                          <select
-                            id="user-country"
-                            value={userRegisterData.country}
-                            onChange={(e) => {
-                              const country = e.target.value
-                              setUserRegisterData({ ...userRegisterData, country })
-                              if (userRegisterData.zip_code) {
-                                setUserRegisterErrors({ ...userRegisterErrors, zip_code: validateZipCode(userRegisterData.zip_code, country) })
-                              }
-                            }}
-                            className="w-full bg-white/10 border border-white/20 text-white rounded-md px-3 py-2 focus:ring-2 focus:ring-sky-400 focus:outline-none"
-                          >
-                            <option value="">Select your country</option>
-                            <option value="India">India</option>
-                            <option value="United States">United States</option>
-                            <option value="United Kingdom">United Kingdom</option>
-                            <option value="Canada">Canada</option>
-                            <option value="Australia">Australia</option>
-                            <option value="Germany">Germany</option>
-                            <option value="France">France</option>
-                            <option value="Japan">Japan</option>
-                            <option value="China">China</option>
-                            <option value="Brazil">Brazil</option>
-                            <option value="Mexico">Mexico</option>
-                            <option value="South Africa">South Africa</option>
-                            <option value="Nigeria">Nigeria</option>
-                            <option value="Kenya">Kenya</option>
-                            <option value="Egypt">Egypt</option>
-                            <option value="Saudi Arabia">Saudi Arabia</option>
-                            <option value="UAE">UAE</option>
-                            <option value="Singapore">Singapore</option>
-                            <option value="Malaysia">Malaysia</option>
-                            <option value="Thailand">Thailand</option>
-                            <option value="Vietnam">Vietnam</option>
-                            <option value="Philippines">Philippines</option>
-                            <option value="Indonesia">Indonesia</option>
-                            <option value="Pakistan">Pakistan</option>
-                            <option value="Bangladesh">Bangladesh</option>
-                            <option value="Sri Lanka">Sri Lanka</option>
-                            <option value="Nepal">Nepal</option>
-                            <option value="Bhutan">Bhutan</option>
-                            <option value="Myanmar">Myanmar</option>
-                            <option value="Cambodia">Cambodia</option>
-                            <option value="Laos">Laos</option>
-                            <option value="Mongolia">Mongolia</option>
-                            <option value="Kazakhstan">Kazakhstan</option>
-                            <option value="Uzbekistan">Uzbekistan</option>
-                            <option value="Kyrgyzstan">Kyrgyzstan</option>
-                            <option value="Tajikistan">Tajikistan</option>
-                            <option value="Turkmenistan">Turkmenistan</option>
-                            <option value="Afghanistan">Afghanistan</option>
-                            <option value="Iran">Iran</option>
-                            <option value="Iraq">Iraq</option>
-                            <option value="Syria">Syria</option>
-                            <option value="Lebanon">Lebanon</option>
-                            <option value="Jordan">Jordan</option>
-                            <option value="Israel">Israel</option>
-                            <option value="Palestine">Palestine</option>
-                            <option value="Turkey">Turkey</option>
-                            <option value="Greece">Greece</option>
-                            <option value="Italy">Italy</option>
-                            <option value="Spain">Spain</option>
-                            <option value="Portugal">Portugal</option>
-                            <option value="Netherlands">Netherlands</option>
-                            <option value="Belgium">Belgium</option>
-                            <option value="Switzerland">Switzerland</option>
-                            <option value="Austria">Austria</option>
-                            <option value="Poland">Poland</option>
-                            <option value="Czech Republic">Czech Republic</option>
-                            <option value="Slovakia">Slovakia</option>
-                            <option value="Hungary">Hungary</option>
-                            <option value="Romania">Romania</option>
-                            <option value="Bulgaria">Bulgaria</option>
-                            <option value="Croatia">Croatia</option>
-                            <option value="Slovenia">Slovenia</option>
-                            <option value="Serbia">Serbia</option>
-                            <option value="Bosnia and Herzegovina">Bosnia and Herzegovina</option>
-                            <option value="Montenegro">Montenegro</option>
-                            <option value="Albania">Albania</option>
-                            <option value="North Macedonia">North Macedonia</option>
-                            <option value="Kosovo">Kosovo</option>
-                            <option value="Moldova">Moldova</option>
-                            <option value="Ukraine">Ukraine</option>
-                            <option value="Belarus">Belarus</option>
-                            <option value="Lithuania">Lithuania</option>
-                            <option value="Latvia">Latvia</option>
-                            <option value="Estonia">Estonia</option>
-                            <option value="Finland">Finland</option>
-                            <option value="Sweden">Sweden</option>
-                            <option value="Norway">Norway</option>
-                            <option value="Denmark">Denmark</option>
-                            <option value="Iceland">Iceland</option>
-                            <option value="Ireland">Ireland</option>
-                            <option value="New Zealand">New Zealand</option>
-                            <option value="Argentina">Argentina</option>
-                            <option value="Chile">Chile</option>
-                            <option value="Peru">Peru</option>
-                            <option value="Colombia">Colombia</option>
-                            <option value="Venezuela">Venezuela</option>
-                            <option value="Ecuador">Ecuador</option>
-                            <option value="Bolivia">Bolivia</option>
-                            <option value="Paraguay">Paraguay</option>
-                            <option value="Uruguay">Uruguay</option>
-                            <option value="Guyana">Guyana</option>
-                            <option value="Suriname">Suriname</option>
-                            <option value="French Guiana">French Guiana</option>
-                            <option value="Other">Other</option>
-                          </select>
-                        </div>
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="user-id-proof-type" className="text-white font-medium">ID Proof Type</Label>
-                            <select
-                              id="user-id-proof-type"
-                              value={userRegisterData.id_proof_type}
-                              onChange={(e) => {
-                                const idType = e.target.value as "Aadhar" | "Voter ID" | "Passport" | "Driver License" | "PAN"
-                                setUserRegisterData({ ...userRegisterData, id_proof_type: idType, id_proof_number: "" })
-                                setUserRegisterErrors({ ...userRegisterErrors, id_proof_number: "" })
-                              }}
-                              className="w-full bg-white/10 border border-white/20 text-white rounded-md px-3 py-2 focus:ring-2 focus:ring-sky-400 focus:outline-none"
-                            >
-                              <option value="Aadhar">Aadhar</option>
-                              <option value="Voter ID">Voter ID</option>
-                              <option value="Passport">Passport</option>
-                              <option value="Driver License">Driver License</option>
-                              <option value="PAN">PAN Card</option>
-                            </select>
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="user-id-proof-number" className="text-white font-medium">ID Proof Number</Label>
-                            <Input
-                              id="user-id-proof-number"
-                              type="text"
-                              placeholder={userRegisterData.id_proof_type === "Aadhar" ? "Enter 12-digit Aadhar number" : "Enter ID number"}
-                              value={userRegisterData.id_proof_number}
-                              onChange={(e) => {
-                                let idNumber = e.target.value
-                                if (userRegisterData.id_proof_type === "Aadhar") {
-                                  idNumber = idNumber.replace(/\D/g, "")
-                                }
-                                setUserRegisterData({ ...userRegisterData, id_proof_number: idNumber })
-                                if (userRegisterData.id_proof_type === "Aadhar") {
-                                  setUserRegisterErrors({ ...userRegisterErrors, id_proof_number: validateAadhar(idNumber) })
+                        {!userLoginOtpSent ? (
+                          <Button
+                            onClick={() => {
+
+                              ; (async () => {
+                                if (userLoginData.email) {
+                                  const emailError = validateEmail(userLoginData.email)
+                                  setUserLoginErrors({ ...userLoginErrors, email: emailError })
+                                  if (emailError) {
+                                    toast.error("Please fix the email validation error")
+                                    return
+                                  }
+                                  try {
+                                    setOtpButtonLoading(true)
+                                    const res = await apiClient.sendOtp({ email: userLoginData.email, role: "user" })
+                                    if (res.success) {
+                                      toast.success(`Code sent to ${userLoginData.email}. Check your email.`)
+                                      setUserLoginOtpSent(true)
+                                      setUserLoginResendCountdown(10)
+                                    } else {
+                                      toast.error(res.message || res.error || "Failed to send code.")
+                                    }
+                                  } catch (err) {
+                                    toast.error("Failed to send sign-in link. Please try again.")
+                                  } finally {
+                                    setOtpButtonLoading(false)
+                                  }
+                                } else if (userLoginData.phoneNumber && userLoginData.countryCode) {
+                                  const phoneError = validatePhoneNumber(userLoginData.phoneNumber)
+                                  setUserLoginErrors({ ...userLoginErrors, phoneNumber: phoneError })
+                                  if (phoneError) {
+                                    toast.error("Please fix the phone number validation error")
+                                    return
+                                  }
+                                  setOtpButtonLoading(true)
+                                  await handleUserLoginVerifyNumber()
+                                  setOtpButtonLoading(false)
                                 } else {
-                                  setUserRegisterErrors({ ...userRegisterErrors, id_proof_number: "" })
+                                  toast.error("Please enter either email or phone number")
                                 }
-                              }}
-                              onBlur={(e) => {
-                                if (userRegisterData.id_proof_type === "Aadhar") {
-                                  setUserRegisterErrors({ ...userRegisterErrors, id_proof_number: validateAadhar(e.target.value) })
-                                }
-                              }}
-                              maxLength={userRegisterData.id_proof_type === "Aadhar" ? 12 : undefined}
-                              className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 ${userRegisterErrors.id_proof_number ? "border-red-500" : ""}`}
-                            />
-                            {userRegisterErrors.id_proof_number && (
-                              <p className="text-red-400 text-sm">{userRegisterErrors.id_proof_number}</p>
-                            )}
+                              })()
+                            }}
+                            disabled={
+                              (!userLoginData.email && (!userLoginData.phoneNumber || !userLoginData.countryCode)) ||
+                              (userLoginData.email ? !!userLoginErrors.email : false) ||
+                              (userLoginData.phoneNumber ? !!userLoginErrors.phoneNumber : false) ||
+                              otpButtonLoading
+                            }
+                            className="w-full bg-sky-400 text-slate-900 hover:bg-sky-300 h-12 text-lg font-medium"
+                          >
+                            {!otpButtonLoading ? "Send OTP" : "Sending OTP"}
+                            <Phone className="ml-2 w-4 h-4" />
+                          </Button>
+                        ) : (
+                          <div className="space-y-4">
+                            {userLoginData.email ? (
+                              <p className="text-slate-300">A 6-digit code has been sent to <strong className="text-white">{userLoginData.email}</strong>. Enter it below.</p>
+                            ) : null}
+                            <div className="space-y-2">
+                              <Label htmlFor="user-login-otp" className="text-white font-medium">OTP Code</Label>
+                              <Input
+                                id="user-login-otp"
+                                type="text"
+                                placeholder="Enter 6-digit OTP"
+                                value={userLoginOtp}
+                                onChange={(e) => setUserLoginOtp(e.target.value)}
+                                className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 h-12 text-center text-lg"
+                                maxLength={6}
+                              />
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Button onClick={handleUserLogin} className="flex-1 bg-sky-400 text-slate-900 hover:bg-sky-300 h-12 text-lg font-medium" disabled={isLoading}>
+                                {isLoading ? "Signing in..." : "Sign In"}
+                                <LogIn className="ml-2 w-4 h-4" />
+                              </Button>
+                              {userLoginData.email ? (
+                                <Button
+                                  type="button"
+                                  onClick={async () => {
+                                    try {
+                                      const res = await apiClient.sendOtp({ email: userLoginData.email, role: "user" })
+                                      if (res.success) {
+                                        toast.success(`Code resent to ${userLoginData.email}.`)
+                                        setUserLoginResendCountdown(10)
+                                      } else {
+                                        toast.error(res.message || res.error || "Failed to resend code.")
+                                      }
+                                    } catch {
+                                      toast.error("Failed to resend code. Please try again.")
+                                    }
+                                  }}
+                                  disabled={userLoginResendCountdown > 0}
+                                  className="border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-12 px-4"
+                                >
+                                  {userLoginResendCountdown > 0 ? `Resend (${userLoginResendCountdown}s)` : "Resend"}
+                                </Button>
+                              ) : (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  onClick={handleUserLoginResendOTP}
+                                  disabled={userLoginResendCountdown > 0}
+                                  className="border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-12 px-4"
+                                >
+                                  {userLoginResendCountdown > 0 ? `Resend (${userLoginResendCountdown}s)` : "Resend"}
+                                </Button>
+                              )}
+                            </div>
+                            {userLoginData.email ? (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setUserLoginOtpSent(false)}
+                                className="w-full border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-11"
+                              >
+                                Use Phone Instead
+                              </Button>
+                            ) : null}
+                          </div>
+                        )}
+
+                        <div className="space-y-3 pt-4">
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              router.push("/clubs");
+                            }}
+                            className="w-full border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-11"
+                          >
+                            Create Account
+                            <UserPlus className="ml-2 w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TabsContent>
+
+                      <TabsContent value="user-register" className="space-y-4 mt-4">
+                        <div className="flex flex-col lg:flex-row gap-8">
+                          {/* Left Column */}
+                          <div className="flex-1 space-y-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="user-username" className="text-white font-medium">Username</Label>
+                              <div className="flex items-center gap-2">
+                                <User className="w-4 h-4 text-slate-300 flex-shrink-0" />
+                                <Input
+                                  id="user-username"
+                                  type="text"
+                                  placeholder="Enter your username"
+                                  value={userRegisterData.username}
+                                  onChange={(e) => setUserRegisterData({ ...userRegisterData, username: e.target.value })}
+                                  className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400"
+                                />
+                              </div>
+                              <p className="text-xs text-slate-400">
+                                Username can only contain letters, numbers, underscores, periods, apostrophes, and hyphens (e.g., john_doe123, dr.harish, heston'souza)
+                              </p>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="user-first-name" className="text-white font-medium">First Name</Label>
+                                <Input
+                                  id="user-first-name"
+                                  type="text"
+                                  placeholder="Enter your first name"
+                                  value={userRegisterData.first_name}
+                                  onChange={(e) => setUserRegisterData({ ...userRegisterData, first_name: e.target.value })}
+                                  className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="user-last-name" className="text-white font-medium">Last Name</Label>
+                                <Input
+                                  id="user-last-name"
+                                  type="text"
+                                  placeholder="Enter your last name"
+                                  value={userRegisterData.last_name}
+                                  onChange={(e) => setUserRegisterData({ ...userRegisterData, last_name: e.target.value })}
+                                  className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="user-register-email" className="text-white font-medium">Email</Label>
+                              <div className="flex items-center gap-2">
+                                <Mail className="w-4 h-4 text-slate-300 flex-shrink-0" />
+                                <Input
+                                  id="user-register-email"
+                                  type="email"
+                                  placeholder="Enter your email"
+                                  value={userRegisterData.email}
+                                  onChange={(e) => {
+                                    const email = e.target.value
+                                    setUserRegisterData({ ...userRegisterData, email })
+                                    setUserRegisterErrors({ ...userRegisterErrors, email: validateEmail(email) })
+                                  }}
+                                  onBlur={(e) => {
+                                    setUserRegisterErrors({ ...userRegisterErrors, email: validateEmail(e.target.value) })
+                                  }}
+                                  className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 ${userRegisterErrors.email ? "border-red-500" : ""}`}
+                                />
+                              </div>
+                              {userRegisterErrors.email && (
+                                <p className="text-red-400 text-sm">{userRegisterErrors.email}</p>
+                              )}
+                            </div>
+
+                            <div className="grid grid-cols-3 gap-2">
+                              <div className="space-y-2 flex flex flex-col justify-between">
+                                <Label htmlFor="user-country-code" className="text-white font-medium">Country Code</Label>
+                                <div className="flex items-center gap-2">
+                                  <Phone className="w-4 h-4 text-slate-300 flex-shrink-0" />
+                                  <Input
+                                    id="user-country-code"
+                                    type="text"
+                                    placeholder="+91"
+                                    value={userRegisterData.countryCode}
+                                    onChange={(e) => setUserRegisterData({ ...userRegisterData, countryCode: e.target.value })}
+                                    className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400"
+                                  />
+                                </div>
+                              </div>
+                              <div className="col-span-2 space-y-2 flex flex-col justify-between">
+                                <Label htmlFor="user-phone" className="text-white font-medium">Phone Number</Label>
+                                <div className="flex items-center gap-2">
+                                  <Phone className="w-4 h-4 text-slate-300 flex-shrink-0" />
+                                  <Input
+                                    id="user-phone"
+                                    type="tel"
+                                    placeholder="Enter your phone number"
+                                    value={userRegisterData.phoneNumber}
+                                    onChange={(e) => {
+                                      const phone = e.target.value.replace(/\D/g, "")
+                                      setUserRegisterData({ ...userRegisterData, phoneNumber: phone })
+                                      setUserRegisterErrors({ ...userRegisterErrors, phoneNumber: validatePhoneNumber(phone) })
+                                    }}
+                                    onBlur={(e) => {
+                                      setUserRegisterErrors({ ...userRegisterErrors, phoneNumber: validatePhoneNumber(e.target.value) })
+                                    }}
+                                    className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 ${userRegisterErrors.phoneNumber ? "border-red-500" : ""}`}
+                                  />
+                                </div>
+                                {userRegisterErrors.phoneNumber && (
+                                  <p className="text-red-400 text-sm">{userRegisterErrors.phoneNumber}</p>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="user-date-of-birth" className="text-white font-medium">Date of Birth</Label>
+                                <Input
+                                  id="user-date-of-birth"
+                                  type="date"
+                                  value={userRegisterData.date_of_birth}
+                                  onChange={(e) => {
+                                    const dob = e.target.value
+                                    setUserRegisterData({ ...userRegisterData, date_of_birth: dob })
+                                    setUserRegisterErrors({ ...userRegisterErrors, date_of_birth: validateDOB(dob) })
+                                  }}
+                                  onBlur={(e) => {
+                                    setUserRegisterErrors({ ...userRegisterErrors, date_of_birth: validateDOB(e.target.value) })
+                                  }}
+                                  max={new Date().toISOString().split('T')[0]}
+                                  className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 ${userRegisterErrors.date_of_birth ? "border-red-500" : ""}`}
+                                />
+                                {userRegisterErrors.date_of_birth && (
+                                  <p className="text-red-400 text-sm">{userRegisterErrors.date_of_birth}</p>
+                                )}
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="user-gender" className="text-white font-medium">Gender</Label>
+                                <select
+                                  id="user-gender"
+                                  value={userRegisterData.gender}
+                                  onChange={(e) => setUserRegisterData({ ...userRegisterData, gender: e.target.value as "male" | "female" | "non-binary" })}
+                                  className="w-full bg-white/10 border border-white/20 text-white rounded-md px-3 py-2 focus:ring-2 focus:ring-sky-400 focus:outline-none"
+                                >
+                                  <option value="male">Male</option>
+                                  <option value="female">Female</option>
+                                  <option value="non-binary">Non-binary</option>
+                                </select>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Right Column */}
+                          <div className="flex-1 space-y-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="user-address-line1" className="text-white font-medium">Address Line 1</Label>
+                              <Input
+                                id="user-address-line1"
+                                type="text"
+                                placeholder="Enter your address"
+                                value={userRegisterData.address_line1}
+                                onChange={(e) => setUserRegisterData({ ...userRegisterData, address_line1: e.target.value })}
+                                className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400"
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="user-address-line2" className="text-white font-medium">Address Line 2 (Optional)</Label>
+                              <Input
+                                id="user-address-line2"
+                                type="text"
+                                placeholder="Apartment, suite, etc."
+                                value={userRegisterData.address_line2}
+                                onChange={(e) => setUserRegisterData({ ...userRegisterData, address_line2: e.target.value })}
+                                className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400"
+                              />
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="user-city" className="text-white font-medium">City</Label>
+                                <Input
+                                  id="user-city"
+                                  type="text"
+                                  placeholder="Enter city"
+                                  value={userRegisterData.city}
+                                  onChange={(e) => setUserRegisterData({ ...userRegisterData, city: e.target.value })}
+                                  className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="user-state" className="text-white font-medium">State/Province</Label>
+                                <Input
+                                  id="user-state"
+                                  type="text"
+                                  placeholder="Enter state"
+                                  value={userRegisterData.state_province}
+                                  onChange={(e) => setUserRegisterData({ ...userRegisterData, state_province: e.target.value })}
+                                  className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="user-zip" className="text-white font-medium">ZIP Code</Label>
+                                <Input
+                                  id="user-zip"
+                                  type="text"
+                                  placeholder="Enter ZIP code"
+                                  value={userRegisterData.zip_code}
+                                  onChange={(e) => {
+                                    const zipCode = e.target.value
+                                    setUserRegisterData({ ...userRegisterData, zip_code: zipCode })
+                                    setUserRegisterErrors({ ...userRegisterErrors, zip_code: validateZipCode(zipCode, userRegisterData.country) })
+                                  }}
+                                  onBlur={(e) => {
+                                    setUserRegisterErrors({ ...userRegisterErrors, zip_code: validateZipCode(e.target.value, userRegisterData.country) })
+                                  }}
+                                  className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 ${userRegisterErrors.zip_code ? "border-red-500" : ""}`}
+                                />
+                                {userRegisterErrors.zip_code && (
+                                  <p className="text-red-400 text-sm">{userRegisterErrors.zip_code}</p>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="user-country" className="text-white font-medium">Country</Label>
+                              <select
+                                id="user-country"
+                                value={userRegisterData.country}
+                                onChange={(e) => {
+                                  const country = e.target.value
+                                  setUserRegisterData({ ...userRegisterData, country })
+                                  if (userRegisterData.zip_code) {
+                                    setUserRegisterErrors({ ...userRegisterErrors, zip_code: validateZipCode(userRegisterData.zip_code, country) })
+                                  }
+                                }}
+                                className="w-full bg-white/10 border border-white/20 text-white rounded-md px-3 py-2 focus:ring-2 focus:ring-sky-400 focus:outline-none"
+                              >
+                                <option value="">Select your country</option>
+                                <option value="India">India</option>
+                                <option value="United States">United States</option>
+                                <option value="United Kingdom">United Kingdom</option>
+                                <option value="Canada">Canada</option>
+                                <option value="Australia">Australia</option>
+                                <option value="Germany">Germany</option>
+                                <option value="France">France</option>
+                                <option value="Japan">Japan</option>
+                                <option value="China">China</option>
+                                <option value="Brazil">Brazil</option>
+                                <option value="Mexico">Mexico</option>
+                                <option value="South Africa">South Africa</option>
+                                <option value="Nigeria">Nigeria</option>
+                                <option value="Kenya">Kenya</option>
+                                <option value="Egypt">Egypt</option>
+                                <option value="Saudi Arabia">Saudi Arabia</option>
+                                <option value="UAE">UAE</option>
+                                <option value="Singapore">Singapore</option>
+                                <option value="Malaysia">Malaysia</option>
+                                <option value="Thailand">Thailand</option>
+                                <option value="Vietnam">Vietnam</option>
+                                <option value="Philippines">Philippines</option>
+                                <option value="Indonesia">Indonesia</option>
+                                <option value="Pakistan">Pakistan</option>
+                                <option value="Bangladesh">Bangladesh</option>
+                                <option value="Sri Lanka">Sri Lanka</option>
+                                <option value="Nepal">Nepal</option>
+                                <option value="Bhutan">Bhutan</option>
+                                <option value="Myanmar">Myanmar</option>
+                                <option value="Cambodia">Cambodia</option>
+                                <option value="Laos">Laos</option>
+                                <option value="Mongolia">Mongolia</option>
+                                <option value="Kazakhstan">Kazakhstan</option>
+                                <option value="Uzbekistan">Uzbekistan</option>
+                                <option value="Kyrgyzstan">Kyrgyzstan</option>
+                                <option value="Tajikistan">Tajikistan</option>
+                                <option value="Turkmenistan">Turkmenistan</option>
+                                <option value="Afghanistan">Afghanistan</option>
+                                <option value="Iran">Iran</option>
+                                <option value="Iraq">Iraq</option>
+                                <option value="Syria">Syria</option>
+                                <option value="Lebanon">Lebanon</option>
+                                <option value="Jordan">Jordan</option>
+                                <option value="Israel">Israel</option>
+                                <option value="Palestine">Palestine</option>
+                                <option value="Turkey">Turkey</option>
+                                <option value="Greece">Greece</option>
+                                <option value="Italy">Italy</option>
+                                <option value="Spain">Spain</option>
+                                <option value="Portugal">Portugal</option>
+                                <option value="Netherlands">Netherlands</option>
+                                <option value="Belgium">Belgium</option>
+                                <option value="Switzerland">Switzerland</option>
+                                <option value="Austria">Austria</option>
+                                <option value="Poland">Poland</option>
+                                <option value="Czech Republic">Czech Republic</option>
+                                <option value="Slovakia">Slovakia</option>
+                                <option value="Hungary">Hungary</option>
+                                <option value="Romania">Romania</option>
+                                <option value="Bulgaria">Bulgaria</option>
+                                <option value="Croatia">Croatia</option>
+                                <option value="Slovenia">Slovenia</option>
+                                <option value="Serbia">Serbia</option>
+                                <option value="Bosnia and Herzegovina">Bosnia and Herzegovina</option>
+                                <option value="Montenegro">Montenegro</option>
+                                <option value="Albania">Albania</option>
+                                <option value="North Macedonia">North Macedonia</option>
+                                <option value="Kosovo">Kosovo</option>
+                                <option value="Moldova">Moldova</option>
+                                <option value="Ukraine">Ukraine</option>
+                                <option value="Belarus">Belarus</option>
+                                <option value="Lithuania">Lithuania</option>
+                                <option value="Latvia">Latvia</option>
+                                <option value="Estonia">Estonia</option>
+                                <option value="Finland">Finland</option>
+                                <option value="Sweden">Sweden</option>
+                                <option value="Norway">Norway</option>
+                                <option value="Denmark">Denmark</option>
+                                <option value="Iceland">Iceland</option>
+                                <option value="Ireland">Ireland</option>
+                                <option value="New Zealand">New Zealand</option>
+                                <option value="Argentina">Argentina</option>
+                                <option value="Chile">Chile</option>
+                                <option value="Peru">Peru</option>
+                                <option value="Colombia">Colombia</option>
+                                <option value="Venezuela">Venezuela</option>
+                                <option value="Ecuador">Ecuador</option>
+                                <option value="Bolivia">Bolivia</option>
+                                <option value="Paraguay">Paraguay</option>
+                                <option value="Uruguay">Uruguay</option>
+                                <option value="Guyana">Guyana</option>
+                                <option value="Suriname">Suriname</option>
+                                <option value="French Guiana">French Guiana</option>
+                                <option value="Other">Other</option>
+                              </select>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="user-id-proof-type" className="text-white font-medium">ID Proof Type</Label>
+                                <select
+                                  id="user-id-proof-type"
+                                  value={userRegisterData.id_proof_type}
+                                  onChange={(e) => {
+                                    const idType = e.target.value as "Aadhar" | "Voter ID" | "Passport" | "Driver License" | "PAN"
+                                    setUserRegisterData({ ...userRegisterData, id_proof_type: idType, id_proof_number: "" })
+                                    setUserRegisterErrors({ ...userRegisterErrors, id_proof_number: "" })
+                                  }}
+                                  className="w-full bg-white/10 border border-white/20 text-white rounded-md px-3 py-2 focus:ring-2 focus:ring-sky-400 focus:outline-none"
+                                >
+                                  <option value="Aadhar">Aadhar</option>
+                                  <option value="Voter ID">Voter ID</option>
+                                  <option value="Passport">Passport</option>
+                                  <option value="Driver License">Driver License</option>
+                                  <option value="PAN">PAN Card</option>
+                                </select>
+                              </div>
+                              <div className="space-y-2">
+                                <Label htmlFor="user-id-proof-number" className="text-white font-medium">ID Proof Number</Label>
+                                <Input
+                                  id="user-id-proof-number"
+                                  type="text"
+                                  placeholder={userRegisterData.id_proof_type === "Aadhar" ? "Enter 12-digit Aadhar number" : "Enter ID number"}
+                                  value={userRegisterData.id_proof_number}
+                                  onChange={(e) => {
+                                    let idNumber = e.target.value
+                                    if (userRegisterData.id_proof_type === "Aadhar") {
+                                      idNumber = idNumber.replace(/\D/g, "")
+                                    }
+                                    setUserRegisterData({ ...userRegisterData, id_proof_number: idNumber })
+                                    if (userRegisterData.id_proof_type === "Aadhar") {
+                                      setUserRegisterErrors({ ...userRegisterErrors, id_proof_number: validateAadhar(idNumber) })
+                                    } else {
+                                      setUserRegisterErrors({ ...userRegisterErrors, id_proof_number: "" })
+                                    }
+                                  }}
+                                  onBlur={(e) => {
+                                    if (userRegisterData.id_proof_type === "Aadhar") {
+                                      setUserRegisterErrors({ ...userRegisterErrors, id_proof_number: validateAadhar(e.target.value) })
+                                    }
+                                  }}
+                                  maxLength={userRegisterData.id_proof_type === "Aadhar" ? 12 : undefined}
+                                  className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 ${userRegisterErrors.id_proof_number ? "border-red-500" : ""}`}
+                                />
+                                {userRegisterErrors.id_proof_number && (
+                                  <p className="text-red-400 text-sm">{userRegisterErrors.id_proof_number}</p>
+                                )}
+                              </div>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </div>
 
-                    {/* Bottom Section - Full Width */}
-                    <div className="pt-6 space-y-4">
-                      {/*
+                        {/* Bottom Section - Full Width */}
+                        <div className="pt-6 space-y-4">
+                          {/*
                       <div className="flex gap-2">
                         <Button 
                           type="button" 
@@ -1670,344 +1670,344 @@ function AuthPageContent() {
                         </Button>
                       </div>
                       */}
-                      
-                      {userOtpSent && (
-                        <div className="space-y-2">
-                          <Label htmlFor="user-otp" className="text-white font-medium">Enter OTP</Label>
-                          <div className="flex items-center gap-2">
-                            <Input
-                              id="user-otp"
-                              type="password"
-                              placeholder="Enter 6-digit OTP"
-                              value={userOtp}
-                              onChange={(e) => setUserOtp(e.target.value)}
-                              maxLength={6}
-                              className="flex-1 bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 h-12 text-center text-lg"
-                            />
-                            <Button 
-                              type="button" 
-                              variant="outline" 
-                              onClick={handleUserRegisterResendOTP}
-                              disabled={userRegisterResendCountdown > 0}
-                              size="sm"
-                              className="border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-12 px-4"
-                            >
-                              {userRegisterResendCountdown > 0 ? `Resend (${userRegisterResendCountdown}s)` : "Resend"}
-                            </Button>
-                          </div>
-                        </div>
-                      )}
 
-                      <Button onClick={handleUserRegister} className="w-full bg-sky-400 text-slate-900 hover:bg-sky-300 h-12 text-lg font-medium" disabled={isLoading}>
-                        {isLoading ? "Creating account..." : "Create Account"}
-                        <UserPlus className="ml-2 w-4 h-4" />
-                      </Button>
-                      
-                      <Button 
-                        variant="outline" 
-                        onClick={() => setActiveTab("user-login")} 
-                        className="w-full border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-11"
-                      >
-                        Back to Login
-                        <LogIn className="ml-2 w-4 h-4" />
-                      </Button>
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="admin-login" className="space-y-4 mt-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="admin-email" className="text-white font-medium">Admin Email</Label>
-                      <div className="flex items-center gap-2">
-                        <Mail className="w-4 h-4 text-slate-300 flex-shrink-0" />
-                        <Input
-                          id="admin-email"
-                          type="email"
-                          placeholder="Enter admin email"
-                          value={adminLoginData.email}
-                          onChange={(e) => {
-                            const email = e.target.value
-                            setAdminLoginData({ ...adminLoginData, email, phoneNumber: "", countryCode: "+91" })
-                            setAdminLoginErrors({ ...adminLoginErrors, email: validateEmail(email) })
-                          }}
-                          onBlur={(e) => {
-                            setAdminLoginErrors({ ...adminLoginErrors, email: validateEmail(e.target.value) })
-                          }}
-                          className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 ${adminLoginErrors.email ? "border-red-500" : ""}`}
-                        />
-                      </div>
-                      {adminLoginErrors.email && (
-                        <p className="text-red-400 text-sm">{adminLoginErrors.email}</p>
-                      )}
-                    </div>
-                    
-                    <div className="flex items-center justify-center">
-                      <div className="flex items-center gap-3 w-full">
-                        <div className="flex-1 h-px bg-white/30"></div>
-                        <div className="text-white text-sm font-medium px-3">OR</div>
-                        <div className="flex-1 h-px bg-white/30"></div>
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-3 gap-2">
-                      <div className="space-y-2" flex-col justify-between>
-                        <Label htmlFor="admin-login-country-code" className="text-white font-medium">Country Code</Label>
-                        <div className="flex items-center gap-2">
-                          <Phone className="w-4 h-4 text-slate-300 flex-shrink-0" />
-                          <Input
-                            id="admin-login-country-code"
-                            type="text"
-                            placeholder="+91"
-                            value={adminLoginData.countryCode}
-                            onChange={(e) => setAdminLoginData({ ...adminLoginData, countryCode: e.target.value })}
-                            disabled={!!adminLoginData.email}
-                            className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 disabled:opacity-50 disabled:cursor-not-allowed focus:ring-2 focus:ring-sky-400"
-                          />
-                        </div>
-                      </div>
-                      <div className="col-span-2 space-y-2 flex flex-col justify-between">
-                        <Label htmlFor="admin-login-phone" className="text-white font-medium">Phone Number</Label>
-                        <div className="flex items-center gap-2">
-                          <Phone className="w-4 h-4 text-slate-300 flex-shrink-0" />
-                          <Input
-                            id="admin-login-phone"
-                            type="tel"
-                            placeholder="Enter admin phone number"
-                            value={adminLoginData.phoneNumber}
-                            onChange={(e) => {
-                              const phone = e.target.value.replace(/\D/g, "")
-                              setAdminLoginData({ ...adminLoginData, phoneNumber: phone, email: "" })
-                              setAdminLoginErrors({ ...adminLoginErrors, phoneNumber: validatePhoneNumber(phone) })
-                            }}
-                            onBlur={(e) => {
-                              setAdminLoginErrors({ ...adminLoginErrors, phoneNumber: validatePhoneNumber(e.target.value) })
-                            }}
-                            disabled={!!adminLoginData.email}
-                            className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 disabled:opacity-50 disabled:cursor-not-allowed focus:ring-2 focus:ring-sky-400 ${adminLoginErrors.phoneNumber ? "border-red-500" : ""}`}
-                          />
-                        </div>
-                        {adminLoginErrors.phoneNumber && (
-                          <p className="text-red-400 text-sm">{adminLoginErrors.phoneNumber}</p>
-                        )}
-                      </div>
-                    </div>
-                    
-                    {!adminLoginOtpSent ? (
-                      <Button 
-                        onClick={() => {
-                          ;(async () => {
-                            if (adminLoginData.email) {
-                              try {
-                                setOtpButtonLoading(true)
-                                const res = await apiClient.sendOtp({ email: adminLoginData.email, role: "admin" })
-                                if (res.success) {
-                                  toast.success(`Code sent to ${adminLoginData.email}. Check your email.`)
-                                  setAdminLoginOtpSent(true)
-                                  setAdminLoginResendCountdown(10)
-                                } else {
-                                  toast.error(res.message || res.error || "Failed to send code.")
-                                }
-                              } catch (err) {
-                                toast.error("Failed to send sign-in link. Please try again.")
-                              } finally {
-                                setOtpButtonLoading(false)
-                              }
-                            } else if (adminLoginData.phoneNumber && adminLoginData.countryCode) {
-                              const phoneError = validatePhoneNumber(adminLoginData.phoneNumber)
-                              setAdminLoginErrors({ ...adminLoginErrors, phoneNumber: phoneError })
-                              if (phoneError) {
-                                toast.error("Please fix the phone number validation error")
-                                return
-                              }
-                              setOtpButtonLoading(true)
-                              await handleAdminLoginVerifyNumber()
-                              setOtpButtonLoading(false)
-                            } else {
-                              toast.error("Please enter either email or phone number")
-                            }
-                          })()
-                        }}
-                        disabled={
-                          (!adminLoginData.email && (!adminLoginData.phoneNumber || !adminLoginData.countryCode)) ||
-                          (adminLoginData.email ? !!adminLoginErrors.email : false) ||
-                          (adminLoginData.phoneNumber ? !!adminLoginErrors.phoneNumber : false) ||
-                          otpButtonLoading
-                        }
-                        className="w-full bg-sky-400 text-slate-900 hover:bg-sky-300 h-12 text-lg font-medium"
-                      >
-                        {!otpButtonLoading ? "Send OTP" : "Sending OTP"}
-                        <Phone className="ml-2 w-4 h-4" />
-                      </Button>
-                    ) : (
-                      <div className="space-y-4">
-                        {adminLoginData.email ? (
-                          <p className="text-slate-300">A 6-digit code has been sent to <strong className="text-white">{adminLoginData.email}</strong>. Enter it below.</p>
-                        ) : null}
-                        <div className="space-y-2">
-                          <Label htmlFor="admin-login-otp" className="text-white font-medium">OTP Code</Label>
-                          <Input
-                            id="admin-login-otp"
-                            type="text"
-                            placeholder="Enter 6-digit OTP"
-                            value={adminLoginOtp}
-                            onChange={(e) => setAdminLoginOtp(e.target.value)}
-                            className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 h-12 text-center text-lg"
-                            maxLength={6}
-                          />
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button onClick={handleAdminLogin} className="flex-1 bg-sky-400 text-slate-900 hover:bg-sky-300 h-12 text-lg font-medium" disabled={isLoading}>
-                            {isLoading ? "Signing in..." : "Admin Sign In"}
-                            <Shield className="ml-2 h-4 w-4" />
-                          </Button>
-                          {adminLoginData.email ? (
-                            <Button
-                              type="button"
-                              onClick={async () => {
-                                try {
-                                  const res = await apiClient.sendOtp({ email: adminLoginData.email, role: "admin" })
-                                  if (res.success) {
-                                    toast.success(`Code resent to ${adminLoginData.email}.`)
-                                    setAdminLoginResendCountdown(10)
-                                  } else {
-                                    toast.error(res.message || res.error || "Failed to resend code.")
-                                  }
-                                } catch {
-                                  toast.error("Failed to resend code. Please try again.")
-                                }
-                              }}
-                              disabled={adminLoginResendCountdown > 0}
-                              className="border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-12 px-4"
-                            >
-                              {adminLoginResendCountdown > 0 ? `Resend (${adminLoginResendCountdown}s)` : "Resend"}
-                            </Button>
-                          ) : (
-                            <Button 
-                              type="button"
-                              variant="outline"
-                              onClick={handleAdminLoginResendOTP}
-                              disabled={adminLoginResendCountdown > 0}
-                              className="border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-12 px-4"
-                            >
-                              {adminLoginResendCountdown > 0 ? `Resend (${adminLoginResendCountdown}s)` : "Resend"}
-                            </Button>
+                          {userOtpSent && (
+                            <div className="space-y-2">
+                              <Label htmlFor="user-otp" className="text-white font-medium">Enter OTP</Label>
+                              <div className="flex items-center gap-2">
+                                <Input
+                                  id="user-otp"
+                                  type="password"
+                                  placeholder="Enter 6-digit OTP"
+                                  value={userOtp}
+                                  onChange={(e) => setUserOtp(e.target.value)}
+                                  maxLength={6}
+                                  className="flex-1 bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 h-12 text-center text-lg"
+                                />
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  onClick={handleUserRegisterResendOTP}
+                                  disabled={userRegisterResendCountdown > 0}
+                                  size="sm"
+                                  className="border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-12 px-4"
+                                >
+                                  {userRegisterResendCountdown > 0 ? `Resend (${userRegisterResendCountdown}s)` : "Resend"}
+                                </Button>
+                              </div>
+                            </div>
                           )}
-                        </div>
-                        {adminLoginData.email ? (
+
+                          <Button onClick={handleUserRegister} className="w-full bg-sky-400 text-slate-900 hover:bg-sky-300 h-12 text-lg font-medium" disabled={isLoading}>
+                            {isLoading ? "Creating account..." : "Create Account"}
+                            <UserPlus className="ml-2 w-4 h-4" />
+                          </Button>
+
                           <Button
-                            type="button"
                             variant="outline"
-                            onClick={() => setAdminLoginOtpSent(false)}
+                            onClick={() => setActiveTab("user-login")}
                             className="w-full border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-11"
                           >
-                            Use Phone Instead
+                            Back to Login
+                            <LogIn className="ml-2 w-4 h-4" />
                           </Button>
-                        ) : null}
-                      </div>
-                    )}
-                    
-                    <Button 
-                      variant="outline" 
-                      onClick={() => setActiveTab("admin-register")} 
-                      className="w-full border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-11"
-                    >
-                      Create Admin Account
-                      <UserPlus className="ml-2 w-4 h-4" />
-                    </Button>
-                  </TabsContent>
+                        </div>
+                      </TabsContent>
 
-                  <TabsContent value="admin-register" className="space-y-4 mt-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="admin-first-name" className="text-white font-medium">First Name</Label>
-                        <Input
-                          id="admin-first-name"
-                          type="text"
-                          placeholder="Enter first name"
-                          value={adminRegisterData.first_name}
-                          onChange={(e) => setAdminRegisterData({ ...adminRegisterData, first_name: e.target.value })}
-                          className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="admin-last-name" className="text-white font-medium">Last Name</Label>
-                        <Input
-                          id="admin-last-name"
-                          type="text"
-                          placeholder="Enter last name"
-                          value={adminRegisterData.last_name}
-                          onChange={(e) => setAdminRegisterData({ ...adminRegisterData, last_name: e.target.value })}
-                          className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400"
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="admin-register-email" className="text-white font-medium">Admin Email</Label>
-                      <div className="flex items-center gap-2">
-                        <Mail className="w-4 h-4 text-slate-300 flex-shrink-0" />
-                        <Input
-                          id="admin-register-email"
-                          type="email"
-                          placeholder="Enter admin email"
-                          value={adminRegisterData.email}
-                          onChange={(e) => {
-                            const email = e.target.value
-                            setAdminRegisterData({ ...adminRegisterData, email })
-                            setAdminRegisterErrors({ ...adminRegisterErrors, email: validateEmail(email) })
-                          }}
-                          onBlur={(e) => {
-                            setAdminRegisterErrors({ ...adminRegisterErrors, email: validateEmail(e.target.value) })
-                          }}
-                          className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 ${adminRegisterErrors.email ? "border-red-500" : ""}`}
-                        />
-                      </div>
-                      {adminRegisterErrors.email && (
-                        <p className="text-red-400 text-sm">{adminRegisterErrors.email}</p>
-                      )}
-                    </div>
-                    
-                    <div className="grid grid-cols-3 gap-2">
-                      <div className="space-y-2 flex flex-col justify-between">
-                        <Label htmlFor="admin-country-code" className="text-white font-medium">Country Code</Label>
-                        <div className="flex items-center gap-2">
-                          <Phone className="w-4 h-4 text-slate-300 flex-shrink-0" />
-                          <Input
-                            id="admin-country-code"
-                            type="text"
-                            placeholder="+91"
-                            value={adminRegisterData.countryCode}
-                            onChange={(e) => setAdminRegisterData({ ...adminRegisterData, countryCode: e.target.value })}
-                            className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400"
-                          />
+                      <TabsContent value="admin-login" className="space-y-4 mt-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="admin-email" className="text-white font-medium">Admin Email</Label>
+                          <div className="flex items-center gap-2">
+                            <Mail className="w-4 h-4 text-slate-300 flex-shrink-0" />
+                            <Input
+                              id="admin-email"
+                              type="email"
+                              placeholder="Enter admin email"
+                              value={adminLoginData.email}
+                              onChange={(e) => {
+                                const email = e.target.value
+                                setAdminLoginData({ ...adminLoginData, email, phoneNumber: "", countryCode: "+91" })
+                                setAdminLoginErrors({ ...adminLoginErrors, email: validateEmail(email) })
+                              }}
+                              onBlur={(e) => {
+                                setAdminLoginErrors({ ...adminLoginErrors, email: validateEmail(e.target.value) })
+                              }}
+                              className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 ${adminLoginErrors.email ? "border-red-500" : ""}`}
+                            />
+                          </div>
+                          {adminLoginErrors.email && (
+                            <p className="text-red-400 text-sm">{adminLoginErrors.email}</p>
+                          )}
                         </div>
-                      </div>
-                      <div className="col-span-2 space-y-2 flex flex-col justify-between">
-                        <Label htmlFor="admin-phone" className="text-white font-medium">Phone Number</Label>
-                        <div className="flex items-center gap-2">
-                          <Phone className="w-4 h-4 text-slate-300 flex-shrink-0" />
-                          <Input
-                            id="admin-phone"
-                            type="tel"
-                            placeholder="Enter phone number"
-                            value={adminRegisterData.phoneNumber}
-                            onChange={(e) => {
-                              const phone = e.target.value.replace(/\D/g, "")
-                              setAdminRegisterData({ ...adminRegisterData, phoneNumber: phone })
-                              setAdminRegisterErrors({ ...adminRegisterErrors, phoneNumber: validatePhoneNumber(phone) })
-                            }}
-                            onBlur={(e) => {
-                              setAdminRegisterErrors({ ...adminRegisterErrors, phoneNumber: validatePhoneNumber(e.target.value) })
-                            }}
-                            className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 ${adminRegisterErrors.phoneNumber ? "border-red-500" : ""}`}
-                          />
+
+                        <div className="flex items-center justify-center">
+                          <div className="flex items-center gap-3 w-full">
+                            <div className="flex-1 h-px bg-white/30"></div>
+                            <div className="text-white text-sm font-medium px-3">OR</div>
+                            <div className="flex-1 h-px bg-white/30"></div>
+                          </div>
                         </div>
-                        {adminRegisterErrors.phoneNumber && (
-                          <p className="text-red-400 text-sm">{adminRegisterErrors.phoneNumber}</p>
+
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="space-y-2" flex-col justify-between>
+                            <Label htmlFor="admin-login-country-code" className="text-white font-medium">Country Code</Label>
+                            <div className="flex items-center gap-2">
+                              <Phone className="w-4 h-4 text-slate-300 flex-shrink-0" />
+                              <Input
+                                id="admin-login-country-code"
+                                type="text"
+                                placeholder="+91"
+                                value={adminLoginData.countryCode}
+                                onChange={(e) => setAdminLoginData({ ...adminLoginData, countryCode: e.target.value })}
+                                disabled={!!adminLoginData.email}
+                                className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 disabled:opacity-50 disabled:cursor-not-allowed focus:ring-2 focus:ring-sky-400"
+                              />
+                            </div>
+                          </div>
+                          <div className="col-span-2 space-y-2 flex flex-col justify-between">
+                            <Label htmlFor="admin-login-phone" className="text-white font-medium">Phone Number</Label>
+                            <div className="flex items-center gap-2">
+                              <Phone className="w-4 h-4 text-slate-300 flex-shrink-0" />
+                              <Input
+                                id="admin-login-phone"
+                                type="tel"
+                                placeholder="Enter admin phone number"
+                                value={adminLoginData.phoneNumber}
+                                onChange={(e) => {
+                                  const phone = e.target.value.replace(/\D/g, "")
+                                  setAdminLoginData({ ...adminLoginData, phoneNumber: phone, email: "" })
+                                  setAdminLoginErrors({ ...adminLoginErrors, phoneNumber: validatePhoneNumber(phone) })
+                                }}
+                                onBlur={(e) => {
+                                  setAdminLoginErrors({ ...adminLoginErrors, phoneNumber: validatePhoneNumber(e.target.value) })
+                                }}
+                                disabled={!!adminLoginData.email}
+                                className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 disabled:opacity-50 disabled:cursor-not-allowed focus:ring-2 focus:ring-sky-400 ${adminLoginErrors.phoneNumber ? "border-red-500" : ""}`}
+                              />
+                            </div>
+                            {adminLoginErrors.phoneNumber && (
+                              <p className="text-red-400 text-sm">{adminLoginErrors.phoneNumber}</p>
+                            )}
+                          </div>
+                        </div>
+
+                        {!adminLoginOtpSent ? (
+                          <Button
+                            onClick={() => {
+                              ; (async () => {
+                                if (adminLoginData.email) {
+                                  try {
+                                    setOtpButtonLoading(true)
+                                    const res = await apiClient.sendOtp({ email: adminLoginData.email, role: "admin" })
+                                    if (res.success) {
+                                      toast.success(`Code sent to ${adminLoginData.email}. Check your email.`)
+                                      setAdminLoginOtpSent(true)
+                                      setAdminLoginResendCountdown(10)
+                                    } else {
+                                      toast.error(res.message || res.error || "Failed to send code.")
+                                    }
+                                  } catch (err) {
+                                    toast.error("Failed to send sign-in link. Please try again.")
+                                  } finally {
+                                    setOtpButtonLoading(false)
+                                  }
+                                } else if (adminLoginData.phoneNumber && adminLoginData.countryCode) {
+                                  const phoneError = validatePhoneNumber(adminLoginData.phoneNumber)
+                                  setAdminLoginErrors({ ...adminLoginErrors, phoneNumber: phoneError })
+                                  if (phoneError) {
+                                    toast.error("Please fix the phone number validation error")
+                                    return
+                                  }
+                                  setOtpButtonLoading(true)
+                                  await handleAdminLoginVerifyNumber()
+                                  setOtpButtonLoading(false)
+                                } else {
+                                  toast.error("Please enter either email or phone number")
+                                }
+                              })()
+                            }}
+                            disabled={
+                              (!adminLoginData.email && (!adminLoginData.phoneNumber || !adminLoginData.countryCode)) ||
+                              (adminLoginData.email ? !!adminLoginErrors.email : false) ||
+                              (adminLoginData.phoneNumber ? !!adminLoginErrors.phoneNumber : false) ||
+                              otpButtonLoading
+                            }
+                            className="w-full bg-sky-400 text-slate-900 hover:bg-sky-300 h-12 text-lg font-medium"
+                          >
+                            {!otpButtonLoading ? "Send OTP" : "Sending OTP"}
+                            <Phone className="ml-2 w-4 h-4" />
+                          </Button>
+                        ) : (
+                          <div className="space-y-4">
+                            {adminLoginData.email ? (
+                              <p className="text-slate-300">A 6-digit code has been sent to <strong className="text-white">{adminLoginData.email}</strong>. Enter it below.</p>
+                            ) : null}
+                            <div className="space-y-2">
+                              <Label htmlFor="admin-login-otp" className="text-white font-medium">OTP Code</Label>
+                              <Input
+                                id="admin-login-otp"
+                                type="text"
+                                placeholder="Enter 6-digit OTP"
+                                value={adminLoginOtp}
+                                onChange={(e) => setAdminLoginOtp(e.target.value)}
+                                className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 h-12 text-center text-lg"
+                                maxLength={6}
+                              />
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Button onClick={handleAdminLogin} className="flex-1 bg-sky-400 text-slate-900 hover:bg-sky-300 h-12 text-lg font-medium" disabled={isLoading}>
+                                {isLoading ? "Signing in..." : "Admin Sign In"}
+                                <Shield className="ml-2 h-4 w-4" />
+                              </Button>
+                              {adminLoginData.email ? (
+                                <Button
+                                  type="button"
+                                  onClick={async () => {
+                                    try {
+                                      const res = await apiClient.sendOtp({ email: adminLoginData.email, role: "admin" })
+                                      if (res.success) {
+                                        toast.success(`Code resent to ${adminLoginData.email}.`)
+                                        setAdminLoginResendCountdown(10)
+                                      } else {
+                                        toast.error(res.message || res.error || "Failed to resend code.")
+                                      }
+                                    } catch {
+                                      toast.error("Failed to resend code. Please try again.")
+                                    }
+                                  }}
+                                  disabled={adminLoginResendCountdown > 0}
+                                  className="border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-12 px-4"
+                                >
+                                  {adminLoginResendCountdown > 0 ? `Resend (${adminLoginResendCountdown}s)` : "Resend"}
+                                </Button>
+                              ) : (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  onClick={handleAdminLoginResendOTP}
+                                  disabled={adminLoginResendCountdown > 0}
+                                  className="border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-12 px-4"
+                                >
+                                  {adminLoginResendCountdown > 0 ? `Resend (${adminLoginResendCountdown}s)` : "Resend"}
+                                </Button>
+                              )}
+                            </div>
+                            {adminLoginData.email ? (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setAdminLoginOtpSent(false)}
+                                className="w-full border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-11"
+                              >
+                                Use Phone Instead
+                              </Button>
+                            ) : null}
+                          </div>
                         )}
-                      </div>
-                    </div>
-                    
-                    {/*
+
+                        <Button
+                          variant="outline"
+                          onClick={() => setActiveTab("admin-register")}
+                          className="w-full border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-11"
+                        >
+                          Create Admin Account
+                          <UserPlus className="ml-2 w-4 h-4" />
+                        </Button>
+                      </TabsContent>
+
+                      <TabsContent value="admin-register" className="space-y-4 mt-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="admin-first-name" className="text-white font-medium">First Name</Label>
+                            <Input
+                              id="admin-first-name"
+                              type="text"
+                              placeholder="Enter first name"
+                              value={adminRegisterData.first_name}
+                              onChange={(e) => setAdminRegisterData({ ...adminRegisterData, first_name: e.target.value })}
+                              className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="admin-last-name" className="text-white font-medium">Last Name</Label>
+                            <Input
+                              id="admin-last-name"
+                              type="text"
+                              placeholder="Enter last name"
+                              value={adminRegisterData.last_name}
+                              onChange={(e) => setAdminRegisterData({ ...adminRegisterData, last_name: e.target.value })}
+                              className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="admin-register-email" className="text-white font-medium">Admin Email</Label>
+                          <div className="flex items-center gap-2">
+                            <Mail className="w-4 h-4 text-slate-300 flex-shrink-0" />
+                            <Input
+                              id="admin-register-email"
+                              type="email"
+                              placeholder="Enter admin email"
+                              value={adminRegisterData.email}
+                              onChange={(e) => {
+                                const email = e.target.value
+                                setAdminRegisterData({ ...adminRegisterData, email })
+                                setAdminRegisterErrors({ ...adminRegisterErrors, email: validateEmail(email) })
+                              }}
+                              onBlur={(e) => {
+                                setAdminRegisterErrors({ ...adminRegisterErrors, email: validateEmail(e.target.value) })
+                              }}
+                              className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 ${adminRegisterErrors.email ? "border-red-500" : ""}`}
+                            />
+                          </div>
+                          {adminRegisterErrors.email && (
+                            <p className="text-red-400 text-sm">{adminRegisterErrors.email}</p>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="space-y-2 flex flex-col justify-between">
+                            <Label htmlFor="admin-country-code" className="text-white font-medium">Country Code</Label>
+                            <div className="flex items-center gap-2">
+                              <Phone className="w-4 h-4 text-slate-300 flex-shrink-0" />
+                              <Input
+                                id="admin-country-code"
+                                type="text"
+                                placeholder="+91"
+                                value={adminRegisterData.countryCode}
+                                onChange={(e) => setAdminRegisterData({ ...adminRegisterData, countryCode: e.target.value })}
+                                className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400"
+                              />
+                            </div>
+                          </div>
+                          <div className="col-span-2 space-y-2 flex flex-col justify-between">
+                            <Label htmlFor="admin-phone" className="text-white font-medium">Phone Number</Label>
+                            <div className="flex items-center gap-2">
+                              <Phone className="w-4 h-4 text-slate-300 flex-shrink-0" />
+                              <Input
+                                id="admin-phone"
+                                type="tel"
+                                placeholder="Enter phone number"
+                                value={adminRegisterData.phoneNumber}
+                                onChange={(e) => {
+                                  const phone = e.target.value.replace(/\D/g, "")
+                                  setAdminRegisterData({ ...adminRegisterData, phoneNumber: phone })
+                                  setAdminRegisterErrors({ ...adminRegisterErrors, phoneNumber: validatePhoneNumber(phone) })
+                                }}
+                                onBlur={(e) => {
+                                  setAdminRegisterErrors({ ...adminRegisterErrors, phoneNumber: validatePhoneNumber(e.target.value) })
+                                }}
+                                className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 ${adminRegisterErrors.phoneNumber ? "border-red-500" : ""}`}
+                              />
+                            </div>
+                            {adminRegisterErrors.phoneNumber && (
+                              <p className="text-red-400 text-sm">{adminRegisterErrors.phoneNumber}</p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/*
                     <div className="flex gap-2">
                       <Button 
                         type="button" 
@@ -2020,351 +2020,351 @@ function AuthPageContent() {
                       </Button>
                     </div>
                     */}
-                    
-                    {adminOtpSent && (
-                      <div className="space-y-2">
-                        <Label htmlFor="admin-otp" className="text-white font-medium">Enter OTP</Label>
-                        <div className="flex items-center gap-2">
-                          <Input
-                            id="admin-otp"
-                            type="password"
-                            placeholder="Enter 6-digit OTP"
-                            value={adminOtp}
-                            onChange={(e) => setAdminOtp(e.target.value)}
-                            maxLength={6}
-                            className="flex-1 bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 h-12 text-center text-lg"
-                          />
-                          <Button 
-                            type="button" 
-                            variant="outline" 
-                            onClick={handleAdminRegisterResendOTP}
-                            disabled={adminRegisterResendCountdown > 0}
-                            size="sm"
-                            className="border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-12 px-4"
-                          >
-                            {adminRegisterResendCountdown > 0 ? `Resend (${adminRegisterResendCountdown}s)` : "Resend"}
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="admin-code" className="text-white font-medium">Admin Code</Label>
-                      <div className="flex items-center gap-2">
-                        <Shield className="w-4 h-4 text-slate-300 flex-shrink-0" />
-                        <Input
-                          id="admin-code"
-                          type="text"
-                          placeholder="Enter admin registration code"
-                          value={adminRegisterData.adminCode}
-                          onChange={(e) => setAdminRegisterData({ ...adminRegisterData, adminCode: e.target.value })}
-                          className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400"
-                        />
-                      </div>
-                    </div>
 
-                    <Button onClick={handleAdminRegister} className="w-full bg-sky-400 text-slate-900 hover:bg-sky-300 h-12 text-lg font-medium" disabled={isLoading}>
-                      {isLoading ? "Creating admin account..." : "Create Admin Account"}
-                      <Shield className="ml-2 w-4 h-4" />
-                    </Button>
-                    
-                    <Button 
-                      variant="outline" 
-                      onClick={() => setActiveTab("admin-login")} 
-                      className="w-full border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-11"
-                    >
-                      Back to Admin Login
-                      <LogIn className="ml-2 w-4 h-4" />
-                    </Button>
-                  </TabsContent>
-
-                  <TabsContent value="system-owner-login" className="space-y-4 mt-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="system-owner-email" className="text-white font-medium">Email</Label>
-                      <div className="flex items-center gap-2">
-                        <Mail className="w-4 h-4 text-slate-300 flex-shrink-0" />
-                        <Input
-                          id="system-owner-email"
-                          type="email"
-                          placeholder="Enter your email"
-                          value={systemOwnerLoginData.email}
-                          onChange={(e) => {
-                            const email = e.target.value
-                            setSystemOwnerLoginData({ ...systemOwnerLoginData, email, phoneNumber: "", countryCode: "+91" })
-                            setSystemOwnerLoginErrors({ ...systemOwnerLoginErrors, email: validateEmail(email) })
-                          }}
-                          onBlur={(e) => {
-                            setSystemOwnerLoginErrors({ ...systemOwnerLoginErrors, email: validateEmail(e.target.value) })
-                          }}
-                          className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 ${systemOwnerLoginErrors.email ? "border-red-500" : ""}`}
-                        />
-                      </div>
-                      {systemOwnerLoginErrors.email && (
-                        <p className="text-red-400 text-sm">{systemOwnerLoginErrors.email}</p>
-                      )}
-                    </div>
-                    
-                    <div className="flex items-center justify-center">
-                      <div className="flex items-center gap-3 w-full">
-                        <div className="flex-1 h-px bg-white/30"></div>
-                        <div className="text-white text-sm font-medium px-3">OR</div>
-                        <div className="flex-1 h-px bg-white/30"></div>
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-3 gap-2">
-                      <div className="space-y-2 flex flex-col justify-between">
-                        <Label htmlFor="system-owner-login-country-code" className="text-white font-medium">Country Code</Label>
-                        <div className="flex items-center gap-2">
-                          <Phone className="w-4 h-4 text-slate-300 flex-shrink-0" />
-                          <Input
-                            id="system-owner-login-country-code"
-                            type="text"
-                            placeholder="+91"
-                            value={systemOwnerLoginData.countryCode}
-                            onChange={(e) => setSystemOwnerLoginData({ ...systemOwnerLoginData, countryCode: e.target.value })}
-                            disabled={!!systemOwnerLoginData.email}
-                            className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 disabled:opacity-50 disabled:cursor-not-allowed focus:ring-2 focus:ring-sky-400"
-                          />
-                        </div>
-                      </div>
-                      <div className="col-span-2 space-y-2 flex flex-col justify-between">
-                        <Label htmlFor="system-owner-login-phone" className="text-white font-medium">Phone Number</Label>
-                        <div className="flex items-center gap-2">
-                          <Phone className="w-4 h-4 text-slate-300 flex-shrink-0" />
-                          <Input
-                            id="system-owner-login-phone"
-                            type="tel"
-                            placeholder="Enter your phone number"
-                            value={systemOwnerLoginData.phoneNumber}
-                            onChange={(e) => {
-                              const phone = e.target.value.replace(/\D/g, "")
-                              setSystemOwnerLoginData({ ...systemOwnerLoginData, phoneNumber: phone, email: "" })
-                              setSystemOwnerLoginErrors({ ...systemOwnerLoginErrors, phoneNumber: validatePhoneNumber(phone) })
-                            }}
-                            onBlur={(e) => {
-                              setSystemOwnerLoginErrors({ ...systemOwnerLoginErrors, phoneNumber: validatePhoneNumber(e.target.value) })
-                            }}
-                            disabled={!!systemOwnerLoginData.email}
-                            className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 disabled:opacity-50 disabled:cursor-not-allowed focus:ring-2 focus:ring-sky-400 ${systemOwnerLoginErrors.phoneNumber ? "border-red-500" : ""}`}
-                          />
-                        </div>
-                        {systemOwnerLoginErrors.phoneNumber && (
-                          <p className="text-red-400 text-sm">{systemOwnerLoginErrors.phoneNumber}</p>
+                        {adminOtpSent && (
+                          <div className="space-y-2">
+                            <Label htmlFor="admin-otp" className="text-white font-medium">Enter OTP</Label>
+                            <div className="flex items-center gap-2">
+                              <Input
+                                id="admin-otp"
+                                type="password"
+                                placeholder="Enter 6-digit OTP"
+                                value={adminOtp}
+                                onChange={(e) => setAdminOtp(e.target.value)}
+                                maxLength={6}
+                                className="flex-1 bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 h-12 text-center text-lg"
+                              />
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={handleAdminRegisterResendOTP}
+                                disabled={adminRegisterResendCountdown > 0}
+                                size="sm"
+                                className="border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-12 px-4"
+                              >
+                                {adminRegisterResendCountdown > 0 ? `Resend (${adminRegisterResendCountdown}s)` : "Resend"}
+                              </Button>
+                            </div>
+                          </div>
                         )}
-                      </div>
-                    </div>
-                    
-                    {!systemOwnerLoginOtpSent ? (
-                      <Button 
-                        onClick={() => {
-                          // console.log("hey there")
-                          // console.log("system ownder login data",systemOwnerLoginData)
-                          ;(async () => {
-                            // console.log("system ownder login data",systemOwnerLoginData)
-                            if (systemOwnerLoginData.email) {
-                              try {
-                                setOtpButtonLoading(true)
-                                const res = await apiClient.sendOtp({ email: systemOwnerLoginData.email, role: "system_owner" })
-                                if (res.success) {
-                                  toast.success(`Code sent to ${systemOwnerLoginData.email}. Check your email.`)
-                                  setSystemOwnerLoginOtpSent(true)
-                                  setSystemOwnerLoginResendCountdown(10)
-                                } else {
-                                  toast.error(res.message || res.error || "Failed to send code.")
-                                }
-                              } catch (err) {
-                                toast.error("Failed to send sign-in link. Please try again.")
-                              } finally {
-                                setOtpButtonLoading(false)
-                              }
-                            } else if (systemOwnerLoginData.phoneNumber && systemOwnerLoginData.countryCode) {
-                              // console.log("hey mobile")
-                              setOtpButtonLoading(true)
-                              await handleSystemOwnerLoginVerifyNumber()
-                              setOtpButtonLoading(false)
-                            } else {
-                              toast.error("Please enter either email or phone number")
-                            }
-                          })()
-                        }}
-                        disabled={!systemOwnerLoginData.email && (!systemOwnerLoginData.phoneNumber || !systemOwnerLoginData.countryCode) || otpButtonLoading}
-                        className="w-full bg-sky-400 text-slate-900 hover:bg-sky-300 h-12 text-lg font-medium"
-                      >
-                        {!otpButtonLoading ? "Send OTP" : "Sending OTP"}
-                        <Phone className="ml-2 w-4 h-4" />
-                      </Button>
-                    ) : (
-                      <div className="space-y-4">
-                        {systemOwnerLoginData.email ? (
-                          <p className="text-slate-300">A 6-digit code has been sent to <strong className="text-white">{systemOwnerLoginData.email}</strong>. Enter it below.</p>
-                        ) : null}
+
                         <div className="space-y-2">
-                          <Label htmlFor="system-owner-login-otp" className="text-white font-medium">OTP Code</Label>
-                          <Input
-                            id="system-owner-login-otp"
-                            type="text"
-                            placeholder="Enter 6-digit OTP"
-                            value={systemOwnerLoginOtp}
-                            onChange={(e) => setSystemOwnerLoginOtp(e.target.value)}
-                            className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 h-12 text-center text-lg"
-                            maxLength={6}
-                          />
+                          <Label htmlFor="admin-code" className="text-white font-medium">Admin Code</Label>
+                          <div className="flex items-center gap-2">
+                            <Shield className="w-4 h-4 text-slate-300 flex-shrink-0" />
+                            <Input
+                              id="admin-code"
+                              type="text"
+                              placeholder="Enter admin registration code"
+                              value={adminRegisterData.adminCode}
+                              onChange={(e) => setAdminRegisterData({ ...adminRegisterData, adminCode: e.target.value })}
+                              className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400"
+                            />
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Button onClick={handleSystemOwnerLogin} className="flex-1 bg-sky-400 text-slate-900 hover:bg-sky-300 h-12 text-lg font-medium" disabled={isLoading}>
-                            {isLoading ? "Signing in..." : "System Owner Sign In"}
-                            <Crown className="ml-2 w-4 h-4" />
-                          </Button>
-                          {systemOwnerLoginData.email ? (
-                            <Button
-                              type="button"
-                              onClick={async () => {
-                                try {
-                                  const res = await apiClient.sendOtp({ email: systemOwnerLoginData.email, role: "system_owner" })
-                                  if (res.success) {
-                                    toast.success(`Code resent to ${systemOwnerLoginData.email}.`)
-                                    setSystemOwnerLoginResendCountdown(10)
-                                  } else {
-                                    toast.error(res.message || res.error || "Failed to resend code.")
-                                  }
-                                } catch {
-                                  toast.error("Failed to resend code. Please try again.")
-                                }
+
+                        <Button onClick={handleAdminRegister} className="w-full bg-sky-400 text-slate-900 hover:bg-sky-300 h-12 text-lg font-medium" disabled={isLoading}>
+                          {isLoading ? "Creating admin account..." : "Create Admin Account"}
+                          <Shield className="ml-2 w-4 h-4" />
+                        </Button>
+
+                        <Button
+                          variant="outline"
+                          onClick={() => setActiveTab("admin-login")}
+                          className="w-full border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-11"
+                        >
+                          Back to Admin Login
+                          <LogIn className="ml-2 w-4 h-4" />
+                        </Button>
+                      </TabsContent>
+
+                      <TabsContent value="system-owner-login" className="space-y-4 mt-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="system-owner-email" className="text-white font-medium">Email</Label>
+                          <div className="flex items-center gap-2">
+                            <Mail className="w-4 h-4 text-slate-300 flex-shrink-0" />
+                            <Input
+                              id="system-owner-email"
+                              type="email"
+                              placeholder="Enter your email"
+                              value={systemOwnerLoginData.email}
+                              onChange={(e) => {
+                                const email = e.target.value
+                                setSystemOwnerLoginData({ ...systemOwnerLoginData, email, phoneNumber: "", countryCode: "+91" })
+                                setSystemOwnerLoginErrors({ ...systemOwnerLoginErrors, email: validateEmail(email) })
                               }}
-                              disabled={systemOwnerLoginResendCountdown > 0}
-                              className="border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-12 px-4"
-                            >
-                              {systemOwnerLoginResendCountdown > 0 ? `Resend (${systemOwnerLoginResendCountdown}s)` : "Resend"}
-                            </Button>
-                          ) : (
-                            <Button 
-                              type="button"
-                              variant="outline"
-                              onClick={handleSystemOwnerLoginResendOTP}
-                              disabled={systemOwnerLoginResendCountdown > 0}
-                              className="border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-12 px-4"
-                            >
-                              {systemOwnerLoginResendCountdown > 0 ? `Resend (${systemOwnerLoginResendCountdown}s)` : "Resend"}
-                            </Button>
+                              onBlur={(e) => {
+                                setSystemOwnerLoginErrors({ ...systemOwnerLoginErrors, email: validateEmail(e.target.value) })
+                              }}
+                              className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 ${systemOwnerLoginErrors.email ? "border-red-500" : ""}`}
+                            />
+                          </div>
+                          {systemOwnerLoginErrors.email && (
+                            <p className="text-red-400 text-sm">{systemOwnerLoginErrors.email}</p>
                           )}
                         </div>
-                        {systemOwnerLoginData.email ? (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => setSystemOwnerLoginOtpSent(false)}
-                            className="w-full border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-11"
-                          >
-                            Use Phone Instead
-                          </Button>
-                        ) : null}
-                      </div>
-                    )}
-                    
-                    <Button 
-                      variant="outline" 
-                      onClick={() => setActiveTab("system-owner-register")} 
-                      className="w-full border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-11"
-                    >
-                      Create System Owner Account
-                      <Crown className="ml-2 w-4 h-4" />
-                    </Button>
-                  </TabsContent>
 
-                  <TabsContent value="system-owner-register" className="space-y-4 mt-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="system-owner-first-name" className="text-white font-medium">First Name</Label>
-                        <Input
-                          id="system-owner-first-name"
-                          type="text"
-                          placeholder="Enter first name"
-                          value={systemOwnerRegisterData.first_name}
-                          onChange={(e) => setSystemOwnerRegisterData({ ...systemOwnerRegisterData, first_name: e.target.value })}
-                          className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="system-owner-last-name" className="text-white font-medium">Last Name</Label>
-                        <Input
-                          id="system-owner-last-name"
-                          type="text"
-                          placeholder="Enter last name"
-                          value={systemOwnerRegisterData.last_name}
-                          onChange={(e) => setSystemOwnerRegisterData({ ...systemOwnerRegisterData, last_name: e.target.value })}
-                          className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400"
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="system-owner-register-email" className="text-white font-medium">Email</Label>
-                      <div className="flex items-center gap-2">
-                        <Mail className="w-4 h-4 text-slate-300 flex-shrink-0" />
-                        <Input
-                          id="system-owner-register-email"
-                          type="email"
-                          placeholder="Enter your email"
-                          value={systemOwnerRegisterData.email}
-                          onChange={(e) => {
-                            const email = e.target.value
-                            setSystemOwnerRegisterData({ ...systemOwnerRegisterData, email })
-                            setSystemOwnerRegisterErrors({ ...systemOwnerRegisterErrors, email: validateEmail(email) })
-                          }}
-                          onBlur={(e) => {
-                            setSystemOwnerRegisterErrors({ ...systemOwnerRegisterErrors, email: validateEmail(e.target.value) })
-                          }}
-                          className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 ${systemOwnerRegisterErrors.email ? "border-red-500" : ""}`}
-                        />
-                      </div>
-                      {systemOwnerRegisterErrors.email && (
-                        <p className="text-red-400 text-sm">{systemOwnerRegisterErrors.email}</p>
-                      )}
-                    </div>
-                    
-                    <div className="grid grid-cols-3 gap-2">
-                      <div className="space-y-2 flex flex-col justify-between">
-                        <Label htmlFor="system-owner-country-code" className="text-white font-medium">Country Code</Label>
-                        <div className="flex items-center gap-2">
-                          <Phone className="w-4 h-4 text-slate-300 flex-shrink-0" />
-                          <Input
-                            id="system-owner-country-code"
-                            type="text"
-                            placeholder="+91"
-                            value={systemOwnerRegisterData.countryCode}
-                            onChange={(e) => setSystemOwnerRegisterData({ ...systemOwnerRegisterData, countryCode: e.target.value })}
-                            className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400"
-                          />
+                        <div className="flex items-center justify-center">
+                          <div className="flex items-center gap-3 w-full">
+                            <div className="flex-1 h-px bg-white/30"></div>
+                            <div className="text-white text-sm font-medium px-3">OR</div>
+                            <div className="flex-1 h-px bg-white/30"></div>
+                          </div>
                         </div>
-                      </div>
-                      <div className="col-span-2 space-y-2 flex flex-col justify-between">
-                        <Label htmlFor="system-owner-phone" className="text-white font-medium">Phone Number</Label>
-                        <div className="flex items-center gap-2">
-                          <Phone className="w-4 h-4 text-slate-300 flex-shrink-0" />
-                          <Input
-                            id="system-owner-phone"
-                            type="tel"
-                            placeholder="Enter phone number"
-                            value={systemOwnerRegisterData.phoneNumber}
-                            onChange={(e) => {
-                                const phone = e.target.value.replace(/\D/g, "")
-                              setSystemOwnerRegisterData({ ...systemOwnerRegisterData, phoneNumber: phone })
-                              setSystemOwnerRegisterErrors({ ...systemOwnerRegisterErrors, phoneNumber: validatePhoneNumber(phone) })
-                            }}
-                            onBlur={(e) => {
-                              setSystemOwnerRegisterErrors({ ...systemOwnerRegisterErrors, phoneNumber: validatePhoneNumber(e.target.value) })
-                            }}
-                            className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 ${systemOwnerRegisterErrors.phoneNumber ? "border-red-500" : ""}`}
-                          />
+
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="space-y-2 flex flex-col justify-between">
+                            <Label htmlFor="system-owner-login-country-code" className="text-white font-medium">Country Code</Label>
+                            <div className="flex items-center gap-2">
+                              <Phone className="w-4 h-4 text-slate-300 flex-shrink-0" />
+                              <Input
+                                id="system-owner-login-country-code"
+                                type="text"
+                                placeholder="+91"
+                                value={systemOwnerLoginData.countryCode}
+                                onChange={(e) => setSystemOwnerLoginData({ ...systemOwnerLoginData, countryCode: e.target.value })}
+                                disabled={!!systemOwnerLoginData.email}
+                                className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 disabled:opacity-50 disabled:cursor-not-allowed focus:ring-2 focus:ring-sky-400"
+                              />
+                            </div>
+                          </div>
+                          <div className="col-span-2 space-y-2 flex flex-col justify-between">
+                            <Label htmlFor="system-owner-login-phone" className="text-white font-medium">Phone Number</Label>
+                            <div className="flex items-center gap-2">
+                              <Phone className="w-4 h-4 text-slate-300 flex-shrink-0" />
+                              <Input
+                                id="system-owner-login-phone"
+                                type="tel"
+                                placeholder="Enter your phone number"
+                                value={systemOwnerLoginData.phoneNumber}
+                                onChange={(e) => {
+                                  const phone = e.target.value.replace(/\D/g, "")
+                                  setSystemOwnerLoginData({ ...systemOwnerLoginData, phoneNumber: phone, email: "" })
+                                  setSystemOwnerLoginErrors({ ...systemOwnerLoginErrors, phoneNumber: validatePhoneNumber(phone) })
+                                }}
+                                onBlur={(e) => {
+                                  setSystemOwnerLoginErrors({ ...systemOwnerLoginErrors, phoneNumber: validatePhoneNumber(e.target.value) })
+                                }}
+                                disabled={!!systemOwnerLoginData.email}
+                                className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 disabled:opacity-50 disabled:cursor-not-allowed focus:ring-2 focus:ring-sky-400 ${systemOwnerLoginErrors.phoneNumber ? "border-red-500" : ""}`}
+                              />
+                            </div>
+                            {systemOwnerLoginErrors.phoneNumber && (
+                              <p className="text-red-400 text-sm">{systemOwnerLoginErrors.phoneNumber}</p>
+                            )}
+                          </div>
                         </div>
-                        {systemOwnerRegisterErrors.phoneNumber && (
-                          <p className="text-red-400 text-sm">{systemOwnerRegisterErrors.phoneNumber}</p>
+
+                        {!systemOwnerLoginOtpSent ? (
+                          <Button
+                            onClick={() => {
+                              // console.log("hey there")
+                              // console.log("system ownder login data",systemOwnerLoginData)
+                              ; (async () => {
+                                // console.log("system ownder login data",systemOwnerLoginData)
+                                if (systemOwnerLoginData.email) {
+                                  try {
+                                    setOtpButtonLoading(true)
+                                    const res = await apiClient.sendOtp({ email: systemOwnerLoginData.email, role: "system_owner" })
+                                    if (res.success) {
+                                      toast.success(`Code sent to ${systemOwnerLoginData.email}. Check your email.`)
+                                      setSystemOwnerLoginOtpSent(true)
+                                      setSystemOwnerLoginResendCountdown(10)
+                                    } else {
+                                      toast.error(res.message || res.error || "Failed to send code.")
+                                    }
+                                  } catch (err) {
+                                    toast.error("Failed to send sign-in link. Please try again.")
+                                  } finally {
+                                    setOtpButtonLoading(false)
+                                  }
+                                } else if (systemOwnerLoginData.phoneNumber && systemOwnerLoginData.countryCode) {
+                                  // console.log("hey mobile")
+                                  setOtpButtonLoading(true)
+                                  await handleSystemOwnerLoginVerifyNumber()
+                                  setOtpButtonLoading(false)
+                                } else {
+                                  toast.error("Please enter either email or phone number")
+                                }
+                              })()
+                            }}
+                            disabled={!systemOwnerLoginData.email && (!systemOwnerLoginData.phoneNumber || !systemOwnerLoginData.countryCode) || otpButtonLoading}
+                            className="w-full bg-sky-400 text-slate-900 hover:bg-sky-300 h-12 text-lg font-medium"
+                          >
+                            {!otpButtonLoading ? "Send OTP" : "Sending OTP"}
+                            <Phone className="ml-2 w-4 h-4" />
+                          </Button>
+                        ) : (
+                          <div className="space-y-4">
+                            {systemOwnerLoginData.email ? (
+                              <p className="text-slate-300">A 6-digit code has been sent to <strong className="text-white">{systemOwnerLoginData.email}</strong>. Enter it below.</p>
+                            ) : null}
+                            <div className="space-y-2">
+                              <Label htmlFor="system-owner-login-otp" className="text-white font-medium">OTP Code</Label>
+                              <Input
+                                id="system-owner-login-otp"
+                                type="text"
+                                placeholder="Enter 6-digit OTP"
+                                value={systemOwnerLoginOtp}
+                                onChange={(e) => setSystemOwnerLoginOtp(e.target.value)}
+                                className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 h-12 text-center text-lg"
+                                maxLength={6}
+                              />
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Button onClick={handleSystemOwnerLogin} className="flex-1 bg-sky-400 text-slate-900 hover:bg-sky-300 h-12 text-lg font-medium" disabled={isLoading}>
+                                {isLoading ? "Signing in..." : "System Owner Sign In"}
+                                <Crown className="ml-2 w-4 h-4" />
+                              </Button>
+                              {systemOwnerLoginData.email ? (
+                                <Button
+                                  type="button"
+                                  onClick={async () => {
+                                    try {
+                                      const res = await apiClient.sendOtp({ email: systemOwnerLoginData.email, role: "system_owner" })
+                                      if (res.success) {
+                                        toast.success(`Code resent to ${systemOwnerLoginData.email}.`)
+                                        setSystemOwnerLoginResendCountdown(10)
+                                      } else {
+                                        toast.error(res.message || res.error || "Failed to resend code.")
+                                      }
+                                    } catch {
+                                      toast.error("Failed to resend code. Please try again.")
+                                    }
+                                  }}
+                                  disabled={systemOwnerLoginResendCountdown > 0}
+                                  className="border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-12 px-4"
+                                >
+                                  {systemOwnerLoginResendCountdown > 0 ? `Resend (${systemOwnerLoginResendCountdown}s)` : "Resend"}
+                                </Button>
+                              ) : (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  onClick={handleSystemOwnerLoginResendOTP}
+                                  disabled={systemOwnerLoginResendCountdown > 0}
+                                  className="border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-12 px-4"
+                                >
+                                  {systemOwnerLoginResendCountdown > 0 ? `Resend (${systemOwnerLoginResendCountdown}s)` : "Resend"}
+                                </Button>
+                              )}
+                            </div>
+                            {systemOwnerLoginData.email ? (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => setSystemOwnerLoginOtpSent(false)}
+                                className="w-full border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-11"
+                              >
+                                Use Phone Instead
+                              </Button>
+                            ) : null}
+                          </div>
                         )}
-                      </div>
-                    </div>
-                    
-                    {/*
+
+                        <Button
+                          variant="outline"
+                          onClick={() => setActiveTab("system-owner-register")}
+                          className="w-full border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-11"
+                        >
+                          Create System Owner Account
+                          <Crown className="ml-2 w-4 h-4" />
+                        </Button>
+                      </TabsContent>
+
+                      <TabsContent value="system-owner-register" className="space-y-4 mt-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="system-owner-first-name" className="text-white font-medium">First Name</Label>
+                            <Input
+                              id="system-owner-first-name"
+                              type="text"
+                              placeholder="Enter first name"
+                              value={systemOwnerRegisterData.first_name}
+                              onChange={(e) => setSystemOwnerRegisterData({ ...systemOwnerRegisterData, first_name: e.target.value })}
+                              className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="system-owner-last-name" className="text-white font-medium">Last Name</Label>
+                            <Input
+                              id="system-owner-last-name"
+                              type="text"
+                              placeholder="Enter last name"
+                              value={systemOwnerRegisterData.last_name}
+                              onChange={(e) => setSystemOwnerRegisterData({ ...systemOwnerRegisterData, last_name: e.target.value })}
+                              className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <Label htmlFor="system-owner-register-email" className="text-white font-medium">Email</Label>
+                          <div className="flex items-center gap-2">
+                            <Mail className="w-4 h-4 text-slate-300 flex-shrink-0" />
+                            <Input
+                              id="system-owner-register-email"
+                              type="email"
+                              placeholder="Enter your email"
+                              value={systemOwnerRegisterData.email}
+                              onChange={(e) => {
+                                const email = e.target.value
+                                setSystemOwnerRegisterData({ ...systemOwnerRegisterData, email })
+                                setSystemOwnerRegisterErrors({ ...systemOwnerRegisterErrors, email: validateEmail(email) })
+                              }}
+                              onBlur={(e) => {
+                                setSystemOwnerRegisterErrors({ ...systemOwnerRegisterErrors, email: validateEmail(e.target.value) })
+                              }}
+                              className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 ${systemOwnerRegisterErrors.email ? "border-red-500" : ""}`}
+                            />
+                          </div>
+                          {systemOwnerRegisterErrors.email && (
+                            <p className="text-red-400 text-sm">{systemOwnerRegisterErrors.email}</p>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="space-y-2 flex flex-col justify-between">
+                            <Label htmlFor="system-owner-country-code" className="text-white font-medium">Country Code</Label>
+                            <div className="flex items-center gap-2">
+                              <Phone className="w-4 h-4 text-slate-300 flex-shrink-0" />
+                              <Input
+                                id="system-owner-country-code"
+                                type="text"
+                                placeholder="+91"
+                                value={systemOwnerRegisterData.countryCode}
+                                onChange={(e) => setSystemOwnerRegisterData({ ...systemOwnerRegisterData, countryCode: e.target.value })}
+                                className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400"
+                              />
+                            </div>
+                          </div>
+                          <div className="col-span-2 space-y-2 flex flex-col justify-between">
+                            <Label htmlFor="system-owner-phone" className="text-white font-medium">Phone Number</Label>
+                            <div className="flex items-center gap-2">
+                              <Phone className="w-4 h-4 text-slate-300 flex-shrink-0" />
+                              <Input
+                                id="system-owner-phone"
+                                type="tel"
+                                placeholder="Enter phone number"
+                                value={systemOwnerRegisterData.phoneNumber}
+                                onChange={(e) => {
+                                  const phone = e.target.value.replace(/\D/g, "")
+                                  setSystemOwnerRegisterData({ ...systemOwnerRegisterData, phoneNumber: phone })
+                                  setSystemOwnerRegisterErrors({ ...systemOwnerRegisterErrors, phoneNumber: validatePhoneNumber(phone) })
+                                }}
+                                onBlur={(e) => {
+                                  setSystemOwnerRegisterErrors({ ...systemOwnerRegisterErrors, phoneNumber: validatePhoneNumber(e.target.value) })
+                                }}
+                                className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 ${systemOwnerRegisterErrors.phoneNumber ? "border-red-500" : ""}`}
+                              />
+                            </div>
+                            {systemOwnerRegisterErrors.phoneNumber && (
+                              <p className="text-red-400 text-sm">{systemOwnerRegisterErrors.phoneNumber}</p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/*
                     <div className="flex gap-2">
                       <Button 
                         type="button" 
@@ -2377,72 +2377,72 @@ function AuthPageContent() {
                       </Button>
                     </div>
                     */}
-                    
-                    {systemOwnerOtpSent && (
-                      <div className="space-y-2">
-                        <Label htmlFor="system-owner-otp" className="text-white font-medium">Enter OTP</Label>
-                        <div className="flex items-center gap-2">
-                          <Input
-                            id="system-owner-otp"
-                            type="password"
-                            placeholder="Enter 6-digit OTP"
-                            value={systemOwnerOtp}
-                            onChange={(e) => setSystemOwnerOtp(e.target.value)}
-                            maxLength={6}
-                            className="flex-1 bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 h-12 text-center text-lg"
-                          />
-                          <Button 
-                            type="button" 
-                            variant="outline" 
-                            onClick={handleSystemOwnerRegisterResendOTP}
-                            disabled={systemOwnerRegisterResendCountdown > 0}
-                            size="sm"
-                            className="border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-12 px-4"
-                          >
-                            {systemOwnerRegisterResendCountdown > 0 ? `Resend (${systemOwnerRegisterResendCountdown}s)` : "Resend"}
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="system-owner-access-key" className="text-white font-medium">Access Key</Label>
-                      <div className="flex items-center gap-2">
-                        <Crown className="w-4 h-4 text-slate-300 flex-shrink-0" />
-                        <Input
-                          id="system-owner-access-key"
-                          type="text"
-                          placeholder="Enter system owner access key"
-                          value={systemOwnerRegisterData.accessKey}
-                          onChange={(e) => setSystemOwnerRegisterData({ ...systemOwnerRegisterData, accessKey: e.target.value })}
-                          className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400"
-                        />
-                      </div>
-                    </div>
 
-                    <Button onClick={handleSystemOwnerRegister} className="w-full bg-sky-400 text-slate-900 hover:bg-sky-300 h-12 text-lg font-medium" disabled={isLoading}>
-                      {isLoading ? "Creating system owner account..." : "Create System Owner Account"}
-                      <Crown className="ml-2 w-4 h-4" />
-                    </Button>
-                    
-                    <Button 
-                      variant="outline" 
-                      onClick={() => setActiveTab("system-owner-login")} 
-                      className="w-full border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-11"
-                    >
-                      Back to System Owner Login
-                      <LogIn className="ml-2 w-4 h-4" />
-                    </Button>
-                  </TabsContent>
-                  </div>
-              </Tabs>
-            </CardContent>
-            </Card>
+                        {systemOwnerOtpSent && (
+                          <div className="space-y-2">
+                            <Label htmlFor="system-owner-otp" className="text-white font-medium">Enter OTP</Label>
+                            <div className="flex items-center gap-2">
+                              <Input
+                                id="system-owner-otp"
+                                type="password"
+                                placeholder="Enter 6-digit OTP"
+                                value={systemOwnerOtp}
+                                onChange={(e) => setSystemOwnerOtp(e.target.value)}
+                                maxLength={6}
+                                className="flex-1 bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 h-12 text-center text-lg"
+                              />
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={handleSystemOwnerRegisterResendOTP}
+                                disabled={systemOwnerRegisterResendCountdown > 0}
+                                size="sm"
+                                className="border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-12 px-4"
+                              >
+                                {systemOwnerRegisterResendCountdown > 0 ? `Resend (${systemOwnerRegisterResendCountdown}s)` : "Resend"}
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="space-y-2">
+                          <Label htmlFor="system-owner-access-key" className="text-white font-medium">Access Key</Label>
+                          <div className="flex items-center gap-2">
+                            <Crown className="w-4 h-4 text-slate-300 flex-shrink-0" />
+                            <Input
+                              id="system-owner-access-key"
+                              type="text"
+                              placeholder="Enter system owner access key"
+                              value={systemOwnerRegisterData.accessKey}
+                              onChange={(e) => setSystemOwnerRegisterData({ ...systemOwnerRegisterData, accessKey: e.target.value })}
+                              className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400"
+                            />
+                          </div>
+                        </div>
+
+                        <Button onClick={handleSystemOwnerRegister} className="w-full bg-sky-400 text-slate-900 hover:bg-sky-300 h-12 text-lg font-medium" disabled={isLoading}>
+                          {isLoading ? "Creating system owner account..." : "Create System Owner Account"}
+                          <Crown className="ml-2 w-4 h-4" />
+                        </Button>
+
+                        <Button
+                          variant="outline"
+                          onClick={() => setActiveTab("system-owner-login")}
+                          className="w-full border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-11"
+                        >
+                          Back to System Owner Login
+                          <LogIn className="ml-2 w-4 h-4" />
+                        </Button>
+                      </TabsContent>
+                    </div>
+                  </Tabs>
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </div>
-      </div>
-      <div id="recaptcha-container"></div>
-      <SiteFooter brandName="Wingman Pro" />
+        <div id="recaptcha-container"></div>
+        <SiteFooter brandName="Wingman Pro" />
       </div>
     </>
   )
