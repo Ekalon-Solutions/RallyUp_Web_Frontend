@@ -324,13 +324,13 @@ export default function UserMembershipCardPage() {
                         <span>{displaySelectedCard.club?.name || 'Unknown Club'}</span>
                       </div>
 
-                      {displaySelectedCard.club?.location && (
+                      {/* {displaySelectedCard.club?.location && (
                         <div className="flex items-center gap-2 text-sm">
                           <MapPin className="w-4 h-4 text-muted-foreground" />
                           <span className="text-muted-foreground">Location:</span>
                           <span>{displaySelectedCard.club.location}</span>
                         </div>
-                      )}
+                      )} */}
                     </div>
 
                     <div className="pt-3 border-t">

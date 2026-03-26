@@ -129,15 +129,15 @@ export default function LeagueTableWidget({ leagueId, highlightTeamId, highlight
                       <span className="font-medium">{standing.strTeam}</span>
                     </div>
                   </td>
-                  <td className="text-center px-2 py-3 font-mono tracking-wider">
+                  <td className="text-center px-2 py-3">
                     {standing.strForm ? (
                       <span className="inline-flex items-center justify-center gap-1">
                         {String(standing.strForm).split("").map((ch, idx) => {
                           const c = (ch || '').toUpperCase()
-                          const cls = c === 'W' ? 'text-green-600' : c === 'L' ? 'text-red-600' : c === 'D' ? 'text-yellow-400' : 'text-muted-foreground'
-                          return (
-                            <span key={idx} className={`${cls} font-semibold`}>{c}</span>
-                          )
+                          if (c === 'W') return <span key={idx} className="text-green-600 font-bold text-base leading-none">✓</span>
+                          if (c === 'L') return <span key={idx} className="text-red-600 font-bold text-base leading-none">✕</span>
+                          if (c === 'D') return <span key={idx} className="text-orange-600 font-bold text-base leading-none">–</span>
+                          return <span key={idx} className="text-muted-foreground text-base leading-none">–</span>
                         })}
                       </span>
                     ) : (
@@ -146,7 +146,7 @@ export default function LeagueTableWidget({ leagueId, highlightTeamId, highlight
                   </td>
                   <td className="text-center px-2 py-3">{standing.intPlayed}</td>
                   <td className="text-center px-2 py-3 text-green-600 font-semibold">{standing.intWin}</td>
-                  <td className="text-center px-2 py-3 text-yellow-400">{standing.intDraw}</td>
+                  <td className="text-center px-2 py-3 text-orange-600 font-semibold">{standing.intDraw}</td>
                   <td className="text-center px-2 py-3 text-red-600 font-semibold">{standing.intLoss}</td>
                   <td className="text-center px-2 py-3 font-semibold">{standing.intGoalDifference}</td>
                   <td className="text-center px-2 py-3 font-bold text-lg">{standing.intPoints}</td>
