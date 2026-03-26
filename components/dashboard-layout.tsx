@@ -35,6 +35,7 @@ import {
   Tag,
   RotateCcw,
   Trophy,
+  Images,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -66,6 +67,7 @@ const adminNavigation = [
   { name: "Membership Plans", href: "/dashboard/membership-plans", icon: CreditCard },
   { name: "Membership Cards", href: "/dashboard/membership-cards", icon: CreditCard },
   { name: "News & Updates", href: "/dashboard/content", icon: Newspaper },
+  { name: "Gallery", href: "/dashboard/gallery", icon: Images },
   { name: "Polls", href: "/dashboard/polls", icon: Vote },
   { name: "Club Chants", href: "/dashboard/chants", icon: Music },
   { name: "Merchandise", href: "/dashboard/merchandise", icon: Shirt },
@@ -102,6 +104,7 @@ const superAdminNavigation = [
   { name: "Membership Plans", href: "/dashboard/membership-plans", icon: CreditCard },
   { name: "Membership Cards", href: "/dashboard/membership-cards", icon: CreditCard },
   { name: "News & Updates", href: "/dashboard/content", icon: Newspaper },
+  { name: "Gallery", href: "/dashboard/gallery", icon: Images },
   { name: "Polls", href: "/dashboard/polls", icon: Vote },
   { name: "Club Chants", href: "/dashboard/chants", icon: Music },
   { name: "Merchandise", href: "/dashboard/merchandise", icon: Shirt },
@@ -128,6 +131,7 @@ const userNavigation = [
   { name: "Events", href: "/dashboard/user/events", icon: Ticket },
   { name: "Leaderboard", href: "/dashboard/user/leaderboard", icon: ChartNoAxesColumn },
   { name: "News", href: "/dashboard/user/news", icon: Newspaper },
+  { name: "Gallery", href: "/dashboard/user/gallery", icon: Images },
   { name: "Polls", href: "/dashboard/user/polls", icon: Vote },
   { name: "Club Chants", href: "/dashboard/user/chants", icon: Music },
   { name: "Merchandise", href: "/merchandise", icon: Shirt },

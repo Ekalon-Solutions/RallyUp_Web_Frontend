@@ -172,6 +172,63 @@ export interface News {
   updatedAt: string;
 }
 
+export interface AlbumMediaItem {
+  _id: string;
+  url: string;
+  key: string;
+  type: 'image' | 'video';
+  mimeType: string;
+  size: number;
+  name: string;
+  uploadedAt: string;
+  uploadedBy: string;
+}
+
+export interface Album {
+  _id: string;
+  clubId: string;
+  name: string;
+  description?: string;
+  folderPath?: string;
+  coverImage?: string;
+  coverImageKey?: string;
+  coverImageSetManually: boolean;
+  mediaItems: AlbumMediaItem[];
+  totalSize: number;
+  createdBy: string;
+  isDeleted: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface GalleryStorageSummary {
+  clubId: string;
+  albumsCount: number;
+  usage: {
+    usedBytes: number;
+    totalBytes: number;
+    availableBytes: number;
+    usedGb: number;
+    totalGb: number;
+    availableGb: number;
+  };
+  upgrades: Array<{
+    _id: string;
+    plan: 'monthly' | 'annual';
+    additionalBytes: number;
+    amount: number;
+    currency: string;
+    startDate: string;
+    endDate: string;
+    autoRenew: boolean;
+    isActive: boolean;
+  }>;
+  pricing: {
+    monthly: { amountInr: number; additionalGb: number };
+    annual: { amountInr: number; additionalGb: number; discountLabel: string };
+  };
+}
+
 export interface Chant {
   _id: string;
   title: string;
@@ -3424,6 +3481,46 @@ class ApiClient {
     cancelledOrders: number;
   }>> {
     return this.request('/orders/admin/stats');
+  }
+
+  async getMemberAlbums(clubId?: string): Promise<ApiResponse<{ albums: Album[] }>> {
+    const endpoint = clubId ? `/gallery/member/albums?clubId=${encodeURIComponent(clubId)}` : '/gallery/member/albums';
+    return this.request(endpoint);
+  }
+
+  async getMemberAlbumById(albumId: string): Promise<ApiResponse<{ album: Album }>> {
+    return this.request(`/gallery/member/albums/${albumId}`);
+  }
+
+  async getAdminAlbums(clubId?: string): Promise<ApiResponse<{ albums: Album[] }>> {
+    const endpoint = clubId ? `/gallery/albums?clubId=${encodeURIComponent(clubId)}` : '/gallery/albums';
+    return this.request(endpoint);
+  }
+
+  async createAlbum(data: { name: string; description?: string; folderName?: string; clubId?: string }): Promise<ApiResponse<{ album: Album }>> {
+    return this.request('/gallery/albums', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async setAlbumCoverImage(albumId: string, mediaItemId?: string): Promise<ApiResponse<{ album: Album }>> {
+    return this.request(`/gallery/albums/${albumId}/cover`, {
+      method: 'PATCH',
+      body: JSON.stringify({ mediaItemId }),
+    });
+  }
+
+  async getGalleryStorageSummary(clubId?: string): Promise<ApiResponse<GalleryStorageSummary>> {
+    const endpoint = clubId ? `/gallery/storage/summary?clubId=${encodeURIComponent(clubId)}` : '/gallery/storage/summary';
+    return this.request(endpoint);
+  }
+
+  async upgradeGalleryStorage(data: { plan: 'monthly' | 'annual'; autoRenew?: boolean; clubId?: string }): Promise<ApiResponse<any>> {
+    return this.request('/gallery/storage/upgrade', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
   }
 }
 
