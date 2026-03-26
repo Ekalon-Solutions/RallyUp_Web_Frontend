@@ -129,7 +129,7 @@ function FixturesCards({ clubId }: { clubId?: string | undefined }) {
         <div className="mt-4 flex justify-center">
           <button
             onClick={() => setShowAll((v) => !v)}
-            className="text-sm text-primary underline underline-offset-2 hover:opacity-80 transition-opacity"
+            className="text-sm text-black dark:text-white underline underline-offset-2 hover:opacity-80 transition-opacity"
           >
             {showAll ? 'Show Less' : `Show More (${fixtures.length - INITIAL_COUNT} more)`}
           </button>

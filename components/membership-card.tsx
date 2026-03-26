@@ -244,7 +244,6 @@ export function MembershipCard({
             )}
             <div className="min-w-0">
               <h3 className="font-bold text-xs truncate">{club.name}</h3>
-              <p className="text-[10px] opacity-80 truncate">{club.location || 'Location'}</p>
             </div>
           </div>
         </div>
