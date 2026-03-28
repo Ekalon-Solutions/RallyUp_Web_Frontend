@@ -214,7 +214,8 @@ export interface GalleryStorageSummary {
   };
   upgrades: Array<{
     _id: string;
-    plan: 'monthly' | 'annual';
+    plan: 'monthly' | 'annual' | 'quarterly';
+    storageGb: number;
     additionalBytes: number;
     amount: number;
     currency: string;
@@ -226,6 +227,7 @@ export interface GalleryStorageSummary {
   pricing: {
     monthly: { amountInr: number; additionalGb: number };
     annual: { amountInr: number; additionalGb: number; discountLabel: string };
+    quarterly?: { amountInr: number; additionalGb: number };
   };
 }
 
@@ -3516,7 +3518,16 @@ class ApiClient {
     return this.request(endpoint);
   }
 
-  async upgradeGalleryStorage(data: { plan: 'monthly' | 'annual'; autoRenew?: boolean; clubId?: string }): Promise<ApiResponse<any>> {
+  async upgradeGalleryStorage(data: {
+    plan: 'monthly' | 'annual' | 'quarterly';
+    storageGb: number;
+    autoRenew?: boolean;
+    clubId?: string;
+    razorpay_payment_id?: string;
+    razorpay_order_id?: string;
+    razorpay_subscription_id?: string;
+    razorpay_signature?: string;
+  }): Promise<ApiResponse<any>> {
     return this.request('/gallery/storage/upgrade', {
       method: 'POST',
       body: JSON.stringify(data),
