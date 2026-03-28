@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { apiClient, News, Event, Poll, Chant } from "@/lib/api"
+import { apiClient, News, Event, Chant } from "@/lib/api"
 import { formatDisplayDate } from "@/lib/utils"
 import { getNewsImageUrl } from "@/lib/config"
 import UserEventRegistrationModal from "@/components/modals/user-event-registration-modal"
@@ -23,7 +23,6 @@ import {
   Users, 
   Calendar, 
   Newspaper, 
-  Vote, 
   Music, 
   Store,
   ArrowLeft,
@@ -141,7 +140,6 @@ export default function PublicClubPage() {
   const [settings, setSettings] = useState<ClubSettings | null>(null)
   const [news, setNews] = useState<News[]>([])
   const [events, setEvents] = useState<Event[]>([])
-  const [polls, setPolls] = useState<Poll[]>([])
   const [chants, setChants] = useState<Chant[]>([])
   const [merchandise, setMerchandise] = useState<any[]>([])
   const [loadingContent, setLoadingContent] = useState(false)
@@ -234,7 +232,6 @@ export default function PublicClubPage() {
           (websiteSetup.sections?.news && "news") ||
           (websiteSetup.sections?.events && "events") ||
           (storeEnabled && "store") ||
-          (websiteSetup.sections?.polls && "polls") ||
           (websiteSetup.sections?.chants && "chants") ||
           ""
 
@@ -266,7 +263,6 @@ export default function PublicClubPage() {
       if (sections.news) requests.news = apiClient.getPublicNews(clubId)
       if (sections.events) requests.events = apiClient.getPublicEvents(clubId)
       if (storeEnabled) requests.store = apiClient.getPublicMerchandise({ clubId, limit: 12 })
-      if (sections.polls) requests.polls = apiClient.getPublicPolls({ clubId, limit: 20 })
       if (sections.chants) requests.chants = apiClient.getPublicChants({ clubId, limit: 20 })
 
       const entries = Object.entries(requests)
@@ -290,11 +286,6 @@ export default function PublicClubPage() {
         if (key === "store") {
           const merch = (res.data as any)?.merchandise || []
           setMerchandise(merch)
-        }
-
-        if (key === "polls") {
-          const pollsData = (res.data as any)?.polls || []
-          setPolls(pollsData)
         }
 
         if (key === "chants") {
@@ -592,7 +583,6 @@ export default function PublicClubPage() {
 
           {(websiteSetup.sections.news ||
             websiteSetup.sections.events ||
-            websiteSetup.sections.polls ||
             websiteSetup.sections.chants ||
             websiteSetup.sections.store ||
             websiteSetup.sections.merchandise) && (
@@ -633,18 +623,6 @@ export default function PublicClubPage() {
                     >
                       <Store className="h-5 w-5 mr-2" />
                       Merchandise
-                    </TabsTrigger>
-                  )}
-                  {websiteSetup.sections.polls && (
-                    <TabsTrigger
-                      value="polls"
-                      className="text-base font-bold data-[state=active]:bg-background data-[state=active]:shadow-md px-4 py-3"
-                      style={{
-                        color: activeTab === "polls" ? primaryColor : undefined,
-                      }}
-                    >
-                      <Vote className="h-5 w-5 mr-2" />
-                      Polls & Voting
                     </TabsTrigger>
                   )}
                   {websiteSetup.sections.chants && (
@@ -941,59 +919,6 @@ export default function PublicClubPage() {
                           <div className="text-center py-12">
                             <Store className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                             <p className="text-lg text-muted-foreground">No merchandise available yet.</p>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-                )}
-
-                {websiteSetup.sections.polls && (
-                  <TabsContent value="polls" className="mt-8">
-                    <Card className="border-2 shadow-lg">
-                      <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                        <CardTitle className="text-3xl font-bold flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                            <Vote className="h-6 w-6" style={{ color: primaryColor }} />
-                          </div>
-                          Polls & Voting
-                        </CardTitle>
-                        <Link href="/login">
-                          <Button variant="outline" className="border-2 font-bold">
-                            Login to Vote
-                          </Button>
-                        </Link>
-                      </CardHeader>
-                      <CardContent>
-                        {loadingContent ? (
-                          <div className="flex items-center justify-center py-12">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: primaryColor }} />
-                          </div>
-                        ) : polls.length > 0 ? (
-                          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                            {polls.map((poll) => (
-                              <Card key={poll._id} className="hover:shadow-lg transition-all border-2">
-                                <CardHeader>
-                                  <CardTitle className="text-lg line-clamp-2">{poll.question}</CardTitle>
-                                  {poll.description && (
-                                    <CardDescription className="line-clamp-3 mt-2">{poll.description}</CardDescription>
-                                  )}
-                                </CardHeader>
-                                <CardContent className="text-sm text-muted-foreground">
-                                  <div className="flex items-center justify-between">
-                                    <span>{poll.totalVotes || 0} votes</span>
-                                    <Badge variant="secondary" className="text-xs capitalize">
-                                      {poll.category || "general"}
-                                    </Badge>
-                                  </div>
-                                </CardContent>
-                              </Card>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-center py-12">
-                            <Vote className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                            <p className="text-lg text-muted-foreground">No active polls available yet.</p>
                           </div>
                         )}
                       </CardContent>
