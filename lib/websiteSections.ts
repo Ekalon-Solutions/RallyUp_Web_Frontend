@@ -1,7 +1,9 @@
 export type WebsiteSectionKey =
   | "news"
   | "events"
+  | "polls"
   | "chants"
+  | "members"
   | "store"
   | "merchandise"
 
@@ -41,10 +43,52 @@ export const WEBSITE_SECTION_OPTIONS: readonly WebsiteSectionOption[] = [
   },
 ] as const
 
+// All sections including polls & members — used in admin member dashboard visibility settings
+export const MEMBER_DASHBOARD_SECTION_OPTIONS: readonly WebsiteSectionOption[] = [
+  {
+    id: "news",
+    label: "News & Updates",
+    description: "Show club news posts in the member dashboard.",
+    keys: ["news"],
+  },
+  {
+    id: "events",
+    label: "Events & Tickets",
+    description: "Show upcoming events in the member dashboard.",
+    keys: ["events"],
+  },
+  {
+    id: "polls",
+    label: "Polls",
+    description: "Let visitors see community polls.",
+    keys: ["polls"],
+  },
+  {
+    id: "chants",
+    label: "Club Chants",
+    description: "Show supporter chants & songs in the member dashboard.",
+    keys: ["chants"],
+  },
+  {
+    id: "members",
+    label: "Members",
+    description: "Show members/community section on the public site.",
+    keys: ["members"],
+  },
+  {
+    id: "store",
+    label: "Merchandise",
+    description: "Show merchandise section in the member dashboard.",
+    keys: ["store", "merchandise"],
+  },
+] as const
+
 export const DEFAULT_WEBSITE_SECTIONS: Record<WebsiteSectionKey, boolean> = {
   news: true,
   events: true,
+  polls: true,
   chants: true,
+  members: true,
   store: true,
   merchandise: true,
 }

@@ -47,7 +47,12 @@ export default function UserEventRegistrationModal({ eventId, isOpen, onClose, o
   const [validatingCoupon, setValidatingCoupon] = useState(false)
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null)
   
-  const isMember = user && (user as any).membershipStatus === 'active'
+  const isMember = Boolean(
+    user && (
+      (user as any).membershipStatus === 'active' ||
+      (user as any).memberships?.some((m: any) => m?.status === 'active')
+    )
+  )
   
   const calculateEarlyBirdDiscount = () => {
     if (!event?.earlyBirdDiscount?.enabled) return 0

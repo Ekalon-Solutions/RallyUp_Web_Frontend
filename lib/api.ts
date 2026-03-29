@@ -2397,6 +2397,7 @@ class ApiClient {
     status?: string;
     verification?: 'verified' | 'unverified';
     clubId: string;
+    export?: boolean;
   }): Promise<ApiResponse<{
     members: User[];
     metadata: {
@@ -2419,6 +2420,7 @@ class ApiClient {
     if (params?.page) queryParams.append('page', params.page.toString());
     if (params?.limit) queryParams.append('limit', params.limit.toString());
     if (params?.clubId) queryParams.append('clubId', params.clubId);
+    if (params?.export) queryParams.append('export', 'true');
 
     const endpoint = `/users/club-directory${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
     return this.request(endpoint);

@@ -582,24 +582,40 @@ export default function MembersPage() {
     }
   }
 
-  const exportMembers = () => {
-    const csvContent = [
-      ['Name', 'Email', 'Phone', 'Club', 'Membership Plan', 'Status', 'Joined Date'].join(','),
-      ...members.map((member: Member) => [
-        member.name,
-        member.email,
-        formatPhoneNumber(member.phoneNumber, member.countryCode),
-        member.club?.name || 'N/A',
-        member.membershipPlan?.name || 'N/A',
-        member.isActive ? 'Active' : 'Inactive',
-        formatDisplayDate(member.createdAt)
-      ].join(','))
-    ].join('\n')
+  const exportMembers = async () => {
+    try {
+      const response = await apiClient.getClubMemberDirectory({
+        search: searchTerm || undefined,
+        status: statusFilter === 'all' ? undefined : statusFilter,
+        verification: verificationFilter === 'all' ? undefined : verificationFilter,
+        clubId: clubId!,
+        export: true,
+      })
 
-  const blob = new Blob([csvContent], { type: 'text/csv' })
-  const filename = `members-${new Date().toISOString().split('T')[0]}.csv`
-  triggerBlobDownload(blob, filename)
-  toast.success('Members exported successfully!')
+      const allMembers: Member[] = response.success && response.data
+        ? (response.data.members as unknown as Member[]) || []
+        : members
+
+      const csvContent = [
+        ['Name', 'Email', 'Phone', 'Club', 'Membership Plan', 'Status', 'Joined Date'].join(','),
+        ...allMembers.map((member: Member) => [
+          member.name,
+          member.email,
+          formatPhoneNumber(member.phoneNumber, member.countryCode),
+          member.club?.name || 'N/A',
+          member.membershipPlan?.name || 'N/A',
+          member.isActive ? 'Active' : 'Inactive',
+          formatDisplayDate(member.createdAt)
+        ].join(','))
+      ].join('\n')
+
+      const blob = new Blob([csvContent], { type: 'text/csv' })
+      const filename = `members-${new Date().toISOString().split('T')[0]}.csv`
+      triggerBlobDownload(blob, filename)
+      toast.success('Members exported successfully!')
+    } catch (error) {
+      toast.error('Failed to export members')
+    }
   }
 
   return (

@@ -178,7 +178,12 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
   }, [isOpen, user, eventData, event])
 
   const discountSource = eventData || event
-  const isMember = Boolean(user && (user as any).membershipStatus === 'active')
+  const isMember = Boolean(
+    user && (
+      (user as any).membershipStatus === 'active' ||
+      (user as any).memberships?.some((m: any) => m?.status === 'active')
+    )
+  )
 
   const getDiscountedPricePerTicket = (): number => {
     if (!event) return 0

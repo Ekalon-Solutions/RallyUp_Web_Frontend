@@ -15,7 +15,7 @@ import { useAuth } from "@/contexts/auth-context"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import {
   DEFAULT_WEBSITE_SECTIONS,
-  WEBSITE_SECTION_OPTIONS,
+  MEMBER_DASHBOARD_SECTION_OPTIONS,
   isWebsiteOptionEnabled,
   sanitizeWebsiteSections,
   setWebsiteOptionEnabled,
@@ -142,7 +142,7 @@ export function WebsiteSetupTab() {
   }
 
   const toggleOption = (optionId: string) => {
-    const option = WEBSITE_SECTION_OPTIONS.find((o) => o.id === optionId)
+    const option = MEMBER_DASHBOARD_SECTION_OPTIONS.find((o) => o.id === optionId)
     if (!option) return
     const currentlyEnabled = isWebsiteOptionEnabled(memberSections, option)
     setMemberSections((prev) => setWebsiteOptionEnabled(prev, option, !currentlyEnabled))
@@ -319,7 +319,7 @@ export function WebsiteSetupTab() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {WEBSITE_SECTION_OPTIONS.map((option) => {
+          {MEMBER_DASHBOARD_SECTION_OPTIONS.map((option) => {
             const enabled = isWebsiteOptionEnabled(memberSections, option)
             return (
               <div key={option.id} className="flex items-center justify-between py-2">
