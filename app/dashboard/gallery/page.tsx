@@ -40,7 +40,7 @@ type BillingCycle = "monthly" | "quarterly" | "annual"
 const STORAGE_PRICING: Record<StorageGb, Record<BillingCycle, number>> = {
   50: { monthly: 159, quarterly: 449, annual: 1699 },
   100: { monthly: 299, quarterly: 889, annual: 3199 },
-  300: { monthly: 749, quarterly: 2499, annual: 7999 },
+  300: { monthly: 749, quarterly: 2299, annual: 7999 },
 }
 
 const BILLING_LABELS: Record<BillingCycle, string> = {
