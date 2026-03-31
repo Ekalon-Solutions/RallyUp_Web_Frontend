@@ -133,6 +133,7 @@ const userNavigation = [
   { name: "My Clubs", href: "/dashboard/user/my-clubs", icon: UserCheck },
   { name: "Members", href: "/dashboard/user/members", icon: Users },
   { name: "Events", href: "/dashboard/user/events", icon: Ticket },
+  { name: "Guess The Score", href: "/dashboard/user/guess-the-score", icon: Trophy },
   { name: "Leaderboard", href: "/dashboard/user/leaderboard", icon: ChartNoAxesColumn },
   { name: "News", href: "/dashboard/user/news", icon: Newspaper },
   { name: "Gallery", href: "/dashboard/user/gallery", icon: Images },

@@ -645,23 +645,23 @@ class ApiClient {
     const url = `${this.baseURL}${endpoint}`.replace(/([^:]\/)\/+/g, "$1");
     const token = this.getToken();
     const isFormData = options.body instanceof FormData;
-    
+
     const headers: Record<string, string> = {
       'Accept': 'application/json',
     };
-    
+
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
-    
+
     if (!isFormData) {
       headers['Content-Type'] = 'application/json';
     }
-    
+
     if (options.headers) {
       Object.assign(headers, options.headers);
     }
-    
+
     const config: RequestInit = {
       headers,
       credentials: 'include',
@@ -670,7 +670,7 @@ class ApiClient {
 
     try {
       const response = await fetch(url, config);
-      
+
       let data;
       const contentType = response.headers.get('content-type');
       if (contentType && contentType.includes('application/json')) {
@@ -679,7 +679,7 @@ class ApiClient {
         const text = await response.text();
         data = { message: text || `HTTP ${response.status} error` };
       }
-      
+
       if (!response.ok) {
         const errorMessage = data.message || data.error || `HTTP error! status: ${response.status}`;
         const errorDetails = {
@@ -689,7 +689,7 @@ class ApiClient {
           url: response.url,
           ...(data.details && { details: data.details })
         };
-        
+
         return {
           success: false,
           error: errorMessage,
@@ -836,7 +836,7 @@ class ApiClient {
     return this.request('/admin/profile');
   }
 
-  async adminLogAttendance(data: { registrationId?: string | null; attendeeId?: string | null;}): Promise<ApiResponse<any>> {
+  async adminLogAttendance(data: { registrationId?: string | null; attendeeId?: string | null; }): Promise<ApiResponse<any>> {
     return this.request('/events/admin/attendance', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -916,7 +916,7 @@ class ApiClient {
     const userStr = localStorage.getItem('user');
     const userRole = JSON.parse(userStr || "{}")?.role || localStorage.getItem('userType');
     let endpoint = '/users/profile';
-    
+
     if (userRole) {
       try {
         if (userRole === 'system_owner') {
@@ -929,18 +929,18 @@ class ApiClient {
     }
 
     const backendData: any = {};
-    
+
     if (endpoint === '/users/profile') {
       if (data.name) {
         const nameParts = data.name.trim().split(' ');
         backendData.first_name = nameParts[0] || '';
         backendData.last_name = nameParts.slice(1).join(' ') || nameParts[0] || '';
       }
-      
+
       if (data.phoneNumber !== undefined) {
         backendData.phoneNumber = data.phoneNumber;
       }
-      
+
       if (data.countryCode !== undefined) {
         backendData.countryCode = data.countryCode;
       }
@@ -948,16 +948,16 @@ class ApiClient {
       if (data.name !== undefined) {
         backendData.name = data.name;
       }
-      
+
       if (data.phoneNumber !== undefined) {
         backendData.phoneNumber = data.phoneNumber;
       }
-      
+
       if (data.countryCode !== undefined) {
         backendData.countryCode = data.countryCode;
       }
     }
-    
+
     if (data.email !== undefined) {
       backendData.email = data.email;
     }
@@ -1023,7 +1023,7 @@ class ApiClient {
   async markAllInAppNotificationsRead(): Promise<ApiResponse<{ success: boolean; modifiedCount: number }>> {
     return this.post('/notifications/read-all');
   }
-  
+
   async getMembers(params?: {
     page?: number;
     limit?: number;
@@ -1132,7 +1132,7 @@ class ApiClient {
   async getNewsByMyClub(): Promise<ApiResponse<News[]>> {
     return this.request('/news/my-club');
   }
-  
+
   async getAllClubs(params?: { page?: number; limit?: number; search?: string; status?: string }) {
     const query: Record<string, any> = {};
     if (params?.page) query.page = params.page;
@@ -1151,7 +1151,7 @@ class ApiClient {
   async getNewsById(id: string): Promise<ApiResponse<News>> {
     return this.request(`/news/${id}`);
   }
-  
+
   async getPublicNewsById(id: string): Promise<ApiResponse<News>> {
     return this.request(`/news/public/${id}`);
   }
@@ -1236,17 +1236,17 @@ class ApiClient {
     });
   }
 
-  async listAvailableExternalTicketFixtures(clubId: string, params?: { competition?: string }):Promise<ApiResponse<ExternalTicketFixture[]>> {
+  async listAvailableExternalTicketFixtures(clubId: string, params?: { competition?: string }): Promise<ApiResponse<ExternalTicketFixture[]>> {
     const query: Record<string, any> = {};
     if (params?.competition) query.competition = params.competition;
     return this.request<ExternalTicketFixture[]>(
       `/external-tickets/club/${clubId}/fixtures` +
-        (Object.keys(query).length ? `?${new URLSearchParams(query as any).toString()}` : '')
+      (Object.keys(query).length ? `?${new URLSearchParams(query as any).toString()}` : '')
     );
   }
 
   // Call backend sports endpoint directly (public, no auth required)
-  async proxyInternalNextMatches(params: { team?: string; teamId?: string; clubId?: string; leagueId?: string } = {}) : Promise<ApiResponse<any>> {
+  async proxyInternalNextMatches(params: { team?: string; teamId?: string; clubId?: string; leagueId?: string } = {}): Promise<ApiResponse<any>> {
     const query: Record<string, string> = {};
     if (params.team) query.team = params.team;
     if (params.teamId) query.teamId = params.teamId;
@@ -1260,7 +1260,7 @@ class ApiClient {
     if (params?.competition) query.competition = params.competition;
     return this.request<ExternalTicketFixture[]>(
       `/external-tickets/club/${clubId}/fixtures/admin` +
-        (Object.keys(query).length ? `?${new URLSearchParams(query as any).toString()}` : '')
+      (Object.keys(query).length ? `?${new URLSearchParams(query as any).toString()}` : '')
     );
   }
 
@@ -1281,12 +1281,12 @@ class ApiClient {
     return this.request(`/external-tickets/${id}`);
   }
 
-  async listExternalTicketRequestsForClub(clubId: string, params?: { 
-    status?: string; 
-    fixtureId?: string; 
-    competition?: string; 
-    page?: number; 
-    limit?: number 
+  async listExternalTicketRequestsForClub(clubId: string, params?: {
+    status?: string;
+    fixtureId?: string;
+    competition?: string;
+    page?: number;
+    limit?: number
   }) {
     const query: Record<string, any> = {};
     if (params?.status) query.status = params.status;
@@ -1315,11 +1315,11 @@ class ApiClient {
     });
   }
 
-  async exportExternalTicketRequests(clubId: string, params?: { 
-    status?: string; 
-    fixtureId?: string; 
-    competition?: string; 
-    format?: 'csv' | 'xlsx' 
+  async exportExternalTicketRequests(clubId: string, params?: {
+    status?: string;
+    fixtureId?: string;
+    competition?: string;
+    format?: 'csv' | 'xlsx'
   }) {
     const query: Record<string, any> = {};
     if (params?.status) query.status = params.status;
@@ -1699,7 +1699,7 @@ class ApiClient {
     const queryParams = new URLSearchParams();
     queryParams.append('opportunityId', params.opportunityId);
     queryParams.append('timeSlotId', params.timeSlotId);
-    
+
     return this.request(`/volunteer/opportunities/available-volunteers?${queryParams.toString()}`);
   }
 
@@ -2025,7 +2025,7 @@ class ApiClient {
 
   async getClubById(id: string, isPublic: boolean = false): Promise<ApiResponse<Club>> {
     const endpoint = isPublic ? `/clubs/${id}/public` : `/clubs/${id}`;
-    
+
     if (isPublic) {
       const url = `${this.baseURL}${endpoint}`;
       const response = await fetch(url, {
@@ -2034,21 +2034,21 @@ class ApiClient {
           'Content-Type': 'application/json'
         }
       });
-      
+
       if (!response.ok) {
         return {
           success: false,
           error: 'Failed to fetch club data'
         };
       }
-      
+
       const data = await response.json();
       return {
         success: true,
         data: data
       };
     }
-    
+
     return this.request(endpoint);
   }
 
@@ -2095,8 +2095,8 @@ class ApiClient {
     });
   }
 
-  async updateClubBasicInfo(id: string, data: { 
-    name: string; 
+  async updateClubBasicInfo(id: string, data: {
+    name: string;
     description?: string;
     contactInfo?: string;
     slug?: string;
@@ -2164,12 +2164,12 @@ class ApiClient {
   async subscribeMembershipPlan(
     planId: string,
     payment?: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }
-  ): Promise<ApiResponse<{ 
-    message: string; 
-    data: { 
-      userMembership: any; 
+  ): Promise<ApiResponse<{
+    message: string;
+    data: {
+      userMembership: any;
       isUpgrade: boolean;
-    } 
+    }
   }>> {
     return this.request(`/membership-plans/${planId}/subscribe`, {
       method: 'POST',
@@ -2507,7 +2507,7 @@ class ApiClient {
   }>> {
     return this.request(`/users/membership-id/${userId}/${clubId}`);
   }
-  
+
   async getUserMemberships(): Promise<ApiResponse<Array<{
     _id: string;
     club_id: {
@@ -2913,7 +2913,7 @@ class ApiClient {
     if (params?.page) queryParams.append('page', params.page.toString());
     if (params?.limit) queryParams.append('limit', params.limit.toString());
     if (params?.search) queryParams.append('search', params.search);
-    
+
     const query = queryParams.toString();
     return this.request(`/chants/user/all${query ? `?${query}` : ''}`);
   }
@@ -2936,7 +2936,7 @@ class ApiClient {
     if (params?.page) queryParams.append('page', params.page.toString());
     if (params?.limit) queryParams.append('limit', params.limit.toString());
     if (params?.search) queryParams.append('search', params.search);
-    
+
     const query = queryParams.toString();
     return this.request(`/chants/club/${clubId}${query ? `?${query}` : ''}`);
   }
@@ -3181,7 +3181,7 @@ class ApiClient {
 
   async getClubSettings(clubId: string, isPublic: boolean = false): Promise<ApiResponse<any>> {
     const endpoint = isPublic ? `/club-settings/${clubId}/public` : `/club-settings/${clubId}`;
-    
+
     if (isPublic) {
       const url = `${this.baseURL}${endpoint}`;
       const response = await fetch(url, {
@@ -3190,21 +3190,21 @@ class ApiClient {
           'Content-Type': 'application/json'
         }
       });
-      
+
       if (!response.ok) {
         return {
           success: false,
           error: 'Failed to fetch club settings'
         };
       }
-      
+
       const data = await response.json();
       return {
         success: true,
         data: data
       };
     }
-    
+
     return this.get(endpoint);
   }
 
@@ -3318,7 +3318,7 @@ class ApiClient {
     return this.request('/coupons/active');
   }
 
-  async createCoupon(data: { clubId: string; [key: string]: any }): Promise<ApiResponse<{ message: string; coupon: any }>> {
+  async createCoupon(data: { clubId: string;[key: string]: any }): Promise<ApiResponse<{ message: string; coupon: any }>> {
     return this.request('/coupons', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -3368,7 +3368,7 @@ class ApiClient {
   async getCouponStats(id: string, clubId?: string): Promise<ApiResponse<any>> {
     return this.get(`/coupons/${id}/stats`, { params: clubId ? { clubId } : undefined });
   }
-  
+
   async getSystemStatus(): Promise<ApiResponse<{
     success: boolean;
     status: 'operational' | 'degraded' | 'down';
@@ -3557,6 +3557,125 @@ class ApiClient {
       method: 'POST',
       body: JSON.stringify(data),
     });
+  }
+
+  // ─── Guess The Score (GTS) ────────────────────────────────────────────────
+
+  async getGTSPreferences(clubId: string): Promise<ApiResponse<{
+    hasAcceptedConsent: boolean;
+    isInClubLeague: boolean;
+    isInGlobalLeague: boolean;
+    hasOptedOutGlobalLeagueSeason: boolean;
+    season: string;
+  }>> {
+    return this.request(`/gts/preferences?clubId=${encodeURIComponent(clubId)}`);
+  }
+
+  async acceptGTSConsent(data: { clubId: string; joinClubLeague: boolean; joinGlobalLeague: boolean }): Promise<ApiResponse<any>> {
+    return this.post('/gts/consent', data);
+  }
+
+  async optInGlobalLeague(clubId: string): Promise<ApiResponse<any>> {
+    return this.post('/gts/global-league/opt-in', { clubId });
+  }
+
+  async optOutGlobalLeague(clubId: string): Promise<ApiResponse<any>> {
+    return this.post('/gts/global-league/opt-out', { clubId });
+  }
+
+  async getGTSFixtures(clubId: string): Promise<ApiResponse<{
+    fixtures: Array<{
+      idEvent: string;
+      strEvent: string;
+      strHomeTeam: string;
+      strAwayTeam: string;
+      strHomeTeamBadge?: string;
+      strAwayTeamBadge?: string;
+      dateEvent: string;
+      strTime: string;
+      strTimestamp?: string;
+      intHomeScore: string | null;
+      intAwayScore: string | null;
+      strStatus: string;
+      idLeague?: string;
+      strLeague?: string;
+    }>;
+  }>> {
+    return this.request(`/gts/fixtures?clubId=${encodeURIComponent(clubId)}`);
+  }
+
+  /**
+   * Submit (or update) a GTS prediction.
+   * The backend resolves firstName, lastName, username, and clubName from the
+   * authenticated token so they are stored in the master GTS predictions collection.
+   * Submissions are rejected server-side if received after Lock Time (T−90 mins).
+   */
+  async submitGTSPrediction(data: {
+    fixtureId: string;
+    /** StrTime value from SportsDB – used server-side to enforce T−90 lock */
+    strTime: string;
+    /** ISO date string from SportsDB dateEvent */
+    dateEvent: string;
+    homeScore: number;
+    awayScore: number;
+    clubId: string;
+    homeTeam: string;
+    awayTeam: string;
+  }): Promise<ApiResponse<{
+    _id: string;
+    fixtureId: string;
+    homeScore: number;
+    awayScore: number;
+    lockedAt: string;
+  }>> {
+    return this.post('/gts/predictions', data);
+  }
+
+  async getMyGTSPredictions(clubId: string, season?: string): Promise<ApiResponse<{
+    predictions: Array<{
+      _id: string;
+      fixtureId: string;
+      homeTeam: string;
+      awayTeam: string;
+      homeScore: number;
+      awayScore: number;
+      matchDate: string;
+      /** ISO timestamp when the prediction was locked */
+      lockedAt?: string;
+      pointsEarned?: number | null;
+      result?: 'exact' | 'close' | 'correct_outcome' | 'incorrect' | null;
+      finalHomeScore?: number | null;
+      finalAwayScore?: number | null;
+    }>;
+  }>> {
+    const qs = new URLSearchParams({ clubId, ...(season ? { season } : {}) });
+    return this.request(`/gts/predictions/me?${qs.toString()}`);
+  }
+
+  /**
+   * Leaderboard exposes ONLY: userId (for self-highlight), firstName, lastName,
+   * clubName, points, and rank. No avatar, email, username, or phone is returned.
+   */
+  async getGTSLeaderboard(params: { clubId: string; type: 'club' | 'global'; season?: string }): Promise<ApiResponse<{
+    leaderboard: Array<{
+      /** Opaque identifier used solely to highlight the current user's own row */
+      userId: string;
+      firstName: string;
+      lastName: string;
+      clubName: string;
+      points: number;
+      rank: number;
+    }>;
+    /** Current user's rank in this league (null if not participating) */
+    userRank?: number;
+    userPoints?: number;
+  }>> {
+    const qs = new URLSearchParams({ clubId: params.clubId, type: params.type, ...(params.season ? { season: params.season } : {}) });
+    return this.request(`/gts/leaderboard?${qs.toString()}`);
+  }
+
+  async calculateGTSPoints(fixtureId: string, clubId: string): Promise<ApiResponse<any>> {
+    return this.post('/gts/calculate', { fixtureId, clubId });
   }
 }
 
