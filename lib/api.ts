@@ -3506,6 +3506,14 @@ class ApiClient {
     });
   }
 
+  async deleteAlbum(albumId: string): Promise<ApiResponse<{ message: string; deleteErrors: string[] }>> {
+    return this.request(`/gallery/albums/${albumId}`, { method: 'DELETE' });
+  }
+
+  async deleteMediaItem(albumId: string, mediaItemId: string): Promise<ApiResponse<{ album: Album }>> {
+    return this.request(`/gallery/albums/${albumId}/media/${mediaItemId}`, { method: 'DELETE' });
+  }
+
   async setAlbumCoverImage(albumId: string, mediaItemId?: string): Promise<ApiResponse<{ album: Album }>> {
     return this.request(`/gallery/albums/${albumId}/cover`, {
       method: 'PATCH',

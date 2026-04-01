@@ -39,7 +39,11 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children, token 
       return;
     }
 
-    const socketBaseUrl = config.apiBaseUrl.replace('/api', '');
+    // Derive socket URL from NEXT_PUBLIC_API_URL (always HTTP) by stripping /api.
+    // socket.io-client needs an HTTP/HTTPS base URL — it handles the WebSocket
+    // upgrade internally. Do NOT use ws:// or wss:// here.
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || config.apiBaseUrl;
+    const socketBaseUrl = apiUrl.replace(/\/api\/?$/, '');
     const socketInstance = io(socketBaseUrl, {
       auth: {
         token: token,
@@ -56,7 +60,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children, token 
       setConnectionError(null);
     });
 
-    socketInstance.on('disconnect', (reason) => {
+    socketInstance.on('disconnect', () => {
       setIsConnected(false);
     });
 
@@ -65,7 +69,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children, token 
       setIsConnected(false);
     });
 
-    socketInstance.on('reconnect', (attemptNumber) => {
+    socketInstance.on('reconnect', () => {
       setIsConnected(true);
       setConnectionError(null);
     });

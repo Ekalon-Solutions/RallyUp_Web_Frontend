@@ -184,9 +184,17 @@ export default function UserGalleryPage() {
                           // eslint-disable-next-line @next/next/no-img-element
                           <img src={item.url} alt={item.name} className="w-full h-full object-cover" />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <PlayCircle className="h-10 w-10 text-muted-foreground" />
-                          </div>
+                          <>
+                            {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+                            <video
+                              src={`${item.url}#t=0.001`}
+                              className="w-full h-full object-cover"
+                              preload="metadata"
+                            />
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                              <PlayCircle className="h-10 w-10 text-white drop-shadow" />
+                            </div>
+                          </>
                         )}
                         <div className="absolute inset-x-0 bottom-0 bg-black/50 text-white text-xs p-1.5 truncate opacity-0 group-hover:opacity-100 transition-opacity">
                           {item.name}
