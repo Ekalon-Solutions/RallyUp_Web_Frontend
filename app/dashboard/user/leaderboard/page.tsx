@@ -16,6 +16,7 @@ import { useRequiredClubId } from '@/hooks/useRequiredClubId'
 
 interface LeaderboardEntry {
     userId: string
+    username?: string
     name?: string
     email?: string
     avatar?: string
@@ -242,7 +243,7 @@ export default function UserLeaderboardPage() {
                                             <TableRow>
                                                 <TableHead className="w-20">Rank</TableHead>
                                                 <TableHead>Member</TableHead>
-                                                <TableHead>Email</TableHead>
+                                                <TableHead>Username</TableHead>
                                                 <TableHead className="text-right">Events Attended</TableHead>
                                                 <TableHead className="text-right">Points</TableHead>
                                             </TableRow>
@@ -292,8 +293,8 @@ export default function UserLeaderboardPage() {
                                                             </div>
                                                         </TableCell>
                                                         <TableCell>
-                                                            <p className="text-sm text-muted-foreground">
-                                                                {entry.email || 'N/A'}
+                                                            <p className="text-sm font-mono text-muted-foreground">
+                                                                @{entry.username || entry.userId.substring(0, 8)}
                                                             </p>
                                                         </TableCell>
                                                         <TableCell className="text-right">

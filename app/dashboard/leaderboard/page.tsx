@@ -18,6 +18,7 @@ import RedemptionSettingsTab from '@/components/admin/settings/redemption-settin
 
 interface LeaderboardEntry {
   userId: string
+  username?: string
   name?: string
   email?: string
   avatar?: string
@@ -200,7 +201,7 @@ export default function AdminLeaderboardPage() {
                       <TableRow>
                         <TableHead className="w-20">Rank</TableHead>
                         <TableHead>Member</TableHead>
-                        <TableHead>Email</TableHead>
+                        <TableHead>Username</TableHead>
                         <TableHead className="text-right">Events</TableHead>
                         <TableHead className="text-right">Points</TableHead>
                         <TableHead className="text-right">Actions</TableHead>
@@ -237,10 +238,13 @@ export default function AdminLeaderboardPage() {
                                     {getInitials(entry.name)}
                                   </AvatarFallback>
                                 </Avatar>
+                                <div>
+                                  <p className="font-medium">{entry.name || 'Anonymous User'}</p>
+                                </div>
                               </div>
                             </TableCell>
                             <TableCell>
-                              <p className="text-sm text-muted-foreground">{entry.email || 'N/A'}</p>
+                              <p className="text-sm font-mono text-muted-foreground">@{entry.username || entry.userId.substring(0, 8)}</p>
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex items-center justify-end gap-2">

@@ -1470,6 +1470,7 @@ class ApiClient {
   async getLeaderboard(clubId?: string): Promise<ApiResponse<{
     leaderboard: Array<{
       userId: string;
+      username?: string;
       name?: string;
       email?: string;
       avatar?: string;

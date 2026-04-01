@@ -64,7 +64,8 @@ export function ImportMembersModal({ trigger, onImported, clubId: clubIdProp }: 
 
   const handleDownloadSample = async () => {
     try {
-      const csvContent = `email,first_name,last_name,phoneNumber,countryCode,username,date_of_birth,gender,address_line1,city,state_province,zip_code,country,id_proof_type,id_proof_number
+      const csvHeaders = 'Email,First Name,Last Name,Phone Number,Country Code,Username,Date of Birth,Gender,Address Line 1,City,State/Province,Zip Code,Country,ID Proof Type,ID Proof Number'
+      const csvContent = `${csvHeaders}
 alice.smith@example.com,Alice,Smith,9876543210,+91,alice_smith,1990-05-12,female,12 Lotus Street,Mumbai,Maharashtra,400001,India,Aadhar,1234-5678-9012
 bob.johnson@example.com,Bob,Johnson,9123456780,+91,bob_johnson,1985-11-03,male,45 River Road,Delhi,Delhi,110001,India,Passport,P1234567
 charlie.brown@example.com,Charlie,Brown,9234567890,+91,charlie_brown,1992-08-20,male,78 Park Avenue,Bangalore,Karnataka,560001,India,Aadhar,9876-5432-1098`
@@ -150,16 +151,16 @@ charlie.brown@example.com,Charlie,Brown,9234567890,+91,charlie_brown,1992-08-20,
           return trimmed
         }
 
-        const email = (row.email || '').trim()
-        const first_name = (row.first_name || row.firstName || '').trim()
-        const last_name = (row.last_name || row.lastName || '').trim()
-        let phoneNumber = (row.phoneNumber || row.phone || row.phone_nu || '').trim()
+        const email = (row.email || row.Email || '').trim()
+        const first_name = (row.first_name || row.firstName || row['First Name'] || '').trim()
+        const last_name = (row.last_name || row.lastName || row['Last Name'] || '').trim()
+        let phoneNumber = (row.phoneNumber || row.phone || row.phone_nu || row['Phone Number'] || '').trim()
         phoneNumber = convertScientificNotation(phoneNumber)
         phoneNumber = phoneNumber.replace(/[^\d]/g, '')
         
-        const countryCode = (row.countryCode || row.country_code || row.countryCo || '+91').trim()
+        const countryCode = (row.countryCode || row.country_code || row.countryCo || row['Country Code'] || '+91').trim()
         const normalizedCountryCode = countryCode.startsWith('+') ? countryCode : `+${countryCode}`
-        const username = (row.username || email?.split('@')?.[0] || `user${Date.now()}${idx}`).trim()
+        const username = (row.username || row.Username || email?.split('@')?.[0] || `user${Date.now()}${idx}`).trim()
         
         if (!email) {
           failCount++
@@ -199,10 +200,10 @@ charlie.brown@example.com,Charlie,Brown,9234567890,+91,charlie_brown,1992-08-20,
           return 'Aadhar'
         }
 
-        const rawGender = (row.gender || 'male').trim()
-        const rawIdProofType = (row.id_proof_type || 'Aadhar').trim()
+        const rawIdProofType = (row.id_proof_type || row['ID Proof Type'] || 'Aadhar').trim()
+        const rawGender = (row.gender || row.Gender || 'male').trim()
 
-        let zip_code = (row.zip_code || row.zip || row.zipCode || '').trim()
+        let zip_code = (row.zip_code || row.zip || row.zipCode || row['Zip Code'] || '').trim()
         if (/^[a-zA-Z\s]+$/.test(zip_code) && zip_code.length > 5) {
           zip_code = '000000'
         }
@@ -210,7 +211,7 @@ charlie.brown@example.com,Charlie,Brown,9234567890,+91,charlie_brown,1992-08-20,
           zip_code = zip_code.substring(0, 10)
         }
 
-        let date_of_birth = (row.date_of_birth || row.date_of_bi || '1990-01-01').trim()
+        let date_of_birth = (row.date_of_birth || row.date_of_bi || row['Date of Birth'] || '1990-01-01').trim()
         if (/^\d+$/.test(date_of_birth)) {
           const numValue = parseInt(date_of_birth, 10)
           if (numValue > 0 && numValue < 100000) {
@@ -229,14 +230,14 @@ charlie.brown@example.com,Charlie,Brown,9234567890,+91,charlie_brown,1992-08-20,
           countryCode: normalizedCountryCode,
           date_of_birth,
           gender: normalizeGender(rawGender),
-          address_line1: (row.address_line1 || row.address_li || 'Not provided').trim(),
-          address_line2: (row.address_line2 || '').trim(),
-          city: (row.city || 'Not provided').trim(),
-          state_province: (row.state_province || row.state_prov || row.state || 'Not provided').trim(),
+          address_line1: (row.address_line1 || row.address_li || row['Address Line 1'] || 'Not provided').trim(),
+          address_line2: (row.address_line2 || row['Address Line 2'] || '').trim(),
+          city: (row.city || row.City || 'Not provided').trim(),
+          state_province: (row.state_province || row.state_prov || row.state || row['State/Province'] || 'Not provided').trim(),
           zip_code,
-          country: (row.country || 'India').trim(),
+          country: (row.country || row.Country || 'India').trim(),
           id_proof_type: normalizeIdProofType(rawIdProofType),
-          id_proof_number: (row.id_proof_number || row.id_proof_r || `TEMP${Date.now()}${idx}`).trim()
+          id_proof_number: (row.id_proof_number || row.id_proof_r || row['ID Proof Number'] || `TEMP${Date.now()}${idx}`).trim()
         }
 
         try {

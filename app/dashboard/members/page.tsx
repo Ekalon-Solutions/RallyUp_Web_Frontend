@@ -49,6 +49,8 @@ import { Checkbox } from '@/components/ui/checkbox'
 interface Member {
   _id: string
   name: string
+  first_name?: string
+  last_name?: string
   email: string
   phoneNumber: string
   countryCode: string
@@ -596,18 +598,58 @@ export default function MembersPage() {
         ? (response.data.members as unknown as Member[]) || []
         : members
 
-      const csvContent = [
-        ['Name', 'Email', 'Phone', 'Club', 'Membership Plan', 'Status', 'Joined Date'].join(','),
-        ...allMembers.map((member: Member) => [
-          member.name,
-          member.email,
-          formatPhoneNumber(member.phoneNumber, member.countryCode),
-          member.club?.name || 'N/A',
-          member.membershipPlan?.name || 'N/A',
-          member.isActive ? 'Active' : 'Inactive',
-          formatDisplayDate(member.createdAt)
-        ].join(','))
-      ].join('\n')
+      const escapeCSV = (val: string | number | boolean | null | undefined): string => {
+        if (val === null || val === undefined) return '""'
+        const s = String(val).replace(/"/g, '""')
+        return `"${s}"`
+      }
+
+      const csvHeaders = [
+        'Email', 
+        'First Name', 
+        'Last Name', 
+        'Phone Number', 
+        'Country Code', 
+        'Username', 
+        'Date of Birth', 
+        'Gender', 
+        'Address Line 1', 
+        'City', 
+        'State/Province', 
+        'Zip Code', 
+        'Country', 
+        'ID Proof Type', 
+        'ID Proof Number', 
+        'Membership Plan', 
+        'Joined Date'
+      ]
+
+      const rows = allMembers.map((member: Member) => {
+        const firstName = member.first_name || (member.name ? member.name.split(' ')[0] : '')
+        const lastName = member.last_name || (member.name ? member.name.split(' ').slice(1).join(' ') : '')
+        
+        return [
+          escapeCSV(member.email),
+          escapeCSV(firstName),
+          escapeCSV(lastName),
+          escapeCSV(member.phoneNumber),
+          escapeCSV(member.countryCode),
+          escapeCSV(member.username),
+          escapeCSV(member.date_of_birth),
+          escapeCSV(member.gender),
+          escapeCSV(member.address_line1),
+          escapeCSV(member.city),
+          escapeCSV(member.state_province),
+          escapeCSV(member.zip_code),
+          escapeCSV(member.country),
+          escapeCSV(member.id_proof_type),
+          escapeCSV(member.id_proof_number),
+          escapeCSV(member.membershipPlan?.name || 'N/A'),
+          escapeCSV(formatDisplayDate(member.createdAt))
+        ].join(',')
+      })
+
+      const csvContent = [csvHeaders.join(','), ...rows].join('\n')
 
       const blob = new Blob([csvContent], { type: 'text/csv' })
       const filename = `members-${new Date().toISOString().split('T')[0]}.csv`

@@ -460,38 +460,40 @@ export function AppSettingsTab() {
             </div>
             <Switch
               id="maintenanceMode"
-              checked={false}
-              disabled
+              checked={settings.maintenanceMode}
+              onCheckedChange={(checked) => setSettings({ ...settings, maintenanceMode: checked })}
             />
           </div>
 
-          <div className="flex items-center justify-between py-2">
+          <div className="flex items-center justify-between">
             <div className="space-y-0.5">
-              <Label htmlFor="memberRegistration" className="text-base font-medium">
+              <Label htmlFor="openRegistration" className="text-base font-medium">
                 Open Member Registration
               </Label>
               <p className="text-sm text-muted-foreground">
-                Allow new members to sign up without approval
+                Allow new members to join the club through the registration page
               </p>
             </div>
             <Switch
-              id="memberRegistration"
-              checked={true}
+              id="openRegistration"
+              checked={settings.openRegistration}
+              onCheckedChange={(checked) => setSettings({ ...settings, openRegistration: checked })}
             />
           </div>
 
-          <div className="flex items-center justify-between py-2">
+          <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label htmlFor="publicEvents" className="text-base font-medium">
-                Public Events
+                Public Events Visibility
               </Label>
               <p className="text-sm text-muted-foreground">
-                Allow non-members to view event listings
+                Show upcoming events on your public club page
               </p>
             </div>
             <Switch
               id="publicEvents"
-              checked={false}
+              checked={settings.publicEvents}
+              onCheckedChange={(checked) => setSettings({ ...settings, publicEvents: checked })}
             />
           </div>
         </CardContent>

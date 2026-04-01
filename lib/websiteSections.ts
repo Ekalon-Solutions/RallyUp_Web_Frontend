@@ -43,6 +43,7 @@ export const WEBSITE_SECTION_OPTIONS: readonly WebsiteSectionOption[] = [
   },
 ] as const
 
+
 // All sections including polls & members — used in admin member dashboard visibility settings
 export const MEMBER_DASHBOARD_SECTION_OPTIONS: readonly WebsiteSectionOption[] = [
   {
@@ -86,9 +87,9 @@ export const MEMBER_DASHBOARD_SECTION_OPTIONS: readonly WebsiteSectionOption[] =
 export const DEFAULT_WEBSITE_SECTIONS: Record<WebsiteSectionKey, boolean> = {
   news: true,
   events: true,
-  polls: true,
+  polls: false,
   chants: true,
-  members: true,
+  members: false,
   store: true,
   merchandise: true,
 }
@@ -110,7 +111,15 @@ export function setWebsiteOptionEnabled(
 }
 
 export function sanitizeWebsiteSections(sections: Record<string, any> | undefined | null): WebsiteSectionsRecord {
-  const allowedKeys = new Set<WebsiteSectionKey>(WEBSITE_SECTION_OPTIONS.flatMap((o) => o.keys as WebsiteSectionKey[]))
+  const allowedKeys = new Set<WebsiteSectionKey>([
+    "news",
+    "events",
+    "polls",
+    "chants",
+    "members",
+    "store",
+    "merchandise",
+  ])
   const input = sections || {}
   const next: WebsiteSectionsRecord = {}
   for (const [k, v] of Object.entries(input)) {
@@ -120,3 +129,4 @@ export function sanitizeWebsiteSections(sections: Record<string, any> | undefine
   }
   return next
 }
+
