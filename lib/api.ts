@@ -201,6 +201,18 @@ export interface Album {
   updatedAt: string;
 }
 
+export type StorageAlertLevel = 'warning' | 'danger' | 'critical' | 'exceeded';
+
+export interface StorageAlertStatus {
+  usagePercent: number;
+  usedGb: number;
+  totalGb: number;
+  alertLevel: StorageAlertLevel | null;
+  hasCancelledSubscription: boolean;
+  overageGb: number;
+  showUpgradeModal: boolean;
+}
+
 export interface GalleryStorageSummary {
   clubId: string;
   albumsCount: number;
@@ -3523,6 +3535,11 @@ class ApiClient {
 
   async getGalleryStorageSummary(clubId?: string): Promise<ApiResponse<GalleryStorageSummary>> {
     const endpoint = clubId ? `/gallery/storage/summary?clubId=${encodeURIComponent(clubId)}` : '/gallery/storage/summary';
+    return this.request(endpoint);
+  }
+
+  async getStorageAlertStatus(clubId?: string): Promise<ApiResponse<StorageAlertStatus>> {
+    const endpoint = clubId ? `/gallery/storage/alert-status?clubId=${encodeURIComponent(clubId)}` : '/gallery/storage/alert-status';
     return this.request(endpoint);
   }
 

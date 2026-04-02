@@ -46,6 +46,10 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import Image from "next/image"
 import { NotificationCenterModal } from "@/components/modals/notification-center-modal"
+import { StorageAlertBanner } from "@/components/ui/storage-alert-banner"
+import { SubscriptionCancelledModal } from "@/components/modals/subscription-cancelled-modal"
+import { apiClient, type StorageAlertStatus } from "@/lib/api"
+import { BASE_STORAGE_GB } from "@/lib/storageConstants"
 import type { WebsiteSectionKey } from "@/lib/websiteSections"
 
 /** User (member) pathnames that are gated by member section visibility. Feed (/dashboard/user) is always allowed. */
@@ -175,6 +179,11 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { user, logout, isAdmin, activeClubId, setActiveClubId } = useAuth()
+
+  // Storage alert state (admin/super_admin only)
+  const [storageAlertStatus, setStorageAlertStatus] = useState<StorageAlertStatus | null>(null)
+  const [storageBannerDismissed, setStorageBannerDismissed] = useState(false)
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false)
   
   const getUserClubId = () => {
     if (!user || user.role === 'system_owner') return undefined
@@ -217,6 +226,23 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       router.replace(FEED_PATH)
     }
   }, [isRegularUser, clubId, settingsLoading, pathname, settings])
+
+  const isAdminRole = user?.role === 'admin' || user?.role === 'super_admin'
+
+  // Fetch storage alert status for admins
+  useEffect(() => {
+    if (!isAdminRole) return
+    const clubId = getUserClubId()
+    apiClient.getStorageAlertStatus(clubId ?? undefined).then((res) => {
+      if (res.success && res.data) {
+        setStorageAlertStatus(res.data)
+        if (res.data.showUpgradeModal) {
+          setShowSubscriptionModal(true)
+        }
+      }
+    }).catch(() => {/* non-critical */})
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdminRole, activeClubId])
 
   const sidebarClubs = useMemo(() => {
     if (!user || user.role === 'system_owner') return []
@@ -524,10 +550,28 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         {/* Page Content */}
         <main className="flex-1 overflow-auto bg-muted/5">
           <div className="container mx-auto p-6 md:p-8 lg:p-10 max-w-[1600px]">
+            {isAdminRole && storageAlertStatus?.alertLevel && !storageBannerDismissed && (
+              <StorageAlertBanner
+                usagePercent={storageAlertStatus.usagePercent}
+                usedGb={storageAlertStatus.usedGb}
+                totalGb={storageAlertStatus.totalGb}
+                alertLevel={storageAlertStatus.alertLevel}
+                onDismiss={storageAlertStatus.alertLevel !== 'exceeded' ? () => setStorageBannerDismissed(true) : undefined}
+              />
+            )}
             {children}
           </div>
         </main>
       </div>
+      {isAdminRole && storageAlertStatus && (
+        <SubscriptionCancelledModal
+          open={showSubscriptionModal}
+          onOpenChange={setShowSubscriptionModal}
+          overageGb={storageAlertStatus.overageGb}
+          usedGb={storageAlertStatus.usedGb}
+          baseAllocationGb={BASE_STORAGE_GB}
+        />
+      )}
     </div>
   )
 }
