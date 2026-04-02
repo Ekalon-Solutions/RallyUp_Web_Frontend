@@ -74,7 +74,7 @@ export default function AdminSettingsClient() {
               </TabsTrigger>
               <TabsTrigger value="app" className="flex items-center gap-2">
                 <Bell className="h-4 w-4" />
-                App Settings
+                Notifications
               </TabsTrigger>
               <TabsTrigger value="address" className="flex items-center gap-2">
                 <MapPin className="h-4 w-4" />

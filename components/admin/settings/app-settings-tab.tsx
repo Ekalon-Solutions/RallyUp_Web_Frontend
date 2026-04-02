@@ -510,7 +510,7 @@ export function AppSettingsTab() {
           ) : (
             <>
               <Save className="h-4 w-4 mr-2" />
-              Save App Settings
+              Save Notification Settings
             </>
           )}
         </Button>
