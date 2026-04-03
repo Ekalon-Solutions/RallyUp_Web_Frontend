@@ -47,7 +47,7 @@ import { toast } from "sonner"
 import { apiClient } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
-import { ConsentModal } from "@/components/guess-the-score/consent-modal"
+import { ConsentModal, GlobalLeagueJoinModal } from "@/components/guess-the-score/consent-modal"
 import { AllFixturesModal, type GTSFixture, type GTSPrediction } from "@/components/guess-the-score/all-fixtures-sheet"
 import { GTSLeaderboard } from "@/components/guess-the-score/gts-leaderboard"
 import { isPredictionDeadlinePassed, formatMatchDateTime, getMatchDeadline } from "@/components/guess-the-score/utils"
@@ -108,6 +108,7 @@ function FixtureCard({
   const [home, setHome] = useState<string>(prediction ? String(prediction.homeScore) : "")
   const [away, setAway] = useState<string>(prediction ? String(prediction.awayScore) : "")
   const [submitting, setSubmitting] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
 
   const deadlinePassed = isPredictionDeadlinePassed(fixture)
   const isFinished =
@@ -149,6 +150,7 @@ function FixtureCard({
       })
       if (res.success) {
         toast.success("Prediction saved!")
+        setIsEditing(false)
         onPredictionSubmitted({
           _id: res.data?._id ?? fixture.idEvent,
           fixtureId: fixture.idEvent,
@@ -237,7 +239,7 @@ function FixtureCard({
         <Separator />
 
         {/* Prediction area */}
-        {hasPrediction ? (
+        {hasPrediction && !isEditing ? (
           <div className={`rounded-lg border p-3 ${resultMeta ? resultMeta.bg : "bg-muted/50"}`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -247,20 +249,35 @@ function FixtureCard({
                   {prediction.homeScore}–{prediction.awayScore}
                 </span>
               </div>
-              {resultMeta && (
+              {resultMeta ? (
                 <div className={`text-right ${resultMeta.color}`}>
                   <p className="text-xs font-semibold">{resultMeta.label}</p>
                   <p className="text-sm font-bold">{resultMeta.pts}</p>
                 </div>
-              )}
+              ) : !deadlinePassed ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 text-xs px-2"
+                  onClick={() => setIsEditing(true)}
+                >
+                  Edit
+                </Button>
+              ) : null}
             </div>
+            {!deadlinePassed && !resultMeta && (
+              <p className="text-xs text-muted-foreground mt-2">
+                <Clock className="w-3 h-3 inline mr-1" />
+                {getMatchDeadline(fixture)}
+              </p>
+            )}
           </div>
-        ) : deadlinePassed ? (
+        ) : deadlinePassed && !hasPrediction ? (
           <div className="flex items-center gap-2 text-muted-foreground text-sm">
             <Lock className="w-4 h-4 shrink-0" />
             <span>Prediction window closed.</span>
           </div>
-        ) : (
+        ) : (!hasPrediction || isEditing) ? (
           <div className="space-y-3">
             <div className="flex items-center gap-1 text-xs text-muted-foreground">
               <Clock className="w-3 h-3 shrink-0" />
@@ -297,22 +314,40 @@ function FixtureCard({
                 </span>
               </div>
             </div>
-            <Button
-              className="w-full"
-              onClick={handleSubmit}
-              disabled={submitting || home === "" || away === ""}
-            >
-              {submitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  Saving...
-                </>
-              ) : (
-                "Submit Prediction"
+            <div className="flex gap-2">
+              {isEditing && (
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    setHome(String(prediction!.homeScore))
+                    setAway(String(prediction!.awayScore))
+                    setIsEditing(false)
+                  }}
+                  disabled={submitting}
+                >
+                  Cancel
+                </Button>
               )}
-            </Button>
+              <Button
+                className="flex-1"
+                onClick={handleSubmit}
+                disabled={submitting || home === "" || away === ""}
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    Saving...
+                  </>
+                ) : isEditing ? (
+                  "Update Prediction"
+                ) : (
+                  "Submit Prediction"
+                )}
+              </Button>
+            </div>
           </div>
-        )}
+        ) : null}
 
         {isLive && (
           <p className="text-xs text-muted-foreground text-center">
@@ -423,7 +458,7 @@ function SettingsSheet({
                 disabled={optingIn}
               >
                 <LogIn className="w-4 h-4" />
-                {optingIn ? "Joining..." : "Join Global League"}
+                Join Global League
               </Button>
             )}
 
@@ -899,24 +934,13 @@ export default function GuessTheScorePage() {
           </AlertDialogContent>
         </AlertDialog>
 
-        {/* ── Opt-in confirmation ──────────────────────────────────────── */}
-        <AlertDialog open={showOptInDialog} onOpenChange={setShowOptInDialog}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Join the Global League?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Your name and club will appear on the Global leaderboard. By continuing you
-                re-confirm your agreement to the Terms & Conditions.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleOptIn} disabled={optingIn}>
-                {optingIn ? "Joining..." : "Join Global League"}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        {/* ── Opt-in (EULA + confirmation flow) ───────────────────────── */}
+        <GlobalLeagueJoinModal
+          open={showOptInDialog}
+          onOpenChange={setShowOptInDialog}
+          onConfirmed={handleOptIn}
+          submitting={optingIn}
+        />
       </DashboardLayout>
     </ProtectedRoute>
   )

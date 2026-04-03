@@ -76,6 +76,7 @@ function FixtureRow({
   const [home, setHome] = useState<string>(prediction ? String(prediction.homeScore) : "")
   const [away, setAway] = useState<string>(prediction ? String(prediction.awayScore) : "")
   const [submitting, setSubmitting] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
 
   const deadlinePassed = isPredictionDeadlinePassed(fixture)
   const isFinished =
@@ -115,6 +116,7 @@ function FixtureRow({
       })
       if (res.success) {
         toast.success("Prediction saved!")
+        setIsEditing(false)
         onPredictionSubmitted({
           _id: res.data?._id ?? fixture.idEvent,
           fixtureId: fixture.idEvent,
@@ -172,22 +174,32 @@ function FixtureRow({
         </div>
       </div>
 
-      {hasPrediction ? (
-        <div className="flex items-center gap-3">
+      {hasPrediction && !isEditing ? (
+        <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-1.5 text-sm">
             <CheckCircle2 className="w-4 h-4 text-green-500 shrink-0" />
             <span className="text-muted-foreground">Your prediction:</span>
             <span className="font-semibold">
               {prediction.homeScore}–{prediction.awayScore}
             </span>
+            {resultInfo && (
+              <span className={`text-xs font-medium ${resultInfo.color}`}>{resultInfo.label}</span>
+            )}
           </div>
-          {resultInfo && (
-            <span className={`text-xs font-medium ${resultInfo.color}`}>{resultInfo.label}</span>
+          {!deadlinePassed && !resultInfo && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs px-2 shrink-0"
+              onClick={() => setIsEditing(true)}
+            >
+              Edit
+            </Button>
           )}
         </div>
-      ) : deadlinePassed ? (
+      ) : deadlinePassed && !hasPrediction ? (
         <p className="text-xs text-muted-foreground italic">Prediction window closed.</p>
-      ) : (
+      ) : (!hasPrediction || isEditing) ? (
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-1.5">
             <span className="text-xs text-muted-foreground w-16 truncate text-right">
@@ -218,16 +230,31 @@ function FixtureRow({
               {fixture.strAwayTeam}
             </span>
           </div>
+          {isEditing && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setHome(String(prediction!.homeScore))
+                setAway(String(prediction!.awayScore))
+                setIsEditing(false)
+              }}
+              disabled={submitting}
+              className="h-8 text-xs px-2"
+            >
+              Cancel
+            </Button>
+          )}
           <Button
             size="sm"
             onClick={handleSubmit}
             disabled={submitting || home === "" || away === ""}
             className="h-8"
           >
-            {submitting ? "..." : "Save"}
+            {submitting ? "..." : isEditing ? "Update" : "Save"}
           </Button>
         </div>
-      )}
+      ) : null}
     </div>
   )
 }

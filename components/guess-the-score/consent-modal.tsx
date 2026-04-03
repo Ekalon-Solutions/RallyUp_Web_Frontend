@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
-import { Users, Globe, Trophy, AlertCircle, X } from "lucide-react"
+import { Users, Globe, Trophy, AlertCircle, ShieldCheck } from "lucide-react"
 import { apiClient } from "@/lib/api"
 import { toast } from "sonner"
 
@@ -96,7 +96,7 @@ function LeagueSelectionStep({
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               {canJoinGlobal
-                ? "Compete with all Wingman Pro members across every club. T&C acceptance required."
+                ? "Compete with all Wingman Pro members across every club. EULA acceptance required."
                 : "You have opted out of the Global League for this season."}
             </p>
           </div>
@@ -121,9 +121,9 @@ function LeagueSelectionStep({
   )
 }
 
-// ─── Step 2: T&C for Global League ───────────────────────────────────────────
+// ─── Step 2: Full EULA (Part A) ───────────────────────────────────────────────
 
-function GlobalTermsStep({
+function EulaStep({
   onAccept,
   onReject,
   submitting,
@@ -136,7 +136,6 @@ function GlobalTermsStep({
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const el = e.currentTarget
-    // Allow 20px tolerance so the button unlocks just before pixel-perfect bottom
     if (el.scrollTop + el.clientHeight >= el.scrollHeight - 20) {
       setScrolledToBottom(true)
     }
@@ -145,106 +144,115 @@ function GlobalTermsStep({
   return (
     <>
       <DialogHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Globe className="w-5 h-5 text-blue-500" />
-            <DialogTitle>Global League – Terms & Conditions</DialogTitle>
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 rounded-full"
-            onClick={onReject}
-            disabled={submitting}
-          >
-            <X className="w-4 h-4" />
-          </Button>
+        <div className="flex items-center gap-2">
+          <Globe className="w-5 h-5 text-blue-500" />
+          <DialogTitle>Global League – End User Licence Agreement</DialogTitle>
         </div>
         <DialogDescription>
-          Please read the full Terms & Conditions below. Scroll to the bottom to enable the Accept button.
+          Please read the full EULA below. Scroll to the bottom to enable the I Consent button.
         </DialogDescription>
       </DialogHeader>
 
       <ScrollArea
-        className="h-64 rounded-md border p-4 text-sm text-muted-foreground leading-relaxed"
+        className="h-72 rounded-md border p-4 text-sm text-muted-foreground leading-relaxed"
         onScrollCapture={handleScroll}
       >
-        <p className="font-semibold text-foreground mb-3">
-          Guess The Score – Global League End User Licence Agreement
+        <p className="font-semibold text-foreground mb-1">
+          Wingman Pro "Guess-the-Score" Global League
         </p>
+        <p className="text-xs text-muted-foreground mb-4">Last Updated: April 2, 2026</p>
 
+        <p className="font-medium text-foreground mb-1">1. Acceptance of Terms</p>
         <p className="mb-3">
-          By accepting these Terms & Conditions ("T&C"), you agree to participate in the Wingman Pro
-          Global League as part of the Guess The Score feature ("GTS"). These terms govern your
-          participation across all clubs on the Wingman Pro platform.
+          By selecting the "Join Global League" option, you ("The Participant") explicitly agree to
+          be bound by these supplemental Terms and Conditions in addition to the standard Wingman
+          Pro Privacy Policy. If you do not agree to these terms, you may still participate in your
+          "Club-Only League" without entering the Global League.
         </p>
 
-        <p className="font-medium text-foreground mb-1">1. Eligibility</p>
+        <p className="font-medium text-foreground mb-1">2. Eligibility &amp; Opt-In</p>
         <p className="mb-3">
-          The Global League is open to all registered Wingman Pro members with an active club
-          membership. Administrators and system owners are excluded. Participation is subject to your
-          club's terms and Wingman Pro's platform-wide policies.
+          Participation in the Global League is voluntary. Entry requires a clear affirmative action
+          (Opt-In) by the user. By joining, you acknowledge that your participation involves a
+          transition from a private "Club" environment to a "Global" community environment within
+          the Wingman Pro platform.
         </p>
 
-        <p className="font-medium text-foreground mb-1">2. Predictions & Lock Time</p>
+        <p className="font-medium text-foreground mb-1">3. Data Disclosure &amp; Visibility (Public Leaderboard)</p>
+        <p className="mb-2">
+          In compliance with the Digital Personal Data Protection Act (DPDPA), 2023 and GDPR, we
+          hereby disclose the specific data points that will be made visible to other users globally
+          if you reach the Top 10 positions on the leaderboard:
+        </p>
+        <ul className="list-disc pl-5 mb-3 space-y-1">
+          <li><span className="text-foreground font-medium">Full Name:</span> First Name and Last Name as registered.</li>
+          <li><span className="text-foreground font-medium">Username:</span> As assigned by your Club Admin or selected during registration.</li>
+          <li><span className="text-foreground font-medium">Club Affiliation:</span> The name of the specific Supporters' Club or Group you are registered with on Wingman Pro.</li>
+          <li><span className="text-foreground font-medium">Game Performance:</span> Your accumulated points, rank and score history.</li>
+        </ul>
+
+        <p className="font-medium text-foreground mb-1">4. Protection of Personally Identifiable Information (PII)</p>
+        <p className="mb-2">
+          RallyUp Solutions Private Limited guarantees that the following sensitive PII will{" "}
+          <span className="font-semibold text-foreground">NEVER</span> be displayed, shared, or
+          made searchable in the Global League interface:
+        </p>
+        <ul className="list-disc pl-5 mb-3 space-y-1">
+          <li><span className="text-foreground font-medium">Contact Information:</span> Mobile numbers and Email addresses.</li>
+          <li><span className="text-foreground font-medium">Identity Media:</span> Profile pictures or avatars.</li>
+          <li><span className="text-foreground font-medium">Sensitive Data:</span> Residential addresses, payment histories, or Government IDs.</li>
+          <li><span className="text-foreground font-medium">Communication:</span> Direct contact links to your private profile.</li>
+        </ul>
+
+        <p className="font-medium text-foreground mb-1">5. Purpose of Processing</p>
+        <p className="mb-2">
+          The processing of your Name and Club affiliation for the Global League is strictly for
+          the purpose of:
+        </p>
+        <ol className="list-decimal pl-5 mb-3 space-y-1">
+          <li>Maintaining a transparent and competitive "Guess-the-Score" ranking system.</li>
+          <li>Verifying the authenticity of participants to prevent bot activity.</li>
+          <li>Fostering community engagement across different supporters' groups.</li>
+        </ol>
+
+        <p className="font-medium text-foreground mb-1">6. User Rights (Withdrawal of Consent)</p>
+        <p className="mb-2">
+          Under DPDPA (India), you have the "Right to Withdraw Consent" at any time.
+        </p>
+        <ul className="list-disc pl-5 mb-3 space-y-1">
+          <li>If you choose to leave the Global League, your data will be removed from the Global Leaderboard within 24–48 hours.</li>
+          <li>Withdrawal from the Global League does not affect your points or status within your private "Club League."</li>
+          <li>To withdraw, navigate to Game Settings &gt; Privacy &gt; Leave Global League.</li>
+        </ul>
+
+        <p className="font-medium text-foreground mb-1">7. Code of Conduct &amp; Gamification</p>
         <p className="mb-3">
-          You may submit and update your prediction for any fixture up until 90 minutes before the
-          scheduled kick-off time ("Lock Time"). No predictions may be submitted or changed after Lock
-          Time. The Lock Time is determined by the official StrTime field provided by TheSportsDB and is
-          enforced by the server; client-side countdowns are indicative only.
+          Participants must not use usernames that are offensive, defamatory, or infringe on
+          third-party trademarks. RallyUp Solutions reserves the right to anonymize or remove any
+          participant from the Global League who violates community standards or attempts to
+          manipulate scores via unauthorized technical means.
         </p>
 
-        <p className="font-medium text-foreground mb-1">3. Points Scoring</p>
+        <p className="font-medium text-foreground mb-1">8. Limitation of Liability</p>
         <p className="mb-3">
-          Points are awarded approximately 10 minutes after the official full-time signal as recorded by
-          TheSportsDB. The scoring system is: 3 points for an exact scoreline prediction; 1.5 points for a
-          "Close" prediction (correct match outcome with a combined goal difference of exactly 1); 1 point
-          for correctly predicting the match outcome (home win, draw, or away win) with a greater goal
-          difference; and 0 points for an incorrect outcome prediction. Wingman Pro reserves the right to
-          adjust or withhold points in cases of data error, system fault, or fair-play violations.
+          While RallyUp Solutions employs industry-standard encryption (SSL/HTTPS) to protect your
+          data in transit, by joining the Global League, you acknowledge that your Name and Club
+          affiliation will be visible to other registered users of the platform. RallyUp Solutions
+          is not responsible for any third-party actions resulting from this public-facing
+          leaderboard visibility.
         </p>
 
-        <p className="font-medium text-foreground mb-1">4. Leaderboard & Data Visibility</p>
-        <p className="mb-3">
-          Your first name, last name, and club name will be displayed on the Global League leaderboard
-          alongside your accumulated points and rank. No other personal data (including username, email
-          address, phone number, or profile picture) will be shown. By accepting these T&C you consent to
-          this limited display of your name and club.
-        </p>
-
-        <p className="font-medium text-foreground mb-1">5. Opt-Out</p>
-        <p className="mb-3">
-          You may opt out of the Global League at any time via your GTS settings. Opting out will
-          immediately remove your entry from the Global leaderboard. Once opted out during a season, you
-          cannot opt back in for the remainder of that season. Your Club League participation and point
-          history are not affected by opting out of the Global League.
-        </p>
-
-        <p className="font-medium text-foreground mb-1">6. Fair Play & Disqualification</p>
-        <p className="mb-3">
-          Any attempt to manipulate predictions, exploit system vulnerabilities, or engage in conduct
-          detrimental to fair competition will result in immediate disqualification and permanent removal
-          from all GTS leagues. Wingman Pro may share information about disqualified accounts with
-          affiliated clubs.
-        </p>
-
-        <p className="font-medium text-foreground mb-1">7. Amendments</p>
-        <p className="mb-3">
-          Wingman Pro reserves the right to amend these T&C at any time. Material changes will be
-          communicated via the platform. Continued participation after notification of changes constitutes
-          acceptance of the revised terms.
-        </p>
-
-        <p className="font-medium text-foreground mb-1">8. Governing Law</p>
+        <p className="font-medium text-foreground mb-1">9. Governing Law</p>
         <p>
-          These T&C are governed by the laws of England and Wales. Any disputes shall be subject to the
-          exclusive jurisdiction of the courts of England and Wales.
+          These terms are governed by the laws of India. Any disputes arising from participation in
+          the Global League shall be subject to the exclusive jurisdiction of the courts in Mumbai,
+          Maharashtra.
         </p>
       </ScrollArea>
 
       {!scrolledToBottom && (
         <p className="text-xs text-muted-foreground text-center -mt-1">
-          Scroll to the bottom to enable the Accept button.
+          Scroll to the bottom to enable the I Consent button.
         </p>
       )}
 
@@ -255,25 +263,168 @@ function GlobalTermsStep({
           onClick={onReject}
           disabled={submitting}
         >
-          Reject
+          Not Now
         </Button>
         <Button
           className="flex-1"
           onClick={onAccept}
           disabled={!scrolledToBottom || submitting}
         >
-          {submitting ? "Saving..." : "Accept & Join"}
+          I Consent
         </Button>
       </div>
     </>
   )
 }
 
+// ─── Step 3: Confirmation (Part B) ───────────────────────────────────────────
+
+function GlobalConfirmStep({
+  onConfirm,
+  onReject,
+  submitting,
+}: {
+  onConfirm: () => void
+  onReject: () => void
+  submitting: boolean
+}) {
+  const [agreed, setAgreed] = useState(false)
+
+  return (
+    <>
+      <DialogHeader>
+        <div className="flex items-center gap-2 mb-1">
+          <ShieldCheck className="w-5 h-5 text-blue-500" />
+          <DialogTitle>Ready to Go Global?</DialogTitle>
+        </div>
+        <DialogDescription>
+          By joining the Wingman Pro Global League, you are opting to compete with supporters from
+          every club on the platform.
+        </DialogDescription>
+      </DialogHeader>
+
+      <div className="rounded-lg border bg-muted/30 p-4 space-y-3 text-sm">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+          To maintain a fair and transparent leaderboard, we need your consent for the following:
+        </p>
+        <div className="space-y-2.5">
+          <div className="flex gap-2.5">
+            <Globe className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium">Leaderboard Visibility</p>
+              <p className="text-xs text-muted-foreground">
+                If you reach the Top 10, your Full Name, Username and Club Name will be visible
+                to all Wingman Pro users.
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2.5">
+            <ShieldCheck className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium">Data Privacy</p>
+              <p className="text-xs text-muted-foreground">
+                Your PII (Phone, Email, Address and Profile Picture) remains 100% Private and
+                will never be shared or displayed.
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2.5">
+            <Users className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium">Control</p>
+              <p className="text-xs text-muted-foreground">
+                You can leave the Global League and revert to "Club-Only" mode at any time via
+                your Game Settings.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <label className="flex items-start gap-3 cursor-pointer">
+        <Checkbox
+          checked={agreed}
+          onCheckedChange={(v) => setAgreed(!!v)}
+          className="mt-0.5"
+        />
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          I have read and agree to the Global League T&amp;C and authorize RallyUp Solutions to
+          display my name and club affiliation on the global leaderboard.
+        </p>
+      </label>
+
+      <div className="flex gap-3">
+        <Button
+          variant="outline"
+          className="flex-1"
+          onClick={onReject}
+          disabled={submitting}
+        >
+          Not Now
+        </Button>
+        <Button
+          className="flex-1"
+          onClick={onConfirm}
+          disabled={!agreed || submitting}
+        >
+          {submitting ? "Saving..." : "I Agree & Join"}
+        </Button>
+      </div>
+    </>
+  )
+}
+
+// ─── Standalone join-from-settings modal (EULA → Confirm) ────────────────────
+
+interface GlobalLeagueJoinModalProps {
+  open: boolean
+  onOpenChange: (v: boolean) => void
+  onConfirmed: () => void
+  submitting: boolean
+}
+
+export function GlobalLeagueJoinModal({
+  open,
+  onOpenChange,
+  onConfirmed,
+  submitting,
+}: GlobalLeagueJoinModalProps) {
+  const [step, setStep] = useState<"eula" | "confirm">("eula")
+
+  const handleClose = () => {
+    setStep("eula")
+    onOpenChange(false)
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose() }}>
+      <DialogContent className="max-w-lg gap-4" onEscapeKeyDown={handleClose}>
+        {step === "eula" ? (
+          <EulaStep
+            onAccept={() => setStep("confirm")}
+            onReject={handleClose}
+            submitting={submitting}
+          />
+        ) : (
+          <GlobalConfirmStep
+            onConfirm={() => {
+              onConfirmed()
+              setStep("eula")
+            }}
+            onReject={handleClose}
+            submitting={submitting}
+          />
+        )}
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 // ─── Root modal ──────────────────────────────────────────────────────────────
 
 export function ConsentModal({ open, clubId, canJoinGlobal, onAccepted }: ConsentModalProps) {
-  // "league" = step 1, "terms" = step 2 (T&C for Global)
-  const [step, setStep] = useState<"league" | "terms">("league")
+  // "league" → league selection, "eula" → full EULA (Part A), "confirm" → consent confirmation (Part B)
+  const [step, setStep] = useState<"league" | "eula" | "confirm">("league")
   const [joinClub, setJoinClub] = useState(true)
   const [joinGlobal, setJoinGlobal] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -302,21 +453,32 @@ export function ConsentModal({ open, clubId, canJoinGlobal, onAccepted }: Consen
   // Step 1 "Continue" clicked
   const handleLeagueSubmit = () => {
     if (joinGlobal) {
-      // Must accept T&C before Global League is confirmed
-      setStep("terms")
+      // Must read EULA before Global League confirmation
+      setStep("eula")
     } else {
-      // Club only – no T&C required
+      // Club only – no EULA required
       submitConsent(false)
     }
   }
 
-  // Step 2 "Accept" clicked
-  const handleTermsAccept = () => {
+  // Step 2 "I Consent" clicked → move to confirmation modal
+  const handleEulaAccept = () => {
+    setStep("confirm")
+  }
+
+  // Step 2 "Not Now" clicked → back to step 1 with Global unchecked
+  const handleEulaReject = () => {
+    setJoinGlobal(false)
+    setStep("league")
+  }
+
+  // Step 3 "I Agree & Join" clicked
+  const handleConfirm = () => {
     submitConsent(true)
   }
 
-  // Step 2 "Reject" clicked → back to step 1 with Global unchecked
-  const handleTermsReject = () => {
+  // Step 3 "Not Now" clicked → back to step 1 with Global unchecked
+  const handleConfirmReject = () => {
     setJoinGlobal(false)
     setStep("league")
   }
@@ -339,10 +501,16 @@ export function ConsentModal({ open, clubId, canJoinGlobal, onAccepted }: Consen
             onSubmit={handleLeagueSubmit}
             submitting={submitting}
           />
+        ) : step === "eula" ? (
+          <EulaStep
+            onAccept={handleEulaAccept}
+            onReject={handleEulaReject}
+            submitting={submitting}
+          />
         ) : (
-          <GlobalTermsStep
-            onAccept={handleTermsAccept}
-            onReject={handleTermsReject}
+          <GlobalConfirmStep
+            onConfirm={handleConfirm}
+            onReject={handleConfirmReject}
             submitting={submitting}
           />
         )}
