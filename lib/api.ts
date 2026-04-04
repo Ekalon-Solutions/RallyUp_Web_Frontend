@@ -3644,8 +3644,6 @@ class ApiClient {
       lockedAt?: string;
       pointsEarned?: number | null;
       result?: 'exact' | 'close' | 'correct_outcome' | 'incorrect' | null;
-      finalHomeScore?: number | null;
-      finalAwayScore?: number | null;
     }>;
   }>> {
     const qs = new URLSearchParams({ clubId, ...(season ? { season } : {}) });

@@ -46,15 +46,14 @@ import {
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
+import { useSocket } from "@/contexts/socket-context"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { ConsentModal, GlobalLeagueJoinModal } from "@/components/guess-the-score/consent-modal"
 import { AllFixturesModal, type GTSFixture, type GTSPrediction } from "@/components/guess-the-score/all-fixtures-sheet"
 import { GTSLeaderboard } from "@/components/guess-the-score/gts-leaderboard"
 import { isPredictionDeadlinePassed, formatMatchDateTime, getMatchDeadline } from "@/components/guess-the-score/utils"
 
-/** Live score polling – 5 minutes */
-const LIVE_REFRESH_MS = 5 * 60 * 1000
-/** Full fixture list refresh – 10 minutes */
+/** Fallback fixture refresh (when socket is disconnected) – 10 minutes */
 const FIXTURE_REFRESH_MS = 10 * 60 * 1000
 
 interface GTSPreferences {
@@ -105,8 +104,8 @@ function FixtureCard({
   clubId: string
   onPredictionSubmitted: (p: GTSPrediction) => void
 }) {
-  const [home, setHome] = useState<string>(prediction ? String(prediction.homeScore) : "")
-  const [away, setAway] = useState<string>(prediction ? String(prediction.awayScore) : "")
+  const [home, setHome] = useState<string>(prediction ? String(prediction.homeScore) : "0")
+  const [away, setAway] = useState<string>(prediction ? String(prediction.awayScore) : "0")
   const [submitting, setSubmitting] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
 
@@ -123,7 +122,7 @@ function FixtureCard({
     fixture.strStatus != null
 
   const hasPrediction = !!prediction
-  const resultMeta = prediction?.result ? RESULT_META[prediction.result] : null
+  const resultMeta = (prediction?.result && isFinished) ? RESULT_META[prediction.result] : null
 
   const handleSubmit = async () => {
     const h = parseInt(home, 10)
@@ -351,7 +350,7 @@ function FixtureCard({
 
         {isLive && (
           <p className="text-xs text-muted-foreground text-center">
-            Live score updates every 5 minutes
+            Live score updates every 2 minutes
           </p>
         )}
       </CardContent>
@@ -528,6 +527,7 @@ function SettingsSheet({
 export default function GuessTheScorePage() {
   const router = useRouter()
   const { isAdmin, isLoading: authLoading } = useAuth()
+  const { socket, isConnected } = useSocket()
   const clubId = useRequiredClubId()
 
   const [prefs, setPrefs] = useState<GTSPreferences | null>(null)
@@ -548,9 +548,7 @@ export default function GuessTheScorePage() {
   const [userRank, setUserRank] = useState<number | undefined>()
   const [userPoints, setUserPoints] = useState<number | undefined>()
 
-  const liveRefreshRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const fixtureRefreshRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const hasLiveRef = useRef(false)
   const isFetchingRef = useRef(false)
 
   // Block admin access
@@ -582,17 +580,7 @@ export default function GuessTheScorePage() {
       ])
 
       if (fixtureRes.status === "fulfilled" && fixtureRes.value.success && fixtureRes.value.data) {
-        const list = fixtureRes.value.data.fixtures ?? []
-        setFixtures(list)
-        hasLiveRef.current = list.some(
-          (f) =>
-            f.strStatus !== "Not Started" &&
-            f.strStatus !== "" &&
-            f.strStatus !== "Match Finished" &&
-            f.strStatus !== "FT" &&
-            f.strStatus !== "AET" &&
-            f.strStatus !== "PEN"
-        )
+        setFixtures(fixtureRes.value.data.fixtures ?? [])
       } else if (fixtureRes.status === "rejected") {
         toast.error("Failed to load fixtures")
       }
@@ -616,21 +604,61 @@ export default function GuessTheScorePage() {
     loadFixturesAndPredictions()
   }, [prefs?.hasAcceptedConsent, clubId, loadFixturesAndPredictions])
 
-  // Fixture refresh – every 10 minutes
+  // Fallback fixture refresh – every 10 minutes (covers socket disconnects)
   useEffect(() => {
     if (!prefs?.hasAcceptedConsent || !clubId) return
     fixtureRefreshRef.current = setInterval(loadFixturesAndPredictions, FIXTURE_REFRESH_MS)
     return () => { if (fixtureRefreshRef.current) clearInterval(fixtureRefreshRef.current) }
   }, [prefs?.hasAcceptedConsent, clubId, loadFixturesAndPredictions])
 
-  // Live score polling – every 5 minutes, only when hasLiveRef is true
+  // Socket: join club GTS room and listen for live score pushes from the server
   useEffect(() => {
-    if (!prefs?.hasAcceptedConsent || !clubId) return
-    liveRefreshRef.current = setInterval(() => {
-      if (hasLiveRef.current) loadFixturesAndPredictions()
-    }, LIVE_REFRESH_MS)
-    return () => { if (liveRefreshRef.current) clearInterval(liveRefreshRef.current) }
-  }, [prefs?.hasAcceptedConsent, clubId, loadFixturesAndPredictions])
+    if (!prefs?.hasAcceptedConsent || !clubId || !socket || !isConnected) {
+      console.log("[GTS] Socket not ready or consent missing — skipping room join", { isConnected, clubId, hasConsent: prefs?.hasAcceptedConsent })
+      return
+    }
+
+    console.log(`[GTS] Joining club GTS room: gts:${clubId}`)
+    socket.emit("join-gts-club", clubId)
+
+    const handleFixturesUpdated = (data: { fixtures: GTSFixture[] }) => {
+      const live = data.fixtures.filter(f =>
+        f.strStatus !== "Not Started" && f.strStatus !== "" &&
+        f.strStatus !== "Match Finished" && f.strStatus !== "FT" &&
+        f.strStatus !== "AET" && f.strStatus !== "PEN"
+      )
+      console.log(`[GTS] gts:fixtures-updated — ${data.fixtures.length} fixtures, ${live.length} live`, live.map(f => `${f.strHomeTeam} vs ${f.strAwayTeam} (${f.strStatus} ${f.intHomeScore ?? "?"}–${f.intAwayScore ?? "?"})`))
+      setFixtures(data.fixtures)
+    }
+    socket.on("gts:fixtures-updated", handleFixturesUpdated)
+
+    return () => {
+      console.log(`[GTS] Leaving club GTS room: gts:${clubId}`)
+      socket.emit("leave-gts-club", clubId)
+      socket.off("gts:fixtures-updated", handleFixturesUpdated)
+    }
+  }, [prefs?.hasAcceptedConsent, clubId, socket, isConnected])
+
+  // Socket: receive calculated points for this user's predictions
+  useEffect(() => {
+    if (!socket) return
+    const handlePredictionResult = (data: {
+      fixtureId: string
+      result: GTSPrediction["result"]
+      pointsEarned: number
+    }) => {
+      console.log(`[GTS] gts:prediction-result — fixtureId: ${data.fixtureId}, result: ${data.result}, points: ${data.pointsEarned}`)
+      setPredictions((prev) =>
+        prev.map((p) =>
+          p.fixtureId === data.fixtureId
+            ? { ...p, result: data.result, pointsEarned: data.pointsEarned }
+            : p
+        )
+      )
+    }
+    socket.on("gts:prediction-result", handlePredictionResult)
+    return () => { socket.off("gts:prediction-result", handlePredictionResult) }
+  }, [socket])
 
   const handleConsentAccepted = (accepted: { isInClubLeague: boolean; isInGlobalLeague: boolean }) => {
     setPrefs((prev) => ({
@@ -692,6 +720,20 @@ export default function GuessTheScorePage() {
     }
   }
 
+  function computeDisplayResult(
+    predHome: number, predAway: number,
+    actualHome: number, actualAway: number
+  ): keyof typeof RESULT_META {
+    if (predHome === actualHome && predAway === actualAway) return "exact"
+    const predOutcome = predHome > predAway ? "H" : predHome < predAway ? "A" : "D"
+    const actualOutcome = actualHome > actualAway ? "H" : actualHome < actualAway ? "A" : "D"
+    if (predOutcome === actualOutcome) {
+      const diff = Math.abs(predHome - actualHome) + Math.abs(predAway - actualAway)
+      return diff === 1 ? "close" : "correct_outcome"
+    }
+    return "incorrect"
+  }
+
   const FINISHED = new Set(["Match Finished", "FT", "AET", "PEN", "Post"])
   const isUpcoming = (f: GTSFixture) => {
     if (FINISHED.has(f.strStatus)) return false
@@ -710,6 +752,13 @@ export default function GuessTheScorePage() {
   const nextPrediction = nextFixture
     ? predictions.find((p) => p.fixtureId === nextFixture.idEvent)
     : undefined
+
+  // Finished fixtures that the user predicted on, newest first
+  const pastPredictions = fixtures
+    .filter((f) => FINISHED.has(f.strStatus))
+    .map((f) => ({ fixture: f, prediction: predictions.find((p) => p.fixtureId === f.idEvent) }))
+    .filter(({ prediction }) => !!prediction)
+    .reverse()
 
   // ── Loading state ──────────────────────────────────────────────────────────
 
@@ -740,7 +789,7 @@ export default function GuessTheScorePage() {
           />
         )}
 
-        <div className="p-4 md:p-6 space-y-4 max-w-7xl mx-auto">
+        <div className="p-4 md:p-6 space-y-4 max-w-8xl mx-auto">
 
           {/* ── Page header ──────────────────────────────────────────────── */}
           <div className="flex items-center justify-between">
@@ -768,7 +817,7 @@ export default function GuessTheScorePage() {
 
           {/* ── Main two-column grid ─────────────────────────────────────── */}
           {prefs?.hasAcceptedConsent ? (
-            <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.6fr] gap-4 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-4 items-start">
 
               {/* ── Left column ──────────────────────────────────────────── */}
               <div className="space-y-4">
@@ -856,6 +905,84 @@ export default function GuessTheScorePage() {
                     Predict More
                     <ChevronDown className="w-4 h-4" />
                   </Button>
+                )}
+
+                {/* ── Past Predictions ─────────────────────────────────────── */}
+                {prefs?.hasAcceptedConsent && pastPredictions.length > 0 && (
+                  <div className="space-y-3">
+                    <h2 className="text-sm font-semibold flex items-center gap-2">
+                      <ScrollText className="w-4 h-4 text-muted-foreground" />
+                      Past Predictions
+                    </h2>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {pastPredictions.map(({ fixture, prediction }) => {
+                        const resultKey = prediction?.result ?? (
+                          FINISHED.has(fixture.strStatus) && fixture.intHomeScore != null && fixture.intAwayScore != null
+                            ? computeDisplayResult(
+                              prediction!.homeScore, prediction!.awayScore,
+                              Number(fixture.intHomeScore), Number(fixture.intAwayScore)
+                            )
+                            : null
+                        )
+                        const resultMeta = resultKey ? RESULT_META[resultKey] : null
+                        return (
+                          <Card key={fixture.idEvent} className={`border ${resultMeta ? resultMeta.bg : ""}`}>
+                            <CardContent className="px-4 py-3 space-y-2">
+                              {/* League + date */}
+                              <div className="flex items-center justify-between">
+                                {fixture.strLeague && (
+                                  <span className="text-[10px] text-muted-foreground truncate">{fixture.strLeague}</span>
+                                )}
+                                <span className="text-[10px] text-muted-foreground ml-auto">{formatMatchDateTime(fixture)}</span>
+                              </div>
+
+                              {/* Teams + final score */}
+                              <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                                  {fixture.strHomeTeamBadge && (
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img src={fixture.strHomeTeamBadge} alt="" className="w-5 h-5 object-contain shrink-0" />
+                                  )}
+                                  <span className="text-xs font-medium truncate">{fixture.strHomeTeam}</span>
+                                </div>
+                                <span className="text-sm font-bold tabular-nums shrink-0">
+                                  {fixture.intHomeScore ?? 0}–{fixture.intAwayScore ?? 0}
+                                </span>
+                                <div className="flex items-center gap-1.5 flex-1 min-w-0 justify-end">
+                                  <span className="text-xs font-medium truncate">{fixture.strAwayTeam}</span>
+                                  {fixture.strAwayTeamBadge && (
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img src={fixture.strAwayTeamBadge} alt="" className="w-5 h-5 object-contain shrink-0" />
+                                  )}
+                                </div>
+                              </div>
+
+                              <Separator />
+
+                              {/* Prediction + result */}
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-1.5">
+                                  <Target className="w-3 h-3 text-muted-foreground shrink-0" />
+                                  <span className="text-xs text-muted-foreground">Your pick</span>
+                                  <span className="text-xs font-bold tabular-nums">
+                                    {prediction!.homeScore}–{prediction!.awayScore}
+                                  </span>
+                                </div>
+                                {resultMeta ? (
+                                  <div className={`text-right ${resultMeta.color}`}>
+                                    <span className="text-xs font-semibold">{resultMeta.label}</span>
+                                    <span className="text-xs font-bold ml-1.5">{resultMeta.pts}</span>
+                                  </div>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">Pending</span>
+                                )}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )
+                      })}
+                    </div>
+                  </div>
                 )}
               </div>
 

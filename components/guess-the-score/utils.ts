@@ -2,15 +2,21 @@ import type { GTSFixture } from "./all-fixtures-sheet"
 
 const IST = "Asia/Kolkata"
 
-/** Parse a SportsDB fixture's start time into a JS Date (UTC). */
+/** Parse a fixture's start time into a JS Date (UTC). */
 export function parseFixtureDate(fixture: GTSFixture): Date | null {
-  // strTimestamp from SportsDB has no timezone suffix — treat as UTC
+  // strTimestamp may come as:
+  //   "2024-08-17T14:00:00+00:00"  (SportsDB with offset)
+  //   "2024-08-17T14:00:00Z"       (ISO UTC)
+  //   "2024-08-17T14:00:00.000Z"   (DB toISOString)
+  //   "2024-08-17T14:00:00"        (no suffix – treat as UTC)
   if (fixture.strTimestamp) {
-    const ts = fixture.strTimestamp.endsWith("Z") ? fixture.strTimestamp : `${fixture.strTimestamp}Z`
+    const ts = fixture.strTimestamp
+      .replace(/\+00:00$/, "Z")  // +00:00 → Z
+      .replace(/([^Z])$/, "$1Z") // no suffix → append Z
     const d = new Date(ts)
     if (!isNaN(d.getTime())) return d
   }
-  // Fallback: combine dateEvent ("YYYY-MM-DD") + strTime ("HH:MM:SS") as UTC
+  // Fallback: dateEvent ("YYYY-MM-DD") + strTime ("HH:MM:SS") → UTC
   if (fixture.dateEvent && fixture.strTime) {
     const d = new Date(`${fixture.dateEvent}T${fixture.strTime}Z`)
     if (!isNaN(d.getTime())) return d
@@ -21,6 +27,26 @@ export function parseFixtureDate(fixture: GTSFixture): Date | null {
   }
   return null
 }
+
+const DATE_TIME_FMT = new Intl.DateTimeFormat("en-IN", {
+  timeZone: IST,
+  weekday: "short",
+  day: "numeric",
+  month: "short",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+})
+
+const DEADLINE_FMT = new Intl.DateTimeFormat("en-IN", {
+  timeZone: IST,
+  weekday: "short",
+  day: "numeric",
+  month: "short",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+})
 
 /** Prediction deadline = kick-off minus 90 minutes. */
 export function isPredictionDeadlinePassed(fixture: GTSFixture): boolean {
@@ -34,37 +60,15 @@ export function isPredictionDeadlinePassed(fixture: GTSFixture): boolean {
 export function formatMatchDateTime(fixture: GTSFixture): string {
   const d = parseFixtureDate(fixture)
   if (!d) return fixture.dateEvent ?? ""
-  return (
-    d.toLocaleString("en-IN", {
-      timeZone: IST,
-      weekday: "short",
-      day: "numeric",
-      month: "short",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    }) + " IST"
-  )
+  return DATE_TIME_FMT.format(d) + " IST"
 }
 
-/** Short deadline label in IST, e.g. "Predict by Sat, 4 Apr 16:00 IST" */
+/** Short deadline label in IST, e.g. "Predict by Sat, 4 Apr, 16:00 IST" */
 export function getMatchDeadline(fixture: GTSFixture): string {
   const kickoff = parseFixtureDate(fixture)
   if (!kickoff) return ""
   const deadline = new Date(kickoff.getTime() - 90 * 60 * 1000)
-  return (
-    "Predict by " +
-    deadline.toLocaleString("en-IN", {
-      timeZone: IST,
-      weekday: "short",
-      day: "numeric",
-      month: "short",
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    }) +
-    " IST"
-  )
+  return "Predict by " + DEADLINE_FMT.format(deadline) + " IST"
 }
 
 export type PointsResult = "exact" | "close" | "correct_outcome" | "incorrect"

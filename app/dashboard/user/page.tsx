@@ -103,14 +103,13 @@ function FixturesCards({ clubId }: { clubId?: string | undefined }) {
   const formatFixtureDate = (isoDate: string) => {
     const d = new Date(isoDate)
     if (isNaN(d.getTime())) return ''
-    const corrected = new Date(d.getTime() + 5.5 * 60 * 60 * 1000)
     const ist = { timeZone: 'Asia/Kolkata' }
-    const day = Number(corrected.toLocaleString('en-IN', { ...ist, day: 'numeric' }))
-    const month = corrected.toLocaleString('en-IN', { ...ist, month: 'long' })
-    const year = corrected.toLocaleString('en-IN', { ...ist, year: 'numeric' })
-    const weekday = corrected.toLocaleString('en-IN', { ...ist, weekday: 'long' })
-    const hours = corrected.toLocaleString('en-IN', { ...ist, hour: '2-digit', hour12: false }).padStart(2, '0')
-    const minutes = corrected.toLocaleString('en-IN', { ...ist, minute: '2-digit' }).padStart(2, '0')
+    const day = Number(d.toLocaleString('en-IN', { ...ist, day: 'numeric' }))
+    const month = d.toLocaleString('en-IN', { ...ist, month: 'long' })
+    const year = d.toLocaleString('en-IN', { ...ist, year: 'numeric' })
+    const weekday = d.toLocaleString('en-IN', { ...ist, weekday: 'long' })
+    const hours = d.toLocaleString('en-IN', { ...ist, hour: '2-digit', hour12: false }).padStart(2, '0')
+    const minutes = d.toLocaleString('en-IN', { ...ist, minute: '2-digit' }).padStart(2, '0')
     return `${day} ${month} ${year} (${weekday}) ${hours}:${minutes} IST`
   }
 
@@ -128,11 +127,9 @@ function FixturesCards({ clubId }: { clubId?: string | undefined }) {
         const seen = new Map<string, any>()
         rawArr.forEach((f) => seen.set(String(f._id), f))
         const fixturesArr = Array.from(seen.values())
-        // Use corrected time (add 5.5h) for past/future split to match display logic
-        const OFFSET_MS = 5.5 * 60 * 60 * 1000
         const now = new Date()
-        const past = fixturesArr.filter((f) => new Date(new Date(f.startTime).getTime() + OFFSET_MS) < now)
-        const future = fixturesArr.filter((f) => new Date(new Date(f.startTime).getTime() + OFFSET_MS) >= now)
+        const past = fixturesArr.filter((f) => new Date(f.startTime) < now)
+        const future = fixturesArr.filter((f) => new Date(f.startTime) >= now)
         setFixtures([...past.slice(-1), ...future])
       } catch (e) {
         setFixtures([])

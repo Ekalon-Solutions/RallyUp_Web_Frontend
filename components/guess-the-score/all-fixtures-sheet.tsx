@@ -42,8 +42,6 @@ export interface GTSPrediction {
   awayScore: number
   pointsEarned?: number | null
   result?: "exact" | "close" | "correct_outcome" | "incorrect" | null
-  finalHomeScore?: number | null
-  finalAwayScore?: number | null
 }
 
 interface AllFixturesModalProps {
@@ -73,8 +71,8 @@ function FixtureRow({
   clubId: string
   onPredictionSubmitted: (p: GTSPrediction) => void
 }) {
-  const [home, setHome] = useState<string>(prediction ? String(prediction.homeScore) : "")
-  const [away, setAway] = useState<string>(prediction ? String(prediction.awayScore) : "")
+  const [home, setHome] = useState<string>(prediction ? String(prediction.homeScore) : "0")
+  const [away, setAway] = useState<string>(prediction ? String(prediction.awayScore) : "0")
   const [submitting, setSubmitting] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
 
@@ -311,15 +309,15 @@ export function AllFixturesModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl w-full flex flex-col max-h-[85vh]">
-        <DialogHeader className="shrink-0">
+      <DialogContent className="max-w-xl w-full">
+        <DialogHeader>
           <DialogTitle>More Fixtures</DialogTitle>
           <DialogDescription>
             Predict scores for all fixtures this season. Predictions lock 90 mins before kick-off.
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 -mx-6 px-6 mt-2">
+        <ScrollArea className="max-h-[65vh] -mx-6 px-6 mt-2">
           <div className="space-y-4 pb-4">
             {fixtures.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-12">
