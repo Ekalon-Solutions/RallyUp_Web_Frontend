@@ -3,7 +3,6 @@
 import React, { useEffect, useMemo, useState } from "react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
@@ -17,7 +16,6 @@ import {
   FolderOpen,
   Image as ImageIcon,
   PlayCircle,
-  X,
 } from "lucide-react"
 
 const bytesToReadable = (bytes: number): string => {
@@ -105,106 +103,126 @@ export default function UserGalleryPage() {
           </div>
 
           {isLoading ? (
-            <div className="flex items-center justify-center min-h-[260px]">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-3"></div>
-                <p className="text-muted-foreground">Loading albums...</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+              {[...Array(8)].map((_, i) => (
+                <div key={i} className="rounded-xl overflow-hidden bg-muted animate-pulse">
+                  <div className="aspect-[4/3] bg-muted-foreground/10" />
+                  <div className="p-4 space-y-2">
+                    <div className="h-4 bg-muted-foreground/20 rounded w-3/4" />
+                    <div className="h-3 bg-muted-foreground/20 rounded w-1/2" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : selectedAlbum ? (
+            <div className="space-y-5">
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedAlbum(null)}
+                  className="gap-1"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Back to Albums
+                </Button>
+                <div className="h-4 w-px bg-border" />
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="font-semibold truncate">{selectedAlbum.name}</span>
+                  <Badge variant="secondary" className="shrink-0">
+                    {selectedAlbum.mediaItems.length} items
+                  </Badge>
+                  <span className="text-xs text-muted-foreground shrink-0">
+                    {bytesToReadable(selectedAlbum.totalSize)}
+                  </span>
+                </div>
               </div>
+
+              {selectedAlbum.mediaItems.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 text-muted-foreground rounded-xl border border-dashed">
+                  <ImageIcon className="h-12 w-12 mb-3 opacity-30" />
+                  <p className="font-medium">No media in this album yet</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+                  {selectedAlbum.mediaItems.map((item, index) => (
+                    <button
+                      key={item._id}
+                      type="button"
+                      onClick={() => openLightbox(index)}
+                      className="relative rounded-lg overflow-hidden bg-muted aspect-square group focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                    >
+                      {item.type === "image" ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={item.url}
+                          alt={item.name}
+                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        />
+                      ) : (
+                        <>
+                          {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+                          <video
+                            src={`${item.url}#t=0.001`}
+                            className="w-full h-full object-cover"
+                            preload="metadata"
+                          />
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/40 transition-colors">
+                            <PlayCircle className="h-10 w-10 text-white drop-shadow" />
+                          </div>
+                        </>
+                      )}
+                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent text-white text-xs px-2 py-1.5 truncate translate-y-full group-hover:translate-y-0 transition-transform duration-200">
+                        {item.name}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           ) : albums.length === 0 ? (
-            <Card>
-              <CardContent className="py-14 text-center">
-                <FolderOpen className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-                <p className="text-lg font-medium">No albums available yet</p>
-                <p className="text-muted-foreground">Your club has not published any event gallery folders.</p>
-              </CardContent>
-            </Card>
+            <div className="flex flex-col items-center justify-center py-28 text-muted-foreground rounded-xl border border-dashed">
+              <FolderOpen className="h-16 w-16 mb-4 opacity-25" />
+              <p className="text-lg font-semibold text-foreground">No albums available yet</p>
+              <p className="text-sm mt-1">Your club has not published any event gallery folders.</p>
+            </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
               {albums.map((album) => (
-                <Card key={album._id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                  <button
-                    type="button"
-                    onClick={() => setSelectedAlbum(album)}
-                    className="w-full text-left"
-                  >
-                    <div className="relative h-44 bg-muted">
-                      {album.coverImage ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={album.coverImage} alt={album.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                          <ImageIcon className="h-8 w-8" />
-                        </div>
-                      )}
+                <button
+                  key={album._id}
+                  type="button"
+                  onClick={() => setSelectedAlbum(album)}
+                  className="group relative rounded-xl overflow-hidden bg-muted aspect-[4/3] text-left focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                >
+                  {album.coverImage ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={album.coverImage}
+                      alt={album.name}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-muted">
+                      <ImageIcon className="h-12 w-12 text-muted-foreground/30" />
                     </div>
-                    <CardHeader>
-                      <CardTitle className="line-clamp-1">{album.name}</CardTitle>
-                      <CardDescription className="line-clamp-2">
-                        {album.description || "Event album"}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="pt-0 flex items-center justify-between">
-                      <Badge variant="secondary">{album.mediaItems.length} items</Badge>
-                      <span className="text-xs text-muted-foreground">{bytesToReadable(album.totalSize)}</span>
-                    </CardContent>
-                  </button>
-                </Card>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-transparent" />
+                  <div className="absolute inset-x-0 bottom-0 p-4 text-white">
+                    <p className="font-semibold text-sm leading-tight line-clamp-1">{album.name}</p>
+                    {album.description && (
+                      <p className="text-xs text-white/65 mt-0.5 line-clamp-1">{album.description}</p>
+                    )}
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="inline-flex items-center rounded-full bg-white/20 backdrop-blur-sm px-2 py-0.5 text-xs text-white">
+                        {album.mediaItems.length} items
+                      </span>
+                      <span className="text-xs text-white/55">{bytesToReadable(album.totalSize)}</span>
+                    </div>
+                  </div>
+                </button>
               ))}
             </div>
-          )}
-
-          {selectedAlbum && (
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle>{selectedAlbum.name}</CardTitle>
-                  <CardDescription>
-                    {selectedAlbum.mediaItems.length} files - {bytesToReadable(selectedAlbum.totalSize)}
-                  </CardDescription>
-                </div>
-                <Button variant="outline" onClick={() => setSelectedAlbum(null)}>
-                  <X className="h-4 w-4 mr-2" />
-                  Close Album
-                </Button>
-              </CardHeader>
-              <CardContent>
-                {selectedAlbum.mediaItems.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No media in this album yet.</p>
-                ) : (
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                    {selectedAlbum.mediaItems.map((item, index) => (
-                      <button
-                        key={item._id}
-                        type="button"
-                        onClick={() => openLightbox(index)}
-                        className="relative rounded-lg overflow-hidden bg-muted aspect-square group"
-                      >
-                        {item.type === "image" ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={item.url} alt={item.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <>
-                            {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-                            <video
-                              src={`${item.url}#t=0.001`}
-                              className="w-full h-full object-cover"
-                              preload="metadata"
-                            />
-                            <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                              <PlayCircle className="h-10 w-10 text-white drop-shadow" />
-                            </div>
-                          </>
-                        )}
-                        <div className="absolute inset-x-0 bottom-0 bg-black/50 text-white text-xs p-1.5 truncate opacity-0 group-hover:opacity-100 transition-opacity">
-                          {item.name}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
           )}
 
           <Dialog open={lightboxOpen} onOpenChange={setLightboxOpen}>
@@ -247,7 +265,7 @@ export default function UserGalleryPage() {
                     <div className="min-w-0">
                       <p className="font-medium truncate">{activeMedia.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        {activeIndex + 1} / {mediaItems.length} - {bytesToReadable(activeMedia.size)}
+                        {activeIndex + 1} / {mediaItems.length} &mdash; {bytesToReadable(activeMedia.size)}
                       </p>
                     </div>
                     <Button onClick={() => downloadMedia(activeMedia)}>

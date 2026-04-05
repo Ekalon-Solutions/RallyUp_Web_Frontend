@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { apiClient, Album, AlbumMediaItem, GalleryStorageSummary } from "@/lib/api"
 import { useSocket } from "@/contexts/socket-context"
 import { getApiUrl } from "@/lib/config"
@@ -17,7 +18,6 @@ import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { toast } from "sonner"
 import { FolderPlus, HardDrive, Image as ImageIcon, Upload, ShoppingCart, RefreshCw, Trash2, Play } from "lucide-react"
 import { PaymentSimulationModal } from "@/components/modals/payment-simulation-modal"
-import { calculateTransactionFees } from "@/lib/transactionFees"
 
 declare global {
   interface Window { Razorpay: any }
@@ -179,6 +179,12 @@ export default function GalleryManagementPage() {
   const [deletingMediaId, setDeletingMediaId] = useState<string | null>(null)
 
 
+  // upgrade modal
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false)
+
+  // create album modal
+  const [createAlbumModalOpen, setCreateAlbumModalOpen] = useState(false)
+
   // tiered add-on selection
   const [selectedStorageGb, setSelectedStorageGb] = useState<StorageGb>(100)
   const [selectedBillingCycle, setSelectedBillingCycle] = useState<BillingCycle>("monthly")
@@ -189,12 +195,16 @@ export default function GalleryManagementPage() {
   const [checkoutBusy, setCheckoutBusy] = useState(false)
   const razorpayScriptRef = useRef(false)
 
+  // subscription confirmation modal (auto-renew ON)
+  const [pendingSubscription, setPendingSubscription] = useState<{
+    storageGb: StorageGb; plan: BillingCycle
+  } | null>(null)
+
   // one-time payment modal (auto-renew OFF)
   const [pendingUpgrade, setPendingUpgrade] = useState<{
     storageGb: StorageGb; plan: BillingCycle
     orderId: string; orderNumber: string
-    total: number; subtotal: number
-    platformFeeTotal: number; razorpayFeeTotal: number
+    total: number
     currency: string
   } | null>(null)
 
@@ -254,6 +264,7 @@ export default function GalleryManagementPage() {
       if (!res.success) { toast.error(res.error || "Failed to create album"); return }
       toast.success("Album created")
       setAlbumName(""); setAlbumDescription(""); setFolderName("")
+      setCreateAlbumModalOpen(false)
       await loadData()
     } finally { setCreatingAlbum(false) }
   }
@@ -452,6 +463,7 @@ export default function GalleryManagementPage() {
         toast.error(r.error?.description || "Payment failed.")
         setCheckoutBusy(false)
       })
+      setUpgradeModalOpen(false)
       rzp.open()
     } catch (e: any) {
       toast.error(e?.message || "Failed to initiate subscription checkout.")
@@ -462,18 +474,17 @@ export default function GalleryManagementPage() {
   // ── buy storage (branches on auto-renew) ──────────────────────────────────
   const handleBuyStorage = () => {
     if (addonAutoRenew) {
-      handleSubscriptionCheckout(selectedStorageGb, selectedBillingCycle)
+      setUpgradeModalOpen(false)
+      setPendingSubscription({ storageGb: selectedStorageGb, plan: selectedBillingCycle })
     } else {
       const baseAmount = STORAGE_PRICING[selectedStorageGb][selectedBillingCycle]
-      const fees = calculateTransactionFees(baseAmount)
       const orderId = `gallery-storage-${selectedStorageGb}gb-${selectedBillingCycle}-${Date.now()}`
       const orderNumber = `STG-${Math.floor(Math.random() * 900000) + 100000}`
+      setUpgradeModalOpen(false)
       setPendingUpgrade({
         storageGb: selectedStorageGb, plan: selectedBillingCycle,
         orderId, orderNumber,
-        total: fees.finalAmount, subtotal: fees.baseAmount,
-        platformFeeTotal: fees.platformFee + fees.platformFeeGst,
-        razorpayFeeTotal: fees.razorpayFee + fees.razorpayFeeGst,
+        total: baseAmount,
         currency: "INR",
       })
     }
@@ -511,38 +522,71 @@ export default function GalleryManagementPage() {
           </div>
 
           {loading ? (
-            <div className="text-muted-foreground">Loading...</div>
+            <div className="space-y-4">
+              <div className="rounded-xl border bg-card animate-pulse p-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="h-5 bg-muted rounded w-36" />
+                  <div className="h-9 bg-muted rounded w-32" />
+                </div>
+                <div className="h-2 bg-muted rounded-full" />
+                <div className="grid grid-cols-3 gap-6">
+                  {[...Array(3)].map((_, i) => <div key={i} className="h-10 bg-muted rounded" />)}
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[...Array(2)].map((_, i) => (
+                  <div key={i} className="rounded-xl border bg-card animate-pulse p-6 space-y-3">
+                    <div className="h-4 bg-muted rounded w-28" />
+                    <div className="h-10 bg-muted rounded" />
+                    <div className="h-10 bg-muted rounded" />
+                    <div className="h-9 bg-muted rounded w-28" />
+                  </div>
+                ))}
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="rounded-xl border bg-card animate-pulse overflow-hidden">
+                    <div className="h-40 bg-muted" />
+                    <div className="p-4 space-y-2">
+                      <div className="h-4 bg-muted rounded w-3/4" />
+                      <div className="h-3 bg-muted rounded w-1/3" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           ) : (
             <>
               {/* ── Storage Usage ─────────────────────────────────────────── */}
               <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <HardDrive className="h-5 w-5" />
-                    Storage Usage
-                  </CardTitle>
-                  <CardDescription>Track used and available club gallery space</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground">Used</p>
-                      <p className="text-xl font-semibold">{storage ? `${storage.usage.usedGb} GB` : "-"}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Available</p>
-                      <p className="text-xl font-semibold">{storage ? `${storage.usage.availableGb} GB` : "-"}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Total</p>
-                      <p className="text-xl font-semibold">{storage ? `${storage.usage.totalGb} GB` : "-"}</p>
-                    </div>
+                <CardHeader className="flex flex-row items-start justify-between gap-4 pb-4">
+                  <div>
+                    <CardTitle className="flex items-center gap-2 text-base">
+                      <HardDrive className="h-4 w-4 text-muted-foreground" />
+                      Storage
+                    </CardTitle>
+                    {storage && (
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {bytesToReadable(storage.usage.usedBytes)} used of {bytesToReadable(storage.usage.totalBytes)}
+                      </p>
+                    )}
                   </div>
-
-                  <div className="space-y-2">
-                    <div className="h-2 rounded-full bg-muted overflow-hidden">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="shrink-0"
+                    onClick={() => setUpgradeModalOpen(true)}
+                  >
+                    <ShoppingCart className="h-3.5 w-3.5 mr-1.5" />
+                    Add Storage
+                  </Button>
+                </CardHeader>
+                <CardContent className="space-y-3 pt-0">
+                  {/* Progress bar */}
+                  <div className="space-y-1.5">
+                    <div className="h-2.5 rounded-full bg-muted overflow-hidden">
                       <div
-                        className="h-full bg-primary transition-all"
+                        className="h-full bg-primary transition-all rounded-full"
                         style={{
                           width: storage
                             ? `${Math.min(100, (storage.usage.usedBytes / Math.max(storage.usage.totalBytes, 1)) * 100)}%`
@@ -550,164 +594,68 @@ export default function GalleryManagementPage() {
                         }}
                       />
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      {storage ? `${bytesToReadable(storage.usage.usedBytes)} / ${bytesToReadable(storage.usage.totalBytes)}` : ""}
-                    </p>
                   </div>
-
-                  {/* active add-ons */}
-                  {storage && storage.upgrades.filter((u) => u.isActive).length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-sm font-medium">Active Storage Add-ons</p>
-                      <div className="flex flex-wrap gap-2">
-                        {storage.upgrades.filter((u) => u.isActive).map((u) => (
-                          <Badge key={u._id} variant="secondary">
-                            {u.storageGb ?? Math.round(u.additionalBytes / 1024 ** 3)} GB &mdash; {BILLING_LABELS[u.plan] ?? u.plan}
-                          </Badge>
-                        ))}
+                  {/* Stats row */}
+                  <div className="grid grid-cols-3 gap-4 pt-1">
+                    {[
+                      { label: "Used", value: storage ? `${storage.usage.usedGb} GB` : "—" },
+                      { label: "Available", value: storage ? `${storage.usage.availableGb} GB` : "—" },
+                      { label: "Total", value: storage ? `${storage.usage.totalGb} GB` : "—" },
+                    ].map(({ label, value }) => (
+                      <div key={label} className="rounded-lg bg-muted/50 px-3 py-2.5">
+                        <p className="text-[11px] text-muted-foreground uppercase tracking-wide">{label}</p>
+                        <p className="text-sm font-semibold mt-0.5">{value}</p>
                       </div>
+                    ))}
+                  </div>
+                  {/* Active add-ons */}
+                  {storage && storage.upgrades.filter((u) => u.isActive).length > 0 && (
+                    <div className="flex flex-wrap items-center gap-2 pt-1">
+                      <span className="text-xs text-muted-foreground">Active add-ons:</span>
+                      {storage.upgrades.filter((u) => u.isActive).map((u) => (
+                        <Badge key={u._id} variant="secondary" className="text-xs">
+                          {u.storageGb ?? Math.round(u.additionalBytes / 1024 ** 3)} GB &middot; {BILLING_LABELS[u.plan] ?? u.plan}
+                        </Badge>
+                      ))}
                     </div>
                   )}
-                </CardContent>
-              </Card>
-
-              {/* ── Buy Extra Storage (tiered) ────────────────────────────── */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <ShoppingCart className="h-5 w-5" />
-                    Buy Extra Storage
-                  </CardTitle>
-                  <CardDescription>
-                    Select a storage tier and billing cycle to expand your gallery space
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  {/* pricing table */}
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm border rounded-lg overflow-hidden">
-                      <thead>
-                        <tr className="bg-muted text-muted-foreground">
-                          <th className="text-left px-4 py-3 font-medium">Storage</th>
-                          {(["monthly", "quarterly", "annual"] as BillingCycle[]).map((cycle) => (
-                            <th key={cycle} className="text-center px-4 py-3 font-medium">
-                              {BILLING_LABELS[cycle]}
-                            </th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {([50, 100, 300] as StorageGb[]).map((gb, i) => (
-                          <tr key={gb} className={i % 2 === 0 ? "bg-background" : "bg-muted/30"}>
-                            <td className="px-4 py-3 font-semibold">{gb} GB</td>
-                            {(["monthly", "quarterly", "annual"] as BillingCycle[]).map((cycle) => {
-                              const isSelected = selectedStorageGb === gb && selectedBillingCycle === cycle
-                              return (
-                                <td key={cycle} className="px-4 py-3 text-center">
-                                  <button
-                                    type="button"
-                                    onClick={() => { setSelectedStorageGb(gb); setSelectedBillingCycle(cycle) }}
-                                    className={`inline-flex flex-col items-center gap-0.5 rounded-lg px-3 py-2 transition-all border ${isSelected
-                                        ? "border-primary bg-primary text-primary-foreground shadow-sm"
-                                        : "border-transparent hover:border-muted-foreground/30 hover:bg-muted"
-                                      }`}
-                                  >
-                                    <span className="font-bold">₹{STORAGE_PRICING[gb][cycle].toLocaleString("en-IN")}</span>
-                                    <span className="text-[11px] opacity-75">{BILLING_DURATION_LABEL[cycle]}</span>
-                                  </button>
-                                </td>
-                              )
-                            })}
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {/* summary + controls */}
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-4 pt-2">
-                    <div className="flex-1 space-y-1">
-                      <p className="font-medium">
-                        Selected:{" "}
-                        <span className="text-primary">
-                          {selectedStorageGb} GB — {BILLING_LABELS[selectedBillingCycle]}
-                        </span>
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        ₹{selectedPrice.toLocaleString("en-IN")} {BILLING_DURATION_LABEL[selectedBillingCycle]}
-                        {addonAutoRenew
-                          ? " · Recurring via Razorpay Subscription"
-                          : " · One-time payment · platform & gateway fees apply"}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Switch checked={addonAutoRenew} onCheckedChange={setAddonAutoRenew} id="addon-auto-renew" />
-                      <Label htmlFor="addon-auto-renew" className="text-sm flex items-center gap-1">
-                        <RefreshCw className="h-3 w-3" />
-                        Auto-renew
-                      </Label>
-                    </div>
-                    <Button onClick={handleBuyStorage} disabled={checkoutBusy} className="shrink-0">
-                      <ShoppingCart className="h-4 w-4 mr-2" />
-                      {checkoutBusy
-                        ? "Opening checkout..."
-                        : `Buy Now — ₹${selectedPrice.toLocaleString("en-IN")}`}
-                    </Button>
-                  </div>
-
-                  {addonAutoRenew && (
-                    <p className="text-xs text-muted-foreground bg-muted/50 rounded-md px-3 py-2">
-                      Auto-renew uses a Razorpay Subscription — you approve a mandate once and it renews automatically each {BILLING_LABELS[selectedBillingCycle].toLowerCase()} cycle.
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* ── Create Album ──────────────────────────────────────────── */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <FolderPlus className="h-5 w-5" />
-                    Create Album
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="grid gap-3 md:grid-cols-3">
-                  <Input placeholder="Album name" value={albumName} onChange={(e) => setAlbumName(e.target.value)} />
-                  <Input placeholder="Folder name (optional)" value={folderName} onChange={(e) => setFolderName(e.target.value)} />
-                  <Button onClick={handleCreateAlbum} disabled={creatingAlbum}>
-                    {creatingAlbum ? "Creating..." : "Create Album"}
-                  </Button>
-                  <div className="md:col-span-3">
-                    <Textarea
-                      placeholder="Description (optional)"
-                      value={albumDescription}
-                      onChange={(e) => setAlbumDescription(e.target.value)}
-                    />
-                  </div>
                 </CardContent>
               </Card>
 
               {/* ── Upload Media ──────────────────────────────────────────── */}
               <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Upload className="h-5 w-5" />
+                <CardHeader className="pb-4">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <Upload className="h-4 w-4 text-muted-foreground" />
                     Upload Media
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  <select
-                    className="w-full h-10 rounded-md border px-3 bg-background"
-                    value={selectedAlbumId}
-                    onChange={(e) => setSelectedAlbumId(e.target.value)}
-                  >
-                    <option value="">Select album</option>
-                    {albums.map((a) => (
-                      <option key={a._id} value={a._id}>{a.name}</option>
-                    ))}
-                  </select>
+                <CardContent className="space-y-2.5">
+                  <div className="flex gap-2">
+                    <select
+                      className="flex-1 h-10 rounded-md border px-3 bg-background text-sm"
+                      value={selectedAlbumId}
+                      onChange={(e) => setSelectedAlbumId(e.target.value)}
+                    >
+                      <option value="">Select album…</option>
+                      {albums.map((a) => (
+                        <option key={a._id} value={a._id}>{a.name}</option>
+                      ))}
+                    </select>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="shrink-0 h-10 px-3 gap-1.5"
+                      onClick={() => setCreateAlbumModalOpen(true)}
+                    >
+                      <FolderPlus className="h-4 w-4" />
+                      New Album
+                    </Button>
+                  </div>
                   <Input
-                    type="file" multiple
+                    type="file"
+                    multiple
                     accept="image/jpeg,image/png,video/mp4,video/mpeg,video/avi,video/x-msvideo"
                     onChange={(e) => {
                       const files = Array.from(e.target.files || [])
@@ -722,106 +670,342 @@ export default function GalleryManagementPage() {
                     }}
                   />
                   {selectedFiles.length > 0 && (
-                    <p className="text-sm text-muted-foreground">{selectedFiles.length} {selectedFiles.length === 1 ? "file" : "files"} selected</p>
+                    <p className="text-xs text-muted-foreground">
+                      {selectedFiles.length} {selectedFiles.length === 1 ? "file" : "files"} selected
+                    </p>
                   )}
                   {uploading && UploadProgressBar({ uploadProgress, serverProgress, processingLabel, selectedFiles })}
-                  <Button onClick={handleUpload} disabled={uploading}>
+                  <Button onClick={handleUpload} disabled={uploading} className="w-full">
                     {uploading ? "Uploading..." : "Upload Files"}
                   </Button>
                 </CardContent>
               </Card>
 
               {/* ── Album grid ───────────────────────────────────────────── */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {albums.map((album) => (
-                  <Card key={album._id}>
-                    <CardHeader>
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <CardTitle className="line-clamp-1">{album.name}</CardTitle>
-                          <CardDescription>{album.mediaItems.length} {album.mediaItems.length === 1 ? "file" : "files"}</CardDescription>
-                        </div>
-                        <Button
-                          variant={confirmDeleteId === album._id ? "destructive" : "ghost"}
-                          size="sm"
-                          className="shrink-0"
+              {albums.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 rounded-xl border border-dashed text-muted-foreground">
+                  <ImageIcon className="h-12 w-12 mb-3 opacity-25" />
+                  <p className="font-medium text-foreground">No albums yet</p>
+                  <p className="text-sm mt-1">Create your first album above to get started.</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {albums.map((album) => (
+                    <div key={album._id} className="rounded-xl border bg-card overflow-hidden flex flex-col">
+                      {/* Cover */}
+                      <div className="relative h-44 bg-muted shrink-0">
+                        {album.coverImage ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={album.coverImage} alt={album.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <ImageIcon className="h-10 w-10 text-muted-foreground/25" />
+                          </div>
+                        )}
+                        <button
+                          type="button"
                           disabled={deletingAlbumId === album._id}
                           onClick={() => handleDeleteAlbum(album._id)}
-                          title={confirmDeleteId === album._id ? "Click again to confirm deletion" : "Delete album"}
+                          title={confirmDeleteId === album._id ? "Click again to confirm" : "Delete album"}
+                          className={`absolute top-2 right-2 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium shadow transition-colors disabled:opacity-50 ${
+                            confirmDeleteId === album._id
+                              ? "bg-destructive text-destructive-foreground"
+                              : "bg-black/50 text-white hover:bg-black/70 backdrop-blur-sm"
+                          }`}
                         >
-                          <Trash2 className="h-4 w-4" />
-                          {confirmDeleteId === album._id && <span className="ml-1 text-xs">Confirm?</span>}
-                        </Button>
+                          <Trash2 className="h-3 w-3" />
+                          {confirmDeleteId === album._id && <span>Confirm?</span>}
+                        </button>
                       </div>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                      {album.coverImage ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={album.coverImage} alt={album.name} className="w-full h-36 object-cover rounded-md" />
-                      ) : (
-                        <div className="w-full h-36 rounded-md bg-muted flex items-center justify-center">
-                          <ImageIcon className="h-6 w-6 text-muted-foreground" />
+
+                      {/* Info */}
+                      <div className="p-4 flex flex-col gap-3 flex-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="font-semibold line-clamp-1 text-sm">{album.name}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {album.mediaItems.length} {album.mediaItems.length === 1 ? "file" : "files"} &middot; {bytesToReadable(album.totalSize)}
+                            </p>
+                          </div>
+                          <div className="flex gap-1 shrink-0">
+                            <Badge variant="secondary" className="text-xs">
+                              {album.mediaItems.filter((m) => m.type === "image").length} img
+                            </Badge>
+                            {album.mediaItems.filter((m) => m.type === "video").length > 0 && (
+                              <Badge variant="outline" className="text-xs">
+                                {album.mediaItems.filter((m) => m.type === "video").length} vid
+                              </Badge>
+                            )}
+                          </div>
                         </div>
-                      )}
-                      <div className="flex items-center justify-between">
-                        <Badge variant="outline">{bytesToReadable(album.totalSize)}</Badge>
-                        <div className="flex gap-1">
-                          <Badge variant="secondary">{album.mediaItems.filter((m) => m.type === "image").length} images</Badge>
-                          {album.mediaItems.filter((m) => m.type === "video").length > 0 && (
-                            <Badge variant="outline">{album.mediaItems.filter((m) => m.type === "video").length} videos</Badge>
-                          )}
-                        </div>
-                      </div>
-                      {selectedAlbum?._id === album._id && selectedAlbum.mediaItems.length > 0 && (
-                        <div className="grid grid-cols-3 gap-2 max-h-64 overflow-y-auto pr-1">
-                          {selectedAlbum.mediaItems.map((m) => (
-                            <div key={m._id} className="relative group rounded overflow-hidden border bg-muted">
-                              {m.type === "image" ? (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img src={m.url} alt={m.name} className="w-full h-16 object-cover" />
-                              ) : (
-                                <>
-                                  {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-                                  <video src={`${m.url}#t=0.001`} className="w-full h-16 object-cover" preload="metadata" />
-                                  <div className="absolute inset-0 flex items-center justify-center bg-black/30 pointer-events-none">
-                                    <Play className="h-5 w-5 text-white fill-white" />
-                                  </div>
-                                </>
-                              )}
-                              {/* set-cover button (images only) */}
-                              {m.type === "image" && (
+
+                        {/* Expanded media grid */}
+                        {selectedAlbum?._id === album._id && selectedAlbum.mediaItems.length > 0 && (
+                          <div className="grid grid-cols-4 gap-1.5 max-h-52 overflow-y-auto rounded-lg">
+                            {selectedAlbum.mediaItems.map((m) => (
+                              <div key={m._id} className="relative group rounded-md overflow-hidden bg-muted aspect-square">
+                                {m.type === "image" ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img src={m.url} alt={m.name} className="w-full h-full object-cover" />
+                                ) : (
+                                  <>
+                                    {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+                                    <video src={`${m.url}#t=0.001`} className="w-full h-full object-cover" preload="metadata" />
+                                    <div className="absolute inset-0 flex items-center justify-center bg-black/30 pointer-events-none">
+                                      <Play className="h-4 w-4 text-white fill-white" />
+                                    </div>
+                                  </>
+                                )}
+                                {m.type === "image" && (
+                                  <button
+                                    type="button"
+                                    title="Set as cover image"
+                                    onClick={() => handleSetCover(album._id, m)}
+                                    className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-black/20 transition-opacity"
+                                  />
+                                )}
                                 <button
                                   type="button"
-                                  title="Set as cover image"
-                                  onClick={() => handleSetCover(album._id, m)}
-                                  className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-black/20 transition-opacity"
-                                />
-                              )}
-                              {/* delete button */}
-                              <button
-                                type="button"
-                                title="Delete"
-                                disabled={deletingMediaId === m._id}
-                                onClick={() => handleDeleteMediaItem(album._id, m._id)}
-                                className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-destructive text-destructive-foreground rounded-full p-0.5 disabled:opacity-50"
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      <Button variant="outline" className="w-full" onClick={() => setSelectedAlbumId(album._id)}>
-                        Manage This Album
-                      </Button>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+                                  title="Delete"
+                                  disabled={deletingMediaId === m._id}
+                                  onClick={() => handleDeleteMediaItem(album._id, m._id)}
+                                  className="absolute top-0.5 right-0.5 opacity-0 group-hover:opacity-100 transition-opacity bg-destructive text-destructive-foreground rounded-full p-0.5 disabled:opacity-50"
+                                >
+                                  <Trash2 className="h-3 w-3" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        <Button
+                          variant={selectedAlbum?._id === album._id ? "default" : "outline"}
+                          size="sm"
+                          className="mt-auto w-full"
+                          onClick={() => setSelectedAlbumId(selectedAlbum?._id === album._id ? "" : album._id)}
+                        >
+                          {selectedAlbum?._id === album._id ? "Hide Media" : "Manage Media"}
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </>
           )}
         </div>
+
+        {/* ── Upgrade Storage Modal ──────────────────────────────────────────── */}
+        <Dialog open={upgradeModalOpen} onOpenChange={setUpgradeModalOpen}>
+          <DialogContent className="max-w-xl">
+            <DialogHeader>
+              <DialogTitle>Add Storage</DialogTitle>
+              <DialogDescription>
+                Choose a storage tier and billing cycle to expand your gallery space.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-5 py-2">
+              {/* Tier cards */}
+              <div className="grid grid-cols-3 gap-3">
+                {([50, 100, 300] as StorageGb[]).map((gb) => (
+                  <button
+                    key={gb}
+                    type="button"
+                    onClick={() => setSelectedStorageGb(gb)}
+                    className={`rounded-xl border p-3 text-left transition-all ${
+                      selectedStorageGb === gb
+                        ? "border-primary bg-primary/5 ring-1 ring-primary"
+                        : "border-border hover:border-muted-foreground/40 hover:bg-muted/30"
+                    }`}
+                  >
+                    <p className="text-xl font-bold">{gb} GB</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      from ₹{STORAGE_PRICING[gb]["annual"].toLocaleString("en-IN")}/yr
+                    </p>
+                  </button>
+                ))}
+              </div>
+
+              {/* Billing cycle */}
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Billing cycle</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {(["monthly", "quarterly", "annual"] as BillingCycle[]).map((cycle) => {
+                    const isSelected = selectedBillingCycle === cycle
+                    return (
+                      <button
+                        key={cycle}
+                        type="button"
+                        onClick={() => setSelectedBillingCycle(cycle)}
+                        className={`rounded-lg border px-3 py-2.5 text-center transition-all ${
+                          isSelected
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "border-border hover:border-muted-foreground/40 hover:bg-muted/30"
+                        }`}
+                      >
+                        <p className="text-sm font-semibold">₹{STORAGE_PRICING[selectedStorageGb][cycle].toLocaleString("en-IN")}</p>
+                        <p className="text-[11px] opacity-75 mt-0.5">{BILLING_DURATION_LABEL[cycle]}</p>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Auto-renew */}
+              <div className="flex items-center justify-between rounded-lg border px-4 py-3">
+                <div>
+                  <p className="text-sm font-medium flex items-center gap-1.5">
+                    <RefreshCw className="h-3.5 w-3.5 text-muted-foreground" />
+                    Auto-renew
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {addonAutoRenew
+                      ? `Renews via Razorpay Subscription each ${BILLING_LABELS[selectedBillingCycle].toLowerCase()} cycle`
+                      : "One-time payment"}
+                  </p>
+                </div>
+                <Switch checked={addonAutoRenew} onCheckedChange={setAddonAutoRenew} id="modal-auto-renew" />
+              </div>
+
+              {/* Summary + CTA */}
+              <div className="rounded-lg bg-muted/50 px-4 py-3 flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm font-medium">
+                    {selectedStorageGb} GB &middot; {BILLING_LABELS[selectedBillingCycle]}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    ₹{selectedPrice.toLocaleString("en-IN")} {BILLING_DURATION_LABEL[selectedBillingCycle]}
+                  </p>
+                </div>
+                <Button
+                  onClick={handleBuyStorage}
+                  disabled={checkoutBusy}
+                  className="shrink-0"
+                >
+                  <ShoppingCart className="h-4 w-4 mr-2" />
+                  {checkoutBusy ? "Opening checkout…" : "Buy Now"}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </DashboardLayout>
+
+      {/* ── Create Album Modal ──────────────────────────────────────────────── */}
+      <Dialog open={createAlbumModalOpen} onOpenChange={(open) => {
+        setCreateAlbumModalOpen(open)
+        if (!open) { setAlbumName(""); setAlbumDescription(""); setFolderName("") }
+      }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FolderPlus className="h-4 w-4" />
+              New Album
+            </DialogTitle>
+            <DialogDescription>
+              Create a new album to organise your event media.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="modal-album-name" className="text-sm">Album name <span className="text-destructive">*</span></Label>
+              <Input
+                id="modal-album-name"
+                placeholder="e.g. Annual Day 2025"
+                value={albumName}
+                onChange={(e) => setAlbumName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleCreateAlbum()}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="modal-folder-name" className="text-sm">Folder name <span className="text-muted-foreground font-normal">(optional)</span></Label>
+              <Input
+                id="modal-folder-name"
+                placeholder="e.g. annual-day-2025"
+                value={folderName}
+                onChange={(e) => setFolderName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="modal-album-desc" className="text-sm">Description <span className="text-muted-foreground font-normal">(optional)</span></Label>
+              <Textarea
+                id="modal-album-desc"
+                placeholder="Short description of this album…"
+                rows={3}
+                className="resize-none"
+                value={albumDescription}
+                onChange={(e) => setAlbumDescription(e.target.value)}
+              />
+            </div>
+            <Button onClick={handleCreateAlbum} disabled={creatingAlbum} className="w-full mt-1">
+              {creatingAlbum ? "Creating..." : "Create Album"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Subscription Confirmation Modal (auto-renew ON) ──────────────────── */}
+      {pendingSubscription && (
+        <Dialog open={!!pendingSubscription} onOpenChange={(open) => { if (!open) setPendingSubscription(null) }}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Confirm Subscription</DialogTitle>
+              <DialogDescription>
+                Review your plan before proceeding to checkout.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              {/* Plan summary */}
+              <div className="rounded-xl border bg-muted/40 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Storage</span>
+                  <span className="font-semibold">{pendingSubscription.storageGb} GB</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Billing</span>
+                  <span className="font-semibold">{BILLING_LABELS[pendingSubscription.plan]}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">Amount</span>
+                  <span className="font-semibold">
+                    ₹{STORAGE_PRICING[pendingSubscription.storageGb][pendingSubscription.plan].toLocaleString("en-IN")}
+                    <span className="text-xs text-muted-foreground font-normal ml-1">
+                      {BILLING_DURATION_LABEL[pendingSubscription.plan]}
+                    </span>
+                  </span>
+                </div>
+                <div className="border-t pt-3 flex items-start gap-2">
+                  <RefreshCw className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+                  <p className="text-xs text-muted-foreground">
+                    Renews automatically each {BILLING_LABELS[pendingSubscription.plan].toLowerCase()} cycle via Razorpay Subscription. Cancel anytime.
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setPendingSubscription(null)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="flex-1"
+                  disabled={checkoutBusy}
+                  onClick={() => {
+                    handleSubscriptionCheckout(pendingSubscription.storageGb, pendingSubscription.plan)
+                    setPendingSubscription(null)
+                  }}
+                >
+                  <ShoppingCart className="h-4 w-4 mr-2" />
+                  {checkoutBusy ? "Opening…" : "Proceed to Pay"}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
 
       {/* one-time payment modal (auto-renew OFF) */}
       {pendingUpgrade && (
@@ -833,9 +1017,6 @@ export default function GalleryManagementPage() {
           orderId={pendingUpgrade.orderId}
           orderNumber={pendingUpgrade.orderNumber}
           total={pendingUpgrade.total}
-          subtotal={pendingUpgrade.subtotal}
-          platformFeeTotal={pendingUpgrade.platformFeeTotal}
-          razorpayFeeTotal={pendingUpgrade.razorpayFeeTotal}
           currency={pendingUpgrade.currency}
           paymentMethod="all"
           dialogTitle={`Buy ${pendingUpgrade.storageGb} GB Storage`}
