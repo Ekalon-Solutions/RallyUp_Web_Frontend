@@ -63,6 +63,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
   const { user } = useAuth()
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const [razorpayOpen, setRazorpayOpen] = useState(false)
   const [couponDiscount, setCouponDiscount] = useState(0)
   const [couponName, setCouponName] = useState("")
   const [scriptLoaded, setScriptLoaded] = useState(false)
@@ -411,6 +412,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
                 // ignore
               }
               toast.success("Payment successful! You are now registered for the event.")
+              setRazorpayOpen(false)
               onSuccess()
               onClose()
               router.push("/purchase/success")
@@ -419,6 +421,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
             }
           } catch (error) {
             toast.error("Payment verification failed. Please contact support.")
+            setRazorpayOpen(false)
           } finally {
             setLoading(false)
           }
@@ -433,6 +436,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
         },
         modal: {
           ondismiss: function() {
+            setRazorpayOpen(false)
             setLoading(false)
             toast.error("Payment cancelled")
           }
@@ -440,15 +444,17 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
       }
 
       const razorpay = new window.Razorpay(options)
-      
+
       razorpay.on('payment.failed', function (response: any) {
         toast.error(response.error.description || "Payment processing failed. Please try again.")
+        setRazorpayOpen(false)
         setLoading(false)
         onFailure()
         onClose()
         router.push("/purchase/failure")
       })
 
+      setRazorpayOpen(true)
       razorpay.open()
     } catch (error) {
       toast.error("Failed to initiate payment. Please try again.")
@@ -500,8 +506,12 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+    <Dialog open={isOpen} onOpenChange={() => { if (!razorpayOpen) onClose() }} modal={!razorpayOpen}>
+      <DialogContent
+        className="max-w-md"
+        onInteractOutside={(e) => { if (razorpayOpen) e.preventDefault() }}
+        onEscapeKeyDown={(e) => { if (razorpayOpen) e.preventDefault() }}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CreditCard className="w-5 h-5" />

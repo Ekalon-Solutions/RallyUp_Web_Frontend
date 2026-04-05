@@ -1051,7 +1051,7 @@ export default function GuessTheScorePage() {
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction
-                onClick={handleOptOut}
+                onClick={(e) => { e.preventDefault(); handleOptOut() }}
                 disabled={optingOut}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >

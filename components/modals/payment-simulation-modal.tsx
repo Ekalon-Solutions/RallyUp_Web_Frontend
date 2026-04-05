@@ -73,6 +73,7 @@ export function PaymentSimulationModal({
   const { toast } = useToast()
   const [processing, setProcessing] = useState(false)
   const [scriptLoaded, setScriptLoaded] = useState(false)
+  const [razorpayOpen, setRazorpayOpen] = useState(false)
 
   useEffect(() => {
     const script = document.createElement('script')
@@ -185,7 +186,8 @@ export function PaymentSimulationModal({
               title: "Payment Successful!",
               description: `Order ${orderNumber} payment completed successfully.`,
             })
-            
+
+            setRazorpayOpen(false)
             onPaymentSuccess(orderId, response.razorpay_payment_id, response.razorpay_order_id, response.razorpay_signature)
             onClose()
           } catch (error) {
@@ -195,6 +197,7 @@ export function PaymentSimulationModal({
               description: "Payment was received but verification failed. Please contact support.",
               variant: "destructive",
             })
+            setRazorpayOpen(false)
             onPaymentFailure(orderId, response.razorpay_payment_id, response.razorpay_order_id, response.razorpay_signature, error)
           }
         },
@@ -208,6 +211,7 @@ export function PaymentSimulationModal({
         },
         modal: {
           ondismiss: function() {
+            setRazorpayOpen(false)
             setProcessing(false)
             toast({
               title: "Payment Cancelled",
@@ -219,7 +223,7 @@ export function PaymentSimulationModal({
       }
 
       const razorpay = new window.Razorpay(options)
-      
+
       razorpay.on('payment.failed', function (response: any) {
         // console.error('Payment failed:', response.error)
         toast({
@@ -227,10 +231,12 @@ export function PaymentSimulationModal({
           description: response.error.description || "Payment processing failed. Please try again.",
           variant: "destructive",
         })
+        setRazorpayOpen(false)
         onPaymentFailure(orderId, response.razorpay_payment_id, response.razorpay_order_id, response.razorpay_signature, response.error)
         setProcessing(false)
       })
 
+      setRazorpayOpen(true)
       razorpay.open()
     } catch (error) {
       // console.error('Payment initiation error:', error)
@@ -278,8 +284,12 @@ export function PaymentSimulationModal({
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md">
+    <Dialog open={isOpen} onOpenChange={() => { if (!razorpayOpen) onClose() }} modal={!razorpayOpen}>
+      <DialogContent
+        className="max-w-md"
+        onInteractOutside={(e) => { if (razorpayOpen) e.preventDefault() }}
+        onEscapeKeyDown={(e) => { if (razorpayOpen) e.preventDefault() }}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CreditCard className="w-5 h-5" />
