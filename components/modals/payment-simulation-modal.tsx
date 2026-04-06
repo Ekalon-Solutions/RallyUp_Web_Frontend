@@ -13,6 +13,7 @@ import {
   AlertCircle
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { apiClient } from "@/lib/api"
 
 declare global {
   interface Window {
@@ -145,6 +146,17 @@ export function PaymentSimulationModal({
       }
 
       const { razorpayOrderId, amount, currency: orderCurrency } = await response.json()
+
+      // Persist Razorpay order id on the merchandise order before checkout (Mongo ObjectId orders only).
+      const persist = await apiClient.patch(`/orders/admin/${orderId}/razorpay-order-id`, {
+        razorpayOrderId,
+      })
+      if (!persist.success) {
+        console.warn(
+          "[Razorpay] Could not save razorpayOrderId on order (non-merchandise or wrong id is ok):",
+          persist.error || persist.message
+        )
+      }
 
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,

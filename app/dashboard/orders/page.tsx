@@ -131,7 +131,6 @@ export default function OrdersPage() {
 
   useEffect(() => {
     if (user?.role === 'admin' || user?.role === 'super_admin') {
-      loadOrders()
       loadStats()
     }
   }, [user?.role, clubId])
@@ -147,9 +146,8 @@ export default function OrdersPage() {
   }, [searchTerm, statusFilter, typeFilter, clubId])
 
   useEffect(() => {
-    if ((user?.role === 'admin' || user?.role === 'super_admin') && currentPage > 1) {
-      loadOrders()
-    }
+    if (user?.role !== 'admin' && user?.role !== 'super_admin') return
+    loadOrders()
   }, [currentPage, clubId])
 
   const loadOrders = async () => {
