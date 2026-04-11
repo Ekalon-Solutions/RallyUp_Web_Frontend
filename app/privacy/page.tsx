@@ -117,8 +117,11 @@ export default function PrivacyPage(): React.JSX.Element {
               Account.
             </li>
             <li>
-              <strong>Web Request:</strong> If you cannot access the app, you may request account and data deletion via our Data
-              Deletion Request Form or by emailing{" "}
+              <strong>Web Request:</strong> If you cannot access the app, you may request account and data deletion via our{" "}
+              <Link className="underline" href="/delete-account">
+                Data Deletion Request Form
+              </Link>{" "}
+              or by emailing{" "}
               <a className="underline" href="mailto:support@wingmanpro.tech">
                 support@wingmanpro.tech
               </a>
