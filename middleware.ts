@@ -106,6 +106,11 @@ function isSuspiciousRequest(request: NextRequest): boolean {
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
+
+  // Allow /delete-account route to bypass all middleware checks
+  if (pathname === "/delete-account") {
+    return NextResponse.next()
+  }
   
   if (
     pathname.startsWith('/api/') ||
