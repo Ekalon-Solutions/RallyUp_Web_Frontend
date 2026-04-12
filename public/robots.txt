@@ -1,5 +1,6 @@
 User-agent: Googlebot
 Allow: /delete-account
+Allow: /child-safety
 Crawl-delay: 2
 
 User-agent: Bingbot
