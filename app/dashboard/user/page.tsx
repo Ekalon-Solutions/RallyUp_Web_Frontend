@@ -217,11 +217,13 @@ export default function UserDashboardPage() {
   const [showEventDetailsModal, setShowEventDetailsModal] = useState(false)
   const [userRegistrations, setUserRegistrations] = useState<Map<string, any>>(new Map())
   const [registrationEventId, setRegistrationEventId] = useState<string | null>(null)
+  const [registrationEvent, setRegistrationEvent] = useState<Event | null>(null)
   const [showRegistrationModal, setShowRegistrationModal] = useState(false)
   const [cancellingEventId, setCancellingEventId] = useState<string | null>(null)
   const [showEventCheckoutModal, setShowEventCheckoutModal] = useState(false)
   const [eventForPayment, setEventForPayment] = useState<Event | null>(null)
   const [attendeesForPayment, setAttendeesForPayment] = useState<any[]>([])
+  const [couponCodeForPayment, setCouponCodeForPayment] = useState<string | undefined>(undefined)
   const [showLogo, setShowLogo] = useState(false)
 
   const paymentEvent = eventForPayment
@@ -395,12 +397,14 @@ export default function UserDashboardPage() {
       return
     }
     setRegistrationEventId(event._id)
+    setRegistrationEvent(event)
     setShowRegistrationModal(true)
   }
 
   const handlePerformRegistration = async (payload: {
     eventId: string;
     attendees: any[];
+    couponCode?: string;
   }) => {
     if (!payload || !payload.eventId) return
     const event = events.find((e) => e._id === payload.eventId);
@@ -413,6 +417,7 @@ export default function UserDashboardPage() {
       setAttendeesForPayment(
         payload.attendees
       );
+      setCouponCodeForPayment(payload.couponCode);
       return;
     }
     try {
@@ -420,7 +425,8 @@ export default function UserDashboardPage() {
         const res = await apiClient.registerForEvent(
           payload.eventId,
           undefined,
-          payload.attendees
+          payload.attendees,
+          payload.couponCode
         )
         if (!res || !res.success) throw res ?? new Error("Registration failed")
         return res
@@ -1303,14 +1309,18 @@ export default function UserDashboardPage() {
           onClose={() => {
             setShowRegistrationModal(false)
             setRegistrationEventId(null)
+            setRegistrationEvent(null)
           }}
           onRegister={handlePerformRegistration}
+          ticketPrice={registrationEvent?.ticketPrice || 0}
+          event={registrationEvent}
         />
         <EventCheckoutModal
           isOpen={showEventCheckoutModal}
           onClose={() => setShowEventCheckoutModal(false)}
           event={paymentEvent}
           attendees={attendeesForPayment}
+          couponCode={couponCodeForPayment}
           onSuccess={handleEventCheckoutSuccess}
           onFailure={() => {
             setShowEventCheckoutModal(false);
