@@ -717,7 +717,9 @@ export default function OrdersPage() {
                           </TableCell>
                           <TableCell>
                             <div className="font-medium">
-                              {reg.ticketPrice ? formatCurrency(reg.ticketPrice, reg.currency || 'USD') : 'Free'}
+                              {reg.amountPaid != null
+                                ? (reg.amountPaid > 0 ? formatCurrency(reg.amountPaid, reg.currency || 'USD') : 'Free')
+                                : (reg.ticketPrice ? formatCurrency(reg.ticketPrice, reg.currency || 'USD') : 'Free')}
                             </div>
                           </TableCell>
                           <TableCell>
