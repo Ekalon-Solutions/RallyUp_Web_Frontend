@@ -70,7 +70,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
   const [showMemberValidation, setShowMemberValidation] = useState(false)
   const [memberValidated, setMemberValidated] = useState(false)
   const [eventData, setEventData] = useState<any>(null)
-  const [redeemPoints, setRedeemPoints] = useState<number>(0)
+  const [redeemPoints, setRedeemPoints] = useState<number | string>("")
   const [reservationToken, setReservationToken] = useState<string | null>(null)
   const [reservedDiscount, setReservedDiscount] = useState<number>(0)
   const [reserving, setReserving] = useState(false)
@@ -97,7 +97,8 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
       const totalBeforeCoupon = basePrice * attendees.length
       const finalPrice = Math.max(totalBeforeCoupon - couponDiscount, 0)
       const orderTotalForReservation = finalPrice
-      const res = await apiClient.createReservation(redeemPoints, eventData.clubId, orderTotalForReservation)
+      const redeemPointsNum = Number(redeemPoints) || 0
+      const res = await apiClient.createReservation(redeemPointsNum, eventData.clubId, orderTotalForReservation)
         if (res && res.success) {
           setReservationToken(res.data?.reservationToken || null)
           setReservedDiscount(res.data?.discountAmount || 0)
@@ -123,7 +124,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
     } catch (e) {
     }
     setReservationToken(null)
-    setRedeemPoints(0)
+    setRedeemPoints("")
     setReservedDiscount(0)
   }
 
@@ -508,11 +509,11 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
   return (
     <Dialog open={isOpen} onOpenChange={() => { if (!razorpayOpen) onClose() }} modal={!razorpayOpen}>
       <DialogContent
-        className="max-w-md"
+        className="max-w-md w-[95vw] sm:w-full max-h-[90vh] overflow-hidden flex flex-col p-4 sm:p-6"
         onInteractOutside={(e) => { if (razorpayOpen) e.preventDefault() }}
         onEscapeKeyDown={(e) => { if (razorpayOpen) e.preventDefault() }}
       >
-        <DialogHeader>
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <CreditCard className="w-5 h-5" />
             Event Checkout
@@ -522,155 +523,193 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
           </DialogDescription>
         </DialogHeader>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>{event?.name}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="flex justify-between items-center">
-                <span>Price per ticket:</span>
-                <span className="flex items-center gap-2">
-                  {priceBeforeDiscount > basePrice ? (
-                    <>
-                      <span className="line-through text-muted-foreground">
-                        {formatCurrency(priceBeforeDiscount, event.currency)}
-                      </span>
+        <div className="flex-1 overflow-y-auto px-1 py-2 space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>{event?.name}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center text-sm sm:text-base">
+                  <span>Price per ticket:</span>
+                  <span className="flex items-center gap-2">
+                    {priceBeforeDiscount > basePrice ? (
+                      <>
+                        <span className="line-through text-muted-foreground">
+                          {formatCurrency(priceBeforeDiscount, event.currency)}
+                        </span>
+                        <span>{formatCurrency(basePrice, event.currency)}</span>
+                      </>
+                    ) : (
                       <span>{formatCurrency(basePrice, event.currency)}</span>
-                    </>
-                  ) : (
-                    <span>{formatCurrency(basePrice, event.currency)}</span>
-                  )}
-                </span>
-              </div>
-              
-              <div className="flex justify-between items-center">
-                <span>Number of tickets:</span>
-                <span>{attendees.length}</span>
-              </div>
-              
-              <Separator />
-              
-              <div className="flex justify-between items-center font-medium">
-                <span>Subtotal:</span>
-                <span>
-                  {(couponDiscount > 0 || reservedDiscount > 0) ? (
-                    <>
-                      <span className="line-through text-muted-foreground mr-2">{formatCurrency(totalBeforeCoupon, event.currency)}</span>
-                      <span>{formatCurrency(netSubtotal, event.currency)}</span>
-                    </>
-                  ) : (
-                    <span>{formatCurrency(totalBeforeCoupon, event.currency)}</span>
-                  )}
-                </span>
-              </div>
-              {couponDiscount > 0 && (
-                <div className="flex justify-between items-center text-sm text-green-600">
-                  <span>- Coupon discount:</span>
-                  <span>-{formatCurrency(couponDiscount, event.currency)}</span>
+                    )}
+                  </span>
                 </div>
-              )}
-
-              {reservedDiscount > 0 && (
-                <div className="flex justify-between items-center text-sm text-green-600">
-                  <span>- Points discount:</span>
-                  <span>-{formatCurrency(reservedDiscount, event.currency)}</span>
+                
+                <div className="flex justify-between items-center text-sm sm:text-base">
+                  <span>Number of tickets:</span>
+                  <span>{attendees.length}</span>
                 </div>
-              )}
-              
-              {couponCode && couponDiscount > 0 && (
-                <>
-                  <div className="flex justify-between items-center text-green-600">
-                    <span className="flex items-center gap-1">
-                      <Tag className="w-4 h-4" />
-                      Coupon ({couponCode})
-                    </span>
+                
+                <Separator />
+                
+                <div className="flex justify-between items-center font-medium text-sm sm:text-base">
+                  <span>Subtotal:</span>
+                  <span>
+                    {(couponDiscount > 0 || reservedDiscount > 0) ? (
+                      <>
+                        <span className="line-through text-muted-foreground mr-2">{formatCurrency(totalBeforeCoupon, event.currency)}</span>
+                        <span>{formatCurrency(netSubtotal, event.currency)}</span>
+                      </>
+                    ) : (
+                      <span>{formatCurrency(totalBeforeCoupon, event.currency)}</span>
+                    )}
+                  </span>
+                </div>
+                {couponDiscount > 0 && (
+                  <div className="flex justify-between items-center text-sm text-green-600">
+                    <span>- Coupon discount:</span>
                     <span>-{formatCurrency(couponDiscount, event.currency)}</span>
                   </div>
-                  {couponName && (
-                    <div className="text-xs text-muted-foreground">
-                      {couponName}
-                    </div>
-                  )}
-                  <Separator />
-                </>
-              )}
+                )}
 
-              {feeBreakdown && feeBreakdown.totalFees > 0 && (
-                <>
-                  <div className="flex justify-between items-center text-sm text-muted-foreground">
-                    <span>Platform fee ({PLATFORM_FEE_PERCENT}% + GST):</span>
-                    <span>{formatCurrency(feeBreakdown.platformFee + feeBreakdown.platformFeeGst, event.currency)}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-sm text-muted-foreground">
-                    <span>Payment gateway fee ({RAZORPAY_FEE_PERCENT}% + GST):</span>
-                    <span>{formatCurrency(feeBreakdown.razorpayFee + feeBreakdown.razorpayFeeGst, event.currency)}</span>
-                  </div>
-                  <Separator />
-                </>
-              )}
-              
-                <div className="space-y-2">
-                <label className="text-sm font-medium">Redeem Points {availablePoints !== null && ` (Available: ${availablePoints} pts)`}</label>
-                <div className="flex gap-2">
-                  <input
-                    type="number"
-                    min={0}
-                    value={redeemPoints}
-                    onChange={(e) => setRedeemPoints(Number(e.target.value))}
-                    className="w-32 input input-bordered"
-                    placeholder="Points"
-                  />
-                  <Button onClick={reservePointsNow} disabled={reserving || !!reservationToken} size="sm">{reserving ? 'Reserving...' : 'Reserve'}</Button>
-                  <Button variant="ghost" onClick={clearReservation} disabled={reserving}>Clear</Button>
-                </div>
-                {reservationToken && (
-                  <div className="text-sm text-green-600">
-                    Reserved discount: {formatCurrency(reservedDiscount, event.currency)}
+                {reservedDiscount > 0 && (
+                  <div className="flex justify-between items-center text-sm text-green-600">
+                    <span>- Points discount:</span>
+                    <span>-{formatCurrency(reservedDiscount, event.currency)}</span>
                   </div>
                 )}
+                
+                {couponCode && couponDiscount > 0 && (
+                  <>
+                    <div className="flex justify-between items-center text-green-600 text-sm">
+                      <span className="flex items-center gap-1">
+                        <Tag className="w-4 h-4" />
+                        Coupon ({couponCode})
+                      </span>
+                      <span>-{formatCurrency(couponDiscount, event.currency)}</span>
+                    </div>
+                    {couponName && (
+                      <div className="text-xs text-muted-foreground">
+                        {couponName}
+                      </div>
+                    )}
+                    <Separator />
+                  </>
+                )}
+
+                {feeBreakdown && feeBreakdown.totalFees > 0 && (
+                  <>
+                    <div className="flex justify-between items-center text-xs sm:text-sm text-muted-foreground">
+                      <span>Platform fee ({PLATFORM_FEE_PERCENT}% + GST):</span>
+                      <span>{formatCurrency(feeBreakdown.platformFee + feeBreakdown.platformFeeGst, event.currency)}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-xs sm:text-sm text-muted-foreground">
+                      <span>Payment gateway fee ({RAZORPAY_FEE_PERCENT}% + GST):</span>
+                      <span>{formatCurrency(feeBreakdown.razorpayFee + feeBreakdown.razorpayFeeGst, event.currency)}</span>
+                    </div>
+                    <Separator />
+                  </>
+                )}
+                
+                  <div className="space-y-2">
+                  <label className="text-sm font-medium">Redeem Points {availablePoints !== null && ` (Available: ${availablePoints} pts)`}</label>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <input
+                      type="number"
+                      min={0}
+                      max={availablePoints || undefined}
+                      value={redeemPoints}
+                      onChange={(e) => setRedeemPoints(e.target.value === "" ? "" : Number(e.target.value))}
+                      className="w-full sm:w-32 flex-1 h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                      placeholder="Points"
+                      disabled={!!reservationToken || reserving}
+                    />
+                    <div className="flex gap-2">
+                      {reservationToken ? (
+                        <Button disabled size="sm" variant="outline" className="flex-1 sm:flex-none border-green-500 text-green-600 opacity-100">
+                          Applied
+                        </Button>
+                      ) : (
+                        <Button 
+                          onClick={reservePointsNow} 
+                          disabled={reserving || !redeemPoints || Number(redeemPoints) <= 0} 
+                          size="sm" 
+                          className="flex-1 sm:flex-none"
+                        >
+                          {reserving ? (
+                            <div className="flex items-center gap-2">
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                              Reserving...
+                            </div>
+                          ) : 'Reserve'}
+                        </Button>
+                      )}
+                      
+                      {(redeemPoints !== "" || reservationToken) && (
+                        <Button 
+                          variant="ghost" 
+                          onClick={clearReservation} 
+                          disabled={reserving} 
+                          size="sm" 
+                          className="flex-1 sm:flex-none text-muted-foreground hover:text-foreground"
+                        >
+                          Clear
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                  {reservationToken && (
+                    <div className="text-sm text-green-600">
+                      Reserved discount: {formatCurrency(reservedDiscount, event.currency)}
+                    </div>
+                  )}
+                </div>
+
               </div>
-
-              <div className="flex justify-between items-center font-bold text-lg">
-                <span>Total to Pay:</span>
-                <span className="text-primary">{formatCurrency(amountToCharge, event.currency)}</span>
+              
+              <Separator className="my-4" />
+              <div>
+                <h4 className="text-sm font-medium mb-2">Attendees:</h4>
+                <ul className="list-disc pl-5 text-sm max-h-32 overflow-y-auto">
+                  {attendees.map((attendee, index) => (
+                    <li key={index}>{attendee.name} ({attendee.phone})</li>
+                  ))}
+                </ul>
               </div>
-            </div>
-            
-            <Separator className="my-4" />
-            <div>
-              <h4 className="text-sm font-medium mb-2">Attendees:</h4>
-              <ul className="list-disc pl-5 text-sm">
-                {attendees.map((attendee, index) => (
-                  <li key={index}>{attendee.name} ({attendee.phone})</li>
-                ))}
-              </ul>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <p className="text-xs text-muted-foreground text-center mt-4">
-          By completing payment, you agree to our{" "}
-          <a href="/refund" target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:text-sky-500 underline">
-            Refund and Cancellation Policy
-          </a>
-          .
-        </p>
+          <p className="text-xs text-muted-foreground text-center mt-4 pb-2">
+            By completing payment, you agree to our{" "}
+            <a href="/refund" target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:text-sky-500 underline">
+              Refund and Cancellation Policy
+            </a>
+            .
+          </p>
+        </div>
 
-        <Button
-          onClick={handlePayment}
-          disabled={loading}
-          className="w-full mt-4"
-        >
-          {loading ? (
-            <div className="flex items-center gap-2">
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Processing...
-            </div>
-          ) : (
-            "Pay Now"
-          )}
-        </Button>
+        <div className="flex-shrink-0 pt-4 pb-2 sm:pb-0 mt-4 border-t bg-background shadow-[0_-15px_15px_-15px_rgba(0,0,0,0.1)] z-10">
+          <div className="flex justify-between items-center font-bold text-lg px-1 mb-3">
+            <span>Total to Pay:</span>
+            <span className="text-primary">{formatCurrency(amountToCharge, event.currency)}</span>
+          </div>
+          <Button
+            onClick={handlePayment}
+            disabled={loading}
+            className="w-full"
+            size="lg"
+          >
+            {loading ? (
+              <div className="flex items-center gap-2">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Processing...
+              </div>
+            ) : (
+              "Pay Now"
+            )}
+          </Button>
+        </div>
       </DialogContent>
 
       {eventData?.clubId && (
