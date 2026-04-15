@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { apiClient } from '@/lib/api'
+import { calculateTransactionFees } from '@/lib/transactionFees'
 import { formatLocalDate } from '@/lib/timezone'
 import { DashboardLayout } from '@/components/dashboard-layout'
 import { Button } from '@/components/ui/button'
@@ -1102,6 +1103,9 @@ export default function OrdersPage() {
                   const couponCode = meta?.couponCode
                   const couponDiscount = meta?.couponDiscount ?? 0
                   const earlyBirdAmt = meta?.earlyBirdDiscountAmt ?? 0
+                  const pointsDiscount = meta?.pointsDiscount ?? 0
+                  const base = Math.max(originalTotal - earlyBirdAmt - couponDiscount - pointsDiscount, 0)
+                  const fees = base > 0 ? calculateTransactionFees(base) : null
 
                   return (
                     <div>
@@ -1118,6 +1122,19 @@ export default function OrdersPage() {
                           </span>
                         </div>
 
+                        {fees && (fees.platformFee + fees.platformFeeGst) > 0 && (
+                          <div className="flex justify-between text-muted-foreground">
+                            <span>Platform Fee (+ GST):</span>
+                            <span>{formatCurrency(fees.platformFee + fees.platformFeeGst, currency)}</span>
+                          </div>
+                        )}
+                        {fees && (fees.razorpayFee + fees.razorpayFeeGst) > 0 && (
+                          <div className="flex justify-between text-muted-foreground">
+                            <span>Payment Gateway Fee (+ GST):</span>
+                            <span>{formatCurrency(fees.razorpayFee + fees.razorpayFeeGst, currency)}</span>
+                          </div>
+                        )}
+
                         {earlyBirdAmt > 0 && (
                           <div className="flex justify-between text-green-700">
                             <span>Early Bird Discount:</span>
@@ -1125,12 +1142,17 @@ export default function OrdersPage() {
                           </div>
                         )}
 
-                        {couponCode && (
+                        {couponDiscount > 0 && (
                           <div className="flex justify-between text-green-700">
-                            <span>Coupon ({couponCode}):</span>
-                            <span>
-                              {couponDiscount > 0 ? `-${formatCurrency(couponDiscount, currency)}` : 'Applied'}
-                            </span>
+                            <span>{couponCode ? `Coupon (${couponCode}):` : 'Coupon Discount:'}</span>
+                            <span>-{formatCurrency(couponDiscount, currency)}</span>
+                          </div>
+                        )}
+
+                        {pointsDiscount > 0 && (
+                          <div className="flex justify-between text-green-700">
+                            <span>Points Redeemed:</span>
+                            <span>-{formatCurrency(pointsDiscount, currency)}</span>
                           </div>
                         )}
 
@@ -1168,18 +1190,6 @@ export default function OrdersPage() {
                                 ? meta.registrationDate
                                 : new Date(meta.registrationDate).toISOString())}
                             </span>
-                          </div>
-                        )}
-                        {((meta?.platformFee ?? 0) + (meta?.platformFeeGst ?? 0)) > 0 && (
-                          <div className="flex justify-between text-muted-foreground">
-                            <span>Platform Fee (+ GST):</span>
-                            <span>{formatCurrency((meta.platformFee ?? 0) + (meta.platformFeeGst ?? 0), currency)}</span>
-                          </div>
-                        )}
-                        {((meta?.razorpayFee ?? 0) + (meta?.razorpayFeeGst ?? 0)) > 0 && (
-                          <div className="flex justify-between text-muted-foreground">
-                            <span>Payment Gateway Fee (+ GST):</span>
-                            <span>{formatCurrency((meta.razorpayFee ?? 0) + (meta.razorpayFeeGst ?? 0), currency)}</span>
                           </div>
                         )}
                       </div>

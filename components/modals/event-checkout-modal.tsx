@@ -356,9 +356,9 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
               waitlistToken || undefined,
               reservationToken || undefined,
               0,
-              0, 0, 0, 0,
               couponDiscount || undefined,
               earlyBirdAmt || undefined,
+              reservedDiscount || undefined,
             )
           : await apiClient.registerForPublicEvent(String(event._id), {
               registrantName: attendees?.[0]?.name || 'Guest',
@@ -369,8 +369,9 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
               reservationToken: reservationToken || undefined,
               couponDiscount: couponDiscount || undefined,
               earlyBirdDiscountAmt: earlyBirdAmt || undefined,
+              pointsDiscount: reservedDiscount || undefined,
             })
-        
+
         if (response.success) {
           toast.success("Successfully registered for event!")
           onSuccess()
@@ -478,12 +479,9 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
                   waitlistToken || undefined,
                   reservationToken || undefined,
                   amountCharged,
-                  paymentFeeBreakdown?.platformFee,
-                  paymentFeeBreakdown?.platformFeeGst,
-                  paymentFeeBreakdown?.razorpayFee,
-                  paymentFeeBreakdown?.razorpayFeeGst,
                   couponDiscount || undefined,
                   earlyBirdAmt || undefined,
+                  reservedDiscount || undefined,
                 )
               : await apiClient.registerForPublicEvent(String(event._id), {
                   registrantName: attendees?.[0]?.name || 'Guest',
@@ -496,12 +494,9 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
                   signature,
                   reservationToken: reservationToken || undefined,
                   amountPaid: amountCharged,
-                  platformFee: paymentFeeBreakdown?.platformFee,
-                  platformFeeGst: paymentFeeBreakdown?.platformFeeGst,
-                  razorpayFee: paymentFeeBreakdown?.razorpayFee,
-                  razorpayFeeGst: paymentFeeBreakdown?.razorpayFeeGst,
                   couponDiscount: couponDiscount || undefined,
                   earlyBirdDiscountAmt: earlyBirdAmt || undefined,
+                  pointsDiscount: reservedDiscount || undefined,
                 })
 
             if (registerResponse.success) {
