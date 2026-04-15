@@ -1418,10 +1418,10 @@ class ApiClient {
     });
   }
 
-  async registerForEvent(eventId: string, notes?: string, attendees?: Array<{ name: string; phone: string }>, couponCode?: string | null, orderID?: string, paymentID?: string, signature?: string, waitlistToken?: string, reservationToken?: string): Promise<ApiResponse<{ message: string; event: Event }>> {
+  async registerForEvent(eventId: string, notes?: string, attendees?: Array<{ name: string; phone: string }>, couponCode?: string | null, orderID?: string, paymentID?: string, signature?: string, waitlistToken?: string, reservationToken?: string, amountPaid?: number, platformFee?: number, platformFeeGst?: number, razorpayFee?: number, razorpayFeeGst?: number, couponDiscount?: number, earlyBirdDiscountAmt?: number): Promise<ApiResponse<{ message: string; event: Event }>> {
     return this.request(`/events/${eventId}/register`, {
       method: 'POST',
-      body: JSON.stringify({ notes, attendees, couponCode, orderID, paymentID, signature, waitlistToken, reservationToken }),
+      body: JSON.stringify({ notes, attendees, couponCode, orderID, paymentID, signature, waitlistToken, reservationToken, amountPaid, platformFee, platformFeeGst, razorpayFee, razorpayFeeGst, couponDiscount, earlyBirdDiscountAmt }),
     });
   }
 
@@ -1437,6 +1437,12 @@ class ApiClient {
     signature?: string;
     reservationToken?: string;
     amountPaid?: number;
+    platformFee?: number;
+    platformFeeGst?: number;
+    razorpayFee?: number;
+    razorpayFeeGst?: number;
+    couponDiscount?: number;
+    earlyBirdDiscountAmt?: number;
   }): Promise<ApiResponse<{ message: string; event: Event }>> {
     return this.request(`/events/public/${eventId}/register`, {
       method: 'POST',

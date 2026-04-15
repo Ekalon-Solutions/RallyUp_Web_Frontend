@@ -128,6 +128,10 @@ export default function OrdersPage() {
   const [statusNotes, setStatusNotes] = useState('')
   const [showRefundConfirmDialog, setShowRefundConfirmDialog] = useState(false)
   const [orderToRefund, setOrderToRefund] = useState<string | null>(null)
+  const [selectedRegistration, setSelectedRegistration] = useState<any | null>(null)
+  const [selectedRegistrationMeta, setSelectedRegistrationMeta] = useState<any | null>(null)
+  const [showRegistrationModal, setShowRegistrationModal] = useState(false)
+  const [registrationLoading, setRegistrationLoading] = useState(false)
 
   useEffect(() => {
     if (user?.role === 'admin' || user?.role === 'super_admin') {
@@ -387,6 +391,26 @@ export default function OrdersPage() {
         description: "Failed to update payment status",
         variant: "destructive",
       })
+    }
+  }
+
+  const handleViewRegistrationDetails = async (reg: any) => {
+    setSelectedRegistrationMeta(reg)
+    setSelectedRegistration(null)
+    setShowRegistrationModal(true)
+    const registrationId = reg.registrationId || reg._id
+    if (registrationId) {
+      setRegistrationLoading(true)
+      try {
+        const res = await apiClient.getRegistrationById(String(registrationId))
+        if (res.success && res.data?.registration) {
+          setSelectedRegistration(res.data.registration)
+        }
+      } catch {
+        // leave null, modal will show meta only
+      } finally {
+        setRegistrationLoading(false)
+      }
     }
   }
 
@@ -722,13 +746,7 @@ export default function OrdersPage() {
                               <DropdownMenuContent align="end">
                                 <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                 <DropdownMenuItem
-                                  onClick={() => {
-                                    // View event registration details
-                                    toast({
-                                      title: "Event Registration",
-                                      description: `${reg.userName} registered for ${reg.eventTitle}`,
-                                    })
-                                  }}
+                                  onClick={() => handleViewRegistrationDetails(reg)}
                                 >
                                   <Eye className="mr-2 h-4 w-4" />
                                   View Details
@@ -1010,6 +1028,188 @@ export default function OrdersPage() {
               </Button>
               <Button onClick={handleStatusUpdate}>
                 Update Status
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Event Registration Details Modal */}
+        <Dialog open={showRegistrationModal} onOpenChange={setShowRegistrationModal}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto w-[95vw] sm:w-full">
+            <DialogHeader>
+              <DialogTitle>Registration Details</DialogTitle>
+              <DialogDescription>
+                {selectedRegistrationMeta?.eventTitle || 'Event'} — {selectedRegistrationMeta?.userName || ''}
+              </DialogDescription>
+            </DialogHeader>
+            {registrationLoading ? (
+              <div className="flex items-center justify-center h-32">
+                <RefreshCw className="w-6 h-6 animate-spin" />
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {/* Registration Info */}
+                <div>
+                  <h3 className="font-semibold mb-3">Registration Info</h3>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Name:</span>
+                      <span className="font-medium">{selectedRegistrationMeta?.userName || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Email:</span>
+                      <span>{selectedRegistrationMeta?.userEmail || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Event:</span>
+                      <span>{selectedRegistrationMeta?.eventTitle || 'N/A'}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Status:</span>
+                      <Badge className={
+                        selectedRegistrationMeta?.status === 'confirmed' ? 'bg-green-100 text-green-800' :
+                        selectedRegistrationMeta?.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                        'bg-yellow-100 text-yellow-800'
+                      }>
+                        {selectedRegistrationMeta?.status
+                          ? selectedRegistrationMeta.status.charAt(0).toUpperCase() + selectedRegistrationMeta.status.slice(1)
+                          : 'Confirmed'}
+                      </Badge>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Registered At:</span>
+                      <span>
+                        {selectedRegistrationMeta?.registrationDate
+                          ? formatDate(typeof selectedRegistrationMeta.registrationDate === 'string'
+                              ? selectedRegistrationMeta.registrationDate
+                              : new Date(selectedRegistrationMeta.registrationDate).toISOString())
+                          : 'N/A'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Payment Details */}
+                {(() => {
+                  const meta = selectedRegistrationMeta
+                  const currency = meta?.currency || 'USD'
+                  const ticketPrice = meta?.ticketPrice ?? 0
+                  const numAttendees = selectedRegistration?.attendees?.length ?? 1
+                  const originalTotal = ticketPrice * numAttendees
+                  const amountPaid = meta?.amountPaid
+                  const couponCode = meta?.couponCode
+                  const couponDiscount = meta?.couponDiscount ?? 0
+                  const earlyBirdAmt = meta?.earlyBirdDiscountAmt ?? 0
+
+                  return (
+                    <div>
+                      <h3 className="font-semibold mb-3">Payment Details</h3>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">
+                            {numAttendees > 1
+                              ? `Ticket Price (${numAttendees} × ${formatCurrency(ticketPrice, currency)}):`
+                              : 'Ticket Price:'}
+                          </span>
+                          <span className="font-medium">
+                            {originalTotal > 0 ? formatCurrency(originalTotal, currency) : 'Free'}
+                          </span>
+                        </div>
+
+                        {earlyBirdAmt > 0 && (
+                          <div className="flex justify-between text-green-700">
+                            <span>Early Bird Discount:</span>
+                            <span>-{formatCurrency(earlyBirdAmt, currency)}</span>
+                          </div>
+                        )}
+
+                        {couponCode && (
+                          <div className="flex justify-between text-green-700">
+                            <span>Coupon ({couponCode}):</span>
+                            <span>
+                              {couponDiscount > 0 ? `-${formatCurrency(couponDiscount, currency)}` : 'Applied'}
+                            </span>
+                          </div>
+                        )}
+
+                        {amountPaid != null ? (
+                          <div className="flex justify-between font-semibold border-t pt-2">
+                            <span>Amount Paid:</span>
+                            <span>{amountPaid > 0 ? formatCurrency(amountPaid, currency) : 'Free'}</span>
+                          </div>
+                        ) : (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Payment Status:</span>
+                            <Badge className={ticketPrice > 0 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
+                              {ticketPrice > 0 ? 'Paid' : 'Free'}
+                            </Badge>
+                          </div>
+                        )}
+
+                        {meta?.paymentId && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Payment ID:</span>
+                            <span className="font-mono text-xs break-all">{meta.paymentId}</span>
+                          </div>
+                        )}
+                        {meta?.orderId && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Order ID:</span>
+                            <span className="font-mono text-xs break-all">{meta.orderId}</span>
+                          </div>
+                        )}
+                        {meta?.registrationDate && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Payment Time:</span>
+                            <span>
+                              {formatDate(typeof meta.registrationDate === 'string'
+                                ? meta.registrationDate
+                                : new Date(meta.registrationDate).toISOString())}
+                            </span>
+                          </div>
+                        )}
+                        {((meta?.platformFee ?? 0) + (meta?.platformFeeGst ?? 0)) > 0 && (
+                          <div className="flex justify-between text-muted-foreground">
+                            <span>Platform Fee (+ GST):</span>
+                            <span>{formatCurrency((meta.platformFee ?? 0) + (meta.platformFeeGst ?? 0), currency)}</span>
+                          </div>
+                        )}
+                        {((meta?.razorpayFee ?? 0) + (meta?.razorpayFeeGst ?? 0)) > 0 && (
+                          <div className="flex justify-between text-muted-foreground">
+                            <span>Payment Gateway Fee (+ GST):</span>
+                            <span>{formatCurrency((meta.razorpayFee ?? 0) + (meta.razorpayFeeGst ?? 0), currency)}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })()}
+
+                {/* Attendees */}
+                {selectedRegistration?.attendees && selectedRegistration.attendees.length > 0 && (
+                  <div>
+                    <h3 className="font-semibold mb-3">Attendees ({selectedRegistration.attendees.length})</h3>
+                    <div className="space-y-2">
+                      {selectedRegistration.attendees.map((att: any, idx: number) => (
+                        <div key={att._id || idx} className="flex items-center justify-between p-3 border rounded-lg text-sm">
+                          <div>
+                            <div className="font-medium">{att.name || `Attendee ${idx + 1}`}</div>
+                            {att.phone && <div className="text-muted-foreground text-xs">{att.phone}</div>}
+                            {att.email && <div className="text-muted-foreground text-xs">{att.email}</div>}
+                          </div>
+                          <Badge variant={att.attended ? 'default' : 'secondary'}>
+                            {att.attended ? 'Attended' : 'Not Attended'}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowRegistrationModal(false)}>
+                Close
               </Button>
             </DialogFooter>
           </DialogContent>

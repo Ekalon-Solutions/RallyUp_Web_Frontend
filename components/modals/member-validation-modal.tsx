@@ -12,19 +12,18 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2, Mail, Phone, CheckCircle2, XCircle, Info } from "lucide-react"
+import { Loader2, Mail, Phone, CheckCircle2, Info } from "lucide-react"
 import { apiClient } from "@/lib/api"
 import { toast } from "sonner"
-import Link from "next/link"
 
 interface MemberValidationModalProps {
   isOpen: boolean
   onClose: () => void
   clubId: string
   clubName?: string
-  onMemberFound: () => void // Callback when member is found - should redirect to login
-  onNonMemberContinue: () => void // Callback when user chooses to continue as non-member
-  onBecomeMember: () => void // Callback when user chooses to become a member
+  onMemberFound: () => void
+  onNonMemberContinue: () => void
+  onBecomeMember: () => void
 }
 
 export function MemberValidationModal({
@@ -99,7 +98,7 @@ export function MemberValidationModal({
         <DialogHeader>
           <DialogTitle>Check Member Status</DialogTitle>
           <DialogDescription>
-            Enter your email or mobile number to check if you're already a member of {clubName || "this club"} and eligible for member discounts.
+            Enter your email or mobile number to check if you&apos;re already a member of {clubName || "this club"} and eligible for member discounts.
           </DialogDescription>
         </DialogHeader>
 
@@ -125,9 +124,7 @@ export function MemberValidationModal({
                 <span className="w-full border-t" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">
-                  Or
-                </span>
+                <span className="bg-background px-2 text-muted-foreground">Or</span>
               </div>
             </div>
 
@@ -172,6 +169,17 @@ export function MemberValidationModal({
                 "Check Status"
               )}
             </Button>
+
+            <Button
+              variant="ghost"
+              className="w-full"
+              onClick={() => {
+                handleClose()
+                onNonMemberContinue()
+              }}
+            >
+              Skip &amp; Continue as Non-Member
+            </Button>
           </div>
         ) : validationResult.isMember ? (
           <div className="space-y-4 py-4">
@@ -194,11 +202,7 @@ export function MemberValidationModal({
               >
                 Go to Login
               </Button>
-              <Button
-                variant="outline"
-                onClick={handleReset}
-                className="flex-1"
-              >
+              <Button variant="outline" onClick={handleReset} className="flex-1">
                 Check Another
               </Button>
             </div>
@@ -234,11 +238,7 @@ export function MemberValidationModal({
               >
                 Continue as Non-Member
               </Button>
-              <Button
-                variant="ghost"
-                onClick={handleReset}
-                className="w-full"
-              >
+              <Button variant="ghost" onClick={handleReset} className="w-full">
                 Check Another
               </Button>
             </div>

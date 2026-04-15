@@ -75,9 +75,11 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
   const [reservedDiscount, setReservedDiscount] = useState<number>(0)
   const [reserving, setReserving] = useState(false)
   const [availablePoints, setAvailablePoints] = useState<number | null>(null)
+  const [guestEmail, setGuestEmail] = useState("")
+  const [guestEmailError, setGuestEmailError] = useState("")
 
     const reservePointsNow = async () => {
-    if (!redeemPoints || redeemPoints <= 0) {
+    if (!redeemPoints || Number(redeemPoints) <= 0) {
       toast.error('Enter points to redeem')
       return
     }
@@ -85,7 +87,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
       toast.error('Club information is missing for redemption')
       return
     }
-    if (availablePoints !== null && redeemPoints > availablePoints) {
+    if (availablePoints !== null && Number(redeemPoints) > availablePoints) {
       toast.error('You do not have enough points')
       setReserving(false)
       return
@@ -229,6 +231,42 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
     return price
   }
 
+  const getDiscountBreakdown = () => {
+    const ticketPrice = event?.ticketPrice ?? event?.price ?? 0
+    if (!discountSource) return { earlyBirdAmt: 0, memberAmt: 0, groupAmt: 0 }
+
+    let price = ticketPrice
+    let earlyBirdAmt = 0
+    let memberAmt = 0
+    let groupAmt = 0
+
+    if (discountSource.earlyBirdDiscount?.enabled) {
+      const eb = discountSource.earlyBirdDiscount
+      if (!eb.membersOnly || isMember) {
+        const now = new Date()
+        const startTime = new Date(eb.startTime ?? 0)
+        const endTime = new Date(eb.endTime ?? 0)
+        if (now >= startTime && now <= endTime) {
+          earlyBirdAmt = eb.type === 'percentage' ? (price * (eb.value ?? 0)) / 100 : (eb.value ?? 0)
+          price = Math.max(price - earlyBirdAmt, 0)
+        }
+      }
+    }
+
+    if (discountSource.memberDiscount?.enabled && isMember) {
+      const md = discountSource.memberDiscount
+      memberAmt = md.type === 'percentage' ? (price * (md.value ?? 0)) / 100 : (md.value ?? 0)
+      price = Math.max(price - memberAmt, 0)
+    }
+
+    if (discountSource.groupDiscount?.enabled && attendees.length >= (discountSource.groupDiscount.minQuantity ?? 2)) {
+      const gd = discountSource.groupDiscount
+      groupAmt = gd.type === 'percentage' ? (price * (gd.value ?? 0)) / 100 : (gd.value ?? 0)
+    }
+
+    return { earlyBirdAmt, memberAmt, groupAmt }
+  }
+
   useEffect(() => {
     const validateCoupon = async () => {
       if (couponCode && event?._id && isOpen) {
@@ -273,6 +311,19 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
       return
     }
 
+    if (!user) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      if (!guestEmail.trim()) {
+        setGuestEmailError("Email is required")
+        return
+      }
+      if (!emailRegex.test(guestEmail.trim())) {
+        setGuestEmailError("Enter a valid email address")
+        return
+      }
+      setGuestEmailError("")
+    }
+
     setLoading(true)
 
     try {
@@ -284,15 +335,40 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
       const displayTax = 0
       const adjustedFinalPrice = Math.max(eventSubtotalAfterCoupon + displayShipping + displayTax - (reservedDiscount || 0), 0)
 
+      const { earlyBirdAmt } = getDiscountBreakdown()
+
       if (adjustedFinalPrice <= 0) {
+        if (reservationToken) {
+          try {
+            await apiClient.confirmReservation(reservationToken)
+          } catch (e) {}
+        }
+
         const response = user
-          ? await apiClient.registerForEvent(String(event._id), undefined, attendees, couponCode, undefined, undefined, undefined, waitlistToken || undefined)
+          ? await apiClient.registerForEvent(
+              String(event._id),
+              undefined,
+              attendees,
+              couponCode,
+              undefined,
+              undefined,
+              undefined,
+              waitlistToken || undefined,
+              reservationToken || undefined,
+              0,
+              0, 0, 0, 0,
+              couponDiscount || undefined,
+              earlyBirdAmt || undefined,
+            )
           : await apiClient.registerForPublicEvent(String(event._id), {
               registrantName: attendees?.[0]?.name || 'Guest',
               registrantPhone: attendees?.[0]?.phone || '',
-              registrantEmail: `${(attendees?.[0]?.phone || '').replace(/[^0-9]/g, '')}@guest.rallyup.local`,
+              registrantEmail: guestEmail.trim(),
               attendees,
               couponCode,
+              reservationToken: reservationToken || undefined,
+              couponDiscount: couponDiscount || undefined,
+              earlyBirdDiscountAmt: earlyBirdAmt || undefined,
             })
         
         if (response.success) {
@@ -353,27 +429,38 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
           bank_transfer: true,
         },
         handler: async function (response: any) {
-          try {
-            const verifyResponse = await fetch('/api/razorpay/verify-payment', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-                orderId: `event_${event._id}_${Date.now()}`,
-              }),
-            })
+          const paymentId: string = response.razorpay_payment_id
+          const orderId: string = response.razorpay_order_id
+          const signature: string = response.razorpay_signature
 
-            if (!verifyResponse.ok) {
-              throw new Error('Payment verification failed')
+          try {
+            // Verify the payment signature. If the verify endpoint itself fails (network
+            // issues, server error) we still proceed with registration because Razorpay
+            // already confirmed the payment by invoking this handler. The backend
+            // `registerForEvent` endpoint re-validates the signature server-side.
+            try {
+              const verifyResponse = await fetch('/api/razorpay/verify-payment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  razorpay_order_id: orderId,
+                  razorpay_payment_id: paymentId,
+                  razorpay_signature: signature,
+                  orderId: `event_${event._id}_${Date.now()}`,
+                }),
+              })
+              if (!verifyResponse.ok) {
+                // Log but don't block — backend will re-verify
+                console.error('Frontend signature check returned non-OK; proceeding with registration')
+              }
+            } catch (verifyNetworkError) {
+              // Verify request itself failed (network). Still attempt registration.
+              console.error('Verify request failed:', verifyNetworkError)
             }
-            
+
             if (reservationToken) {
               try {
-                await apiClient.confirmReservation(reservationToken, response.razorpay_order_id)
+                await apiClient.confirmReservation(reservationToken, orderId)
               } catch (e) {
               }
             }
@@ -385,43 +472,57 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
                   undefined,
                   attendees,
                   couponCode,
-                  response.razorpay_order_id,
-                  response.razorpay_payment_id,
-                  response.razorpay_signature,
+                  orderId,
+                  paymentId,
+                  signature,
                   waitlistToken || undefined,
                   reservationToken || undefined,
+                  amountCharged,
+                  paymentFeeBreakdown?.platformFee,
+                  paymentFeeBreakdown?.platformFeeGst,
+                  paymentFeeBreakdown?.razorpayFee,
+                  paymentFeeBreakdown?.razorpayFeeGst,
+                  couponDiscount || undefined,
+                  earlyBirdAmt || undefined,
                 )
               : await apiClient.registerForPublicEvent(String(event._id), {
                   registrantName: attendees?.[0]?.name || 'Guest',
                   registrantPhone: attendees?.[0]?.phone || '',
-                  registrantEmail: `${(attendees?.[0]?.phone || '').replace(/[^0-9]/g, '')}@guest.rallyup.local`,
+                  registrantEmail: guestEmail.trim(),
                   attendees,
                   couponCode,
-                  orderID: response.razorpay_order_id,
-                  paymentID: response.razorpay_payment_id,
-                  signature: response.razorpay_signature,
+                  orderID: orderId,
+                  paymentID: paymentId,
+                  signature,
                   reservationToken: reservationToken || undefined,
                   amountPaid: amountCharged,
+                  platformFee: paymentFeeBreakdown?.platformFee,
+                  platformFeeGst: paymentFeeBreakdown?.platformFeeGst,
+                  razorpayFee: paymentFeeBreakdown?.razorpayFee,
+                  razorpayFeeGst: paymentFeeBreakdown?.razorpayFeeGst,
+                  couponDiscount: couponDiscount || undefined,
+                  earlyBirdDiscountAmt: earlyBirdAmt || undefined,
                 })
+
             if (registerResponse.success) {
-              // if server returned any order-level shipping/tax info, record locally for immediate display
-              try {
-                const returnedOrder = (registerResponse.data && (registerResponse as any).data.order) || null
-                // server may return order info; no local shipping/tax handling for events
-                // (we rely on server registration response for final records)
-              } catch (e) {
-                // ignore
-              }
               toast.success("Payment successful! You are now registered for the event.")
               setRazorpayOpen(false)
               onSuccess()
               onClose()
               router.push("/purchase/success")
             } else {
-              toast.error("Payment successful but registration failed. Please contact support.")
+              // Payment went through but our backend rejected registration.
+              // Surface the payment ID so the user can follow up.
+              toast.error(
+                `Payment received (ID: ${paymentId}) but registration failed — ${registerResponse.error || 'please contact support with your payment ID.'}`
+              )
+              setRazorpayOpen(false)
             }
           } catch (error) {
-            toast.error("Payment verification failed. Please contact support.")
+            // Unexpected error after payment. Show payment ID so user isn't stuck.
+            toast.error(
+              `Something went wrong after payment (ID: ${paymentId}). Please contact support with your payment ID.`
+            )
             setRazorpayOpen(false)
           } finally {
             setLoading(false)
@@ -465,12 +566,13 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
 
   const priceBeforeDiscount = event?.ticketPrice ?? event?.price ?? 0
   const basePrice = getDiscountedPricePerTicket()
+  const { earlyBirdAmt, memberAmt, groupAmt } = getDiscountBreakdown()
   const totalBeforeCoupon = basePrice * attendees.length;
   const finalPrice = Math.max(totalBeforeCoupon - couponDiscount, 0);
   const netSubtotal = Math.max(finalPrice - (reservedDiscount || 0), 0);
-  // Fees are fixed on the subtotal before coupon and redeem points
-  const feeBreakdown = totalBeforeCoupon > 0 ? calculateTransactionFees(totalBeforeCoupon) : null;
-  const amountToCharge = netSubtotal + (feeBreakdown ? feeBreakdown.totalFees : 0);
+  // Fees are calculated on the final net amount (after all discounts)
+  const feeBreakdown = netSubtotal > 0 ? calculateTransactionFees(netSubtotal) : null;
+  const amountToCharge = feeBreakdown ? feeBreakdown.finalAmount : netSubtotal;
 
   const currencySymbols: Record<string, string> = {
     INR: '₹',
@@ -545,57 +647,56 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
                     )}
                   </span>
                 </div>
-                
+
+                {earlyBirdAmt > 0 && (
+                  <div className="flex justify-between items-center text-xs sm:text-sm text-green-600">
+                    <span>Early bird discount (per ticket):</span>
+                    <span>-{formatCurrency(earlyBirdAmt, event.currency)}</span>
+                  </div>
+                )}
+                {memberAmt > 0 && (
+                  <div className="flex justify-between items-center text-xs sm:text-sm text-blue-600">
+                    <span>Member discount (per ticket):</span>
+                    <span>-{formatCurrency(memberAmt, event.currency)}</span>
+                  </div>
+                )}
+                {groupAmt > 0 && (
+                  <div className="flex justify-between items-center text-xs sm:text-sm text-purple-600">
+                    <span>Group discount (per ticket):</span>
+                    <span>-{formatCurrency(groupAmt, event.currency)}</span>
+                  </div>
+                )}
+
                 <div className="flex justify-between items-center text-sm sm:text-base">
                   <span>Number of tickets:</span>
                   <span>{attendees.length}</span>
                 </div>
-                
+
                 <Separator />
-                
+
                 <div className="flex justify-between items-center font-medium text-sm sm:text-base">
                   <span>Subtotal:</span>
-                  <span>
-                    {(couponDiscount > 0 || reservedDiscount > 0) ? (
-                      <>
-                        <span className="line-through text-muted-foreground mr-2">{formatCurrency(totalBeforeCoupon, event.currency)}</span>
-                        <span>{formatCurrency(netSubtotal, event.currency)}</span>
-                      </>
-                    ) : (
-                      <span>{formatCurrency(totalBeforeCoupon, event.currency)}</span>
-                    )}
-                  </span>
+                  <span>{formatCurrency(totalBeforeCoupon, event.currency)}</span>
                 </div>
-                {couponDiscount > 0 && (
-                  <div className="flex justify-between items-center text-sm text-green-600">
-                    <span>- Coupon discount:</span>
-                    <span>-{formatCurrency(couponDiscount, event.currency)}</span>
-                  </div>
-                )}
 
-                {reservedDiscount > 0 && (
-                  <div className="flex justify-between items-center text-sm text-green-600">
-                    <span>- Points discount:</span>
-                    <span>-{formatCurrency(reservedDiscount, event.currency)}</span>
-                  </div>
-                )}
-                
                 {couponCode && couponDiscount > 0 && (
                   <>
                     <div className="flex justify-between items-center text-green-600 text-sm">
                       <span className="flex items-center gap-1">
                         <Tag className="w-4 h-4" />
-                        Coupon ({couponCode})
+                        Coupon ({couponCode}){couponName ? ` — ${couponName}` : ''}
                       </span>
                       <span>-{formatCurrency(couponDiscount, event.currency)}</span>
                     </div>
-                    {couponName && (
-                      <div className="text-xs text-muted-foreground">
-                        {couponName}
-                      </div>
-                    )}
                     <Separator />
                   </>
+                )}
+
+                {reservedDiscount > 0 && (
+                  <div className="flex justify-between items-center text-sm text-green-600">
+                    <span>Points discount:</span>
+                    <span>-{formatCurrency(reservedDiscount, event.currency)}</span>
+                  </div>
                 )}
 
                 {feeBreakdown && feeBreakdown.totalFees > 0 && (
@@ -668,6 +769,30 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
 
               </div>
               
+              {!user && (
+                <>
+                  <Separator className="my-4" />
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium">
+                      Email <span className="text-destructive">*</span>
+                    </label>
+                    <input
+                      type="email"
+                      value={guestEmail}
+                      onChange={(e) => {
+                        setGuestEmail(e.target.value)
+                        if (guestEmailError) setGuestEmailError("")
+                      }}
+                      placeholder="Enter your email"
+                      className="w-full h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    />
+                    {guestEmailError && (
+                      <p className="text-xs text-destructive">{guestEmailError}</p>
+                    )}
+                  </div>
+                </>
+              )}
+
               <Separator className="my-4" />
               <div>
                 <h4 className="text-sm font-medium mb-2">Attendees:</h4>
