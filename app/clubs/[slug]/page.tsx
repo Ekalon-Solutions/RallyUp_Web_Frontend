@@ -16,14 +16,14 @@ import { PurchaseFlowModal, setStoredPurchaseIntent, getStoredPurchaseIntent, cl
 import { CheckoutModal } from "@/components/modals/checkout-modal"
 import NewsReadMoreModal from "@/components/modals/news-readmore-modal"
 import { SocialBrandButton } from "@/components/club-public/social-platform-icons"
-import { 
-  Globe, 
-  Mail, 
-  Phone, 
-  Users, 
-  Calendar, 
-  Newspaper, 
-  Music, 
+import {
+  Globe,
+  Mail,
+  Phone,
+  Users,
+  Calendar,
+  Newspaper,
+  Music,
   Store,
   ArrowLeft,
   Home,
@@ -134,7 +134,7 @@ export default function PublicClubPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const slug = params.slug as string
-  
+
   const [loading, setLoading] = useState(true)
   const [club, setClub] = useState<Club | null>(null)
   const [settings, setSettings] = useState<ClubSettings | null>(null)
@@ -215,7 +215,7 @@ export default function PublicClubPage() {
   const loadClubData = async () => {
     try {
       setLoading(true)
-      
+
       const clubResponse = await apiClient.getClubById(slug, true)
       if (clubResponse.success && clubResponse.data) {
         setClub(clubResponse.data)
@@ -225,12 +225,12 @@ export default function PublicClubPage() {
       if (settingsResponse.success && settingsResponse.data) {
         const actualData = settingsResponse.data.data || settingsResponse.data
         setSettings(actualData)
-        
+
         const websiteSetup = actualData.websiteSetup || {}
         const storeEnabled = Boolean(websiteSetup.sections?.store || websiteSetup.sections?.merchandise)
         const firstTab =
-          (websiteSetup.sections?.news && "news") ||
           (websiteSetup.sections?.events && "events") ||
+          (websiteSetup.sections?.news && "news") ||
           (storeEnabled && "store") ||
           (websiteSetup.sections?.chants && "chants") ||
           ""
@@ -249,12 +249,12 @@ export default function PublicClubPage() {
   const loadContent = async (clubIdOrSlug: string, settingsData?: ClubSettings) => {
     try {
       setLoadingContent(true)
-      
+
       const currentSettings = settingsData || settings
       if (!currentSettings) return
-      
+
       const clubId = club?._id || clubIdOrSlug
-      
+
       const sections = currentSettings.websiteSetup.sections || ({} as any)
       const storeEnabled = Boolean(sections.store || sections.merchandise)
 
@@ -318,15 +318,15 @@ export default function PublicClubPage() {
             </div>
             <CardTitle className="text-2xl font-bold">Club Not Found</CardTitle>
             <CardDescription className="text-base mt-2">
-              The club you're looking for doesn't exist or has been removed. 
+              The club you're looking for doesn't exist or has been removed.
               Please check the URL or try searching for another club.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <Separator />
             <div className="grid gap-3 pt-2">
-              <Button 
-                variant="default" 
+              <Button
+                variant="default"
                 className="w-full"
                 onClick={() => router.back()}
               >
@@ -378,7 +378,7 @@ export default function PublicClubPage() {
             </div>
             <CardTitle className="text-2xl font-bold">Website Coming Soon</CardTitle>
             <CardDescription className="text-base mt-2">
-              The public website for <strong>{club.name}</strong> is currently being set up. 
+              The public website for <strong>{club.name}</strong> is currently being set up.
               Please check back later!
             </CardDescription>
           </CardHeader>
@@ -417,21 +417,21 @@ export default function PublicClubPage() {
   return (
     <div className="min-h-screen bg-background">
       <section className="relative overflow-hidden py-24 lg:py-40">
-        <div 
+        <div
           className="absolute inset-0 opacity-[0.04] pointer-events-none"
           style={{
             backgroundImage: `radial-gradient(circle at 2px 2px, ${primaryColor} 1px, transparent 0)`,
             backgroundSize: '40px 40px'
           }}
         />
-        <div 
+        <div
           className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full opacity-[0.08] pointer-events-none"
           style={{
             background: `radial-gradient(circle at center, ${primaryColor} 0%, transparent 70%)`,
             filter: 'blur(120px)'
           }}
         />
-        
+
         <div className="container mx-auto px-6 relative">
           <div className="max-w-5xl mx-auto text-center space-y-12">
             {(designSettings.logo || club.logo) && (
@@ -458,7 +458,7 @@ export default function PublicClubPage() {
             )}
 
             <div className="space-y-6 animate-slide-up">
-              <h1 
+              <h1
                 className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tight leading-[1.1]"
                 style={{ color: primaryColor }}
               >
@@ -483,10 +483,10 @@ export default function PublicClubPage() {
 
             <div className="pt-10 flex flex-col sm:flex-row items-center justify-center gap-6 animate-slide-up" style={{ animationDelay: '0.2s' }}>
               <Link href={clubSearchHref} className="w-full sm:w-auto">
-                <Button 
-                  size="lg" 
+                <Button
+                  size="lg"
                   className="w-full sm:px-12 h-16 text-xl font-bold shadow-xl hover:shadow-primary/25 transition-all rounded-2xl group"
-                  style={{ 
+                  style={{
                     backgroundColor: primaryColor,
                     color: 'white'
                   }}
@@ -586,412 +586,413 @@ export default function PublicClubPage() {
             websiteSetup.sections.chants ||
             websiteSetup.sections.store ||
             websiteSetup.sections.merchandise) && (
-            <div className="space-y-8">
-              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="flex flex-wrap w-full max-w-4xl mx-auto gap-2 h-auto bg-muted/50 p-2">
+              <div className="space-y-8">
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                  <TabsList className="flex flex-wrap w-full max-w-4xl mx-auto gap-2 h-auto bg-muted/50 p-2">
+                    {websiteSetup.sections.events && (
+                      <TabsTrigger
+                        value="events"
+                        className="text-base font-bold data-[state=active]:bg-background data-[state=active]:shadow-md px-4 py-3"
+                        style={{
+                          color: activeTab === 'events' ? primaryColor : undefined
+                        }}
+                      >
+                        <Calendar className="h-5 w-5 mr-2" />
+                        Events & Activities
+                      </TabsTrigger>
+                    )}
+                    {websiteSetup.sections.news && (
+                      <TabsTrigger
+                        value="news"
+                        className="text-base font-bold data-[state=active]:bg-background data-[state=active]:shadow-md px-4 py-3"
+                        style={{
+                          color: activeTab === 'news' ? primaryColor : undefined
+                        }}
+                      >
+                        <Newspaper className="h-5 w-5 mr-2" />
+                        News & Updates
+                      </TabsTrigger>
+                    )}
+
+                    {(websiteSetup.sections.store || websiteSetup.sections.merchandise) && (
+                      <TabsTrigger
+                        value="store"
+                        className="text-base font-bold data-[state=active]:bg-background data-[state=active]:shadow-md px-4 py-3"
+                        style={{
+                          color: activeTab === "store" ? primaryColor : undefined,
+                        }}
+                      >
+                        <Store className="h-5 w-5 mr-2" />
+                        Merchandise
+                      </TabsTrigger>
+                    )}
+                    {websiteSetup.sections.chants && (
+                      <TabsTrigger
+                        value="chants"
+                        className="text-base font-bold data-[state=active]:bg-background data-[state=active]:shadow-md px-4 py-3"
+                        style={{
+                          color: activeTab === "chants" ? primaryColor : undefined,
+                        }}
+                      >
+                        <Music className="h-5 w-5 mr-2" />
+                        Club Chants
+                      </TabsTrigger>
+                    )}
+                  </TabsList>
+
                   {websiteSetup.sections.news && (
-                    <TabsTrigger 
-                      value="news" 
-                      className="text-base font-bold data-[state=active]:bg-background data-[state=active]:shadow-md px-4 py-3"
-                      style={{ 
-                        color: activeTab === 'news' ? primaryColor : undefined 
-                      }}
-                    >
-                      <Newspaper className="h-5 w-5 mr-2" />
-                      News & Updates
-                    </TabsTrigger>
-                  )}
-                  {websiteSetup.sections.events && (
-                    <TabsTrigger 
-                      value="events"
-                      className="text-base font-bold data-[state=active]:bg-background data-[state=active]:shadow-md px-4 py-3"
-                      style={{ 
-                        color: activeTab === 'events' ? primaryColor : undefined 
-                      }}
-                    >
-                      <Calendar className="h-5 w-5 mr-2" />
-                      Events & Activities
-                    </TabsTrigger>
-                  )}
-                  {(websiteSetup.sections.store || websiteSetup.sections.merchandise) && (
-                    <TabsTrigger
-                      value="store"
-                      className="text-base font-bold data-[state=active]:bg-background data-[state=active]:shadow-md px-4 py-3"
-                      style={{
-                        color: activeTab === "store" ? primaryColor : undefined,
-                      }}
-                    >
-                      <Store className="h-5 w-5 mr-2" />
-                      Merchandise
-                    </TabsTrigger>
-                  )}
-                  {websiteSetup.sections.chants && (
-                    <TabsTrigger
-                      value="chants"
-                      className="text-base font-bold data-[state=active]:bg-background data-[state=active]:shadow-md px-4 py-3"
-                      style={{
-                        color: activeTab === "chants" ? primaryColor : undefined,
-                      }}
-                    >
-                      <Music className="h-5 w-5 mr-2" />
-                      Club Chants
-                    </TabsTrigger>
-                  )}
-                </TabsList>
-
-                {websiteSetup.sections.news && (
-                  <TabsContent value="news" className="mt-8">
-                    <Card className="border-2 shadow-lg">
-                      <CardHeader>
-                        <CardTitle className="text-3xl font-bold flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                            <Newspaper className="h-6 w-6" style={{ color: primaryColor }} />
-                          </div>
-                          Latest News & Updates
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        {loadingContent ? (
-                          <div className="flex items-center justify-center py-12">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: primaryColor }} />
-                          </div>
-                        ) : news.length > 0 ? (
-                          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                            {news.map((article) => (
-                              <Card key={article._id} className="hover:shadow-lg transition-all border-2">
-                                {article.featuredImage && (
-                                  <div className="relative h-48 overflow-hidden rounded-t-lg">
-                                    <img
-                                      src={getNewsImageUrl(article.featuredImage)}
-                                      alt={article.title}
-                                      className="w-full h-full object-cover"
-                                      onError={(e) => {
-                                        e.currentTarget.style.display = 'none'
-                                      }}
-                                    />
-                                  </div>
-                                )}
-                                <CardHeader>
-                                  <div className="flex items-center gap-2 mb-2">
-                                    {article.category && (
-                                      <Badge variant="secondary" className="text-xs">
-                                        {article.category}
-                                      </Badge>
-                                    )}
-                                    {article.priority && (
-                                      <Badge 
-                                        variant={article.priority === 'high' ? 'destructive' : 'outline'}
-                                        className="text-xs"
-                                      >
-                                        {article.priority}
-                                      </Badge>
-                                    )}
-                                  </div>
-                                  <CardTitle className="text-xl line-clamp-2">{article.title}</CardTitle>
-                                  {article.summary && (
-                                    <CardDescription className="line-clamp-3 mt-2">
-                                      {article.summary}
-                                    </CardDescription>
-                                  )}
-                                </CardHeader>
-                                <CardContent>
-                                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                    <span className="flex items-center gap-1">
-                                      <User className="w-4 h-4" />
-                                      {article.author}
-                                    </span>
-                                    <span className="flex items-center gap-1">
-                                      <Calendar className="w-4 h-4" />
-                                      {formatDisplayDate(article.publishedAt || article.createdAt)}
-                                    </span>
-                                  </div>
-                                  {article.viewCount !== undefined && (
-                                    <div className="flex items-center gap-1 text-sm text-muted-foreground mt-2">
-                                      <Eye className="w-4 h-4" />
-                                      {article.viewCount} views
-                                    </div>
-                                  )}
-                                </CardContent>
-                                <CardFooter className="pt-0">
-                                  <Button
-                                    variant="outline"
-                                    className="w-full"
-                                    style={{ borderColor: primaryColor, color: primaryColor }}
-                                    onClick={() => handleReadMoreNews(article)}
-                                  >
-                                    Read more
-                                  </Button>
-                                </CardFooter>
-                              </Card>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-center py-12">
-                            <Newspaper className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                            <p className="text-lg text-muted-foreground">No news articles available yet.</p>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-                )}
-
-                {websiteSetup.sections.events && (
-                  <TabsContent value="events" className="mt-8">
-                    <Card className="border-2 shadow-lg">
-                      <CardHeader>
-                        <CardTitle className="text-3xl font-bold flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                            <Calendar className="h-6 w-6" style={{ color: primaryColor }} />
-                          </div>
-                          Upcoming Events & Activities
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        {loadingContent ? (
-                          <div className="flex items-center justify-center py-12">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: primaryColor }} />
-                          </div>
-                        ) : events.filter((e: any) => !e?.memberOnly).length > 0 ? (
-                          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                            {events.filter((e: any) => !e?.memberOnly).map((event) => (
-                              <Card key={event._id} className="hover:shadow-lg transition-all border-2">
-                                <CardHeader>
-                                  <div className="flex items-start justify-between mb-2">
-                                    {event.isActive !== undefined && (
-                                      <Badge 
-                                        variant={event.isActive ? 'default' : 'secondary'}
-                                        className="text-xs"
-                                      >
-                                        {event.isActive ? 'Active' : 'Inactive'}
-                                      </Badge>
-                                    )}
-                                    {event.ticketPrice !== undefined && event.ticketPrice > 0 && (
-                                      <Badge variant="outline" className="text-xs font-bold">
-                                        ₹{event.ticketPrice}
-                                      </Badge>
-                                    )}
-                                  </div>
-                                  <CardTitle className="text-xl line-clamp-2">{event.title}</CardTitle>
-                                  {event.description && (
-                                    <CardDescription className="line-clamp-3 mt-2">
-                                      {event.description}
-                                    </CardDescription>
-                                  )}
-                                </CardHeader>
-                                <CardContent className="space-y-3">
-                                  {(event.eventDate || event.startTime) && (
-                                    <div className="flex items-center gap-2 text-sm">
-                                      <Calendar className="w-4 h-4 text-muted-foreground" />
-                                      <span>{formatDisplayDate(event.eventDate || event.startTime)}</span>
-                                    </div>
-                                  )}
-                                  {(event.eventTime || event.startTime) && (
-                                    <div className="flex items-center gap-2 text-sm">
-                                      <Clock className="w-4 h-4 text-muted-foreground" />
-                                      <span>
-                                        {event.eventTime || new Date(event.startTime).toLocaleTimeString('en-US', {
-                                          hour: '2-digit',
-                                          minute: '2-digit'
-                                        })}
-                                      </span>
-                                    </div>
-                                  )}
-                                  {event.venue && (
-                                    <div className="flex items-center gap-2 text-sm">
-                                      <MapPin className="w-4 h-4 text-muted-foreground" />
-                                      <span className="line-clamp-1">{event.venue}</span>
-                                    </div>
-                                  )}
-                                  {event.maxAttendees != null && (
-                                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                      <Users className="w-4 h-4" />
-                                      <span>
-                                        {event.currentAttendees || 0} / {event.maxAttendees} attendees
-                                        {(event.currentAttendees ?? 0) >= event.maxAttendees && (
-                                          <span className="font-medium text-destructive ml-1">(Full)</span>
-                                        )}
-                                      </span>
-                                    </div>
-                                  )}
-
-                                  {(() => {
-                                    const isEventFull = event.maxAttendees != null && (event.currentAttendees ?? 0) >= event.maxAttendees
-                                    return (
-                                      <Button
-                                        className="w-full mt-2"
-                                        style={isEventFull ? undefined : { backgroundColor: primaryColor, color: "white" }}
-                                        variant={isEventFull ? "secondary" : "default"}
-                                        disabled={isEventFull}
-                                        onClick={() => {
-                                          if (isEventFull) return
-                                          setEventForRegistration(event)
-                                          setShowEventRegistrationModal(true)
+                    <TabsContent value="news" className="mt-8">
+                      <Card className="border-2 shadow-lg">
+                        <CardHeader>
+                          <CardTitle className="text-3xl font-bold flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                              <Newspaper className="h-6 w-6" style={{ color: primaryColor }} />
+                            </div>
+                            Latest News & Updates
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          {loadingContent ? (
+                            <div className="flex items-center justify-center py-12">
+                              <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: primaryColor }} />
+                            </div>
+                          ) : news.length > 0 ? (
+                            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                              {news.map((article) => (
+                                <Card key={article._id} className="hover:shadow-lg transition-all border-2">
+                                  {article.featuredImage && (
+                                    <div className="relative h-48 overflow-hidden rounded-t-lg">
+                                      <img
+                                        src={getNewsImageUrl(article.featuredImage)}
+                                        alt={article.title}
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                          e.currentTarget.style.display = 'none'
                                         }}
-                                      >
-                                        {isEventFull ? "Event Full" : event.ticketPrice && event.ticketPrice > 0 ? "Buy Tickets" : "Register"}
-                                      </Button>
-                                    )
-                                  })()}
-                                </CardContent>
-                              </Card>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-center py-12">
-                            <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                            <p className="text-lg text-muted-foreground">No events available yet.</p>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-                )}
+                                      />
+                                    </div>
+                                  )}
+                                  <CardHeader>
+                                    <div className="flex items-center gap-2 mb-2">
+                                      {article.category && (
+                                        <Badge variant="secondary" className="text-xs">
+                                          {article.category}
+                                        </Badge>
+                                      )}
+                                      {article.priority && (
+                                        <Badge
+                                          variant={article.priority === 'high' ? 'destructive' : 'outline'}
+                                          className="text-xs"
+                                        >
+                                          {article.priority}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    <CardTitle className="text-xl line-clamp-2">{article.title}</CardTitle>
+                                    {article.summary && (
+                                      <CardDescription className="line-clamp-3 mt-2">
+                                        {article.summary}
+                                      </CardDescription>
+                                    )}
+                                  </CardHeader>
+                                  <CardContent>
+                                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                      <span className="flex items-center gap-1">
+                                        <User className="w-4 h-4" />
+                                        {article.author}
+                                      </span>
+                                      <span className="flex items-center gap-1">
+                                        <Calendar className="w-4 h-4" />
+                                        {formatDisplayDate(article.publishedAt || article.createdAt)}
+                                      </span>
+                                    </div>
+                                    {article.viewCount !== undefined && (
+                                      <div className="flex items-center gap-1 text-sm text-muted-foreground mt-2">
+                                        <Eye className="w-4 h-4" />
+                                        {article.viewCount} views
+                                      </div>
+                                    )}
+                                  </CardContent>
+                                  <CardFooter className="pt-0">
+                                    <Button
+                                      variant="outline"
+                                      className="w-full"
+                                      style={{ borderColor: primaryColor, color: primaryColor }}
+                                      onClick={() => handleReadMoreNews(article)}
+                                    >
+                                      Read more
+                                    </Button>
+                                  </CardFooter>
+                                </Card>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-center py-12">
+                              <Newspaper className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                              <p className="text-lg text-muted-foreground">No news articles available yet.</p>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+                  )}
 
-                {(websiteSetup.sections.store || websiteSetup.sections.merchandise) && (
-                  <TabsContent value="store" className="mt-8">
-                    <Card className="border-2 shadow-lg">
-                      <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                        <CardTitle className="text-3xl font-bold flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                            <Store className="h-6 w-6" style={{ color: primaryColor }} />
-                          </div>
-                          Merchandise
-                        </CardTitle>
-                        {/* {club?._id && (
+                  {websiteSetup.sections.events && (
+                    <TabsContent value="events" className="mt-8">
+                      <Card className="border-2 shadow-lg">
+                        <CardHeader>
+                          <CardTitle className="text-3xl font-bold flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                              <Calendar className="h-6 w-6" style={{ color: primaryColor }} />
+                            </div>
+                            Upcoming Events & Activities
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          {loadingContent ? (
+                            <div className="flex items-center justify-center py-12">
+                              <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: primaryColor }} />
+                            </div>
+                          ) : events.filter((e: any) => !e?.memberOnly).length > 0 ? (
+                            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                              {events.filter((e: any) => !e?.memberOnly).map((event) => (
+                                <Card key={event._id} className="hover:shadow-lg transition-all border-2">
+                                  <CardHeader>
+                                    <div className="flex items-start justify-between mb-2">
+                                      {event.isActive !== undefined && (
+                                        <Badge
+                                          variant={event.isActive ? 'default' : 'secondary'}
+                                          className="text-xs"
+                                        >
+                                          {event.isActive ? 'Active' : 'Inactive'}
+                                        </Badge>
+                                      )}
+                                      {event.ticketPrice !== undefined && event.ticketPrice > 0 && (
+                                        <Badge variant="outline" className="text-xs font-bold">
+                                          ₹{event.ticketPrice}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    <CardTitle className="text-xl line-clamp-2">{event.title}</CardTitle>
+                                    {event.description && (
+                                      <CardDescription className="line-clamp-3 mt-2">
+                                        {event.description}
+                                      </CardDescription>
+                                    )}
+                                  </CardHeader>
+                                  <CardContent className="space-y-3">
+                                    {(event.eventDate || event.startTime) && (
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <Calendar className="w-4 h-4 text-muted-foreground" />
+                                        <span>{formatDisplayDate(event.eventDate || event.startTime)}</span>
+                                      </div>
+                                    )}
+                                    {(event.eventTime || event.startTime) && (
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <Clock className="w-4 h-4 text-muted-foreground" />
+                                        <span>
+                                          {event.eventTime || new Date(event.startTime).toLocaleTimeString('en-US', {
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                          })}
+                                        </span>
+                                      </div>
+                                    )}
+                                    {event.venue && (
+                                      <div className="flex items-center gap-2 text-sm">
+                                        <MapPin className="w-4 h-4 text-muted-foreground" />
+                                        <span className="line-clamp-1">{event.venue}</span>
+                                      </div>
+                                    )}
+                                    {event.maxAttendees != null && (
+                                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                        <Users className="w-4 h-4" />
+                                        <span>
+                                          {event.currentAttendees || 0} / {event.maxAttendees} attendees
+                                          {(event.currentAttendees ?? 0) >= event.maxAttendees && (
+                                            <span className="font-medium text-destructive ml-1">(Full)</span>
+                                          )}
+                                        </span>
+                                      </div>
+                                    )}
+
+                                    {(() => {
+                                      const isEventFull = event.maxAttendees != null && (event.currentAttendees ?? 0) >= event.maxAttendees
+                                      return (
+                                        <Button
+                                          className="w-full mt-2"
+                                          style={isEventFull ? undefined : { backgroundColor: primaryColor, color: "white" }}
+                                          variant={isEventFull ? "secondary" : "default"}
+                                          disabled={isEventFull}
+                                          onClick={() => {
+                                            if (isEventFull) return
+                                            setEventForRegistration(event)
+                                            setShowEventRegistrationModal(true)
+                                          }}
+                                        >
+                                          {isEventFull ? "Event Full" : event.ticketPrice && event.ticketPrice > 0 ? "Buy Tickets" : "Register"}
+                                        </Button>
+                                      )
+                                    })()}
+                                  </CardContent>
+                                </Card>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-center py-12">
+                              <Calendar className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                              <p className="text-lg text-muted-foreground">No events available yet.</p>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+                  )}
+
+                  {(websiteSetup.sections.store || websiteSetup.sections.merchandise) && (
+                    <TabsContent value="store" className="mt-8">
+                      <Card className="border-2 shadow-lg">
+                        <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                          <CardTitle className="text-3xl font-bold flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                              <Store className="h-6 w-6" style={{ color: primaryColor }} />
+                            </div>
+                            Merchandise
+                          </CardTitle>
+                          {/* {club?._id && (
                           <Link href={`/merchandise?clubId=${club._id}`}>
                             <Button variant="outline" className="border-2 font-bold">
                               Shop All
                             </Button>
                           </Link>
                         )} */}
-                      </CardHeader>
-                      <CardContent>
-                        {loadingContent ? (
-                          <div className="flex items-center justify-center py-12">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: primaryColor }} />
-                          </div>
-                        ) : merchandise.length > 0 ? (
-                          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                            {merchandise.map((item: any) => (
-                              <Card key={item._id} className="hover:shadow-lg transition-all border-2 overflow-hidden flex flex-col">
-                                {item.featuredImage && (
-                                  <div className="relative h-44 overflow-hidden">
-                                    <img src={item.featuredImage} alt={item.name} className="w-full h-full object-cover" />
-                                  </div>
-                                )}
-                                <div className="flex flex-col flex-1">
-                                  <CardHeader className="flex-1 flex flex-col">
-                                    <div className="flex items-start justify-between gap-3">
-                                      <CardTitle className="text-lg line-clamp-2">{item.name}</CardTitle>
-                                      {typeof item.price === "number" && (
-                                        <Badge variant="outline" className="text-xs font-bold shrink-0">
-                                          {item.currency || "USD"} {item.price}
-                                        </Badge>
-                                      )}
+                        </CardHeader>
+                        <CardContent>
+                          {loadingContent ? (
+                            <div className="flex items-center justify-center py-12">
+                              <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: primaryColor }} />
+                            </div>
+                          ) : merchandise.length > 0 ? (
+                            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                              {merchandise.map((item: any) => (
+                                <Card key={item._id} className="hover:shadow-lg transition-all border-2 overflow-hidden flex flex-col">
+                                  {item.featuredImage && (
+                                    <div className="relative h-44 overflow-hidden">
+                                      <img src={item.featuredImage} alt={item.name} className="w-full h-full object-cover" />
                                     </div>
-                                    {item.description && (
-                                      <CardDescription className="line-clamp-3 mt-2">{item.description}</CardDescription>
-                                    )}
-                                    <div className="flex-1" />
-                                    {club?._id && (
-                                      <div className="mt-auto">
-                                        <Button
-                                          size="sm"
-                                          className="w-full mt-2"
-                                          style={{ backgroundColor: primaryColor, color: "white" }}
-                                          onClick={() => {
-                                            setMerchandiseForQuickBuy(item)
-                                            setPurchaseFlowReason("merchandise")
-                                            setShowPurchaseFlowModal(true)
-                                          }}
-                                        >
-                                          Quick Buy
-                                        </Button>
+                                  )}
+                                  <div className="flex flex-col flex-1">
+                                    <CardHeader className="flex-1 flex flex-col">
+                                      <div className="flex items-start justify-between gap-3">
+                                        <CardTitle className="text-lg line-clamp-2">{item.name}</CardTitle>
+                                        {typeof item.price === "number" && (
+                                          <Badge variant="outline" className="text-xs font-bold shrink-0">
+                                            {item.currency || "USD"} {item.price}
+                                          </Badge>
+                                        )}
                                       </div>
+                                      {item.description && (
+                                        <CardDescription className="line-clamp-3 mt-2">{item.description}</CardDescription>
+                                      )}
+                                      <div className="flex-1" />
+                                      {club?._id && (
+                                        <div className="mt-auto">
+                                          <Button
+                                            size="sm"
+                                            className="w-full mt-2"
+                                            style={{ backgroundColor: primaryColor, color: "white" }}
+                                            onClick={() => {
+                                              setMerchandiseForQuickBuy(item)
+                                              setPurchaseFlowReason("merchandise")
+                                              setShowPurchaseFlowModal(true)
+                                            }}
+                                          >
+                                            Quick Buy
+                                          </Button>
+                                        </div>
+                                      )}
+                                    </CardHeader>
+                                  </div>
+                                </Card>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-center py-12">
+                              <Store className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                              <p className="text-lg text-muted-foreground">No merchandise available yet.</p>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+                  )}
+
+                  {websiteSetup.sections.chants && (
+                    <TabsContent value="chants" className="mt-8">
+                      <Card className="border-2 shadow-lg">
+                        <CardHeader>
+                          <CardTitle className="text-3xl font-bold flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                              <Music className="h-6 w-6" style={{ color: primaryColor }} />
+                            </div>
+                            Club Chants
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          {loadingContent ? (
+                            <div className="flex items-center justify-center py-12">
+                              <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: primaryColor }} />
+                            </div>
+                          ) : chants.length > 0 ? (
+                            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                              {chants.map((chant) => (
+                                <Card key={chant._id} className="hover:shadow-lg transition-all border-2 overflow-hidden">
+                                  <CardHeader>
+                                    <CardTitle className="text-lg line-clamp-2">{chant.title}</CardTitle>
+                                    {chant.description && (
+                                      <CardDescription className="line-clamp-3 mt-2">{chant.description}</CardDescription>
                                     )}
                                   </CardHeader>
-                                </div>
-                              </Card>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-center py-12">
-                            <Store className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                            <p className="text-lg text-muted-foreground">No merchandise available yet.</p>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-                )}
-
-                {websiteSetup.sections.chants && (
-                  <TabsContent value="chants" className="mt-8">
-                    <Card className="border-2 shadow-lg">
-                      <CardHeader>
-                        <CardTitle className="text-3xl font-bold flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                            <Music className="h-6 w-6" style={{ color: primaryColor }} />
-                          </div>
-                          Club Chants
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        {loadingContent ? (
-                          <div className="flex items-center justify-center py-12">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2" style={{ borderColor: primaryColor }} />
-                          </div>
-                        ) : chants.length > 0 ? (
-                          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                            {chants.map((chant) => (
-                              <Card key={chant._id} className="hover:shadow-lg transition-all border-2 overflow-hidden">
-                                <CardHeader>
-                                  <CardTitle className="text-lg line-clamp-2">{chant.title}</CardTitle>
-                                  {chant.description && (
-                                    <CardDescription className="line-clamp-3 mt-2">{chant.description}</CardDescription>
-                                  )}
-                                </CardHeader>
-                                <CardContent className="space-y-3">
-                                  {chant.fileType === "text" && chant.content && (
-                                    <div className="text-sm whitespace-pre-wrap text-muted-foreground line-clamp-6">
-                                      {chant.content}
-                                    </div>
-                                  )}
-                                  {chant.fileType === "image" && chant.fileUrl && (
-                                    <img src={chant.fileUrl} alt={chant.title} className="w-full rounded-md border" />
-                                  )}
-                                  {chant.fileType === "audio" && chant.fileUrl && (
-                                    <audio controls src={chant.fileUrl} className="w-full" />
-                                  )}
-                                  {chant.fileType === "iframe" && chant.iframeUrl && (
-                                    <div className="w-full overflow-hidden rounded-md border">
-                                      <iframe
-                                        src={chant.iframeUrl}
-                                        width={chant.iframeWidth || "100%"}
-                                        height={chant.iframeHeight || "400"}
-                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                        allowFullScreen
-                                      />
-                                    </div>
-                                  )}
-                                </CardContent>
-                              </Card>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-center py-12">
-                            <Music className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                            <p className="text-lg text-muted-foreground">No chants available yet.</p>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </TabsContent>
-                )}
-              </Tabs>
-            </div>
-          )}
+                                  <CardContent className="space-y-3">
+                                    {chant.fileType === "text" && chant.content && (
+                                      <div className="text-sm whitespace-pre-wrap text-muted-foreground line-clamp-6">
+                                        {chant.content}
+                                      </div>
+                                    )}
+                                    {chant.fileType === "image" && chant.fileUrl && (
+                                      <img src={chant.fileUrl} alt={chant.title} className="w-full rounded-md border" />
+                                    )}
+                                    {chant.fileType === "audio" && chant.fileUrl && (
+                                      <audio controls src={chant.fileUrl} className="w-full" />
+                                    )}
+                                    {chant.fileType === "iframe" && chant.iframeUrl && (
+                                      <div className="w-full overflow-hidden rounded-md border">
+                                        <iframe
+                                          src={chant.iframeUrl}
+                                          width={chant.iframeWidth || "100%"}
+                                          height={chant.iframeHeight || "400"}
+                                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                          allowFullScreen
+                                        />
+                                      </div>
+                                    )}
+                                  </CardContent>
+                                </Card>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className="text-center py-12">
+                              <Music className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                              <p className="text-lg text-muted-foreground">No chants available yet.</p>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+                  )}
+                </Tabs>
+              </div>
+            )}
         </div>
       </section>
 
@@ -1000,15 +1001,15 @@ export default function PublicClubPage() {
           <div className="max-w-4xl mx-auto text-center space-y-10">
             <h3 className="text-4xl md:text-6xl lg:text-7xl font-black tracking-tight leading-tight">Be Part of the Journey</h3>
             <p className="text-muted-foreground text-2xl md:text-3xl leading-relaxed max-w-3xl mx-auto">
-              Join <strong>{club.name}</strong> today and unlock access to exclusive content, 
+              Join <strong>{club.name}</strong> today and unlock access to exclusive content,
               priority event booking, and a global network of passionate fans.
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-6 pt-10">
               <Link href={clubSearchHref} className="w-full sm:w-auto">
-                <Button 
+                <Button
                   size="lg"
                   className="w-full sm:px-16 h-20 text-2xl font-black shadow-2xl hover:scale-105 transition-all rounded-[2rem]"
-                  style={{ 
+                  style={{
                     backgroundColor: primaryColor,
                     color: 'white'
                   }}
@@ -1181,15 +1182,15 @@ export default function PublicClubPage() {
         event={
           eventForRegistration
             ? {
-                _id: eventForRegistration._id,
-                name: eventForRegistration.title,
-                price: eventForRegistration.ticketPrice || 0,
-                ticketPrice: eventForRegistration.ticketPrice || 0,
-                earlyBirdDiscount: (eventForRegistration as any).earlyBirdDiscount,
-                memberDiscount: (eventForRegistration as any).memberDiscount,
-                groupDiscount: (eventForRegistration as any).groupDiscount,
-                currency: (eventForRegistration as any).currency || "INR",
-              }
+              _id: eventForRegistration._id,
+              name: eventForRegistration.title,
+              price: eventForRegistration.ticketPrice || 0,
+              ticketPrice: eventForRegistration.ticketPrice || 0,
+              earlyBirdDiscount: (eventForRegistration as any).earlyBirdDiscount,
+              memberDiscount: (eventForRegistration as any).memberDiscount,
+              groupDiscount: (eventForRegistration as any).groupDiscount,
+              currency: (eventForRegistration as any).currency || "INR",
+            }
             : undefined
         }
         attendees={attendeesForPayment}
