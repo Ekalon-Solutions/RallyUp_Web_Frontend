@@ -57,9 +57,11 @@ interface EventCheckoutModalProps {
   waitlistToken?: string | null
   onSuccess: () => void
   onFailure: () => void
+  /** Skip the in-modal MemberValidationModal — use when the caller already confirmed non-member intent */
+  skipMemberValidation?: boolean
 }
 
-export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCode, waitlistToken, onSuccess, onFailure }: EventCheckoutModalProps) {
+export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCode, waitlistToken, onSuccess, onFailure, skipMemberValidation }: EventCheckoutModalProps) {
   const { user } = useAuth()
   const router = useRouter()
   const [loading, setLoading] = useState(false)
@@ -129,6 +131,12 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
     setRedeemPoints("")
     setReservedDiscount(0)
   }
+
+  useEffect(() => {
+    if (isOpen) {
+      setMemberValidated(Boolean(skipMemberValidation))
+    }
+  }, [isOpen, skipMemberValidation])
 
   useEffect(() => {
     if (isOpen && !scriptLoaded) {
@@ -524,9 +532,9 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
           }
         },
         prefill: {
-          name: user?.name || '',
-          email: user?.email || '',
-          contact: user?.phoneNumber || '',
+          name: user?.name || attendees?.[0]?.name || '',
+          email: user?.email || guestEmail.trim() || '',
+          contact: user?.phoneNumber || attendees?.[0]?.phone || '',
         },
         theme: {
           color: '#3b82f6',

@@ -149,6 +149,7 @@ export default function PublicClubPage() {
   const [eventForRegistration, setEventForRegistration] = useState<Event | null>(null)
   const [showPurchaseFlowModal, setShowPurchaseFlowModal] = useState(false)
   const [showEventCheckoutModal, setShowEventCheckoutModal] = useState(false)
+  const [eventCheckoutAsGuest, setEventCheckoutAsGuest] = useState(false)
   const [attendeesForPayment, setAttendeesForPayment] = useState<any[]>([])
   const [couponCodeForPayment, setCouponCodeForPayment] = useState<string | undefined>(undefined)
   const [showReadMoreModal, setShowReadMoreModal] = useState(false)
@@ -1066,6 +1067,7 @@ export default function PublicClubPage() {
           onContinueToPayment={() => {
             setShowPurchaseFlowModal(false)
             if (purchaseFlowReason === "event" && eventForRegistration) {
+              setEventCheckoutAsGuest(true)
               setShowEventCheckoutModal(true)
             } else if (purchaseFlowReason === "merchandise" && merchandiseForQuickBuy) {
               const item = merchandiseForQuickBuy
@@ -1175,10 +1177,12 @@ export default function PublicClubPage() {
         isOpen={showEventCheckoutModal}
         onClose={() => {
           setShowEventCheckoutModal(false)
+          setEventCheckoutAsGuest(false)
           setEventForRegistration(null)
           setAttendeesForPayment([])
           setCouponCodeForPayment(undefined)
         }}
+        skipMemberValidation={eventCheckoutAsGuest}
         event={
           eventForRegistration
             ? {
