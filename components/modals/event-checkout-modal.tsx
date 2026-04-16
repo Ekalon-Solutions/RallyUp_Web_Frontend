@@ -474,7 +474,8 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
               }
             }
 
-            const amountCharged = amountToCharge
+            // Round to match what Razorpay actually charged (create-order uses Math.round)
+            const amountCharged = Math.round(amountToCharge)
             const registerResponse = user
               ? await apiClient.registerForEvent(
                   String(event._id),
@@ -515,7 +516,13 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
               router.push("/purchase/success")
             } else {
               // Payment went through but our backend rejected registration.
-              // Surface the payment ID so the user can follow up.
+              console.error('[EventCheckoutModal] Registration failed after payment:', {
+                paymentId,
+                orderId,
+                status: registerResponse.status,
+                error: registerResponse.error,
+                data: registerResponse.data,
+              })
               toast.error(
                 `Payment received (ID: ${paymentId}) but registration failed — ${registerResponse.error || 'please contact support with your payment ID.'}`
               )
@@ -523,6 +530,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
             }
           } catch (error) {
             // Unexpected error after payment. Show payment ID so user isn't stuck.
+            console.error('[EventCheckoutModal] Unexpected error after payment:', error)
             toast.error(
               `Something went wrong after payment (ID: ${paymentId}). Please contact support with your payment ID.`
             )
