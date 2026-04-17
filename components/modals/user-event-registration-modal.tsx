@@ -245,15 +245,15 @@ export default function UserEventRegistrationModal({ eventId, isOpen, onClose, o
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-xl">
-        <DialogHeader>
+      <DialogContent className="max-w-xl flex flex-col max-h-[90dvh] sm:max-h-[85vh]">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="text-lg font-semibold">Register for Event</DialogTitle>
           <DialogDescription>
             Complete your registration details for this event
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="flex-1 overflow-y-auto min-h-0 space-y-4 pr-1">
           {/* Early Bird Discount Banner */}
           {earlyBirdDiscountAmount > 0 && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-3">
@@ -271,7 +271,7 @@ export default function UserEventRegistrationModal({ eventId, isOpen, onClose, o
               </div>
             </div>
           )}
-          
+
           {/* Member Discount Banner */}
           {totalMemberDiscountAmount > 0 && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
@@ -311,14 +311,14 @@ export default function UserEventRegistrationModal({ eventId, isOpen, onClose, o
                     <div className="font-medium">Attendee {i + 1}</div>
                     {i === 0 && <Badge variant="outline" className="ml-2">Primary</Badge>}
                   </div>
-                  <div className="text-sm text-muted-foreground">{att.name || 'No name yet'}</div>
+                  <div className="text-sm text-muted-foreground truncate max-w-[120px]">{att.name || 'No name yet'}</div>
                 </div>
                 {att.open && (
                   <div className="mt-3 space-y-2">
                     <Input placeholder={`Name for attendee ${i + 1}`} value={att.name} onChange={(e) => updateAttendee(i, 'name', e.target.value)} />
                     <div className="flex gap-2">
-                      <Input placeholder="Code (e.g. +1)" value={att.phoneCode || ''} onChange={(e) => updateAttendee(i, 'phoneCode', e.target.value)} className="w-28" />
-                      <Input placeholder={`Phone for attendee ${i + 1}`} value={att.phone} onChange={(e) => updateAttendee(i, 'phone', e.target.value)} />
+                      <Input placeholder="+1" value={att.phoneCode || ''} onChange={(e) => updateAttendee(i, 'phoneCode', e.target.value)} className="w-20 flex-shrink-0" />
+                      <Input placeholder={`Phone for attendee ${i + 1}`} value={att.phone} onChange={(e) => updateAttendee(i, 'phone', e.target.value)} className="flex-1 min-w-0" />
                     </div>
                   </div>
                 )}
@@ -346,7 +346,7 @@ export default function UserEventRegistrationModal({ eventId, isOpen, onClose, o
                       value={couponCode}
                       onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
                       disabled={validatingCoupon}
-                      className="font-mono text-sm"
+                      className="font-mono text-sm flex-1 min-w-0"
                       onKeyPress={(e) => {
                         if (e.key === 'Enter') {
                           e.preventDefault()
@@ -360,16 +360,17 @@ export default function UserEventRegistrationModal({ eventId, isOpen, onClose, o
                       disabled={!couponCode.trim() || validatingCoupon}
                       variant="outline"
                       size="sm"
+                      className="flex-shrink-0"
                     >
                       {validatingCoupon ? (
                         <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Validating...
+                          <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                          <span className="hidden sm:inline">Validating...</span>
                         </>
                       ) : (
                         <>
-                          <CheckCircle className="w-4 h-4 mr-2" />
-                          Apply
+                          <CheckCircle className="w-4 h-4 sm:mr-2" />
+                          <span className="hidden sm:inline">Apply</span>
                         </>
                       )}
                     </Button>
@@ -378,7 +379,7 @@ export default function UserEventRegistrationModal({ eventId, isOpen, onClose, o
                   <div className="space-y-2">
                     <div className="flex items-center justify-between p-2 bg-green-50 border border-green-200 rounded-lg">
                       <div className="flex items-center gap-2">
-                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
                         <div>
                           <div className="font-medium text-sm text-green-900">{appliedCoupon.name}</div>
                           <div className="text-xs text-green-700">
@@ -391,7 +392,7 @@ export default function UserEventRegistrationModal({ eventId, isOpen, onClose, o
                         variant="ghost"
                         size="sm"
                         onClick={handleRemoveCoupon}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 w-8 p-0"
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 w-8 p-0 flex-shrink-0"
                       >
                         <X className="w-4 h-4" />
                       </Button>
@@ -402,7 +403,7 @@ export default function UserEventRegistrationModal({ eventId, isOpen, onClose, o
                         <span className="text-muted-foreground">Base Price ({ticketCount} ticket{ticketCount > 1 ? 's' : ''})</span>
                         <span className="font-medium">₹{totalBasePrice.toLocaleString()}</span>
                       </div>
-                      
+
                       {earlyBirdDiscountAmount > 0 && (
                         <div className="flex justify-between">
                           <span className="text-green-600 flex items-center gap-1">
@@ -426,7 +427,7 @@ export default function UserEventRegistrationModal({ eventId, isOpen, onClose, o
                           </span>
                         </div>
                       )}
-                      
+
                       <div className="flex justify-between">
                         <span className="text-green-600 flex items-center gap-1">
                           <Percent className="w-3 h-3" />
@@ -436,7 +437,7 @@ export default function UserEventRegistrationModal({ eventId, isOpen, onClose, o
                           -₹{appliedCoupon.discount.toLocaleString()}
                         </span>
                       </div>
-                      
+
                       <div className="pt-1.5 border-t flex justify-between">
                         <span className="font-semibold">Final Price</span>
                         <span className="font-bold text-base text-primary">
@@ -449,11 +450,11 @@ export default function UserEventRegistrationModal({ eventId, isOpen, onClose, o
               </CardContent>
             </Card>
           )}
+        </div>
 
-          <div className="flex justify-end pt-2">
-            <Button variant="outline" className="mr-2" onClick={onClose}>Cancel</Button>
-            <Button onClick={handleRegister}>Register</Button>
-          </div>
+        <div className="flex-shrink-0 flex justify-end gap-2 pt-4 border-t mt-2">
+          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button onClick={handleRegister}>Register</Button>
         </div>
       </DialogContent>
     </Dialog>
