@@ -97,9 +97,8 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
     setReserving(true)
     try {
       // pass order total so backend can cap reserved points to order value
-      const basePrice = getDiscountedPricePerTicket()
-      const totalBeforeCoupon = basePrice * attendees.length
-      const finalPrice = Math.max(totalBeforeCoupon - couponDiscount, 0)
+      const { orderTotalBeforeCoupon } = getOrderPricing()
+      const finalPrice = Math.max(orderTotalBeforeCoupon - couponDiscount, 0)
       const orderTotalForReservation = finalPrice
       const redeemPointsNum = Number(redeemPoints) || 0
       const res = await apiClient.createReservation(redeemPointsNum, eventData.clubId, orderTotalForReservation)
@@ -197,57 +196,25 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
     )
   )
 
-  const getDiscountedPricePerTicket = (): number => {
-    if (!event) return 0
-    const ticketPrice = event.ticketPrice ?? event.price ?? 0
-    if (!discountSource) return ticketPrice
-
-    let price = ticketPrice
-
-    if (discountSource.earlyBirdDiscount?.enabled) {
-      const eb = discountSource.earlyBirdDiscount
-      if (eb.membersOnly && !isMember) {
-      } else {
-        const now = new Date()
-        const startTime = new Date(eb.startTime ?? 0)
-        const endTime = new Date(eb.endTime ?? 0)
-        if (now >= startTime && now <= endTime) {
-          const discount =
-            eb.type === 'percentage' ? (price * (eb.value ?? 0)) / 100 : (eb.value ?? 0)
-          price = Math.max(price - discount, 0)
-        }
+  const getOrderPricing = () => {
+    const ticketPrice = event?.ticketPrice ?? event?.price ?? 0
+    const count = attendees.length
+    const totalBasePrice = ticketPrice * count
+    
+    if (!discountSource) {
+      return {
+        ticketPrice,
+        totalBasePrice,
+        earlyBirdDiscountTotal: 0,
+        memberDiscountPerTicket: 0,
+        memberDiscountTotal: 0,
+        groupDiscountPerTicket: 0,
+        groupDiscountTotal: 0,
+        orderTotalBeforeCoupon: totalBasePrice
       }
     }
 
-    if (discountSource.memberDiscount?.enabled && isMember) {
-      const md = discountSource.memberDiscount
-      const discount =
-        md.type === 'percentage' ? (price * (md.value ?? 0)) / 100 : (md.value ?? 0)
-      price = Math.max(price - discount, 0)
-    }
-
-    if (
-      discountSource.groupDiscount?.enabled &&
-      attendees.length >= (discountSource.groupDiscount.minQuantity ?? 2)
-    ) {
-      const gd = discountSource.groupDiscount
-      const discount =
-        gd.type === 'percentage' ? (price * (gd.value ?? 0)) / 100 : (gd.value ?? 0)
-      price = Math.max(price - discount, 0)
-    }
-
-    return price
-  }
-
-  const getDiscountBreakdown = () => {
-    const ticketPrice = event?.ticketPrice ?? event?.price ?? 0
-    if (!discountSource) return { earlyBirdAmt: 0, memberAmt: 0, groupAmt: 0 }
-
-    let price = ticketPrice
-    let earlyBirdAmt = 0
-    let memberAmt = 0
-    let groupAmt = 0
-
+    let earlyBirdDiscountTotal = 0
     if (discountSource.earlyBirdDiscount?.enabled) {
       const eb = discountSource.earlyBirdDiscount
       if (!eb.membersOnly || isMember) {
@@ -255,36 +222,55 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
         const startTime = new Date(eb.startTime ?? 0)
         const endTime = new Date(eb.endTime ?? 0)
         if (now >= startTime && now <= endTime) {
-          earlyBirdAmt = eb.type === 'percentage' ? (price * (eb.value ?? 0)) / 100 : (eb.value ?? 0)
-          price = Math.max(price - earlyBirdAmt, 0)
+          earlyBirdDiscountTotal = eb.type === 'percentage' 
+            ? (ticketPrice * (eb.value ?? 0)) / 100 
+            : (eb.value ?? 0)
         }
       }
     }
 
+    let memberDiscountPerTicket = 0
     if (discountSource.memberDiscount?.enabled && isMember) {
       const md = discountSource.memberDiscount
-      memberAmt = md.type === 'percentage' ? (price * (md.value ?? 0)) / 100 : (md.value ?? 0)
-      price = Math.max(price - memberAmt, 0)
+      memberDiscountPerTicket = md.type === 'percentage' 
+        ? (ticketPrice * (md.value ?? 0)) / 100 
+        : (md.value ?? 0)
     }
+    const memberDiscountTotal = memberDiscountPerTicket * count
 
-    if (discountSource.groupDiscount?.enabled && attendees.length >= (discountSource.groupDiscount.minQuantity ?? 2)) {
+    let groupDiscountPerTicket = 0
+    if (discountSource.groupDiscount?.enabled && count >= (discountSource.groupDiscount.minQuantity ?? 2)) {
       const gd = discountSource.groupDiscount
-      groupAmt = gd.type === 'percentage' ? (price * (gd.value ?? 0)) / 100 : (gd.value ?? 0)
+      groupDiscountPerTicket = gd.type === 'percentage' 
+        ? (ticketPrice * (gd.value ?? 0)) / 100 
+        : (gd.value ?? 0)
     }
+    const groupDiscountTotal = groupDiscountPerTicket * count
 
-    return { earlyBirdAmt, memberAmt, groupAmt }
+    const orderTotalBeforeCoupon = Math.max(totalBasePrice - earlyBirdDiscountTotal - memberDiscountTotal - groupDiscountTotal, 0)
+
+    return {
+      ticketPrice,
+      totalBasePrice,
+      earlyBirdDiscountTotal,
+      memberDiscountPerTicket,
+      memberDiscountTotal,
+      groupDiscountPerTicket,
+      groupDiscountTotal,
+      orderTotalBeforeCoupon
+    }
   }
 
   useEffect(() => {
     const validateCoupon = async () => {
       if (couponCode && event?._id && isOpen) {
         try {
-          const totalPrice = getDiscountedPricePerTicket() * attendees.length
+          const { orderTotalBeforeCoupon } = getOrderPricing()
           const clubId = eventData?.clubId || (event as any)?.clubId
-          const response = await apiClient.validateCoupon(couponCode, String(event._id), totalPrice, clubId)
+          const response = await apiClient.validateCoupon(couponCode, String(event._id), orderTotalBeforeCoupon, clubId)
           
           if (response.success && response.data?.coupon) {
-            setCouponDiscount(response.data.coupon.discount * attendees.length)
+            setCouponDiscount(response.data.coupon.discount)
             setCouponName(response.data.coupon.name)
           } else {
             setCouponDiscount(0)
@@ -335,15 +321,12 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
     setLoading(true)
 
     try {
-      const basePrice = getDiscountedPricePerTicket()
-      const totalBeforeCoupon = basePrice * attendees.length
+      const { orderTotalBeforeCoupon, earlyBirdDiscountTotal } = getOrderPricing()
 
-      const eventSubtotalAfterCoupon = Math.max(totalBeforeCoupon - couponDiscount, 0)
+      const eventSubtotalAfterCoupon = Math.max(orderTotalBeforeCoupon - couponDiscount, 0)
       const displayShipping = 0
       const displayTax = 0
       const adjustedFinalPrice = Math.max(eventSubtotalAfterCoupon + displayShipping + displayTax - (reservedDiscount || 0), 0)
-
-      const { earlyBirdAmt } = getDiscountBreakdown()
 
       if (adjustedFinalPrice <= 0) {
         if (reservationToken) {
@@ -376,7 +359,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
               couponCode,
               reservationToken: reservationToken || undefined,
               couponDiscount: couponDiscount || undefined,
-              earlyBirdDiscountAmt: earlyBirdAmt || undefined,
+              earlyBirdDiscountAmt: earlyBirdDiscountTotal || undefined,
               pointsDiscount: reservedDiscount || undefined,
             })
 
@@ -489,7 +472,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
                   reservationToken || undefined,
                   amountCharged,
                   couponDiscount || undefined,
-                  earlyBirdAmt || undefined,
+                  earlyBirdDiscountTotal || undefined,
                   reservedDiscount || undefined,
                 )
               : await apiClient.registerForPublicEvent(String(event._id), {
@@ -504,7 +487,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
                   reservationToken: reservationToken || undefined,
                   amountPaid: amountCharged,
                   couponDiscount: couponDiscount || undefined,
-                  earlyBirdDiscountAmt: earlyBirdAmt || undefined,
+                  earlyBirdDiscountAmt: earlyBirdDiscountTotal || undefined,
                   pointsDiscount: reservedDiscount || undefined,
                 })
 
@@ -576,10 +559,8 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
   }
 
   const priceBeforeDiscount = event?.ticketPrice ?? event?.price ?? 0
-  const basePrice = getDiscountedPricePerTicket()
-  const { earlyBirdAmt, memberAmt, groupAmt } = getDiscountBreakdown()
-  const totalBeforeCoupon = basePrice * attendees.length;
-  const finalPrice = Math.max(totalBeforeCoupon - couponDiscount, 0);
+  const { totalBasePrice, earlyBirdDiscountTotal, memberDiscountPerTicket, groupDiscountPerTicket, memberDiscountTotal, groupDiscountTotal, orderTotalBeforeCoupon } = getOrderPricing()
+  const finalPrice = Math.max(orderTotalBeforeCoupon - couponDiscount, 0);
   const netSubtotal = Math.max(finalPrice - (reservedDiscount || 0), 0);
   // Fees are calculated on the final net amount (after all discounts)
   const feeBreakdown = netSubtotal > 0 ? calculateTransactionFees(netSubtotal) : null;
@@ -646,37 +627,9 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
                 <div className="flex justify-between items-center text-sm sm:text-base">
                   <span>Price per ticket:</span>
                   <span className="flex items-center gap-2">
-                    {priceBeforeDiscount > basePrice ? (
-                      <>
-                        <span className="line-through text-muted-foreground">
-                          {formatCurrency(priceBeforeDiscount, event.currency)}
-                        </span>
-                        <span>{formatCurrency(basePrice, event.currency)}</span>
-                      </>
-                    ) : (
-                      <span>{formatCurrency(basePrice, event.currency)}</span>
-                    )}
+                    <span>{formatCurrency(priceBeforeDiscount, event.currency)}</span>
                   </span>
                 </div>
-
-                {earlyBirdAmt > 0 && (
-                  <div className="flex justify-between items-center text-xs sm:text-sm text-green-600">
-                    <span>Early bird discount (per ticket):</span>
-                    <span>-{formatCurrency(earlyBirdAmt, event.currency)}</span>
-                  </div>
-                )}
-                {memberAmt > 0 && (
-                  <div className="flex justify-between items-center text-xs sm:text-sm text-blue-600">
-                    <span>Member discount (per ticket):</span>
-                    <span>-{formatCurrency(memberAmt, event.currency)}</span>
-                  </div>
-                )}
-                {groupAmt > 0 && (
-                  <div className="flex justify-between items-center text-xs sm:text-sm text-purple-600">
-                    <span>Group discount (per ticket):</span>
-                    <span>-{formatCurrency(groupAmt, event.currency)}</span>
-                  </div>
-                )}
 
                 <div className="flex justify-between items-center text-sm sm:text-base">
                   <span>Number of tickets:</span>
@@ -686,8 +639,32 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
                 <Separator />
 
                 <div className="flex justify-between items-center font-medium text-sm sm:text-base">
+                  <span>Base Subtotal:</span>
+                  <span>{formatCurrency(totalBasePrice, event.currency)}</span>
+                </div>
+
+                {earlyBirdDiscountTotal > 0 && (
+                  <div className="flex justify-between items-center text-xs sm:text-sm text-green-600">
+                    <span>Early bird discount:</span>
+                    <span>-{formatCurrency(earlyBirdDiscountTotal, event.currency)}</span>
+                  </div>
+                )}
+                {memberDiscountTotal > 0 && (
+                  <div className="flex justify-between items-center text-xs sm:text-sm text-blue-600">
+                    <span>Member discount:</span>
+                    <span>-{formatCurrency(memberDiscountTotal, event.currency)}</span>
+                  </div>
+                )}
+                {groupDiscountTotal > 0 && (
+                  <div className="flex justify-between items-center text-xs sm:text-sm text-purple-600">
+                    <span>Group discount:</span>
+                    <span>-{formatCurrency(groupDiscountTotal, event.currency)}</span>
+                  </div>
+                )}
+
+                <div className="flex justify-between items-center font-medium text-sm sm:text-base">
                   <span>Subtotal:</span>
-                  <span>{formatCurrency(totalBeforeCoupon, event.currency)}</span>
+                  <span>{formatCurrency(orderTotalBeforeCoupon, event.currency)}</span>
                 </div>
 
                 {couponCode && couponDiscount > 0 && (
