@@ -51,6 +51,10 @@ function hexToHSL(hex: string): string {
   return `${h} ${s}% ${lightness}%`
 }
 
+function getContrastingForeground(lightness: number): string {
+  return lightness > 50 ? '0 0% 9%' : '0 0% 98%'
+}
+
 export function useDesignSettings(clubId?: string) {
   const { settings } = useClubSettings(clubId)
 
@@ -65,11 +69,23 @@ export function useDesignSettings(clubId?: string) {
         if (designSettings.primaryColor) {
           const primaryHSL = hexToHSL(designSettings.primaryColor)
           document.documentElement.style.setProperty('--primary', primaryHSL)
+          
+          // Calculate lightness from HSL
+          const hslParts = primaryHSL.split(' ')
+          const lightness = parseInt(hslParts[2].replace('%', ''))
+          const primaryForeground = getContrastingForeground(lightness)
+          document.documentElement.style.setProperty('--primary-foreground', primaryForeground)
         }
 
         if (designSettings.secondaryColor) {
           const secondaryHSL = hexToHSL(designSettings.secondaryColor)
           document.documentElement.style.setProperty('--secondary', secondaryHSL)
+          
+          // Calculate lightness from HSL
+          const hslParts = secondaryHSL.split(' ')
+          const lightness = parseInt(hslParts[2].replace('%', ''))
+          const secondaryForeground = getContrastingForeground(lightness)
+          document.documentElement.style.setProperty('--secondary-foreground', secondaryForeground)
         }
 
         if (designSettings.fontFamily) {
@@ -81,7 +97,9 @@ export function useDesignSettings(clubId?: string) {
     } else {
       // Reset to defaults when club switched and settings cleared (or no club)
       document.documentElement.style.removeProperty('--primary')
+      document.documentElement.style.removeProperty('--primary-foreground')
       document.documentElement.style.removeProperty('--secondary')
+      document.documentElement.style.removeProperty('--secondary-foreground')
       document.documentElement.style.removeProperty('--font-sans')
       document.body.style.fontFamily = ''
       document.getElementById(CLUB_FONT_LINK_ID)?.remove()

@@ -100,6 +100,12 @@ const statusConfig = {
   completed: { label: 'Completed', color: 'bg-green-100 text-green-800', icon: CheckCircle },
 }
 
+const eventStatusConfig = {
+  confirmed: { label: 'Confirmed', color: 'bg-green-100 text-green-800', icon: CheckCircle },
+  pending: { label: 'Pending', color: 'bg-yellow-100 text-yellow-800', icon: Clock },
+  cancelled: { label: 'Cancelled', color: 'bg-red-100 text-red-800', icon: XCircle },
+}
+
 const paymentStatusConfig = {
   pending: { label: 'Pending', color: 'bg-yellow-100 text-yellow-800' },
   paid: { label: 'Paid', color: 'bg-green-100 text-green-800' },
@@ -113,13 +119,23 @@ export default function OrdersPage() {
   const { toast } = useToast()
   const [orders, setOrders] = useState<Order[]>([])
   const [stats, setStats] = useState<OrderStats | null>(null)
+  const [eventStats, setEventStats] = useState<OrderStats | null>(null)
   const [loading, setLoading] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [typeFilter, setTypeFilter] = useState<'products' | 'events'>('events')
+  const [earlyBirdFilter, setEarlyBirdFilter] = useState<'all' | 'used' | 'not_used'>('all')
+  const [couponFilter, setCouponFilter] = useState<'all' | 'used' | 'not_used'>('all')
+  const [paymentDateFilter, setPaymentDateFilter] = useState('')
+  const [amountFilter, setAmountFilter] = useState<'all' | 'free' | 'paid' | 'range'>('all')
+  const [amountMin, setAmountMin] = useState('')
+  const [amountMax, setAmountMax] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
+  const [eventCurrentPage, setEventCurrentPage] = useState(1)
+  const [eventTotalPages, setEventTotalPages] = useState(1)
+  const [allEventRegistrations, setAllEventRegistrations] = useState<any[]>([])
   const [eventRegistrations, setEventRegistrations] = useState<any[]>([])
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [showOrderModal, setShowOrderModal] = useState(false)
@@ -137,23 +153,31 @@ export default function OrdersPage() {
   useEffect(() => {
     if (user?.role === 'admin' || user?.role === 'super_admin') {
       loadStats()
+      loadEventRegistrations() // Load event stats on mount
     }
   }, [user?.role, clubId])
 
   useEffect(() => {
     if (user?.role === 'admin' || user?.role === 'super_admin') {
       setCurrentPage(1)
+      setEventCurrentPage(1)
       loadOrders()
       if (typeFilter === 'events') {
         loadEventRegistrations()
       }
     }
-  }, [searchTerm, statusFilter, typeFilter, clubId])
+  }, [searchTerm, statusFilter, typeFilter, earlyBirdFilter, couponFilter, paymentDateFilter, amountFilter, amountMin, amountMax, clubId])
 
   useEffect(() => {
     if (user?.role !== 'admin' && user?.role !== 'super_admin') return
     loadOrders()
   }, [currentPage, clubId])
+
+  useEffect(() => {
+    if (user?.role === 'admin' || user?.role === 'super_admin') {
+      applyEventPagination()
+    }
+  }, [eventCurrentPage, allEventRegistrations])
 
   const loadOrders = async () => {
     try {
@@ -203,7 +227,9 @@ export default function OrdersPage() {
   const loadEventRegistrations = async () => {
     try {
       if (!clubId) {
+        setAllEventRegistrations([])
         setEventRegistrations([])
+        setEventStats(null)
         return
       }
       const response = await apiClient.getEventsByClub(clubId)
@@ -230,25 +256,93 @@ export default function OrdersPage() {
           }
         })
         
-        // Apply filters
-        let filtered = registrations
-        if (searchTerm) {
-          filtered = filtered.filter((reg: any) => 
-            reg.userName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            reg.userEmail?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            reg.eventTitle?.toLowerCase().includes(searchTerm.toLowerCase())
-          )
-        }
-        if (statusFilter !== 'all') {
-          filtered = filtered.filter((reg: any) => reg.status === statusFilter)
-        }
+        // Calculate stats
+        const totalRegistrations = registrations.length
+        const confirmedRegistrations = registrations.filter(reg => reg.status === 'confirmed').length
+        const pendingRegistrations = registrations.filter(reg => reg.status === 'pending').length
+        const cancelledRegistrations = registrations.filter(reg => reg.status === 'cancelled').length
+        const totalRevenue = registrations
+          .filter(reg => reg.status === 'confirmed' && (!reg.paymentStatus || reg.paymentStatus === 'paid'))
+          .reduce((sum, reg) => sum + (reg.amountPaid || reg.ticketPrice || 0), 0)
         
-        setEventRegistrations(filtered)
+        setEventStats({
+          totalOrders: totalRegistrations,
+          totalRevenue: totalRevenue,
+          pendingOrders: pendingRegistrations,
+          completedOrders: confirmedRegistrations,
+          cancelledOrders: cancelledRegistrations
+        })
+        
+        // Store all registrations
+        setAllEventRegistrations(registrations)
       }
     } catch (error) {
       console.error('Error loading event registrations:', error)
+      setAllEventRegistrations([])
       setEventRegistrations([])
+      setEventStats(null)
     }
+  }
+
+  const applyEventPagination = () => {
+    // Apply filters
+    let filtered = allEventRegistrations
+    if (searchTerm) {
+      filtered = filtered.filter((reg: any) => 
+        reg.userName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        reg.userEmail?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        reg.eventTitle?.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    }
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter((reg: any) => reg.status === statusFilter)
+    }
+    if (earlyBirdFilter !== 'all') {
+      if (earlyBirdFilter === 'used') {
+        filtered = filtered.filter((reg: any) => (reg.earlyBirdDiscountAmt || 0) > 0)
+      } else {
+        filtered = filtered.filter((reg: any) => !(reg.earlyBirdDiscountAmt || 0) > 0)
+      }
+    }
+    if (couponFilter !== 'all') {
+      if (couponFilter === 'used') {
+        filtered = filtered.filter((reg: any) => (reg.couponDiscount || 0) > 0)
+      } else {
+        filtered = filtered.filter((reg: any) => !(reg.couponDiscount || 0) > 0)
+      }
+    }
+    if (paymentDateFilter) {
+      const filterDate = new Date(paymentDateFilter).toDateString()
+      filtered = filtered.filter((reg: any) => {
+        const regDate = new Date(reg.registrationDate || reg.createdAt).toDateString()
+        return regDate === filterDate
+      })
+    }
+    if (amountFilter !== 'all') {
+      if (amountFilter === 'free') {
+        filtered = filtered.filter((reg: any) => (reg.amountPaid || reg.ticketPrice || 0) === 0)
+      } else if (amountFilter === 'paid') {
+        filtered = filtered.filter((reg: any) => (reg.amountPaid || reg.ticketPrice || 0) > 0)
+      } else if (amountFilter === 'range') {
+        const min = parseFloat(amountMin) || 0
+        const max = parseFloat(amountMax) || Infinity
+        filtered = filtered.filter((reg: any) => {
+          const amount = reg.amountPaid || reg.ticketPrice || 0
+          return amount >= min && amount <= max
+        })
+      }
+    }
+    
+    // Apply pagination
+    const pageSize = 10
+    const totalPages = Math.ceil(filtered.length / pageSize)
+    setEventTotalPages(totalPages)
+    
+    const startIndex = (eventCurrentPage - 1) * pageSize
+    const endIndex = startIndex + pageSize
+    const paginatedRegistrations = filtered.slice(startIndex, endIndex)
+    
+    setEventRegistrations(paginatedRegistrations)
   }
 
   const loadStats = async () => {
@@ -261,7 +355,26 @@ export default function OrdersPage() {
 
       const response = await apiClient.get(`/orders/admin/stats${params.toString() ? `?${params}` : ''}`)
       if (response.success && response.data) {
-        setStats(response.data.data?.overview || null)
+        const apiStats = response.data.data?.overview || null
+        if (apiStats) {
+          // Calculate total revenue only for completed orders with paid status
+          const allOrdersResponse = await apiClient.get(`/orders/admin/all?clubId=${clubId}&limit=1000`)
+          if (allOrdersResponse.success && allOrdersResponse.data) {
+            const allOrders = allOrdersResponse.data.data?.orders || []
+            const completedPaidRevenue = allOrders
+              .filter(order => order.status === 'completed' && order.paymentStatus === 'paid')
+              .reduce((sum, order) => sum + (order.finalAmount || order.total || 0), 0)
+
+            setStats({
+              ...apiStats,
+              totalRevenue: completedPaidRevenue
+            })
+          } else {
+            setStats(apiStats)
+          }
+        } else {
+          setStats(null)
+        }
       }
     } catch (error) {
       // console.error('Error loading stats:', error)
@@ -459,33 +572,60 @@ export default function OrdersPage() {
         </div>
 
         {/* Stats Cards */}
-        {stats && (
+        {((typeFilter === 'products' && stats) || (typeFilter === 'events' && eventStats)) && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
-                <Package className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium">
+                  {typeFilter === 'events' ? 'Total Registrations' : 'Total Orders'}
+                </CardTitle>
+                {typeFilter === 'events' ? (
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <Package className="h-4 w-4 text-muted-foreground" />
+                )}
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stats.totalOrders}</div>
+                <div className="text-2xl font-bold">
+                  {typeFilter === 'events' ? eventStats?.totalOrders : stats?.totalOrders}
+                </div>
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Pending</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  {typeFilter === 'events' ? 'Pending' : 'Pending Orders'}
+                </CardTitle>
                 <Clock className="h-4 w-4 text-yellow-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-yellow-600">{stats.pendingOrders}</div>
+                <div className="text-2xl font-bold text-yellow-600">
+                  {typeFilter === 'events' ? eventStats?.pendingOrders : stats?.pendingOrders}
+                </div>
               </CardContent>
             </Card>
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Completed</CardTitle>
+                <CardTitle className="text-sm font-medium">
+                  {typeFilter === 'events' ? 'Confirmed' : 'Completed Orders'}
+                </CardTitle>
                 <CheckCircle className="h-4 w-4 text-green-600" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-green-600">{stats.completedOrders}</div>
+                <div className="text-2xl font-bold text-green-600">
+                  {typeFilter === 'events' ? eventStats?.completedOrders : stats?.completedOrders}
+                </div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+                <span className="text-sm font-medium text-muted-foreground">INR</span>
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {typeFilter === 'events' ? (eventStats?.totalRevenue ? formatCurrency(eventStats.totalRevenue, 'INR') : '₹0') : (stats?.totalRevenue ? formatCurrency(stats.totalRevenue, 'INR') : '₹0')}
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -495,7 +635,19 @@ export default function OrdersPage() {
         <Card>
           <CardContent className="p-6">
             <Tabs value={typeFilter} onValueChange={(value) => setTypeFilter(value as 'products' | 'events')} className="w-full">
-              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between mb-4">
+              {/* Search and Tabs in same row */}
+              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between mb-6">
+                <div className="flex-1 min-w-[200px]">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                    <Input
+                      placeholder={typeFilter === 'events' ? "Search event registrations by name, email, or event..." : "Search orders by number, customer name, or email..."}
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
                 <TabsList>
                   <TabsTrigger value="events" className="flex items-center gap-2">
                     <Calendar className="w-4 h-4" />
@@ -507,32 +659,97 @@ export default function OrdersPage() {
                   </TabsTrigger>
                 </TabsList>
               </div>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <div className="flex-1">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                    <Input
-                      placeholder={typeFilter === 'events' ? "Search event registrations by name, email, or event..." : "Search orders by number, customer name, or email..."}
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-                </div>
+              
+              {/* Filters in row below */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-full sm:w-48">
+                  <SelectTrigger className="w-full">
                     <SelectValue placeholder="Filter by status" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Statuses</SelectItem>
-                    {Object.entries(statusConfig).map(([key, config]) => (
+                    {Object.entries(typeFilter === 'events' ? eventStatusConfig : statusConfig).map(([key, config]) => (
                       <SelectItem key={key} value={key}>
                         {config.label}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                {typeFilter === 'events' && (
+                  <>
+                    <Select value={earlyBirdFilter} onValueChange={(value) => setEarlyBirdFilter(value as 'all' | 'used' | 'not_used')}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Early Bird" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Tickets</SelectItem>
+                        <SelectItem value="used">Early Bird Used</SelectItem>
+                        <SelectItem value="not_used">Early Bird Not Used</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select value={couponFilter} onValueChange={(value) => setCouponFilter(value as 'all' | 'used' | 'not_used')}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Coupon" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Tickets</SelectItem>
+                        <SelectItem value="used">Coupon Used</SelectItem>
+                        <SelectItem value="not_used">Coupon Not Used</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <div className="w-full">
+                      <Input
+                        type="date"
+                        placeholder="Payment Date"
+                        value={paymentDateFilter}
+                        onChange={(e) => setPaymentDateFilter(e.target.value)}
+                        className="w-full"
+                      />
+                    </div>
+                    <Select value={amountFilter} onValueChange={(value) => setAmountFilter(value as 'all' | 'free' | 'paid' | 'range')}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Amount" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Amounts</SelectItem>
+                        <SelectItem value="free">Free Tickets</SelectItem>
+                        <SelectItem value="paid">Paid Tickets</SelectItem>
+                        <SelectItem value="range">Amount Range</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </>
+                )}
               </div>
+              {amountFilter === 'range' && typeFilter === 'events' && (
+                <div className="flex flex-col sm:flex-row gap-4 mt-4">
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="amount-min" className="text-sm whitespace-nowrap">Min Amount:</Label>
+                    <Input
+                      id="amount-min"
+                      type="number"
+                      placeholder="0"
+                      value={amountMin}
+                      onChange={(e) => setAmountMin(e.target.value)}
+                      className="w-24"
+                      min="0"
+                      step="0.01"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="amount-max" className="text-sm whitespace-nowrap">Max Amount:</Label>
+                    <Input
+                      id="amount-max"
+                      type="number"
+                      placeholder="1000"
+                      value={amountMax}
+                      onChange={(e) => setAmountMax(e.target.value)}
+                      className="w-24"
+                      min="0"
+                      step="0.01"
+                    />
+                  </div>
+                </div>
+              )}
             </Tabs>
           </CardContent>
         </Card>
@@ -724,9 +941,9 @@ export default function OrdersPage() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Badge className={regStatus === 'confirmed' ? 'bg-green-100 text-green-800' : (regStatus === 'cancelled' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800')}>
+                            <Badge className={eventStatusConfig[regStatus]?.color || 'bg-gray-100 text-gray-800'}>
                               <StatusIcon className="w-3 h-3 mr-1" />
-                              {regStatus.charAt(0).toUpperCase() + regStatus.slice(1)}
+                              {eventStatusConfig[regStatus]?.label || regStatus.charAt(0).toUpperCase() + regStatus.slice(1)}
                             </Badge>
                           </TableCell>
                           <TableCell>
@@ -783,6 +1000,29 @@ export default function OrdersPage() {
                   variant="outline"
                   onClick={() => setCurrentPage(currentPage + 1)}
                   disabled={currentPage === totalPages}
+                >
+                  Next
+                </Button>
+              </div>
+            )}
+
+            {/* Event Pagination */}
+            {typeFilter === 'events' && eventTotalPages > 1 && (
+              <div className="flex items-center justify-center space-x-2 mt-6">
+                <Button
+                  variant="outline"
+                  onClick={() => setEventCurrentPage(eventCurrentPage - 1)}
+                  disabled={eventCurrentPage === 1}
+                >
+                  Previous
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  Page {eventCurrentPage} of {eventTotalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  onClick={() => setEventCurrentPage(eventCurrentPage + 1)}
+                  disabled={eventCurrentPage === eventTotalPages}
                 >
                   Next
                 </Button>
