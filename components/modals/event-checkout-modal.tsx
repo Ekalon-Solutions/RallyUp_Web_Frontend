@@ -348,7 +348,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
               reservationToken || undefined,
               0,
               couponDiscount || undefined,
-              earlyBirdAmt || undefined,
+              earlyBirdDiscountTotal || undefined,
               reservedDiscount || undefined,
             )
           : await apiClient.registerForPublicEvent(String(event._id), {
