@@ -166,6 +166,15 @@ export default function UserEventRegistrationModal({ eventId, isOpen, onClose, o
       a.phoneFull = `${code}${p}`
     }
 
+    const phoneNumbers = attendees.map(a => a.phoneFull)
+    const uniquePhones = new Set(phoneNumbers)
+    if (uniquePhones.size !== phoneNumbers.length) {
+      const duplicate = phoneNumbers.find((p, i) => phoneNumbers.indexOf(p) !== i)
+      const dupIndex = phoneNumbers.lastIndexOf(duplicate)
+      toast.error(`Attendee ${dupIndex + 1} has the same phone number as another attendee`)
+      return
+    }
+
     let couponToApply = null
     if (appliedCoupon && orderTotalBeforeCoupon > 0) {
       if (!user) {
