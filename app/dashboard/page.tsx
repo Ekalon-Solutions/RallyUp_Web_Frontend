@@ -368,30 +368,30 @@ export default function DashboardPage() {
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Active Members</CardTitle>
-                  <Users className="h-4 w-4 text-blue-600" />
+                  <Users className="h-4 w-4 text-primary" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-blue-600">{stats.activeMembers}</div>
+                  <div className="text-2xl font-bold text-primary">{stats.activeMembers}</div>
                   <p className="text-xs text-muted-foreground mt-1">{stats.totalMembers} total members</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Upcoming Events</CardTitle>
-                  <Calendar className="h-4 w-4 text-green-600" />
+                  <Calendar className="h-4 w-4 text-[hsl(var(--wingman-green))]" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-green-600">{stats.upcomingEvents}</div>
+                  <div className="text-2xl font-bold text-[hsl(var(--wingman-green))]">{stats.upcomingEvents}</div>
                   <p className="text-xs text-muted-foreground mt-1">Live match screenings & socials</p>
                 </CardContent>
               </Card>
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Store Revenue</CardTitle>
-                  <ShoppingBag className="h-4 w-4 text-purple-600" />
+                  <ShoppingBag className="h-4 w-4 text-[hsl(var(--wingman-purple))]" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-purple-600">₹{stats.storeRevenue.toLocaleString()}</div>
+                  <div className="text-2xl font-bold text-[hsl(var(--wingman-purple))]">₹{stats.storeRevenue.toLocaleString()}</div>
                   <p className="text-xs text-muted-foreground mt-1">Monthly merchandise sales</p>
                 </CardContent>
               </Card>

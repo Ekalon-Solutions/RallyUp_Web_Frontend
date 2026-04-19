@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { ChevronDown, ChevronUp, ArrowRight, Calendar } from "lucide-react"
+import { ChevronDown, ChevronUp, ArrowRight, Calendar, LayoutGrid, BarChart2, Volume2, ShoppingCart, Images, Play, SlidersHorizontal, Music, Video, ShoppingBag, Smartphone, ClipboardList } from "lucide-react"
 import { SiteNavbar } from "@/components/site-navbar"
 import { SiteFooter } from "@/components/site-footer"
 import { ScrollToTop } from "@/components/scroll-to-top"
@@ -19,11 +19,11 @@ const LOGO_FRAMES = [
   "/wingmanlogo/Property 1=Default (4).svg",
 ]
 
-function AnimatedLogo({ size = 96 }: { size?: number }) {
+function AnimatedLogo() {
   const [frame, setFrame] = useState(0)
 
   useEffect(() => {
-    const id = setInterval(() => setFrame(f => (f + 1) % LOGO_FRAMES.length), 180)
+    const id = setInterval(() => setFrame(f => (f + 1) % LOGO_FRAMES.length), 400)
     return () => clearInterval(id)
   }, [])
 
@@ -31,8 +31,7 @@ function AnimatedLogo({ size = 96 }: { size?: number }) {
     <Image
       src={LOGO_FRAMES[frame]}
       alt="Wingman Pro"
-      width={size}
-      height={size}
+      fill
       className="object-contain"
       priority
     />
@@ -42,195 +41,349 @@ function AnimatedLogo({ size = 96 }: { size?: number }) {
 function Hero() {
   return (
     <section className="bg-white relative overflow-hidden" id="home">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16 sm:py-20 md:py-24 lg:py-28">
-        <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center">
-          {/* Left Column */}
-          <div className="space-y-6 order-1">
-            {/* Animated Logo */}
-            <AnimatedLogo size={96} />
 
-            {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#222] border border-[#e18f67]">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#e18f67] flex-shrink-0" />
-              <span className="text-[#e18f67] text-[10px] font-medium leading-tight">
-                The first AI-powered platform for Supporter Groups and Sports Clubs.
-              </span>
-            </div>
+      {/* ── Mobile layout ── */}
+      <div className="lg:hidden">
+        {/* Full-width dark image section with sweeping curved bottom */}
+        <div
+          className="relative w-full overflow-hidden"
+          style={{ height: "calc(80vw + 24px)" }}
+        >
+          {/* Dark layer — stops 24px from bottom so box-shadow is visible at right edge */}
+          <div
+            className="absolute top-0 left-0 right-0"
+            style={{
+              bottom: "24px",
+              background: "linear-gradient(128deg, #1e1e1e 41.5%, #3a3a3a 98.5%)",
+              borderBottomLeftRadius: "100% 75%",
+              boxShadow: "0 18px 0 0 #f1441a",
+            }}
+          />
+          {/* Ram illustration — right-aligned */}
+          <div className="absolute top-0 right-0 h-[80%] w-[75%] z-10">
+            <Image
+              src={LOGO_FRAMES[0]}
+              alt="Wingman Pro"
+              fill
+              className="object-contain object-right-top mt-5"
+              priority
+            />
+          </div>
+        </div>
 
-            {/* Headline */}
-            <h1 className="text-4xl sm:text-5xl lg:text-[56px] font-bold text-[#222] leading-tight">
-              Don&apos;t Just Run Your Club.{" "}
-              <span className="text-[#f1441a]">Revolutionize.</span>
-            </h1>
-
-            {/* Sub-description */}
-            <p className="text-[#222] text-lg sm:text-xl leading-relaxed max-w-lg">
-              One platform for membership, ticketing, payments and fan engagement.
-            </p>
-
-            {/* Buttons */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-2">
-              <Link href="/contact">
-                <Button className="w-full sm:w-auto px-8 h-10 bg-[#f1441a] hover:bg-[#d93c16] text-white font-medium text-xs rounded-[5px] uppercase tracking-wider">
-                  Book a Demo
-                </Button>
-              </Link>
-              <Link href="#features">
-                <Button
-                  variant="outline"
-                  className="w-full sm:w-auto px-8 h-10 bg-[#222] border border-[#a2a2a2] text-white hover:bg-[#333] hover:text-white font-medium text-xs rounded-[5px] uppercase tracking-wider flex items-center justify-center gap-2"
-                >
-                  <ArrowRight className="w-3.5 h-3.5" />
-                  Explore Features
-                </Button>
-              </Link>
-            </div>
+        {/* Text content below */}
+        <div className="px-5 py-7 space-y-5 bg-white">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-background border border-[#e18f67]">
+            <div className="w-1.5 h-1.5 rounded-full bg-[#e18f67] flex-shrink-0" />
+            <span className="text-[#e18f67] text-[10px] font-medium leading-tight">
+              Club Management platform
+            </span>
           </div>
 
-          {/* Right Column — decorated image */}
-          <div className="relative h-[320px] sm:h-[420px] md:h-[480px] lg:h-[520px] order-2">
-            {/* Orange background rect */}
-            <div className="absolute top-0 right-0 w-[78%] h-[90%] bg-[#f1441a] rounded-[20px]" />
-            {/* Dark gradient rect */}
-            <div
-              className="absolute top-[6%] right-[2%] w-[74%] h-[92%] rounded-l-[20px]"
-              style={{ background: "linear-gradient(128deg, #222 41.5%, #434242 98.5%)" }}
-            />
-            {/* App illustration */}
-            <div className="absolute top-[8%] right-[4%] w-[70%] h-[88%] z-10">
-              <Image
-                src="/Webpage Assets 01.png"
-                alt="Wingman Pro app dashboard"
-                fill
-                sizes="(max-width: 640px) 70vw, (max-width: 1024px) 55vw, 40vw"
-                className="object-contain drop-shadow-2xl"
-                priority
+          <h1 className="text-3xl font-bold text-background leading-tight">
+            Don&apos;t Just Run Your Club.{" "}
+            <span className="text-primary">Revolutionize.</span>
+          </h1>
+
+          <p className="text-background text-base leading-relaxed">
+            One platform for membership, ticketing, payments and fan engagement.
+          </p>
+
+          <div className="flex flex-row items-center gap-3 pt-1">
+            <Link href="/contact">
+              <Button
+                variant="default"
+                className="px-4 h-8 text-white font-medium text-xs rounded-[5px] uppercase tracking-wider"
+              >
+                Book a Demo
+              </Button>
+            </Link>
+            <Link href="#features">
+              <Button
+                variant="outline"
+                className="px-4 h-8 border font-medium text-xs rounded-[5px] uppercase tracking-wider flex items-center gap-2"
+              >
+                Explore Features
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Desktop layout ── */}
+      <div className="hidden lg:block">
+        <div className="mx-auto py-8 lg:py-15 pl-5">
+          <div className="grid lg:grid-cols-[3fr_3fr] gap-0 items-center">
+            {/* Left Column */}
+            <div className="space-y-6">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-background border border-[#e18f67]">
+                <div className="w-1.5 h-1.5 rounded-full bg-[#e18f67] flex-shrink-0" />
+                <span className="text-[#e18f67] text-[10px] font-medium leading-tight">
+                  The first AI-powered platform for Supporter Groups and Sports Clubs.
+                </span>
+              </div>
+
+              <h1 className="text-5xl font-bold text-background leading-tight">
+                Don&apos;t Just Run Your Club.{" "}
+                <span className="text-primary">Revolutionize.</span>
+              </h1>
+
+              <p className="text-background text-xl leading-relaxed max-w-lg">
+                One platform for membership, ticketing, payments and fan engagement.
+              </p>
+
+              <div className="flex flex-row items-center gap-4 pt-2">
+                <Link href="/contact">
+                  <Button
+                    variant="default"
+                    className="px-8 h-10 text-white font-medium text-xs rounded-[5px] uppercase tracking-wider"
+                  >
+                    Book a Demo
+                  </Button>
+                </Link>
+                <Link href="#features">
+                  <Button
+                    variant="outline"
+                    className="px-8 h-10 border font-medium text-xs rounded-[5px] uppercase tracking-wider flex items-center gap-2"
+                  >
+                    <ArrowRight className="w-3.5 h-3.5" />
+                    Explore Features
+                  </Button>
+                </Link>
+              </div>
+            </div>
+
+            {/* Right Column — decorated image */}
+            <div className="relative h-[65vh] xl:h-[70vh]">
+              <div className="absolute top-0 right-0 w-[110%] h-[90%] bg-primary rounded-[20px]" />
+              <div
+                className="absolute top-[6%] right-[0%] w-[105%] h-[92%] rounded-l-[20px]"
+                style={{ background: "linear-gradient(128deg, #222 41.5%, #434242 98.5%)" }}
               />
+              <div className="absolute top-[8%] right-[4%] w-[100%] h-[88%] z-10">
+                <AnimatedLogo />
+              </div>
             </div>
           </div>
         </div>
       </div>
+
     </section>
   )
 }
 
 type FeatureTab = "feed" | "events" | "leaderboard" | "chants" | "merch" | "gallery"
 
-const tabContent: Record<FeatureTab, Array<{ icon: string; title: string; desc: string; color: string }>> = {
-  feed: [
-    { icon: "📡", title: "Live Fixtures & League Table", desc: "Stay on top of upcoming matches across all competitions and check your team's standing in real time.", color: "bg-[#69a78a]" },
-    { icon: "📅", title: "Events, Polls & Membership", desc: "Join fan screenings, vote on club decisions and manage your membership — all from one place.", color: "bg-[#a291b1]" },
-  ],
-  events: [
-    { icon: "🎟️", title: "Match Day Ticketing", desc: "QR-code ready ticketing for match days, socials and special events with seamless checkout.", color: "bg-[#69a78a]" },
-    { icon: "📊", title: "Event Analytics", desc: "Track attendance, revenue and engagement for every event your club hosts.", color: "bg-[#a291b1]" },
-  ],
-  leaderboard: [
-    { icon: "🏆", title: "Fan Leaderboards", desc: "Award points for attendance, purchases and interactions to boost fan loyalty.", color: "bg-[#69a78a]" },
-    { icon: "⭐", title: "Member Rewards", desc: "Gamify fan engagement with badges, points and exclusive perks for top supporters.", color: "bg-[#a291b1]" },
-  ],
-  chants: [
-    { icon: "🎵", title: "Club Chant Library", desc: "Build and share your club's chant library, keeping traditions alive for every member.", color: "bg-[#69a78a]" },
-    { icon: "🔊", title: "Audio Community", desc: "Record and share chants with fans worldwide, building your club's unique culture.", color: "bg-[#a291b1]" },
-  ],
-  merch: [
-    { icon: "👕", title: "Merchandise Store", desc: "Real-time inventory tracking and seamless checkout for your club's merchandise.", color: "bg-[#69a78a]" },
-    { icon: "💳", title: "Integrated Payments", desc: "Secure multi-currency payments with automated financial reporting and reconciliation.", color: "bg-[#a291b1]" },
-  ],
-  gallery: [
-    { icon: "📸", title: "Photo Gallery", desc: "Build a rich visual archive of your club's moments, from match days to away trips.", color: "bg-[#69a78a]" },
-    { icon: "🎬", title: "Media Library", desc: "Share highlights and memories with your global fan base across all devices.", color: "bg-[#a291b1]" },
-  ],
-}
-
-function FeaturesShowcase() {
-  const [activeTab, setActiveTab] = useState<FeatureTab>("feed")
-
-  const tabs: { id: FeatureTab; label: string }[] = [
-    { id: "feed", label: "Feed" },
-    { id: "events", label: "Events" },
-    { id: "leaderboard", label: "Leaderboard" },
-    { id: "chants", label: "Club Chants" },
-    { id: "merch", label: "Merchandise" },
-    { id: "gallery", label: "Gallery" },
+const tabConfig: Array<{
+  id: FeatureTab
+  label: string
+  Icon: React.ComponentType<{ className?: string }>
+  headline: [string, string]
+  sub: string
+  cards: Array<{ Icon: React.ComponentType<{ className?: string }>; title: string; desc: string; accent: string }>
+}> = [
+    {
+      id: "feed",
+      label: "Feed",
+      Icon: LayoutGrid,
+      headline: ["Your Club.", "All in One Place."],
+      sub: "Track matches, manage members, vote, and stay updated — all in one dashboard.",
+      cards: [
+        { Icon: Play, title: "Live Fixtures & League Table", desc: "Stay on top of upcoming matches across all competitions and check your team's standing in real time.", accent: "bg-[hsl(var(--wingman-green))]" },
+        { Icon: Calendar, title: "Events, Polls & Membership", desc: "Join fan screenings, vote on club decisions and manage your membership — all from one place.", accent: "bg-[hsl(var(--wingman-purple-light))]" },
+      ],
+    },
+    {
+      id: "events",
+      label: "Events",
+      Icon: Calendar,
+      headline: ["Don't Miss", "A Single Moment."],
+      sub: "Browse screenings, CSR drives, and meetups — search, register, and relive events in one place.",
+      cards: [
+        { Icon: SlidersHorizontal, title: "Search & Filter Events", desc: "Find exactly what you're looking for — filter by category, date or type and register in seconds.", accent: "bg-[hsl(var(--wingman-green))]" },
+        { Icon: Calendar, title: "Ongoing, Upcoming & Past", desc: "See what's live right now, what's coming up next and revisit every event your club has hosted.", accent: "bg-[hsl(var(--wingman-purple-light))]" },
+      ],
+    },
+    {
+      id: "leaderboard",
+      label: "Leaderboard",
+      Icon: BarChart2,
+      headline: ["Compete.", "Climb the Ranks."],
+      sub: "Attend more events, climb the ranks, and earn points with every show of loyalty.",
+      cards: [
+        { Icon: BarChart2, title: "Personal Ranking", desc: "Instantly see your current position, events attended and total points — all in one snapshot.", accent: "bg-[hsl(var(--wingman-green))]" },
+        { Icon: ClipboardList, title: "Top Performers Board", desc: "See who's leading the pack across the club and fuel your drive to show up more.", accent: "bg-[hsl(var(--wingman-purple-light))]" },
+      ],
+    },
+    {
+      id: "chants",
+      label: "Club Chants",
+      Icon: Volume2,
+      headline: ["Sing Loud.", "Know Every Word."],
+      sub: "Songs, chants, and traditions — all in one place. Learn them and never stay silent again.",
+      cards: [
+        { Icon: Music, title: "Lyrics & Chant Library", desc: "Search and read the full text of every club chant — from match day anthems to terrace classics.", accent: "bg-[hsl(var(--wingman-green))]" },
+        { Icon: Video, title: "Videos & Visual Guides", desc: "Watch embedded videos of chants in action so you can learn the rhythm, words and passion behind each one.", accent: "bg-[hsl(var(--wingman-purple-light))]" },
+      ],
+    },
+    {
+      id: "merch",
+      label: "Merchandise",
+      Icon: ShoppingCart,
+      headline: ["Gear Up.", "Stand Out."],
+      sub: "Official merch — scarves, bottles, collectibles, and more. Show the world where your heart belongs.",
+      cards: [
+        { Icon: ShoppingBag, title: "Apparel & Collectibles", desc: "From match day scarves and water bottles to limited-edition collectibles — gear for every kind of fan.", accent: "bg-[hsl(var(--wingman-green))]" },
+        { Icon: SlidersHorizontal, title: "Search, Filter & Shop", desc: "Sort, filter, and spot featured items — find what you want fast before it's gone.", accent: "bg-[hsl(var(--wingman-purple-light))]" },
+      ],
+    },
+    {
+      id: "gallery",
+      label: "Gallery",
+      Icon: Images,
+      headline: ["Every Moment.", "Saved Forever."],
+      sub: "Relive your club's best moments — from matchdays to fan meetups, all in one place.",
+      cards: [
+        { Icon: Images, title: "Event Albums", desc: "All your club's media organised into albums — one folder per event, easy to find and browse.", accent: "bg-[hsl(var(--wingman-green))]" },
+        { Icon: Smartphone, title: "Full Screen Viewing", desc: "Open any photo or media in full screen and relive the atmosphere like you were right there.", accent: "bg-[hsl(var(--wingman-purple-light))]" },
+      ],
+    },
   ]
 
-  return (
-    <section className="bg-[#dcd4e2] py-16 md:py-20 lg:py-24" id="features">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-start">
-          {/* Left — app panel with tabs */}
-          <div className="bg-white rounded-[20px] overflow-hidden shadow-lg">
-            <div className="flex h-full">
-              {/* Sidebar nav */}
-              <div className="w-[140px] sm:w-[160px] border-r border-[#b5b5b5] py-4 flex flex-col">
-                {tabs.map((tab) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`w-full text-left px-4 py-3 flex items-center gap-2.5 text-sm font-bold transition-colors ${
-                      activeTab === tab.id
-                        ? "bg-[#d4d5fb] text-[#222]"
-                        : "text-[#222] hover:bg-gray-50"
-                    }`}
-                  >
-                    <div
-                      className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                        activeTab === tab.id ? "bg-[#6668a1]" : "bg-gray-300"
-                      }`}
-                    />
-                    <span className="truncate">{tab.label}</span>
-                  </button>
-                ))}
-              </div>
+function FeaturesShowcase() {
+  const [activeIdx, setActiveIdx] = useState(0)
+  const [paused, setPaused] = useState(false)
 
-              {/* App preview */}
-              <div className="flex-1 p-4 flex items-center justify-center min-h-[300px] sm:min-h-[360px]">
-                <div className="relative w-full h-52 sm:h-72">
-                  <Image
-                    src="/Webpage Assets 00.png"
-                    alt="Wingman Pro Dashboard"
-                    fill
-                    sizes="(max-width: 640px) 50vw, (max-width: 1024px) 35vw, 22vw"
-                    className="object-contain"
-                  />
-                </div>
-              </div>
-            </div>
+  useEffect(() => {
+    if (paused) return
+    const id = setInterval(() => setActiveIdx((i) => (i + 1) % tabConfig.length), 3000)
+    return () => clearInterval(id)
+  }, [paused])
+
+  const active = tabConfig[activeIdx]
+
+  return (
+    <section
+      className="bg-[hsl(var(--wingman-lavender))] py-14 md:py-20 lg:py-24"
+      id="features"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+    >
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+
+        {/* ── Mobile layout ── */}
+        <div className="lg:hidden space-y-5">
+          {/* Headline */}
+          <h2 className="text-4xl font-black leading-tight">
+            <span className="text-[hsl(var(--wingman-navy))]">{active.headline[0]}</span>
+            <br />
+            <span className="text-primary">{active.headline[1]}</span>
+          </h2>
+
+          {/* Horizontal scrollable tab pills */}
+          <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+            {tabConfig.map((tab, i) => {
+              const Icon = tab.Icon
+              const isActive = i === activeIdx
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveIdx(i)}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-bold whitespace-nowrap border transition-all flex-shrink-0 ${isActive
+                    ? "bg-secondary text-white border-secondary"
+                    : "bg-white text-[#555] border-gray-200 hover:border-secondary"
+                    }`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  {tab.label}
+                </button>
+              )
+            })}
           </div>
 
-          {/* Right — text + feature cards */}
-          <div className="space-y-8 py-4 lg:py-6">
-            <div className="flex items-start gap-4">
-              <div className="w-[7px] h-24 bg-[#6668a1] rounded-full flex-shrink-0 mt-1" />
-              <h2 className="text-3xl sm:text-4xl lg:text-[44px] font-bold leading-tight">
-                <span className="text-[#222]">Your Club.</span>
-                <br />
-                <span className="text-[#f1441a]">All in One Place.</span>
-              </h2>
-            </div>
-
-            <p className="text-[#646464] text-base sm:text-lg leading-relaxed">
-              Track matches, manage members, vote, and stay updated — all in one dashboard.
-            </p>
-
-            <div className="space-y-5">
-              {tabContent[activeTab].map((card, i) => (
-                <div key={i} className="flex items-start gap-4">
-                  <div
-                    className={`${card.color} w-[72px] h-[70px] rounded-[5px] flex items-center justify-center flex-shrink-0 text-2xl`}
-                  >
-                    {card.icon}
-                  </div>
-                  <div>
-                    <p className="font-semibold text-[#6668a1] text-sm mb-1">{card.title}</p>
-                    <p className="text-[#646464] text-xs leading-relaxed">{card.desc}</p>
-                  </div>
-                </div>
-              ))}
+          {/* Content card */}
+          <div className="bg-[hsl(var(--wingman-purple-muted))] rounded-[20px] p-4">
+            <div className="bg-white/95 rounded-[14px] p-5 space-y-4">
+              <div>
+                <p className="text-primary font-bold text-base">{active.headline[0]}</p>
+                <p className="text-[hsl(var(--wingman-navy))] font-black text-xl">{active.headline[1].toLowerCase()}</p>
+                <p className="text-[#666] text-sm mt-1">{active.sub}</p>
+              </div>
+              <div className="border-t border-gray-100 pt-3 space-y-3">
+                {active.cards.map((card, i) => {
+                  const CardIcon = card.Icon
+                  return (
+                    <div key={i} className="bg-[hsl(var(--wingman-purple-wash))] rounded-xl flex items-center gap-3 px-4 py-3">
+                      <div className={`${card.accent} w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0`}>
+                        <CardIcon className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-[hsl(var(--wingman-navy))] text-sm">{card.title}</p>
+                        <p className="text-[#888] text-xs">{card.desc}</p>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
             </div>
           </div>
         </div>
+
+        {/* ── Desktop layout ── */}
+        <div className="hidden lg:grid lg:grid-cols-[260px_1fr] gap-8 items-stretch">
+          {/* Left — vertical sidebar */}
+          <div className="bg-white rounded-[20px] shadow-md overflow-hidden flex flex-col py-3">
+            {tabConfig.map((tab, i) => {
+              const Icon = tab.Icon
+              const isActive = i === activeIdx
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveIdx(i)}
+                  className={`w-full flex items-center gap-3 px-5 py-3.5 text-sm font-bold transition-all ${isActive ? "bg-[hsl(var(--wingman-purple-wash))] text-[hsl(var(--wingman-navy))]" : "text-[#444] hover:bg-gray-50"
+                    }`}
+                >
+                  <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? "text-secondary" : "text-[#999]"}`} />
+                  <span className="flex-1 text-left">{tab.label}</span>
+                  {isActive && <ArrowRight className="w-3.5 h-3.5 text-secondary" />}
+                </button>
+              )
+            })}
+          </div>
+
+          {/* Right — content panel */}
+          <div className="bg-[hsl(var(--wingman-purple-muted))] rounded-[24px] p-6 flex items-center">
+            <div className="bg-white/95 rounded-[16px] w-full p-8 space-y-6 shadow-sm">
+              <div className="flex items-start gap-4">
+                <div className="w-1 h-20 bg-secondary rounded-full flex-shrink-0 mt-1" />
+                <h2 className="text-4xl font-black leading-tight">
+                  <span className="text-[hsl(var(--wingman-navy))]">{active.headline[0]}</span>
+                  <br />
+                  <span className="text-primary">{active.headline[1]}</span>
+                </h2>
+              </div>
+              <p className="text-[#555] text-base leading-relaxed">{active.sub}</p>
+              <div className="grid grid-cols-2 gap-4 pt-2">
+                {active.cards.map((card, i) => {
+                  const CardIcon = card.Icon
+                  return (
+                    <div key={i} className="flex items-start gap-3">
+                      <div className={`${card.accent} w-14 h-14 rounded-lg flex items-center justify-center flex-shrink-0`}>
+                        <CardIcon className="w-6 h-6 text-white" />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-secondary text-sm mb-1">{card.title}</p>
+                        <p className="text-[#777] text-xs leading-relaxed">{card.desc}</p>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </section>
   )
@@ -238,25 +391,20 @@ function FeaturesShowcase() {
 
 function ImageMarquee() {
   const images = [
-    "/Ankit.png",
-    "/Mihir.png",
-    "/Neeta.png",
-    "/Sunil.png",
-    "/Webpage Assets 06.png",
-    "/Webpage Assets 03.png",
-    "/Ankit.png",
-    "/Mihir.png",
-    "/Neeta.png",
-    "/Sunil.png",
+    "courselclubslogo/afcb.svg",
+    "courselclubslogo/cvflogo.svg",
+    "courselclubslogo/evertonindia.svg",
+    "courselclubslogo/juventusclub.svg",
+    "courselclubslogo/nufc.svg",
   ]
 
   return (
-    <section className="bg-[#6668a1] py-8 overflow-hidden">
+    <section className="bg-secondary py-8 overflow-hidden">
       <div className="flex gap-6 animate-marquee whitespace-nowrap">
         {[...images, ...images].map((src, i) => (
           <div
             key={i}
-            className="border-[6px] border-white rounded-[20px] flex-shrink-0 w-[160px] h-[160px] sm:w-[180px] sm:h-[180px] relative overflow-hidden"
+            className="border-[6px] border-white rounded-[25px] flex-shrink-0 w-[180px] h-[180px] sm:w-[180px] sm:h-[180px] relative overflow-hidden"
           >
             <Image
               src={src}
@@ -284,19 +432,21 @@ function ContactCTA() {
   return (
     <section className="bg-white py-16 md:py-20 lg:py-24" id="contact">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-start">
+        <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-stretch">
           {/* Left */}
-          <div className="space-y-5">
-            <h2 className="text-3xl sm:text-4xl lg:text-[44px] font-bold leading-tight">
-              <span className="text-[#222]">Ready to</span>{" "}
-              <span className="text-[#f1441a]">Upgrade Your Club?</span>
-            </h2>
-            <p className="text-[#6668a1] text-lg leading-relaxed max-w-md">
-              Book a consultation or join the wait-list. Takes two minutes.
-            </p>
+          <div className="flex flex-col gap-8">
+            <div>
+              <h2 className="text-3xl sm:text-4xl lg:text-[44px] font-bold leading-tight mb-3">
+                <span className="text-background">Ready to</span>{" "}
+                <span className="text-primary">Upgrade Your Club?</span>
+              </h2>
+              <p className="text-secondary text-lg leading-relaxed max-w-md">
+                Book a consultation or join the wait-list. Takes two minutes.
+              </p>
+            </div>
 
-            <div className="border-t border-[#888]/30 pt-8 mt-8">
-              <p className="text-[#6668a1] font-semibold text-base mb-1">Need urgent help?</p>
+            <div className="mt-auto border-t border-border/30 pt-8">
+              <p className="text-secondary font-semibold text-base mb-1">Need urgent help?</p>
               <p className="text-[#888] text-sm">Contact your Sales POC directly for fastest resolution.</p>
             </div>
           </div>
@@ -304,47 +454,47 @@ function ContactCTA() {
           {/* Right — form */}
           {submitted ? (
             <div className="flex flex-col items-center justify-center py-16 space-y-4 text-center">
-              <div className="w-16 h-16 rounded-full bg-[#dcd4e2] flex items-center justify-center text-3xl">✓</div>
-              <p className="text-[#222] font-bold text-xl">Thanks! We&apos;ll be in touch shortly.</p>
+              <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center text-3xl">✓</div>
+              <p className="text-background font-bold text-xl">Thanks! We&apos;ll be in touch shortly.</p>
               <Button
                 variant="outline"
-                className="border border-[#6668a1] text-[#6668a1] hover:bg-[#6668a1]/10 rounded-[5px] text-xs font-medium uppercase tracking-wide"
+                className="border border-secondary text-secondary hover:bg-secondary/10 rounded-[5px] text-xs font-medium uppercase tracking-wide"
                 onClick={() => setSubmitted(false)}
               >
                 Submit another
               </Button>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4 bg-secondary/40 p-4 rounded-[10px]">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-[#6668a1] text-xs font-semibold">Full Name</label>
+                  <label className="text-secondary text-xs font-semibold">Full Name</label>
                   <input
                     type="text"
                     placeholder="Enter your full name"
                     value={form.name}
                     onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                    className="w-full h-11 px-4 border border-[#888] rounded-[10px] text-xs text-[#888] placeholder-[#888] focus:outline-none focus:border-[#6668a1] bg-white"
+                    className="w-full h-11 px-4 border rounded-[10px] text-xs placeholder-[#888] focus:outline-none focus:border-secondary bg-white"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[#6668a1] text-xs font-semibold">Email</label>
+                  <label className="text-secondary text-xs font-semibold">Email</label>
                   <input
                     type="email"
                     placeholder="Enter your email"
                     value={form.email}
                     onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                    className="w-full h-11 px-4 border border-[#888] rounded-[10px] text-xs text-[#888] placeholder-[#888] focus:outline-none focus:border-[#6668a1] bg-white"
+                    className="w-full h-11 px-4 border rounded-[10px] text-xs placeholder-[#888] focus:outline-none focus:border-secondary bg-white"
                   />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[#6668a1] text-xs font-semibold">Topic</label>
+                <label className="text-secondary text-xs font-semibold">Topic</label>
                 <select
                   value={form.topic}
                   onChange={(e) => setForm((f) => ({ ...f, topic: e.target.value }))}
-                  className="w-full h-11 px-4 border border-[#888] rounded-[10px] text-xs text-[#888] focus:outline-none focus:border-[#6668a1] appearance-none bg-white"
+                  className="w-full h-11 px-4 border rounded-[10px] text-xs text-[#888] focus:outline-none focus:border-secondary appearance-none bg-white"
                 >
                   <option>Product Support</option>
                   <option>Sales Inquiry</option>
@@ -354,30 +504,30 @@ function ContactCTA() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-[#6668a1] text-xs font-semibold">Message</label>
+                <label className="text-secondary text-xs font-semibold">Message</label>
                 <textarea
                   placeholder="Tell us what you need..."
                   value={form.message}
                   onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))}
                   rows={4}
-                  className="w-full px-4 py-3 border border-[#888] rounded-[10px] text-xs text-[#888] placeholder-[#888] focus:outline-none focus:border-[#6668a1] resize-none bg-white"
+                  className="w-full px-4 py-3 border rounded-[10px] text-xs text-[#888] placeholder-[#888] focus:outline-none focus:border-secondary resize-none bg-white"
                 />
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-3 pt-1">
+              <div className="flex flex-col gap-3 pt-1">
                 <Button
                   type="submit"
-                  className="flex-1 h-10 bg-[#6668a1] hover:bg-[#5557a0] text-white font-medium text-xs rounded-[5px] uppercase tracking-wider"
+                  variant="secondary"
+                  className="bg-secondary/50"
                 >
                   Submit
                 </Button>
                 <Link href="/clubs" className="flex-1">
                   <Button
                     type="button"
-                    variant="outline"
-                    className="w-full h-10 border border-[#6668a1] text-[#6668a1] hover:bg-[#6668a1]/10 font-medium text-xs rounded-[5px] uppercase tracking-wider flex items-center justify-center gap-2"
+                    variant="secondary"
+                    className="w-full"
                   >
-                    <Calendar className="w-3.5 h-3.5" />
                     Join Waiting List
                   </Button>
                 </Link>
@@ -422,31 +572,32 @@ function FAQ() {
 
   return (
     <section className="py-16 md:py-20 lg:py-24 relative overflow-hidden" id="faqs">
-      <div className="absolute inset-0 bg-gradient-to-r from-white to-[#dcd4e2] -z-10" />
+      <div className="absolute inset-0 bg-gradient-to-r from-white to-secondary/40 -z-10" />
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <h2 className="text-3xl sm:text-4xl lg:text-[44px] font-bold text-center mb-12">
-          <span className="text-[#222]">Frequently Asked</span>{" "}
-          <span className="text-[#f1441a]">Questions</span>
+          <span className="text-background">Frequently Asked</span>{" "}
+          <span className="text-primary">Questions</span>
         </h2>
 
         <div className="max-w-3xl mx-auto space-y-3">
           {faqs.map((faq, i) => (
-            <div key={i} className="bg-[#dcd4e2] border border-[#6668a1] rounded-[20px] overflow-hidden">
+            <div key={i} className={`bg-gradient-to-r from-white to-secondary/60 border rounded-[20px] overflow-hidden ${open === i ? "bg-secondary/60 border-primary" : "border-secondary"}`}>
               <button
                 onClick={() => setOpen(open === i ? null : i)}
                 className="w-full flex items-center justify-between px-5 py-4 text-left gap-4"
               >
-                <span className="text-[#6668a1] font-medium text-sm">{faq.q}</span>
+                {open === i ? (<span className="text-primary font-medium text-sm">{faq.q}</span>)
+                  : (<span className="text-secondary font-medium text-sm">{faq.q}</span>)}
                 {open === i ? (
-                  <ChevronUp className="w-4 h-4 text-[#6668a1] flex-shrink-0" />
+                  <ChevronUp className="w-4 h-4 text-secondary flex-shrink-0" />
                 ) : (
-                  <ChevronDown className="w-4 h-4 text-[#6668a1] flex-shrink-0" />
+                  <ChevronDown className="w-4 h-4 text-secondary flex-shrink-0" />
                 )}
               </button>
               {open === i && (
                 <div className="px-5 pb-5">
-                  <p className="text-[#646464] text-sm leading-relaxed">{faq.a}</p>
+                  <p className="text-secondary text-sm leading-relaxed">{faq.a}</p>
                 </div>
               )}
             </div>
