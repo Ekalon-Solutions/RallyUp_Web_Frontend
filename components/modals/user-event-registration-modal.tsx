@@ -42,7 +42,8 @@ export default function UserEventRegistrationModal({ eventId, isOpen, onClose, o
   const { user } = useAuth()
   const [ticketCount, setTicketCount] = useState<number>(1)
   const [attendees, setAttendees] = useState<Attendee[]>([{ name: '', phone: '', phoneCode: '', open: true }])
-  
+  const [remainingSeats, setRemainingSeats] = useState<number | null>(null)
+
   const [couponCode, setCouponCode] = useState("")
   const [validatingCoupon, setValidatingCoupon] = useState(false)
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null)
@@ -87,6 +88,24 @@ export default function UserEventRegistrationModal({ eventId, isOpen, onClose, o
   const orderTotalBeforeCoupon = Math.max(totalBasePrice - earlyBirdDiscountAmount - totalMemberDiscountAmount, 0)
 
   useEffect(() => {
+    if (isOpen && eventId) {
+      apiClient.getPublicEventById(eventId).then(res => {
+        if (res.success && res.data) {
+          const { maxAttendees, currentAttendees } = res.data
+          setRemainingSeats(maxAttendees != null ? Math.max(0, maxAttendees - (currentAttendees || 0)) : null)
+        }
+      }).catch(() => {
+        if (event?.maxAttendees != null) {
+          setRemainingSeats(Math.max(0, event.maxAttendees - (event.currentAttendees || 0)))
+        }
+      })
+    }
+    if (!isOpen) {
+      setRemainingSeats(null)
+    }
+  }, [isOpen, eventId])
+
+  useEffect(() => {
     setAttendees(prev => {
       const copy = [...prev]
       if (ticketCount > copy.length) {
@@ -110,7 +129,7 @@ export default function UserEventRegistrationModal({ eventId, isOpen, onClose, o
 
       return copy
     })
-    
+
     if (!isOpen) {
       setCouponCode("")
       setAppliedCoupon(null)
@@ -135,6 +154,11 @@ export default function UserEventRegistrationModal({ eventId, isOpen, onClose, o
 
   const handleRegister = async () => {
     if (!eventId) return
+
+    if (remainingSeats !== null && attendees.length > remainingSeats) {
+      toast.error(remainingSeats === 0 ? "This event is now full" : `Only ${remainingSeats} seat${remainingSeats !== 1 ? 's' : ''} remaining`)
+      return
+    }
 
     const phoneCodeRegex = /^\+?\d{1,4}$/
     const digitsOnly = (s: string) => (s || '').replace(/[^0-9]/g, '')
@@ -302,11 +326,29 @@ export default function UserEventRegistrationModal({ eventId, isOpen, onClose, o
                 <Minus className="w-4 h-4" />
               </Button>
               <div className="text-lg font-medium">{ticketCount}</div>
-              <Button size="sm" variant="outline" onClick={() => setTicketCount(ticketCount + 1)}>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  if (remainingSeats !== null && ticketCount >= remainingSeats) {
+                    toast.error(remainingSeats === 0 ? "This event is now full" : `Only ${remainingSeats} seat${remainingSeats !== 1 ? 's' : ''} remaining`)
+                    return
+                  }
+                  setTicketCount(ticketCount + 1)
+                }}
+                disabled={remainingSeats !== null && ticketCount >= remainingSeats}
+              >
                 <Plus className="w-4 h-4" />
               </Button>
             </div>
-            <div className="text-sm text-muted-foreground">Number of tickets</div>
+            <div className="text-sm text-muted-foreground">
+              Number of tickets
+              {remainingSeats !== null && (
+                <span className={`ml-2 font-medium ${remainingSeats === 0 ? 'text-red-600' : remainingSeats <= 5 ? 'text-orange-600' : 'text-green-600'}`}>
+                  ({remainingSeats === 0 ? 'No seats left' : `${remainingSeats} left`})
+                </span>
+              )}
+            </div>
           </div>
 
           <div className="space-y-2">
@@ -356,7 +398,7 @@ export default function UserEventRegistrationModal({ eventId, isOpen, onClose, o
                       onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
                       disabled={validatingCoupon}
                       className="font-mono text-sm flex-1 min-w-0"
-                      onKeyPress={(e) => {
+                      onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                           e.preventDefault()
                           handleValidateCoupon()

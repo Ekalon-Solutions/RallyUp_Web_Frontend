@@ -51,13 +51,14 @@ export function EventRegistrationModal({
   const [showCancelConfirm, setShowCancelConfirm] = useState(false)
   const [attendees, setAttendees] = useState<Attendee[]>([{ name: "", phone: "" }])
   const [errors, setErrors] = useState<Record<number, { name?: string; phone?: string }>>({})
-  
+  const [remainingSeats, setRemainingSeats] = useState<number | null>(null)
+
   // Coupon states
   const [couponCode, setCouponCode] = useState("")
   const [validatingCoupon, setValidatingCoupon] = useState(false)
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null)
 
-  // Reset form when modal opens
+  // Reset form and fetch fresh capacity when modal opens
   useEffect(() => {
     if (isOpen && !isRegistered) {
       setNotes("")
@@ -66,6 +67,18 @@ export function EventRegistrationModal({
       setShowCancelConfirm(false)
       setCouponCode("")
       setAppliedCoupon(null)
+    }
+    if (isOpen && event?._id) {
+      apiClient.getPublicEventById(event._id).then(res => {
+        if (res.success && res.data) {
+          const { maxAttendees, currentAttendees } = res.data
+          setRemainingSeats(maxAttendees != null ? Math.max(0, maxAttendees - (currentAttendees || 0)) : null)
+        }
+      }).catch(() => {
+        if (event?.maxAttendees != null) {
+          setRemainingSeats(Math.max(0, event.maxAttendees - (event.currentAttendees || 0)))
+        }
+      })
     }
   }, [isOpen, isRegistered])
 
@@ -125,6 +138,11 @@ export function EventRegistrationModal({
     // Validate attendees before submission
     if (!validateAttendees()) {
       toast.error("Please fix the errors in the form")
+      return
+    }
+
+    if (remainingSeats !== null && attendees.length > remainingSeats) {
+      toast.error(remainingSeats === 0 ? "This event is now full" : `Only ${remainingSeats} seat${remainingSeats !== 1 ? 's' : ''} remaining`)
       return
     }
 
@@ -244,7 +262,11 @@ export function EventRegistrationModal({
   }
 
   const addAttendee = () => {
-    if (attendees.length < 10) { // Limit to 10 attendees
+    if (remainingSeats !== null && attendees.length >= remainingSeats) {
+      toast.error(remainingSeats === 0 ? "This event is now full" : `Only ${remainingSeats} seat${remainingSeats !== 1 ? 's' : ''} remaining`)
+      return
+    }
+    if (attendees.length < 10) {
       setAttendees([...attendees, { name: "", phone: "" }])
     } else {
       toast.error("Maximum 10 attendees allowed per registration")
@@ -505,6 +527,11 @@ export function EventRegistrationModal({
                   </CardTitle>
                   <CardDescription>
                     Add attendees who will be participating in this event (Maximum 10)
+                    {remainingSeats !== null && (
+                      <span className={`ml-1 font-medium ${remainingSeats === 0 ? 'text-red-600' : remainingSeats <= 5 ? 'text-orange-600' : 'text-green-600'}`}>
+                        — {remainingSeats === 0 ? 'No seats remaining' : `${remainingSeats} seat${remainingSeats !== 1 ? 's' : ''} remaining`}
+                      </span>
+                    )}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -613,7 +640,7 @@ export function EventRegistrationModal({
                             onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
                             disabled={validatingCoupon}
                             className="font-mono"
-                            onKeyPress={(e) => {
+                            onKeyDown={(e) => {
                               if (e.key === 'Enter') {
                                 e.preventDefault()
                                 handleValidateCoupon()

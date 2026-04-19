@@ -300,6 +300,15 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
       return
     }
 
+    // Validate remaining seats using fresh event data
+    if (eventData?.maxAttendees != null) {
+      const remaining = Math.max(0, eventData.maxAttendees - (eventData.currentAttendees || 0))
+      if (attendees.length > remaining) {
+        toast.error(remaining === 0 ? "This event is now full" : `Only ${remaining} seat${remaining !== 1 ? 's' : ''} remaining — please reduce attendees`)
+        return
+      }
+    }
+
     if (!user && !memberValidated) {
       setShowMemberValidation(true)
       return
