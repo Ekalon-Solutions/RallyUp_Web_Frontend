@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { apiClient } from '@/lib/api'
+import { triggerBlobDownload } from '@/lib/utils'
 import { calculateTransactionFees } from '@/lib/transactionFees'
 import { formatLocalDate } from '@/lib/timezone'
 import { DashboardLayout } from '@/components/dashboard-layout'
@@ -392,10 +393,93 @@ export default function OrdersPage() {
   }
 
   const handleDownloadReport = async () => {
+    if (typeFilter === 'events') {
+      try {
+        // Apply the same filters as applyEventPagination but export all (no pagination)
+        let filtered = allEventRegistrations
+        if (searchTerm) {
+          filtered = filtered.filter((reg: any) =>
+            reg.userName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            reg.userEmail?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            reg.eventTitle?.toLowerCase().includes(searchTerm.toLowerCase())
+          )
+        }
+        if (statusFilter !== 'all') {
+          filtered = filtered.filter((reg: any) => reg.status === statusFilter)
+        }
+        if (earlyBirdFilter !== 'all') {
+          if (earlyBirdFilter === 'used') {
+            filtered = filtered.filter((reg: any) => (reg.earlyBirdDiscountAmt || 0) > 0)
+          } else {
+            filtered = filtered.filter((reg: any) => !(reg.earlyBirdDiscountAmt || 0) > 0)
+          }
+        }
+        if (couponFilter !== 'all') {
+          if (couponFilter === 'used') {
+            filtered = filtered.filter((reg: any) => (reg.couponDiscount || 0) > 0)
+          } else {
+            filtered = filtered.filter((reg: any) => !(reg.couponDiscount || 0) > 0)
+          }
+        }
+        if (paymentDateFilter) {
+          const filterDate = new Date(paymentDateFilter).toDateString()
+          filtered = filtered.filter((reg: any) => {
+            const regDate = new Date(reg.registrationDate || reg.createdAt).toDateString()
+            return regDate === filterDate
+          })
+        }
+        if (amountFilter !== 'all') {
+          if (amountFilter === 'free') {
+            filtered = filtered.filter((reg: any) => (reg.amountPaid || reg.ticketPrice || 0) === 0)
+          } else if (amountFilter === 'paid') {
+            filtered = filtered.filter((reg: any) => (reg.amountPaid || reg.ticketPrice || 0) > 0)
+          } else if (amountFilter === 'range') {
+            const min = parseFloat(amountMin) || 0
+            const max = parseFloat(amountMax) || Infinity
+            filtered = filtered.filter((reg: any) => {
+              const amount = reg.amountPaid || reg.ticketPrice || 0
+              return amount >= min && amount <= max
+            })
+          }
+        }
+
+        const headers = [
+          'Name', 'Email', 'Event', 'Status', 'Amount Paid',
+          'Currency', 'Early Bird Discount', 'Coupon Code', 'Coupon Discount',
+          'Points Discount', 'Payment ID', 'Order ID', 'Registration Date'
+        ]
+        const rows = filtered.map((reg: any) => [
+          reg.userName || '',
+          reg.userEmail || '',
+          reg.eventTitle || '',
+          reg.status || '',
+          reg.amountPaid ?? reg.ticketPrice ?? 0,
+          reg.currency || 'USD',
+          reg.earlyBirdDiscountAmt ?? 0,
+          reg.couponCode || '',
+          reg.couponDiscount ?? 0,
+          reg.pointsDiscount ?? 0,
+          reg.paymentId || '',
+          reg.orderId || '',
+          reg.registrationDate ? new Date(reg.registrationDate).toLocaleString() : ''
+        ])
+
+        const csvContent = [headers, ...rows]
+          .map(row => row.map((cell: any) => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+          .join('\n')
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+        triggerBlobDownload(blob, `event_registrations_report_${Date.now()}.csv`)
+        toast({ title: 'Report downloaded', description: 'Event registrations report downloaded successfully.' })
+      } catch (error) {
+        toast({ title: 'Error', description: 'Failed to download event report', variant: 'destructive' })
+      }
+      return
+    }
+
     const params = {
       ...(searchTerm ? { search: searchTerm } : {}),
       ...(statusFilter && statusFilter !== 'all' ? { status: statusFilter } : {}),
-      ...(typeFilter ? { type: typeFilter } : {}),
       ...(clubId ? { clubId } : {}),
     };
 
@@ -408,7 +492,6 @@ export default function OrdersPage() {
         await loadStats();
       }
     } catch (error) {
-      // // console.error('Error downloading report:', error);
       toast({ title: 'Error', description: 'Failed to download report', variant: 'destructive' });
     }
   }
