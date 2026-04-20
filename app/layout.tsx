@@ -1,6 +1,6 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Inter } from "next/font/google"
+import { Poppins } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { ThemeColorMeta } from "@/components/theme-color-meta"
@@ -12,10 +12,11 @@ import Analytics from "@/components/Analytics"
 import { AntiScrapingProtection } from "@/components/anti-scraping-protection"
 import Script from "next/script"
 
-const inter = Inter({ 
+const poppins = Poppins({
   subsets: ["latin"],
   display: 'swap',
   preload: true,
+  weight: ['400', '500', '600', '700', '800', '900'],
 })
 
 export const metadata: Metadata = {
@@ -123,7 +124,7 @@ export default function RootLayout({
         </Script>
       </head>
 
-      <body className={inter.className}>
+      <body className={poppins.className}>
         <Analytics />
         <AntiScrapingProtection />
         <ThemeProvider

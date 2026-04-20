@@ -36,7 +36,11 @@ const config: Config = {
 				},
 				secondary: {
 					DEFAULT: 'hsl(var(--secondary))',
-					foreground: 'hsl(var(--secondary-foreground))'
+					foreground: 'hsl(var(--secondary-foreground))',
+					purple: {
+						DEFAULT: 'hsl(var(--secondary-purple) / <alpha-value>)',
+						foreground: 'hsl(var(--secondary-purple-foreground) / <alpha-value>)'
+					}
 				},
 				muted: {
 					DEFAULT: 'hsl(var(--muted))',

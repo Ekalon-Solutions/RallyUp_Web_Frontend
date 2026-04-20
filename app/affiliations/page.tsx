@@ -6,11 +6,9 @@ import { SiteNavbar } from "@/components/site-navbar"
 import { SiteFooter } from "@/components/site-footer"
 import { ScrollToTop } from "@/components/scroll-to-top"
 import { FadeIn } from "@/components/fade-in"
-import { JellyCursor } from "@/components/jelly-cursor"
 import { ParticleBackground } from "@/components/particle-background"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import {
-  ArrowRight,
   Building2,
   Cloud,
   CreditCard,
@@ -21,21 +19,19 @@ import {
   Sprout,
   Trophy,
   Users,
-  Sparkles,
 } from "lucide-react"
 
 export default function AffiliationsPage(): React.JSX.Element {
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-sky-50 dark:from-slate-950 dark:via-slate-900 dark:to-blue-950 text-slate-900 dark:text-white relative overflow-x-hidden">
-      <JellyCursor />
+    <main className="min-h-screen bg-white text-slate-900 relative overflow-x-hidden">
       <ParticleBackground />
-      <SiteNavbar />
-      
+      <SiteNavbar brandName="Wingman Pro" />
+
       <div className="mx-auto max-w-7xl px-4 py-16 relative z-10">
         <FadeIn>
           <div className="relative mb-12">
             {/* Puzzle Globe Image Background */}
-            <div className="absolute right-0 top-0 w-1/2 max-w-md opacity-15 dark:opacity-8 -z-0 hidden lg:block">
+            <div className="absolute right-0 top-0 w-1/2 max-w-md opacity-20 -z-0 hidden lg:block">
               <div className="relative h-[400px] w-full animate-float">
                 <Image
                   src="/Webpage Assets 03.png"
@@ -49,14 +45,14 @@ export default function AffiliationsPage(): React.JSX.Element {
             </div>
 
             <div className="max-w-3xl relative z-10">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-sky-100 to-blue-100 dark:from-sky-900/30 dark:to-blue-900/30 mb-4 animate-scale-in">
-                <Sparkles className="h-4 w-4 text-sky-600 dark:text-sky-400 animate-pulse" />
-                <span className="text-sm font-semibold text-sky-700 dark:text-sky-300">Partnerships & Affiliations</span>
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-background border border-primary animate-scale-in mb-4">
+                <div className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
+                <span className="text-sm font-medium text-primary leading-tight">Partnerships & Affiliations</span>
               </div>
-              <h1 className="text-3xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-slate-900 via-sky-800 to-blue-900 dark:from-white dark:via-sky-200 dark:to-blue-200 bg-clip-text text-transparent">
-                Our Affiliation Ecosystem
+              <h1 className="text-3xl lg:text-5xl font-bold mb-4 text-background leading-tight">
+                Our Affiliation <span className="text-primary">Ecosystem</span>
               </h1>
-              <p className="text-slate-700 dark:text-slate-300 leading-relaxed text-lg">
+              <p className="text-[#666] leading-relaxed text-lg max-w-2xl">
                 Wingman Pro, a flagship product of RallyUp Solutions Private Limited, connects supporter groups and sports organizations with the technology, infrastructure, and partnerships they need to thrive.
               </p>
             </div>
@@ -67,59 +63,56 @@ export default function AffiliationsPage(): React.JSX.Element {
           <section className="mt-10 relative">
             {/* Background Decoration */}
             <div className="absolute inset-0 -z-10 overflow-hidden">
-              <div className="absolute top-0 left-0 w-96 h-96 bg-sky-200/20 dark:bg-sky-900/10 rounded-full blur-3xl animate-float" />
+              <div className="absolute top-0 left-0 w-96 h-96 bg-secondary-purple rounded-full blur-3xl animate-float" />
             </div>
 
-            <h2 className="text-2xl md:text-3xl font-bold mb-6 text-slate-900 dark:text-white bg-gradient-to-r from-slate-900 via-sky-800 to-blue-900 dark:from-white dark:via-sky-200 dark:to-blue-200 bg-clip-text text-transparent relative z-10">
-              Technology Partners & Infrastructure
+            <h2 className="text-2xl md:text-3xl font-bold mb-6 text-background leading-tight relative z-10">
+              Technology Partners & <span className="text-primary">Infrastructure</span>
             </h2>
-            <p className="text-slate-700 dark:text-slate-300 mb-6 relative z-10">
+            <p className="text-[#666] mb-6 relative z-10 max-w-2xl">
               These alliances keep our platform secure, scalable, and always-on for supporter communities across the globe.
             </p>
             <div className="grid md:grid-cols-3 gap-6 relative z-10">
-              <Card className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 border-2 border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/10 hover:shadow-2xl hover:scale-105 transition-all duration-500 group relative overflow-hidden animate-scale-in">
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+              {/* Card 1 */}
+              <Card className="bg-secondary/30 border border-border hover:shadow-lg transition-all duration-300 group relative overflow-hidden animate-scale-in rounded-[20px]">
                 <CardHeader className="flex flex-row items-center gap-3 relative z-10">
-                  <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
+                  <div className="h-12 w-12 rounded-[14px] bg-primary flex items-center justify-center shadow-sm group-hover:scale-110 transition-all duration-300">
                     <CreditCard className="h-6 w-6 text-white" />
                   </div>
-                  <CardTitle className="text-slate-900 dark:text-white">Payment Gateways</CardTitle>
+                  <CardTitle className="text-background text-lg font-bold">Payment Gateways</CardTitle>
                 </CardHeader>
-                <CardContent className="text-slate-600 dark:text-slate-300 space-y-2 relative z-10">
+                <CardContent className="text-[#666] space-y-2 relative z-10 text-sm">
                   <p>
-                    Seamless integrations with secure domestic and international payment processors like RazorPay to manage membership
-                    fees, merchandise, and ticketing.
+                    Seamless integrations with secure domestic and international payment processors like RazorPay to manage membership fees, merchandise, and ticketing.
                   </p>
                   <p>Supports multi-currency transactions and diverse payment types, including UPI.</p>
                 </CardContent>
               </Card>
-              <Card className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950/20 dark:to-cyan-950/20 border-2 border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/10 hover:shadow-2xl hover:scale-105 transition-all duration-500 group relative overflow-hidden animate-scale-in" style={{ animationDelay: '0.1s' }}>
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+              {/* Card 2 */}
+              <Card className="bg-secondary/30 border border-border hover:shadow-lg transition-all duration-300 group relative overflow-hidden animate-scale-in rounded-[20px]" style={{ animationDelay: '0.1s' }}>
                 <CardHeader className="flex flex-row items-center gap-3 relative z-10">
-                  <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
+                  <div className="h-12 w-12 rounded-[14px] bg-primary flex items-center justify-center shadow-sm group-hover:scale-110 transition-all duration-300">
                     <Cloud className="h-6 w-6 text-white" />
                   </div>
-                  <CardTitle className="text-slate-900 dark:text-white">Cloud Hosting & Infrastructure</CardTitle>
+                  <CardTitle className="text-background text-lg font-bold">Cloud Hosting</CardTitle>
                 </CardHeader>
-                <CardContent className="text-slate-600 dark:text-slate-300 space-y-2 relative z-10">
+                <CardContent className="text-[#666] space-y-2 relative z-10 text-sm">
                   <p>
-                    Built on leading global cloud providers to guarantee data security, low latency, and resilient operations backed by
-                    international compliance standards.
+                    Built on leading global cloud providers to guarantee data security, low latency, and resilient operations backed by international compliance standards.
                   </p>
                 </CardContent>
               </Card>
-              <Card className="bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-950/20 dark:to-indigo-950/20 border-2 border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/10 hover:shadow-2xl hover:scale-105 transition-all duration-500 group relative overflow-hidden animate-scale-in" style={{ animationDelay: '0.2s' }}>
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+              {/* Card 3 */}
+              <Card className="bg-secondary/30 border border-border hover:shadow-lg transition-all duration-300 group relative overflow-hidden animate-scale-in rounded-[20px]" style={{ animationDelay: '0.2s' }}>
                 <CardHeader className="flex flex-row items-center gap-3 relative z-10">
-                  <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
+                  <div className="h-12 w-12 rounded-[14px] bg-primary flex items-center justify-center shadow-sm group-hover:scale-110 transition-all duration-300">
                     <ShieldCheck className="h-6 w-6 text-white" />
                   </div>
-                  <CardTitle className="text-slate-900 dark:text-white">Authentication Services</CardTitle>
+                  <CardTitle className="text-background text-lg font-bold">Auth Services</CardTitle>
                 </CardHeader>
-                <CardContent className="text-slate-600 dark:text-slate-300 space-y-2 relative z-10">
+                <CardContent className="text-[#666] space-y-2 relative z-10 text-sm">
                   <p>
-                    Integrated with trusted identity providers such as Google Firebase to deliver secure, rapid OTP-based authentication
-                    and identity management.
+                    Integrated with trusted identity providers such as Google Firebase to deliver secure, rapid OTP-based authentication and identity management.
                   </p>
                 </CardContent>
               </Card>
@@ -128,47 +121,44 @@ export default function AffiliationsPage(): React.JSX.Element {
         </FadeIn>
 
         <FadeIn>
-          <section className="mt-10 relative">
-            <h2 className="text-2xl md:text-3xl font-bold mb-6 text-slate-900 dark:text-white bg-gradient-to-r from-slate-900 via-sky-800 to-blue-900 dark:from-white dark:via-sky-200 dark:to-blue-200 bg-clip-text text-transparent">
-              League & Organizational Affiliates
+          <section className="mt-16 relative">
+            <h2 className="text-2xl md:text-3xl font-bold mb-6 text-background leading-tight">
+              League & Organizational <span className="text-primary">Affiliates</span>
             </h2>
-            <p className="text-slate-700 dark:text-slate-300 mb-6">
+            <p className="text-[#666] mb-6 max-w-2xl">
               We collaborate with organizations that amplify value for our club network, expanding marketing reach, resources, and grassroots development.
             </p>
             <div className="grid md:grid-cols-3 gap-6">
-              <Card className="bg-gradient-to-br from-sky-50 to-blue-50 dark:from-sky-950/20 dark:to-blue-950/20 border-2 border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/10 hover:shadow-2xl hover:scale-105 transition-all duration-500 group relative overflow-hidden animate-scale-in">
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+              <Card className="bg-secondary/30 border border-border hover:shadow-lg transition-all duration-300 group relative overflow-hidden animate-scale-in rounded-[20px]">
                 <CardHeader className="flex flex-row items-center gap-3 relative z-10">
-                  <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
+                  <div className="h-12 w-12 rounded-[14px] bg-primary flex items-center justify-center shadow-sm group-hover:scale-110 transition-all duration-300">
                     <Users className="h-6 w-6 text-white" />
                   </div>
-                  <CardTitle className="text-slate-900 dark:text-white">Supporter Group Networks</CardTitle>
+                  <CardTitle className="text-background text-lg font-bold">Supporter Groups</CardTitle>
                 </CardHeader>
-                <CardContent className="text-slate-600 dark:text-slate-300 relative z-10">
+                <CardContent className="text-[#666] relative z-10 text-sm">
                   Collaborations with global supporter networks to share best practices in member management and deliver shared knowledge among groups using Wingman Pro.
                 </CardContent>
               </Card>
-              <Card className="bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-950/20 dark:to-red-950/20 border-2 border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/10 hover:shadow-2xl hover:scale-105 transition-all duration-500 group relative overflow-hidden animate-scale-in" style={{ animationDelay: '0.1s' }}>
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+              <Card className="bg-secondary/30 border border-border hover:shadow-lg transition-all duration-300 group relative overflow-hidden animate-scale-in rounded-[20px]" style={{ animationDelay: '0.1s' }}>
                 <CardHeader className="flex flex-row items-center gap-3 relative z-10">
-                  <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
+                  <div className="h-12 w-12 rounded-[14px] bg-primary flex items-center justify-center shadow-sm group-hover:scale-110 transition-all duration-300">
                     <Handshake className="h-6 w-6 text-white" />
                   </div>
-                  <CardTitle className="text-slate-900 dark:text-white">Corporate Sponsors</CardTitle>
+                  <CardTitle className="text-background text-lg font-bold">Corporate Sponsors</CardTitle>
                 </CardHeader>
-                <CardContent className="text-slate-600 dark:text-slate-300 relative z-10">
+                <CardContent className="text-[#666] relative z-10 text-sm">
                   Streamlined engagement channels between sponsors and our network of engaged supporter groups, unlocking new revenue opportunities for partner clubs.
                 </CardContent>
               </Card>
-              <Card className="bg-gradient-to-br from-yellow-50 to-amber-50 dark:from-yellow-950/20 dark:to-amber-950/20 border-2 border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-white/10 hover:shadow-2xl hover:scale-105 transition-all duration-500 group relative overflow-hidden animate-scale-in" style={{ animationDelay: '0.2s' }}>
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+              <Card className="bg-secondary/30 border border-border hover:shadow-lg transition-all duration-300 group relative overflow-hidden animate-scale-in rounded-[20px]" style={{ animationDelay: '0.2s' }}>
                 <CardHeader className="flex flex-row items-center gap-3 relative z-10">
-                  <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-yellow-500 to-amber-600 flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
+                  <div className="h-12 w-12 rounded-[14px] bg-primary flex items-center justify-center shadow-sm group-hover:scale-110 transition-all duration-300">
                     <Sprout className="h-6 w-6 text-white" />
                   </div>
-                  <CardTitle className="text-slate-900 dark:text-white">Youth & Grassroots Programs</CardTitle>
+                  <CardTitle className="text-background text-lg font-bold">Youth Programs</CardTitle>
                 </CardHeader>
-                <CardContent className="text-slate-600 dark:text-slate-300 relative z-10">
+                <CardContent className="text-[#666] relative z-10 text-sm">
                   Purpose-built tracking modules such as attendance and engagement scoring to document development, support grant obligations, and grow local communities.
                 </CardContent>
               </Card>
@@ -177,10 +167,10 @@ export default function AffiliationsPage(): React.JSX.Element {
         </FadeIn>
 
         <FadeIn>
-          <section className="mt-12 relative">
+          <section className="mt-16 relative py-4">
             {/* Global Celebration Image */}
-            <div className="absolute left-0 top-0 w-1/2 max-w-2xl opacity-10 dark:opacity-5 -z-0 hidden xl:block">
-              <div className="relative h-[500px] w-full animate-float" style={{ animationDelay: '1.5s' }}>
+            <div className="absolute left-0 top-0 w-1/2 max-w-2xl opacity-10 -z-0 hidden xl:block">
+              <div className="relative h-[400px] w-full animate-float" style={{ animationDelay: '1.5s' }}>
                 <Image
                   src="/Webpage Assets 01.png"
                   alt="Global sports community"
@@ -191,20 +181,20 @@ export default function AffiliationsPage(): React.JSX.Element {
               </div>
             </div>
 
-            <h2 className="text-2xl md:text-3xl font-bold mb-6 text-slate-900 dark:text-white bg-gradient-to-r from-slate-900 via-sky-800 to-blue-900 dark:from-white dark:via-sky-200 dark:to-blue-200 bg-clip-text text-transparent relative z-10">
-              Global Reach
+            <h2 className="text-2xl md:text-3xl font-bold mb-6 text-background leading-tight relative z-10">
+              Global <span className="text-primary">Reach</span>
             </h2>
             <div className="grid md:grid-cols-2 gap-6 relative z-10">
-              <Card className="bg-gradient-to-br from-sky-50 to-blue-50 dark:from-sky-950/20 dark:to-blue-950/20 border-2 border-slate-200 dark:border-white/10 hover:shadow-xl hover:scale-105 transition-all duration-300 group">
+              <Card className="bg-secondary/30 border border-border hover:shadow-md transition-all duration-300 group rounded-[20px]">
                 <CardHeader>
-                  <CardTitle className="text-slate-900 dark:text-white flex items-center gap-2">
-                    <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
+                  <CardTitle className="text-background text-lg font-bold flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-[12px] bg-primary flex items-center justify-center shadow-sm group-hover:scale-110 transition-all duration-300">
                       <Globe className="h-5 w-5 text-white" />
                     </div>
                     International Presence
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="text-slate-600 dark:text-slate-300 space-y-3">
+                <CardContent className="text-[#666] space-y-3 text-sm">
                   <p>Wingman Pro serves supporter groups across multiple continents, bringing together fans from diverse backgrounds and cultures.</p>
                   <ul className="list-disc pl-5 space-y-1">
                     <li>Asia-Pacific: India, Singapore, Malaysia, Indonesia, Thailand, Australia</li>
@@ -214,16 +204,16 @@ export default function AffiliationsPage(): React.JSX.Element {
                   </ul>
                 </CardContent>
               </Card>
-              <Card className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/20 dark:to-purple-950/20 border-2 border-slate-200 dark:border-white/10 hover:shadow-xl hover:scale-105 transition-all duration-300 group">
+              <Card className="bg-secondary/30 border border-border hover:shadow-md transition-all duration-300 group rounded-[20px]">
                 <CardHeader>
-                  <CardTitle className="text-slate-900 dark:text-white flex items-center gap-2">
-                    <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
+                  <CardTitle className="text-background text-lg font-bold flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-[12px] bg-primary flex items-center justify-center shadow-sm group-hover:scale-110 transition-all duration-300">
                       <MapPin className="h-5 w-5 text-white" />
                     </div>
                     Key Regions
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="text-slate-600 dark:text-slate-300 space-y-3">
+                <CardContent className="text-[#666] space-y-3 text-sm">
                   <p>Our platform supports clubs and groups in major football markets with localized features and compliance.</p>
                   <ul className="list-disc pl-5 space-y-1">
                     <li>South Asian football communities</li>
@@ -238,48 +228,48 @@ export default function AffiliationsPage(): React.JSX.Element {
         </FadeIn>
 
         <FadeIn>
-          <section className="mt-12 relative">
-            <h2 className="text-2xl md:text-3xl font-bold mb-6 text-slate-900 dark:text-white bg-gradient-to-r from-slate-900 via-sky-800 to-blue-900 dark:from-white dark:via-sky-200 dark:to-blue-200 bg-clip-text text-transparent">
-              Partnership Benefits
+          <section className="mt-16 relative">
+            <h2 className="text-2xl md:text-3xl font-bold mb-6 text-background leading-tight">
+              Partnership <span className="text-primary">Benefits</span>
             </h2>
             <div className="grid md:grid-cols-2 gap-6">
-              <div className="space-y-4 text-slate-700 dark:text-slate-300">
-                <div className="flex items-start gap-3 p-4 rounded-xl bg-gradient-to-br from-sky-50 to-blue-50 dark:from-sky-950/20 dark:to-blue-950/20 border-2 border-slate-200 dark:border-white/10 hover:shadow-lg hover:scale-105 transition-all duration-300 group">
-                  <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-sky-500 to-blue-600 flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 flex-shrink-0">
+              <div className="space-y-4">
+                <div className="flex items-start gap-4 p-5 rounded-[20px] bg-secondary/30 border border-border hover:shadow-md transition-all duration-300 group">
+                  <div className="h-12 w-12 rounded-[14px] bg-primary flex items-center justify-center shadow-sm group-hover:scale-110 transition-all duration-300 flex-shrink-0">
                     <Trophy className="h-5 w-5 text-white" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-slate-900 dark:text-white mb-1">Club Solutions</h3>
-                    <p>Dedicated platforms for professional clubs to manage membership, ticketing, and fan engagement.</p>
+                    <h3 className="font-bold text-background mb-1 text-base">Club Solutions</h3>
+                    <p className="text-[#666] text-sm">Dedicated platforms for professional clubs to manage membership, ticketing, and fan engagement.</p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3 p-4 rounded-xl bg-gradient-to-br from-purple-50 to-indigo-50 dark:from-purple-950/20 dark:to-indigo-950/20 border-2 border-slate-200 dark:border-white/10 hover:shadow-lg hover:scale-105 transition-all duration-300 group">
-                  <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 flex-shrink-0">
+                <div className="flex items-start gap-4 p-5 rounded-[20px] bg-secondary/30 border border-border hover:shadow-md transition-all duration-300 group">
+                  <div className="h-12 w-12 rounded-[14px] bg-primary flex items-center justify-center shadow-sm group-hover:scale-110 transition-all duration-300 flex-shrink-0">
                     <Users className="h-5 w-5 text-white" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-slate-900 dark:text-white mb-1">Supporter Group Tools</h3>
-                    <p>Complete toolkit for independent fan clubs including member management, events, and merchandise.</p>
+                    <h3 className="font-bold text-background mb-1 text-base">Supporter Group Tools</h3>
+                    <p className="text-[#666] text-sm">Complete toolkit for independent fan clubs including member management, events, and merchandise.</p>
                   </div>
                 </div>
               </div>
-              <div className="space-y-4 text-slate-700 dark:text-slate-300">
-                <div className="flex items-start gap-3 p-4 rounded-xl bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 border-2 border-slate-200 dark:border-white/10 hover:shadow-lg hover:scale-105 transition-all duration-300 group">
-                  <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 flex-shrink-0">
+              <div className="space-y-4">
+                <div className="flex items-start gap-4 p-5 rounded-[20px] bg-secondary/30 border border-border hover:shadow-md transition-all duration-300 group">
+                  <div className="h-12 w-12 rounded-[14px] bg-primary flex items-center justify-center shadow-sm group-hover:scale-110 transition-all duration-300 flex-shrink-0">
                     <Building2 className="h-5 w-5 text-white" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-slate-900 dark:text-white mb-1">Community Building</h3>
-                    <p>Features designed to strengthen connections between fans, clubs, and local communities.</p>
+                    <h3 className="font-bold text-background mb-1 text-base">Community Building</h3>
+                    <p className="text-[#666] text-sm">Features designed to strengthen connections between fans, clubs, and local communities.</p>
                   </div>
                 </div>
-                <div className="flex items-start gap-3 p-4 rounded-xl bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-950/20 dark:to-red-950/20 border-2 border-slate-200 dark:border-white/10 hover:shadow-lg hover:scale-105 transition-all duration-300 group">
-                  <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 flex-shrink-0">
+                <div className="flex items-start gap-4 p-5 rounded-[20px] bg-secondary/30 border border-border hover:shadow-md transition-all duration-300 group">
+                  <div className="h-12 w-12 rounded-[14px] bg-primary flex items-center justify-center shadow-sm group-hover:scale-110 transition-all duration-300 flex-shrink-0">
                     <Handshake className="h-5 w-5 text-white" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-slate-900 dark:text-white mb-1">Custom Partnerships</h3>
-                    <p>Tailored solutions and integrations for organizations with specific needs and requirements.</p>
+                    <h3 className="font-bold text-background mb-1 text-base">Custom Partnerships</h3>
+                    <p className="text-[#666] text-sm">Tailored solutions and integrations for organizations with specific needs and requirements.</p>
                   </div>
                 </div>
               </div>
@@ -288,27 +278,24 @@ export default function AffiliationsPage(): React.JSX.Element {
         </FadeIn>
 
         <FadeIn>
-          <section className="mt-12 rounded-3xl border-2 border-slate-200 dark:border-white/10 bg-gradient-to-br from-sky-500/10 via-blue-500/10 to-indigo-500/10 dark:from-sky-950/20 dark:via-blue-950/20 dark:to-indigo-950/20 p-8 md:p-10 relative overflow-hidden">
-            {/* Animated Background */}
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(56,189,248,0.1),transparent_50%)]" />
-            
-            <div className="relative z-10">
-              <h2 className="text-2xl md:text-3xl font-bold mb-4 text-slate-900 dark:text-white bg-gradient-to-r from-sky-700 to-blue-700 dark:from-sky-300 dark:to-blue-300 bg-clip-text text-transparent">
-                Interested in Partnering?
+          <section className="mt-20 rounded-[32px] border border-border bg-secondary-purple p-8 md:p-12 relative overflow-hidden">
+            <div className="relative z-10 flex flex-col items-center text-center">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4 text-background leading-tight">
+                Interested in <span className="text-primary">Partnering?</span>
               </h2>
-              <p className="text-slate-700 dark:text-slate-300 mb-6">
+              <p className="text-[#666] mb-8 max-w-xl text-lg">
                 Whether you're a football club, supporter group, or football organization, we'd love to explore how Wingman Pro can support your community.
               </p>
-              <div className="flex flex-wrap gap-3">
-                <a 
-                  href="/contact" 
-                  className="inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-sky-600 to-blue-600 dark:from-sky-500 dark:to-blue-500 px-6 py-3 text-white hover:from-sky-500 hover:to-blue-500 dark:hover:from-sky-400 dark:hover:to-blue-400 transition-all shadow-lg hover:shadow-xl transform hover:scale-105 duration-300 font-semibold"
+              <div className="flex flex-wrap gap-4 justify-center">
+                <a
+                  href="/contact"
+                  className="inline-flex items-center justify-center rounded-[5px] bg-primary px-8 h-10 text-white font-medium text-xs uppercase tracking-wider hover:bg-primary/90 transition-all shadow-sm"
                 >
                   Contact Us
                 </a>
-                <a 
-                  href="/clubs" 
-                  className="inline-flex items-center justify-center rounded-lg border-2 border-slate-300 dark:border-white/20 bg-white/80 backdrop-blur-sm px-6 py-3 text-slate-900 hover:bg-white dark:bg-white/5 dark:text-white dark:hover:bg-white/10 transition-all shadow-md hover:shadow-lg transform hover:scale-105 duration-300 font-semibold"
+                <a
+                  href="/clubs"
+                  className="inline-flex items-center justify-center rounded-[5px] border border-border bg-white px-8 h-10 text-background font-medium text-xs uppercase tracking-wider hover:bg-gray-50 transition-all shadow-sm"
                 >
                   Create Your Club
                 </a>
@@ -317,7 +304,7 @@ export default function AffiliationsPage(): React.JSX.Element {
           </section>
         </FadeIn>
       </div>
-      <SiteFooter />
+      <SiteFooter brandName="Wingman Pro" />
       <ScrollToTop />
     </main>
   )
