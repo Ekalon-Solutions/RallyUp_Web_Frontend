@@ -1,4 +1,4 @@
-# RallyUp Frontend
+# RallyUp Web Frontend
 
 A modern, responsive web application built with Next.js 14, TypeScript, and Tailwind CSS for managing sports clubs, events, and memberships.
 
