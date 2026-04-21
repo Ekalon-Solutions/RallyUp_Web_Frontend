@@ -1,536 +1,731 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React, { useState, useEffect } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Sparkles, Users, Trophy, Building2, CalendarDays, MapPin, Ticket, Shield, Zap, TrendingUp, Database, CreditCard, BarChart3, Target, Globe, Lock, Smartphone, CheckCircle2, XCircle, Brain, Activity, Award, Star, Flame } from "lucide-react"
+import { ChevronDown, ChevronUp, ChevronRight, ArrowRight, Calendar, LayoutGrid, BarChart2, Volume2, ShoppingCart, Images, Play, SlidersHorizontal, Music, Video, ShoppingBag, Smartphone, ClipboardList } from "lucide-react"
 import { SiteNavbar } from "@/components/site-navbar"
 import { SiteFooter } from "@/components/site-footer"
 import { ScrollToTop } from "@/components/scroll-to-top"
 import { FadeIn } from "@/components/fade-in"
 import { JellyCursor } from "@/components/jelly-cursor"
-import { ParticleBackground } from "@/components/particle-background"
+
+const LOGO_FRAMES = [
+  "/wingmanlogo/Property 1=Default (4).svg",
+  "/wingmanlogo/Property 1=Default (3).svg",
+  "/wingmanlogo/Property 1=Default (2).svg",
+  "/wingmanlogo/Property 1=Default (1).svg",
+  "/wingmanlogo/Property 1=Default.svg",
+]
+
+function AnimatedLogo() {
+  const [frame, setFrame] = useState(0)
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setFrame((f) => (f + 1) % LOGO_FRAMES.length)
+    }, 2000) // 3 sec interval
+
+    return () => clearInterval(id)
+  }, [])
+
+  return (
+    <div className="relative w-full h-full">
+      {LOGO_FRAMES.map((src, i) => (
+        <Image
+          key={i}
+          src={src}
+          alt="Wingman Pro"
+          fill
+          className={`object-contain absolute inset-0 transition-opacity duration-1000 ease-in-out ${i === frame ? "opacity-100" : "opacity-0"
+            }`}
+          priority={i === 0}
+        />
+      ))}
+    </div>
+  )
+}
 
 function Hero() {
   return (
-    <section className="relative overflow-hidden" id="home">
-      {/* Enhanced Background with Animations */}
-      <div className="absolute inset-0 -z-10">
-        <div className="absolute inset-0 bg-gradient-to-br from-sky-50 via-blue-50/50 to-indigo-50 dark:from-slate-950 dark:via-blue-950/30 dark:to-indigo-950/20 animate-gradient" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,#38bdf840,transparent_40%),radial-gradient(circle_at_80%_20%,#60a5fa40,transparent_40%),radial-gradient(circle_at_50%_80%,#3b82f640,transparent_45%)] animate-pulse-glow" />
-        <div className="absolute inset-0 bg-[radial-gradient(#ffffff22_1px,transparent_1px)] [background-size:20px_20px] opacity-20 dark:opacity-10" />
+    <section className="bg-white relative overflow-hidden" id="home">
 
-        {/* Sports-themed floating elements */}
-        <div className="absolute top-20 left-10 w-20 h-20 opacity-20 animate-float">
-          <Trophy className="w-full h-full text-sky-400 rotate-12" />
-        </div>
-        <div className="absolute top-40 right-20 w-16 h-16 opacity-15 animate-float" style={{ animationDelay: '1s' }}>
-          <Activity className="w-full h-full text-blue-400 -rotate-12" />
-        </div>
-        <div className="absolute bottom-32 left-1/4 w-14 h-14 opacity-20 animate-float" style={{ animationDelay: '2s' }}>
-          <Award className="w-full h-full text-indigo-400 rotate-6" />
-        </div>
-        <div className="absolute bottom-20 right-1/3 w-18 h-18 opacity-15 animate-float" style={{ animationDelay: '1.5s' }}>
-          <Star className="w-full h-full text-sky-300 -rotate-6" />
-        </div>
-      </div>
-
-      <ParticleBackground />
-
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16 sm:py-20 md:py-24 lg:py-32 relative z-10">
-        <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center min-h-[500px] md:min-h-[600px]">
-          {/* Left Column - Text Content */}
-          <div className="space-y-6 md:space-y-8 lg:space-y-10 text-left order-1">
-            {/* Animated Title with Gradient */}
-            <h1 className="text-4xl sm:text-5xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-[1.1] animate-slide-up">
-              Don't Just Run Your Club.
-              <br />
-              <span className="bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-600 dark:from-sky-400 dark:via-blue-400 dark:to-indigo-400 bg-clip-text text-transparent animate-gradient inline-block">
-                Revolutionize It
-              </span>{" "}
-              <span className="inline-block animate-bounce-subtle text-3xl sm:text-4xl md:text-5xl">⚡</span>
-              <br />
-              <span className="text-2xl sm:text-3xl md:text-4xl lg:text-4xl xl:text-5xl block mt-2 opacity-90">
-                with Intelligent Sports Club Management Software.
-              </span>
-            </h1>
-
-            {/* Enhanced Description with Shimmer */}
-            <p className="text-slate-600 dark:text-slate-300 text-lg sm:text-xl leading-relaxed relative overflow-hidden animate-slide-up max-w-2xl" style={{ animationDelay: '0.2s' }}>
-              <span className="relative z-10">
-                The world's first AI-enhanced platform built exclusively for Supporter Groups and Sports Clubs. We replace your spreadsheets, payment links, and chat groups with one powerful, secure Operating System for membership management, ticketing, and fan engagement.
-              </span>
-              <span className="absolute inset-0 animate-shimmer bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-            </p>
-
-            {/* Enhanced Buttons with Hover Effects */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-4 animate-slide-up" style={{ animationDelay: '0.4s' }}>
-              <Link href="/contact" className="flex-1 sm:flex-initial">
-                <Button
-                  size="lg"
-                  className="w-full sm:w-auto h-14 px-8 bg-gradient-to-r from-sky-600 to-blue-600 dark:from-sky-500 dark:to-blue-500 text-white hover:from-sky-500 hover:to-blue-500 dark:hover:from-sky-400 dark:hover:to-blue-400 text-lg font-bold shadow-xl hover:shadow-sky-500/25 transform hover:scale-105 transition-all duration-300 relative overflow-hidden group"
-                >
-                  <span className="relative z-10 flex items-center justify-center gap-2">
-                    <Flame className="w-5 h-5" />
-                    Book Your Demo
-                  </span>
-                  <span className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                </Button>
-              </Link>
-              <Link href="#features" className="flex-1 sm:flex-initial">
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="w-full sm:w-auto h-14 px-8 border-2 border-slate-300 dark:border-white/20 bg-white/80 backdrop-blur-sm text-slate-900 hover:bg-white dark:bg-white/5 dark:text-white dark:hover:bg-white/10 text-lg font-bold shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-300"
-                >
-                  Explore Features
-                </Button>
-              </Link>
-            </div>
-
-            {/* Enhanced Feature Badges */}
-            <div className="flex flex-wrap items-center gap-3 pt-6 text-sm text-slate-600 dark:text-slate-300 animate-slide-up" style={{ animationDelay: '0.6s' }}>
-              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/60 dark:bg-white/5 backdrop-blur-sm border border-slate-200/50 dark:border-white/10 hover:bg-white dark:hover:bg-white/10 transition-all duration-300">
-                <Trophy className="h-5 w-5 text-sky-600 dark:text-sky-400 animate-wiggle flex-shrink-0" />
-                <span className="font-semibold whitespace-nowrap">High-Performance Clubs</span>
-              </div>
-              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/60 dark:bg-white/5 backdrop-blur-sm border border-slate-200/50 dark:border-white/10 hover:bg-white dark:hover:bg-white/10 transition-all duration-300">
-                <Shield className="h-5 w-5 text-sky-600 dark:text-sky-400 animate-pulse-glow flex-shrink-0" />
-                <span className="font-semibold whitespace-nowrap">GDPR & DPDPA Compliant</span>
-              </div>
-              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/60 dark:bg-white/5 backdrop-blur-sm border border-slate-200/50 dark:border-white/10 hover:bg-white dark:hover:bg-white/10 transition-all duration-300">
-                <Lock className="h-5 w-5 text-sky-600 dark:text-sky-400 flex-shrink-0" />
-                <span className="font-semibold whitespace-nowrap">Secure OTP Access</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Right Column - Hero Image */}
-          <div className="relative h-[350px] sm:h-[450px] md:h-[550px] lg:h-[600px] w-full animate-slide-up order-2" style={{ animationDelay: '0.3s' }}>
-            <div className="relative h-full w-full animate-float">
-              <Image
-                src="/Webpage Assets 01.png"
-                alt="Global sports community celebration"
-                fill
-                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 100vw, 50vw"
-                className="object-contain drop-shadow-2xl"
-                priority
-              />
-            </div>
-            {/* Decorative glow effect */}
-            <div className="absolute inset-0 bg-gradient-to-l from-sky-400/20 via-transparent to-transparent rounded-full blur-3xl -z-10 animate-pulse-glow" />
-          </div>
-        </div>
-      </div>
-    </section>
-  )
-}
-
-function ProblemSolution() {
-  const comparisons = [
-    { old: "Fragmented Excel Sheets & Google Forms", new: "One Centralized Sports Membership Database" },
-    { old: "Chasing payments via WhatsApp", new: "Automated Membership Renewals & Ticketing" },
-    { old: '"Best Guess" decision making', new: "AI-Driven Club Growth Insights" },
-    { old: "Static, boring emails", new: "Gamified Member Engagement Tools" },
-  ]
-
-  return (
-    <section className="mx-auto max-w-7xl px-4 py-20 md:py-28 lg:py-32 relative" id="problem">
-      {/* Background Decoration */}
-      <div className="absolute inset-0 -z-10 overflow-hidden">
-        <div className="absolute top-0 left-0 w-96 h-96 bg-sky-200/20 dark:bg-sky-900/10 rounded-full blur-3xl animate-pulse-glow" />
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-blue-200/20 dark:bg-blue-900/10 rounded-full blur-3xl animate-pulse-glow" style={{ animationDelay: '1s' }} />
-      </div>
-
-      <div className="text-center max-w-4xl mx-auto mb-16 relative z-10">
-        <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-slate-900 dark:text-white mb-8 bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 bg-clip-text text-transparent leading-tight">
-          The "Volunteer Burnout" Ends Here.
-        </h2>
-        <div className="space-y-6">
-          <p className="text-slate-600 dark:text-slate-300 text-lg md:text-xl leading-relaxed">
-            You started this club because you love the game. But lately, you're spending more time on club administration, reconciling bank transfers, chasing membership renewals, and managing data privacy than actually watching the match.
-          </p>
-          <p className="text-sky-600 dark:text-sky-400 text-xl md:text-2xl font-bold mt-4 bg-gradient-to-r from-sky-600 to-blue-600 dark:from-sky-400 dark:to-blue-400 bg-clip-text text-transparent">
-            Wingman Pro restores the balance. We handle the heavy lifting of administration, compliance, and commerce, so you can get back to the stands.
-          </p>
-        </div>
-      </div>
-
-      <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 max-w-6xl mx-auto relative z-10">
-        <div className="space-y-6">
-          <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-8 text-center flex items-center justify-center gap-3">
-            <XCircle className="h-7 w-7 text-red-500 animate-wiggle" />
-            The Old Way
-          </h3>
-          <div className="grid gap-4">
-            {comparisons.map((item, i) => (
-              <Card
-                key={i}
-                className="bg-gradient-to-br from-red-50 to-orange-50 border-2 border-red-200/60 dark:from-red-950/20 dark:to-orange-950/10 dark:border-red-900/30 hover:shadow-xl hover:scale-[1.02] transition-all duration-300 animate-scale-in"
-                style={{ animationDelay: `${i * 0.1}s` }}
-              >
-                <CardContent className="flex items-start gap-4 p-5">
-                  <XCircle className="h-6 w-6 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5 animate-pulse" />
-                  <span className="text-slate-900 dark:text-white font-semibold text-lg">{item.old}</span>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-
-        <div className="space-y-6">
-          <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-8 text-center flex items-center justify-center gap-3">
-            <CheckCircle2 className="h-7 w-7 text-green-500 animate-bounce-subtle" />
-            The Wingman Pro Way
-          </h3>
-          <div className="grid gap-4">
-            {comparisons.map((item, i) => (
-              <Card
-                key={i}
-                className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-200/60 dark:from-green-950/20 dark:to-emerald-950/10 dark:border-green-900/30 hover:shadow-xl hover:scale-[1.02] transition-all duration-300 animate-scale-in relative overflow-hidden group"
-                style={{ animationDelay: `${i * 0.1}s` }}
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-green-400/0 via-green-400/10 to-green-400/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
-                <CardContent className="flex items-start gap-4 p-5 relative z-10">
-                  <CheckCircle2 className="h-6 w-6 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
-                  <span className="text-slate-900 dark:text-white font-semibold text-lg">{item.new}</span>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </div>
-    </section>
-  )
-}
-
-function CoreFeatures() {
-  const features = [
-    {
-      title: "Command Center Administration",
-      desc: "Total control over your organization with our comprehensive club management system. Manage hierarchy, access roles, and member data with military-grade security.",
-      icon: Database,
-      points: [
-        "Smart Profiles: Self-updating member portals",
-        "Global Compliance: Built-in adherence to DPDPA (India), GDPR (UK/EU), and international data laws",
-        "Zero-Password Risk: Secure OTP-only login infrastructure"
-      ],
-      gradient: "from-purple-500 to-indigo-600",
-      bgGradient: "from-purple-50 to-indigo-50 dark:from-purple-950/20 dark:to-indigo-950/20"
-    },
-    {
-      title: "Integrated Commerce Engine",
-      desc: "Stop using third-party ticketing tools that eat your margins. Wingman Pro turns your passion into revenue with an integrated sports ecommerce platform.",
-      icon: CreditCard,
-      points: [
-        "Merchandise: Real-time inventory tracking and seamless checkout",
-        "Event Ticketing: QR-code ready ticketing software for match days and socials",
-        "Financial Reporting: One-click export for easy club accounting and reconciliation"
-      ],
-      gradient: "from-sky-500 to-blue-600",
-      bgGradient: "from-sky-50 to-blue-50 dark:from-sky-950/20 dark:to-blue-950/20"
-    },
-    {
-      title: 'Next-Gen Engagement (The "Pro" Advantage)',
-      desc: "This is where we leave the competition behind. We use fan engagement technology to turn casual fans into die-hard members.",
-      icon: Target,
-      points: [
-        "Gamified Leaderboards: Award points for attendance, purchases, and interactions to boost fan loyalty",
-        "AI Content Curation: Deliver the right news and events to the right members automatically",
-        "Interactive Polls & Galleries: Keep the conversation alive with a dedicated community platform between match days"
-      ],
-      gradient: "from-orange-500 to-red-600",
-      bgGradient: "from-orange-50 to-red-50 dark:from-orange-950/20 dark:to-red-950/20"
-    }
-  ]
-
-  return (
-    <section className="mx-auto max-w-7xl px-4 py-20 md:py-28 lg:py-32 relative" id="features">
-      {/* Animated Background Elements */}
-      <div className="absolute inset-0 -z-10 overflow-hidden">
-        <div className="absolute top-1/4 left-0 w-72 h-72 bg-sky-300/10 dark:bg-sky-700/10 rounded-full blur-3xl animate-float" />
-        <div className="absolute bottom-1/4 right-0 w-72 h-72 bg-blue-300/10 dark:bg-blue-700/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
-      </div>
-
-      <div className="text-center max-w-4xl mx-auto mb-16 relative z-10">
-        <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-sky-100 to-blue-100 dark:from-sky-900/30 dark:to-blue-900/30 mb-6 animate-scale-in">
-          <Sparkles className="h-5 w-5 text-sky-600 dark:text-sky-400 animate-pulse" />
-          <span className="text-sm md:text-base font-bold text-sky-700 dark:text-sky-300 tracking-wide uppercase">Core Features</span>
-        </div>
-        <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-slate-900 dark:text-white mb-6 bg-gradient-to-r from-slate-900 via-sky-800 to-blue-900 dark:from-white dark:via-sky-200 dark:to-blue-200 bg-clip-text text-transparent leading-tight">
-          Core Feature Pillars
-        </h2>
-      </div>
-      {/* Dashboard Image Background */}
-      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1/2 max-w-xl opacity-10 dark:opacity-5 -z-0 hidden xl:block">
-        <div className="relative h-[500px] w-full animate-float" style={{ animationDelay: '1s' }}>
-          <Image
-            src="/Webpage Assets 00.png"
-            alt="Wingman Pro Dashboard"
-            fill
-            sizes="(max-width: 1280px) 0px, 600px"
-            className="object-contain"
+      {/* ── Mobile layout ── */}
+      <div className="lg:hidden">
+        {/* Full-width dark image section with sweeping curved bottom */}
+        <div
+          className="relative w-full overflow-hidden"
+          style={{ height: "calc(80vw + 24px)" }}
+        >
+          {/* Dark layer — stops 24px from bottom so box-shadow is visible at right edge */}
+          <div
+            className="absolute top-0 left-0 right-0"
+            style={{
+              bottom: "24px",
+              backgroundImage: `repeating-linear-gradient(0deg, transparent, transparent 39px, #727274 40px), repeating-linear-gradient(90deg, transparent, transparent 39px, #727274 40px), linear-gradient(128deg, #1e1e1e 41.5%, #3a3a3a 98.5%)`,
+              backgroundSize: "100% 40px, 40px 100%, 100% 100%",
+              borderBottomLeftRadius: "100% 75%",
+              boxShadow: "5px 24px 0px -2px #f1441a",
+            }}
           />
+          {/* Ram illustration — right-aligned */}
+          <div className="absolute top-0 right-0 h-[80%] w-[75%]">
+            <Image
+              src='Logo.svg'
+              alt="Wingman Pro"
+              fill
+              className="object-contain object-right-top mt-5"
+              priority
+            />
+          </div>
+        </div>
+
+        {/* Text content below */}
+        <div className="relative px-5 py-7 space-y-5 bg-white overflow-hidden">
+          {/* Decorative Vector — top-right corner */}
+          <div className="absolute -bottom-8 -left-10 w-80 h-80 opacity-60 pointer-events-none select-none">
+            <Image src="/Vector.svg" alt="" fill className="object-contain" />
+          </div>
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-background border border-primary">
+            <div className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
+            <span className="text-primary/60 text-[10px] font-medium leading-tight">
+              Club Management platform
+            </span>
+          </div>
+
+          <h1 className="text-3xl font-bold text-background leading-tight">
+            Don&apos;t Just Run Your Club.{" "}
+            <span className="text-primary">Revolutionize.</span>
+          </h1>
+
+          <p className="text-background text-base leading-relaxed">
+            One platform for membership, ticketing, payments and fan engagement.
+          </p>
+
+          <div className="flex flex-row items-center gap-3 pt-1">
+            <Link href="/contact">
+              <Button
+                variant="default"
+                className="px-4 h-8 text-white font-medium text-xs rounded-[5px] uppercase tracking-wider"
+              >
+                Book a Demo
+              </Button>
+            </Link>
+            <Link href="#features">
+              <Button
+                variant="outline"
+                className="px-4 h-8 border font-medium text-xs rounded-[5px] uppercase tracking-wider flex items-center gap-2"
+              >
+                Explore Features
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-8 md:gap-10 lg:gap-8 relative z-10">
-        {features.map((feature, i) => {
-          let bgGradientClass = "from-purple-50 to-indigo-50 dark:from-purple-950/20 dark:to-indigo-950/20"
-          let iconGradientClass = "from-purple-500 to-indigo-600"
-          if (i === 1) {
-            bgGradientClass = "from-sky-50 to-blue-50 dark:from-sky-950/20 dark:to-blue-950/20"
-            iconGradientClass = "from-sky-500 to-blue-600"
-          } else if (i === 2) {
-            bgGradientClass = "from-orange-50 to-red-50 dark:from-orange-950/20 dark:to-red-950/20"
-            iconGradientClass = "from-orange-500 to-red-600"
-          }
-          return (
-            <Card
-              key={i}
-              className={`bg-gradient-to-br ${bgGradientClass} border-2 border-slate-200 dark:border-white/10 hover:shadow-2xl hover:scale-105 transition-all duration-500 group relative overflow-hidden animate-scale-in flex flex-col`}
-              style={{ animationDelay: `${i * 0.2}s` }}
-            >
-              {/* Shine Effect */}
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
+      {/* ── Desktop layout ── */}
+      <div className="hidden lg:block">
+        <div className="mx-auto py-8 lg:py-16 px-4 sm:px-6 lg:px-0">
+          <div className="grid lg:grid-cols-[3fr_3fr] gap-0 items-center">
+            {/* Left Column */}
+            <div className="space-y-6 ml-0 lg:ml-4">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-background border border-primary">
+                <div className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
+                <span className="text-primary text-[10px] font-medium leading-tight">
+                  The first AI-powered platform for Supporter Groups and Sports Clubs.
+                </span>
+              </div>
 
-              <CardHeader className="relative z-10 p-6 md:p-8">
-                <div className={`h-16 w-16 rounded-2xl bg-gradient-to-br ${iconGradientClass} flex items-center justify-center mb-6 shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300`}>
-                  {React.createElement(feature.icon, { className: "h-8 w-8 text-white" })}
+              <h1 className="text-4xl xl:text-5xl font-bold text-background leading-tight">
+                Don&apos;t Just Run Your Club.{" "}
+                <span className="text-primary">Revolutionize.</span>
+              </h1>
+
+              <p className="text-background text-xl leading-relaxed max-w-lg">
+                One platform for membership, ticketing, payments and fan engagement.
+              </p>
+
+              <div className="flex flex-row items-center gap-4 pt-2">
+                <Link href="/contact">
+                  <Button
+                    variant="default"
+                    className="px-8 h-10 text-white font-medium text-xs rounded-[5px] uppercase tracking-wider"
+                  >
+                    Book a Demo
+                  </Button>
+                </Link>
+                <Link href="#features">
+                  <Button
+                    variant="outline"
+                    className="px-8 h-10 border font-medium text-xs rounded-[5px] uppercase tracking-wider flex items-center gap-2"
+                  >
+                    <ArrowRight className="w-3.5 h-3.5" />
+                    Explore Features
+                  </Button>
+                </Link>
+              </div>
+            </div>
+
+            {/* Right Column — decorated image */}
+            <div className="relative h-[65vh] xl:h-[70vh]">
+              <div className="absolute top-0 right-0 w-[110%] h-[90%] bg-primary rounded-[20px]" />
+              <div
+                className="absolute top-[6%] right-[0%] w-[105%] h-[92%] rounded-l-[20px]"
+                style={{ background: "linear-gradient(128deg, #222 41.5%, #434242 98.5%)" }}
+              />
+              <div className="absolute top-[8%] right-[4%] w-[100%] h-[88%] z-10">
+                <AnimatedLogo />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+  )
+}
+
+type FeatureTab = "feed" | "events" | "leaderboard" | "chants" | "merch" | "gallery"
+
+const tabConfig: Array<{
+  id: FeatureTab
+  label: string
+  Icon: React.ComponentType<{ className?: string }>
+  headline: [string, string]
+  sub: string
+  cards: Array<{ Icon: React.ComponentType<{ className?: string }>; title: string; desc: string; accent: string }>
+}> = [
+    {
+      id: "feed",
+      label: "Feed",
+      Icon: LayoutGrid,
+      headline: ["Your Club.", "All in One Place."],
+      sub: "Track matches, manage members, vote, and stay updated — all in one dashboard.",
+      cards: [
+        { Icon: Play, title: "Live Fixtures & League Table", desc: "Stay on top of upcoming matches across all competitions and check your team's standing in real time.", accent: "bg-[#71AA8A]" },
+        { Icon: Calendar, title: "Events, Polls & Membership", desc: "Join fan screenings, vote on club decisions and manage your membership — all from one place.", accent: "bg-[#AB9EBB]" },
+      ],
+    },
+    {
+      id: "events",
+      label: "Events",
+      Icon: Calendar,
+      headline: ["Don't Miss", "A Single Moment."],
+      sub: "Browse screenings, CSR drives, and meetups — search, register, and relive events in one place.",
+      cards: [
+        { Icon: SlidersHorizontal, title: "Search & Filter Events", desc: "Find exactly what you're looking for — filter by category, date or type and register in seconds.", accent: "bg-[#71AA8A]" },
+        { Icon: Calendar, title: "Ongoing, Upcoming & Past", desc: "See what's live right now, what's coming up next and revisit every event your club has hosted.", accent: "bg-[#AB9EBB]" },
+      ],
+    },
+    {
+      id: "leaderboard",
+      label: "Leaderboard",
+      Icon: BarChart2,
+      headline: ["Compete.", "Climb the Ranks."],
+      sub: "Attend more events, climb the ranks, and earn points with every show of loyalty.",
+      cards: [
+        { Icon: BarChart2, title: "Personal Ranking", desc: "Instantly see your current position, events attended and total points — all in one snapshot.", accent: "bg-[#71AA8A]" },
+        { Icon: ClipboardList, title: "Top Performers Board", desc: "See who's leading the pack across the club and fuel your drive to show up more.", accent: "bg-[#AB9EBB]" },
+      ],
+    },
+    {
+      id: "chants",
+      label: "Club Chants",
+      Icon: Volume2,
+      headline: ["Sing Loud.", "Know Every Word."],
+      sub: "Songs, chants, and traditions — all in one place. Learn them and never stay silent again.",
+      cards: [
+        { Icon: Music, title: "Lyrics & Chant Library", desc: "Search and read the full text of every club chant — from match day anthems to terrace classics.", accent: "bg-[#71AA8A]" },
+        { Icon: Video, title: "Videos & Visual Guides", desc: "Watch embedded videos of chants in action so you can learn the rhythm, words and passion behind each one.", accent: "bg-[#AB9EBB]" },
+      ],
+    },
+    {
+      id: "merch",
+      label: "Merchandise",
+      Icon: ShoppingCart,
+      headline: ["Gear Up.", "Stand Out."],
+      sub: "Official merch — scarves, bottles, collectibles, and more. Show the world where your heart belongs.",
+      cards: [
+        { Icon: ShoppingBag, title: "Apparel & Collectibles", desc: "From match day scarves and water bottles to limited-edition collectibles — gear for every kind of fan.", accent: "bg-[#71AA8A]" },
+        { Icon: SlidersHorizontal, title: "Search, Filter & Shop", desc: "Sort, filter, and spot featured items — find what you want fast before it's gone.", accent: "bg-[#AB9EBB]" },
+      ],
+    },
+    {
+      id: "gallery",
+      label: "Gallery",
+      Icon: Images,
+      headline: ["Every Moment.", "Saved Forever."],
+      sub: "Relive your club's best moments — from matchdays to fan meetups, all in one place.",
+      cards: [
+        { Icon: Images, title: "Event Albums", desc: "All your club's media organised into albums — one folder per event, easy to find and browse.", accent: "bg-[#71AA8A]" },
+        { Icon: Smartphone, title: "Full Screen Viewing", desc: "Open any photo or media in full screen and relive the atmosphere like you were right there.", accent: "bg-[#AB9EBB]" },
+      ],
+    },
+  ]
+
+function FeaturesShowcase() {
+  const [activeIdx, setActiveIdx] = useState(0)
+  const [displayIdx, setDisplayIdx] = useState(0)
+  const [fadeState, setFadeState] = useState<"in" | "out">("in")
+  const [paused, setPaused] = useState(false)
+  const tabsRef = React.useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (paused) return
+    const delay = 3000
+    const id = setInterval(() => setActiveIdx((i) => (i + 1) % tabConfig.length), delay)
+    return () => clearInterval(id)
+  }, [paused])
+
+  useEffect(() => {
+    if (activeIdx === displayIdx) return
+    setFadeState("out")
+    const timeout = setTimeout(() => {
+      setDisplayIdx(activeIdx)
+      setFadeState("in")
+    }, 1000)
+    return () => clearTimeout(timeout)
+  }, [activeIdx, displayIdx])
+
+  useEffect(() => {
+    if (!tabsRef.current) return
+    const activeBtn = tabsRef.current.children[activeIdx] as HTMLElement
+    if (activeBtn) {
+      const container = tabsRef.current
+      const scrollLeft = activeBtn.offsetLeft - (container.clientWidth / 2) + (activeBtn.clientWidth / 2)
+      container.scrollTo({ left: scrollLeft, behavior: "smooth" })
+    }
+  }, [activeIdx])
+
+  const active = tabConfig[displayIdx]
+
+  const scrollNext = () => {
+    if (tabsRef.current) {
+      tabsRef.current.scrollBy({ left: 120, behavior: "smooth" })
+    }
+  }
+
+  return (
+    <section
+      className="bg-white lg:bg-secondary-purple py-6"
+      id="features"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+    >
+      <div className="mx-auto max-w-8xl px-4 sm:px-6 lg:px-8">
+
+        {/* ── Mobile layout ── */}
+        <div className="lg:hidden space-y-6 mt-2">
+          <div className={`px-1 transition-opacity duration-1000 ease-in-out ${fadeState === "in" ? "opacity-100" : "opacity-0"}`}>
+            {/* Headline */}
+            <h2 className="text-[40px] font-black leading-[1.1] tracking-tight">
+              <span className="text-[#1E1E2C]">{active.headline[0]}</span>
+              <br />
+              <span className="text-primary">{active.headline[1]}</span>
+            </h2>
+          </div>
+
+          <div className="px-1 relative">
+            {/* Horizontal scrollable tab pills */}
+            <div className="flex items-center gap-1">
+              <div ref={tabsRef} className="flex gap-2.5 overflow-x-auto pb-2 pt-1 no-scrollbar flex-1 snap-x scroll-smooth">
+                {tabConfig.map((tab, i) => {
+                  const Icon = tab.Icon
+                  const isActive = i === activeIdx
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveIdx(i)}
+                      className={`flex items-center gap-2 px-3.5 py-1.5 rounded-[10px] text-[13px] font-medium whitespace-nowrap transition-all flex-shrink-0 border snap-start ${isActive
+                        ? "bg-[#DDE0FF] text-[#5C608A] border-transparent shadow-sm"
+                        : "bg-transparent text-[#61628E] border-[#8C8DAB] hover:bg-gray-50"
+                        }`}
+                    >
+                      <Icon className="w-[15px] h-[15px]" />
+                      {tab.label}
+                    </button>
+                  )
+                })}
+              </div>
+              <button onClick={scrollNext} className="flex-shrink-0 p-1 bg-transparent border-none">
+                <ChevronRight className="w-5 h-5 text-[#888]" />
+              </button>
+            </div>
+          </div>
+
+          {/* Content card */}
+          <div className="relative bg-gradient-to-b from-[#BCBEDD] to-[#5B5D98] rounded-[28px] p-6 shadow-md mt-6 mx-1 min-h-[432px]">
+            {/* Red dot */}
+            <div className="absolute top-6 right-6 z-10">
+              <div className="w-2.5 h-2.5 bg-primary rounded-full ring-[4px] ring-primary/20" />
+            </div>
+
+            <div className={`transition-opacity duration-1000 ease-in-out ${fadeState === "in" ? "opacity-100" : "opacity-0"}`}>
+              {/* Inner Top text */}
+              <div className="space-y-1.5 pr-8 mt-2">
+                <p className="text-primary font-bold text-[22px] leading-tight tracking-tight">{active.headline[0].replace('.', ',')}</p>
+                <p className="text-[#1A1A24] font-black text-[24px] leading-tight tracking-tight">{active.headline[1].toLowerCase()}</p>
+                <p className="text-white text-[15px] pt-1 leading-snug pr-4">{active.sub}</p>
+              </div>
+
+              {/* Divider */}
+              <div className="w-full h-px bg-[#7D7F9B]/40 my-6" />
+
+              {/* Inner Cards */}
+              <div className="space-y-3.5">
+                {active.cards.map((card, i) => {
+                  const CardIcon = card.Icon
+                  return (
+                    <div key={i} className="bg-[#E5E4FA] rounded-[20px] border border-[#A5A6C4] flex items-center gap-4 p-4 shadow-sm">
+                      <div className={`${card.accent} w-[52px] h-[52px] rounded-[14px] flex items-center justify-center flex-shrink-0 shadow-sm`}>
+                        <CardIcon className="w-5 h-5 text-white" />
+                      </div>
+                      <div className="flex-1 flex flex-col pt-0.5">
+                        <p className="font-bold text-[#595A8D] text-[15px] mb-[2px] leading-snug">{card.title}</p>
+                        <p className="text-[#8487A4] text-[13px] leading-snug line-clamp-2 pr-1">{card.desc}</p>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Desktop layout ── */}
+        <div className="hidden bg-white lg:grid lg:grid-cols-[minmax(250px,25%)_1fr] items-center border-t rounded-r-[32px] border-gray-100">
+
+          {/* Left — vertical sidebar */}
+          <div className="relative rounded-l-[32px] rounded-b-[32px] flex flex-col justify-center h-full">
+
+            <div className="w-full">
+              <hr className="border-gray-200 border-t-2 mb-4 mt-4" />
+            </div>
+
+            <div className="flex flex-col space-y-2 relative border-r-2 border-gray-100 pl-8 pr-6 pt-6">
+
+              {/* Active Indicator Line Track */}
+              <div className="absolute mr-4 right-[-2px] w-[4px] bg-gray-200 rounded-full h-[328px] top-[24px]">
+                {/* Active Indicator Line */}
+                <div
+                  className={`absolute right-0 w-[4px] bg-gray-400 rounded-full transition-all duration-300 ease-in-out h-12 ${[
+                    "top-0",
+                    "top-[56px]",
+                    "top-[112px]",
+                    "top-[168px]",
+                    "top-[224px]",
+                    "top-[280px]"
+                  ][activeIdx] || "top-0"
+                    }`}
+                />
+              </div>
+
+              {tabConfig.map((tab, i) => {
+                const Icon = tab.Icon
+                const isActive = i === activeIdx
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveIdx(i)}
+                    className={`group flex items-center justify-between w-full px-5 h-12 rounded-[14px] transition-all duration-200 ${isActive
+                      ? "bg-secondary/20 text-black font-bold"
+                      : "text-[#666] hover:bg-gray-50 hover:text-black"
+                      }`}
+                  >
+                    <div className="flex items-center gap-3.5">
+                      <Icon className={`w-[18px] h-[18px] flex-shrink-0 ${isActive ? "text-black" : "text-[#888] group-hover:text-black"}`} />
+                      <span className="text-md lg:text-lg">{tab.label}</span>
+                    </div>
+                    {isActive && <ArrowRight className="w-4 h-4 text-black" />}
+                  </button>
+                )
+              })}
+            </div>
+
+            <div className="w-full">
+              <hr className="border-gray-200 border-t-2 mt-4 mb-4" />
+            </div>
+
+          </div>
+
+          {/* Right — content panel */}
+          <div className="bg-gradient-to-b from-secondary/30 via-secondary/60 to-secondary/90 
+            rounded-[32px] p-4 pr-8 lg:pr-10 xl:pr-12 
+            pb-8 lg:pb-12 xl:pb-16 
+            relative overflow-hidden flex items-stretch shadow-md">
+            <div className="bg-gradient-to-b from-white to-secondary-purple rounded-[24px] w-full p-10 xl:p-12 shadow-sm relative z-10 flex flex-col justify-center min-h-[460px]">
+              <div className={`space-y-8 transition-opacity duration-1000 ease-in-out ${fadeState === "in" ? "opacity-100" : "opacity-0"}`}>
+                {/* Headline & Sub */}
+                <div className="flex flex-row h-content gap-4">
+                  <div className="w-1.5 bg-secondary flex-shrink-0" />
+                  <div className="space-y-5">
+                    <div className="flex items-stretch gap-4">
+                      <h2 className="text-4xl font-bold font-weight-700 xl:text-[42px] font-black flex flex-col leading-[1.1] gap-1">
+                        <span className="text-background">{active.headline[0]}</span>
+                        <span className="text-primary">{active.headline[1]}</span>
+                      </h2>
+                    </div>
+                    <p className="text-[#666] text-[17px] font-regular font-weight-400 leading-relaxed max-w-xl">{active.sub}</p>
+                  </div>
+
                 </div>
-                <CardTitle className="text-slate-900 dark:text-white text-2xl mb-4 group-hover:text-transparent group-hover:bg-gradient-to-r group-hover:from-sky-600 group-hover:to-blue-600 group-hover:bg-clip-text transition-all duration-300 font-bold">
-                  {feature.title}
-                </CardTitle>
-                <p className="text-slate-600 dark:text-slate-300 text-base leading-relaxed">{feature.desc}</p>
-              </CardHeader>
-              <CardContent className="relative z-10 p-6 md:p-8 pt-0 md:pt-0 mt-auto">
-                <ul className="space-y-4">
-                  {feature.points.map((point, j) => {
-                    let iconColor = "text-sky-600 dark:text-sky-400"
-                    if (i === 0) iconColor = "text-purple-600 dark:text-purple-400"
-                    if (i === 1) iconColor = "text-sky-600 dark:text-sky-400"
-                    if (i === 2) iconColor = "text-orange-600 dark:text-orange-400"
+
+
+
+                {/* Cards */}
+                <div className="grid grid-cols-2 gap-8 pt-6">
+                  {active.cards.map((card, i) => {
+                    const CardIcon = card.Icon
                     return (
-                      <li
-                        key={j}
-                        className="flex items-start gap-3 text-sm md:text-base text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white transition-colors duration-300"
-                      >
-                        <CheckCircle2 className={`h-5 w-5 ${iconColor} flex-shrink-0 mt-0.5 animate-pulse`} />
-                        <span className="font-medium leading-snug">{point}</span>
-                      </li>
+                      <div key={i} className="flex gap-4">
+                        <div className={`${card.accent} w-[60px] h-[60px] rounded-2xl flex items-center justify-center flex-shrink-0 shadow-sm`}>
+                          <CardIcon className="w-6 h-6 text-white" />
+                        </div>
+                        <div className="flex flex-col pt-1">
+                          <p className="font-bold text-[#6D71AA] text-[15px] mb-1.5">{card.title}</p>
+                          <p className="text-[#888] text-[13px] leading-relaxed max-w-[220px]">{card.desc}</p>
+                        </div>
+                      </div>
                     )
                   })}
-                </ul>
-              </CardContent>
-            </Card>
-          )
-        })}
-      </div>
-    </section>
-  )
-}
-
-function WhyWingmanPro() {
-  const differentiators = [
-    {
-      icon: Globe,
-      title: "We are Global",
-      desc: "Ready for multi-currency support and cross-border data regulations from Day 1.",
-      gradient: "from-blue-500 to-cyan-600",
-      delay: "0s"
-    },
-    {
-      icon: Brain,
-      title: "We are Smart",
-      desc: "Our predictive AI analyzes member behavior to help you reduce churn before it happens.",
-      gradient: "from-purple-500 to-pink-600",
-      delay: "0.2s"
-    },
-    {
-      icon: Users,
-      title: "We are Partners",
-      desc: 'We don\'t just sell you club software; our "Grassroots Growth" initiative helps you secure sponsorships and build affiliations with major leagues.',
-      gradient: "from-orange-500 to-red-600",
-      delay: "0.4s"
-    }
-  ]
-
-  return (
-    <section className="mx-auto max-w-7xl px-4 py-20 md:py-28 lg:py-32 relative overflow-hidden">
-      {/* Enhanced Gradient Background */}
-      <div className="absolute inset-0 bg-gradient-to-br from-sky-50 via-blue-50 to-indigo-50 dark:from-sky-950/20 dark:via-blue-950/20 dark:to-indigo-950/20 rounded-[2rem] md:rounded-[3rem] animate-gradient" />
-
-      {/* Animated Orbs */}
-      <div className="absolute top-0 left-0 w-64 h-64 bg-sky-400/20 dark:bg-sky-600/10 rounded-full blur-3xl animate-float" />
-      <div className="absolute bottom-0 right-0 w-64 h-64 bg-blue-400/20 dark:bg-blue-600/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '1.5s' }} />
-
-      {/* Sports Icons Floating */}
-      <div className="absolute top-10 right-10 w-16 h-16 opacity-10 animate-rotate-slow">
-        <Trophy className="w-full h-full text-sky-500" />
-      </div>
-      <div className="absolute bottom-10 left-10 w-12 h-12 opacity-10 animate-rotate-slow" style={{ animationDirection: 'reverse', animationDuration: '15s' }}>
-        <Activity className="w-full h-full text-blue-500" />
-      </div>
-
-      {/* Puzzle Globe Image */}
-      <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1/3 max-w-md opacity-15 dark:opacity-8 -z-0 hidden lg:block">
-        <div className="relative h-[400px] w-full animate-float" style={{ animationDelay: '2s' }}>
-          <Image
-            src="/Webpage Assets 03.png"
-            alt="Global partnership and organization"
-            fill
-            sizes="(max-width: 1024px) 0px, 400px"
-            className="object-contain"
-          />
-        </div>
-      </div>
-
-      <div className="text-center max-w-4xl mx-auto mb-16 relative z-10">
-        <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-slate-900 dark:text-white mb-8 bg-gradient-to-r from-sky-700 via-blue-700 to-indigo-700 dark:from-sky-300 dark:via-blue-300 dark:to-indigo-300 bg-clip-text text-transparent leading-tight">
-          Why Choose Wingman Pro's Membership Platform?
-        </h2>
-        <div className="space-y-6">
-          <p className="text-slate-700 dark:text-slate-200 text-xl md:text-2xl leading-relaxed">
-            Most software manages data. <span className="font-extrabold bg-gradient-to-r from-sky-700 to-blue-700 dark:from-sky-300 dark:to-blue-300 bg-clip-text text-transparent">Wingman Pro manages communities.</span>
-          </p>
-          <p className="text-slate-600 dark:text-slate-300 text-lg md:text-xl">
-            While others offer you a database, we offer you an Intelligence Partner for your sports organization.
-          </p>
-        </div>
-      </div>
-
-      <div className="grid md:grid-cols-3 gap-8 md:gap-10 lg:gap-8 relative z-10">
-        {differentiators.map((item, i) => {
-          let gradientClass = "from-blue-500 to-cyan-600"
-          if (i === 1) gradientClass = "from-purple-500 to-pink-600"
-          else if (i === 2) gradientClass = "from-orange-500 to-red-600"
-          return (
-            <Card
-              key={i}
-              className="bg-white/80 dark:bg-slate-900/50 backdrop-blur-sm border-2 border-slate-200 dark:border-white/10 text-center hover:shadow-2xl hover:scale-105 transition-all duration-500 group relative overflow-hidden animate-scale-in flex flex-col"
-              style={{ animationDelay: item.delay }}
-            >
-              {/* Gradient Overlay on Hover */}
-              <div className={`absolute inset-0 bg-gradient-to-br ${gradientClass} opacity-0 group-hover:opacity-10 transition-opacity duration-500`} />
-
-              <CardHeader className="relative z-10 p-8">
-                <div className={`h-24 w-24 rounded-3xl bg-gradient-to-br ${gradientClass} flex items-center justify-center mx-auto mb-6 shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300`}>
-                  {React.createElement(item.icon, { className: "h-12 w-12 text-white" })}
                 </div>
-                <CardTitle className="text-slate-900 dark:text-white text-2xl group-hover:bg-gradient-to-r group-hover:from-sky-600 group-hover:to-blue-600 group-hover:bg-clip-text group-hover:text-transparent transition-all duration-300 font-bold">
-                  {item.title}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="relative z-10 px-8 pb-8 pt-0 mt-auto">
-                <p className="text-slate-600 dark:text-slate-300 leading-relaxed text-base md:text-lg">{item.desc}</p>
-              </CardContent>
-            </Card>
-          )
-        })}
+              </div>
+            </div>
+
+            {/* Logo in bottom right */}
+            <div className="absolute bottom-6 right-6 lg:bottom-2 lg:right-2 w-14 h-14 bg-background rounded-full flex items-center justify-center shadow-xl z-20 rotate-[45deg]">
+              <div className="w-9 h-9 relative">
+                <Image src="Logo.svg" alt="Wingman" fill className="object-contain" />
+              </div>
+            </div>
+          </div>
+
+        </div>
+
       </div>
-    </section>
+    </section >
   )
 }
 
-function TechPromise() {
-  const promises = [
-    { icon: Zap, text: "99.9% Uptime Guarantee", gradient: "from-yellow-400 to-orange-500" },
-    { icon: Lock, text: "Bank-Level Data Encryption", gradient: "from-green-400 to-emerald-500" },
-    { icon: Smartphone, text: "Mobile-First Responsive Design", gradient: "from-blue-400 to-cyan-500" }
+function ImageMarquee() {
+  const images = [
+    "courselclubslogo/afcb.svg",
+    "courselclubslogo/cvflogo.svg",
+    "courselclubslogo/evertonindia.svg",
+    "courselclubslogo/juventusclub.svg",
+    "courselclubslogo/nufc.svg",
   ]
 
   return (
-    <section className="mx-auto max-w-7xl px-4 py-20 md:py-28 lg:py-32 relative">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 -z-10">
-        <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(56,189,248,0.05)_25%,rgba(56,189,248,0.05)_50%,transparent_50%,transparent_75%,rgba(56,189,248,0.05)_75%,rgba(56,189,248,0.05))] [background-size:20px_20px]" />
-      </div>
-
-      <div className="text-center max-w-4xl mx-auto mb-16 relative z-10">
-        <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold text-slate-900 dark:text-white mb-8 bg-gradient-to-r from-slate-900 via-sky-800 to-blue-900 dark:from-white dark:via-sky-200 dark:to-blue-200 bg-clip-text text-transparent leading-tight">
-          Built for Scale. Secured for Peace of Mind.
-        </h2>
-        <p className="text-slate-600 dark:text-slate-300 text-lg md:text-xl leading-relaxed">
-          Whether you have 50 members or 50,000, our enterprise-grade infrastructure scales with you.
-        </p>
-      </div>
-
-      <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto relative z-10">
-        {promises.map((item, i) => (
-          <Card
+    <section className="bg-secondary py-8 overflow-hidden">
+      <div className="flex gap-4 animate-marquee whitespace-nowrap">
+        {[...images, ...images].map((src, i) => (
+          <div
             key={i}
-            className={`bg-gradient-to-br from-slate-50 to-sky-50 border-2 border-slate-200 dark:from-slate-900/50 dark:to-blue-900/30 dark:border-white/10 text-center hover:shadow-2xl hover:scale-105 transition-all duration-500 group relative overflow-hidden animate-scale-in`}
-            style={{ animationDelay: `${i * 0.15}s` }}
+            className="border-[6px] border-white rounded-[25px] flex-shrink-0 w-36 h-36 sm:w-40 sm:h-40 md:w-48 md:h-48 relative overflow-hidden"
           >
-            {/* Animated Gradient Border */}
-            <div className={`absolute inset-0 bg-gradient-to-br ${item.gradient} opacity-0 group-hover:opacity-20 transition-opacity duration-500`} />
-
-            <CardContent className="p-8 md:p-10 relative z-10">
-              <div className={`h-20 w-20 rounded-2xl bg-gradient-to-br ${item.gradient} flex items-center justify-center mx-auto mb-6 shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300`}>
-                {React.createElement(item.icon, { className: "h-10 w-10 text-white" })}
-              </div>
-              <p className="text-slate-900 dark:text-white font-bold text-xl group-hover:bg-gradient-to-r group-hover:from-sky-600 group-hover:to-blue-600 group-hover:bg-clip-text group-hover:text-transparent transition-all duration-300">
-                {item.text}
-              </p>
-            </CardContent>
-          </Card>
+            <Image
+              src={src}
+              alt=""
+              fill
+              sizes="(max-width: 640px) 144px, (max-width: 768px) 160px, 192px"
+              className="object-cover"
+            />
+          </div>
         ))}
       </div>
     </section>
   )
 }
 
-function FinalCTA() {
-  return (
-    <section className="mx-auto max-w-7xl px-4 py-20 md:py-28 lg:py-32 relative">
-      {/* Animated Background */}
-      <div className="absolute inset-0 rounded-[2.5rem] md:rounded-[3.5rem] overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-sky-500 via-blue-600 to-indigo-600 dark:from-sky-600 dark:via-blue-700 dark:to-indigo-700 animate-gradient" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(255,255,255,0.1),transparent_50%)]" />
+function ContactCTA() {
+  const [form, setForm] = useState({ name: "", email: "", topic: "Product Support", message: "" })
+  const [submitted, setSubmitted] = useState(false)
 
-        {/* Floating Elements */}
-        <div className="absolute top-10 left-10 w-20 h-20 opacity-20 animate-float">
-          <Trophy className="w-full h-full text-white" />
-        </div>
-        <div className="absolute bottom-10 right-10 w-16 h-16 opacity-20 animate-float" style={{ animationDelay: '1s' }}>
-          <Star className="w-full h-full text-white" />
-        </div>
-        <div className="absolute top-1/2 right-1/4 w-12 h-12 opacity-15 animate-float" style={{ animationDelay: '2s' }}>
-          <Award className="w-full h-full text-white" />
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setSubmitted(true)
+  }
+
+  return (
+    <section className="bg-white py-16 md:py-20 lg:py-24" id="contact">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-stretch">
+          {/* Left */}
+          <div className="flex flex-col gap-8">
+            <div>
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight mb-3">
+                <span className="text-background">Ready to</span>{" "}
+                <span className="text-primary">Upgrade Your Club?</span>
+              </h2>
+              <p className="text-secondary text-lg leading-relaxed max-w-md">
+                Book a consultation or join the wait-list. Takes two minutes.
+              </p>
+            </div>
+
+            <div className="mt-auto border-t border-border/30 pt-8">
+              <p className="text-secondary font-semibold text-base mb-1">Need urgent help?</p>
+              <p className="text-[#888] text-sm">Contact your Sales POC directly for fastest resolution.</p>
+            </div>
+          </div>
+
+          {/* Right — form */}
+          {submitted ? (
+            <div className="flex flex-col items-center justify-center py-16 space-y-4 text-center">
+              <div className="w-16 h-16 rounded-full bg-secondary-purple text-primary flex items-center justify-center text-3xl">✓</div>
+              <p className="text-background font-bold text-xl">Thanks! We&apos;ll be in touch shortly.</p>
+              <Button
+                variant="outline"
+                className="border-0 bg-primary rounded-[5px] text-xs font-medium uppercase tracking-wide"
+                onClick={() => setSubmitted(false)}
+              >
+                Submit another
+              </Button>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4 bg-secondary-purple/50 p-4 rounded-[10px]">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-secondary text-xs font-semibold">Full Name</label>
+                  <input
+                    type="text"
+                    placeholder="Enter your full name"
+                    value={form.name}
+                    onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                    className="w-full h-11 px-4 border rounded-[10px] text-xs placeholder-[#888] focus:outline-none focus:border-secondary bg-white"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-secondary text-xs font-semibold">Email</label>
+                  <input
+                    type="email"
+                    placeholder="Enter your email"
+                    value={form.email}
+                    onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                    className="w-full h-11 px-4 border rounded-[10px] text-xs placeholder-[#888] focus:outline-none focus:border-secondary bg-white"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-secondary text-xs font-semibold">Topic</label>
+                <select
+                  value={form.topic}
+                  onChange={(e) => setForm((f) => ({ ...f, topic: e.target.value }))}
+                  className="w-full h-11 px-4 border rounded-[10px] text-xs text-[#888] focus:outline-none focus:border-secondary appearance-none bg-white"
+                >
+                  <option>Product Support</option>
+                  <option>Sales Inquiry</option>
+                  <option>Partnership</option>
+                  <option>Other</option>
+                </select>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-secondary text-xs font-semibold">Message</label>
+                <textarea
+                  placeholder="Tell us what you need..."
+                  value={form.message}
+                  onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))}
+                  rows={4}
+                  className="w-full px-4 py-3 border rounded-[10px] text-xs text-[#888] placeholder-[#888] focus:outline-none focus:border-secondary resize-none bg-white"
+                />
+              </div>
+
+              <div className="flex flex-col gap-3 pt-1">
+                <Button
+                  type="submit"
+                  variant="secondary"
+                  className="bg-secondary/40"
+                >
+                  Submit
+                </Button>
+                <Link href="/clubs" className="flex-1">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="w-full"
+                  >
+                    Join Waiting List
+                  </Button>
+                </Link>
+              </div>
+            </form>
+          )}
         </div>
       </div>
+    </section>
+  )
+}
 
-      <div className="rounded-[2.5rem] md:rounded-[3.5rem] border-2 border-white/20 bg-gradient-to-br from-sky-500/90 via-blue-600/90 to-indigo-600/90 dark:from-sky-600/90 dark:via-blue-700/90 dark:to-indigo-700/90 backdrop-blur-sm p-10 md:p-20 text-center text-white shadow-2xl relative z-10 animate-pulse-glow">
-        <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-8 animate-slide-up leading-tight">
-          Ready to Upgrade Your Sports Management System?
+const faqs = [
+  {
+    q: "What is Wingman Pro?",
+    a: "Wingman Pro is the world's first AI-enhanced platform built exclusively for Supporter Groups and Sports Clubs. It replaces spreadsheets, payment links, and chat groups with one powerful, secure operating system for membership management, ticketing, and fan engagement.",
+  },
+  {
+    q: "Who is Wingman Pro designed for?",
+    a: "Wingman Pro is built for supporter groups, fan clubs, and sports clubs of all sizes — from small local clubs to large national supporter networks.",
+  },
+  {
+    q: "How do we get our current member data onto Wingman Pro?",
+    a: "Our onboarding team will assist you in migrating existing member data securely. We support CSV imports and can guide you through the entire transition process.",
+  },
+  {
+    q: "Can Wingman Pro handle our merchandise sales and ticketing?",
+    a: "Yes! Wingman Pro includes a fully integrated commerce engine with real-time inventory, QR-code ready event ticketing, and one-click financial reporting.",
+  },
+  {
+    q: "Is there an extra fee for payment processing?",
+    a: "We offer transparent pricing with no hidden fees. Payment processing rates are competitive with no surprise charges. Contact us for a detailed breakdown.",
+  },
+  {
+    q: "How is your club's data protected?",
+    a: "We take data privacy seriously. Wingman Pro is built with GDPR and DPDPA compliance, bank-level encryption, and OTP-only secure login infrastructure.",
+  },
+]
+
+function FAQ() {
+  const [open, setOpen] = useState<number | null>(null)
+
+  return (
+    <section className="py-16 md:py-20 lg:py-24 relative overflow-hidden" id="faqs">
+      <div className="absolute inset-0 bg-secondary-purple/40 -z-10" />
+      {/* Decorative Vector — right corner */}
+      <div className="absolute -bottom-8 -left-10 w-80 h-80 opacity-60 pointer-events-none select-none">
+        <Image src="/Vector.svg" alt="" fill className="object-contain" />
+      </div>
+
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <h2 className="flex flex-col items-start gap-2 md:items-center md:text-4xl text-4xl lg:text-5xl font-bold text-center mb-12">
+          <span className="text-background">Frequently Asked</span>{" "}
+          <span className="text-primary">Questions</span>
         </h2>
-        <p className="text-sky-50 text-xl md:text-2xl mb-12 max-w-3xl mx-auto animate-slide-up opacity-90" style={{ animationDelay: '0.2s' }}>
-          Join the waiting list or book a consultation with our strategy team to see how Wingman Pro can unlock your club's potential.
-        </p>
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-6 animate-slide-up" style={{ animationDelay: '0.4s' }}>
-          <Link href="/contact" className="w-full sm:w-auto">
-            <Button
-              size="lg"
-              className="w-full h-16 px-10 bg-white text-sky-700 hover:bg-slate-100 text-xl font-bold shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300 relative overflow-hidden group rounded-2xl"
-            >
-              <span className="relative z-10 flex items-center justify-center gap-3">
-                <CalendarDays className="w-6 h-6" />
-                Book a Consultation
-              </span>
-              <span className="absolute inset-0 bg-gradient-to-r from-sky-100 to-blue-100 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-            </Button>
-          </Link>
-          <Link href="/clubs" className="w-full sm:w-auto">
-            <Button
-              size="lg"
-              variant="outline"
-              className="w-full h-16 px-10 border-2 border-white text-white bg-transparent hover:bg-white hover:text-sky-700 text-xl font-bold backdrop-blur-sm shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 rounded-2xl"
-            >
-              Join Waiting List
-            </Button>
-          </Link>
+
+        <div className="max-w-3xl mx-auto space-y-3">
+          {faqs.map((faq, i) => (
+            <div key={i} className={`border rounded-[20px] overflow-hidden ${open === i ? "bg-secondary/30 border-primary" : "bg-secondary/30"}`}>
+              <button
+                onClick={() => setOpen(open === i ? null : i)}
+                className="w-full flex items-center justify-between px-5 py-4 text-left gap-4"
+              >
+                {open === i ? (<span className="text-primary font-medium text-sm">{faq.q}</span>)
+                  : (<span className="text-secondary font-medium text-sm">{faq.q}</span>)}
+                {open === i ? (
+                  <ChevronUp className="w-4 h-4 text-secondary flex-shrink-0" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 text-secondary flex-shrink-0" />
+                )}
+              </button>
+              {open === i && (
+                <div className="px-5 pb-5">
+                  <p className="text-secondary text-sm leading-relaxed">{faq.a}</p>
+                </div>
+              )}
+            </div>
+          ))}
         </div>
       </div>
     </section>
@@ -539,26 +734,21 @@ function FinalCTA() {
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-sky-50 dark:from-slate-950 dark:via-slate-900 dark:to-blue-950 text-slate-900 dark:text-white relative overflow-x-hidden">
-      <JellyCursor />
+    <div className="min-h-screen bg-white text-slate-900 relative overflow-x-hidden">
+      {/* <JellyCursor /> */}
       <SiteNavbar brandName="Wingman Pro" />
       <FadeIn>
         <Hero />
       </FadeIn>
       <FadeIn>
-        <ProblemSolution />
+        <FeaturesShowcase />
+      </FadeIn>
+      <ImageMarquee />
+      <FadeIn>
+        <ContactCTA />
       </FadeIn>
       <FadeIn>
-        <CoreFeatures />
-      </FadeIn>
-      <FadeIn>
-        <WhyWingmanPro />
-      </FadeIn>
-      <FadeIn>
-        <TechPromise />
-      </FadeIn>
-      <FadeIn>
-        <FinalCTA />
+        <FAQ />
       </FadeIn>
       <SiteFooter brandName="Wingman Pro" />
       <ScrollToTop />
