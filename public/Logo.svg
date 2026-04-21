@@ -1,6 +1,11 @@
 <svg width="30" height="30" viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+<<<<<<< HEAD
 <mask id="mask0_663_6725" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="0" y="0" width="30" height="29">
 <path d="M0 0H30V29H0V0Z" fill="white"/>
+=======
+<mask id="mask0_663_6725" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="0" y="0" width="30" height="30">
+<path d="M0 0H30V30H0V0Z" fill="white"/>
+>>>>>>> aec4d95 (New UI UX (#39))
 </mask>
 <g mask="url(#mask0_663_6725)">
 <mask id="mask1_663_6725" style="mask-type:luminance" maskUnits="userSpaceOnUse" x="-8" y="-4" width="46" height="45">
