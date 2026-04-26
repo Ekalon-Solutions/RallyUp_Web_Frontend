@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Calendar, Clock, MapPin, Users, Ticket, UserCheck, Bus, CheckCircle, XCircle, Plus, X, UserPlus, AlertCircle, Tag, Percent, Loader2 } from "lucide-react"
+import { Calendar, Clock, MapPin, Users, Ticket, UserCheck, Bus, CheckCircle, XCircle, Plus, X, UserPlus, AlertCircle, Loader2 } from "lucide-react"
 import { toast } from "sonner"
 import { apiClient, Event } from "@/lib/api"
 import { formatLocalDate } from "@/lib/timezone"
@@ -28,15 +28,6 @@ interface Attendee {
   phone: string
 }
 
-interface AppliedCoupon {
-  code: string
-  name: string
-  discountType: 'flat' | 'percentage'
-  discountValue: number
-  discount: number
-  originalPrice: number
-  finalPrice: number
-}
 
 export function EventRegistrationModal({ 
   isOpen, 
@@ -53,11 +44,6 @@ export function EventRegistrationModal({
   const [errors, setErrors] = useState<Record<number, { name?: string; phone?: string }>>({})
   const [remainingSeats, setRemainingSeats] = useState<number | null>(null)
 
-  // Coupon states
-  const [couponCode, setCouponCode] = useState("")
-  const [validatingCoupon, setValidatingCoupon] = useState(false)
-  const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null)
-
   // Reset form and fetch fresh capacity when modal opens
   useEffect(() => {
     if (isOpen && !isRegistered) {
@@ -65,8 +51,6 @@ export function EventRegistrationModal({
       setAttendees([{ name: "", phone: "" }])
       setErrors({})
       setShowCancelConfirm(false)
-      setCouponCode("")
-      setAppliedCoupon(null)
     }
     if (isOpen && event?._id) {
       apiClient.getPublicEventById(event._id).then(res => {
@@ -148,94 +132,24 @@ export function EventRegistrationModal({
 
     setLoading(true)
     try {
-      // First, apply the coupon if one is being used
-      let couponToApply = null
-      if (appliedCoupon && event.ticketPrice > 0) {
-        const clubId = (event as any)?.clubId
-        const applyResponse = await apiClient.applyCoupon(
-          appliedCoupon.code,
-          event._id,
-          event.ticketPrice * attendees.length,
-          clubId
-        )
-        
-        if (applyResponse.success) {
-          couponToApply = appliedCoupon.code
-        } else {
-          toast.error(applyResponse.error || "Failed to apply coupon")
-          setLoading(false)
-          return
-        }
-      }
-
       const response = await apiClient.registerForEvent(
-        event._id, 
-        notes, 
+        event._id,
+        notes,
         attendees,
-        couponToApply
       )
-      
+
       if (response.success) {
-        toast.success(
-          appliedCoupon 
-            ? `Successfully registered! You saved ₹${appliedCoupon.discount * attendees.length}` 
-            : "Successfully registered for event!"
-        )
+        toast.success("Successfully registered for event!")
         onSuccess()
         onClose()
       } else {
         toast.error(response.error || "Failed to register for event")
       }
     } catch (error) {
-      // console.error("Error registering for event:", error)
       toast.error("An error occurred while registering for the event")
     } finally {
       setLoading(false)
     }
-  }
-
-  const handleValidateCoupon = async () => {
-    if (!event || !couponCode.trim()) {
-      toast.error("Please enter a coupon code")
-      return
-    }
-
-    if (event.ticketPrice <= 0) {
-      toast.error("This event is free, coupons are not applicable")
-      return
-    }
-
-    setValidatingCoupon(true)
-    try {
-      const totalPrice = event.ticketPrice * attendees.length
-      const clubId = (event as any)?.clubId
-      const response = await apiClient.validateCoupon(
-        couponCode.toUpperCase(),
-        event._id,
-        totalPrice,
-        clubId
-      )
-
-      if (response.success && response.data?.coupon) {
-        setAppliedCoupon(response.data.coupon)
-        toast.success("Coupon applied successfully!")
-      } else {
-        setAppliedCoupon(null)
-        toast.error(response.error || "Invalid coupon code")
-      }
-    } catch (error) {
-      // console.error("Error validating coupon:", error)
-      setAppliedCoupon(null)
-      toast.error("Failed to validate coupon")
-    } finally {
-      setValidatingCoupon(false)
-    }
-  }
-
-  const handleRemoveCoupon = () => {
-    setAppliedCoupon(null)
-    setCouponCode("")
-    toast.info("Coupon removed")
   }
 
   const handleCancelRegistration = async () => {
@@ -618,104 +532,6 @@ export function EventRegistrationModal({
                 </p>
               </div>
 
-              {/* Coupon Section */}
-              {event.ticketPrice > 0 && (
-                <Card className="border-2 border-dashed">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-base">
-                      <Tag className="w-4 h-4" />
-                      Have a Coupon Code?
-                    </CardTitle>
-                    <CardDescription>
-                      Apply a discount code to reduce your ticket price
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {!appliedCoupon ? (
-                      <div className="flex gap-2">
-                        <div className="flex-1">
-                          <Input
-                            placeholder="Enter coupon code"
-                            value={couponCode}
-                            onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                            disabled={validatingCoupon}
-                            className="font-mono"
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
-                                e.preventDefault()
-                                handleValidateCoupon()
-                              }
-                            }}
-                          />
-                        </div>
-                        <Button
-                          type="button"
-                          onClick={handleValidateCoupon}
-                          disabled={!couponCode.trim() || validatingCoupon}
-                          variant="outline"
-                        >
-                          {validatingCoupon ? (
-                            <>
-                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                              Validating...
-                            </>
-                          ) : (
-                            <>
-                              <CheckCircle className="w-4 h-4 mr-2" />
-                              Apply
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
-                          <div className="flex items-center gap-2">
-                            <CheckCircle className="w-5 h-5 text-green-600" />
-                            <div>
-                              <div className="font-medium text-green-900">{appliedCoupon.name}</div>
-                              <div className="text-sm text-green-700">
-                                Code: <code className="font-mono font-semibold">{appliedCoupon.code}</code>
-                              </div>
-                            </div>
-                          </div>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleRemoveCoupon}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                        </div>
-
-                        <div className="space-y-2 p-3 bg-muted/50 rounded-lg">
-                          <div className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">Original Price ({attendees.length} ticket{attendees.length > 1 ? 's' : ''})</span>
-                            <span className="font-medium">₹{(event.ticketPrice * attendees.length).toLocaleString()}</span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-green-600 flex items-center gap-1">
-                              <Percent className="w-3 h-3" />
-                              Discount ({appliedCoupon.discountType === 'percentage' ? `${appliedCoupon.discountValue}%` : `₹${appliedCoupon.discountValue}`})
-                            </span>
-                            <span className="font-medium text-green-600">
-                              -₹{(appliedCoupon.discount * attendees.length).toLocaleString()}
-                            </span>
-                          </div>
-                          <div className="pt-2 border-t flex justify-between">
-                            <span className="font-semibold">Final Price</span>
-                            <span className="font-bold text-lg text-primary">
-                              ₹{((event.ticketPrice - appliedCoupon.discount) * attendees.length).toLocaleString()}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
             </>
           )}
 

@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import {
   CreditCard, Loader2,
-  Tag
+  Tag, X
 } from "lucide-react"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api"
@@ -79,6 +79,9 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
   const [availablePoints, setAvailablePoints] = useState<number | null>(null)
   const [guestEmail, setGuestEmail] = useState("")
   const [guestEmailError, setGuestEmailError] = useState("")
+  const [localCouponCode, setLocalCouponCode] = useState("")
+  const [validatingCoupon, setValidatingCoupon] = useState(false)
+  const [couponApplied, setCouponApplied] = useState(false)
 
     const reservePointsNow = async () => {
     if (!redeemPoints || Number(redeemPoints) <= 0) {
@@ -134,6 +137,10 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
   useEffect(() => {
     if (isOpen) {
       setMemberValidated(Boolean(skipMemberValidation))
+      setLocalCouponCode("")
+      setCouponApplied(false)
+      setCouponDiscount(0)
+      setCouponName("")
     }
   }, [isOpen, skipMemberValidation])
 
@@ -261,33 +268,47 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
     }
   }
 
-  useEffect(() => {
-    const validateCoupon = async () => {
-      if (couponCode && event?._id && isOpen) {
-        try {
-          const { orderTotalBeforeCoupon } = getOrderPricing()
-          const clubId = eventData?.clubId || (event as any)?.clubId
-          const response = await apiClient.validateCoupon(couponCode, String(event._id), orderTotalBeforeCoupon, clubId)
-          
-          if (response.success && response.data?.coupon) {
-            setCouponDiscount(response.data.coupon.discount)
-            setCouponName(response.data.coupon.name)
-          } else {
-            setCouponDiscount(0)
-            setCouponName("")
-          }
-        } catch (error) {
-          setCouponDiscount(0)
-          setCouponName("")
-        }
+  const handleValidateCoupon = async () => {
+    if (!localCouponCode.trim() || !event?._id) {
+      toast.error("Please enter a coupon code")
+      return
+    }
+    const { orderTotalBeforeCoupon } = getOrderPricing()
+    if (orderTotalBeforeCoupon <= 0) {
+      toast.error("This event is free, coupons are not applicable")
+      return
+    }
+    setValidatingCoupon(true)
+    try {
+      const clubId = eventData?.clubId || (event as any)?.clubId
+      const response = await apiClient.validateCoupon(localCouponCode.toUpperCase(), String(event._id), orderTotalBeforeCoupon, clubId)
+      if (response.success && response.data?.coupon) {
+        setCouponDiscount(response.data.coupon.discount)
+        setCouponName(response.data.coupon.name)
+        setCouponApplied(true)
+        toast.success("Coupon applied!")
       } else {
         setCouponDiscount(0)
         setCouponName("")
+        setCouponApplied(false)
+        toast.error(response.error || "Invalid coupon code")
       }
+    } catch {
+      setCouponDiscount(0)
+      setCouponName("")
+      toast.error("Failed to validate coupon")
+    } finally {
+      setValidatingCoupon(false)
     }
-    
-    validateCoupon()
-  }, [couponCode, event?._id, attendees.length, isOpen, eventData])
+  }
+
+  const handleRemoveCoupon = () => {
+    setCouponApplied(false)
+    setLocalCouponCode("")
+    setCouponDiscount(0)
+    setCouponName("")
+    toast.info("Coupon removed")
+  }
 
   const handlePayment = async () => {
     if (!scriptLoaded) {
@@ -349,7 +370,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
               String(event._id),
               undefined,
               attendees,
-              couponCode,
+              localCouponCode || undefined,
               undefined,
               undefined,
               undefined,
@@ -365,7 +386,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
               registrantPhone: attendees?.[0]?.phone || '',
               registrantEmail: guestEmail.trim(),
               attendees,
-              couponCode,
+              couponCode: localCouponCode || undefined,
               reservationToken: reservationToken || undefined,
               couponDiscount: couponDiscount || undefined,
               earlyBirdDiscountAmt: earlyBirdDiscountTotal || undefined,
@@ -411,6 +432,42 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
       }
 
       const { razorpayOrderId, amount, currency: orderCurrency } = await response.json()
+
+      // Create a pending registration keyed to the Razorpay order ID.
+      // If registerForEvent fails after payment, the backend webhook uses this
+      // record to confirm the registration automatically.
+      try {
+        if (user) {
+          await apiClient.createPendingRegistration(String(event._id), {
+            attendees,
+            couponCode: localCouponCode || undefined,
+            razorpayOrderId,
+            amountPaid: Math.round(amountToCharge),
+            waitlistToken: waitlistToken || undefined,
+            reservationToken: reservationToken || undefined,
+            couponDiscount: couponDiscount || undefined,
+            earlyBirdDiscountAmt: earlyBirdDiscountTotal || undefined,
+            pointsDiscount: reservedDiscount || undefined,
+          })
+        } else {
+          await apiClient.createPendingPublicRegistration(String(event._id), {
+            registrantName: attendees?.[0]?.name || 'Guest',
+            registrantEmail: guestEmail.trim(),
+            registrantPhone: attendees?.[0]?.phone || '',
+            attendees,
+            couponCode: localCouponCode || undefined,
+            razorpayOrderId,
+            amountPaid: Math.round(amountToCharge),
+            reservationToken: reservationToken || undefined,
+            couponDiscount: couponDiscount || undefined,
+            earlyBirdDiscountAmt: earlyBirdDiscountTotal || undefined,
+            pointsDiscount: reservedDiscount || undefined,
+          })
+        }
+      } catch (pendingError) {
+        // Non-blocking: log but don't prevent payment from opening.
+        console.warn('[EventCheckoutModal] Failed to create pending registration:', pendingError)
+      }
 
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
@@ -473,7 +530,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
                   String(event._id),
                   undefined,
                   attendees,
-                  couponCode,
+                  localCouponCode || undefined,
                   orderId,
                   paymentId,
                   signature,
@@ -489,7 +546,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
                   registrantPhone: attendees?.[0]?.phone || '',
                   registrantEmail: guestEmail.trim(),
                   attendees,
-                  couponCode,
+                  couponCode: localCouponCode || undefined,
                   orderID: orderId,
                   paymentID: paymentId,
                   signature,
@@ -676,12 +733,12 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
                   <span>{formatCurrency(orderTotalBeforeCoupon, event.currency)}</span>
                 </div>
 
-                {couponCode && couponDiscount > 0 && (
+                {couponApplied && couponDiscount > 0 && (
                   <>
                     <div className="flex justify-between items-center text-green-600 text-sm">
                       <span className="flex items-center gap-1">
                         <Tag className="w-4 h-4" />
-                        Coupon ({couponCode}){couponName ? ` — ${couponName}` : ''}
+                        Coupon ({localCouponCode}){couponName ? ` — ${couponName}` : ''}
                       </span>
                       <span>-{formatCurrency(couponDiscount, event.currency)}</span>
                     </div>
@@ -710,6 +767,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
                   </>
                 )}
                 
+                  {user && (
                   <div className="space-y-2">
                   <label className="text-sm font-medium">Redeem Points {availablePoints !== null && ` (Available: ${availablePoints} pts)`}</label>
                   <div className="flex flex-col sm:flex-row gap-2">
@@ -729,10 +787,10 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
                           Applied
                         </Button>
                       ) : (
-                        <Button 
-                          onClick={reservePointsNow} 
-                          disabled={reserving || !redeemPoints || Number(redeemPoints) <= 0} 
-                          size="sm" 
+                        <Button
+                          onClick={reservePointsNow}
+                          disabled={reserving || !redeemPoints || Number(redeemPoints) <= 0}
+                          size="sm"
                           className="flex-1 sm:flex-none"
                         >
                           {reserving ? (
@@ -743,13 +801,13 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
                           ) : 'Reserve'}
                         </Button>
                       )}
-                      
+
                       {(redeemPoints !== "" || reservationToken) && (
-                        <Button 
-                          variant="ghost" 
-                          onClick={clearReservation} 
-                          disabled={reserving} 
-                          size="sm" 
+                        <Button
+                          variant="ghost"
+                          onClick={clearReservation}
+                          disabled={reserving}
+                          size="sm"
                           className="flex-1 sm:flex-none text-muted-foreground hover:text-foreground"
                         >
                           Clear
@@ -760,6 +818,46 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
                   {reservationToken && (
                     <div className="text-sm text-green-600">
                       Reserved discount: {formatCurrency(reservedDiscount, event.currency)}
+                    </div>
+                  )}
+                  </div>
+                  )}
+
+                <Separator className="my-2" />
+                <div className="space-y-2">
+                  <label className="text-sm font-medium flex items-center gap-2">
+                    <Tag className="w-4 h-4" />
+                    Have a Coupon Code?
+                  </label>
+                  {!couponApplied ? (
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={localCouponCode}
+                        onChange={(e) => setLocalCouponCode(e.target.value.toUpperCase())}
+                        placeholder="Enter coupon code"
+                        className="flex-1 h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
+                        disabled={validatingCoupon}
+                        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleValidateCoupon() } }}
+                      />
+                      <Button
+                        onClick={handleValidateCoupon}
+                        disabled={!localCouponCode.trim() || validatingCoupon}
+                        size="sm"
+                        variant="outline"
+                      >
+                        {validatingCoupon ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Apply'}
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between p-2.5 bg-green-500/10 border border-green-500 rounded-lg">
+                      <div>
+                        <p className="font-semibold text-sm">{couponName}</p>
+                        <p className="text-muted-foreground text-xs">Code: {localCouponCode}</p>
+                      </div>
+                      <Button variant="ghost" size="sm" onClick={handleRemoveCoupon} className="text-destructive hover:text-destructive">
+                        <X className="w-4 h-4" />
+                      </Button>
                     </div>
                   )}
                 </div>

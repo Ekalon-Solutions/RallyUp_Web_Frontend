@@ -151,7 +151,6 @@ export default function PublicClubPage() {
   const [showEventCheckoutModal, setShowEventCheckoutModal] = useState(false)
   const [eventCheckoutAsGuest, setEventCheckoutAsGuest] = useState(false)
   const [attendeesForPayment, setAttendeesForPayment] = useState<any[]>([])
-  const [couponCodeForPayment, setCouponCodeForPayment] = useState<string | undefined>(undefined)
   const [showReadMoreModal, setShowReadMoreModal] = useState(false)
   const [selectedNewsForReadMore, setSelectedNewsForReadMore] = useState<News | null>(null)
   const [purchaseFlowReason, setPurchaseFlowReason] = useState<"event" | "merchandise" | null>(null)
@@ -173,7 +172,6 @@ export default function PublicClubPage() {
       if (!ev) return
       setEventForRegistration(ev)
       setAttendeesForPayment(intent.attendees || [])
-      setCouponCodeForPayment(intent.couponCode)
       setShowEventCheckoutModal(true)
     } else if (intent.type === "merchandise") {
       const item = intent.item
@@ -1046,7 +1044,6 @@ export default function PublicClubPage() {
         event={eventForRegistration}
         onRegister={(payload) => {
           setAttendeesForPayment(payload.attendees || [])
-          setCouponCodeForPayment(payload.couponCode)
           setShowEventRegistrationModal(false)
           setPurchaseFlowReason("event")
           setShowPurchaseFlowModal(true)
@@ -1096,7 +1093,6 @@ export default function PublicClubPage() {
                 eventId: eventForRegistration._id,
                 event: eventForRegistration,
                 attendees: attendeesForPayment,
-                couponCode: couponCodeForPayment,
                 returnPath: returnUrl,
               })
             } else if (purchaseFlowReason === "merchandise" && merchandiseForQuickBuy) {
@@ -1130,7 +1126,6 @@ export default function PublicClubPage() {
                 eventId: eventForRegistration._id,
                 event: eventForRegistration,
                 attendees: attendeesForPayment,
-                couponCode: couponCodeForPayment,
                 returnPath: registerNextUrl,
               })
             } else if (purchaseFlowReason === "merchandise" && merchandiseForQuickBuy) {
@@ -1180,7 +1175,6 @@ export default function PublicClubPage() {
           setEventCheckoutAsGuest(false)
           setEventForRegistration(null)
           setAttendeesForPayment([])
-          setCouponCodeForPayment(undefined)
         }}
         skipMemberValidation={eventCheckoutAsGuest}
         event={
@@ -1198,7 +1192,6 @@ export default function PublicClubPage() {
             : undefined
         }
         attendees={attendeesForPayment}
-        couponCode={couponCodeForPayment}
         onSuccess={() => {
           if (club?._id) {
             loadContent(club._id)

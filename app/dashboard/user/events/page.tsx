@@ -41,6 +41,7 @@ import {
 import EventDetailsModal from "@/components/modals/event-details-modal";
 import UserEventRegistrationModal from "@/components/modals/user-event-registration-modal";
 import { EventCheckoutModal } from "@/components/modals/event-checkout-modal";
+import { RefundConfirmationModal } from "@/components/modals/refund-confirmation-modal";
 
 const eventCategories = [
   "all",
@@ -172,6 +173,10 @@ function UserEventsPageInner() {
   const [joiningWaitlistId, setJoiningWaitlistId] = useState<string | null>(null);
   const [decliningWaitlistId, setDecliningWaitlistId] = useState<string | null>(null);
   const [waitlistTokenForCheckout, setWaitlistTokenForCheckout] = useState<string | null>(null);
+  const [refundCancelEventId, setRefundCancelEventId] = useState<string | null>(null);
+  const [refundEstimate, setRefundEstimate] = useState<any | null>(null);
+  const [refundModalLoading, setRefundModalLoading] = useState(false);
+  const [refundModalError, setRefundModalError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchEvents();
@@ -412,12 +417,6 @@ function UserEventsPageInner() {
 
   const handleCancelRegistration = async (eventId: string) => {
     if (!eventId) return;
-    if (
-      !confirm(
-        "Are you sure you want to cancel your registration for this event?"
-      )
-    )
-      return;
     try {
       setCancellingEventId(eventId);
       const res = await apiClient.cancelEventRegistration(eventId);
@@ -435,6 +434,52 @@ function UserEventsPageInner() {
       toast.error("Failed to cancel registration");
     } finally {
       setCancellingEventId(null);
+    }
+  };
+
+  const initiateRefundCancel = async (eventId: string) => {
+    try {
+      setRefundModalLoading(true);
+      setRefundModalError(null);
+      const res = await apiClient.estimateRefund({ sourceType: 'event_ticket', eventId });
+      if (res.success && res.data) {
+        const estimate = res.data as any;
+        // If nothing was paid, skip the refund modal and just cancel directly
+        if (!estimate.breakdown?.grossPaid && estimate.estimatedRefund === 0) {
+          await handleCancelRegistration(eventId);
+          return;
+        }
+        setRefundEstimate(estimate);
+        setRefundCancelEventId(eventId);
+      } else {
+        // Estimate failed — fall back to simple cancel
+        await handleCancelRegistration(eventId);
+      }
+    } catch {
+      toast.error('Failed to fetch refund estimate');
+    } finally {
+      setRefundModalLoading(false);
+    }
+  };
+
+  const handleConfirmRefundCancel = async () => {
+    if (!refundCancelEventId) return;
+    try {
+      setRefundModalLoading(true);
+      setRefundModalError(null);
+      const res = await apiClient.requestRefund({ sourceType: 'event_ticket', eventId: refundCancelEventId });
+      if (res.success) {
+        setRefundCancelEventId(null);
+        setRefundEstimate(null);
+        toast.success('Ticket cancelled. Refund will be processed in 5-7 working days.');
+        await fetchEvents();
+      } else {
+        setRefundModalError((res as any).error || 'Failed to request refund');
+      }
+    } catch {
+      setRefundModalError('Failed to request refund');
+    } finally {
+      setRefundModalLoading(false);
     }
   };
 
@@ -630,12 +675,6 @@ function UserEventsPageInner() {
                         </div>
                         <div className="pt-2">
                           {(() => {
-                            const isRegistered = Boolean(
-                              user?._id &&
-                                (event.registrations || []).some(
-                                  (r: any) => r.userId === user._id
-                                )
-                            );
                             return (
                               <Button
                                 onClick={() => {
@@ -808,12 +847,10 @@ function UserEventsPageInner() {
 
                         <div className="pt-2">
                           {(() => {
-                            const isRegistered =
-                              user?._id &&
-                              (event.registrations || []).some(
-                                (r: any) => r.userId === user._id
-                              );
-                            if (isRegistered) {
+                            const myReg = user?._id
+                              ? (event.registrations || []).find((r: any) => r.userId === user._id)
+                              : null;
+                            if (myReg?.status === 'confirmed') {
                               return (
                                 <div className="flex gap-2">
                                   <Button
@@ -826,19 +863,24 @@ function UserEventsPageInner() {
                                     variant="destructive"
                                     onClick={(e) => {
                                       e.stopPropagation();
-                                      handleCancelRegistration(event._id);
+                                      initiateRefundCancel(event._id);
                                     }}
-                                    disabled={cancellingEventId === event._id}
+                                    disabled={cancellingEventId === event._id || refundModalLoading}
                                     className="h-10 w-10 p-0 flex items-center justify-center"
                                     title="Cancel registration">
                                     <Trash className="w-4 h-4 text-white" />
                                   </Button>
                                 </div>
                               );
-                            } else if (
-                              event.maxAttendees &&
-                              isEventFull(event)
-                            ) {
+                            }
+                            if (myReg?.status === 'pending') {
+                              return (
+                                <Button disabled className="w-full" variant="outline">
+                                  Payment Pending...
+                                </Button>
+                              );
+                            }
+                            if (event.maxAttendees && isEventFull(event)) {
                               const ev = event as any;
                               const waitlistEnabled = ev.waitlist?.enabled;
                               const onWaitlist = isUserOnWaitlist(event._id);
@@ -1091,6 +1133,20 @@ function UserEventsPageInner() {
             toast.error("Payment failed. Please try again.");
           }}
         />
+      {refundCancelEventId && refundEstimate && (
+        <RefundConfirmationModal
+          estimate={refundEstimate}
+          sourceType="event_ticket"
+          loading={refundModalLoading}
+          error={refundModalError}
+          onConfirm={handleConfirmRefundCancel}
+          onCancel={() => {
+            setRefundCancelEventId(null);
+            setRefundEstimate(null);
+            setRefundModalError(null);
+          }}
+        />
+      )}
     </ProtectedRoute>
   );
 }

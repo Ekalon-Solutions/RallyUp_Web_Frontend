@@ -19,12 +19,12 @@ interface RefundEstimate {
   cutoff: string | null
   estimatedRefund: number
   currency: string
-  breakdown: {
-    grossPaid: number
-    taxesExcluded: number
-    platformFeesExcluded: number
-    paymentGatewayFeesExcluded: number
-  }
+  breakdown?: {
+    grossPaid?: number
+    taxesExcluded?: number
+    platformFeesExcluded?: number
+    paymentGatewayFeesExcluded?: number
+  } | null
 }
 
 export function RefundButton({ sourceType, eventId, orderId, onRefundRequested }: RefundButtonProps) {

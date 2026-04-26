@@ -1447,6 +1447,42 @@ class ApiClient {
     });
   }
 
+  async createPendingRegistration(eventId: string, data: {
+    attendees?: Array<{ name: string; phone: string }>;
+    couponCode?: string | null;
+    razorpayOrderId: string;
+    amountPaid: number;
+    waitlistToken?: string;
+    reservationToken?: string;
+    couponDiscount?: number;
+    earlyBirdDiscountAmt?: number;
+    pointsDiscount?: number;
+  }): Promise<ApiResponse<{ pendingRegistrationId?: string }>> {
+    return this.request(`/events/${eventId}/register/pending`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async createPendingPublicRegistration(eventId: string, data: {
+    registrantName: string;
+    registrantEmail?: string;
+    registrantPhone?: string;
+    attendees?: Array<{ name: string; phone: string }>;
+    couponCode?: string | null;
+    razorpayOrderId: string;
+    amountPaid: number;
+    reservationToken?: string;
+    couponDiscount?: number;
+    earlyBirdDiscountAmt?: number;
+    pointsDiscount?: number;
+  }): Promise<ApiResponse<{ pendingRegistrationId?: string }>> {
+    return this.request(`/events/public/${eventId}/register/pending`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
   async createReservation(points: number, clubId: string, orderTotal?: number): Promise<ApiResponse<{ reservationToken: string; discountAmount?: number }>> {
     const body: any = { points, clubId };
     if (orderTotal !== undefined) body.orderTotal = Number(orderTotal);

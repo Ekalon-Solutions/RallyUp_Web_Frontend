@@ -9,12 +9,12 @@ interface RefundEstimate {
   cutoff: string | null
   estimatedRefund: number
   currency: string
-  breakdown: {
-    grossPaid: number
-    taxesExcluded: number
-    platformFeesExcluded: number
-    paymentGatewayFeesExcluded: number
-  }
+  breakdown?: {
+    grossPaid?: number
+    taxesExcluded?: number
+    platformFeesExcluded?: number
+    paymentGatewayFeesExcluded?: number
+  } | null
 }
 
 interface RefundConfirmationModalProps {
@@ -51,29 +51,29 @@ export function RefundConfirmationModal({
             <div className="flex justify-between text-sm">
               <span>Amount Paid:</span>
               <span className="font-semibold">
-                {currency} {breakdown.grossPaid.toFixed(2)}
+                {currency} {(breakdown?.grossPaid ?? 0).toFixed(2)}
               </span>
             </div>
 
             <div className="flex justify-between text-sm text-destructive">
               <span>Platform Fees (excluded):</span>
-              <span>- {currency} {breakdown.platformFeesExcluded.toFixed(2)}</span>
+              <span>- {currency} {(breakdown?.platformFeesExcluded ?? 0).toFixed(2)}</span>
             </div>
 
             <div className="flex justify-between text-sm text-destructive">
               <span>Payment Gateway Fees (excluded):</span>
-              <span>- {currency} {breakdown.paymentGatewayFeesExcluded.toFixed(2)}</span>
+              <span>- {currency} {(breakdown?.paymentGatewayFeesExcluded ?? 0).toFixed(2)}</span>
             </div>
 
             <div className="flex justify-between text-sm text-destructive">
               <span>Taxes (excluded):</span>
-              <span>- {currency} {breakdown.taxesExcluded.toFixed(2)}</span>
+              <span>- {currency} {(breakdown?.taxesExcluded ?? 0).toFixed(2)}</span>
             </div>
 
             <div className="flex justify-between pt-3 border-t-2 border-border">
               <span className="font-bold">Estimated Refund:</span>
               <span className="font-bold text-green-600 dark:text-green-500">
-                {currency} {estimatedRefund.toFixed(2)}
+                {currency} {(estimatedRefund ?? 0).toFixed(2)}
               </span>
             </div>
           </div>

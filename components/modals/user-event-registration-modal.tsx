@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Plus, Minus, ChevronDown, ChevronRight, Tag, CheckCircle, X, Percent, Loader2 } from 'lucide-react'
+import { Plus, Minus, ChevronDown, ChevronRight, CheckCircle } from 'lucide-react'
 import { apiClient } from '@/lib/api'
 import { useAuth } from '@/contexts/auth-context'
 import { toast } from 'sonner'
@@ -19,21 +19,11 @@ interface Attendee {
   open?: boolean
 }
 
-interface AppliedCoupon {
-  code: string
-  name: string
-  discountType: 'flat' | 'percentage'
-  discountValue: number
-  discount: number
-  originalPrice: number
-  finalPrice: number
-}
-
 interface UserEventRegistrationModalProps {
   eventId: string | null
   isOpen: boolean
   onClose: () => void
-  onRegister?: (payload: { eventId: string; attendees: Attendee[]; couponCode?: string }) => void
+  onRegister?: (payload: { eventId: string; attendees: Attendee[] }) => void
   ticketPrice?: number
   event?: any
 }
@@ -44,10 +34,6 @@ export default function UserEventRegistrationModal({ eventId, isOpen, onClose, o
   const [attendees, setAttendees] = useState<Attendee[]>([{ name: '', phone: '', phoneCode: '', open: true }])
   const [remainingSeats, setRemainingSeats] = useState<number | null>(null)
 
-  const [couponCode, setCouponCode] = useState("")
-  const [validatingCoupon, setValidatingCoupon] = useState(false)
-  const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null)
-  
   const isMember = Boolean(
     user && (
       (user as any).membershipStatus === 'active' ||
@@ -130,10 +116,6 @@ export default function UserEventRegistrationModal({ eventId, isOpen, onClose, o
       return copy
     })
 
-    if (!isOpen) {
-      setCouponCode("")
-      setAppliedCoupon(null)
-    }
   }, [ticketCount, isOpen, user])
 
   const updateAttendee = (index: number, field: 'name' | 'phone' | 'phoneCode', value: string) => {
@@ -199,81 +181,11 @@ export default function UserEventRegistrationModal({ eventId, isOpen, onClose, o
       return
     }
 
-    let couponToApply = null
-    if (appliedCoupon && orderTotalBeforeCoupon > 0) {
-      if (!user) {
-        couponToApply = appliedCoupon.code
-      } else {
-        try {
-          const clubId = event?.clubId
-          const applyResponse = await apiClient.applyCoupon(
-            appliedCoupon.code,
-            eventId,
-            orderTotalBeforeCoupon,
-            clubId
-          )
-          
-          if (applyResponse.success) {
-            couponToApply = appliedCoupon.code
-          } else {
-            toast.error(applyResponse.error || "Failed to apply coupon")
-            return
-          }
-        } catch (error) {
-          toast.error("Failed to apply coupon")
-          return
-        }
-      }
-    }
-
-    onRegister && onRegister({ 
-      eventId, 
+    onRegister && onRegister({
+      eventId,
       attendees: attendees.map(a => ({ name: a.name.trim(), phone: a.phoneFull || a.phone })),
-      couponCode: couponToApply || undefined
     })
     onClose()
-  }
-
-  const handleValidateCoupon = async () => {
-    if (!eventId || !couponCode.trim()) {
-      toast.error("Please enter a coupon code")
-      return
-    }
-
-    if (orderTotalBeforeCoupon <= 0) {
-      toast.error("This event is free, coupons are not applicable")
-      return
-    }
-
-    setValidatingCoupon(true)
-    try {
-      const clubId = event?.clubId
-      const response = await apiClient.validateCoupon(
-        couponCode.toUpperCase(),
-        eventId,
-        orderTotalBeforeCoupon,
-        clubId
-      )
-
-      if (response.success && response.data?.coupon) {
-        setAppliedCoupon(response.data.coupon)
-        toast.success("Coupon applied successfully!")
-      } else {
-        setAppliedCoupon(null)
-        toast.error(response.error || "Invalid coupon code")
-      }
-    } catch (error) {
-      setAppliedCoupon(null)
-      toast.error("Failed to validate coupon")
-    } finally {
-      setValidatingCoupon(false)
-    }
-  }
-
-  const handleRemoveCoupon = () => {
-    setAppliedCoupon(null)
-    setCouponCode("")
-    toast.info("Coupon removed")
   }
 
   return (
@@ -377,130 +289,6 @@ export default function UserEventRegistrationModal({ eventId, isOpen, onClose, o
             ))}
           </div>
 
-          {/* Coupon Section */}
-          {orderTotalBeforeCoupon > 0 && (
-            <Card className="border-2 border-dashed">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-sm">
-                  <Tag className="w-4 h-4" />
-                  Have a Coupon Code?
-                </CardTitle>
-                <CardDescription className="text-xs">
-                  Apply a discount code to reduce your ticket price
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {!appliedCoupon ? (
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Enter coupon code"
-                      value={couponCode}
-                      onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                      disabled={validatingCoupon}
-                      className="font-mono text-sm flex-1 min-w-0"
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault()
-                          handleValidateCoupon()
-                        }
-                      }}
-                    />
-                    <Button
-                      type="button"
-                      onClick={handleValidateCoupon}
-                      disabled={!couponCode.trim() || validatingCoupon}
-                      variant="outline"
-                      size="sm"
-                      className="flex-shrink-0"
-                    >
-                      {validatingCoupon ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                          <span className="hidden sm:inline">Validating...</span>
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle className="w-4 h-4 sm:mr-2" />
-                          <span className="hidden sm:inline">Apply</span>
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between p-2 bg-green-50 border border-green-200 rounded-lg">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0" />
-                        <div>
-                          <div className="font-medium text-sm text-green-900">{appliedCoupon.name}</div>
-                          <div className="text-xs text-green-700">
-                            Code: <code className="font-mono font-semibold">{appliedCoupon.code}</code>
-                          </div>
-                        </div>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleRemoveCoupon}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 w-8 p-0 flex-shrink-0"
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                    </div>
-
-                    <div className="space-y-1.5 p-2 bg-muted/50 rounded-lg text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Base Price ({ticketCount} ticket{ticketCount > 1 ? 's' : ''})</span>
-                        <span className="font-medium">₹{totalBasePrice.toLocaleString()}</span>
-                      </div>
-
-                      {earlyBirdDiscountAmount > 0 && (
-                        <div className="flex justify-between">
-                          <span className="text-green-600 flex items-center gap-1">
-                            <Percent className="w-3 h-3" />
-                            Early Bird Discount
-                          </span>
-                          <span className="font-medium text-green-600">
-                            -₹{earlyBirdDiscountAmount.toLocaleString()}
-                          </span>
-                        </div>
-                      )}
-
-                      {memberDiscountPerTicket > 0 && (
-                        <div className="flex justify-between">
-                          <span className="text-blue-600 flex items-center gap-1">
-                            <Percent className="w-3 h-3" />
-                            Member Discount ({event.memberDiscount.type === 'percentage' ? `${event.memberDiscount.value}%` : `₹${event.memberDiscount.value}`})
-                          </span>
-                          <span className="font-medium text-blue-600">
-                            -₹{totalMemberDiscountAmount.toLocaleString()}
-                          </span>
-                        </div>
-                      )}
-
-                      <div className="flex justify-between">
-                        <span className="text-green-600 flex items-center gap-1">
-                          <Percent className="w-3 h-3" />
-                          Coupon Discount ({appliedCoupon.discountType === 'percentage' ? `${appliedCoupon.discountValue}%` : `₹${appliedCoupon.discountValue}`})
-                        </span>
-                        <span className="font-medium text-green-600">
-                          -₹{appliedCoupon.discount.toLocaleString()}
-                        </span>
-                      </div>
-
-                      <div className="pt-1.5 border-t flex justify-between">
-                        <span className="font-semibold">Final Price</span>
-                        <span className="font-bold text-base text-primary">
-                          ₹{Math.max(orderTotalBeforeCoupon - appliedCoupon.discount, 0).toLocaleString()}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
         </div>
 
         <div className="flex-shrink-0 flex justify-end gap-2 pt-4 border-t mt-2">
