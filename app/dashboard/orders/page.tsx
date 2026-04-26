@@ -921,74 +921,79 @@ export default function OrdersPage() {
                             </div>
                           </TableCell>
                           <TableCell className="text-right">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="h-8 w-8 p-0">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                <DropdownMenuItem
-                                  onClick={() => {
-                                    setSelectedOrder(order)
-                                    setShowOrderModal(true)
-                                  }}
-                                >
-                                  <Eye className="mr-2 h-4 w-4" />
-                                  View Details
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => {
-                                    setSelectedOrder(order)
-                                    setNewStatus(order.status)
-                                    setShowStatusModal(true)
-                                  }}
-                                >
-                                  <Edit className="mr-2 h-4 w-4" />
-                                  Update Status
-                                </DropdownMenuItem>
-                                {order.paymentStatus === 'pending' && (
-                                  <>
+                            <div className="flex items-center justify-end gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 px-2 text-muted-foreground hover:text-foreground"
+                                onClick={() => {
+                                  setSelectedOrder(order)
+                                  setShowOrderModal(true)
+                                }}
+                              >
+                                <Eye className="h-4 w-4 mr-1" />
+                                View
+                              </Button>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" className="h-8 w-8 p-0">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      setSelectedOrder(order)
+                                      setNewStatus(order.status)
+                                      setShowStatusModal(true)
+                                    }}
+                                  >
+                                    <Edit className="mr-2 h-4 w-4" />
+                                    Update Status
+                                  </DropdownMenuItem>
+                                  {order.paymentStatus === 'pending' && (
+                                    <>
+                                      <DropdownMenuItem
+                                        onClick={() => handlePaymentStatusUpdate(order._id, 'paid')}
+                                        className="text-green-600"
+                                      >
+                                        <CheckCircle className="mr-2 h-4 w-4" />
+                                        Mark as Paid
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        onClick={() => handlePaymentStatusUpdate(order._id, 'failed')}
+                                        className="text-red-600"
+                                      >
+                                        <XCircle className="mr-2 h-4 w-4" />
+                                        Mark as Failed
+                                      </DropdownMenuItem>
+                                    </>
+                                  )}
+                                  {order.paymentStatus === 'paid' && (
                                     <DropdownMenuItem
-                                      onClick={() => handlePaymentStatusUpdate(order._id, 'paid')}
-                                      className="text-green-600"
+                                      onClick={() => {
+                                        setOrderToRefund(order._id)
+                                        setShowRefundConfirmDialog(true)
+                                      }}
+                                      className="text-orange-600"
                                     >
-                                      <CheckCircle className="mr-2 h-4 w-4" />
-                                      Mark as Paid
+                                      <XCircle className="mr-2 h-4 w-4" />
+                                      Mark as Refunded
                                     </DropdownMenuItem>
+                                  )}
+                                  {order.status !== 'cancelled' && order.status !== 'delivered' && (
                                     <DropdownMenuItem
-                                      onClick={() => handlePaymentStatusUpdate(order._id, 'failed')}
+                                      onClick={() => handleCancelOrder(order._id)}
                                       className="text-red-600"
                                     >
                                       <XCircle className="mr-2 h-4 w-4" />
-                                      Mark as Failed
+                                      Cancel Order
                                     </DropdownMenuItem>
-                                  </>
-                                )}
-                                {order.paymentStatus === 'paid' && (
-                                  <DropdownMenuItem
-                                    onClick={() => {
-                                      setOrderToRefund(order._id)
-                                      setShowRefundConfirmDialog(true)
-                                    }}
-                                    className="text-orange-600"
-                                  >
-                                    <XCircle className="mr-2 h-4 w-4" />
-                                    Mark as Refunded
-                                  </DropdownMenuItem>
-                                )}
-                                {order.status !== 'cancelled' && order.status !== 'delivered' && (
-                                  <DropdownMenuItem
-                                    onClick={() => handleCancelOrder(order._id)}
-                                    className="text-red-600"
-                                  >
-                                    <XCircle className="mr-2 h-4 w-4" />
-                                    Cancel Order
-                                  </DropdownMenuItem>
-                                )}
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                                  )}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
                           </TableCell>
                         </TableRow>
                       )
@@ -1040,22 +1045,15 @@ export default function OrdersPage() {
                             </div>
                           </TableCell>
                           <TableCell className="text-right">
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="h-8 w-8 p-0">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                <DropdownMenuItem
-                                  onClick={() => handleViewRegistrationDetails(reg)}
-                                >
-                                  <Eye className="mr-2 h-4 w-4" />
-                                  View Details
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 px-2 text-muted-foreground hover:text-foreground"
+                              onClick={() => handleViewRegistrationDetails(reg)}
+                            >
+                              <Eye className="h-4 w-4 mr-1" />
+                              View
+                            </Button>
                           </TableCell>
                         </TableRow>
                       )

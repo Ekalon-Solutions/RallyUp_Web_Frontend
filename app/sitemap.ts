@@ -31,12 +31,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         changeFrequency: 'daily',
         priority: 0.9,
       },
-      {
-        url: `${baseUrl}/clubs`,
-        lastModified: currentDate,
-        changeFrequency: 'weekly',
-        priority: 0.9,
-      },
+      // {
+      //   url: `${baseUrl}/clubs`,
+      //   lastModified: currentDate,
+      //   changeFrequency: 'weekly',
+      //   priority: 0.9,
+      // },
       {
         url: `${baseUrl}/merchandise`,
         lastModified: currentDate,

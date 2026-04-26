@@ -35,12 +35,12 @@ export function getStaticPages(): SitemapEntry[] {
       changeFrequency: 'daily',
       priority: 0.9,
     },
-    {
-      url: `${BASE_URL}/clubs`,
-      lastModified: currentDate,
-      changeFrequency: 'weekly',
-      priority: 0.9,
-    },
+    // {
+    //   url: `${BASE_URL}/clubs`,
+    //   lastModified: currentDate,
+    //   changeFrequency: 'weekly',
+    //   priority: 0.9,
+    // },
     {
       url: `${BASE_URL}/merchandise`,
       lastModified: currentDate,

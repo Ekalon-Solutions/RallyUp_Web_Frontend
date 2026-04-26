@@ -306,12 +306,12 @@ export default function AffiliationsPage(): React.JSX.Element {
                 >
                   Contact Us
                 </a>
-                <a 
+                {/* <a 
                   href="/clubs" 
                   className="inline-flex items-center justify-center rounded-lg border-2 border-slate-300 dark:border-white/20 bg-white/80 backdrop-blur-sm px-6 py-3 text-slate-900 hover:bg-white dark:bg-white/5 dark:text-white dark:hover:bg-white/10 transition-all shadow-md hover:shadow-lg transform hover:scale-105 duration-300 font-semibold"
                 >
                   Create Your Club
-                </a>
+                </a> */}
               </div>
             </div>
           </section>

@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react"
 import Image from "next/image"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Users, Calendar, ShoppingBag, Loader2 } from "lucide-react"
+import { Users, Calendar, ShoppingBag, TrendingUp, Loader2 } from "lucide-react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
 import { useAuth } from "@/contexts/auth-context"
@@ -11,129 +11,15 @@ import { PollsWidget } from "@/components/polls-widget"
 import { LatestEventsWidget } from "@/components/latest-events-widget"
 import { LatestNewsWidget } from "@/components/latest-news-widget"
 import LeagueTableWidget from "@/components/league-table-widget"
-import { Button } from "@/components/ui/button"
-import { getApiUrl } from "@/lib/config"
 import { apiClient } from "@/lib/api"
 import { useClubSettings } from "@/hooks/useClubSettings"
-import { toast } from 'sonner'
 
 interface DashboardStats {
   totalMembers: number
   activeMembers: number
   upcomingEvents: number
   storeRevenue: number
-}
-
-// Component: display upcoming fixtures for the user's active club
-function FixturesCards({ clubId }: { clubId?: string | undefined }) {
-  const [fixtures, setFixtures] = useState<any[]>([])
-  const [loading, setLoading] = useState(false)
-  const [showAll, setShowAll] = useState(false)
-  const INITIAL_COUNT = 6
-
-  // helper to format startTime into "DD Month YYYY (Weekday) HH:MM IST"
-  // The backend (IST server) stores TheSportsDB UTC times as-if they were IST,
-  // effectively saving them 5:30h behind the real UTC. We add 5:30h back before displaying.
-  const formatFixtureDate = (isoDate: string) => {
-    const d = new Date(isoDate)
-    if (isNaN(d.getTime())) return ''
-    const ist = { timeZone: 'Asia/Kolkata' }
-    const day = Number(d.toLocaleString('en-IN', { ...ist, day: 'numeric' }))
-    const month = d.toLocaleString('en-IN', { ...ist, month: 'long' })
-    const year = d.toLocaleString('en-IN', { ...ist, year: 'numeric' })
-    const weekday = d.toLocaleString('en-IN', { ...ist, weekday: 'long' })
-    const hours = d.toLocaleString('en-IN', { ...ist, hour: '2-digit', hour12: false }).padStart(2, '0')
-    const minutes = d.toLocaleString('en-IN', { ...ist, minute: '2-digit' }).padStart(2, '0')
-    return `${day} ${month} ${year} (${weekday}) ${hours}:${minutes} IST`
-  }
-
-  useEffect(() => {
-    if (!clubId) return
-    const fetchFixtures = async () => {
-      setLoading(true)
-      try {
-        const resp = await apiClient.listAvailableExternalTicketFixtures(clubId) as any
-        const data = resp?.data?.data || []
-        console.log("data:", data)
-
-        const rawArr = Array.isArray(data) ? data : []
-        // Deduplicate by _id to prevent double-rendering
-        const seen = new Map<string, any>()
-        rawArr.forEach((f) => seen.set(String(f._id), f))
-        const fixturesArr = Array.from(seen.values())
-        const now = new Date()
-        const past = fixturesArr.filter((f) => new Date(f.startTime) < now)
-        const future = fixturesArr.filter((f) => new Date(f.startTime) >= now)
-        setFixtures([...past.slice(-1), ...future])
-      } catch (e) {
-        setFixtures([])
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchFixtures()
-  }, [clubId])
-
-  const displayed = showAll ? fixtures : fixtures.slice(0, INITIAL_COUNT)
-
-  return (
-    <div>
-      <h3 className="text-lg font-medium mb-2">Upcoming Matches</h3>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-        {loading ? (
-          <div className="p-4">Loading matches...</div>
-          ) : fixtures.length ? (
-          displayed.map((f) => {
-            const fixtureDate = new Date(f.startTime)
-            const isPast = fixtureDate < new Date()
-            const hasScore = typeof f.homeScore === 'number' && typeof f.awayScore === 'number'
-            const scoreText = hasScore ? `${f.homeScore} - ${f.awayScore}` : null
-            const detailedScoreText = hasScore && f.homeTeam && f.awayTeam
-              ? `${f.homeTeam} ${f.homeScore} - ${f.awayScore} ${f.awayTeam}`
-              : scoreText
-
-            return (
-              <Card key={String(f._id)}>
-                <CardHeader className="flex items-center justify-between pb-2">
-                  <div className="flex items-center gap-3">
-                    {f.homeTeamBadge ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={f.homeTeamBadge} alt={f.homeTeam || 'home'} className="w-8 h-8 object-contain" />
-                    ) : null}
-                    <CardTitle className="text-sm font-medium">{f.title}</CardTitle>
-                    {f.awayTeamBadge ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={f.awayTeamBadge} alt={f.awayTeam || 'away'} className="w-8 h-8 object-contain" />
-                    ) : null}
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-sm text-muted-foreground">{f.competition}</div>
-                  {isPast && detailedScoreText ? (
-                    <div className="text-base font-semibold mt-2 text-green-600">{detailedScoreText}</div>
-                  ) : (
-                    <div className="text-base font-semibold mt-2">{formatFixtureDate(f.startTime)}</div>
-                  )}
-                </CardContent>
-              </Card>
-            )
-          })
-        ) : (
-          <div className="p-4">No upcoming matches</div>
-        )}
-      </div>
-      {fixtures.length > INITIAL_COUNT && (
-        <div className="mt-4 flex justify-center">
-          <button
-            onClick={() => setShowAll((v) => !v)}
-            className="text-sm text-black dark:text-white underline underline-offset-2 hover:opacity-80 transition-opacity"
-          >
-            {showAll ? 'Show Less' : `Show More (${fixtures.length - INITIAL_COUNT} more)`}
-          </button>
-        </div>
-      )}
-    </div>
-  )
+  eventsRevenue: number
 }
 
 export default function DashboardPage() {
@@ -220,18 +106,41 @@ export default function DashboardPage() {
         const orderStatsResponse = await apiClient.getOrderStats()
         const orderStatsData = orderStatsResponse.success ? orderStatsResponse.data : { totalRevenue: 0 }
 
+        // Fetch event revenue from club events
+        let eventsRevenue = 0
+        try {
+          const eventsDataResponse = await apiClient.getEventsByClub(clubId)
+          if (eventsDataResponse.success && eventsDataResponse.data) {
+            const evData: any = eventsDataResponse.data
+            const evList = Array.isArray(evData) ? evData : (evData?.events || [])
+            evList.forEach((event: any) => {
+              if (event.registrations && Array.isArray(event.registrations)) {
+                event.registrations.forEach((reg: any) => {
+                  if (reg.status === 'confirmed' && (!reg.paymentStatus || reg.paymentStatus === 'paid')) {
+                    eventsRevenue += reg.amountPaid || event.ticketPrice || 0
+                  }
+                })
+              }
+            })
+          }
+        } catch {
+          eventsRevenue = 0
+        }
+
         setStats({
           totalMembers: clubStatsResponse.data?.totalMembers || 0,
           activeMembers: clubStatsResponse.data?.activeMembers || 0,
           upcomingEvents,
-          storeRevenue: orderStatsData.totalRevenue || 0
+          storeRevenue: orderStatsData?.totalRevenue || 0,
+          eventsRevenue,
         })
       } catch (error) {
         setStats({
           totalMembers: 0,
           activeMembers: 0,
           upcomingEvents: 0,
-          storeRevenue: 0
+          storeRevenue: 0,
+          eventsRevenue: 0,
         })
       } finally {
         setLoading(false)
@@ -280,8 +189,7 @@ export default function DashboardPage() {
     if (!user || user.role === 'system_owner') return undefined
     const userAny = user as any
     const { activeClubId } = useAuth();
-
-    // If the user is an admin, prefer the admin's selected/active club
+    
     if (user.role === 'admin') {
       const adminClubs = user.clubs || [];
       const currentClub = adminClubs.find((c) => c._id === activeClubId) ?? adminClubs?.[0];
@@ -291,7 +199,6 @@ export default function DashboardPage() {
         const firstClub = userAny.clubs[0]
         return firstClub?._id || firstClub
       }
-      // fallthrough to memberships if present
     }
 
     if (activeClubId) {
@@ -340,7 +247,6 @@ export default function DashboardPage() {
               )}
             </div>
           </div>
-          {/* Header - consistent with other admin sections */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold">Dashboard</h1>
@@ -387,12 +293,14 @@ export default function DashboardPage() {
               </Card>
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Store Revenue</CardTitle>
-                  <ShoppingBag className="h-4 w-4 text-purple-600" />
+                  <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+                  <TrendingUp className="h-4 w-4 text-purple-600" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-purple-600">₹{stats.storeRevenue.toLocaleString()}</div>
-                  <p className="text-xs text-muted-foreground mt-1">Monthly merchandise sales</p>
+                  <div className="text-2xl font-bold text-purple-600">₹{(stats.storeRevenue + stats.eventsRevenue).toLocaleString()}</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Events ₹{stats.eventsRevenue.toLocaleString()} · Store ₹{stats.storeRevenue.toLocaleString()}
+                  </p>
                 </CardContent>
               </Card>
             </div>
@@ -400,11 +308,6 @@ export default function DashboardPage() {
 
           {user && (clubName || ('club' in user && user.club)) && (
             <div className="space-y-6">
-              {/* Upcoming matches (fixtures) */}
-              <div className="w-full rounded-[2.5rem] overflow-hidden border-2 shadow-xl bg-card p-4">
-                <FixturesCards clubId={clubId} />
-              </div>
-
               {/* League Table Widget */}
               {clubSettings?.sports?.teamId && (
                 <div className="w-full rounded-[2.5rem] overflow-hidden border-2 shadow-xl bg-card p-4">

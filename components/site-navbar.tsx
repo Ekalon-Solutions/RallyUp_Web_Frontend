@@ -49,9 +49,9 @@ export function SiteNavbar({ brandName = "Wingman Pro" }: SiteNavbarProps) {
             <Button variant="ghost" asChild className="font-bold text-sm uppercase tracking-wide hover:bg-slate-100 dark:hover:bg-white/5">
               <Link href="/login">Log In</Link>
             </Button>
-            <Button variant="outline" asChild className="h-11 px-6 border-2 font-bold text-sm uppercase tracking-wide shadow-sm hover:shadow-md transition-all active:scale-95">
+            {/* <Button variant="outline" asChild className="h-11 px-6 border-2 font-bold text-sm uppercase tracking-wide shadow-sm hover:shadow-md transition-all active:scale-95">
               <Link href="/clubs">Browse Clubs</Link>
-            </Button>
+            </Button> */}
             <Button asChild className="h-11 px-8 bg-sky-600 text-white hover:bg-sky-500 dark:bg-sky-500 dark:text-slate-900 dark:hover:bg-sky-400 font-bold text-sm uppercase tracking-wide shadow-lg shadow-sky-500/20 transition-all active:scale-95">
               <Link href="/contact">Contact Us</Link>
             </Button>
@@ -94,9 +94,9 @@ export function SiteNavbar({ brandName = "Wingman Pro" }: SiteNavbarProps) {
               <Button variant="outline" asChild className="w-full h-14 justify-center text-lg font-bold border-2 rounded-2xl">
                 <Link href="/login" onClick={() => setMobileOpen(false)}>Log In</Link>
               </Button>
-              <Button variant="outline" asChild className="w-full h-14 justify-center text-lg font-bold border-2 rounded-2xl">
+              {/* <Button variant="outline" asChild className="w-full h-14 justify-center text-lg font-bold border-2 rounded-2xl">
                 <Link href="/clubs" onClick={() => setMobileOpen(false)}>Browse Clubs</Link>
-              </Button>
+              </Button> */}
               <Button asChild className="w-full h-14 justify-center bg-sky-600 text-white hover:bg-sky-500 text-lg font-bold shadow-xl shadow-sky-500/20 rounded-2xl">
                 <Link href="/contact" onClick={() => setMobileOpen(false)}>Contact Us</Link>
               </Button>

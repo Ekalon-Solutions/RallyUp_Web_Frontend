@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
+import React from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
@@ -16,13 +16,10 @@ import { ParticleBackground } from "@/components/particle-background"
 function Hero() {
   return (
     <section className="relative overflow-hidden" id="home">
-      {/* Enhanced Background with Animations */}
       <div className="absolute inset-0 -z-10">
         <div className="absolute inset-0 bg-gradient-to-br from-sky-50 via-blue-50/50 to-indigo-50 dark:from-slate-950 dark:via-blue-950/30 dark:to-indigo-950/20 animate-gradient" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_10%,#38bdf840,transparent_40%),radial-gradient(circle_at_80%_20%,#60a5fa40,transparent_40%),radial-gradient(circle_at_50%_80%,#3b82f640,transparent_45%)] animate-pulse-glow" />
         <div className="absolute inset-0 bg-[radial-gradient(#ffffff22_1px,transparent_1px)] [background-size:20px_20px] opacity-20 dark:opacity-10" />
-
-        {/* Sports-themed floating elements */}
         <div className="absolute top-20 left-10 w-20 h-20 opacity-20 animate-float">
           <Trophy className="w-full h-full text-sky-400 rotate-12" />
         </div>
@@ -41,9 +38,7 @@ function Hero() {
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16 sm:py-20 md:py-24 lg:py-32 relative z-10">
         <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center min-h-[500px] md:min-h-[600px]">
-          {/* Left Column - Text Content */}
           <div className="space-y-6 md:space-y-8 lg:space-y-10 text-left order-1">
-            {/* Animated Title with Gradient */}
             <h1 className="text-4xl sm:text-5xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-[1.1] animate-slide-up">
               Don't Just Run Your Club.
               <br />
@@ -57,7 +52,6 @@ function Hero() {
               </span>
             </h1>
 
-            {/* Enhanced Description with Shimmer */}
             <p className="text-slate-600 dark:text-slate-300 text-lg sm:text-xl leading-relaxed relative overflow-hidden animate-slide-up max-w-2xl" style={{ animationDelay: '0.2s' }}>
               <span className="relative z-10">
                 The world's first AI-enhanced platform built exclusively for Supporter Groups and Sports Clubs. We replace your spreadsheets, payment links, and chat groups with one powerful, secure Operating System for membership management, ticketing, and fan engagement.
@@ -65,7 +59,6 @@ function Hero() {
               <span className="absolute inset-0 animate-shimmer bg-gradient-to-r from-transparent via-white/20 to-transparent" />
             </p>
 
-            {/* Enhanced Buttons with Hover Effects */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 pt-4 animate-slide-up" style={{ animationDelay: '0.4s' }}>
               <Link href="/contact" className="flex-1 sm:flex-initial">
                 <Button
@@ -90,7 +83,6 @@ function Hero() {
               </Link>
             </div>
 
-            {/* Enhanced Feature Badges */}
             <div className="flex flex-wrap items-center gap-3 pt-6 text-sm text-slate-600 dark:text-slate-300 animate-slide-up" style={{ animationDelay: '0.6s' }}>
               <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/60 dark:bg-white/5 backdrop-blur-sm border border-slate-200/50 dark:border-white/10 hover:bg-white dark:hover:bg-white/10 transition-all duration-300">
                 <Trophy className="h-5 w-5 text-sky-600 dark:text-sky-400 animate-wiggle flex-shrink-0" />
@@ -107,7 +99,6 @@ function Hero() {
             </div>
           </div>
 
-          {/* Right Column - Hero Image */}
           <div className="relative h-[350px] sm:h-[450px] md:h-[550px] lg:h-[600px] w-full animate-slide-up order-2" style={{ animationDelay: '0.3s' }}>
             <div className="relative h-full w-full animate-float">
               <Image
@@ -119,7 +110,6 @@ function Hero() {
                 priority
               />
             </div>
-            {/* Decorative glow effect */}
             <div className="absolute inset-0 bg-gradient-to-l from-sky-400/20 via-transparent to-transparent rounded-full blur-3xl -z-10 animate-pulse-glow" />
           </div>
         </div>
@@ -138,7 +128,6 @@ function ProblemSolution() {
 
   return (
     <section className="mx-auto max-w-7xl px-4 py-20 md:py-28 lg:py-32 relative" id="problem">
-      {/* Background Decoration */}
       <div className="absolute inset-0 -z-10 overflow-hidden">
         <div className="absolute top-0 left-0 w-96 h-96 bg-sky-200/20 dark:bg-sky-900/10 rounded-full blur-3xl animate-pulse-glow" />
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-blue-200/20 dark:bg-blue-900/10 rounded-full blur-3xl animate-pulse-glow" style={{ animationDelay: '1s' }} />
@@ -248,7 +237,6 @@ function CoreFeatures() {
 
   return (
     <section className="mx-auto max-w-7xl px-4 py-20 md:py-28 lg:py-32 relative" id="features">
-      {/* Animated Background Elements */}
       <div className="absolute inset-0 -z-10 overflow-hidden">
         <div className="absolute top-1/4 left-0 w-72 h-72 bg-sky-300/10 dark:bg-sky-700/10 rounded-full blur-3xl animate-float" />
         <div className="absolute bottom-1/4 right-0 w-72 h-72 bg-blue-300/10 dark:bg-blue-700/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }} />
@@ -263,7 +251,6 @@ function CoreFeatures() {
           Core Feature Pillars
         </h2>
       </div>
-      {/* Dashboard Image Background */}
       <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1/2 max-w-xl opacity-10 dark:opacity-5 -z-0 hidden xl:block">
         <div className="relative h-[500px] w-full animate-float" style={{ animationDelay: '1s' }}>
           <Image
@@ -293,7 +280,6 @@ function CoreFeatures() {
               className={`bg-gradient-to-br ${bgGradientClass} border-2 border-slate-200 dark:border-white/10 hover:shadow-2xl hover:scale-105 transition-all duration-500 group relative overflow-hidden animate-scale-in flex flex-col`}
               style={{ animationDelay: `${i * 0.2}s` }}
             >
-              {/* Shine Effect */}
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
 
               <CardHeader className="relative z-10 p-6 md:p-8">
@@ -443,7 +429,6 @@ function TechPromise() {
 
   return (
     <section className="mx-auto max-w-7xl px-4 py-20 md:py-28 lg:py-32 relative">
-      {/* Background Pattern */}
       <div className="absolute inset-0 -z-10">
         <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(56,189,248,0.05)_25%,rgba(56,189,248,0.05)_50%,transparent_50%,transparent_75%,rgba(56,189,248,0.05)_75%,rgba(56,189,248,0.05))] [background-size:20px_20px]" />
       </div>
@@ -464,7 +449,6 @@ function TechPromise() {
             className={`bg-gradient-to-br from-slate-50 to-sky-50 border-2 border-slate-200 dark:from-slate-900/50 dark:to-blue-900/30 dark:border-white/10 text-center hover:shadow-2xl hover:scale-105 transition-all duration-500 group relative overflow-hidden animate-scale-in`}
             style={{ animationDelay: `${i * 0.15}s` }}
           >
-            {/* Animated Gradient Border */}
             <div className={`absolute inset-0 bg-gradient-to-br ${item.gradient} opacity-0 group-hover:opacity-20 transition-opacity duration-500`} />
 
             <CardContent className="p-8 md:p-10 relative z-10">
@@ -522,7 +506,7 @@ function FinalCTA() {
               <span className="absolute inset-0 bg-gradient-to-r from-sky-100 to-blue-100 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             </Button>
           </Link>
-          <Link href="/clubs" className="w-full sm:w-auto">
+          {/* <Link href="/clubs" className="w-full sm:w-auto">
             <Button
               size="lg"
               variant="outline"
@@ -530,7 +514,7 @@ function FinalCTA() {
             >
               Join Waiting List
             </Button>
-          </Link>
+          </Link> */}
         </div>
       </div>
     </section>

@@ -334,12 +334,12 @@ export default function PublicClubPage() {
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Go Back
               </Button>
-              <Link href="/clubs" className="w-full">
+              {/* <Link href="/clubs" className="w-full">
                 <Button variant="outline" className="w-full">
                   <Search className="mr-2 h-4 w-4" />
                   Explore Other Clubs
                 </Button>
-              </Link>
+              </Link> */}
               <Link href="/" className="w-full">
                 <Button variant="ghost" className="w-full">
                   <Home className="mr-2 h-4 w-4" />

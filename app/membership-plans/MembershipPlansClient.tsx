@@ -129,9 +129,9 @@ export default function MembershipPlansClient({ clubId }: { clubId: string }) {
               <CardDescription>Go to clubs and pick a membership plan.</CardDescription>
             </CardHeader>
             <CardContent className="flex gap-3">
-              <Link href="/clubs">
+              {/* <Link href="/clubs">
                 <Button>Browse Clubs</Button>
-              </Link>
+              </Link> */}
             </CardContent>
           </Card>
         )}
@@ -149,9 +149,9 @@ export default function MembershipPlansClient({ clubId }: { clubId: string }) {
               <CardDescription>We couldn’t find membership plans for that club.</CardDescription>
             </CardHeader>
             <CardContent className="flex gap-3">
-              <Link href="/clubs">
+              {/* <Link href="/clubs">
                 <Button>Browse Clubs</Button>
-              </Link>
+              </Link> */}
               <Button variant="outline" onClick={() => router.back()}>
                 Go Back
               </Button>
@@ -168,9 +168,9 @@ export default function MembershipPlansClient({ clubId }: { clubId: string }) {
                   <CardDescription>This club doesn’t have any active membership plans right now.</CardDescription>
                 </CardHeader>
                 <CardContent className="flex gap-3">
-                  <Link href="/clubs">
+                  {/* <Link href="/clubs">
                     <Button>Browse Clubs</Button>
-                  </Link>
+                  </Link> */}
                 </CardContent>
               </Card>
             ) : (
