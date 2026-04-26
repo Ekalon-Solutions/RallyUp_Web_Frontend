@@ -14,6 +14,10 @@ interface RefundEstimate {
     taxesExcluded?: number
     platformFeesExcluded?: number
     paymentGatewayFeesExcluded?: number
+    ticketPriceBase?: number
+    earlyBirdDiscountAmt?: number
+    couponDiscount?: number
+    pointsDiscount?: number
   } | null
 }
 
@@ -48,11 +52,34 @@ export function RefundConfirmationModal({
 
         <div className="space-y-4">
           <div className="bg-muted/50 rounded-lg p-4 space-y-3">
-            <div className="flex justify-between text-sm">
+            {(breakdown?.ticketPriceBase ?? 0) > 0 && (
+              <div className="flex justify-between text-sm">
+                <span>Ticket Price:</span>
+                <span>{currency} {(breakdown!.ticketPriceBase!).toFixed(2)}</span>
+              </div>
+            )}
+            {(breakdown?.earlyBirdDiscountAmt ?? 0) > 0 && (
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>Early Bird Discount:</span>
+                <span>- {currency} {(breakdown!.earlyBirdDiscountAmt!).toFixed(2)}</span>
+              </div>
+            )}
+            {(breakdown?.couponDiscount ?? 0) > 0 && (
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>Coupon Discount:</span>
+                <span>- {currency} {(breakdown!.couponDiscount!).toFixed(2)}</span>
+              </div>
+            )}
+            {(breakdown?.pointsDiscount ?? 0) > 0 && (
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>Points Discount:</span>
+                <span>- {currency} {(breakdown!.pointsDiscount!).toFixed(2)}</span>
+              </div>
+            )}
+
+            <div className={`flex justify-between text-sm font-semibold ${(breakdown?.earlyBirdDiscountAmt ?? 0) > 0 || (breakdown?.couponDiscount ?? 0) > 0 || (breakdown?.pointsDiscount ?? 0) > 0 ? 'pt-2 border-t border-border' : ''}`}>
               <span>Amount Paid:</span>
-              <span className="font-semibold">
-                {currency} {(breakdown?.grossPaid ?? 0).toFixed(2)}
-              </span>
+              <span>{currency} {(breakdown?.grossPaid ?? 0).toFixed(2)}</span>
             </div>
 
             <div className="flex justify-between text-sm text-destructive">

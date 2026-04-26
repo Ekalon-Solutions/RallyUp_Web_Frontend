@@ -17,6 +17,7 @@ import { Calendar, MapPin, Clock, Users, Newspaper, Tag, User as UserIcon, Eye, 
 import EventDetailsModal from '@/components/modals/event-details-modal'
 import UserEventRegistrationModal from "@/components/modals/user-event-registration-modal"
 import { EventCheckoutModal } from "@/components/modals/event-checkout-modal"
+import { RefundConfirmationModal } from "@/components/modals/refund-confirmation-modal"
 
 function AttendanceMarker({ event, userId }: { event: Event; userId?: string }) {
   const [registration, setRegistration] = useState<any | null>(null)
@@ -220,6 +221,10 @@ export default function UserDashboardPage() {
   const [registrationEvent, setRegistrationEvent] = useState<Event | null>(null)
   const [showRegistrationModal, setShowRegistrationModal] = useState(false)
   const [cancellingEventId, setCancellingEventId] = useState<string | null>(null)
+  const [refundCancelEventId, setRefundCancelEventId] = useState<string | null>(null)
+  const [refundEstimate, setRefundEstimate] = useState<any | null>(null)
+  const [refundModalLoading, setRefundModalLoading] = useState(false)
+  const [refundModalError, setRefundModalError] = useState<string | null>(null)
   const [showEventCheckoutModal, setShowEventCheckoutModal] = useState(false)
   const [eventForPayment, setEventForPayment] = useState<Event | null>(null)
   const [attendeesForPayment, setAttendeesForPayment] = useState<any[]>([])
@@ -453,9 +458,7 @@ export default function UserDashboardPage() {
 
   const handleCancelRegistration = async (eventId: string) => {
     if (!eventId) return
-    if (!window.confirm("Are you sure you want to cancel your registration for this event?")) {
-      return
-    }
+    if (!window.confirm("Are you sure you want to cancel your registration for this event?")) return
     try {
       setCancellingEventId(eventId)
       const res = await apiClient.cancelEventRegistration(eventId)
@@ -465,13 +468,56 @@ export default function UserDashboardPage() {
       } else {
         const msg = res?.error || res?.message || `Cancellation failed (status ${res?.status ?? "unknown"})`
         toast.error(msg)
-        // console.error('Cancel registration failed:', res)
       }
-    } catch (error) {
-      // console.error("Cancel registration error", error)
+    } catch {
       toast.error("Failed to cancel registration")
     } finally {
       setCancellingEventId(null)
+    }
+  }
+
+  const initiateRefundCancel = async (eventId: string) => {
+    try {
+      setRefundModalLoading(true)
+      setRefundModalError(null)
+      const res = await apiClient.estimateRefund({ sourceType: "event_ticket", eventId })
+      if (res.success && res.data) {
+        const rawData = res.data as any
+        const estimate = rawData?.data != null ? rawData.data : rawData
+        if (!estimate.breakdown?.grossPaid && estimate.estimatedRefund === 0) {
+          await handleCancelRegistration(eventId)
+          return
+        }
+        setRefundEstimate(estimate)
+        setRefundCancelEventId(eventId)
+      } else {
+        await handleCancelRegistration(eventId)
+      }
+    } catch {
+      toast.error("Failed to fetch refund estimate")
+    } finally {
+      setRefundModalLoading(false)
+    }
+  }
+
+  const handleConfirmRefundCancel = async () => {
+    if (!refundCancelEventId) return
+    try {
+      setRefundModalLoading(true)
+      setRefundModalError(null)
+      const res = await apiClient.requestRefund({ sourceType: "event_ticket", eventId: refundCancelEventId })
+      if (res.success) {
+        setRefundCancelEventId(null)
+        setRefundEstimate(null)
+        toast.success("Ticket cancelled. Refund will be processed in 5-7 working days.")
+        await fetchData()
+      } else {
+        setRefundModalError((res as any).error || "Failed to request refund")
+      }
+    } catch {
+      setRefundModalError("Failed to request refund")
+    } finally {
+      setRefundModalLoading(false)
     }
   }
 
@@ -479,15 +525,19 @@ export default function UserDashboardPage() {
     if (!user?._id) return null
 
     const registrationFromEvent = (event.registrations || []).find(
-      (r: any) => String(r?.userId) === String(user._id)
+      (r: any) => String(r?.userId) === String(user._id) && (r.status === "confirmed")
     )
+    console.log("event.registrationFromEvent", registrationFromEvent)
 
     if (registrationFromEvent) {
       return registrationFromEvent
     }
 
     const registrationFromMap = userRegistrations.get(event._id)
-    return registrationFromMap || null
+    if (!registrationFromMap || registrationFromMap.status !== 'confirmed') {
+      return null
+    }
+    return registrationFromMap
   }
 
   const isUserRegisteredForEvent = (event: Event) => {
@@ -498,6 +548,7 @@ export default function UserDashboardPage() {
 
   const getRegistrationStatusForEvent = (event: Event) => {
     const registration = getUserRegistrationForEvent(event)
+    console.log(registration,"====+++regs")
     return registration?.status ?? null
   }
 
@@ -561,6 +612,7 @@ export default function UserDashboardPage() {
   const renderActionButtons = (event: Event) => {
     const registered = isUserRegisteredForEvent(event)
     const registrationStatus = getRegistrationStatusForEvent(event)
+    console.log(registrationStatus,"==========status")
     const eventFull = isEventFull(event)
 
     if (!user) {
@@ -592,9 +644,9 @@ export default function UserDashboardPage() {
             variant="destructive"
             onClick={(e) => {
               e.stopPropagation()
-              handleCancelRegistration(event._id)
+              initiateRefundCancel(event._id)
             }}
-            disabled={cancellingEventId === event._id}
+            disabled={cancellingEventId === event._id || refundModalLoading}
             className="h-10 w-10 p-0 flex items-center justify-center"
             title="Cancel registration"
           >
@@ -1327,6 +1379,20 @@ export default function UserDashboardPage() {
             toast.error("Payment failed. Please try again.");
           }}
         />
+        {refundCancelEventId && refundEstimate && (
+          <RefundConfirmationModal
+            estimate={refundEstimate}
+            sourceType="event_ticket"
+            loading={refundModalLoading}
+            error={refundModalError}
+            onConfirm={handleConfirmRefundCancel}
+            onCancel={() => {
+              setRefundCancelEventId(null)
+              setRefundEstimate(null)
+              setRefundModalError(null)
+            }}
+          />
+        )}
       </DashboardLayout>
     </ProtectedRoute>
   )

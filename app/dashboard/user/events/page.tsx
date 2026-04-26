@@ -443,7 +443,8 @@ function UserEventsPageInner() {
       setRefundModalError(null);
       const res = await apiClient.estimateRefund({ sourceType: 'event_ticket', eventId });
       if (res.success && res.data) {
-        const estimate = res.data as any;
+        const rawData = res.data as any;
+        const estimate = rawData?.data != null ? rawData.data : rawData;
         // If nothing was paid, skip the refund modal and just cancel directly
         if (!estimate.breakdown?.grossPaid && estimate.estimatedRefund === 0) {
           await handleCancelRegistration(eventId);
