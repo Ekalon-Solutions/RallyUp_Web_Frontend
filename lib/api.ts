@@ -891,6 +891,37 @@ class ApiClient {
     });
   }
 
+  /** Verify OTP (for phone numbers - supports both WhatsApp and SMS). */
+  async verifyOTP(params: { 
+    phoneNumber?: string; 
+    countryCode?: string; 
+    email?: string; 
+    otp: string; 
+    role: 'user' | 'admin' | 'system_owner';
+    sessionInfo?: string;
+  }): Promise<ApiResponse<{ verified: boolean; token?: string; channel?: string }>> {
+    return this.request('/otp/verify', {
+      method: 'POST',
+      body: JSON.stringify(params),
+    });
+  }
+
+  /** Resend OTP */
+  async resendOTP(data: {
+    email?: string;
+    phoneNumber?: string;
+    countryCode?: string;
+    role: 'user' | 'admin' | 'system_owner';
+    username?: string;
+    recaptchaToken?: string;
+    channel?: 'whatsapp' | 'sms';
+  }): Promise<ApiResponse<{ userData?: any; sessionInfo?: string; deliveryChannel?: string; whatsAppUsed?: boolean }>> {
+    return this.request('/otp/resend', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
   async userProfile(): Promise<ApiResponse<User>> {
     return this.request('/users/profile');
   }

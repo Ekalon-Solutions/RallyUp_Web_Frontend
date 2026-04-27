@@ -383,25 +383,41 @@ function AuthPageContent() {
       return
     }
 
+    // Phone number verification using backend API
     try {
-      const confirmationResult = window.confirmationResult
-      const firebaseResult = await confirmationResult.confirm(userLoginOtp)
-      let backendResult;
-      if (firebaseResult.user) {
-        backendResult = await login(userLoginData.email, userLoginData.phoneNumber, userLoginData.countryCode, false)
-      }
-      if (backendResult?.success) {
-        toast.success("Login successful!")
+      setIsLoading(true)
+      const res = await apiClient.verifyOTP({ 
+        phoneNumber: userLoginData.phoneNumber,
+        countryCode: userLoginData.countryCode,
+        otp: userLoginOtp,
+        role: "user",
+        sessionInfo: window.otpSessionInfo
+      })
+      
+      if (res.success) {
+        // Handle successful verification based on response
+        if (res.data?.token) {
+          localStorage.setItem("token", res.data.token)
+          localStorage.setItem("userType", "member")
+          toast.success("Signed in successfully!")
+          window.location.href = "/login"
+        } else {
+          // If no token, use existing login flow
+          const backendResult = await login(userLoginData.email, userLoginData.phoneNumber, userLoginData.countryCode, false)
+          if (backendResult?.success) {
+            toast.success("Login successful!")
+          } else {
+            toast.error(backendResult?.error || "Login failed. Please try again.")
+          }
+        }
       } else {
-        toast.error(backendResult?.error || "Login failed. Please try again.")
+        toast.error(res.message || "Invalid or expired OTP. Please try again.")
       }
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown error"
-      if (errorMessage.includes("auth") || errorMessage.includes("OTP") || errorMessage.includes("code")) {
-        toast.error("Invalid OTP. Please try again.")
-      } else {
-        toast.error("Login failed. Please try again.")
-      }
+      console.error("OTP verification error:", error)
+      toast.error("Invalid OTP. Please try again.")
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -585,31 +601,19 @@ function AuthPageContent() {
       return
     }
 
+    // Phone number verification using backend API
     try {
-      /*       if (isDevelopment()) {
-              debugLog("Debug mode: Skipping Firebase OTP confirmation for admin")
-              if (adminLoginOtp !== DEBUG_OTP) {
-                toast.error(`[DEBUG MODE] Invalid OTP. Use: ${DEBUG_OTP}`)
-                return
-              }
-              const loginResult = await login(
-                adminLoginData.email,
-                adminLoginData.phoneNumber,
-                adminLoginData.countryCode,
-                true
-              )
-              if (loginResult.success) {
-                toast.success("Admin login successful!")
-              } else {
-                toast.error("Admin login failed. Please try again.")
-              }
-              return
-            }
-       */
-      const confirmationResult = window.confirmationResult
-      const result = await confirmationResult.confirm(adminLoginOtp)
-
-      if (result.user) {
+      setIsLoading(true)
+      const res = await apiClient.verifyOTP({ 
+        phoneNumber: adminLoginData.phoneNumber,
+        countryCode: adminLoginData.countryCode,
+        otp: adminLoginOtp,
+        role: "admin",
+        sessionInfo: window.otpSessionInfo
+      })
+      
+      if (res.success) {
+        // Handle successful verification
         const loginResult = await login(
           adminLoginData.email,
           adminLoginData.phoneNumber,
@@ -623,15 +627,14 @@ function AuthPageContent() {
         } else {
           toast.error(loginResult?.error || "Admin login failed. Please try again.")
         }
+      } else {
+        toast.error(res.message || "Invalid or expired OTP. Please try again.")
       }
     } catch (error) {
-      // console.error("Error verifying OTP:", error)
-      const errorMessage = error instanceof Error ? error.message : "Unknown error"
-      if (errorMessage.includes("auth") || errorMessage.includes("OTP") || errorMessage.includes("code")) {
-        toast.error("Invalid OTP. Please try again.")
-      } else {
-        toast.error("Login failed. Please try again.")
-      }
+      console.error("OTP verification error:", error)
+      toast.error("Invalid OTP. Please try again.")
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -735,28 +738,32 @@ function AuthPageContent() {
       return
     }
 
-    const phoneNumber = `${userLoginData.countryCode}${userLoginData.phoneNumber}`
-
-    /*     if (isDevelopment()) {
-          debugLog("Debug mode: Skipping Firebase OTP verification")
-          toast.success(`[DEBUG MODE] OTP sent to ${phoneNumber}. Use code: ${DEBUG_OTP}`)
-          setUserLoginOtpSent(true)
-          setUserLoginOtp(DEBUG_OTP)
-          setUserLoginResendCountdown(10)
-          return
-        }
-     */
     try {
-      const recaptchaVerifier = setupRecaptcha(phoneNumber)
-      // console.log("recaptchaVerifier", recaptchaVerifier)
-      const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier)
-      window.confirmationResult = confirmationResult
-      toast.success(`OTP sent to ${phoneNumber}`)
-      setUserLoginOtpSent(true)
-      setUserLoginResendCountdown(10)
+      setOtpButtonLoading(true)
+      // Use backend API instead of Firebase directly
+      const res = await apiClient.sendOtp({ 
+        phoneNumber: userLoginData.phoneNumber, 
+        countryCode: userLoginData.countryCode, 
+        role: "user" 
+      })
+      
+      if (res.success) {
+        const phoneNumber = `${userLoginData.countryCode}${userLoginData.phoneNumber}`
+        const channel = res.data?.deliveryChannel || 'SMS'
+        const channelText = channel === 'whatsapp' ? 'WhatsApp' : 'SMS'
+        toast.success(`OTP sent via ${channelText} to ${phoneNumber}`)
+        setUserLoginOtpSent(true)
+        setUserLoginResendCountdown(30)
+        // Store session info for verification
+        window.otpSessionInfo = res.data?.sessionInfo
+      } else {
+        toast.error(res.message || "Failed to send OTP. Please try again.")
+      }
     } catch (error) {
-      // console.error("Error sending OTP:", error)
+      console.error("Error sending OTP:", error)
       toast.error("Failed to send OTP. Please try again.")
+    } finally {
+      setOtpButtonLoading(false)
     }
   }
 
@@ -766,27 +773,32 @@ function AuthPageContent() {
       return
     }
 
-    const phoneNumber = `${adminLoginData.countryCode}${adminLoginData.phoneNumber}`
-
-    /*     if (isDevelopment()) {
-          debugLog("Debug mode: Skipping Firebase OTP verification for admin")
-          toast.success(`[DEBUG MODE] OTP sent to ${phoneNumber}. Use code: ${DEBUG_OTP}`)
-          setAdminLoginOtpSent(true)
-          setAdminLoginOtp(DEBUG_OTP)
-          setAdminLoginResendCountdown(10)
-          return
-        }
-     */
     try {
-      const recaptchaVerifier = setupRecaptcha(phoneNumber)
-      const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier)
-      window.confirmationResult = confirmationResult
-      toast.success(`OTP sent to ${phoneNumber}`)
-      setAdminLoginOtpSent(true)
-      setAdminLoginResendCountdown(10)
+      setOtpButtonLoading(true)
+      // Use backend API instead of Firebase directly
+      const res = await apiClient.sendOtp({ 
+        phoneNumber: adminLoginData.phoneNumber, 
+        countryCode: adminLoginData.countryCode, 
+        role: "admin" 
+      })
+      
+      if (res.success) {
+        const phoneNumber = `${adminLoginData.countryCode}${adminLoginData.phoneNumber}`
+        const channel = res.data?.deliveryChannel || 'SMS'
+        const channelText = channel === 'whatsapp' ? 'WhatsApp' : 'SMS'
+        toast.success(`OTP sent via ${channelText} to ${phoneNumber}`)
+        setAdminLoginOtpSent(true)
+        setAdminLoginResendCountdown(30)
+        // Store session info for verification
+        window.otpSessionInfo = res.data?.sessionInfo
+      } else {
+        toast.error(res.message || "Failed to send OTP. Please try again.")
+      }
     } catch (error) {
-      // console.error("Error sending OTP:", error)
+      console.error("Error sending OTP:", error)
       toast.error("Failed to send OTP. Please try again.")
+    } finally {
+      setOtpButtonLoading(false)
     }
   }
 
@@ -796,57 +808,143 @@ function AuthPageContent() {
       return
     }
 
-    const phoneNumber = `${systemOwnerLoginData.countryCode}${systemOwnerLoginData.phoneNumber}`
-
-    /*     if (isDevelopment()) {
-          debugLog("Debug mode: Skipping Firebase OTP verification for system owner")
-          toast.success(`[DEBUG MODE] OTP sent to ${phoneNumber}. Use code: ${DEBUG_OTP}`)
-          setSystemOwnerLoginOtpSent(true)
-          setSystemOwnerLoginOtp(DEBUG_OTP)
-          setSystemOwnerLoginResendCountdown(10)
-          return
-        }
-     */
     try {
-      const recaptchaVerifier = setupRecaptcha(phoneNumber)
-      const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier)
-      window.confirmationResult = confirmationResult
-      toast.success(`OTP sent to ${phoneNumber}`)
-      setSystemOwnerLoginOtpSent(true)
-      setSystemOwnerLoginResendCountdown(10)
+      setOtpButtonLoading(true)
+      // Use backend API instead of Firebase directly
+      const res = await apiClient.sendOtp({ 
+        phoneNumber: systemOwnerLoginData.phoneNumber, 
+        countryCode: systemOwnerLoginData.countryCode, 
+        role: "system_owner" 
+      })
+      
+      if (res.success) {
+        const phoneNumber = `${systemOwnerLoginData.countryCode}${systemOwnerLoginData.phoneNumber}`
+        const channel = res.data?.deliveryChannel || 'SMS'
+        const channelText = channel === 'whatsapp' ? 'WhatsApp' : 'SMS'
+        toast.success(`OTP sent via ${channelText} to ${phoneNumber}`)
+        setSystemOwnerLoginOtpSent(true)
+        setSystemOwnerLoginResendCountdown(30)
+        // Store session info for verification
+        window.otpSessionInfo = res.data?.sessionInfo
+      } else {
+        toast.error(res.message || "Failed to send OTP. Please try again.")
+      }
     } catch (error) {
-      // console.error("Error sending OTP:", error)
+      console.error("Error sending OTP:", error)
       toast.error("Failed to send OTP. Please try again.")
+    } finally {
+      setOtpButtonLoading(false)
     }
   }
 
-  const handleUserLoginResendOTP = () => {
+  const handleUserLoginResendOTP = async (channel?: 'whatsapp' | 'sms') => {
     if (userLoginData.email) {
-      toast.success(`OTP resent to ${userLoginData.email}.`)
-      setUserLoginResendCountdown(10)
+      try {
+        const res = await apiClient.sendOtp({ email: userLoginData.email, role: "user" })
+        if (res.success) {
+          toast.success(`Code resent to ${userLoginData.email}.`)
+          setUserLoginResendCountdown(30)
+        } else {
+          toast.error("Failed to resend OTP. Please try again.")
+        }
+      } catch (error) {
+        toast.error("Failed to resend OTP. Please try again.")
+      }
     } else if (userLoginData.phoneNumber && userLoginData.countryCode) {
-      toast.success(`OTP resent to ${userLoginData.countryCode}${userLoginData.phoneNumber}.`)
-      setUserLoginResendCountdown(10)
+      try {
+        const res = await apiClient.resendOTP({ 
+          phoneNumber: userLoginData.phoneNumber, 
+          countryCode: userLoginData.countryCode, 
+          role: "user",
+          channel
+        })
+        if (res.success) {
+          const phoneNumber = `${userLoginData.countryCode}${userLoginData.phoneNumber}`
+          const ch = res.data?.deliveryChannel || 'sms'
+          const channelText = ch === 'whatsapp' ? 'WhatsApp' : 'SMS'
+          toast.success(`OTP resent via ${channelText} to ${phoneNumber}`)
+          setUserLoginResendCountdown(30)
+          window.otpSessionInfo = res.data?.sessionInfo
+        } else {
+          toast.error("Failed to resend OTP. Please try again.")
+        }
+      } catch (error) {
+        toast.error("Failed to resend OTP. Please try again.")
+      }
     }
   }
 
-  const handleAdminLoginResendOTP = () => {
+  const handleAdminLoginResendOTP = async (channel?: 'whatsapp' | 'sms') => {
     if (adminLoginData.email) {
-      toast.success(`OTP resent to ${adminLoginData.email}.`)
-      setAdminLoginResendCountdown(10)
+      try {
+        const res = await apiClient.sendOtp({ email: adminLoginData.email, role: "admin" })
+        if (res.success) {
+          toast.success(`Code resent to ${adminLoginData.email}.`)
+          setAdminLoginResendCountdown(30)
+        } else {
+          toast.error("Failed to resend OTP. Please try again.")
+        }
+      } catch (error) {
+        toast.error("Failed to resend OTP. Please try again.")
+      }
     } else if (adminLoginData.phoneNumber && adminLoginData.countryCode) {
-      toast.success(`OTP resent to ${adminLoginData.countryCode}${adminLoginData.phoneNumber}.`)
-      setAdminLoginResendCountdown(10)
+      try {
+        const res = await apiClient.resendOTP({ 
+          phoneNumber: adminLoginData.phoneNumber, 
+          countryCode: adminLoginData.countryCode, 
+          role: "admin",
+          channel
+        })
+        if (res.success) {
+          const phoneNumber = `${adminLoginData.countryCode}${adminLoginData.phoneNumber}`
+          const ch = res.data?.deliveryChannel || 'sms'
+          const channelText = ch === 'whatsapp' ? 'WhatsApp' : 'SMS'
+          toast.success(`OTP resent via ${channelText} to ${phoneNumber}`)
+          setAdminLoginResendCountdown(30)
+          window.otpSessionInfo = res.data?.sessionInfo
+        } else {
+          toast.error("Failed to resend OTP. Please try again.")
+        }
+      } catch (error) {
+        toast.error("Failed to resend OTP. Please try again.")
+      }
     }
   }
 
-  const handleSystemOwnerLoginResendOTP = () => {
+  const handleSystemOwnerLoginResendOTP = async (channel?: 'whatsapp' | 'sms') => {
     if (systemOwnerLoginData.email) {
-      toast.success(`OTP resent to ${systemOwnerLoginData.email}.`)
-      setSystemOwnerLoginResendCountdown(10)
+      try {
+        const res = await apiClient.sendOtp({ email: systemOwnerLoginData.email, role: "system_owner" })
+        if (res.success) {
+          toast.success(`Code resent to ${systemOwnerLoginData.email}.`)
+          setSystemOwnerLoginResendCountdown(30)
+        } else {
+          toast.error("Failed to resend OTP. Please try again.")
+        }
+      } catch (error) {
+        toast.error("Failed to resend OTP. Please try again.")
+      }
     } else if (systemOwnerLoginData.phoneNumber && systemOwnerLoginData.countryCode) {
-      toast.success(`OTP resent to ${systemOwnerLoginData.countryCode}${systemOwnerLoginData.phoneNumber}.`)
-      setSystemOwnerLoginResendCountdown(10)
+      try {
+        const res = await apiClient.resendOTP({ 
+          phoneNumber: systemOwnerLoginData.phoneNumber, 
+          countryCode: systemOwnerLoginData.countryCode, 
+          role: "system_owner",
+          channel
+        })
+        if (res.success) {
+          const phoneNumber = `${systemOwnerLoginData.countryCode}${systemOwnerLoginData.phoneNumber}`
+          const ch = res.data?.deliveryChannel || 'sms'
+          const channelText = ch === 'whatsapp' ? 'WhatsApp' : 'SMS'
+          toast.success(`OTP resent via ${channelText} to ${phoneNumber}`)
+          setSystemOwnerLoginResendCountdown(30)
+          window.otpSessionInfo = res.data?.sessionInfo
+        } else {
+          toast.error("Failed to resend OTP. Please try again.")
+        }
+      } catch (error) {
+        toast.error("Failed to resend OTP. Please try again.")
+      }
     }
   }
 
@@ -940,17 +1038,32 @@ function AuthPageContent() {
       return
     }
 
-    setIsLoading(true)
+    // Phone number verification using backend API
     try {
-      const result = await login(systemOwnerLoginData.email, systemOwnerLoginData.phoneNumber, systemOwnerLoginData.countryCode, false, true)
-      if (result?.success) {
-        toast.success("System Owner login successful!")
-        router.push("/dashboard")
+      setIsLoading(true)
+      const res = await apiClient.verifyOTP({ 
+        phoneNumber: systemOwnerLoginData.phoneNumber,
+        countryCode: systemOwnerLoginData.countryCode,
+        otp: systemOwnerLoginOtp,
+        role: "system_owner",
+        sessionInfo: window.otpSessionInfo
+      })
+      
+      if (res.success) {
+        // Handle successful verification
+        const result = await login(systemOwnerLoginData.email, systemOwnerLoginData.phoneNumber, systemOwnerLoginData.countryCode, false, true)
+        if (result?.success) {
+          toast.success("System Owner login successful!")
+          router.push("/dashboard")
+        } else {
+          toast.error(result?.error || "System Owner login failed. Please check your credentials.")
+        }
       } else {
-        toast.error(result?.error || "System Owner login failed. Please check your credentials.")
+        toast.error(res.message || "Invalid or expired OTP. Please try again.")
       }
     } catch (error) {
-      toast.error("An error occurred during System Owner login.")
+      console.error("OTP verification error:", error)
+      toast.error("Invalid OTP. Please try again.")
     } finally {
       setIsLoading(false)
     }
@@ -1227,15 +1340,25 @@ function AuthPageContent() {
                                   {userLoginResendCountdown > 0 ? `Resend (${userLoginResendCountdown}s)` : "Resend"}
                                 </Button>
                               ) : (
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  onClick={handleUserLoginResendOTP}
-                                  disabled={userLoginResendCountdown > 0}
-                                  className="border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-12 px-4"
-                                >
-                                  {userLoginResendCountdown > 0 ? `Resend (${userLoginResendCountdown}s)` : "Resend"}
-                                </Button>
+                                <>
+                                  <Button
+                                    type="button"
+                                    onClick={() => handleUserLoginResendOTP('whatsapp')}
+                                    disabled={userLoginResendCountdown > 0}
+                                    className="flex-1 bg-green-700 hover:bg-green-600 text-white h-12 px-3 text-sm"
+                                  >
+                                    {userLoginResendCountdown > 0 ? `(${userLoginResendCountdown}s)` : "WhatsApp"}
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => handleUserLoginResendOTP('sms')}
+                                    disabled={userLoginResendCountdown > 0}
+                                    className="flex-1 border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-12 px-3 text-sm"
+                                  >
+                                    {userLoginResendCountdown > 0 ? `(${userLoginResendCountdown}s)` : "SMS"}
+                                  </Button>
+                                </>
                               )}
                             </div>
                             {userLoginData.email ? (
@@ -1881,15 +2004,25 @@ function AuthPageContent() {
                                   {adminLoginResendCountdown > 0 ? `Resend (${adminLoginResendCountdown}s)` : "Resend"}
                                 </Button>
                               ) : (
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  onClick={handleAdminLoginResendOTP}
-                                  disabled={adminLoginResendCountdown > 0}
-                                  className="border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-12 px-4"
-                                >
-                                  {adminLoginResendCountdown > 0 ? `Resend (${adminLoginResendCountdown}s)` : "Resend"}
-                                </Button>
+                                <>
+                                  <Button
+                                    type="button"
+                                    onClick={() => handleAdminLoginResendOTP('whatsapp')}
+                                    disabled={adminLoginResendCountdown > 0}
+                                    className="flex-1 bg-green-700 hover:bg-green-600 text-white h-12 px-3 text-sm"
+                                  >
+                                    {adminLoginResendCountdown > 0 ? `(${adminLoginResendCountdown}s)` : "WhatsApp"}
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => handleAdminLoginResendOTP('sms')}
+                                    disabled={adminLoginResendCountdown > 0}
+                                    className="flex-1 border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-12 px-3 text-sm"
+                                  >
+                                    {adminLoginResendCountdown > 0 ? `(${adminLoginResendCountdown}s)` : "SMS"}
+                                  </Button>
+                                </>
                               )}
                             </div>
                             {adminLoginData.email ? (
@@ -2238,15 +2371,25 @@ function AuthPageContent() {
                                   {systemOwnerLoginResendCountdown > 0 ? `Resend (${systemOwnerLoginResendCountdown}s)` : "Resend"}
                                 </Button>
                               ) : (
-                                <Button
-                                  type="button"
-                                  variant="outline"
-                                  onClick={handleSystemOwnerLoginResendOTP}
-                                  disabled={systemOwnerLoginResendCountdown > 0}
-                                  className="border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-12 px-4"
-                                >
-                                  {systemOwnerLoginResendCountdown > 0 ? `Resend (${systemOwnerLoginResendCountdown}s)` : "Resend"}
-                                </Button>
+                                <>
+                                  <Button
+                                    type="button"
+                                    onClick={() => handleSystemOwnerLoginResendOTP('whatsapp')}
+                                    disabled={systemOwnerLoginResendCountdown > 0}
+                                    className="flex-1 bg-green-700 hover:bg-green-600 text-white h-12 px-3 text-sm"
+                                  >
+                                    {systemOwnerLoginResendCountdown > 0 ? `(${systemOwnerLoginResendCountdown}s)` : "WhatsApp"}
+                                  </Button>
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => handleSystemOwnerLoginResendOTP('sms')}
+                                    disabled={systemOwnerLoginResendCountdown > 0}
+                                    className="flex-1 border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-12 px-3 text-sm"
+                                  >
+                                    {systemOwnerLoginResendCountdown > 0 ? `(${systemOwnerLoginResendCountdown}s)` : "SMS"}
+                                  </Button>
+                                </>
                               )}
                             </div>
                             {systemOwnerLoginData.email ? (
