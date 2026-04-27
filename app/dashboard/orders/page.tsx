@@ -263,8 +263,8 @@ export default function OrdersPage() {
         const pendingRegistrations = registrations.filter(reg => reg.status === 'pending').length
         const cancelledRegistrations = registrations.filter(reg => reg.status === 'cancelled').length
         const totalRevenue = registrations
-          .filter(reg => reg.status === 'confirmed' && (!reg.paymentStatus || reg.paymentStatus === 'paid'))
-          .reduce((sum, reg) => sum + (reg.amountPaid || reg.ticketPrice || 0), 0)
+          .filter(reg => reg.status === 'confirmed' && reg.amountPaid && reg.paymentId)
+          .reduce((sum, reg) => sum + (reg.amountPaid || 0), 0)
         
         setEventStats({
           totalOrders: totalRegistrations,
@@ -1035,8 +1035,11 @@ export default function OrdersPage() {
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            <Badge className={reg.ticketPrice ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
-                              {reg.ticketPrice ? 'Paid' : 'Free'}
+                            <Badge className={
+                              reg.amountPaid && reg.paymentId ? 'bg-green-100 text-green-800' : 
+                              (reg.amountPaid > 0 ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800')
+                            }>
+                              {reg.amountPaid && reg.paymentId ? 'Paid' : (reg.amountPaid > 0 ? 'Pending' : 'Free')}
                             </Badge>
                           </TableCell>
                           <TableCell>
@@ -1485,8 +1488,11 @@ export default function OrdersPage() {
                         ) : (
                           <div className="flex justify-between">
                             <span className="text-muted-foreground">Payment Status:</span>
-                            <Badge className={ticketPrice > 0 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
-                              {ticketPrice > 0 ? 'Paid' : 'Free'}
+                            <Badge className={
+                              meta?.amountPaid && meta?.paymentId ? 'bg-green-100 text-green-800' : 
+                              (meta?.amountPaid > 0 ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800')
+                            }>
+                              {meta?.amountPaid && meta?.paymentId ? 'Paid' : (meta?.amountPaid > 0 ? 'Pending' : 'Free')}
                             </Badge>
                           </div>
                         )}
