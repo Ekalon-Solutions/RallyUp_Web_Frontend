@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Shield, User, Mail, Phone, UserPlus, LogIn, Crown, Building2 } from "lucide-react"
+import { Shield, User, Mail, Phone, UserPlus, LogIn, Crown, Building2, MessageCircle, MessageSquare } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
@@ -1339,28 +1339,35 @@ function AuthPageContent() {
                                 >
                                   {userLoginResendCountdown > 0 ? `Resend (${userLoginResendCountdown}s)` : "Resend"}
                                 </Button>
-                              ) : (
-                                <>
-                                  <Button
-                                    type="button"
-                                    onClick={() => handleUserLoginResendOTP('whatsapp')}
-                                    disabled={userLoginResendCountdown > 0}
-                                    className="flex-1 bg-green-700 hover:bg-green-600 text-white h-12 px-3 text-sm"
-                                  >
-                                    {userLoginResendCountdown > 0 ? `(${userLoginResendCountdown}s)` : "WhatsApp"}
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => handleUserLoginResendOTP('sms')}
-                                    disabled={userLoginResendCountdown > 0}
-                                    className="flex-1 border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-12 px-3 text-sm"
-                                  >
-                                    {userLoginResendCountdown > 0 ? `(${userLoginResendCountdown}s)` : "SMS"}
-                                  </Button>
-                                </>
-                              )}
+                              ) : null}
                             </div>
+                            {!userLoginData.email && (
+                              <div className="grid grid-cols-2 gap-2">
+                                <Button
+                                  type="button"
+                                  onClick={() => handleUserLoginResendOTP('whatsapp')}
+                                  disabled={userLoginResendCountdown > 0}
+                                  className="bg-green-700 hover:bg-green-600 text-white h-11 px-2 text-xs sm:text-sm gap-1.5"
+                                >
+                                  <MessageCircle className="w-4 h-4 shrink-0" />
+                                  <span className="truncate">
+                                    {userLoginResendCountdown > 0 ? `Resend (${userLoginResendCountdown}s)` : "Resend via WhatsApp"}
+                                  </span>
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  onClick={() => handleUserLoginResendOTP('sms')}
+                                  disabled={userLoginResendCountdown > 0}
+                                  className="border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-11 px-2 text-xs sm:text-sm gap-1.5"
+                                >
+                                  <MessageSquare className="w-4 h-4 shrink-0" />
+                                  <span className="truncate">
+                                    {userLoginResendCountdown > 0 ? `Resend (${userLoginResendCountdown}s)` : "Resend via SMS"}
+                                  </span>
+                                </Button>
+                              </div>
+                            )}
                             {userLoginData.email ? (
                               <Button
                                 type="button"
@@ -2003,28 +2010,35 @@ function AuthPageContent() {
                                 >
                                   {adminLoginResendCountdown > 0 ? `Resend (${adminLoginResendCountdown}s)` : "Resend"}
                                 </Button>
-                              ) : (
-                                <>
-                                  <Button
-                                    type="button"
-                                    onClick={() => handleAdminLoginResendOTP('whatsapp')}
-                                    disabled={adminLoginResendCountdown > 0}
-                                    className="flex-1 bg-green-700 hover:bg-green-600 text-white h-12 px-3 text-sm"
-                                  >
-                                    {adminLoginResendCountdown > 0 ? `(${adminLoginResendCountdown}s)` : "WhatsApp"}
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => handleAdminLoginResendOTP('sms')}
-                                    disabled={adminLoginResendCountdown > 0}
-                                    className="flex-1 border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-12 px-3 text-sm"
-                                  >
-                                    {adminLoginResendCountdown > 0 ? `(${adminLoginResendCountdown}s)` : "SMS"}
-                                  </Button>
-                                </>
-                              )}
+                              ) : null}
                             </div>
+                            {!adminLoginData.email && (
+                              <div className="grid grid-cols-2 gap-2">
+                                <Button
+                                  type="button"
+                                  onClick={() => handleAdminLoginResendOTP('whatsapp')}
+                                  disabled={adminLoginResendCountdown > 0}
+                                  className="bg-green-700 hover:bg-green-600 text-white h-11 px-2 text-xs sm:text-sm gap-1.5"
+                                >
+                                  <MessageCircle className="w-4 h-4 shrink-0" />
+                                  <span className="truncate">
+                                    {adminLoginResendCountdown > 0 ? `Resend (${adminLoginResendCountdown}s)` : "Resend via WhatsApp"}
+                                  </span>
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  onClick={() => handleAdminLoginResendOTP('sms')}
+                                  disabled={adminLoginResendCountdown > 0}
+                                  className="border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-11 px-2 text-xs sm:text-sm gap-1.5"
+                                >
+                                  <MessageSquare className="w-4 h-4 shrink-0" />
+                                  <span className="truncate">
+                                    {adminLoginResendCountdown > 0 ? `Resend (${adminLoginResendCountdown}s)` : "Resend via SMS"}
+                                  </span>
+                                </Button>
+                              </div>
+                            )}
                             {adminLoginData.email ? (
                               <Button
                                 type="button"
@@ -2370,28 +2384,35 @@ function AuthPageContent() {
                                 >
                                   {systemOwnerLoginResendCountdown > 0 ? `Resend (${systemOwnerLoginResendCountdown}s)` : "Resend"}
                                 </Button>
-                              ) : (
-                                <>
-                                  <Button
-                                    type="button"
-                                    onClick={() => handleSystemOwnerLoginResendOTP('whatsapp')}
-                                    disabled={systemOwnerLoginResendCountdown > 0}
-                                    className="flex-1 bg-green-700 hover:bg-green-600 text-white h-12 px-3 text-sm"
-                                  >
-                                    {systemOwnerLoginResendCountdown > 0 ? `(${systemOwnerLoginResendCountdown}s)` : "WhatsApp"}
-                                  </Button>
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => handleSystemOwnerLoginResendOTP('sms')}
-                                    disabled={systemOwnerLoginResendCountdown > 0}
-                                    className="flex-1 border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-12 px-3 text-sm"
-                                  >
-                                    {systemOwnerLoginResendCountdown > 0 ? `(${systemOwnerLoginResendCountdown}s)` : "SMS"}
-                                  </Button>
-                                </>
-                              )}
+                              ) : null}
                             </div>
+                            {!systemOwnerLoginData.email && (
+                              <div className="grid grid-cols-2 gap-2">
+                                <Button
+                                  type="button"
+                                  onClick={() => handleSystemOwnerLoginResendOTP('whatsapp')}
+                                  disabled={systemOwnerLoginResendCountdown > 0}
+                                  className="bg-green-700 hover:bg-green-600 text-white h-11 px-2 text-xs sm:text-sm gap-1.5"
+                                >
+                                  <MessageCircle className="w-4 h-4 shrink-0" />
+                                  <span className="truncate">
+                                    {systemOwnerLoginResendCountdown > 0 ? `Resend (${systemOwnerLoginResendCountdown}s)` : "Resend via WhatsApp"}
+                                  </span>
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  onClick={() => handleSystemOwnerLoginResendOTP('sms')}
+                                  disabled={systemOwnerLoginResendCountdown > 0}
+                                  className="border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-11 px-2 text-xs sm:text-sm gap-1.5"
+                                >
+                                  <MessageSquare className="w-4 h-4 shrink-0" />
+                                  <span className="truncate">
+                                    {systemOwnerLoginResendCountdown > 0 ? `Resend (${systemOwnerLoginResendCountdown}s)` : "Resend via SMS"}
+                                  </span>
+                                </Button>
+                              </div>
+                            )}
                             {systemOwnerLoginData.email ? (
                               <Button
                                 type="button"
