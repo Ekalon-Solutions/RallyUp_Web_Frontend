@@ -1246,6 +1246,16 @@ class ApiClient {
     return this.request(`/events/public/${id}`);
   }
 
+  async checkEventRegistration(eventId: string): Promise<ApiResponse<{
+    isRegistered: boolean;
+    registrationStatus?: string;
+    isMember: boolean;
+    canRegisterMultiple: boolean;
+    registrationId?: string;
+  }>> {
+    return this.request(`/events/public/${eventId}/check-registration`);
+  }
+
   async getEventById(id: string): Promise<ApiResponse<Event>> {
     return this.request(`/events/${id}`);
   }

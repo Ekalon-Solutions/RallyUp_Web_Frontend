@@ -16,6 +16,7 @@ import { PurchaseFlowModal, setStoredPurchaseIntent, getStoredPurchaseIntent, cl
 import { CheckoutModal } from "@/components/modals/checkout-modal"
 import NewsReadMoreModal from "@/components/modals/news-readmore-modal"
 import { SocialBrandButton } from "@/components/club-public/social-platform-icons"
+import { toast } from "sonner"
 import {
   Globe,
   Mail,
@@ -170,21 +171,62 @@ export default function PublicClubPage() {
       const storedEvent = intent.event as Event | undefined
       const ev = storedEvent && storedEvent._id === eventId ? storedEvent : events.find((e) => e._id === eventId)
       if (!ev) return
-      setEventForRegistration(ev)
-      setAttendeesForPayment(intent.attendees || [])
-      setShowEventCheckoutModal(true)
+      
+      // Check if user is already registered (for members only)
+      apiClient.checkEventRegistration(eventId).then(checkResult => {
+        if (checkResult.success && checkResult.data) {
+          const { isRegistered, isMember } = checkResult.data
+          
+          // If member and already registered, show error and don't open checkout
+          if (isMember && isRegistered) {
+            toast.error("You are already registered for this event")
+            clearStoredPurchaseIntent()
+            const url = new URL(window.location.href)
+            url.searchParams.delete("resumePurchase")
+            window.history.replaceState({}, "", url.pathname + url.search)
+            return
+          }
+          
+          // For non-members or not registered, proceed with checkout
+          setEventForRegistration(ev)
+          setAttendeesForPayment(intent.attendees || [])
+          setShowEventCheckoutModal(true)
+          clearStoredPurchaseIntent()
+          const url = new URL(window.location.href)
+          url.searchParams.delete("resumePurchase")
+          window.history.replaceState({}, "", url.pathname + url.search)
+        } else {
+          // If check fails, proceed anyway
+          setEventForRegistration(ev)
+          setAttendeesForPayment(intent.attendees || [])
+          setShowEventCheckoutModal(true)
+          clearStoredPurchaseIntent()
+          const url = new URL(window.location.href)
+          url.searchParams.delete("resumePurchase")
+          window.history.replaceState({}, "", url.pathname + url.search)
+        }
+      }).catch(() => {
+        // If check fails, proceed anyway
+        setEventForRegistration(ev)
+        setAttendeesForPayment(intent.attendees || [])
+        setShowEventCheckoutModal(true)
+        clearStoredPurchaseIntent()
+        const url = new URL(window.location.href)
+        url.searchParams.delete("resumePurchase")
+        window.history.replaceState({}, "", url.pathname + url.search)
+      })
+      return
     } else if (intent.type === "merchandise") {
       const item = intent.item
       if (item?._id && item?.club?._id) {
         setMerchandiseCheckoutItems([{ ...item, quantity: item.quantity ?? 1 }])
         setShowMerchandiseCheckoutModal(true)
       }
+      clearStoredPurchaseIntent()
+      const url = new URL(window.location.href)
+      url.searchParams.delete("resumePurchase")
+      window.history.replaceState({}, "", url.pathname + url.search)
     }
-
-    clearStoredPurchaseIntent()
-    const url = new URL(window.location.href)
-    url.searchParams.delete("resumePurchase")
-    window.history.replaceState({}, "", url.pathname + url.search)
   }, [searchParams, club?._id, events])
 
   const encodeSearchParam = (value: string) =>
@@ -823,10 +865,34 @@ export default function PublicClubPage() {
                                           style={isEventFull ? undefined : { backgroundColor: primaryColor, color: "white" }}
                                           variant={isEventFull ? "secondary" : "default"}
                                           disabled={isEventFull}
-                                          onClick={() => {
+                                          onClick={async () => {
                                             if (isEventFull) return
-                                            setEventForRegistration(event)
-                                            setShowEventRegistrationModal(true)
+                                            
+                                            // Check if user is already registered (for members only)
+                                            try {
+                                              const checkResult = await apiClient.checkEventRegistration(event._id)
+                                              if (checkResult.success && checkResult.data) {
+                                                const { isRegistered, isMember, canRegisterMultiple } = checkResult.data
+                                                
+                                                // If member and already registered, show error
+                                                if (isMember && isRegistered) {
+                                                  toast.error("You are already registered for this event")
+                                                  return
+                                                }
+                                                
+                                                // For non-members or not registered, proceed with registration
+                                                setEventForRegistration(event)
+                                                setShowEventRegistrationModal(true)
+                                              } else {
+                                                // If check fails, proceed anyway
+                                                setEventForRegistration(event)
+                                                setShowEventRegistrationModal(true)
+                                              }
+                                            } catch (error) {
+                                              // If check fails, proceed anyway
+                                              setEventForRegistration(event)
+                                              setShowEventRegistrationModal(true)
+                                            }
                                           }}
                                         >
                                           {isEventFull ? "Event Full" : event.ticketPrice && event.ticketPrice > 0 ? "Buy Tickets" : "Register"}
