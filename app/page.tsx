@@ -9,6 +9,7 @@ import { SiteNavbar } from "@/components/site-navbar"
 import { SiteFooter } from "@/components/site-footer"
 import { ScrollToTop } from "@/components/scroll-to-top"
 import { FadeIn } from "@/components/fade-in"
+import { ContactForm } from "@/components/contact-form"
 
 const LOGO_FRAMES = [
   "/wingmanlogo/Property 1=Default (4).svg",
@@ -19,33 +20,43 @@ const LOGO_FRAMES = [
 ]
 
 function AnimatedLogo() {
-  const [frame, setFrame] = useState(0)
+  const [step, setStep] = useState(0);
 
   useEffect(() => {
-    const id = setInterval(() => {
-      setFrame((f) => (f + 1) % LOGO_FRAMES.length)
-    }, 2000) // 3 sec interval
+    const totalSteps = LOGO_FRAMES.length + 2; 
 
-    return () => clearInterval(id)
-  }, [])
+    const id = setInterval(() => {
+      setStep((s) => (s + 1) % totalSteps);
+    }, 600);
+
+    return () => clearInterval(id);
+  }, []);
 
   return (
     <div className="relative w-full h-full">
-      {LOGO_FRAMES.map((src, i) => (
-        <Image
-          key={i}
-          src={src}
-          alt="Wingman Pro"
-          fill
-          className={`object-contain absolute inset-0 transition-opacity duration-1000 ease-in-out ${i === frame ? "opacity-100" : "opacity-0"
-            }`}
-          priority={i === 0}
-        />
-      ))}
-    </div>
-  )
-}
+      {LOGO_FRAMES.map((src, i) => {
+        const isVisible = step < LOGO_FRAMES.length + 1 && step >= i;
 
+        return (
+          <div
+            key={src}
+            className={`absolute inset-0 transition-opacity duration-300 ease-in ${
+              isVisible ? "opacity-100" : "opacity-0"
+            }`}
+          >
+            <Image
+              src={src}
+              alt="Wingman Pro Logo Layer"
+              fill
+              className="object-contain"
+              priority={i === 0}
+            />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 function Hero() {
   return (
     <section className="bg-white relative overflow-hidden" id="home">
@@ -540,17 +551,9 @@ function ImageMarquee() {
 }
 
 function ContactCTA() {
-  const [form, setForm] = useState({ name: "", email: "", topic: "Product Support", message: "" })
-  const [submitted, setSubmitted] = useState(false)
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setSubmitted(true)
-  }
-
   return (
     <section className="bg-white py-16 md:py-20 lg:py-24" id="contact">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-8xl px-4 sm:px-6 lg:px-8">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-stretch">
           {/* Left */}
           <div className="flex flex-col gap-8">
@@ -571,88 +574,7 @@ function ContactCTA() {
           </div>
 
           {/* Right — form */}
-          {submitted ? (
-            <div className="flex flex-col items-center justify-center py-16 space-y-4 text-center">
-              <div className="w-16 h-16 rounded-full bg-secondary-purple text-primary flex items-center justify-center text-3xl">✓</div>
-              <p className="text-background font-bold text-xl">Thanks! We&apos;ll be in touch shortly.</p>
-              <Button
-                variant="outline"
-                className="border-0 bg-primary rounded-[5px] text-xs font-medium uppercase tracking-wide"
-                onClick={() => setSubmitted(false)}
-              >
-                Submit another
-              </Button>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-4 bg-secondary-purple/50 p-4 rounded-[10px]">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-secondary text-xs font-semibold">Full Name</label>
-                  <input
-                    type="text"
-                    placeholder="Enter your full name"
-                    value={form.name}
-                    onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                    className="w-full h-11 px-4 border rounded-[10px] text-xs placeholder-[#888] focus:outline-none focus:border-secondary bg-white"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-secondary text-xs font-semibold">Email</label>
-                  <input
-                    type="email"
-                    placeholder="Enter your email"
-                    value={form.email}
-                    onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                    className="w-full h-11 px-4 border rounded-[10px] text-xs placeholder-[#888] focus:outline-none focus:border-secondary bg-white"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-secondary text-xs font-semibold">Topic</label>
-                <select
-                  value={form.topic}
-                  onChange={(e) => setForm((f) => ({ ...f, topic: e.target.value }))}
-                  className="w-full h-11 px-4 border rounded-[10px] text-xs text-[#888] focus:outline-none focus:border-secondary appearance-none bg-white"
-                >
-                  <option>Product Support</option>
-                  <option>Sales Inquiry</option>
-                  <option>Partnership</option>
-                  <option>Other</option>
-                </select>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-secondary text-xs font-semibold">Message</label>
-                <textarea
-                  placeholder="Tell us what you need..."
-                  value={form.message}
-                  onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))}
-                  rows={4}
-                  className="w-full px-4 py-3 border rounded-[10px] text-xs text-[#888] placeholder-[#888] focus:outline-none focus:border-secondary resize-none bg-white"
-                />
-              </div>
-
-              <div className="flex flex-col gap-3 pt-1">
-                <Button
-                  type="submit"
-                  variant="secondary"
-                  className="bg-secondary/40"
-                >
-                  Submit
-                </Button>
-                <Link href="/clubs" className="flex-1">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="w-full"
-                  >
-                    Join Waiting List
-                  </Button>
-                </Link>
-              </div>
-            </form>
-          )}
+          <ContactForm />
         </div>
       </div>
     </section>
@@ -697,7 +619,7 @@ function FAQ() {
         <Image src="/Vector.svg" alt="" fill className="object-contain" />
       </div>
 
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-8xl px-4 sm:px-6 lg:px-8">
         <h2 className="flex flex-col items-start gap-2 md:items-center md:text-4xl text-4xl lg:text-5xl font-bold text-center mb-12">
           <span className="text-background">Frequently Asked</span>{" "}
           <span className="text-primary">Questions</span>

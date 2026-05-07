@@ -40,9 +40,9 @@ export function SiteNavbar({ brandName = "Wingman Pro" }: SiteNavbarProps) {
           </Link>
 
           <nav className="hidden lg:flex items-center gap-8 text-slate-700 dark:text-slate-200 font-bold text-sm uppercase tracking-wider">
-            <Link href="/affiliations" className="text-white transition-all hover:-translate-y-0.5">Affiliations</Link>
-            <Link href="/faqs" className="text-white transition-all hover:-translate-y-0.5">FAQs</Link>
-            <Link href="/about" className="text-white transition-all hover:-translate-y-0.5">About Us</Link>
+            <Link href="/affiliations" className="text-white transition-all hover:-translate-y-0.5 decoration-primary decoration-2 hover:underline hover:underline-offset-8">Affiliations</Link>
+            <Link href="/faqs" className="text-white transition-all hover:-translate-y-0.5 decoration-primary decoration-2 hover:underline hover:underline-offset-8">FAQs</Link>
+            <Link href="/about" className="text-white transition-all hover:-translate-y-0.5 decoration-primary decoration-2 hover:underline hover:underline-offset-8">About Us</Link>
           </nav>
 
           <div className="flex items-center gap-5">

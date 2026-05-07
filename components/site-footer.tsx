@@ -12,7 +12,7 @@ type SiteFooterProps = {
 export function SiteFooter({ brandName = "Wingman Pro" }: SiteFooterProps) {
   return (
     <footer className="border-t border-slate-200 dark:border-white/10 bg-secondary-purple py-12 md:py-16">
-      <div className="mx-auto max-w-7xl px-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-10 text-slate-600 dark:text-slate-300">
+      <div className="mx-auto max-w-8xl px-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-10 text-slate-600 dark:text-slate-300">
         {/* Brand */}
         <div className="flex flex-col gap-4 col-span-2 md:col-span-1 lg:col-span-1">
           <div className="flex items-center gap-2.5">
