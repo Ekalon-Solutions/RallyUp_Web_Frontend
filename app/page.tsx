@@ -9,7 +9,6 @@ import { SiteNavbar } from "@/components/site-navbar"
 import { SiteFooter } from "@/components/site-footer"
 import { ScrollToTop } from "@/components/scroll-to-top"
 import { FadeIn } from "@/components/fade-in"
-import { JellyCursor } from "@/components/jelly-cursor"
 
 const LOGO_FRAMES = [
   "/wingmanlogo/Property 1=Default (4).svg",

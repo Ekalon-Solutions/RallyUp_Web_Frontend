@@ -1,6 +1,6 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Poppins } from "next/font/google"
+import { Poppins, Purple_Purse } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { ThemeColorMeta } from "@/components/theme-color-meta"
@@ -18,6 +18,13 @@ const poppins = Poppins({
   display: 'swap',
   preload: true,
   weight: ['400', '500', '600', '700', '800', '900'],
+  variable: '--font-poppins',
+})
+
+const purplePurse = Purple_Purse({
+  subsets: ["latin"],
+  weight: "400",
+  variable: '--font-purple-purse',
 })
 
 export const metadata: Metadata = {
@@ -120,7 +127,7 @@ export default function RootLayout({
         </Script>
       </head>
 
-      <body className={poppins.className}>
+      <body className={`${poppins.className} ${poppins.variable} ${purplePurse.variable}`}>
         <Analytics />
         <AntiScrapingProtection />
         <ThemeProvider
