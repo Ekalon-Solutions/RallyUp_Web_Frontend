@@ -152,14 +152,24 @@ export default function FAQsPage(): React.JSX.Element {
                     </div>
 
                     <FadeIn>
-                        <div className="flex flex-col text-center justify-center items-center mb-12 relative">
-                            <h1 className=" flex-row items-center md:text-4xl text-4xl lg:text-5xl font-bold text-center mb-12 relative z-10">
-                                <span className="text-background">Frequently Asked <span className="text-primary animate-pulse-glow shadow-lg">Questions</span></span>
-                                
-                            </h1>
-                            <p className="text-background font-weight-[400] text-lg max-w-2xl mx-auto relative z-10">
-                                Find answers to common questions about Wingman Pro. Can't find what you're looking for? <a href="/contact" className="text-primary hover:underline">Contact us</a> and we'll be happy to help.
-                            </p>
+                       <div className="flex flex-col text-center justify-center items-center mb-12 relative">
+                        <h1 className="md:text-4xl text-4xl lg:text-5xl font-bold text-center mb-12 relative z-10">
+                            <span className="text-background">
+                            Frequently Asked{" "}
+                            <span className="text-primary animate-pulse-glow inline-block">
+                                Questions
+                            </span>
+                            </span>
+                        </h1>
+
+                        <p className="text-background font-[400] text-lg max-w-2xl mx-auto relative z-10">
+                            Find answers to common questions about Wingman Pro. Can't find what you're
+                            looking for?{" "}
+                            <a href="/contact" className="text-primary hover:underline">
+                            Contact us
+                            </a>{" "}
+                            and we'll be happy to help.
+                        </p>
                         </div>
                     </FadeIn>
 
@@ -186,10 +196,13 @@ export default function FAQsPage(): React.JSX.Element {
                                             <AccordionItem
                                                 key={faqIndex}
                                                 value={`item-${categoryIndex}-${faqIndex}`}
-                                                className="border rounded-2xl px-5 bg-secondary-purple/30 data-[state=open]:border-primary transition-all duration-300 animate-scale-in overflow-hidden"
-                                                style={{ animationDelay: `${(categoryIndex * 0.1) + (faqIndex * 0.05)}s` }}
+                                                className="border rounded-2xl px-5 bg-secondary-purple/30 data-[state=open]:border-[color:var(--category-color)] transition-all duration-300 animate-scale-in overflow-hidden"
+                                                style={{ 
+                                                    animationDelay: `${(categoryIndex * 0.1) + (faqIndex * 0.05)}s`,
+                                                    '--category-color': category.color
+                                                } as React.CSSProperties}
                                             >
-                                                <AccordionTrigger className="text-left py-4 text-sm font-medium text-secondary hover:no-underline data-[state=open]:text-primary transition-colors duration-300">
+                                                <AccordionTrigger className="text-left py-4 text-sm font-medium text-secondary hover:no-underline data-[state=open]:text-[color:var(--category-color)] transition-colors duration-300">
                                                     {faq.question}
                                                 </AccordionTrigger>
                                                 <AccordionContent className="text-secondary text-sm leading-relaxed pb-5">
