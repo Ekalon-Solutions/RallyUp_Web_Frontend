@@ -11,10 +11,13 @@ import { ParticleBackground } from "@/components/particle-background"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { HelpCircle, Sparkles, MessageCircle, BookOpen } from "lucide-react"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
 
 export default function FAQsPage(): React.JSX.Element {
     const faqs = [
         {
+            color: "#F1441A",
             category: "General & Technical",
             questions: [
                 {
@@ -36,6 +39,7 @@ export default function FAQsPage(): React.JSX.Element {
             ]
         },
         {
+            color:"#07B065",
             category: "Onboarding & Usage",
             questions: [
                 {
@@ -61,6 +65,7 @@ export default function FAQsPage(): React.JSX.Element {
             ]
         },
         {
+            color:"#4784DB",
             category: "Financial & Commerce Management",
             questions: [
                 {
@@ -78,6 +83,7 @@ export default function FAQsPage(): React.JSX.Element {
             ]
         },
         {
+            color:"#FFB00C",
             category: "Security & Compliance",
             questions: [
                 {
@@ -95,6 +101,7 @@ export default function FAQsPage(): React.JSX.Element {
             ]
         },
         {
+            color:"#F1441A",
             category: "Engagement & Data Security",
             questions: [
                 {
@@ -112,6 +119,7 @@ export default function FAQsPage(): React.JSX.Element {
             ]
         },
         {
+            color:"#07B065",
             category: "Customization, Branding & Data Ownership",
             questions: [
                 {
@@ -135,8 +143,8 @@ export default function FAQsPage(): React.JSX.Element {
             {/* <JellyCursor /> */}
             <SiteNavbar />
 
-            <div className="bg-secondary-purple/40 px-4 py-16 relative z-10">
-                <div className="max-w-4xl mx-auto">
+            <div className="bg-secondary-purple/40 pt-16 relative z-10">
+                <div className="max-w-4xl mx-auto px-4">
 
                     <div className="absolute inset-0 -z-10" />
                     <div className="absolute -bottom-8 -left-10 w-80 h-80 opacity-60 pointer-events-none select-none">
@@ -144,18 +152,13 @@ export default function FAQsPage(): React.JSX.Element {
                     </div>
 
                     <FadeIn>
-                        <div className="text-center mb-12 relative">
-                            <div className="inline-flex items-center justify-center mb-4 relative z-10">
-                                <div className="h-16 w-16 rounded-2xl bg-primary flex items-center justify-center shadow-lg animate-pulse-glow">
-                                    <HelpCircle className="h-8 w-8 text-white" />
-                                </div>
-                            </div>
-                            <h1 className="flex flex-col items-center gap-2 md:text-4xl text-4xl lg:text-5xl font-bold text-center mb-12 relative z-10">
-                                <span className="text-background">Frequently Asked</span>{" "}
-                                <span className="text-primary">Questions</span>
+                        <div className="flex flex-col text-center justify-center items-center mb-12 relative">
+                            <h1 className=" flex-row items-center md:text-4xl text-4xl lg:text-5xl font-bold text-center mb-12 relative z-10">
+                                <span className="text-background">Frequently Asked <span className="text-primary animate-pulse-glow shadow-lg">Questions</span></span>
+                                
                             </h1>
-                            <p className="text-secondary leading-relaxed text-lg max-w-2xl mx-auto relative z-10">
-                                Find answers to common questions about Wingman Pro. Can't find what you're looking for? <a href="/contact" className="text-primary hover:underline font-semibold">Contact us</a> and we'll be happy to help.
+                            <p className="text-background font-weight-[400] text-lg max-w-2xl mx-auto relative z-10">
+                                Find answers to common questions about Wingman Pro. Can't find what you're looking for? <a href="/contact" className="text-primary hover:underline">Contact us</a> and we'll be happy to help.
                             </p>
                         </div>
                     </FadeIn>
@@ -164,18 +167,26 @@ export default function FAQsPage(): React.JSX.Element {
                         <div className="space-y-8">
                             {faqs.map((category, categoryIndex) => (
                                 <div key={categoryIndex} className="space-y-4 relative">
-                                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-secondary/30 mb-3 animate-scale-in" style={{ animationDelay: `${categoryIndex * 0.1}s` }}>
-                                        <Sparkles className="h-3.5 w-3.5 text-primary animate-pulse" />
-                                        <h2 className="text-sm font-semibold text-background">
-                                            {category.category}
-                                        </h2>
+                                    <div
+                                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-3 animate-scale-in border border-secondary"
+                                        style={{
+                                            backgroundColor: `${category.color}30`, // adds transparency
+                                            color: category.color,
+                                            animationDelay: `${categoryIndex * 0.1}s`,
+                                            borderColor: category.color,
+                                        }}
+                                        >
+                                            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: category.color }}></span>
+                                            <h2 className="text-sm">
+                                                {category.category}
+                                            </h2>
                                     </div>
                                     <Accordion type="single" collapsible className="space-y-3">
                                         {category.questions.map((faq, faqIndex) => (
                                             <AccordionItem
                                                 key={faqIndex}
                                                 value={`item-${categoryIndex}-${faqIndex}`}
-                                                className="border rounded-[20px] px-5 bg-secondary/30 data-[state=open]:border-primary transition-all duration-300 animate-scale-in overflow-hidden"
+                                                className="border rounded-2xl px-5 bg-secondary-purple/30 data-[state=open]:border-primary transition-all duration-300 animate-scale-in overflow-hidden"
                                                 style={{ animationDelay: `${(categoryIndex * 0.1) + (faqIndex * 0.05)}s` }}
                                             >
                                                 <AccordionTrigger className="text-left py-4 text-sm font-medium text-secondary hover:no-underline data-[state=open]:text-primary transition-colors duration-300">
@@ -192,42 +203,41 @@ export default function FAQsPage(): React.JSX.Element {
                         </div>
                     </FadeIn>
 
+                    
+                </div>
+                <div className="w-full">
                     <FadeIn>
-                        <Card className="mt-12 bg-secondary-purple/40 border-2 border-border relative overflow-hidden group">
-                            {/* Animated Background */}
-                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(56,189,248,0.1),transparent_50%)]" />
-                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
-
-                            <CardHeader className="relative z-10">
-                                <div className="flex items-center gap-3 mb-2">
-                                    <div className="h-12 w-12 rounded-xl bg-primary flex items-center justify-center shadow-lg">
-                                        <MessageCircle className="h-6 w-6 text-white" />
-                                    </div>
-                                    <CardTitle className="text-background text-2xl">
-                                        Still have questions?
-                                    </CardTitle>
-                                </div>
-                            </CardHeader>
-                            <CardContent className="text-secondary relative z-10">
-                                <p className="mb-4 text-lg">
-                                    We're here to help! Reach out to our support team and we'll get back to you as soon as possible.
+                        <Card className="rounded-none mt-20 relative overflow-hidden bg-gradient-to-br from-[#DCD4E2] to-[#8598C7] border-0">
+                            {/* Decorative background lines */}
+                            <div className="absolute inset-0 pointer-events-none opacity-40">
+                                <svg className="absolute w-full h-full" xmlns="http://www.w3.org/2000/svg">
+                                    <line x1="-20%" y1="120%" x2="120%" y2="-20%" stroke="currentColor" strokeWidth="1" className="text-primary/30" />
+                                    <line x1="-20%" y1="-20%" x2="120%" y2="120%" stroke="currentColor" strokeWidth="1" className="text-blue-500/20" />
+                                    <line x1="20%" y1="120%" x2="120%" y2="20%" stroke="currentColor" strokeWidth="1" className="text-primary/20" />
+                                    <line x1="-20%" y1="20%" x2="80%" y2="-20%" stroke="currentColor" strokeWidth="1" className="text-blue-500/20" />
+                                    <line x1="50%" y1="120%" x2="120%" y2="50%" stroke="currentColor" strokeWidth="1" className="text-primary/10" />
+                                </svg>
+                            </div>
+                            
+                            <CardContent className="relative z-10 px-6 py-16 md:py-24 flex flex-col items-center text-center space-y-6">
+                                <span className="text-primary font-medium text-sm tracking-wide">Still have questions?</span>
+                                <h2 className="text-4xl text-background">
+                                    We're Here <span className="text-primary">To Help.</span>
+                                </h2>
+                                <p className="text-secondary max-w-md md:text-lg">
+                                    Reach out to our strategy team and we'll get back to you right away.
                                 </p>
-                                <div className="flex flex-wrap gap-3">
-                                    <a
-                                        href="/contact"
-                                        className="inline-flex items-center justify-center rounded-lg bg-primary px-6 py-3 text-white hover:bg-primary/90 dark:hover:from-sky-400 dark:hover:to-blue-400 transition-all shadow-lg hover:shadow-xl transform hover:scale-105 duration-300 font-semibold"
+                                {/* <div className="pt-6">
+                                    <a 
+                                        href="/contact" 
+                                        className="inline-flex h-12 items-center justify-center rounded-md bg-primary px-8 py-3 text-sm font-semibold text-white shadow-lg transition-transform hover:scale-105 active:scale-95"
                                     >
-                                        <MessageCircle className="h-4 w-4 mr-2" />
-                                        Contact Support
+                                        CONTACT US
                                     </a>
-                                    <a
-                                        href="/about"
-                                        className="inline-flex items-center justify-center rounded-lg border-2 border-border bg-white/80 backdrop-blur-sm px-6 py-3 text-background hover:bg-white transition-all shadow-md hover:shadow-lg transform hover:scale-105 duration-300 font-semibold"
-                                    >
-                                        <BookOpen className="h-4 w-4 mr-2" />
-                                        Learn More About Us
-                                    </a>
-                                </div>
+                                </div> */}
+                                <Button variant="default" className="min-w-52">
+                                    <Link href="/contact">Contact Us</Link>
+                                </Button>
                             </CardContent>
                         </Card>
                     </FadeIn>

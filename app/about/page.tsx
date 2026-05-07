@@ -19,6 +19,10 @@ import {
     Globe,
     Shield,
     Zap,
+    Smartphone,
+    ShieldCheck,
+    Puzzle,
+    BarChart3
 } from "lucide-react"
 
 export default function AboutPage(): React.JSX.Element {
@@ -28,311 +32,320 @@ export default function AboutPage(): React.JSX.Element {
             <ParticleBackground />
             <SiteNavbar />
 
-            <div className="mx-auto max-w-7xl px-4 py-16 relative z-10">
-                {/* Hero Section with Image */}
+            <div className="mx-auto max-w-7xl px-6 py-8 lg:py-12 relative z-10">
+                {/* Hero Section */}
                 <FadeIn>
-                    <div className="relative mb-16">
-                        {/* Background Image - Celebrating Group */}
-                        <div className="absolute right-0 top-0 w-1/2 max-w-2xl opacity-15 -z-0 hidden lg:block">
-                            <div className="relative h-[500px] w-full animate-float">
-                                <Image
-                                    src="/Webpage Assets 01.png"
-                                    alt="Global sports community"
-                                    fill
-                                    sizes="(max-width: 1024px) 0px, 800px"
-                                    className="object-contain"
-                                    priority
-                                />
-                            </div>
+                    <div className="mb-16">
+                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#2A2A2A] mb-8">
+                            <div className="w-2 h-2 rounded-full bg-[#FF4F2B]" />
+                            <span className="text-sm font-semibold text-[#FF4F2B] tracking-wide">About RallyUp Solutions</span>
                         </div>
-
-                        <div className="max-w-3xl relative z-10">
-                            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/30 mb-6 animate-scale-in">
-                                <Sparkles className="h-4 w-4 text-primary animate-pulse" />
-                                <span className="text-sm font-semibold text-primary">About RallyUp Solutions</span>
-                            </div>
-                            <h1 className="text-3xl md:text-5xl font-bold mb-6 text-background">
-                                About Us: RallyUp Solutions & Wingman Pro
-                            </h1>
-                            <p className="text-secondary leading-relaxed text-lg">
-                                RallyUp Solutions Private Limited was founded to match the passion of sports communities with seamless, modern operations.
-                                Our flagship platform, Wingman Pro, transforms supporter group and club management into a unified, intelligent digital experience.
-                            </p>
-                        </div>
+                        
+                        <h1 className="text-5xl lg:text-7xl font-extrabold mb-6 text-[#1A1A1A] tracking-tight leading-[1.1]">
+                            Built for <span className="text-[#FF4F2B]">The Game.</span>
+                        </h1>
+                        
+                        <p className="text-gray-600 text-lg md:text-xl max-w-2xl leading-relaxed">
+                            RallyUp Solutions was founded to match the passion of sports communities with seamless, modern operations — and Wingman Pro is how we deliver on that promise.
+                        </p>
                     </div>
                 </FadeIn>
 
                 <FadeIn>
-                    <section className="mt-12 grid gap-6 md:grid-cols-2">
-                        <Card className="bg-secondary/30 border-2 border-border hover:shadow-2xl hover:scale-105 transition-all duration-500 group relative overflow-hidden">
-                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
-                            <CardHeader className="flex flex-row items-start gap-4 relative z-10">
-                                <div className="rounded-xl bg-primary p-3 shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
-                                    <Building2 className="h-7 w-7 text-white" />
-                                </div>
-                                <div>
-                                    <CardTitle className="text-2xl text-background group-hover:bg-gradient-to-r group-hover:from-sky-600 group-hover:to-blue-600 group-hover:bg-clip-text group-hover:text-transparent transition-all duration-300">
-                                        RallyUp Solutions Private Limited
-                                    </CardTitle>
-                                    <p className="mt-3 text-secondary">
-                                        We engineer robust, scalable, and intelligent software for the global sports ecosystem, eliminating fragmentation and administrative overload that hinder growth and engagement.
-                                    </p>
-                                </div>
-                            </CardHeader>
-                            <CardContent className="text-secondary space-y-3 relative z-10">
-                                <p>
-                                    From grassroots groups to professional bodies, we empower organizations to operate with the efficiency and insight required in the digital age.
-                                </p>
-                            </CardContent>
-                        </Card>
+                    <section className="grid md:grid-cols-2 gap-6">
+                        {/* Card 1 */}
+                        <div className="bg-[#E4DEE3] rounded-3xl p-8 md:p-10 relative overflow-hidden flex flex-col justify-start hover:shadow-lg transition-shadow">
+                            <span className="absolute top-4 right-6 text-[8.75rem] font-black text-[#D6CDD4] leading-none pointer-events-none select-none font-sans">R</span>
+                            <div className="w-20 h-20 rounded-2xl bg-[#5D5377] flex items-center justify-center mb-8 relative z-10 p-3 shadow-md">
+                                <Image
+                                    src="/RallyUpSolutions Logo (Transparent Background).svg"
+                                    alt="RallyUp Solutions"
+                                    width={48}
+                                    height={48}
+                                    className="object-contain"
+                                />
+                            </div>
+                            <h3 className="font-bold text-[#1A1A1A] text-2xl mb-4 relative z-10">RallyUp Solutions Private Limited</h3>
+                            <p className="text-[#5D5377] text-base leading-relaxed relative z-10">
+                                We engineer robust, scalable, and intelligent software for the global sports ecosystem — eliminating fragmentation and administrative overload that hinder growth and engagement. From grassroots groups to professional bodies, we empower organizations to operate with the efficiency and insight required in the digital age.
+                            </p>
+                        </div>
 
-                        <Card className="bg-secondary/30 border-2 border-border hover:shadow-2xl hover:scale-105 transition-all duration-500 group relative overflow-hidden">
-                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
-                            <CardHeader className="flex flex-row items-start gap-4 relative z-10">
-                                <div className="rounded-xl bg-primary p-3 shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
-                                    <Rocket className="h-7 w-7 text-white" />
-                                </div>
-                                <div>
-                                    <CardTitle className="text-2xl text-background group-hover:bg-gradient-to-r group-hover:from-sky-600 group-hover:to-blue-600 group-hover:bg-clip-text group-hover:text-transparent transition-all duration-300">
-                                        Wingman Pro
-                                    </CardTitle>
-                                    <p className="mt-3 text-secondary">
-                                        The realization of our mission: a single, secure platform integrating membership management, payments, communications, and events into one cohesive system.
-                                    </p>
-                                </div>
-                            </CardHeader>
-                            <CardContent className="text-secondary space-y-3 relative z-10">
-                                <p>
-                                    Wingman Pro replaces the complexity of juggling multiple tools with an intuitive experience, giving managers and volunteers more time to grow communities and deliver exceptional matchday moments.
-                                </p>
-                            </CardContent>
-                        </Card>
+                        {/* Card 2 */}
+                        <div className="bg-[#D9DCFA] rounded-3xl p-8 md:p-10 relative overflow-hidden flex flex-col justify-start hover:shadow-lg transition-shadow">
+                            <span className="absolute top-4 right-6 text-[8.75rem] font-black text-[#C9CDF4] leading-none pointer-events-none select-none font-sans">W</span>
+                            <div className="w-20 h-20 rounded-2xl bg-[#7D7FBC] flex items-center justify-center mb-8 relative z-10 p-3 shadow-md">
+                                <Image
+                                    src="/Logo.svg"
+                                    alt="Wingman Pro"
+                                    width={48}
+                                    height={48}
+                                    className="object-contain"
+                                />
+                            </div>
+                            <h3 className="font-bold text-[#1A1A1A] text-2xl mb-4 relative z-10">Wingman Pro</h3>
+                            <p className="text-[#65679B] text-base leading-relaxed relative z-10">
+                                The realization of our mission: a single, secure platform that brings membership management, payments, communications, and events into one seamless system. Wingman Pro replaces multiple tools with an intuitive experience, freeing managers and volunteers to focus on growing communities and delivering great matchday moments.
+                            </p>
+                        </div>
                     </section>
                 </FadeIn>
+            </div>
+
+            {/* Why We Exist Section */}
+            <section className="py-24 px-4 bg-[#222222] relative w-full overflow-hidden">
+                {/* Large faint background text */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none z-0">
+                    <span 
+                        className="text-6xl md:text-8xl lg:text-10xl text-[#353434] tracking-wider text-center"
+                        style={{ fontFamily: 'var(--font-purple-purse)' }}
+                    >
+                        TARGET
+                    </span>
+                </div>
 
                 <FadeIn>
-                    <section className="mt-16 space-y-10 relative">
+                    <div className="mx-auto max-w-7xl relative z-10">
+                        <div className="flex items-center gap-2 mb-6">
+                            <div className="w-1.5 h-1.5 rounded-full bg-[#67B18A]" />
+                            <span className="text-base font-semibold text-[#67B18A]">Our North Star</span>
+                        </div>
+                        <h2 className="text-4xl lg:text-6xl font-extrabold mb-12 md:mb-16 text-white tracking-tight leading-[1.1]">
+                            Why We <span className="text-[#67B18A]">Exist.</span>
+                        </h2>
+
+                        <div className="grid md:grid-cols-2 gap-6 md:gap-8">
+                            {/* Mission Card */}
+                            <div className="rounded-3xl border border-white/10 bg-[#2A2A2A]/50 backdrop-blur-sm p-8 md:p-12 flex flex-col justify-start hover:bg-[#333333]/80 transition-colors">
+                                <span className="text-[#67B18A] font-semibold text-base mb-6 md:mb-8 block">Mission</span>
+                                <h3 className="font-bold text-white text-3xl md:text-4xl mb-6 md:mb-8 leading-[1.3] tracking-wide">
+                                    Unified.<br/>
+                                    Efficient.<br/>
+                                    Compliant.
+                                </h3>
+                                <p className="text-[#A3A3A3] text-base leading-relaxed">
+                                    To eliminate administrative fragmentation in sports organizations globally by providing a unified, intelligent platform that maximizes operational efficiency, compliance, and member engagement.
+                                </p>
+                            </div>
+
+                            {/* Vision Card */}
+                            <div className="rounded-3xl border border-white/10 bg-[#2A2A2A]/50 backdrop-blur-sm p-8 md:p-12 flex flex-col justify-start hover:bg-[#333333]/80 transition-colors">
+                                <span className="text-[#67B18A] font-semibold text-base mb-6 md:mb-8 block">Vision</span>
+                                <h3 className="font-bold text-white text-3xl md:text-4xl mb-6 md:mb-8 leading-[1.3] tracking-wide">
+                                    Leading.<br/>
+                                    Global.<br/>
+                                    Trusted.
+                                </h3>
+                                <p className="text-[#A3A3A3] text-base leading-relaxed">
+                                    To become the leading global technology partner for sports clubs and supporter groups, recognized for transforming community management through innovation and unparalleled user experience.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </FadeIn>
+            </section>
+
+            <div className="mx-auto max-w-7xl px-4 pb-16 lg:pb-24 relative z-10 pt-16">
+                <FadeIn>
+                    <section className="space-y-10 relative">
                         {/* Background Decoration */}
                         <div className="absolute inset-0 -z-10 overflow-hidden">
                             <div className="absolute top-0 right-0 w-96 h-96 bg-secondary-purple/50 rounded-full blur-3xl animate-float" />
                         </div>
 
-                        <div className="grid gap-6 md:grid-cols-2 relative z-10">
-                            <Card className="bg-secondary/30 border-2 border-border hover:shadow-xl hover:scale-105 transition-all duration-300 group">
-                                <CardHeader className="flex items-center gap-3">
-                                    <div className="h-12 w-12 rounded-xl bg-primary flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
-                                        <Target className="h-6 w-6 text-white" />
-                                    </div>
-                                    <CardTitle className="text-xl text-background">Mission</CardTitle>
-                                </CardHeader>
-                                <CardContent className="text-secondary">
-                                    To eliminate administrative fragmentation in sports organizations globally by providing a unified, intelligent platform that maximizes operational efficiency, compliance, and member engagement.
-                                </CardContent>
-                            </Card>
-                            <Card className="bg-secondary/30 border-2 border-border hover:shadow-xl hover:scale-105 transition-all duration-300 group">
-                                <CardHeader className="flex items-center gap-3">
-                                    <div className="h-12 w-12 rounded-xl bg-primary flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300">
-                                        <Sparkles className="h-6 w-6 text-white" />
-                                    </div>
-                                    <CardTitle className="text-xl text-background">Vision</CardTitle>
-                                </CardHeader>
-                                <CardContent className="text-secondary">
-                                    To become the leading global technology partner for sports clubs and supporter groups, recognized for transforming community management through innovation and unparalleled user experience.
-                                </CardContent>
-                            </Card>
-                        </div>
-
-                        <div className="relative z-10">
-                            <h2 className="text-2xl md:text-3xl font-bold text-background mb-4 text-background">
-                                What We Do
+                        <div className="relative z-10 mb-8">
+                            <div className="inline-flex items-center gap-2 mb-4">
+                                <div className="w-1.5 h-1.5 rounded-full bg-[#FF4F2B]" />
+                                <span className="text-base font-semibold text-[#FF4F2B] tracking-wide">What We Do</span>
+                            </div>
+                            <h2 className="text-4xl lg:text-5xl font-extrabold text-[#1A1A1A] tracking-tight leading-[1.1] mb-12">
+                                Five Core Features. <span className="text-[#FF4F2B]">One Platform.</span>
                             </h2>
-                            <div className="grid gap-4 md:grid-cols-2">
-                                {[
-                                    {
-                                        title: "Centralized Membership Management",
-                                        description:
-                                            "Handle enrollment, maintain data integrity, manage access, and track member status from a single control center.",
-                                        icon: Users,
-                                        gradient: "from-blue-500 to-cyan-600",
-                                        bgGradient: "from-blue-50 to-cyan-50"
-                                    },
-                                    {
-                                        title: "Integrated Commerce",
-                                        description:
-                                            "Manage ticketing, merchandise sales, and automated payments with end-to-end financial reporting and compliance.",
-                                        icon: Rocket,
-                                        gradient: "from-green-500 to-emerald-600",
-                                        bgGradient: "from-green-50 to-emerald-50"
-                                    },
-                                    {
-                                        title: "Seamless Engagement",
-                                        description:
-                                            "Activate events, communications, and content delivery—including OTP via Email/SMS, polls, and leaderboards—with ease.",
-                                        icon: Trophy,
-                                        gradient: "from-orange-500 to-red-600",
-                                        bgGradient: "from-orange-50 to-red-50"
-                                    },
-                                    {
-                                        title: "Compliance & Security",
-                                        description:
-                                            "Meet stringent security standards and global data protection requirements, including DPDPA and GDPR-aligned principles.",
-                                        icon: Shield,
-                                        gradient: "from-purple-500 to-indigo-600",
-                                        bgGradient: "from-purple-50 to-indigo-50"
-                                    },
-                                    {
-                                        title: "Gamification & AI",
-                                        description:
-                                            "Deliver intelligent engagement, performance leaderboards, actionable insights, automated content curation, and optimized communications using AI.",
-                                        icon: Zap,
-                                        gradient: "from-yellow-500 to-orange-600",
-                                        bgGradient: "from-yellow-50 to-orange-50"
-                                    },
-                                ].map((item, i) => {
-                                    let bgClass = item.bgGradient
-                                    let iconClass = item.gradient
-                                    return (
-                                        <Card
-                                            key={item.title}
-                                            className={`bg-gradient-to-br ${bgClass} border-2 border-border hover:shadow-xl hover:scale-105 transition-all duration-300 group relative overflow-hidden animate-scale-in`}
-                                            style={{ animationDelay: `${i * 0.1}s` }}
-                                        >
-                                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
-                                            <CardHeader className="relative z-10">
-                                                <div className="flex items-center gap-3 mb-2">
-                                                    <div className={`h-10 w-10 rounded-lg bg-gradient-to-br ${iconClass} flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300`}>
-                                                        {React.createElement(item.icon, { className: "h-5 w-5 text-white" })}
-                                                    </div>
-                                                    <CardTitle className="text-lg text-background">{item.title}</CardTitle>
-                                                </div>
-                                            </CardHeader>
-                                            <CardContent className="text-secondary relative z-10">
-                                                {item.description}
-                                            </CardContent>
-                                        </Card>
-                                    )
-                                })}
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+                                {/* Card 1 */}
+                                <div className="md:col-span-7 bg-[#2A2A2A] rounded-3xl p-8 md:p-10 relative overflow-hidden flex flex-col justify-between hover:shadow-lg transition-shadow min-h-[17.5rem]">
+                                    <span className="absolute bottom-[-5%] right-6 text-[7.5rem] md:text-[10rem] font-black text-white/[0.04] leading-none pointer-events-none select-none">01</span>
+                                    <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center mb-16 relative z-10 backdrop-blur-sm">
+                                        <Users className="w-7 h-7 text-white" strokeWidth={1.5} />
+                                    </div>
+                                    <div className="relative z-10 mt-auto">
+                                        <h3 className="font-bold text-white text-2xl mb-3">Membership Management</h3>
+                                        <p className="text-[#A3A3A3] text-base leading-relaxed md:max-w-[85%]">
+                                            Handle enrollment, maintain data integrity, manage access, and track member status from a single control center.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Card 2 */}
+                                <div className="md:col-span-5 bg-[#7D7FBC] rounded-3xl p-8 md:p-10 relative overflow-hidden flex flex-col justify-between hover:shadow-lg transition-shadow min-h-[17.5rem]">
+                                    <span className="absolute top-4 right-6 text-[7.5rem] md:text-[10rem] font-black text-white/[0.1] leading-none pointer-events-none select-none">02</span>
+                                    <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center mb-16 relative z-10 backdrop-blur-sm">
+                                        <BarChart3 className="w-7 h-7 text-white" strokeWidth={1.5} />
+                                    </div>
+                                    <div className="relative z-10 mt-auto">
+                                        <h3 className="font-bold text-white text-2xl mb-3">Integrated Commerce</h3>
+                                        <p className="text-[#D6D7F5] text-base leading-relaxed">
+                                            Manage ticketing, merchandise, and payments with full reporting and compliance.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Card 3 */}
+                                <div className="md:col-span-5 bg-[#D6D7FA] rounded-3xl p-8 md:p-10 relative overflow-hidden flex flex-col justify-between hover:shadow-lg transition-shadow min-h-[17.5rem]">
+                                    <span className="absolute top-4 right-6 text-[7.5rem] md:text-[10rem] font-black text-[#C5C8F2] leading-none pointer-events-none select-none">03</span>
+                                    <div className="w-14 h-14 rounded-2xl bg-[#7D7FBC] flex items-center justify-center mb-16 relative z-10 shadow-md">
+                                        <Smartphone className="w-7 h-7 text-white" strokeWidth={1.5} />
+                                    </div>
+                                    <div className="relative z-10 mt-auto">
+                                        <h3 className="font-bold text-[#7D7FBC] text-2xl mb-3">Seamless Engagement</h3>
+                                        <p className="text-[#65679B] text-base leading-relaxed">
+                                            Activate events, communications, and content—like OTP via Email/SMS, polls, and leaderboards—with ease.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Card 4 */}
+                                <div className="md:col-span-7 bg-[#E4DEE3] rounded-3xl p-8 md:p-10 relative overflow-hidden flex flex-col justify-between hover:shadow-lg transition-shadow min-h-[17.5rem]">
+                                    <span className="absolute bottom-[-5%] right-6 text-[7.5rem] md:text-[10rem] font-black text-[#D5CBD4] leading-none pointer-events-none select-none">04</span>
+                                    <div className="w-14 h-14 rounded-2xl bg-[#5D5377] flex items-center justify-center mb-16 relative z-10 shadow-md">
+                                        <ShieldCheck className="w-7 h-7 text-white" strokeWidth={1.5} />
+                                    </div>
+                                    <div className="relative z-10 mt-auto">
+                                        <h3 className="font-bold text-[#5D5377] text-2xl mb-3">Compliance & Security</h3>
+                                        <p className="text-[#756A8F] text-base leading-relaxed md:max-w-[85%]">
+                                            Meet stringent security standards and global data protection requirements, including DPDPA and GDPR-aligned principles.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Card 5 */}
+                                <div className="md:col-span-12 bg-[#C2DEF5] rounded-3xl p-8 md:p-10 relative overflow-hidden flex flex-col md:flex-row hover:shadow-lg transition-shadow min-h-[15rem] items-stretch">
+                                    <span className="absolute bottom-[-5%] right-6 text-[7.5rem] md:text-[10rem] font-black text-[#A6C6E6] leading-none pointer-events-none select-none">05</span>
+                                    
+                                    <div className="flex flex-col justify-between relative z-10 w-full md:w-1/3">
+                                        <div className="w-14 h-14 rounded-2xl bg-[#1D4ED8] flex items-center justify-center mb-8 md:mb-12 shadow-md">
+                                            <Puzzle className="w-7 h-7 text-white" strokeWidth={1.5} />
+                                        </div>
+                                        <h3 className="font-bold text-[#1D4ED8] text-2xl mt-auto">Gamification & AI</h3>
+                                    </div>
+                                    
+                                    <div className="hidden md:block w-px bg-[#1D4ED8]/20 mx-8 self-stretch relative z-10" />
+                                    
+                                    <div className="mt-6 md:mt-0 relative z-10 flex items-center w-full md:w-2/3">
+                                        <p className="text-[#1E3A8A] text-base md:text-lg leading-relaxed font-medium md:max-w-[85%]">
+                                            Deliver intelligent engagement, performance leaderboards, actionable insights, automated content curation, and optimized communications using AI.
+                                        </p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </section>
                 </FadeIn>
 
-                <FadeIn>
-                    <section className="mt-16 relative">
-                        {/* Dashboard Image Background */}
-                        <div className="absolute left-0 top-0 w-1/2 max-w-xl opacity-10 -z-0 hidden xl:block">
-                            <div className="relative h-[400px] w-full animate-float" style={{ animationDelay: '1s' }}>
-                                <Image
-                                    src="/Webpage Assets 00.png"
-                                    alt="Wingman Pro Dashboard"
-                                    fill
-                                    sizes="(max-width: 1280px) 0px, 600px"
-                                    className="object-contain"
-                                />
-                            </div>
-                        </div>
 
-                        <h2 className="text-2xl md:text-3xl font-bold text-background mb-6 text-background relative z-10">
-                            Leadership Team
+            </div>
+
+            {/* Leadership & CTA Section */}
+            <section className="relative w-full pt-24 pb-32 overflow-hidden bg-[#E4DEE3]">
+                {/* Background Intersecting Lines & Gradients */}
+                <div className="absolute inset-0 pointer-events-none">
+                    <div className="absolute bottom-0 w-full h-[60%] bg-gradient-to-t from-[#8089BA]/80 via-[#D0D4EE]/40 to-transparent" />
+                    <svg className="absolute w-[200%] h-[200%] -bottom-[50%] -left-[50%] opacity-[0.03] stroke-black" viewBox="0 0 100 100" preserveAspectRatio="none">
+                        <line x1="0" y1="100" x2="100" y2="0" strokeWidth="0.1" />
+                        <line x1="0" y1="0" x2="100" y2="100" strokeWidth="0.1" />
+                        <line x1="20" y1="100" x2="100" y2="20" strokeWidth="0.1" />
+                        <line x1="0" y1="80" x2="80" y2="0" strokeWidth="0.1" />
+                    </svg>
+                </div>
+
+                <FadeIn>
+                    {/* Leadership Team Header */}
+                    <div className="mx-auto max-w-7xl px-4 mb-12 relative z-10">
+                        <div className="flex items-center gap-2 mb-4">
+                            <div className="w-1.5 h-1.5 rounded-full bg-[#FF4F2B]" />
+                            <span className="text-base font-semibold text-[#FF4F2B] tracking-wide">Leadership Team</span>
+                        </div>
+                        <h2 className="text-4xl lg:text-5xl font-extrabold text-[#1A1A1A] tracking-tight leading-[1.1]">
+                            The <span className="text-[#FF4F2B]">People</span> Behind It.
                         </h2>
-                        <p className="max-w-3xl text-secondary mb-10 relative z-10">
-                            Our leadership blends deep technical expertise with decades of experience in global operations, finance, and community administration—ensuring Wingman Pro solves real-world challenges with cutting-edge solutions.
-                        </p>
-                        <div className="grid gap-6 md:grid-cols-2 relative z-10">
+                    </div>
+
+                    {/* Leadership Team Grid */}
+                    <div className="mx-auto max-w-7xl px-4 mb-32 relative z-10">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                             {[
                                 {
                                     name: "Dr. Sunil Acharya",
                                     title: "Managing Director, COO & CCO",
-                                    description:
-                                        "Over 40 years leading quality, audits, compliance, and operations. Guides RallyUp Solutions' operational rigor and global security standards as the lead Operations and Compliance Officer.",
                                     image: "/Sunil.png",
                                 },
                                 {
                                     name: "Dr. Neeta Acharya",
                                     title: "Managing Director, CMO & CFO",
-                                    description:
-                                        "Expert in marketing, finance, branding, and strategy. Shapes club growth, brand perception, and financial health while overseeing marketing strategy and corporate growth for RallyUp Solutions.",
                                     image: "/Neeta.png",
                                 },
                                 {
                                     name: "Mihir Chheda",
                                     title: "CTO, Wingman Pro & Partner",
-                                    description:
-                                        "FinTech veteran and sports club administrator. Designs the Wingman Pro architecture, aligning engineering excellence with the real-world operational needs of clubs and supporter groups globally.",
                                     image: "/Mihir.png",
                                 },
                                 {
                                     name: "Ankit Ameria",
-                                    title: "Partner & Chief Sales Officer, Wingman Pro",
-                                    description:
-                                        "Leads market strategy and sales initiatives. Specializes in scaling startups and SMBs, ensuring Wingman Pro delivers measurable value to organizations and their supporter communities.",
+                                    title: "Partner & Chief Sales Officer,\nWingman Pro",
                                     image: "/Ankit.png",
                                 },
                             ].map((leader, i) => (
-                                <Card
-                                    key={leader.name}
-                                    className="bg-secondary/30 border-2 border-border h-full hover:shadow-2xl hover:scale-105 transition-all duration-500 group relative overflow-hidden animate-scale-in"
-                                    style={{ animationDelay: `${i * 0.15}s` }}
-                                >
-                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
-                                    <CardHeader className="relative z-10">
-                                        <div className="flex items-center gap-3">
-                                            <div className="relative h-20 w-20 rounded-2xl overflow-hidden bg-secondary ring-4 ring-primary/20 group-hover:ring-primary/20 transition-all duration-300 shadow-lg group-hover:scale-110 group-hover:rotate-3">
-                                                <Image
-                                                    src={leader.image}
-                                                    alt={leader.name}
-                                                    fill
-                                                    sizes="80px"
-                                                    className="object-cover"
-                                                />
-                                            </div>
-                                            <div>
-                                                <CardTitle className="text-lg text-background group-hover:bg-gradient-to-r group-hover:from-sky-600 group-hover:to-blue-600 group-hover:bg-clip-text group-hover:text-transparent transition-all duration-300">
-                                                    {leader.name}
-                                                </CardTitle>
-                                                <p className="text-sm text-secondary">{leader.title}</p>
-                                            </div>
-                                        </div>
-                                    </CardHeader>
-                                    <CardContent className="text-secondary relative z-10">
-                                        {leader.description}
-                                    </CardContent>
-                                </Card>
+                                <div key={leader.name} className="bg-white rounded-3xl p-8 md:p-10 shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 flex flex-col justify-start relative z-10 border border-white/50">
+                                    <div className="w-24 h-24 rounded-full bg-[#E5DFE6] mb-8 overflow-hidden relative shadow-sm">
+                                        <Image
+                                            src={leader.image}
+                                            alt={leader.name}
+                                            fill
+                                            className="object-cover hover:scale-110 transition-transform duration-500"
+                                            sizes="96px"
+                                        />
+                                    </div>
+                                    <h3 className="font-bold text-[#1A1A1A] text-xl mb-3">{leader.name}</h3>
+                                    <p className="text-[#65679B] text-base font-medium leading-relaxed whitespace-pre-wrap">
+                                        {leader.title}
+                                    </p>
+                                </div>
                             ))}
                         </div>
-                    </section>
+                    </div>
                 </FadeIn>
 
                 <FadeIn>
-                    <section className="mt-16 rounded-3xl border-2 border-border bg-secondary-purple/40 p-8 md:p-10 relative overflow-hidden">
-                        {/* Animated Background */}
-                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(56,189,248,0.1),transparent_50%)]" />
-
-                        <div className="relative z-10">
-                            <h2 className="text-2xl md:text-3xl font-bold mb-4 text-background">
-                                Partner with RallyUp Solutions
-                            </h2>
-                            <p className="text-secondary mb-6 max-w-3xl">
-                                Are you a sports league, governing body, or technology provider ready to integrate with the future of club and membership management? Let's explore how Wingman Pro can deliver seamless data exchange and operational synergy.
-                            </p>
-                            <div className="flex flex-wrap gap-3">
-                                <a
-                                    href="/contact"
-                                    className="inline-flex items-center justify-center rounded-lg bg-primary px-6 py-3 text-white hover:bg-primary/90 dark:hover:from-sky-400 dark:hover:to-blue-400 transition-all shadow-lg hover:shadow-xl transform hover:scale-105 duration-300 font-semibold"
-                                >
-                                    Connect with Us
-                                </a>
-                                <a
-                                    href="/affiliations"
-                                    className="inline-flex items-center justify-center rounded-lg border-2 border-border bg-white/80 backdrop-blur-sm px-6 py-3 text-background hover:bg-white transition-all shadow-md hover:shadow-lg transform hover:scale-105 duration-300 font-semibold"
-                                >
-                                    Explore Affiliations
-                                </a>
-                            </div>
+                    {/* CTA Section */}
+                    <div className="relative z-10 max-w-4xl mx-auto text-center px-4">
+                        <span className="text-[#FF4F2B] font-semibold text-base mb-4 block tracking-wide">
+                            Partner with RallyUp Solutions
+                        </span>
+                        <h2 className="text-4xl lg:text-6xl font-extrabold mb-8 text-[#1A1A1A] tracking-tight leading-[1.1]">
+                            Let's Build <span className="text-[#FF4F2B]">The Future.</span>
+                        </h2>
+                        <p className="text-[#5D5377] text-lg md:text-xl mb-12 max-w-2xl mx-auto leading-relaxed">
+                            Are you a sports league, governing body, or technology provider ready to integrate with the future of club and membership management?
+                        </p>
+                        
+                        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                            <a
+                                href="/contact"
+                                className="inline-flex items-center justify-center rounded-lg bg-[#FF4F2B] px-8 py-4 text-white hover:bg-[#E04525] transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 duration-300 font-bold tracking-wide text-sm"
+                            >
+                                CONTACT US
+                            </a>
+                            <a
+                                href="/affiliations"
+                                className="inline-flex items-center justify-center rounded-lg bg-[#65679B] px-8 py-4 text-white hover:bg-[#525482] transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 duration-300 font-bold tracking-wide text-sm"
+                            >
+                                EXPLORE AFFILIATIONS
+                            </a>
                         </div>
-                    </section>
+                    </div>
                 </FadeIn>
-            </div>
+            </section>
             <SiteFooter />
             <ScrollToTop />
         </main>
