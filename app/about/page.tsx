@@ -33,12 +33,12 @@ export default function AboutPage(): React.JSX.Element {
             <ParticleBackground />
             <SiteNavbar />
 
-              <section className="relative w-full py-20 lg:py-32 flex flex-col justify-center min-h-[60vh]">
+              <section className="relative w-full py-12 lg:py-15 flex flex-col justify-center min-h-[60vh]">
                 <div className="max-w-8xl mx-auto px-4 w-full">
                     {/* Hero Section */}
                     <FadeIn>
                     <div className="mb-16">
-                        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-background border border-primary my-4">
+                        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-background border border-primary my-12">
                             <div className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
                             <span className="text-[#E18F67] text-[10px] font-medium leading-tight">
                                 About RallyUp Solutions
