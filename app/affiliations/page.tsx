@@ -209,7 +209,13 @@ export default function AffiliationsPage(): React.JSX.Element {
               {/* Card 1 */}
               <div className="md:hidden bg-white rounded-3xl p-8 flex flex-col items-start text-left gap-4 shadow-sm hover:-translate-y-1 hover:shadow-md transition-all duration-300">
                 <div className="w-14 h-14 rounded-2xl bg-[#44867B] flex items-center justify-center shadow-sm mb-2">
-                  <Image src="/affiliationslogo/Vectorpayment.png" alt="Payment Gateways" width={32} height={32} />
+                  <Image 
+                    src="/affiliationslogo/Vectorpayment.png" 
+                    alt="Payment Gateways" 
+                    width={32} 
+                    height={32}
+                    style={{ width: 'auto', height: 'auto' }}
+                  />
                 </div>
                 <h3 className="font-bold text-background text-lg">Payment Gateways</h3>
                 <p className="text-[#44867B] text-sm leading-relaxed max-w-sm">
