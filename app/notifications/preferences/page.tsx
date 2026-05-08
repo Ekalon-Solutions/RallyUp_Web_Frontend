@@ -29,7 +29,7 @@ function NotificationPreferencesLandingPageInner() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col public-theme">
       <SiteNavbar />
       <main className="flex-1 container mx-auto px-4 py-10 max-w-3xl">
         <Card>

@@ -111,7 +111,7 @@ export default function SystemOwnerLoginPage() {
   }
 
   return (
-    <>
+    <div className="public-theme">
       <SiteNavbar brandName="Wingman Pro" />
       <div className="relative min-h-screen">
         {/* Background Pattern */}
@@ -244,6 +244,6 @@ export default function SystemOwnerLoginPage() {
         </div>
       </div>
       <SiteFooter brandName="Wingman Pro" />
-    </>
+    </div>
   )
 }

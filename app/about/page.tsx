@@ -28,7 +28,7 @@ import {
 
 export default function AboutPage(): React.JSX.Element {
     return (
-        <main className="min-h-screen bg-white text-background relative overflow-x-hidden">
+        <main className="min-h-screen bg-white text-background relative overflow-x-hidden public-theme">
             {/* <JellyCursor /> */}
             <ParticleBackground />
             <SiteNavbar />
@@ -38,9 +38,11 @@ export default function AboutPage(): React.JSX.Element {
                     {/* Hero Section */}
                     <FadeIn>
                     <div className="mb-16">
-                        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#2A2A2A] mb-8">
-                            <div className="w-2 h-2 rounded-full bg-[#FF4F2B]" />
-                            <span className="text-sm font-semibold text-[#FF4F2B] tracking-wide">About RallyUp Solutions</span>
+                        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-background border border-primary my-4">
+                            <div className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
+                            <span className="text-[#E18F67] text-[10px] font-medium leading-tight">
+                                About RallyUp Solutions
+                            </span>
                         </div>
                         
                         <h1 className="md:text-4xl text-4xl lg:text-5xl font-bold mb-6 text-[#1A1A1A] tracking-tight leading-[1.1]">

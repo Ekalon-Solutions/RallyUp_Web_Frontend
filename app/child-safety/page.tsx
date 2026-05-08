@@ -13,7 +13,7 @@ export const metadata = {
 
 export default function ChildSafetyPage(): React.JSX.Element {
  return (
- <main className="min-h-screen bg-white text-background relative overflow-x-hidden">
+ <main className="min-h-screen bg-white text-background relative overflow-x-hidden public-theme">
  <SiteNavbar />
  <div className="bg-secondary-purple/40 px-4 py-16 relative z-10">
  <div className="max-w-3xl mx-auto">

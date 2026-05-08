@@ -139,7 +139,7 @@ export default function FAQsPage(): React.JSX.Element {
     ]
 
     return (
-        <main className="min-h-screen bg-white text-background relative overflow-x-hidden">
+        <main className="min-h-screen bg-white text-background relative overflow-x-hidden public-theme">
             {/* <JellyCursor /> */}
             <SiteNavbar />
 

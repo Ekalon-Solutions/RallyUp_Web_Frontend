@@ -10,6 +10,7 @@ import { SocketWrapper } from "@/components/socket-wrapper"
 import { Toaster } from "sonner"
 import Analytics from "@/components/Analytics"
 import { AntiScrapingProtection } from "@/components/anti-scraping-protection"
+import { DashboardThemeProvider } from "@/components/dashboard-theme-provider"
 import Script from "next/script"
 
 const poppins = Poppins({
@@ -134,6 +135,7 @@ export default function RootLayout({
       <body className={`${poppins.className} ${poppins.variable} ${purplePurse.variable}`}>
         <Analytics />
         <AntiScrapingProtection />
+        <DashboardThemeProvider />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

@@ -13,7 +13,7 @@ import { ContactForm } from "@/components/contact-form"
 export default function ContactPage() {
 
   return (
-    <main className="min-h-screen bg-white text-foreground relative overflow-x-hidden">
+    <main className="min-h-screen bg-white text-foreground relative overflow-x-hidden public-theme">
       <SiteNavbar />
       
       {/* Main Content */}

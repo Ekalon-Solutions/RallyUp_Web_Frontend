@@ -7,7 +7,7 @@ import Link from "next/link"
 
 export default function PurchaseFailurePage() {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4 public-theme">
       <Card className="max-w-md w-full shadow-lg">
         <CardHeader className="text-center">
           <div className="mx-auto w-14 h-14 rounded-full bg-red-100 flex items-center justify-center mb-4">
