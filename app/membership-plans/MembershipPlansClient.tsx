@@ -95,7 +95,7 @@ export default function MembershipPlansClient({ clubId }: { clubId: string }) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-sky-50 dark:from-slate-950 dark:via-slate-900 dark:to-blue-950">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-sky-50 dark:from-slate-950 dark:via-slate-900 dark:to-blue-950 public-theme">
       <SiteNavbar brandName="Wingman Pro" />
 
       <div className="max-w-6xl mx-auto px-6 py-12 space-y-8">

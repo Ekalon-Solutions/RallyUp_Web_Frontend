@@ -12,7 +12,7 @@ export const metadata = {
 
 export default function PrivacyPage(): React.JSX.Element {
     return (
-        <main className="min-h-screen bg-white text-background">
+        <main className="min-h-screen bg-white text-background public-theme">
             <SiteNavbar />
             <div className="bg-secondary-purple/40 px-4 py-16 relative z-10">
                 <div className="max-w-3xl mx-auto">

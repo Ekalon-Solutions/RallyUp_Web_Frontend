@@ -582,7 +582,7 @@ function ClubsPageContent() {
 
  // if (loading) {
  // return (
- // <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+ // <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center public-theme">
  // <div className="text-center">
  // <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
  // <p className="mt-4 text-muted-foreground text-lg">Discovering amazing clubs...</p>
@@ -592,7 +592,7 @@ function ClubsPageContent() {
  // }
 
  return (
- <div className="min-h-screen bg-white">
+ <div className="min-h-screen bg-white public-theme">
  <SiteNavbar brandName="Wingman Pro"/>
 
  {/* Hero Section */}
@@ -1575,7 +1575,7 @@ function ClubsPageContent() {
 export default function ClubsPage() {
  return (
  <Suspense fallback={
- <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+ <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center public-theme">
  <div className="text-center">
  <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
  <p className="mt-4 text-muted-foreground text-lg">Loading clubs...</p>

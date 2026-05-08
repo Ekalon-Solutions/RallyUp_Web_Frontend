@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
-import { Dialog, DialogContent } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { User, Shield, Mail, Phone, UserPlus, LogIn, X, MessageCircle, MessageSquare } from "lucide-react"
@@ -29,7 +29,7 @@ const COUNTRY_CODES = [
   "+91", "+1", "+44", "+61", "+971", "+65", "+81", "+49", "+33", "+86",
   "+7", "+55", "+52", "+27", "+234", "+254", "+20", "+966", "+60", "+66",
   "+84", "+63", "+62", "+92", "+880", "+94", "+977", "+975", "+95", "+855",
-  "+856", "+976", "+7", "+998", "+996", "+992", "+993", "+93", "+98", "+964",
+  "+856", "+976", "+998", "+996", "+992", "+993", "+93", "+98", "+964",
   "+963", "+961", "+962", "+972", "+970", "+90", "+30", "+39", "+34", "+351"
 ]
 
@@ -267,6 +267,7 @@ export function LoginModal({ open, onOpenChange }: LoginModalProps) {
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) resetForm(); onOpenChange(v) }}>
       <DialogContent className="p-0 gap-0 max-w-[420px] w-full overflow-hidden rounded-2xl border-0 shadow-2xl" hideCloseButton>
+        <DialogTitle className="sr-only">Login to RallyUp</DialogTitle>
         {/* Header */}
         <div className="relative bg-secondary px-5 pt-4">
           <div className="flex items-center justify-between mb-4">
@@ -317,10 +318,17 @@ export function LoginModal({ open, onOpenChange }: LoginModalProps) {
         <div className="bg-white px-6 py-6 space-y-5">
           <div>
             <h2 className="text-2xl font-black text-secondary">
-              Welcome, <span className="text-primary">Champ!</span>
+              {tab === "admin" ? (
+                <>Admin, <span className="text-primary">Access!</span></>
+              ) : (
+                <>Welcome, <span className="text-primary">Champ!</span></>
+              )}
             </h2>
             <p className="text-sm text-secondary mt-1">
-              Login made easy! Enter your details and we'll send you a secure OTP.
+              {tab === "admin" 
+                ? "Club Administrators — Sign in to power your club dashboard."
+                : "Login made easy! Enter your details and we'll send you a secure OTP."
+              }
             </p>
           </div>
 

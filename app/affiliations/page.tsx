@@ -10,13 +10,13 @@ import Image from "next/image"
 
 export default function AffiliationsPage(): React.JSX.Element {
   return (
-    <main className="min-h-screen bg-white text-slate-900 relative overflow-x-hidden font-sans">
+    <main className="min-h-screen bg-white text-slate-900 relative overflow-x-hidden font-sans public-theme">
       <SiteNavbar brandName="Wingman Pro" />
 
       {/* Top Section */}
       <section className="relative w-full py-20 lg:py-32 flex flex-col justify-center min-h-[60vh]">
         {/* Faint background graphic */}
-        <div className="absolute -bottom-32 right-0 w-[30rem] h-[30rem] lg:w-[40rem] lg:h-[40rem] opacity-60 pointer-events-none select-none">
+        <div className="absolute -bottom-32 right-0 w-[25rem] h-[25rem] lg:w-[35rem] lg:h-[35rem] opacity-60 pointer-events-none select-none">
           <Image src="/VectorLeft.svg" alt="" fill className="object-contain object-right-bottom" />
         </div>
         
@@ -24,9 +24,11 @@ export default function AffiliationsPage(): React.JSX.Element {
           <FadeIn>
             <div className="relative z-10 max-w-3xl">
               {/* Badge */}
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#2A2A2A] mb-8">
-                <div className="w-2 h-2 rounded-full bg-[#FF4F2B]" />
-                <span className="text-sm font-semibold text-[#FF4F2B] tracking-wide">Partnerships & Affiliations</span>
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-background border border-primary my-4">
+                <div className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
+                <span className="text-[#E18F67] text-[10px] font-medium leading-tight">
+                  Partnerships & Affiliations
+                </span>
               </div>
 
               <h1 className="text-5xl font-extrabold mb-6 text-background tracking-tight leading-[1.1]">
@@ -98,7 +100,7 @@ export default function AffiliationsPage(): React.JSX.Element {
               {/* Card 1 */}
               <div className="hidden md:flex bg-white rounded-3xl px-8 py-2 flex flex-col items-center justify-center text-center gap-5 shadow-sm hover:-translate-y-1 hover:shadow-md transition-all duration-300 h-52">
                 <div className="w-14 h-14 rounded-2xl bg-[#44867B] flex items-center justify-center shadow-sm mb-2">
-                  <Image src="/affiliationslogo/Vectorpayment.png" alt="Payment Gateways" width={32} height={32} />
+                  <Image src="/affiliationslogo/Framepayment.svg" alt="Payment Gateways" width={32} height={32} />
                 </div>
                 <h3 className="text-background text-lg">Payment Gateways</h3>
               </div>
@@ -121,7 +123,13 @@ export default function AffiliationsPage(): React.JSX.Element {
               {/* Card 1 */}
               <div className="md:hidden bg-white rounded-3xl p-8 flex flex-col items-start text-left gap-4 shadow-sm hover:-translate-y-1 hover:shadow-md transition-all duration-300">
                 <div className="w-14 h-14 rounded-2xl bg-[#44867B] flex items-center justify-center shadow-sm mb-2">
-                  <Image src="/affiliationslogo/Vectorpayment.png" alt="Payment Gateways" width={32} height={32} />
+                  <Image 
+                    src="/affiliationslogo/Vectorpayment.png" 
+                    alt="Payment Gateways" 
+                    width={32} 
+                    height={32}
+                    style={{ width: 'auto', height: 'auto' }}
+                  />
                 </div>
                 <h3 className="font-bold text-background text-lg">Payment Gateways</h3>
                 <p className="text-[#44867B] text-sm leading-relaxed max-w-sm">
@@ -170,7 +178,9 @@ export default function AffiliationsPage(): React.JSX.Element {
             <div className="grid md:grid-cols-5 gap-6">
               {/* Card 1 */}
               <div className="md:col-span-3 bg-[#222222] rounded-3xl p-8 md:p-10 relative overflow-hidden flex flex-col hover:shadow-lg transition-shadow min-h-[18rem] md:min-h-[22rem]">
-                <span className="absolute -top-6 -right-4 md:-bottom-4 md:-right-4 text-[8.75rem] font-black text-[#2A2A2A] leading-none pointer-events-none select-none">01</span>
+                <span className="absolute -top-6 md:top-auto md:-bottom-6 -right-4 text-[8.75rem] font-black text-[#2A2A2A] leading-none pointer-events-none select-none">
+                  01
+                </span>
                 <div className="w-14 h-14 rounded-xl bg-[#8A8A8A] flex items-center justify-center relative z-10">
                   <Image src="/affiliationslogo/Frametrophy.svg" alt="Club Solutions" width={28} height={28} />
                 </div>
@@ -198,8 +208,9 @@ export default function AffiliationsPage(): React.JSX.Element {
 
               {/* Card 3 */}
               <div className="md:col-span-2 bg-[#D8D5FB] rounded-3xl p-8 md:p-10 relative overflow-hidden flex flex-col hover:shadow-lg transition-shadow min-h-[18rem] md:min-h-[22rem]">
-                <span className="absolute -top-6 -right-4 text-[8.75rem] font-black text-[#E9E6FF] leading-none pointer-events-none select-none">03</span>
-                <div className="w-14 h-14 rounded-xl bg-[#8076B9] flex items-center justify-center relative z-10">
+                <span className="absolute -top-6 md:top-auto md:-bottom-6 -right-4 text-[8.75rem] font-black text-[#E9E6FF] leading-none pointer-events-none select-none">
+                03</span>
+              <div className="w-14 h-14 rounded-xl bg-[#8076B9] flex items-center justify-center relative z-10">
                   <Image src="/affiliationslogo/Vectortool.svg" alt="Supporter Group Tools" width={28} height={28} />
                 </div>
                 <div className="mt-auto pt-12 relative z-10">

@@ -125,7 +125,7 @@ function Hero() {
             <Link href="#features">
               <Button
                 variant="outline"
-                className="px-4 h-8 border font-medium text-xs rounded-[5px] uppercase tracking-wider flex items-center gap-2"
+                className="h-8 px-4 border border-[#727274] text-sm uppercase tracking-wide active:scale-95 !text-white"
               >
                 Explore Features
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -141,9 +141,9 @@ function Hero() {
           <div className="grid lg:grid-cols-[3fr_3fr] gap-0 items-center">
             {/* Left Column */}
             <div className="space-y-6 ml-0 lg:ml-4">
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-background border border-primary">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-background border border-primary my-4">
                 <div className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
-                <span className="text-primary text-[10px] font-medium leading-tight">
+                <span className="text-[#E18F67] text-[10px] font-medium leading-tight">
                   The first AI-powered platform for Supporter Groups and Sports Clubs.
                 </span>
               </div>
@@ -169,10 +169,10 @@ function Hero() {
                 <Link href="#features">
                   <Button
                     variant="outline"
-                    className="px-8 h-10 border font-medium text-xs rounded-[5px] uppercase tracking-wider flex items-center gap-2"
+                    className="px-8 h-10 border font-medium !text-white text-xs rounded-[5px] uppercase decoration-none hover:none tracking-wider flex items-center gap-2"
                   >
-                    <ArrowRight className="w-3.5 h-3.5" />
                     Explore Features
+                    <ArrowRight className="w-3.5 h-3.5 text-white hover:text-white" />
                   </Button>
                 </Link>
               </div>
@@ -277,27 +277,15 @@ const tabConfig: Array<{
 
 function FeaturesShowcase() {
   const [activeIdx, setActiveIdx] = useState(0)
-  const [displayIdx, setDisplayIdx] = useState(0)
-  const [fadeState, setFadeState] = useState<"in" | "out">("in")
   const [paused, setPaused] = useState(false)
   const tabsRef = React.useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (paused) return
-    const delay = 3000
+    const delay = 1500 // Reduced from 3000ms to 1500ms for faster animation
     const id = setInterval(() => setActiveIdx((i) => (i + 1) % tabConfig.length), delay)
     return () => clearInterval(id)
   }, [paused])
-
-  useEffect(() => {
-    if (activeIdx === displayIdx) return
-    setFadeState("out")
-    const timeout = setTimeout(() => {
-      setDisplayIdx(activeIdx)
-      setFadeState("in")
-    }, 1000)
-    return () => clearTimeout(timeout)
-  }, [activeIdx, displayIdx])
 
   useEffect(() => {
     if (!tabsRef.current) return
@@ -309,7 +297,7 @@ function FeaturesShowcase() {
     }
   }, [activeIdx])
 
-  const active = tabConfig[displayIdx]
+  const active = tabConfig[activeIdx]
 
   const scrollNext = () => {
     if (tabsRef.current) {
@@ -328,7 +316,7 @@ function FeaturesShowcase() {
 
         {/* ── Mobile layout ── */}
         <div className="lg:hidden space-y-6 mt-2">
-          <div className={`px-1 transition-opacity duration-1000 ease-in-out ${fadeState === "in" ? "opacity-100" : "opacity-0"}`}>
+          <div className="px-1">
             {/* Headline */}
             <h2 className="text-[40px] font-black leading-[1.1] tracking-tight">
               <span className="text-[#1E1E2C]">{active.headline[0]}</span>
@@ -372,7 +360,7 @@ function FeaturesShowcase() {
               <div className="w-2.5 h-2.5 bg-primary rounded-full ring-[4px] ring-primary/20" />
             </div>
 
-            <div className={`transition-opacity duration-1000 ease-in-out ${fadeState === "in" ? "opacity-100" : "opacity-0"}`}>
+            <div>
               {/* Inner Top text */}
               <div className="space-y-1.5 pr-8 mt-2">
                 <p className="text-primary font-bold text-[22px] leading-tight tracking-tight">{active.headline[0].replace('.', ',')}</p>
@@ -466,7 +454,7 @@ function FeaturesShowcase() {
             pb-8 lg:pb-12 xl:pb-16 
             relative overflow-hidden flex items-stretch shadow-md">
             <div className="bg-gradient-to-b from-white to-secondary-purple rounded-[24px] w-full p-10 xl:p-12 shadow-sm relative z-10 flex flex-col justify-center min-h-[460px]">
-              <div className={`space-y-8 transition-opacity duration-1000 ease-in-out ${fadeState === "in" ? "opacity-100" : "opacity-0"}`}>
+              <div className="space-y-8">
                 {/* Headline & Sub */}
                 <div className="flex flex-row h-content gap-4">
                   <div className="w-1.5 bg-secondary flex-shrink-0" />
@@ -534,7 +522,7 @@ function ImageMarquee() {
         {[...images, ...images].map((src, i) => (
           <div
             key={i}
-            className="border-[6px] border-white rounded-[25px] flex-shrink-0 w-36 h-36 sm:w-40 sm:h-40 md:w-48 md:h-48 relative overflow-hidden"
+            className="border-[6px] border-white rounded-[25px] flex-shrink-0 w-36 h-36 sm:w-40 sm:h-40 md:w-48 md:h-48 relative overflow-hidden hover:animate-spin transition-transform duration-300"
           >
             <Image
               src={src}
@@ -655,7 +643,7 @@ function FAQ() {
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-white text-slate-900 relative overflow-x-hidden">
+    <div className="min-h-screen bg-white text-slate-900 relative overflow-x-hidden public-theme">
       {/* <JellyCursor /> */}
       <SiteNavbar brandName="Wingman Pro" />
       <FadeIn>

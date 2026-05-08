@@ -188,6 +188,7 @@ export default function NewsReadMoreModal({ news, isOpen, onClose }: NewsReadMor
               {/* Lightbox for enlarged image */}
               <Dialog open={!!enlargedImage} onOpenChange={() => setEnlargedImage(null)}>
                 <DialogContent className="max-w-[95vw] max-h-[95vh] w-auto p-0 overflow-hidden border-0 bg-black/90">
+                  <DialogTitle className="sr-only">Enlarged Image View</DialogTitle>
                   <Button
                     variant="ghost"
                     size="icon"
