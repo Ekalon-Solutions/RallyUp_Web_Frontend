@@ -1,12 +1,12 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { User, Shield, Mail, Phone, UserPlus, LogIn, X } from "lucide-react"
+import { User, Shield, Mail, Phone, UserPlus, LogIn, X, MessageCircle, MessageSquare } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
@@ -14,9 +14,24 @@ import { apiClient } from "@/lib/api"
 import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth"
 import { auth } from "@/lib/firebase/config"
 
+// Extend window object for global variables
+declare global {
+  interface Window {
+    recaptchaVerifier?: RecaptchaVerifier
+    confirmationResult?: any
+    otpSessionInfo?: string
+  }
+}
+
 type Tab = "user" | "admin"
 
-const COUNTRY_CODES = ["+91", "+1", "+44", "+61", "+971", "+65", "+81", "+49", "+33", "+86"]
+const COUNTRY_CODES = [
+  "+91", "+1", "+44", "+61", "+971", "+65", "+81", "+49", "+33", "+86",
+  "+7", "+55", "+52", "+27", "+234", "+254", "+20", "+966", "+60", "+66",
+  "+84", "+63", "+62", "+92", "+880", "+94", "+977", "+975", "+95", "+855",
+  "+856", "+976", "+7", "+998", "+996", "+992", "+993", "+93", "+98", "+964",
+  "+963", "+961", "+962", "+972", "+970", "+90", "+30", "+39", "+34", "+351"
+]
 
 const validateEmail = (email: string) => {
   if (!email) return ""
@@ -26,6 +41,18 @@ const validateEmail = (email: string) => {
 const validatePhone = (phone: string) => {
   if (!phone) return ""
   return /^\d{9,15}$/.test(phone) ? "" : "Phone number must be 9–15 digits"
+}
+
+const setupRecaptcha = (phoneNumber: string) => {
+  if (!window.recaptchaVerifier) {
+    window.recaptchaVerifier = new RecaptchaVerifier(auth, 'modal-recaptcha-container', {
+      'size': 'invisible',
+      'callback': (response: any) => {
+        // reCAPTCHA solved, allow signInWithPhoneNumber.
+      }
+    });
+  }
+  return window.recaptchaVerifier
 }
 
 interface LoginModalProps {
@@ -51,6 +78,14 @@ export function LoginModal({ open, onOpenChange }: LoginModalProps) {
 
   const role = tab === "user" ? "user" : "admin"
 
+  // Countdown timer effect
+  useEffect(() => {
+    if (resendCountdown > 0) {
+      const timer = setTimeout(() => setResendCountdown(resendCountdown - 1), 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [resendCountdown])
+
   const resetForm = () => {
     setEmail("")
     setPhone("")
@@ -65,12 +100,6 @@ export function LoginModal({ open, onOpenChange }: LoginModalProps) {
 
   const startResendCountdown = () => {
     setResendCountdown(30)
-    const tick = setInterval(() => {
-      setResendCountdown((c) => {
-        if (c <= 1) { clearInterval(tick); return 0 }
-        return c - 1
-      })
-    }, 1000)
   }
 
   const handleSendOtp = async () => {
@@ -81,7 +110,10 @@ export function LoginModal({ open, onOpenChange }: LoginModalProps) {
 
     if (email) {
       const err = validateEmail(email)
-      if (err) { setEmailError(err); return }
+      if (err) { 
+        setEmailError(err)
+        return 
+      }
       setSending(true)
       try {
         const res = await apiClient.sendOtp({ email, role })
@@ -99,20 +131,31 @@ export function LoginModal({ open, onOpenChange }: LoginModalProps) {
       }
     } else {
       const err = validatePhone(phone)
-      if (err) { setPhoneError(err); return }
+      if (err) { 
+        setPhoneError(err)
+        return 
+      }
       setSending(true)
       try {
-        if (!window.recaptchaVerifier) {
-          window.recaptchaVerifier = new RecaptchaVerifier(auth, "modal-recaptcha-container", {
-            size: "invisible",
-            callback: () => { },
-          })
+        // Use backend API for phone OTP
+        const res = await apiClient.sendOtp({ 
+          phoneNumber: phone, 
+          countryCode: countryCode, 
+          role 
+        })
+        
+        if (res.success) {
+          const phoneNumber = `${countryCode}${phone}`
+          const channel = res.data?.deliveryChannel || 'SMS'
+          const channelText = channel === 'whatsapp' ? 'WhatsApp' : 'SMS'
+          toast.success(`OTP sent via ${channelText} to ${phoneNumber}`)
+          setOtpSent(true)
+          startResendCountdown()
+          // Store session info for verification
+          window.otpSessionInfo = res.data?.sessionInfo
+        } else {
+          toast.error(res.message || "Failed to send OTP. Please try again.")
         }
-        const confirmation = await signInWithPhoneNumber(auth, `${countryCode}${phone}`, window.recaptchaVerifier)
-        window.confirmationResult = confirmation
-        toast.success(`OTP sent to ${countryCode}${phone}`)
-        setOtpSent(true)
-        startResendCountdown()
       } catch {
         toast.error("Failed to send OTP. Please try again.")
       } finally {
@@ -122,37 +165,97 @@ export function LoginModal({ open, onOpenChange }: LoginModalProps) {
   }
 
   const handleVerifyOtp = async () => {
-    if (!otp) { toast.error("Please enter the OTP"); return }
+    if (!otp) { 
+      toast.error("Please enter the OTP")
+      return 
+    }
     setVerifying(true)
     try {
       if (email) {
         const res = await apiClient.verifyEmailOTP({ email, otp, role })
         if (res.success && (res.data as any)?.token) {
           localStorage.setItem("token", (res.data as any).token)
-          localStorage.setItem("userType", tab === "user" ? "member" : "admin")
+          localStorage.setItem("userType", tab === "user" ? "member" : (res.data as any).role || "admin")
           toast.success("Signed in successfully!")
           onOpenChange(false)
-          window.location.href = tab === "user" ? "/dashboard" : "/dashboard"
+          window.location.href = "/login" // Redirect to trigger auth context update
         } else {
           toast.error(res.message || res.error || "Invalid OTP")
         }
       } else {
-        const confirmationResult = window.confirmationResult
-        const result = await confirmationResult.confirm(otp)
-        if (result.user) {
-          const backendResult = await login(email, phone, countryCode, tab === "admin")
-          if (backendResult?.success) {
+        // Phone number verification using backend API
+        const res = await apiClient.verifyOTP({ 
+          phoneNumber: phone,
+          countryCode: countryCode,
+          otp: otp,
+          role: role,
+          sessionInfo: window.otpSessionInfo
+        })
+        
+        if (res.success) {
+          // Handle successful verification based on response
+          if (res.data?.token) {
+            localStorage.setItem("token", res.data.token)
+            localStorage.setItem("userType", tab === "user" ? "member" : res.data.role || "admin")
             toast.success("Signed in successfully!")
             onOpenChange(false)
+            window.location.href = "/login" // Same redirect as email to trigger auth context update
           } else {
-            toast.error(backendResult?.error || "Login failed")
+            // If no token, use existing login flow
+            const backendResult = await login(email, phone, countryCode, tab === "admin")
+            if (backendResult?.success) {
+              toast.success("Signed in successfully!")
+              onOpenChange(false)
+              window.location.href = "/login" // Redirect to trigger auth context update
+            } else {
+              toast.error(backendResult?.error || "Login failed")
+            }
           }
+        } else {
+          toast.error(res.message || "Invalid or expired OTP. Please try again.")
         }
       }
     } catch {
       toast.error("Invalid OTP. Please try again.")
     } finally {
       setVerifying(false)
+    }
+  }
+
+  const handleResendOTP = async (channel?: 'whatsapp' | 'sms') => {
+    if (email) {
+      try {
+        const res = await apiClient.sendOtp({ email, role })
+        if (res.success) {
+          toast.success(`Code resent to ${email}.`)
+          startResendCountdown()
+        } else {
+          toast.error("Failed to resend OTP. Please try again.")
+        }
+      } catch (error) {
+        toast.error("Failed to resend OTP. Please try again.")
+      }
+    } else if (phone && countryCode) {
+      try {
+        const res = await apiClient.resendOTP({ 
+          phoneNumber: phone, 
+          countryCode: countryCode, 
+          role: role,
+          channel
+        })
+        if (res.success) {
+          const phoneNumber = `${countryCode}${phone}`
+          const ch = res.data?.deliveryChannel || 'sms'
+          const channelText = ch === 'whatsapp' ? 'WhatsApp' : 'SMS'
+          toast.success(`OTP resent via ${channelText} to ${phoneNumber}`)
+          startResendCountdown()
+          window.otpSessionInfo = res.data?.sessionInfo
+        } else {
+          toast.error("Failed to resend OTP. Please try again.")
+        }
+      } catch (error) {
+        toast.error("Failed to resend OTP. Please try again.")
+      }
     }
   }
 
@@ -320,13 +423,40 @@ export function LoginModal({ open, onOpenChange }: LoginModalProps) {
                 </Button>
                 <Button
                   variant="outline"
-                  onClick={handleSendOtp}
+                  onClick={() => handleResendOTP()}
                   disabled={resendCountdown > 0 || sending}
                   className="h-12 px-4 rounded-xl border-secondary text-muted-foreground"
                 >
                   {resendCountdown > 0 ? `${resendCountdown}s` : "Resend"}
                 </Button>
               </div>
+              {!email && (
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    type="button"
+                    onClick={() => handleResendOTP('whatsapp')}
+                    disabled={resendCountdown > 0}
+                    className="bg-green-700 hover:bg-green-600 text-white h-11 px-2 text-xs sm:text-sm gap-1.5"
+                  >
+                    <MessageCircle className="w-4 h-4 shrink-0" />
+                    <span className="truncate">
+                      {resendCountdown > 0 ? `Resend (${resendCountdown}s)` : "Resend via WhatsApp"}
+                    </span>
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => handleResendOTP('sms')}
+                    disabled={resendCountdown > 0}
+                    className="border-secondary bg-white text-secondary hover:bg-secondary hover:text-white h-11 px-2 text-xs sm:text-sm gap-1.5"
+                  >
+                    <MessageSquare className="w-4 h-4 shrink-0" />
+                    <span className="truncate">
+                      {resendCountdown > 0 ? `Resend (${resendCountdown}s)` : "Resend via SMS"}
+                    </span>
+                  </Button>
+                </div>
+              )}
               <button
                 onClick={resetForm}
                 className="text-xs text-muted-foreground hover:text-foreground underline w-full text-center"

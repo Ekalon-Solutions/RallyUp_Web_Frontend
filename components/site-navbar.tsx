@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button"
 import { Sun, Moon, Menu, X } from "lucide-react"
 import { useTheme } from "next-themes"
 import { LoginModal } from "@/components/login-modal"
+import { useAuth } from "@/contexts/auth-context"
+import { useRouter } from "next/navigation"
 
 type SiteNavbarProps = {
   brandName?: string
@@ -14,8 +16,40 @@ type SiteNavbarProps = {
 
 export function SiteNavbar({ brandName = "Wingman Pro" }: SiteNavbarProps) {
   const { theme, setTheme } = useTheme()
+  const { isAuthenticated, user, isLoading } = useAuth()
+  const router = useRouter()
   const [mobileOpen, setMobileOpen] = useState(false)
   const [loginOpen, setLoginOpen] = useState(false)
+
+  const handleLoginClick = () => {
+    // If user is already authenticated, redirect to appropriate page
+    if (isAuthenticated && user) {
+      const userAny = user as any
+      const isAdmin = userAny.role === 'admin' || userAny.role === 'super_admin'
+      const adminHasClub = !!(userAny.club?._id || userAny.club)
+
+      if (isAdmin && adminHasClub) {
+        router.push('/splash')
+        return
+      }
+
+      const memberships = userAny.memberships || []
+      const activeMemberships = memberships.filter((m: any) => m.status === 'active')
+      const uniqueClubIds = new Set<string>()
+      activeMemberships.forEach((membership: any) => {
+        const clubId = membership.club_id?._id || membership.club_id
+        if (clubId) uniqueClubIds.add(clubId)
+      })
+      const redirectPath = uniqueClubIds.size > 1 ? "/splash" : "/dashboard"
+      router.push(redirectPath)
+      return
+    }
+
+    // If not authenticated or still loading, show login modal
+    if (!isLoading) {
+      setLoginOpen(true)
+    }
+  }
 
   return (
     <>
@@ -47,8 +81,13 @@ export function SiteNavbar({ brandName = "Wingman Pro" }: SiteNavbarProps) {
 
           <div className="flex items-center gap-5">
             <div className="hidden lg:flex items-center gap-4">
-              <Button variant="outline" onClick={() => setLoginOpen(true)} className="font-bold text-sm uppercase tracking-wide">
-                Log In
+              <Button 
+                variant="outline" 
+                onClick={handleLoginClick} 
+                disabled={isLoading}
+                className="font-bold text-sm uppercase tracking-wide"
+              >
+                {isAuthenticated ? "Dashboard" : "Log In"}
               </Button>
               <Button variant="outline" asChild className="h-11 px-6 border-2 font-bold text-sm uppercase tracking-wide active:scale-95">
                 <Link href="/clubs">Browse Clubs</Link>
@@ -126,8 +165,16 @@ export function SiteNavbar({ brandName = "Wingman Pro" }: SiteNavbarProps) {
                 </div>
 
                 <div className="flex flex-col gap-4 mt-auto pt-10">
-                  <Button variant="outline" onClick={() => setLoginOpen(true)} className="font-bold text-sm uppercase tracking-wide">
-                    Log In
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setMobileOpen(false)
+                      handleLoginClick()
+                    }} 
+                    disabled={isLoading}
+                    className="font-bold text-sm uppercase tracking-wide"
+                  >
+                    {isAuthenticated ? "Dashboard" : "Log In"}
                   </Button>
                   <Button variant="outline" asChild className="h-11 px-6 border-2 font-bold text-sm uppercase tracking-wide active:scale-95">
                     <Link href="/clubs">Browse Clubs</Link>
