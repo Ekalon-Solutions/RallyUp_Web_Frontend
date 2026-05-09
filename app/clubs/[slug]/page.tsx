@@ -454,9 +454,52 @@ export default function PublicClubPage() {
   const socialLinks = clubSettingsSocialMedia
     ? buildSocialLinksFromSocialMediaRecord(clubSettingsSocialMedia)
     : []
+  const hasContactInfo = Boolean(websiteSetup.contactEmail || websiteSetup.contactPhone)
+  const hasClubWebsite = Boolean(club.website?.trim())
+  const hasSocialLinks = socialLinks.length > 0
+  const footerColumnCount = [hasContactInfo, hasClubWebsite, hasSocialLinks].filter(Boolean).length
+  const hasCommunitySections = Boolean(
+    websiteSetup.sections.news ||
+    websiteSetup.sections.events ||
+    websiteSetup.sections.chants ||
+    websiteSetup.sections.store ||
+    websiteSetup.sections.merchandise
+  )
 
   return (
     <div className="min-h-screen bg-background">
+      {/* ── Sticky header ── */}
+      <header className="sticky top-0 z-50 bg-background/90 backdrop-blur-xl border-b shadow-sm">
+        <div className="container mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            {(designSettings.logo || club.logo) && (
+              <img
+                src={designSettings.logo || club.logo!}
+                alt={title}
+                className="h-9 w-9 flex-shrink-0 object-contain rounded-lg"
+              />
+            )}
+            <span className="font-black text-base sm:text-lg tracking-tight truncate">{title}</span>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <Link href={clubSearchHref}>
+              <Button
+                size="sm"
+                className="font-bold px-4 sm:px-6 text-sm"
+                style={{ backgroundColor: primaryColor, color: "white" }}
+              >
+                Join Club
+              </Button>
+            </Link>
+            <Link href="/login">
+              <Button size="sm" variant="outline" className="font-bold px-4 sm:px-6 text-sm">
+                Member Login
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </header>
+
       <section className="relative overflow-hidden py-24 lg:py-40">
         <div
           className="absolute inset-0 opacity-[0.04] pointer-events-none"
@@ -546,88 +589,18 @@ export default function PublicClubPage() {
         </div>
       </section>
 
-      <div className="border-y bg-background/85 backdrop-blur-xl sticky top-0 z-50 shadow-sm">
-        <div className="container mx-auto px-6 py-4 md:py-5">
-          <div className="mx-auto flex max-w-5xl flex-col items-center gap-6 sm:gap-5 md:flex-row md:flex-wrap md:justify-center md:gap-x-10 md:gap-y-4">
-            <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-4 text-sm font-semibold md:text-base">
-              {websiteSetup.contactEmail && (
-                <a
-                  href={`mailto:${websiteSetup.contactEmail}`}
-                  className="flex max-w-[min(100%,20rem)] items-center gap-3 text-muted-foreground transition-colors hover:text-foreground group"
-                >
-                  <div
-                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/[0.08] transition-colors group-hover:bg-primary/[0.14]"
-                    style={{ color: primaryColor }}
-                  >
-                    <Mail className="h-5 w-5" />
-                  </div>
-                  <span className="truncate">{websiteSetup.contactEmail}</span>
-                </a>
-              )}
-              {websiteSetup.contactPhone && (
-                <a
-                  href={`tel:${websiteSetup.contactPhone}`}
-                  className="flex items-center gap-3 text-muted-foreground transition-colors hover:text-foreground group"
-                >
-                  <div
-                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/[0.08] transition-colors group-hover:bg-primary/[0.14]"
-                    style={{ color: primaryColor }}
-                  >
-                    <Phone className="h-5 w-5" />
-                  </div>
-                  {websiteSetup.contactPhone}
-                </a>
-              )}
-              {club.website ? (
-                <a
-                  href={club.website.startsWith("http") ? club.website : `https://${club.website}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-3 text-muted-foreground transition-colors hover:text-foreground group"
-                >
-                  <div
-                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/[0.08] transition-colors group-hover:bg-primary/[0.14]"
-                    style={{ color: primaryColor }}
-                  >
-                    <Globe className="h-5 w-5" />
-                  </div>
-                  Official Website
-                </a>
-              ) : null}
+      {hasCommunitySections && (
+        <section className="container mx-auto px-6 py-28 md:py-40">
+          <div className="max-w-7xl mx-auto space-y-24">
+            <div className="text-center space-y-6">
+              <h2 className="text-4xl md:text-6xl font-black tracking-tight">Our Community Hub</h2>
+              <div className="w-24 h-2 bg-primary mx-auto rounded-full" style={{ backgroundColor: primaryColor }} />
+              <p className="text-muted-foreground text-xl md:text-2xl max-w-3xl mx-auto leading-relaxed">
+                Everything you need to stay connected with the club and fellow supporters.
+              </p>
             </div>
 
-            {clubSettingsSocialMedia != null && socialLinks.length > 0 ? (
-              <div className="flex w-full flex-col items-center gap-3 border-t border-border/60 pt-5 sm:w-auto sm:flex-row sm:border-l sm:border-t-0 sm:pl-8 sm:pt-0">
-                <span className="text-[11px] font-bold uppercase tracking-[0.22em] text-muted-foreground">
-                  Follow us
-                </span>
-                <div className="flex flex-wrap justify-center gap-2.5">
-                  {socialLinks.map(({ platform, href, label }) => (
-                    <SocialBrandButton key={`${platform}-${href}`} platform={platform} href={href} label={label} />
-                  ))}
-                </div>
-              </div>
-            ) : null}
-          </div>
-        </div>
-      </div>
-
-      <section className="container mx-auto px-6 py-28 md:py-40">
-        <div className="max-w-7xl mx-auto space-y-24">
-          <div className="text-center space-y-6">
-            <h2 className="text-4xl md:text-6xl font-black tracking-tight">Our Community Hub</h2>
-            <div className="w-24 h-2 bg-primary mx-auto rounded-full" style={{ backgroundColor: primaryColor }} />
-            <p className="text-muted-foreground text-xl md:text-2xl max-w-3xl mx-auto leading-relaxed">
-              Everything you need to stay connected with the club and fellow supporters.
-            </p>
-          </div>
-
-          {(websiteSetup.sections.news ||
-            websiteSetup.sections.events ||
-            websiteSetup.sections.chants ||
-            websiteSetup.sections.store ||
-            websiteSetup.sections.merchandise) && (
-              <div className="space-y-8">
+            <div className="space-y-8">
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                   <TabsList className="flex flex-wrap w-full max-w-4xl mx-auto gap-2 h-auto bg-muted/50 p-2">
                     {websiteSetup.sections.events && (
@@ -729,9 +702,9 @@ export default function PublicClubPage() {
                                         </Badge>
                                       )}
                                     </div>
-                                    <CardTitle className="text-xl line-clamp-2">{article.title}</CardTitle>
+                                    <CardTitle className="text-xl line-clamp-2 break-words">{article.title}</CardTitle>
                                     {article.summary && (
-                                      <CardDescription className="line-clamp-3 mt-2">
+                                      <CardDescription className="line-clamp-3 mt-2 break-words">
                                         {article.summary}
                                       </CardDescription>
                                     )}
@@ -814,9 +787,9 @@ export default function PublicClubPage() {
                                         </Badge>
                                       )}
                                     </div>
-                                    <CardTitle className="text-xl line-clamp-2">{event.title}</CardTitle>
+                                    <CardTitle className="text-xl line-clamp-2 break-words">{event.title}</CardTitle>
                                     {event.description && (
-                                      <CardDescription className="line-clamp-3 mt-2">
+                                      <CardDescription className="line-clamp-3 mt-2 break-words">
                                         {event.description}
                                       </CardDescription>
                                     )}
@@ -842,7 +815,7 @@ export default function PublicClubPage() {
                                     {event.venue && (
                                       <div className="flex items-center gap-2 text-sm">
                                         <MapPin className="w-4 h-4 text-muted-foreground" />
-                                        <span className="line-clamp-1">{event.venue}</span>
+                                        <span className="line-clamp-2 break-words">{event.venue}</span>
                                       </div>
                                     )}
                                     {event.maxAttendees != null && (
@@ -949,7 +922,7 @@ export default function PublicClubPage() {
                                   <div className="flex flex-col flex-1">
                                     <CardHeader className="flex-1 flex flex-col">
                                       <div className="flex items-start justify-between gap-3">
-                                        <CardTitle className="text-lg line-clamp-2">{item.name}</CardTitle>
+                                        <CardTitle className="text-lg line-clamp-2 break-words">{item.name}</CardTitle>
                                         {typeof item.price === "number" && (
                                           <Badge variant="outline" className="text-xs font-bold shrink-0">
                                             {item.currency || "USD"} {item.price}
@@ -957,7 +930,7 @@ export default function PublicClubPage() {
                                         )}
                                       </div>
                                       {item.description && (
-                                        <CardDescription className="line-clamp-3 mt-2">{item.description}</CardDescription>
+                                        <CardDescription className="line-clamp-3 mt-2 break-words">{item.description}</CardDescription>
                                       )}
                                       <div className="flex-1" />
                                       {club?._id && (
@@ -1057,9 +1030,9 @@ export default function PublicClubPage() {
                   )}
                 </Tabs>
               </div>
-            )}
-        </div>
-      </section>
+          </div>
+        </section>
+      )}
 
       <section className="bg-muted/30 border-t overflow-hidden relative py-32 md:py-48">
         <div className="container mx-auto px-6 relative">
@@ -1087,15 +1060,120 @@ export default function PublicClubPage() {
         </div>
       </section>
 
-      <footer className="border-t py-20 bg-card">
-        <div className="container mx-auto px-6">
-          <div className="flex flex-col items-center justify-center space-y-10">
-            <p className="text-lg text-muted-foreground text-center max-w-xl leading-relaxed font-medium">
-              Powering the next generation of sports communities and supporters clubs worldwide.
-            </p>
-            <div className="text-sm text-slate-400 font-medium pt-4">
-              © 2025 RallyUp Solutions Private Limited. All rights reserved.
+      <footer className="border-t bg-card">
+        <div className="container mx-auto px-6 py-12 md:py-16">
+          {footerColumnCount > 0 && (
+            <div
+              className={[
+                "grid grid-cols-1 divide-y divide-border",
+                footerColumnCount === 1 ? "mx-auto max-w-md" : "",
+                footerColumnCount === 2 ? "md:grid-cols-2 md:divide-y-0 md:divide-x" : "",
+                footerColumnCount >= 3 ? "md:grid-cols-3 md:divide-y-0 md:divide-x" : "",
+              ].join(" ")}
+            >
+              {/* Column 1 — Email / Phone */}
+              {hasContactInfo && (
+                <div className="flex flex-col items-center gap-5 py-10 first:pt-0 last:pb-0 md:py-0 md:px-10 md:first:pl-0 md:last:pr-0">
+                  <div className="space-y-1 text-center">
+                    <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                      Contact
+                    </span>
+                    <p className="text-sm text-muted-foreground/70">
+                      Get in touch with the club team.
+                    </p>
+                  </div>
+
+                  <div className="w-full max-w-sm space-y-3">
+                    {websiteSetup.contactEmail && (
+                      <a
+                        href={`mailto:${websiteSetup.contactEmail}`}
+                        className="group flex items-center gap-3 rounded-2xl border border-border/70 bg-background/50 p-3 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:bg-background hover:shadow-md"
+                      >
+                        <div
+                          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/[0.08] transition-colors group-hover:bg-primary/[0.14]"
+                          style={{ color: primaryColor }}
+                        >
+                          <Mail className="h-5 w-5" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground/70">
+                            Email
+                          </p>
+                          <p className="break-all text-sm font-semibold text-foreground">
+                            {websiteSetup.contactEmail}
+                          </p>
+                        </div>
+                      </a>
+                    )}
+                    {websiteSetup.contactPhone && (
+                      <a
+                        href={`tel:${websiteSetup.contactPhone}`}
+                        className="group flex items-center gap-3 rounded-2xl border border-border/70 bg-background/50 p-3 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:bg-background hover:shadow-md"
+                      >
+                        <div
+                          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary/[0.08] transition-colors group-hover:bg-primary/[0.14]"
+                          style={{ color: primaryColor }}
+                        >
+                          <Phone className="h-5 w-5" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground/70">
+                            Phone
+                          </p>
+                          <p className="break-all text-sm font-semibold text-foreground">
+                            {websiteSetup.contactPhone}
+                          </p>
+                        </div>
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Column 2 — Website */}
+              {hasClubWebsite && (
+                <div className="flex flex-col items-center gap-4 py-10 first:pt-0 last:pb-0 md:py-0 md:px-10 md:first:pl-0 md:last:pr-0">
+                  <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                    Links
+                  </span>
+                  {club.website && (
+                    <a
+                      href={club.website.startsWith("http") ? club.website : `https://${club.website}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 text-sm text-muted-foreground hover:text-foreground transition-colors group"
+                    >
+                      <div
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/[0.08] group-hover:bg-primary/[0.14] transition-colors"
+                        style={{ color: primaryColor }}
+                      >
+                        <Globe className="h-4 w-4" />
+                      </div>
+                      Official Website
+                    </a>
+                  )}
+                </div>
+              )}
+
+              {/* Column 3 — Social */}
+              {hasSocialLinks && (
+                <div className="flex flex-col items-center gap-4 py-10 first:pt-0 last:pb-0 md:py-0 md:px-10 md:first:pl-0 md:last:pr-0">
+                  <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
+                    Follow Us
+                  </span>
+                  <div className="flex flex-wrap justify-center gap-2.5">
+                    {socialLinks.map(({ platform, href, label }) => (
+                      <SocialBrandButton key={`${platform}-${href}`} platform={platform} href={href} label={label} />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
+          )}
+
+          <div className={`${footerColumnCount > 0 ? "border-t mt-10 pt-6" : ""} text-center text-xs text-muted-foreground`}>
+            <p>Powered by RallyUp</p>
+            <p className="mt-2">© 2025 RallyUp Solutions Private Limited. All rights reserved.</p>
           </div>
         </div>
       </footer>

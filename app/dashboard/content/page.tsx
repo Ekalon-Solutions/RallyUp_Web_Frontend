@@ -251,10 +251,6 @@ export default function ContentManagementPage() {
               <p className="text-muted-foreground">Manage all news articles and content for your club</p>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setShowStats(!showStats)}>
-                <BarChart3 className="w-4 h-4 mr-2" />
-                {showStats ? 'Hide Stats' : 'Show Stats'}
-              </Button>
               <Button onClick={handleCreateNews}>
                 <Plus className="w-4 h-4 mr-2" />
                 Create News

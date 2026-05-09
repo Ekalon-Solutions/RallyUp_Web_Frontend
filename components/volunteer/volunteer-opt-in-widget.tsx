@@ -236,6 +236,9 @@ export function VolunteerOptInWidget({ currentUser, clubId, onProfileUpdate }: V
                     {volunteerProfile.availability.evenings && (
                       <Badge variant="outline" className="text-xs">Evenings</Badge>
                     )}
+                    {volunteerProfile.availability.flexible && (
+                      <Badge variant="outline" className="text-xs">Flexible</Badge>
+                    )}
                   </div>
                 </div>
               )}

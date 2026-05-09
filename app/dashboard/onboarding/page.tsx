@@ -232,7 +232,7 @@ export default function OnboardingDashboard() {
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold">Member Onboarding & Engagement</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold">Onboarding & Engagement</h1>
           <p className="text-muted-foreground text-sm sm:text-base">
             Create and manage onboarding flows for your community
           </p>

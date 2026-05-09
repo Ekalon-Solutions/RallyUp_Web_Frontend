@@ -9,9 +9,8 @@ import { formatDisplayDate } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { getBaseUrl } from '@/lib/config';
 
-const fontImports = `
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto:wght@400;500;700&family=Open+Sans:wght@400;600;700&family=Montserrat:wght@400;500;600;700&display=swap');
-`;
+const CARD_FONTS_URL =
+  "https://fonts.googleapis.com/css2?family=Anton&family=Archivo+Black&family=Barlow:wght@400;500;600;700&family=Bebas+Neue&family=Bitter:wght@400;600;700&family=Exo+2:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Lato:wght@400;700&family=Lora:wght@400;600;700&family=Merriweather:wght@400;700&family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@400;600;700&family=Oswald:wght@400;500;600;700&family=Playfair+Display:wght@400;600;700&family=Poppins:wght@400;500;600;700&family=Roboto:wght@400;500;700&family=Roboto+Slab:wght@400;600;700&family=Teko:wght@400;500;600;700&family=Titillium+Web:wght@400;600;700&display=swap"
 
 interface MembershipCardProps {
   cardData: PublicMembershipCardDisplay;
@@ -34,6 +33,16 @@ export function MembershipCard({
   const cardRef = useRef<HTMLDivElement>(null);
   const [transform, setTransform] = useState({ rotateX: 0, rotateY: 0, scale: 1 });
   const [isHovered, setIsHovered] = useState(false);
+
+  useEffect(() => {
+    const linkId = "membership-card-fonts"
+    if (document.getElementById(linkId)) return
+    const link = document.createElement("link")
+    link.id = linkId
+    link.rel = "stylesheet"
+    link.href = CARD_FONTS_URL
+    document.head.appendChild(link)
+  }, []);
 
   const getStyleConfig = () => {
     // Use custom colors whenever both are provided (for any card style) so preview and saved cards reflect edits
@@ -104,28 +113,9 @@ export function MembershipCard({
 
   const style = getStyleConfig();
 
-  const getFontFamily = () => {
-    if (card.customization?.fontFamily) {
-      switch (card.customization.fontFamily) {
-        case 'Roboto': return 'font-roboto';
-        case 'Open Sans': return 'font-open-sans';
-        case 'Montserrat': return 'font-montserrat';
-        default: return 'font-inter';
-      }
-    }
-    return 'font-inter';
-  };
-
   const getFontFamilyStyle = () => {
-    if (card.customization?.fontFamily) {
-      switch (card.customization.fontFamily) {
-        case 'Roboto': return { fontFamily: 'Roboto, sans-serif' };
-        case 'Open Sans': return { fontFamily: 'Open Sans, sans-serif' };
-        case 'Montserrat': return { fontFamily: 'Montserrat, sans-serif' };
-        default: return { fontFamily: 'Inter, sans-serif' };
-      }
-    }
-    return { fontFamily: 'Inter, sans-serif' };
+    const font = card.customization?.fontFamily || 'Inter';
+    return { fontFamily: `'${font}', sans-serif` };
   };
 
   const getLogoSize = () => {
@@ -181,10 +171,8 @@ export function MembershipCard({
   };
 
   return (
-    <>
-      <style key="font-imports">{fontImports}</style>
-      <div
-        ref={cardRef}
+    <div
+      ref={cardRef}
         className="perspective-1000"
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
@@ -281,7 +269,6 @@ export function MembershipCard({
       </CardContent>
     </Card>
     </div>
-    </>
   );
 }
 

@@ -45,7 +45,8 @@ export function VolunteerQuickSignup({ onSignup, currentProfile, isSignedUp = fa
                 Available: {[
                   currentProfile?.availability?.weekdays && 'Weekdays',
                   currentProfile?.availability?.weekends && 'Weekends',
-                  currentProfile?.availability?.evenings && 'Evenings'
+                  currentProfile?.availability?.evenings && 'Evenings',
+                  currentProfile?.availability?.flexible && 'Flexible',
                 ].filter(Boolean).join(', ') || 'Not specified'}
               </span>
             </div>

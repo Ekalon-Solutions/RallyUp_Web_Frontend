@@ -156,14 +156,17 @@ export default function ExternalTicketingPage() {
   const formatFixtureDateTime = (isoDate: string) => {
     const d = new Date(isoDate)
     if (isNaN(d.getTime())) return ''
-    const corrected = new Date(d.getTime() + 5.5 * 60 * 60 * 1000)
-    const ist = { timeZone: 'Asia/Kolkata' }
-    const day = Number(corrected.toLocaleString('en-IN', { ...ist, day: 'numeric' }))
-    const month = corrected.toLocaleString('en-IN', { ...ist, month: 'long' })
-    const year = corrected.toLocaleString('en-IN', { ...ist, year: 'numeric' })
-    const hours = corrected.toLocaleString('en-IN', { ...ist, hour: '2-digit', hour12: false }).padStart(2, '0')
-    const minutes = corrected.toLocaleString('en-IN', { ...ist, minute: '2-digit' }).padStart(2, '0')
-    return `${day} ${month} ${year}, ${hours}:${minutes} IST`
+    const options: Intl.DateTimeFormatOptions = {
+      timeZone: 'Asia/Kolkata',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    }
+    const formatted = d.toLocaleString('en-IN', options)
+    return `${formatted} IST`
   }
 
   const getStatusBadge = (status: string) => {

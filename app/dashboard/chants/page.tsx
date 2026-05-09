@@ -401,10 +401,6 @@ export default function ChantsManagementPage() {
               <p className="text-muted-foreground">Manage club chants and traditions</p>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setShowStats(!showStats)}>
-                <BarChart3 className="w-4 h-4 mr-2" />
-                {showStats ? 'Hide Stats' : 'Show Stats'}
-              </Button>
               <Button onClick={() => setShowCreateModal(true)}>
                 <Plus className="w-4 h-4 mr-2" />
                 Add Chant

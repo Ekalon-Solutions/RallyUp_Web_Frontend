@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calendar, Search, MoreHorizontal, Edit, Trash2, MapPin, Clock, Users, Plus, Filter, Ban, CheckCircle } from "lucide-react"
+import { Calendar, Search, MoreHorizontal, Edit, Trash2, MapPin, Clock, Users, Plus, Filter, Ban, CheckCircle, Radio } from "lucide-react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
 import { CreateEventModal } from "@/components/modals/create-event-modal"
@@ -27,6 +27,7 @@ export default function EventsPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [categoryFilter, setCategoryFilter] = useState<string>("all")
   const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [timeFilter, setTimeFilter] = useState<string>("all")
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
 
@@ -44,7 +45,7 @@ export default function EventsPage() {
     if (user && !isAdmin) {
       fetchUserRegistrations()
     }
-  }, [currentPage, searchTerm, categoryFilter, statusFilter, user, isAdmin, clubId])
+  }, [currentPage, searchTerm, categoryFilter, statusFilter, timeFilter, user, isAdmin, clubId])
 
   const fetchEvents = async () => {
     try {
@@ -75,9 +76,21 @@ export default function EventsPage() {
 
         // Apply status filter
         if (statusFilter !== "all") {
-          filteredEvents = filteredEvents.filter(event => 
+          filteredEvents = filteredEvents.filter(event =>
             statusFilter === "active" ? event.isActive : !event.isActive
           )
+        }
+
+        // Apply time filter
+        if (timeFilter !== "all") {
+          const now = new Date()
+          filteredEvents = filteredEvents.filter(event => {
+            const start = new Date(event.startTime)
+            const end = event.endTime ? new Date(event.endTime) : null
+            if (timeFilter === "upcoming") return start > now
+            if (timeFilter === "live") return start <= now && (!end || end > now)
+            return end ? end <= now : start < now // past
+          })
         }
 
         setEvents(filteredEvents)
@@ -258,6 +271,18 @@ export default function EventsPage() {
                         <SelectItem value="inactive">Inactive</SelectItem>
                       </SelectContent>
                     </Select>
+                    <Select value={timeFilter} onValueChange={setTimeFilter}>
+                      <SelectTrigger className="w-full sm:w-48">
+                        <Clock className="w-4 h-4 mr-2" />
+                        <SelectValue placeholder="Filter by time" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Time</SelectItem>
+                        <SelectItem value="upcoming">Upcoming</SelectItem>
+                        <SelectItem value="live">🔴 Live Now</SelectItem>
+                        <SelectItem value="past">Past</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
                   <div className="rounded-md border overflow-x-auto">
@@ -333,9 +358,23 @@ export default function EventsPage() {
                                 </div>
                               </TableCell>
                               <TableCell>
-                                <Badge variant={event.isActive ? "default" : "secondary"}>
-                                  {event.isActive ? "Active" : "Inactive"}
-                                </Badge>
+                                <div className="flex flex-col gap-1">
+                                  <Badge variant={event.isActive ? "default" : "secondary"}>
+                                    {event.isActive ? "Active" : "Inactive"}
+                                  </Badge>
+                                  {(() => {
+                                    const now = new Date()
+                                    const start = new Date(event.startTime)
+                                    const end = event.endTime ? new Date(event.endTime) : null
+                                    const isLive = start <= now && (!end || end > now)
+                                    return isLive ? (
+                                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-600">
+                                        <Radio className="w-3 h-3" />
+                                        LIVE
+                                      </span>
+                                    ) : null
+                                  })()}
+                                </div>
                               </TableCell>
                               <TableCell className="text-right">
                                 <div className="flex items-center justify-end gap-2">

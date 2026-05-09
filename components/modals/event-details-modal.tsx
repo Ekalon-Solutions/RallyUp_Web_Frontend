@@ -23,7 +23,7 @@ interface EventDetailsModalProps {
 export default function EventDetailsModal({ event, isOpen, onClose }: EventDetailsModalProps) {
   const { user } = useAuth()
   const [registration, setRegistration] = useState<any | null>(null)
-  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL as string) || "wingmanpro.tech";
+  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL as string) || "https://wingmanpro.tech";
 
   const userRegistration = event?.registrations?.find(
     r => r && String((r as any).userId) === String(user?._id)

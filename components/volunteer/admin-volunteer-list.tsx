@@ -174,6 +174,7 @@ export default function AdminVolunteerList({ clubId, currentUser }: AdminVolunte
         v.availability?.weekdays && 'Weekdays',
         v.availability?.weekends && 'Weekends',
         v.availability?.evenings && 'Evenings',
+        v.availability?.flexible && 'Flexible',
       ]
         .filter(Boolean)
         .join(', '),
@@ -402,6 +403,9 @@ export default function AdminVolunteerList({ clubId, currentUser }: AdminVolunte
                             {volunteer.availability?.evenings && (
                               <Badge variant="outline" className="text-xs">Evenings</Badge>
                             )}
+                            {volunteer.availability?.flexible && (
+                              <Badge variant="outline" className="text-xs">Flexible</Badge>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell className="text-right">
@@ -439,10 +443,10 @@ export default function AdminVolunteerList({ clubId, currentUser }: AdminVolunte
                 </AvatarFallback>
               </Avatar>
               <div>
-                <p className="text-xl">
+                <p className="text-xl font-semibold text-foreground leading-tight">
                   {selectedVolunteer?.user?.first_name} {selectedVolunteer?.user?.last_name}
                 </p>
-                <p className="text-sm font-normal text-gray-500">{selectedVolunteer?.user?.email}</p>
+                <p className="text-sm font-normal text-muted-foreground mt-0.5">{selectedVolunteer?.user?.email}</p>
               </div>
             </DialogTitle>
             <DialogDescription>Complete volunteer profile and information</DialogDescription>
@@ -461,14 +465,14 @@ export default function AdminVolunteerList({ clubId, currentUser }: AdminVolunte
                 <h4 className="text-sm font-semibold mb-2">Contact Information</h4>
                 <div className="space-y-2">
                   {selectedVolunteer.user?.email && (
-                    <div className="flex items-center text-sm">
-                      <Mail className="w-4 h-4 mr-2 text-gray-400" />
+                    <div className="flex items-center text-sm text-foreground">
+                      <Mail className="w-4 h-4 mr-2 text-muted-foreground" />
                       {selectedVolunteer.user.email}
                     </div>
                   )}
                   {selectedVolunteer.user?.phoneNumber && (
-                    <div className="flex items-center text-sm">
-                      <Phone className="w-4 h-4 mr-2 text-gray-400" />
+                    <div className="flex items-center text-sm text-foreground">
+                      <Phone className="w-4 h-4 mr-2 text-muted-foreground" />
                       {selectedVolunteer.user.phoneNumber}
                     </div>
                   )}
@@ -506,31 +510,28 @@ export default function AdminVolunteerList({ clubId, currentUser }: AdminVolunte
               {/* Availability */}
               <div>
                 <h4 className="text-sm font-semibold mb-2">Availability</h4>
-                <div className="space-y-2">
-                  <div className="flex items-center text-sm">
-                    <Clock className="w-4 h-4 mr-2 text-gray-400" />
-                    <span>
-                      Weekdays: {selectedVolunteer.availability?.weekdays ? '✓ Yes' : '✗ No'}
-                    </span>
-                  </div>
-                  <div className="flex items-center text-sm">
-                    <Clock className="w-4 h-4 mr-2 text-gray-400" />
-                    <span>
-                      Weekends: {selectedVolunteer.availability?.weekends ? '✓ Yes' : '✗ No'}
-                    </span>
-                  </div>
-                  <div className="flex items-center text-sm">
-                    <Clock className="w-4 h-4 mr-2 text-gray-400" />
-                    <span>
-                      Evenings: {selectedVolunteer.availability?.evenings ? '✓ Yes' : '✗ No'}
-                    </span>
-                  </div>
-                  <div className="flex items-center text-sm">
-                    <Clock className="w-4 h-4 mr-2 text-gray-400" />
-                    <span>
-                      Flexible: {selectedVolunteer.availability?.flexible ? '✓ Yes' : '✗ No'}
-                    </span>
-                  </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {(
+                    [
+                      { label: 'Weekdays', value: selectedVolunteer.availability?.weekdays },
+                      { label: 'Weekends', value: selectedVolunteer.availability?.weekends },
+                      { label: 'Evenings', value: selectedVolunteer.availability?.evenings },
+                      { label: 'Flexible', value: selectedVolunteer.availability?.flexible },
+                    ] as { label: string; value: boolean | undefined }[]
+                  ).map(({ label, value }) => (
+                    <div
+                      key={label}
+                      className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm ${
+                        value
+                          ? 'border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-400'
+                          : 'border-border bg-muted/40 text-muted-foreground'
+                      }`}
+                    >
+                      <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+                      <span className="font-medium">{label}</span>
+                      <span className="ml-auto">{value ? '✓' : '✗'}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -539,12 +540,12 @@ export default function AdminVolunteerList({ clubId, currentUser }: AdminVolunte
                 <div>
                   <h4 className="text-sm font-semibold mb-2">Experience</h4>
                   <div className="space-y-2">
-                    <div className="flex items-center text-sm">
-                      <Award className="w-4 h-4 mr-2 text-gray-400" />
+                    <div className="flex items-center text-sm text-foreground">
+                      <Award className="w-4 h-4 mr-2 text-muted-foreground" />
                       Level: <span className="font-medium ml-1 capitalize">{selectedVolunteer.experience.level}</span>
                     </div>
-                    <div className="flex items-center text-sm">
-                      <Calendar className="w-4 h-4 mr-2 text-gray-400" />
+                    <div className="flex items-center text-sm text-foreground">
+                      <Calendar className="w-4 h-4 mr-2 text-muted-foreground" />
                       Years: <span className="font-medium ml-1">{selectedVolunteer.experience.yearsOfExperience}</span>
                     </div>
                   </div>
@@ -555,7 +556,7 @@ export default function AdminVolunteerList({ clubId, currentUser }: AdminVolunte
               {selectedVolunteer.notes && (
                 <div>
                   <h4 className="text-sm font-semibold mb-2">Notes</h4>
-                  <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-md">
+                  <p className="text-sm text-foreground bg-muted/50 p-3 rounded-md border">
                     {selectedVolunteer.notes}
                   </p>
                 </div>
@@ -564,8 +565,8 @@ export default function AdminVolunteerList({ clubId, currentUser }: AdminVolunte
               {/* Joined Date */}
               <div>
                 <h4 className="text-sm font-semibold mb-2">Joined</h4>
-                <div className="flex items-center text-sm text-gray-600">
-                  <Calendar className="w-4 h-4 mr-2 text-gray-400" />
+                <div className="flex items-center text-sm text-foreground">
+                  <Calendar className="w-4 h-4 mr-2 text-muted-foreground" />
                   {formatDisplayDate(selectedVolunteer.createdAt)}
                 </div>
               </div>

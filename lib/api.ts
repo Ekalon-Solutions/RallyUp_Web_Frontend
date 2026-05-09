@@ -393,6 +393,7 @@ export interface VolunteerProfile {
     weekdays: boolean;
     weekends: boolean;
     evenings: boolean;
+    flexible: boolean;
   };
   skills: string[];
   notes: string;
@@ -932,6 +933,12 @@ class ApiClient {
     phoneNumber?: string;
     countryCode?: string;
     profilePicture?: string;
+    address_line1?: string;
+    address_line2?: string;
+    city?: string;
+    state_province?: string;
+    zip_code?: string;
+    country?: string;
     notificationPreferences?: {
       events?: boolean;
       membershipRenewals?: boolean;
@@ -996,6 +1003,13 @@ class ApiClient {
     if (data.profilePicture !== undefined) {
       backendData.profilePicture = data.profilePicture;
     }
+
+    if (data.address_line1 !== undefined) backendData.address_line1 = data.address_line1;
+    if (data.address_line2 !== undefined) backendData.address_line2 = data.address_line2;
+    if (data.city !== undefined) backendData.city = data.city;
+    if (data.state_province !== undefined) backendData.state_province = data.state_province;
+    if (data.zip_code !== undefined) backendData.zip_code = data.zip_code;
+    if (data.country !== undefined) backendData.country = data.country;
 
     if (data.notificationPreferences !== undefined) {
       backendData.notificationPreferences = data.notificationPreferences;
@@ -1853,6 +1867,7 @@ class ApiClient {
       weekdays: boolean;
       weekends: boolean;
       evenings: boolean;
+      flexible: boolean;
     };
     skills: string[];
     notes?: string;
@@ -1869,6 +1884,7 @@ class ApiClient {
       weekdays?: boolean;
       weekends?: boolean;
       evenings?: boolean;
+      flexible?: boolean;
     };
     skills?: string[];
     notes?: string;

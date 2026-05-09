@@ -287,7 +287,8 @@ export default function VolunteerDashboard() {
           availability: {
             weekdays: preferences.availability?.weekdays || false,
             weekends: preferences.availability?.weekends || false,
-            evenings: preferences.availability?.evenings || false
+            evenings: preferences.availability?.evenings || false,
+            flexible: preferences.availability?.flexible || false,
           },
           notes: preferences.notes || ''
         };
@@ -321,7 +322,8 @@ export default function VolunteerDashboard() {
           availability: {
             weekdays: preferences.availability?.weekdays || false,
             weekends: preferences.availability?.weekends || false,
-            evenings: preferences.availability?.evenings || false
+            evenings: preferences.availability?.evenings || false,
+            flexible: preferences.availability?.flexible || false,
           },
           notes: preferences.notes || ''
         });

@@ -29,6 +29,7 @@ const defaultPreferences: VolunteerProfile = {
     weekdays: false,
     weekends: false,
     evenings: false,
+    flexible: false,
   },
   skills: [],
   notes: '',
@@ -145,6 +146,19 @@ export function VolunteerSignUpModal({
                     }
                   />
                   <Label htmlFor="evenings">Evenings</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="flexible"
+                    checked={preferences.availability.flexible ?? false}
+                    onCheckedChange={(checked) =>
+                      setPreferences({
+                        ...preferences,
+                        availability: { ...preferences.availability, flexible: !!checked },
+                      })
+                    }
+                  />
+                  <Label htmlFor="flexible">Flexible</Label>
                 </div>
               </div>
             </div>

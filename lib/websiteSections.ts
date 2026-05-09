@@ -6,6 +6,11 @@ export type WebsiteSectionKey =
   | "members"
   | "store"
   | "merchandise"
+  | "gallery"
+  | "leaderboard"
+  | "externalTicketing"
+  | "volunteer"
+  | "guessTheScore"
 
 export type WebsiteSectionsRecord = Partial<Record<WebsiteSectionKey, boolean>>
 
@@ -82,6 +87,36 @@ export const MEMBER_DASHBOARD_SECTION_OPTIONS: readonly WebsiteSectionOption[] =
     description: "Show merchandise section in the member dashboard.",
     keys: ["store", "merchandise"],
   },
+  {
+    id: "gallery",
+    label: "Gallery",
+    description: "Show the photo & media gallery in the member dashboard.",
+    keys: ["gallery"],
+  },
+  {
+    id: "leaderboard",
+    label: "Leaderboard",
+    description: "Show the member leaderboard in the member dashboard.",
+    keys: ["leaderboard"],
+  },
+  {
+    id: "externalTicketing",
+    label: "External Ticketing",
+    description: "Show external ticketing links in the member dashboard.",
+    keys: ["externalTicketing"],
+  },
+  {
+    id: "volunteer",
+    label: "Volunteer",
+    description: "Show volunteer opportunities in the member dashboard.",
+    keys: ["volunteer"],
+  },
+  {
+    id: "guessTheScore",
+    label: "Guess The Score",
+    description: "Show the Guess The Score game in the member dashboard.",
+    keys: ["guessTheScore"],
+  },
 ] as const
 
 export const DEFAULT_WEBSITE_SECTIONS: Record<WebsiteSectionKey, boolean> = {
@@ -92,6 +127,11 @@ export const DEFAULT_WEBSITE_SECTIONS: Record<WebsiteSectionKey, boolean> = {
   members: false,
   store: true,
   merchandise: true,
+  gallery: true,
+  leaderboard: true,
+  externalTicketing: true,
+  volunteer: true,
+  guessTheScore: true,
 }
 
 export function isWebsiteOptionEnabled(sections: WebsiteSectionsRecord, option: WebsiteSectionOption): boolean {
@@ -119,6 +159,11 @@ export function sanitizeWebsiteSections(sections: Record<string, any> | undefine
     "members",
     "store",
     "merchandise",
+    "gallery",
+    "leaderboard",
+    "externalTicketing",
+    "volunteer",
+    "guessTheScore",
   ])
   const input = sections || {}
   const next: WebsiteSectionsRecord = {}

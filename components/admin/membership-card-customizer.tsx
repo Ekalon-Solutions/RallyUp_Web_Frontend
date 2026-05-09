@@ -14,6 +14,9 @@ import { getApiUrl, getBaseUrl } from '@/lib/config';
 import { MembershipCard } from '@/components/membership-card';
 import { Upload, Save, Eye, Palette, Type, Image as ImageIcon } from 'lucide-react';
 
+const CARD_FONTS_GOOGLE_URL =
+  "https://fonts.googleapis.com/css2?family=Anton&family=Archivo+Black&family=Barlow:wght@400;500;600;700&family=Bebas+Neue&family=Bitter:wght@400;600;700&family=Exo+2:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Lato:wght@400;700&family=Lora:wght@400;600;700&family=Merriweather:wght@400;700&family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@400;600;700&family=Oswald:wght@400;500;600;700&family=Playfair+Display:wght@400;600;700&family=Poppins:wght@400;500;600;700&family=Roboto:wght@400;500;700&family=Roboto+Slab:wght@400;600;700&family=Teko:wght@400;500;600;700&family=Titillium+Web:wght@400;600;700&display=swap"
+
 // Card style presets
 const CARD_STYLES = [
   { value: 'default', label: 'Classic Blue', colors: { primary: '#2563eb', secondary: '#1e40af' } },
@@ -29,7 +32,22 @@ const FONT_FAMILIES = [
   { value: 'Inter', label: 'Inter (Default)' },
   { value: 'Roboto', label: 'Roboto' },
   { value: 'Open Sans', label: 'Open Sans' },
-  { value: 'Montserrat', label: 'Montserrat' }
+  { value: 'Montserrat', label: 'Montserrat' },
+  { value: 'Poppins', label: 'Poppins' },
+  { value: 'Lato', label: 'Lato' },
+  { value: 'Oswald', label: 'Oswald' },
+  { value: 'Bebas Neue', label: 'Bebas Neue' },
+  { value: 'Teko', label: 'Teko' },
+  { value: 'Anton', label: 'Anton' },
+  { value: 'Exo 2', label: 'Exo 2' },
+  { value: 'Barlow', label: 'Barlow' },
+  { value: 'Archivo Black', label: 'Archivo Black' },
+  { value: 'Titillium Web', label: 'Titillium Web' },
+  { value: 'Merriweather', label: 'Merriweather' },
+  { value: 'Playfair Display', label: 'Playfair Display' },
+  { value: 'Lora', label: 'Lora' },
+  { value: 'Roboto Slab', label: 'Roboto Slab' },
+  { value: 'Bitter', label: 'Bitter' },
 ];
 
 const LOGO_SIZES = [
@@ -59,6 +77,18 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
   const [showLogo, setShowLogo] = useState(true);
   const [customLogo, setCustomLogo] = useState<string | null>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+
+  // Inject Google Fonts for the font preview in the dropdown
+  useEffect(() => {
+    const linkId = "membership-card-google-fonts"
+    if (document.getElementById(linkId)) return
+    const link = document.createElement("link")
+    link.id = linkId
+    link.rel = "stylesheet"
+    link.href = CARD_FONTS_GOOGLE_URL
+    document.head.appendChild(link)
+    return () => { document.getElementById(linkId)?.remove() }
+  }, [])
 
   // Fetch existing card data
   useEffect(() => {
@@ -505,12 +535,14 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
                     <Label>Font Family</Label>
                     <Select value={fontFamily} onValueChange={setFontFamily}>
                       <SelectTrigger>
-                        <SelectValue />
+                        <SelectValue asChild>
+                          <span style={{ fontFamily: `'${fontFamily}', sans-serif` }}>{fontFamily}</span>
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
                         {FONT_FAMILIES.map((font) => (
                           <SelectItem key={font.value} value={font.value}>
-                            {font.label}
+                            <span style={{ fontFamily: `'${font.value}', sans-serif` }}>{font.label}</span>
                           </SelectItem>
                         ))}
                       </SelectContent>

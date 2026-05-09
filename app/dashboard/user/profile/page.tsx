@@ -19,15 +19,6 @@ import { VolunteerSignUpModal } from "@/components/volunteer/volunteer-signup-mo
 import { VolunteerProfile } from "@/lib/api"
 import { apiClient } from "@/lib/api"
 import { formatDisplayDate } from "@/lib/utils"
-import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth"
-import { auth } from "@/lib/firebase/config"
-
-declare global {
-  interface Window {
-    recaptchaVerifier: any;
-    confirmationResult: any;
-  }
-}
 
 const isSystemAdmin = (role: string | undefined) =>
   role === "admin" || role === "super_admin" || role === "system_owner"
@@ -52,13 +43,40 @@ export default function UserProfilePage() {
     name: "",
     email: "",
     phoneNumber: "",
-    countryCode: "+1"
+    countryCode: "+1",
+    address_line1: "",
+    address_line2: "",
+    city: "",
+    state_province: "",
+    zip_code: "",
+    country: "",
   })
 
   const [showOtpInput, setShowOtpInput] = useState(false)
   const [otp, setOtp] = useState("")
   const [otpSent, setOtpSent] = useState(false)
+  const [sessionInfo, setSessionInfo] = useState<string | null>(null)
   const [isVerifying, setIsVerifying] = useState(false)
+  const [resendLoading, setResendLoading] = useState<"whatsapp" | "sms" | null>(null)
+  const [resendCooldown, setResendCooldown] = useState(0)
+  const cooldownRef = React.useRef<ReturnType<typeof setInterval> | null>(null)
+
+  const startCooldown = () => {
+    if (cooldownRef.current) clearInterval(cooldownRef.current)
+    setResendCooldown(30)
+    cooldownRef.current = setInterval(() => {
+      setResendCooldown((prev) => {
+        if (prev <= 1) {
+          clearInterval(cooldownRef.current!)
+          cooldownRef.current = null
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+  }
+
+  React.useEffect(() => () => { if (cooldownRef.current) clearInterval(cooldownRef.current) }, [])
   const [uploadingPhoto, setUploadingPhoto] = useState(false)
   const fileInputRef = React.useRef<HTMLInputElement>(null)
   const showSystemAdminProfile = user ? isSystemAdmin(user.role) : false
@@ -86,11 +104,18 @@ export default function UserProfilePage() {
 
   useEffect(() => {
     if (user) {
+      const u = user as any
       setProfileForm({
         name: user.name || "",
         email: user.email || "",
         phoneNumber: user.phoneNumber || "",
-        countryCode: user.countryCode || "+1"
+        countryCode: user.countryCode || "+1",
+        address_line1: u.address_line1 || "",
+        address_line2: u.address_line2 || "",
+        city: u.city || "",
+        state_province: u.state_province || "",
+        zip_code: u.zip_code || "",
+        country: u.country || "",
       })
     }
   }, [user])
@@ -112,37 +137,56 @@ export default function UserProfilePage() {
     fetchVolunteerProfile()
   }, [user])
 
-  const setupRecaptcha = () => {
-    if (typeof window !== "undefined") {
-      if (!window.recaptchaVerifier) {
-        window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-          'size': 'invisible',
-        });
-      }
-      return window.recaptchaVerifier
-    }
-  }
-
   const handleSendOTP = async () => {
     if (!profileForm.phoneNumber) {
       toast.error("Please provide a phone number first")
       return
     }
-
     try {
       setLoading(true)
-      const phoneNumber = (profileForm.countryCode.startsWith('+') ? profileForm.countryCode : '+' + profileForm.countryCode) + profileForm.phoneNumber
-      const verifier = setupRecaptcha()
-      const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, verifier)
-      window.confirmationResult = confirmationResult
-      setOtpSent(true)
-      setShowOtpInput(true)
-      toast.success("OTP sent to your phone number")
+      const cc = profileForm.countryCode.startsWith('+') ? profileForm.countryCode : '+' + profileForm.countryCode
+      const res = await apiClient.sendOtp({
+        phoneNumber: profileForm.phoneNumber,
+        countryCode: cc,
+        role: "user",
+      })
+      if (res.success) {
+        setSessionInfo(res.data?.sessionInfo ?? null)
+        setOtpSent(true)
+        setShowOtpInput(true)
+        startCooldown()
+        toast.success("OTP sent via WhatsApp")
+      } else {
+        toast.error((res as any).errorDetails?.details?.message || res.error || "Failed to send OTP")
+      }
     } catch (error: any) {
-      console.error("Error sending OTP:", error)
-      toast.error(error.message || "Failed to send OTP. Please check the phone number.")
+      toast.error(error.message || "Failed to send OTP")
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleResendOTP = async (channel: "whatsapp" | "sms") => {
+    setResendLoading(channel)
+    try {
+      const cc = profileForm.countryCode.startsWith('+') ? profileForm.countryCode : '+' + profileForm.countryCode
+      const res = await apiClient.resendOTP({
+        phoneNumber: profileForm.phoneNumber,
+        countryCode: cc,
+        role: "user",
+        channel,
+      })
+      if (res.success) {
+        if (res.data?.sessionInfo) setSessionInfo(res.data.sessionInfo)
+        startCooldown()
+        toast.success(channel === "whatsapp" ? "OTP resent via WhatsApp" : "OTP resent via SMS")
+      } else {
+        toast.error((res as any).errorDetails?.details?.message || res.error || "Failed to resend OTP")
+      }
+    } catch (error: any) {
+      toast.error(error.message || "Failed to resend OTP")
+    } finally {
+      setResendLoading(null)
     }
   }
 
@@ -151,33 +195,37 @@ export default function UserProfilePage() {
       toast.error("Please enter a valid 6-digit OTP")
       return
     }
-
+    if (!sessionInfo) {
+      toast.error("Session expired. Please request a new OTP.")
+      setShowOtpInput(false)
+      return
+    }
     try {
       setIsVerifying(true)
-      const confirmationResult = window.confirmationResult
-      if (!confirmationResult) {
-        toast.error("Session expired. Please request a new OTP.")
-        setShowOtpInput(false)
-        return
-      }
-
-      await confirmationResult.confirm(otp)
-      
-      if (user) {
+      const cc = profileForm.countryCode.startsWith('+') ? profileForm.countryCode : '+' + profileForm.countryCode
+      const verifyRes = await apiClient.verifyOTP({
+        phoneNumber: profileForm.phoneNumber,
+        countryCode: cc,
+        otp,
+        sessionInfo,
+        role: "user",
+      })
+      if (verifyRes.success) {
         const result = await apiClient.verifyPhoneNumber({})
-
         if (result.success) {
           toast.success("Phone number verified successfully")
           setShowOtpInput(false)
           setOtpSent(false)
           setOtp("")
+          setSessionInfo(null)
           await checkAuth()
         } else {
           toast.error(result.error || "Verification failed on server")
         }
+      } else {
+        toast.error((verifyRes as any).errorDetails?.details?.message || verifyRes.error || "Invalid OTP. Please try again.")
       }
     } catch (error) {
-      console.error("Error verifying OTP:", error)
       toast.error("Invalid OTP. Please try again.")
     } finally {
       setIsVerifying(false)
@@ -193,7 +241,13 @@ export default function UserProfilePage() {
         name: profileForm.name,
         email: profileForm.email,
         phoneNumber: profileForm.phoneNumber,
-        countryCode: profileForm.countryCode
+        countryCode: profileForm.countryCode,
+        address_line1: profileForm.address_line1 || undefined,
+        address_line2: profileForm.address_line2 || undefined,
+        city: profileForm.city || undefined,
+        state_province: profileForm.state_province || undefined,
+        zip_code: profileForm.zip_code || undefined,
+        country: profileForm.country || undefined,
       })
 
       if (result.success) {
@@ -439,6 +493,70 @@ export default function UserProfilePage() {
                           />
                         </div>
                       </div>
+                      {isMember(user?.role) && (
+                        <>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="address_line1">Address Line 1</Label>
+                              <Input
+                                id="address_line1"
+                                value={profileForm.address_line1}
+                                onChange={(e) => setProfileForm({ ...profileForm, address_line1: e.target.value })}
+                                placeholder="Street address"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="address_line2">Address Line 2</Label>
+                              <Input
+                                id="address_line2"
+                                value={profileForm.address_line2}
+                                onChange={(e) => setProfileForm({ ...profileForm, address_line2: e.target.value })}
+                                placeholder="Apt, suite, etc. (optional)"
+                              />
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="city">City</Label>
+                              <Input
+                                id="city"
+                                value={profileForm.city}
+                                onChange={(e) => setProfileForm({ ...profileForm, city: e.target.value })}
+                                placeholder="City"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="state_province">State / Province</Label>
+                              <Input
+                                id="state_province"
+                                value={profileForm.state_province}
+                                onChange={(e) => setProfileForm({ ...profileForm, state_province: e.target.value })}
+                                placeholder="State or province"
+                              />
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="zip_code">ZIP / Postal Code</Label>
+                              <Input
+                                id="zip_code"
+                                value={profileForm.zip_code}
+                                onChange={(e) => setProfileForm({ ...profileForm, zip_code: e.target.value })}
+                                placeholder="ZIP or postal code"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="country">Country</Label>
+                              <Input
+                                id="country"
+                                value={profileForm.country}
+                                onChange={(e) => setProfileForm({ ...profileForm, country: e.target.value })}
+                                placeholder="Country"
+                              />
+                            </div>
+                          </div>
+                        </>
+                      )}
                       <div className="flex gap-2">
                         <Button type="submit" disabled={loading}>
                           {loading ? "Saving..." : "Save Changes"}
@@ -483,45 +601,75 @@ export default function UserProfilePage() {
                                 {user.isPhoneVerified ? "Verified" : "Not Verified"}
                               </Badge>
                               {!user.isPhoneVerified && !showOtpInput && (
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
+                                <Button
+                                  variant="outline"
+                                  size="sm"
                                   className="h-7 text-xs"
                                   onClick={handleSendOTP}
                                   disabled={loading}
                                 >
                                   {loading ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null}
-                                  Verify Now
+                                  Verify via WhatsApp
                                 </Button>
                               )}
                             </div>
 
                             {!user.isPhoneVerified && showOtpInput && (
-                              <div className="flex items-center gap-2 mt-1">
-                                <Input
-                                  placeholder="Enter 6-digit OTP"
-                                  value={otp}
-                                  onChange={(e) => setOtp(e.target.value)}
-                                  className="h-8 w-32 text-sm"
-                                  maxLength={6}
-                                />
-                                <Button 
-                                  size="sm" 
-                                  className="h-8 text-xs"
-                                  onClick={handleVerifyOTP}
-                                  disabled={isVerifying}
-                                >
-                                  {isVerifying ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null}
-                                  Confirm
-                                </Button>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm" 
-                                  className="h-8 text-xs"
-                                  onClick={() => setShowOtpInput(false)}
-                                >
-                                  Cancel
-                                </Button>
+                              <div className="flex flex-col gap-2 mt-1">
+                                <div className="flex items-center gap-2">
+                                  <Input
+                                    placeholder="Enter 6-digit OTP"
+                                    value={otp}
+                                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                                    className="h-8 w-32 text-sm"
+                                    maxLength={6}
+                                  />
+                                  <Button
+                                    size="sm"
+                                    className="h-8 text-xs"
+                                    onClick={handleVerifyOTP}
+                                    disabled={isVerifying}
+                                  >
+                                    {isVerifying ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null}
+                                    Confirm
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 text-xs"
+                                    onClick={() => { setShowOtpInput(false); setSessionInfo(null); setOtp("") }}
+                                  >
+                                    Cancel
+                                  </Button>
+                                </div>
+                                {resendCooldown > 0 ? (
+                                  <p className="text-xs text-muted-foreground">
+                                    Resend in <span className="font-medium">{resendCooldown}s</span>
+                                  </p>
+                                ) : (
+                                  <div className="flex gap-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-7 text-xs text-green-600 border-green-300"
+                                      onClick={() => handleResendOTP("whatsapp")}
+                                      disabled={resendLoading !== null}
+                                    >
+                                      {resendLoading === "whatsapp" ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null}
+                                      Resend via WhatsApp
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="h-7 text-xs"
+                                      onClick={() => handleResendOTP("sms")}
+                                      disabled={resendLoading !== null}
+                                    >
+                                      {resendLoading === "sms" ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null}
+                                      Resend via SMS
+                                    </Button>
+                                  </div>
+                                )}
                               </div>
                             )}
                           </div>
@@ -542,7 +690,6 @@ export default function UserProfilePage() {
                 </CardContent>
               </Card>
 
-              <div id="recaptcha-container" />
 
               {!showSystemAdminProfile && (
               <Card className="overflow-hidden rounded-xl border shadow-sm">
@@ -784,12 +931,12 @@ export default function UserProfilePage() {
                         </div>
                       )}
                     </div>
-                    {((user as any).address_line1 ?? (user as any).city ?? (user as any).state_province ?? (user as any).zip_code ?? (user as any).country) != null && (
-                      <div className="space-y-2">
-                        <Label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
-                          <MapPin className="w-3.5 h-3.5" />
-                          Address
-                        </Label>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-muted-foreground flex items-center gap-1">
+                        <MapPin className="w-3.5 h-3.5" />
+                        Address
+                      </Label>
+                      {((user as any).address_line1 || (user as any).city || (user as any).state_province || (user as any).zip_code || (user as any).country) ? (
                         <div className="text-sm space-y-0.5">
                           {(user as any).address_line1 && <p>{(user as any).address_line1}</p>}
                           {(user as any).address_line2 && <p>{(user as any).address_line2}</p>}
@@ -798,8 +945,10 @@ export default function UserProfilePage() {
                             return parts.length > 0 ? <p>{parts.join(', ')}</p> : null;
                           })()}
                         </div>
-                      </div>
-                    )}
+                      ) : (
+                        <p className="text-sm text-muted-foreground italic">No address on file — edit your profile to add one.</p>
+                      )}
+                    </div>
                     {(user as any).last_login != null && (
                       <div className="space-y-2">
                         <Label className="text-sm font-medium text-muted-foreground">Last login</Label>

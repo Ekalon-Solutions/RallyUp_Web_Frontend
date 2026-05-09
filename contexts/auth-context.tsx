@@ -374,6 +374,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             last_name: raw.last_name ?? prev.last_name,
             notificationPreferences: raw.notificationPreferences ?? prev.notificationPreferences,
             isPhoneVerified: raw.isPhoneVerified ?? prev.isPhoneVerified,
+            address_line1: raw.address_line1 ?? prev.address_line1,
+            address_line2: raw.address_line2 ?? prev.address_line2,
+            city: raw.city ?? prev.city,
+            state_province: raw.state_province ?? prev.state_province,
+            zip_code: raw.zip_code ?? prev.zip_code,
+            country: raw.country ?? prev.country,
           } as any;
         });
 

@@ -50,10 +50,25 @@ function MembershipCardsPage() {
     }
 
   const FONT_FAMILIES = [
-    { label: "Inter", value: "Inter" },
+    { label: "Inter (Default)", value: "Inter" },
     { label: "Roboto", value: "Roboto" },
     { label: "Open Sans", value: "Open Sans" },
     { label: "Montserrat", value: "Montserrat" },
+    { label: "Poppins", value: "Poppins" },
+    { label: "Lato", value: "Lato" },
+    { label: "Oswald", value: "Oswald" },
+    { label: "Bebas Neue", value: "Bebas Neue" },
+    { label: "Teko", value: "Teko" },
+    { label: "Anton", value: "Anton" },
+    { label: "Exo 2", value: "Exo 2" },
+    { label: "Barlow", value: "Barlow" },
+    { label: "Archivo Black", value: "Archivo Black" },
+    { label: "Titillium Web", value: "Titillium Web" },
+    { label: "Merriweather", value: "Merriweather" },
+    { label: "Playfair Display", value: "Playfair Display" },
+    { label: "Lora", value: "Lora" },
+    { label: "Roboto Slab", value: "Roboto Slab" },
+    { label: "Bitter", value: "Bitter" },
   ];
 
   const { activeClubId } = useAuth()
@@ -1166,11 +1181,17 @@ function MembershipCardsPage() {
                       onValueChange={handleFontFamilyChange}
                     >
                       <SelectTrigger>
-                        <SelectValue />
+                        <SelectValue asChild>
+                          <span style={{ fontFamily: `'${editingCard.card.customization?.fontFamily || 'Inter'}', sans-serif` }}>
+                            {editingCard.card.customization?.fontFamily || 'Inter'}
+                          </span>
+                        </SelectValue>
                       </SelectTrigger>
                       <SelectContent>
                         {FONT_FAMILIES.map((font) => (
-                          <SelectItem key={font.value} value={font.value}>{font.label}</SelectItem>
+                          <SelectItem key={font.value} value={font.value}>
+                            <span style={{ fontFamily: `'${font.value}', sans-serif` }}>{font.label}</span>
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
