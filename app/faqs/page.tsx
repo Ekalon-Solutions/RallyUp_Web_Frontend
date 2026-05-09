@@ -218,41 +218,49 @@ export default function FAQsPage(): React.JSX.Element {
 
                     
                 </div>
-                <div className="w-full">
+                <div className="w-full mt-20">
                     <FadeIn>
-                        <Card className="rounded-none mt-20 relative overflow-hidden bg-gradient-to-br from-[#DCD4E2] to-[#8598C7] border-0">
-                            {/* Decorative background lines */}
-                            <div className="absolute inset-0 pointer-events-none opacity-40">
-                                <svg className="absolute w-full h-full" xmlns="http://www.w3.org/2000/svg">
-                                    <line x1="-20%" y1="120%" x2="120%" y2="-20%" stroke="currentColor" strokeWidth="1" className="text-primary/30" />
-                                    <line x1="-20%" y1="-20%" x2="120%" y2="120%" stroke="currentColor" strokeWidth="1" className="text-blue-500/20" />
-                                    <line x1="20%" y1="120%" x2="120%" y2="20%" stroke="currentColor" strokeWidth="1" className="text-primary/20" />
-                                    <line x1="-20%" y1="20%" x2="80%" y2="-20%" stroke="currentColor" strokeWidth="1" className="text-blue-500/20" />
-                                    <line x1="50%" y1="120%" x2="120%" y2="50%" stroke="currentColor" strokeWidth="1" className="text-primary/10" />
-                                </svg>
-                            </div>
+                        <div className="relative overflow-hidden bg-[linear-gradient(to_right,#DCD4E2_50%,#8598C7_100%)]">
+                            {/* Exact geometric line pattern */}
+                            <svg
+                                className="absolute inset-0 w-full h-full"
+                                viewBox="0 0 1440 500"
+                                preserveAspectRatio="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                            >
+                                {/* LEFT TRIANGLE */}
+                                <line x1="0" y1="500" x2="380" y2="0" stroke="#C9C1CF" strokeWidth="1.5" />
+                                <line x1="380" y1="0" x2="770" y2="500" stroke="#C9C1CF" strokeWidth="1.5" />
+
+                                {/* CENTER INTERSECTING TRIANGLE */}
+                                <line x1="530" y1="500" x2="905" y2="0" stroke="#A291B178" strokeWidth="1.5" />
+                                <line x1="905" y1="0" x2="1245" y2="500" stroke="#F1441A1F" strokeWidth="1.5" />
+
+                                {/* PARALLEL INNER RIGHT LINE */}
+                                <line x1="880" y1="0" x2="1215" y2="500" stroke="#8598C7AB" strokeWidth="1.5" />
+                            </svg>
                             
-                            <CardContent className="relative z-10 px-6 py-16 md:py-24 flex flex-col items-center text-center space-y-6">
-                                <span className="text-primary font-medium text-sm tracking-wide">Still have questions?</span>
-                                <h2 className="text-4xl text-background">
+                            <div className="relative z-10 px-6 py-16 md:py-14 flex flex-col items-center text-center">
+                                <span className="text-primary font-medium text-base tracking-wide mb-6">
+                                    Still have questions?
+                                </span>
+
+                                <h2 className="text-4xl md:text-5xl font-bold tracking-tight leading-none text-black">
                                     We're Here <span className="text-primary">To Help.</span>
                                 </h2>
-                                <p className="text-secondary max-w-md md:text-lg">
+
+                                <p className="mt-8 max-w-3xl text-secondary text-xl md:text-lg font-medium">
                                     Reach out to our strategy team and we'll get back to you right away.
                                 </p>
-                                {/* <div className="pt-6">
-                                    <a 
-                                        href="/contact" 
-                                        className="inline-flex h-12 items-center justify-center rounded-md bg-primary px-8 py-3 text-sm font-semibold text-white shadow-lg transition-transform hover:scale-105 active:scale-95"
-                                    >
-                                        CONTACT US
-                                    </a>
-                                </div> */}
-                                <Button variant="default" className="min-w-52">
-                                    <Link href="/contact">Contact Us</Link>
-                                </Button>
-                            </CardContent>
-                        </Card>
+
+                                <a
+                                  href="/contact"
+                                  className="mt-12 inline-flex h-12 items-center justify-center rounded-xl bg-primary px-12 text-sm font-bold uppercase tracking-[0.15em] text-white shadow-xl transition-all hover:-translate-y-1"
+                                >
+                                  Contact Us
+                                </a>
+                            </div>
+                        </div>
                     </FadeIn>
                 </div>
 

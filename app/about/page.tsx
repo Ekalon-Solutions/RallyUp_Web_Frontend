@@ -46,7 +46,7 @@ export default function AboutPage(): React.JSX.Element {
                         </div>
                         
                         <h1 className="md:text-4xl text-4xl lg:text-5xl font-bold mb-6 text-[#1A1A1A] tracking-tight leading-[1.1]">
-                            Built for <span className="text-[#FF4F2B]">The Game.</span>
+                            Built for <span className="text-primary">The Game.</span>
                         </h1>
                         
                         <p className="text-background text-base md:text-lg max-w-2xl leading-relaxed">
@@ -162,22 +162,22 @@ export default function AboutPage(): React.JSX.Element {
                             {/* Mobile Title */}
                             <div className="md:hidden">
                                 <div className="inline-flex items-center gap-2 mb-4">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-[#FF4F2B]" />
-                                    <span className="text-base font-semibold text-[#FF4F2B] tracking-wide">Platform Features</span>
+                                    <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                                    <span className="text-base font-semibold text-primary tracking-wide">Platform Features</span>
                                 </div>
                                 <h2 className="text-3xl font-extrabold text-[#1A1A1A] tracking-tight leading-[1.1] mb-8">
-                                    What <span className="text-[#FF4F2B]">You Get.</span>
+                                    What <span className="text-primary">You Get.</span>
                                 </h2>
                             </div>
 
                             {/* Desktop Title */}
                             <div className="hidden md:block mb-12">
                                 <div className="inline-flex items-center gap-2 mb-4">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-[#FF4F2B]" />
-                                    <span className="text-base font-semibold text-[#FF4F2B] tracking-wide">What We Do</span>
+                                    <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                                    <span className="text-base font-semibold text-primary tracking-wide">What We Do</span>
                                 </div>
                                 <h2 className="text-3xl lg:text-4xl font-extrabold text-[#1A1A1A] tracking-tight leading-[1.1]">
-                                    Five Core Features. <span className="text-[#FF4F2B]">One Platform.</span>
+                                    Five Core Features. <span className="text-primary">One Platform.</span>
                                 </h2>
                             </div>
                             
@@ -269,11 +269,11 @@ export default function AboutPage(): React.JSX.Element {
                         {/* Leadership Team Header */}
                         <div className="mb-12 relative z-10">
                         <div className="flex items-center gap-2 mb-4">
-                            <div className="w-1.5 h-1.5 rounded-full bg-[#FF4F2B]" />
-                            <span className="text-base font-semibold text-[#FF4F2B] tracking-wide">Leadership Team</span>
+                            <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                            <span className="text-base font-semibold text-primary tracking-wide">Leadership Team</span>
                         </div>
                         <h2 className="text-3xl lg:text-4xl font-extrabold text-[#1A1A1A] tracking-tight leading-[1.1]">
-                            The <span className="text-[#FF4F2B]">People</span> Behind It.
+                            The <span className="text-primary">People</span> Behind It.
                         </h2>
                     </div>
 
@@ -343,42 +343,52 @@ export default function AboutPage(): React.JSX.Element {
             {/* CTA Section */}
             <div className="w-full">
                 <FadeIn>
-                    <div className="rounded-none relative overflow-hidden bg-gradient-to-r from-[#DCD4E2] to-[#8598C7] border-0">
-                        {/* Decorative background lines */}
-                        <div className="absolute inset-0 pointer-events-none opacity-40">
-                            <svg className="absolute w-full h-full" xmlns="http://www.w3.org/2000/svg">
-                                <line x1="-20%" y1="120%" x2="120%" y2="-20%" stroke="currentColor" strokeWidth="1" className="text-[#FF4F2B]/30" />
-                                <line x1="-20%" y1="-20%" x2="120%" y2="120%" stroke="currentColor" strokeWidth="1" className="text-blue-500/20" />
-                                <line x1="20%" y1="120%" x2="120%" y2="20%" stroke="currentColor" strokeWidth="1" className="text-[#FF4F2B]/20" />
-                                <line x1="-20%" y1="20%" x2="80%" y2="-20%" stroke="currentColor" strokeWidth="1" className="text-blue-500/20" />
-                                <line x1="50%" y1="120%" x2="120%" y2="50%" stroke="currentColor" strokeWidth="1" className="text-[#FF4F2B]/10" />
-                            </svg>
-                        </div>
+                    <div className="relative overflow-hidden bg-[linear-gradient(to_right,#DCD4E2_50%,#8598C7_100%)]">
+                        {/* Exact geometric line pattern */}
+                        <svg
+                            className="absolute inset-0 w-full h-full"
+                            viewBox="0 0 1440 500"
+                            preserveAspectRatio="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                        >
+                            {/* LEFT TRIANGLE */}
+                            <line x1="0" y1="500" x2="380" y2="0" stroke="#C9C1CF" strokeWidth="1.5" />
+                            <line x1="380" y1="0" x2="770" y2="500" stroke="#C9C1CF" strokeWidth="1.5" />
+
+                            {/* CENTER INTERSECTING TRIANGLE */}
+                            <line x1="530" y1="500" x2="905" y2="0" stroke="#A291B178" strokeWidth="1.5" />
+                            <line x1="905" y1="0" x2="1245" y2="500" stroke="#F1441A1F" strokeWidth="1.5" />
+
+                            {/* PARALLEL INNER RIGHT LINE */}
+                            <line x1="880" y1="0" x2="1215" y2="500" stroke="#8598C7AB" strokeWidth="1.5" />
+                        </svg>
                         
-                        <div className="relative z-10 px-6 py-24 md:py-32 flex flex-col items-center text-center space-y-6">
-                            <span className="text-[#FF4F2B] font-medium text-base tracking-wide">
+                        <div className="relative z-10 px-6 py-16 md:py-14 flex flex-col items-center text-center">
+                            <span className="text-primary font-medium text-base tracking-wide mb-6">
                                 Partner with RallyUp Solutions
                             </span>
-                            <h2 className="text-3xl lg:text-5xl font-extrabold mb-2 text-[#1A1A1A] tracking-tight leading-[1.1]">
-                                Let's Build <span className="text-[#FF4F2B]">The Future.</span>
+
+                            <h2 className="text-4xl md:text-5xl font-bold tracking-tight leading-none text-black">
+                                Let's Build <span className="text-primary">The Future.</span>
                             </h2>
-                            <p className="text-[#5D5377] max-w-2xl text-base md:text-lg font-medium leading-relaxed pb-6">
+
+                            <p className="mt-8 max-w-3xl text-[#5D5377] text-xl md:text-lg font-medium">
                                 Are you a sports league, governing body, or technology provider ready to integrate with the future of club and membership management?
                             </p>
                             
-                            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-4 w-full">
-                                <Button 
-                                    asChild 
-                                    className="h-14 bg-[#FF4F2B] hover:bg-[#FF4F2B]/90 text-white font-bold uppercase tracking-[0.1em] rounded-lg shadow-lg shadow-[#FF4F2B]/20 transition-transform hover:-translate-y-1 hover:shadow-xl active:translate-y-0 w-full sm:w-[280px]"
+                            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-12 w-full">
+                                <a
+                                  href="/contact"
+                                  className="inline-flex h-12 items-center justify-center rounded-xl bg-primary px-12 text-sm font-bold uppercase tracking-[0.15em] text-white shadow-xl transition-all hover:-translate-y-1"
                                 >
-                                    <a href="/contact">CONTACT US</a>
-                                </Button>
-                                <Button 
-                                    asChild 
-                                    className="h-14 bg-[#65679B] hover:bg-[#65679B]/90 text-white font-bold uppercase tracking-[0.1em] rounded-lg shadow-lg shadow-[#65679B]/20 transition-transform hover:-translate-y-1 hover:shadow-xl active:translate-y-0 w-full sm:w-[280px]"
+                                  Contact Us
+                                </a>
+                                <a
+                                  href="/affiliations"
+                                  className="inline-flex h-12 items-center justify-center rounded-xl bg-[#65679B] px-12 text-sm font-bold uppercase tracking-[0.15em] text-white shadow-xl transition-all hover:-translate-y-1"
                                 >
-                                    <a href="/affiliations">EXPLORE AFFILIATIONS</a>
-                                </Button>
+                                  Explore Affiliations
+                                </a>
                             </div>
                         </div>
                     </div>

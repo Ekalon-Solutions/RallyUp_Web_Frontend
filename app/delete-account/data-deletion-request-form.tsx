@@ -169,7 +169,7 @@ export function DataDeletionRequestForm(): React.JSX.Element {
                 </FormControl>
                 <SelectContent className="bg-white">
                   {DATA_DELETION_REQUEST_TYPES.map((label) => (
-                    <SelectItem key={label} value={label} className="text-xs focus:bg-secondary-purple/20 cursor-pointer">
+                    <SelectItem key={label} value={label} className="text-xs focus:bg-secondary-purple/20 text-black focus:text-primary cursor-pointer">
                       {label}
                     </SelectItem>
                   ))}
