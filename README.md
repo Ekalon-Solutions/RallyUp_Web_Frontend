@@ -1,1 +1,1 @@
-# RallyUp Web Frontend
+# RallyUp Website Frontend
