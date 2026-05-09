@@ -32,7 +32,7 @@ export default function AffiliationsPage(): React.JSX.Element {
               </div>
 
               <h1 className="text-5xl font-extrabold mb-6 text-background tracking-tight leading-[1.1]">
-                Our <span className="text-[#FF4F2B]">Affiliation</span> Ecosystem
+                Our <span className="text-primary">Affiliation</span> Ecosystem
               </h1>
               
               <p className="text-background text-lg md:text-xl mb-12 max-w-2xl leading-relaxed">
@@ -84,12 +84,12 @@ export default function AffiliationsPage(): React.JSX.Element {
           <div className="max-w-8xl mx-auto">
             {/* Badge */}
             <div className="flex items-center gap-2 mb-6">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#FF4F2B]" />
-              <span className="text-base font-semibold text-[#FF4F2B]">Technology Partners & Infrastructure</span>
+              <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+              <span className="text-base font-semibold text-primary">Technology Partners & Infrastructure</span>
             </div>
 
             <h2 className="text-4xl lg:text-6xl font-extrabold mb-6 text-background tracking-tight leading-[1.1]">
-              Built to <span className="text-[#FF4F2B]">Scale.</span>
+              Built to <span className="text-primary">Scale.</span>
             </h2>
 
             <p className="text-secondary text-lg md:text-xl mb-16 max-w-2xl">
@@ -168,11 +168,11 @@ export default function AffiliationsPage(): React.JSX.Element {
         <FadeIn>
           <div className="max-w-8xl mx-auto">
             <div className="flex items-center gap-2 mb-6">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#FF4F2B]" />
-              <span className="text-base font-semibold text-[#FF4F2B]">Partnership Benefits</span>
+              <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+              <span className="text-base font-semibold text-primary">Partnership Benefits</span>
             </div>
             <h2 className="text-4xl lg:text-6xl font-extrabold mb-12 text-background tracking-tight leading-[1.1]">
-              What <span className="text-[#FF4F2B]">You Get.</span>
+              What <span className="text-primary">You Get.</span>
             </h2>
 
             <div className="grid md:grid-cols-5 gap-6">
@@ -244,11 +244,11 @@ export default function AffiliationsPage(): React.JSX.Element {
         <FadeIn>
           <div className="max-w-8xl mx-auto">
             <div className="flex items-center gap-2 mb-6">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#FF4F2B]" />
-              <span className="text-base font-semibold text-[#FF4F2B]">League & Organizational Affiliates</span>
+              <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+              <span className="text-base font-semibold text-primary">League & Organizational Affiliates</span>
             </div>
             <h2 className="text-4xl lg:text-6xl font-extrabold mb-12 text-background tracking-tight leading-[1.1]">
-              Who We <span className="text-[#FF4F2B]">Work With.</span>
+              Who We <span className="text-primary">Work With.</span>
             </h2>
 
             <div className="grid md:grid-cols-3 gap-6">
@@ -369,34 +369,86 @@ export default function AffiliationsPage(): React.JSX.Element {
       {/* CTA Section */}
       <div className="w-full">
         <FadeIn>
-          <div className="rounded-none relative overflow-hidden bg-gradient-to-r from-[#DCD4E2] to-[#8598C7] border-0">
-            {/* Decorative background lines */}
-            <div className="absolute inset-0 pointer-events-none opacity-40">
-              <svg className="absolute w-full h-full" xmlns="http://www.w3.org/2000/svg">
-                <line x1="-20%" y1="120%" x2="120%" y2="-20%" stroke="currentColor" strokeWidth="1" className="text-[#FF4F2B]/30" />
-                <line x1="-20%" y1="-20%" x2="120%" y2="120%" stroke="currentColor" strokeWidth="1" className="text-blue-500/20" />
-                <line x1="20%" y1="120%" x2="120%" y2="20%" stroke="currentColor" strokeWidth="1" className="text-[#FF4F2B]/20" />
-                <line x1="-20%" y1="20%" x2="80%" y2="-20%" stroke="currentColor" strokeWidth="1" className="text-blue-500/20" />
-                <line x1="50%" y1="120%" x2="120%" y2="50%" stroke="currentColor" strokeWidth="1" className="text-[#FF4F2B]/10" />
-              </svg>
-            </div>
-            
-            <div className="relative z-10 px-6 py-24 md:py-32 flex flex-col items-center text-center space-y-6">
-              <span className="text-[#FF4F2B] font-medium text-base tracking-wide">Interested in Partnering?</span>
-              <h2 className="text-4xl lg:text-6xl font-extrabold text-[#1A1A1A] tracking-tight leading-[1.1] mb-2">
-                Let's Build <span className="text-[#FF4F2B]">Together.</span>
-              </h2>
-              <p className="text-[#5D5377] max-w-2xl text-lg md:text-xl font-medium leading-relaxed pb-6">
-                Whether you're a football club, supporter group, or football organization — we'd love to explore how Wingman Pro can support your community.
-              </p>
-              <a 
-                href="/contact" 
-                className="inline-flex h-14 items-center justify-center rounded-lg bg-[#FF4F2B] px-10 text-sm font-bold text-white shadow-lg shadow-[#FF4F2B]/20 transition-transform hover:-translate-y-1 hover:shadow-xl active:translate-y-0 uppercase tracking-[0.1em]"
-              >
-                Contact Us
-              </a>
-            </div>
+          <div className="relative overflow-hidden bg-[linear-gradient(to_right,#DCD4E2_50%,#8598C7_100%)]">
+          {/* Exact geometric line pattern */}
+          <svg
+            className="absolute inset-0 w-full h-full"
+            viewBox="0 0 1440 500"
+            preserveAspectRatio="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            {/* LEFT TRIANGLE */}
+            <line
+              x1="0"
+              y1="500"
+              x2="380"
+              y2="0"
+              stroke="#C9C1CF"
+              strokeWidth="1.5"
+            />
+            <line
+              x1="380"
+              y1="0"
+              x2="770"
+              y2="500"
+              stroke="#C9C1CF"
+              strokeWidth="1.5"
+            />
+
+            {/* CENTER INTERSECTING TRIANGLE */}
+            <line
+              x1="530"
+              y1="500"
+              x2="905"
+              y2="0"
+              stroke="#A291B178"
+              strokeWidth="1.5"
+            />
+            <line
+              x1="905"
+              y1="0"
+              x2="1245"
+              y2="500"
+              stroke="#F1441A1F"
+              strokeWidth="1.5"
+            />
+
+            {/* PARALLEL INNER RIGHT LINE */}
+            <line
+              x1="880"
+              y1="0"
+              x2="1215"
+              y2="500"
+              stroke="#8598C7AB"
+              strokeWidth="1.5"
+            />
+          </svg>
+
+          {/* CONTENT */}
+          <div className="relative z-10 px-6 py-16 md:py-14 flex flex-col items-center text-center">
+            <span className="text-primary font-medium text-base tracking-wide mb-6">
+              Interested in Partnering?
+            </span>
+
+            <h2 className="text-4xl md:text-5xl font-bold tracking-tight leading-none text-black">
+              Let's Build{" "}
+              <span className="text-primary">Together.</span>
+            </h2>
+
+            <p className="mt-8 max-w-3xl text-secondary text-xl md:text-lg font-medium">
+              Whether you're a football club, supporter group, or football
+              organization — we'd love to explore how Wingman Pro can support your
+              community.
+            </p>
+
+            <a
+              href="/contact"
+              className="mt-12 inline-flex h-12 items-center justify-center rounded-xl bg-primary px-12 text-sm font-bold uppercase tracking-[0.15em] text-white shadow-xl transition-all hover:-translate-y-1"
+            >
+              Contact Us
+            </a>
           </div>
+        </div>
         </FadeIn>
       </div>
 

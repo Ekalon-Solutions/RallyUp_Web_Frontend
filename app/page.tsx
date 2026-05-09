@@ -57,6 +57,7 @@ function AnimatedLogo() {
     </div>
   );
 }
+
 function Hero() {
   return (
     <section className="bg-white relative overflow-hidden" id="home">
@@ -522,7 +523,7 @@ function ImageMarquee() {
         {[...images, ...images].map((src, i) => (
           <div
             key={i}
-            className="border-[6px] border-white rounded-[25px] flex-shrink-0 w-36 h-36 sm:w-40 sm:h-40 md:w-48 md:h-48 relative overflow-hidden hover:animate-spin transition-transform duration-300"
+            className="border-[6px] border-white rounded-[25px] flex-shrink-0 w-36 h-36 sm:w-40 sm:h-40 md:w-48 md:h-48 relative overflow-hidden transition-transform duration-300"
           >
             <Image
               src={src}
