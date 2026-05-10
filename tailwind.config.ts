@@ -75,6 +75,9 @@ const config: Config = {
 					ring: 'hsl(var(--sidebar-ring))'
 				}
 			},
+			fontFamily: {
+				sans: ['var(--font-poppins)', 'sans-serif'],
+			},
 			borderRadius: {
 				lg: 'var(--radius)',
 				md: 'calc(var(--radius) - 2px)',
@@ -157,7 +160,7 @@ const config: Config = {
 				'bounce-subtle': 'bounce-subtle 2s ease-in-out infinite',
 				'wiggle': 'wiggle 1s ease-in-out infinite',
 				'glow-pulse': 'glow-pulse 2s ease-in-out infinite',
-				'marquee': 'marquee 30s linear infinite'
+				'marquee': 'marquee 8s linear infinite'
 			}
 		}
 	},

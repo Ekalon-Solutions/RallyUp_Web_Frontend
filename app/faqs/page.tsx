@@ -139,15 +139,15 @@ export default function FAQsPage(): React.JSX.Element {
     ]
 
     return (
-        <main className="min-h-screen bg-white text-background relative overflow-x-hidden public-theme">
+        <main className="min-h-screen bg-white text-background relative overflow-x-clip public-theme">
             {/* <JellyCursor /> */}
             <SiteNavbar />
 
-            <div className="bg-secondary-purple/40 pt-16 relative z-10">
-                <div className="max-w-4xl mx-auto px-4">
+            <div className="bg-secondary-purple/40 pt-16 md:pt-20 lg:pt-24 relative z-10">
+                <div className="max-w-4xl mx-auto px-6 sm:px-8 lg:px-12 xl:px-16">
 
                     <div className="absolute inset-0 -z-10" />
-                    <div className="absolute -bottom-8 -left-10 w-80 h-80 opacity-60 pointer-events-none select-none">
+                    <div className="absolute -bottom-8 -left-10 w-80 h-80 opacity-60 pointer-events-none select-none z-[-5]">
                         <Image src="/Vector.svg" alt="" fill className="object-contain" />
                     </div>
 
@@ -223,21 +223,56 @@ export default function FAQsPage(): React.JSX.Element {
                         <div className="relative overflow-hidden bg-[linear-gradient(to_right,#DCD4E2_50%,#8598C7_100%)]">
                             {/* Exact geometric line pattern */}
                             <svg
-                                className="absolute inset-0 w-full h-full"
+                                className="hidden md:block absolute inset-0 w-full h-full"
                                 viewBox="0 0 1440 500"
                                 preserveAspectRatio="none"
                                 xmlns="http://www.w3.org/2000/svg"
                             >
                                 {/* LEFT TRIANGLE */}
-                                <line x1="0" y1="500" x2="380" y2="0" stroke="#C9C1CF" strokeWidth="1.5" />
-                                <line x1="380" y1="0" x2="770" y2="500" stroke="#C9C1CF" strokeWidth="1.5" />
+                                <line
+                                x1="0"
+                                y1="500"
+                                x2="380"
+                                y2="0"
+                                stroke="#C9C1CF"
+                                strokeWidth="0.8"
+                                />
+                                <line
+                                x1="380"
+                                y1="0"
+                                x2="770"
+                                y2="500"
+                                stroke="#C9C1CF"
+                                strokeWidth="0.8"
+                                />
 
                                 {/* CENTER INTERSECTING TRIANGLE */}
-                                <line x1="530" y1="500" x2="905" y2="0" stroke="#A291B178" strokeWidth="1.5" />
-                                <line x1="905" y1="0" x2="1245" y2="500" stroke="#F1441A1F" strokeWidth="1.5" />
+                                <line
+                                x1="530"
+                                y1="500"
+                                x2="905"
+                                y2="0"
+                                stroke="#A291B178"
+                                strokeWidth="0.8"
+                                />
+                                <line
+                                x1="905"
+                                y1="0"
+                                x2="1245"
+                                y2="500"
+                                stroke="#F1441A1F"
+                                strokeWidth="0.8"
+                                />
 
                                 {/* PARALLEL INNER RIGHT LINE */}
-                                <line x1="880" y1="0" x2="1215" y2="500" stroke="#8598C7AB" strokeWidth="1.5" />
+                                <line
+                                x1="880"
+                                y1="0"
+                                x2="1215"
+                                y2="500"
+                                stroke="#8598C7AB"
+                                strokeWidth="0.8"
+                                />
                             </svg>
                             
                             <div className="relative z-10 px-6 py-16 md:py-14 flex flex-col items-center text-center">
@@ -255,7 +290,7 @@ export default function FAQsPage(): React.JSX.Element {
 
                                 <a
                                   href="/contact"
-                                  className="mt-12 inline-flex h-12 items-center justify-center rounded-xl bg-primary px-12 text-sm font-bold uppercase tracking-[0.15em] text-white shadow-xl transition-all hover:-translate-y-1"
+                                  className="mt-12 inline-flex h-12 items-center justify-center rounded-xl bg-primary px-12 text-sm font-bold uppercase tracking-[0.15em] text-white shadow-xl transition-all hover:-translate-y-1 hover:bg-[#FF7E4A] hover:shadow-[0_8px_20px_#FF5C1A6B]"
                                 >
                                   Contact Us
                                 </a>

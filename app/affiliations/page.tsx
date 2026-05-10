@@ -10,17 +10,17 @@ import Image from "next/image"
 
 export default function AffiliationsPage(): React.JSX.Element {
   return (
-    <main className="min-h-screen bg-white text-slate-900 relative overflow-x-hidden font-sans public-theme">
+    <main className="min-h-screen bg-white text-slate-900 relative overflow-x-clip font-sans public-theme">
       <SiteNavbar brandName="Wingman Pro" />
 
       {/* Top Section */}
-      <section className="relative w-full py-12 lg:py-15 flex flex-col justify-center min-h-[60vh]">
+      <section className="relative isolate w-full py-12 lg:py-15 flex flex-col justify-center min-h-[60vh]">
         {/* Faint background graphic */}
-        <div className="absolute -bottom-32 right-0 w-[25rem] h-[25rem] lg:w-[35rem] lg:h-[35rem] opacity-60 pointer-events-none select-none">
+        <div className="absolute -bottom-32 right-0 w-[25rem] h-[25rem] lg:w-[35rem] lg:h-[35rem] opacity-60 pointer-events-none select-none z-[-5]">
           <Image src="/VectorLeft.svg" alt="" fill className="object-contain object-right-bottom" />
         </div>
         
-        <div className="max-w-8xl mx-auto px-4 w-full">
+        <div className="max-w-8xl mx-auto px-6 sm:px-8 lg:px-12 xl:px-16 w-full">
           <FadeIn>
             <div className="relative z-10 max-w-3xl">
               {/* Badge */}
@@ -79,9 +79,9 @@ export default function AffiliationsPage(): React.JSX.Element {
       </section>
 
       {/* Bottom Section */}
-      <section className="relative z-10 bg-[#E2DCE7] py-24 px-4 border-t border-[#D5CFDA]">
+      <section className="relative z-10 bg-[#E2DCE7] py-16 md:py-20 lg:py-24 border-t border-[#D5CFDA]">
         <FadeIn>
-          <div className="max-w-8xl mx-auto">
+          <div className="max-w-8xl mx-auto px-6 sm:px-8 lg:px-12 xl:px-16">
             {/* Badge */}
             <div className="flex items-center gap-2 mb-6">
               <div className="w-1.5 h-1.5 rounded-full bg-primary" />
@@ -98,27 +98,75 @@ export default function AffiliationsPage(): React.JSX.Element {
 
             <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
               {/* Card 1 */}
-              <div className="hidden md:flex bg-white rounded-3xl px-8 py-2 flex flex-col items-center justify-center text-center gap-5 shadow-sm hover:-translate-y-1 hover:shadow-md transition-all duration-300 h-52">
-                <div className="w-14 h-14 rounded-2xl bg-[#44867B] flex items-center justify-center shadow-sm mb-2">
-                  <Image src="/affiliationslogo/Framepayment.svg" alt="Payment Gateways" width={32} height={32} />
+              <div className="hidden md:block group relative w-full h-64 [perspective:1000px]">
+                <div className="w-full h-full transition-all duration-700 [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)]">
+                  {/* Front Face */}
+                  <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] bg-white rounded-3xl px-8 py-2 flex flex-col items-center justify-center text-center gap-5 shadow-sm border border-black/5">
+                    <div className="w-14 h-14 rounded-2xl bg-[#44867B] flex items-center justify-center shadow-sm mb-2">
+                      <Image src="/affiliationslogo/Framepayment.svg" alt="Payment Gateways" width={32} height={32} />
+                    </div>
+                    <h3 className="text-background text-lg">Payment Gateways</h3>
+                  </div>
+
+                  {/* Back Face */}
+                  <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] [transform:rotateY(180deg)] bg-[#00A68A] rounded-3xl p-6 flex flex-col items-center justify-center text-center shadow-lg">
+                    <div className="inline-flex items-center justify-center rounded-full border border-white/50 px-3 py-1 mb-4">
+                      <span className="text-[10px] text-white font-medium tracking-wide uppercase">Wingman Pro</span>
+                    </div>
+                    <h3 className="text-lg text-white font-medium mb-3">Seamless Payments</h3>
+                    <p className="text-xs leading-relaxed text-white/90">
+                      Secure integrations with RazorPay and international processors. Multi-currency support including UPI — covering membership fees, merchandise, and ticketing.
+                    </p>
+                  </div>
                 </div>
-                <h3 className="text-background text-lg">Payment Gateways</h3>
               </div>
 
               {/* Card 2 */}
-              <div className="hidden md:flex bg-[#A093B8] rounded-3xl px-8 py-2 flex flex-col items-center justify-center text-center gap-5 shadow-md hover:-translate-y-1 hover:shadow-xl transition-all duration-300 h-52">
-                <div className="w-14 h-14 rounded-2xl bg-[#6668A1] flex items-center justify-center shadow-sm mb-2">
-                  <Image src="/affiliationslogo/Framecloud.svg" alt="Cloud Hosting" width={32} height={32} />
-               </div>
-                <h3 className="text-white text-lg leading-snug">Cloud Hosting &<br/>Infrastructure</h3>
+              <div className="hidden md:block group relative w-full h-64 [perspective:1000px]">
+                <div className="w-full h-full transition-all duration-700 [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)]">
+                  {/* Front Face */}
+                  <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] bg-[#A093B8] rounded-3xl px-8 py-2 flex flex-col items-center justify-center text-center gap-5 shadow-md border border-black/5">
+                    <div className="w-14 h-14 rounded-2xl bg-[#6668A1] flex items-center justify-center shadow-sm mb-2">
+                      <Image src="/affiliationslogo/Framecloud.svg" alt="Cloud Hosting" width={32} height={32} />
+                    </div>
+                    <h3 className="text-white text-lg leading-snug">Cloud Hosting &<br/>Infrastructure</h3>
+                  </div>
+
+                  {/* Back Face */}
+                  <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] [transform:rotateY(180deg)] bg-[#6668A1] rounded-3xl p-6 flex flex-col items-center justify-center text-center shadow-lg">
+                    <div className="inline-flex items-center justify-center rounded-full border border-white/50 px-3 py-1 mb-4">
+                      <span className="text-[10px] text-white font-medium tracking-wide uppercase">Wingman Pro</span>
+                    </div>
+                    <h3 className="text-lg text-white font-medium mb-3">Always On</h3>
+                    <p className="text-xs leading-relaxed text-white/90">
+                      Built on leading global cloud providers guaranteeing data security, low latency, and resilient operations backed by international compliance standards.
+                    </p>
+                  </div>
+                </div>
               </div>
 
               {/* Card 3 */}
-              <div className="hidden md:flex bg-white rounded-3xl px-8 py-2 flex flex-col items-center justify-center text-center gap-5 shadow-sm hover:-translate-y-1 hover:shadow-md transition-all duration-300 h-52">
-                <div className="w-14 h-14 rounded-2xl bg-[#E18F67] flex items-center justify-center shadow-sm mb-2">
-                  <Image src="/affiliationslogo/Frameauthentication.svg" alt="Authentication Services" width={32} height={32} />
-               </div>
-                <h3 className="text-background text-lg leading-snug">Authentication<br/>Services</h3>
+              <div className="hidden md:block group relative w-full h-64 [perspective:1000px]">
+                <div className="w-full h-full transition-all duration-700 [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)]">
+                  {/* Front Face */}
+                  <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] bg-white rounded-3xl px-8 py-2 flex flex-col items-center justify-center text-center gap-5 shadow-sm border border-black/5">
+                    <div className="w-14 h-14 rounded-2xl bg-[#E18F67] flex items-center justify-center shadow-sm mb-2">
+                      <Image src="/affiliationslogo/Frameauthentication.svg" alt="Authentication Services" width={32} height={32} />
+                    </div>
+                    <h3 className="text-background text-lg leading-snug">Authentication<br/>Services</h3>
+                  </div>
+
+                  {/* Back Face */}
+                  <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] [transform:rotateY(180deg)] bg-[#F14921] rounded-3xl p-6 flex flex-col items-center justify-center text-center shadow-lg">
+                    <div className="inline-flex items-center justify-center rounded-full border border-white/50 px-3 py-1 mb-4">
+                      <span className="text-[10px] text-white font-medium tracking-wide uppercase">Wingman Pro</span>
+                    </div>
+                    <h3 className="text-lg text-white font-medium mb-3">Trusted Identity</h3>
+                    <p className="text-xs leading-relaxed text-white/90">
+                      Integrated with Google Firebase to deliver secure, rapid OTP-based authentication and identity management for every user on the platform.
+                    </p>
+                  </div>
+                </div>
               </div>
               {/* Card 1 */}
               <div className="md:hidden bg-white rounded-3xl p-8 flex flex-col items-start text-left gap-4 shadow-sm hover:-translate-y-1 hover:shadow-md transition-all duration-300">
@@ -131,8 +179,8 @@ export default function AffiliationsPage(): React.JSX.Element {
                     style={{ width: 'auto', height: 'auto' }}
                   />
                 </div>
-                <h3 className="font-bold text-background text-lg">Payment Gateways</h3>
-                <p className="text-[#44867B] text-sm leading-relaxed max-w-sm">
+                <h3 className="text-background text-lg">Payment Gateways</h3>
+                <p className="text-[#8598C7] text-sm leading-relaxed max-w-sm">
                   Secure transaction processing for memberships, donations, and merchandise sales.
                 </p>
               </div>
@@ -142,8 +190,8 @@ export default function AffiliationsPage(): React.JSX.Element {
                 <div className="w-14 h-14 rounded-2xl bg-[#6668A1] flex items-center justify-center shadow-sm mb-2">
                   <Image src="/affiliationslogo/Framecloud.svg" alt="Cloud Hosting" width={32} height={32} />
                 </div>
-                <h3 className="font-bold text-white text-lg">Cloud Hosting &<br/>Infrastructure</h3>
-                <p className="text-[#E2DCE7] text-sm leading-relaxed max-w-sm">
+                <h3 className="text-white text-lg">Cloud Hosting & Infrastructure</h3>
+                <p className="text-black text-sm leading-relaxed max-w-sm">
                   Reliable, scalable servers to ensure your group's digital presence is always online.
                 </p>
               </div>
@@ -153,8 +201,8 @@ export default function AffiliationsPage(): React.JSX.Element {
                 <div className="w-14 h-14 rounded-2xl bg-[#E18F67] flex items-center justify-center shadow-sm mb-2">
                   <Image src="/affiliationslogo/Frameauthentication.svg" alt="Authentication Services" width={32} height={32} />
                 </div>
-                <h3 className="font-bold text-background text-lg">Authentication<br/>Services</h3>
-                <p className="text-[#E18F67] text-sm leading-relaxed max-w-sm">
+                <h3 className="text-background text-lg">Authentication Services</h3>
+                <p className="text-[#8598C7] text-sm leading-relaxed max-w-sm">
                   Secure user logins and identity verification to protect member data.
                 </p>
               </div>
@@ -164,9 +212,9 @@ export default function AffiliationsPage(): React.JSX.Element {
       </section>
 
       {/* What You Get Section */}
-      <section className="py-24 px-4 bg-white relative">
+      <section className="py-16 md:py-20 lg:py-24 bg-white relative">
         <FadeIn>
-          <div className="max-w-8xl mx-auto">
+          <div className="max-w-8xl mx-auto px-6 sm:px-8 lg:px-12 xl:px-16">
             <div className="flex items-center gap-2 mb-6">
               <div className="w-1.5 h-1.5 rounded-full bg-primary" />
               <span className="text-base font-semibold text-primary">Partnership Benefits</span>
@@ -177,14 +225,14 @@ export default function AffiliationsPage(): React.JSX.Element {
 
             <div className="grid md:grid-cols-5 gap-6">
               {/* Card 1 */}
-              <div className="md:col-span-3 bg-[#222222] rounded-3xl p-8 md:p-10 relative overflow-hidden flex flex-col hover:shadow-lg transition-shadow min-h-[18rem] md:min-h-[22rem]">
-                <span className="absolute -top-6 md:top-auto md:-bottom-6 -right-4 text-[8.75rem] font-black text-[#2A2A2A] leading-none pointer-events-none select-none">
+              <div className="group md:col-span-3 bg-[#222222] hover:bg-[#444444] rounded-3xl p-8 md:p-10 relative overflow-hidden flex flex-col justify-between hover:shadow-lg transition-all duration-300 min-h-[18rem] md:min-h-[22rem]">
+                <span className="absolute font-[600] bottom-2 right-2 md:bottom-4 md:right-6 text-[6rem] md:text-[8rem] font-black text-[#2A2A2A] group-hover:text-[#2E2E2E] transition-colors duration-300 leading-none pointer-events-none select-none z-0">
                   01
                 </span>
-                <div className="w-14 h-14 rounded-xl bg-[#8A8A8A] flex items-center justify-center relative z-10">
+                <div className="w-14 h-14 rounded-xl bg-[#8A8A8A] flex items-center justify-center relative z-10 mt-2 md:mt-0">
                   <Image src="/affiliationslogo/Frametrophy.svg" alt="Club Solutions" width={28} height={28} />
                 </div>
-                <div className="mt-auto pt-12 relative z-10">
+                <div className="mt-auto pt-12 relative z-10 w-full">
                   <h3 className="font-bold text-white text-3xl mb-3">Club Solutions</h3>
                   <p className="text-[#A3A3A3] text-base leading-relaxed max-w-xl">
                     Dedicated platforms for professional clubs to manage membership, ticketing, and fan engagement — everything in one place.
@@ -193,12 +241,12 @@ export default function AffiliationsPage(): React.JSX.Element {
               </div>
 
               {/* Card 2 */}
-              <div className="md:col-span-2 bg-[#786FBB] rounded-3xl p-8 md:p-10 relative overflow-hidden flex flex-col hover:shadow-lg transition-shadow min-h-[18rem] md:min-h-[22rem]">
-                <span className="absolute -top-6 -right-4 text-[8.75rem] font-black text-[#6961A3] leading-none pointer-events-none select-none">02</span>
-                <div className="w-14 h-14 rounded-xl bg-[#D6D3F0] flex items-center justify-center relative z-10">
+              <div className="group md:col-span-2 bg-[#786FBB] hover:bg-[#8A8EE9] rounded-3xl p-8 md:p-10 relative overflow-hidden flex flex-col justify-between hover:shadow-lg transition-all duration-300 min-h-[18rem] md:min-h-[22rem]">
+                <span className="absolute font-[600] top-2 right-2 md:top-4 md:right-6 text-[6rem] md:text-[8rem] font-black text-[#6961A3] group-hover:text-[#797CCB] transition-colors duration-300 leading-none pointer-events-none select-none z-0">02</span>
+                <div className="w-14 h-14 rounded-xl bg-[#D6D3F0] flex items-center justify-center relative z-10 mt-2 md:mt-0">
                   <Image src="/affiliationslogo/Framecommunity.svg" alt="Community Building" width={28} height={28} />
                 </div>
-                <div className="mt-auto pt-12 relative z-10">
+                <div className="mt-auto pt-12 relative z-10 w-full">
                   <h3 className="font-bold text-white text-3xl mb-3">Community Building</h3>
                   <p className="text-[#E0DDF0] text-base leading-relaxed max-w-sm">
                     Features designed to strengthen connections between fans, clubs, and local communities.
@@ -207,29 +255,29 @@ export default function AffiliationsPage(): React.JSX.Element {
               </div>
 
               {/* Card 3 */}
-              <div className="md:col-span-2 bg-[#D8D5FB] rounded-3xl p-8 md:p-10 relative overflow-hidden flex flex-col hover:shadow-lg transition-shadow min-h-[18rem] md:min-h-[22rem]">
-                <span className="absolute -top-6 md:top-auto md:-bottom-6 -right-4 text-[8.75rem] font-black text-[#E9E6FF] leading-none pointer-events-none select-none">
+              <div className="group md:col-span-2 bg-[#D8D5FB] hover:bg-[#BCBDFF] rounded-3xl p-8 md:p-10 relative overflow-hidden flex flex-col justify-between hover:shadow-lg transition-all duration-300 min-h-[18rem] md:min-h-[22rem]">
+                <span className="absolute font-[600] top-2 right-2 md:top-4 md:right-6 text-[6rem] md:text-[8rem] font-black text-[#E9E6FF] group-hover:text-[#DEDFFF] transition-colors duration-300 leading-none pointer-events-none select-none z-0">
                 03</span>
-              <div className="w-14 h-14 rounded-xl bg-[#8076B9] flex items-center justify-center relative z-10">
+              <div className="w-14 h-14 rounded-xl bg-[#8076B9] flex items-center justify-center relative z-10 mt-2 md:mt-0">
                   <Image src="/affiliationslogo/Vectortool.svg" alt="Supporter Group Tools" width={28} height={28} />
                 </div>
-                <div className="mt-auto pt-12 relative z-10">
-                  <h3 className="font-bold text-[#6D6392] text-3xl mb-3">Supporter Group Tools</h3>
-                  <p className="text-[#6D6392] text-base leading-relaxed max-w-sm">
+                <div className="mt-auto pt-12 relative z-10 w-full">
+                  <h3 className="font-bold text-[#6D6392] text-3xl mb-3 group-hover:text-[#4A4363] transition-colors duration-300">Supporter Group Tools</h3>
+                  <p className="text-[#6D6392] text-base leading-relaxed max-w-sm group-hover:text-[#4A4363] transition-colors duration-300">
                     Complete toolkit for independent fan clubs — member management, events, and merchandise built in.
                   </p>
                 </div>
               </div>
 
               {/* Card 4 */}
-              <div className="md:col-span-3 bg-[#E4D9DF] rounded-3xl p-8 md:p-10 relative overflow-hidden flex flex-col hover:shadow-lg transition-shadow min-h-[18rem] md:min-h-[22rem]">
-                <span className="absolute -top-6 -right-4 md:-bottom-4 md:-right-4 text-[8.75rem] font-black text-[#F4ECF0] leading-none pointer-events-none select-none">04</span>
-                <div className="w-14 h-14 rounded-xl bg-[#7B6A76] flex items-center justify-center relative z-10">
+              <div className="group md:col-span-3 bg-[#E4D9DF] hover:bg-[#D8BBEE] rounded-3xl p-8 md:p-10 relative overflow-hidden flex flex-col justify-between hover:shadow-lg transition-all duration-300 min-h-[18rem] md:min-h-[22rem]">
+                <span className="absolute font-[600] bottom-2 right-2 md:bottom-4 md:right-6 text-[6rem] md:text-[8rem] font-black text-[#F4ECF0] group-hover:text-[#E7DFED] transition-colors duration-300 leading-none pointer-events-none select-none z-0">04</span>
+                <div className="w-14 h-14 rounded-xl bg-[#7B6A76] flex items-center justify-center relative z-10 mt-2 md:mt-0">
                   <Image src="/affiliationslogo/Framepartnership.svg" alt="Custom Partnerships" width={28} height={28} />
                 </div>
-                <div className="mt-auto pt-12 relative z-10">
-                  <h3 className="font-bold text-[#564954] text-3xl mb-3">Custom Partnerships</h3>
-                  <p className="text-[#6C5E6A] text-base leading-relaxed max-w-xl">
+                <div className="mt-auto pt-12 relative z-10 w-full">
+                  <h3 className="font-bold text-[#564954] text-3xl mb-3 group-hover:text-[#2E2E2E] transition-colors duration-300">Custom Partnerships</h3>
+                  <p className="text-[#6C5E6A] text-base leading-relaxed max-w-xl group-hover:text-[#4A4A4A] transition-colors duration-300">
                     Tailored solutions and integrations for organizations with specific needs and requirements.
                   </p>
                 </div>
@@ -240,9 +288,9 @@ export default function AffiliationsPage(): React.JSX.Element {
       </section>
 
       {/* Who We Work With Section */}
-      <section className="py-24 px-4 bg-white relative">
+      <section className="py-16 md:py-20 lg:py-24 bg-white relative">
         <FadeIn>
-          <div className="max-w-8xl mx-auto">
+          <div className="max-w-8xl mx-auto px-6 sm:px-8 lg:px-12 xl:px-16">
             <div className="flex items-center gap-2 mb-6">
               <div className="w-1.5 h-1.5 rounded-full bg-primary" />
               <span className="text-base font-semibold text-primary">League & Organizational Affiliates</span>
@@ -253,39 +301,45 @@ export default function AffiliationsPage(): React.JSX.Element {
 
             <div className="grid md:grid-cols-3 gap-6">
               {/* Card 1 */}
-              <div className="bg-[#D9DBFF] rounded-3xl p-8 relative overflow-hidden flex flex-col items-start text-left hover:shadow-lg transition-shadow min-h-72">
-                <span className="absolute -top-2 right-4 text-[6.25rem] font-black text-[#BFC3FF] leading-none pointer-events-none select-none">01</span>
-                <div className="w-14 h-14 rounded-xl bg-[#7D7FBC] flex items-center justify-center mb-6 relative z-10">
+              <div className="group bg-[#D9DBFF] hover:bg-[#BCBDFF] rounded-3xl p-8 relative overflow-hidden flex flex-col justify-between items-center text-center hover:shadow-lg transition-all duration-300 min-h-[18rem]">
+                <span className="absolute font-[600] top-2 right-2 md:top-4 md:right-6 text-[6.25rem] font-black text-[#BFC3FF] group-hover:text-[#DEDFFF] transition-colors duration-300 leading-none pointer-events-none select-none z-0">01</span>
+                <div className="w-14 h-14 rounded-xl bg-[#7D7FBC] flex items-center justify-center mb-6 relative z-10 mt-2">
                   <Image src="/affiliationslogo/Framesupporter.svg" alt="Supporter Group Networks" width={28} height={28} />
                 </div>
-                <h3 className="font-bold text-background text-lg mb-4 relative z-10">Supporter Group Networks</h3>
-                <p className="text-[#7D7FBC] text-sm leading-relaxed relative z-10 max-w-sm">
-                  Collaborations with global supporter networks — sharing best practices in member management and delivering shared knowledge among Wingman Pro communities.
-                </p>
+                <div className="mt-auto relative z-10 w-full flex flex-col items-center">
+                  <h3 className="font-bold text-background text-lg mb-4">Supporter Group Networks</h3>
+                  <p className="text-[#7D7FBC] text-sm leading-relaxed max-w-sm group-hover:text-[#5B5D99] transition-colors duration-300">
+                    Collaborations with global supporter networks — sharing best practices in member management and delivering shared knowledge among Wingman Pro communities.
+                  </p>
+                </div>
               </div>
 
               {/* Card 2 */}
-              <div className="bg-[#E4DCDF] rounded-3xl p-8 relative overflow-hidden flex flex-col items-start text-left hover:shadow-lg transition-shadow min-h-72">
-                <span className="absolute -top-2 right-4 text-[6.25rem] font-black text-[#D0C7CC] leading-none pointer-events-none select-none">02</span>
-                <div className="w-14 h-14 rounded-xl bg-[#A2919A] flex items-center justify-center mb-6 relative z-10">
+              <div className="group bg-[#E4DCDF] hover:bg-[#D8BBEE] rounded-3xl p-8 relative overflow-hidden flex flex-col justify-between items-center text-center hover:shadow-lg transition-all duration-300 min-h-[18rem]">
+                <span className="absolute font-[600] top-2 right-2 md:top-4 md:right-6 text-[6.25rem] font-black text-[#D0C7CC] group-hover:text-[#E7DFED] transition-colors duration-300 leading-none pointer-events-none select-none z-0">02</span>
+                <div className="w-14 h-14 rounded-xl bg-[#A2919A] flex items-center justify-center mb-6 relative z-10 mt-2">
                   <Image src="/affiliationslogo/Vectorcorporate.svg" alt="Corporate Sponsors" width={28} height={28} />
                 </div>
-                <h3 className="font-bold text-background text-lg mb-4 relative z-10">Corporate Sponsors</h3>
-                <p className="text-[#A2919A] text-sm leading-relaxed relative z-10 max-w-sm">
-                  Streamlined engagement channels between sponsors and our network of engaged supporter groups — unlocking new revenue opportunities for partner clubs.
-                </p>
+                <div className="mt-auto relative z-10 w-full flex flex-col items-center">
+                  <h3 className="font-bold text-background text-lg mb-4">Corporate Sponsors</h3>
+                  <p className="text-[#A2919A] text-sm leading-relaxed max-w-sm group-hover:text-[#7A6B73] transition-colors duration-300">
+                    Streamlined engagement channels between sponsors and our network of engaged supporter groups — unlocking new revenue opportunities for partner clubs.
+                  </p>
+                </div>
               </div>
 
               {/* Card 3 */}
-              <div className="bg-[#9AE69D] rounded-3xl p-8 relative overflow-hidden flex flex-col items-start text-left hover:shadow-lg transition-shadow min-h-72">
-                <span className="absolute -top-2 right-4 text-[6.25rem] font-black text-[#86CD89] leading-none pointer-events-none select-none">03</span>
-                <div className="w-14 h-14 rounded-xl bg-[#5C9460] flex items-center justify-center mb-6 relative z-10">
+              <div className="group bg-[#9AE69D] hover:bg-[#7FD483] rounded-3xl p-8 relative overflow-hidden flex flex-col justify-between items-center text-center hover:shadow-lg transition-all duration-300 min-h-[18rem]">
+                <span className="absolute font-[600] top-2 right-2 md:top-4 md:right-6 text-[6.25rem] font-black text-[#86CD89] group-hover:text-[#B3EDB6] transition-colors duration-300 leading-none pointer-events-none select-none z-0">03</span>
+                <div className="w-14 h-14 rounded-xl bg-[#5C9460] flex items-center justify-center mb-6 relative z-10 mt-2">
                   <Image src="/affiliationslogo/Framegrassroots.svg" alt="Youth & Grassroots Programs" width={28} height={28} />
                 </div>
-                <h3 className="font-bold text-background text-lg mb-4 relative z-10">Youth & Grassroots Programs</h3>
-                <p className="text-[#5C9460] text-sm leading-relaxed relative z-10 max-w-sm">
-                  Purpose-built tracking for attendance and engagement scoring — documenting development, supporting grant obligations, and growing local communities.
-                </p>
+                <div className="mt-auto relative z-10 w-full flex flex-col items-center">
+                  <h3 className="font-bold text-background text-lg mb-4">Youth & Grassroots Programs</h3>
+                  <p className="text-[#5C9460] text-sm leading-relaxed max-w-sm group-hover:text-[#3B663E] transition-colors duration-300">
+                    Purpose-built tracking for attendance and engagement scoring — documenting development, supporting grant obligations, and growing local communities.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -293,7 +347,7 @@ export default function AffiliationsPage(): React.JSX.Element {
       </section>
 
       {/* Global Reach Section */}
-      <section className="py-24 px-4 bg-[#222222] relative overflow-hidden">
+      <section className="py-16 md:py-20 lg:py-24 bg-[#222222] relative overflow-hidden">
         {/* Large faint background text */}
         <div className="hidden md:flex absolute inset-0 items-center justify-center pointer-events-none select-none overflow-hidden">
           <span
@@ -305,7 +359,7 @@ export default function AffiliationsPage(): React.JSX.Element {
         </div>
 
         <FadeIn>
-          <div className="max-w-8xl mx-auto relative z-10">
+          <div className="max-w-8xl mx-auto relative z-10 px-6 sm:px-8 lg:px-12 xl:px-16">
             <div className="flex items-center gap-2 mb-6">
               <div className="w-1.5 h-1.5 rounded-full bg-[#67B18A]" />
               <span className="text-base font-semibold text-[#67B18A]">Global Reach</span>
@@ -316,47 +370,47 @@ export default function AffiliationsPage(): React.JSX.Element {
 
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
               {/* Card 1 */}
-              <div className="rounded-3xl border border-white/10 bg-[#2A2A2A]/50 backdrop-blur-sm p-8 flex flex-col justify-start hover:bg-[#333333]/80 transition-colors min-h-[16.25rem]">
+              <div className="rounded-3xl border-2 border-white/10 bg-[#2A2A2A]/50 backdrop-blur-sm p-8 flex flex-col justify-start hover:bg-[#333333]/80 transition-colors min-h-[16.25rem]">
                 <div className="w-14 h-14 rounded-xl bg-[#665D96] flex items-center justify-center mb-8">
                   <Image src="/affiliationslogo/Frameasia.svg" alt="Asia-Pacific Icon" width={28} height={28} />
                 </div>
                 <h3 className="font-bold text-white text-xl mb-3">Asia-Pacific</h3>
-                <p className="text-secondary text-sm leading-relaxed">
+                <p className="text-[#A291B1] text-sm leading-relaxed">
                   India • Singapore • Malaysia<br/>
                   Indonesia • Thailand • Australia
                 </p>
               </div>
 
               {/* Card 2 */}
-              <div className="rounded-3xl border border-white/10 bg-[#2A2A2A]/50 backdrop-blur-sm p-8 flex flex-col justify-start hover:bg-[#333333]/80 transition-colors min-h-[16.25rem]">
+              <div className="rounded-3xl border-2 border-white/10 bg-[#2A2A2A]/50 backdrop-blur-sm p-8 flex flex-col justify-start hover:bg-[#333333]/80 transition-colors min-h-[16.25rem]">
                 <div className="w-14 h-14 rounded-xl bg-[#E28D69] flex items-center justify-center mb-8">
                   <Image src="/affiliationslogo/Framemiddleeast.svg" alt="Middle East Icon" width={28} height={28} />
                 </div>
                 <h3 className="font-bold text-white text-xl mb-3">Middle East</h3>
-                <p className="text-secondary text-sm leading-relaxed">
+                <p className="text-[#A291B1] text-sm leading-relaxed">
                   UAE<br/>
                   & expanding regionally
                 </p>
               </div>
 
               {/* Card 3 */}
-              <div className="rounded-3xl border border-white/10 bg-[#2A2A2A]/50 backdrop-blur-sm p-8 flex flex-col justify-start hover:bg-[#333333]/80 transition-colors min-h-[16.25rem]">
+              <div className="rounded-3xl border-2 border-white/10 bg-[#2A2A2A]/50 backdrop-blur-sm p-8 flex flex-col justify-start hover:bg-[#333333]/80 transition-colors min-h-[16.25rem]">
                 <div className="w-14 h-14 rounded-xl bg-[#A2919A] flex items-center justify-center mb-8">
                   <Image src="/affiliationslogo/Frameamericas.svg" alt="Americas Icon" width={28} height={28} />
                 </div>
                 <h3 className="font-bold text-white text-xl mb-3">Americas</h3>
-                <p className="text-secondary text-sm leading-relaxed">
+                <p className="text-[#A291B1] text-sm leading-relaxed">
                   United States • Mexico
                 </p>
               </div>
 
               {/* Card 4 */}
-              <div className="rounded-3xl border border-white/10 bg-[#2A2A2A]/50 backdrop-blur-sm p-8 flex flex-col justify-start hover:bg-[#333333]/80 transition-colors min-h-[16.25rem]">
+              <div className="rounded-3xl border-2 border-white/10 bg-[#2A2A2A]/50 backdrop-blur-sm p-8 flex flex-col justify-start hover:bg-[#333333]/80 transition-colors min-h-[16.25rem]">
                 <div className="w-14 h-14 rounded-xl bg-[#67B18A] flex items-center justify-center mb-8">
                   <Image src="/affiliationslogo/Frameeurope.svg" alt="Europe Icon" width={28} height={28} />
                 </div>
                 <h3 className="font-bold text-white text-xl mb-3">Europe</h3>
-                <p className="text-secondary text-sm leading-relaxed">
+                <p className="text-[#A291B1] text-sm leading-relaxed">
                   United Kingdom • Germany<br/>
                   & growing presence
                 </p>
@@ -372,56 +426,56 @@ export default function AffiliationsPage(): React.JSX.Element {
           <div className="relative overflow-hidden bg-[linear-gradient(to_right,#DCD4E2_50%,#8598C7_100%)]">
           {/* Exact geometric line pattern */}
           <svg
-            className="absolute inset-0 w-full h-full"
-            viewBox="0 0 1440 500"
-            preserveAspectRatio="none"
-            xmlns="http://www.w3.org/2000/svg"
+              className="hidden md:block absolute inset-0 w-full h-full"
+              viewBox="0 0 1440 500"
+              preserveAspectRatio="none"
+              xmlns="http://www.w3.org/2000/svg"
           >
-            {/* LEFT TRIANGLE */}
-            <line
+              {/* LEFT TRIANGLE */}
+              <line
               x1="0"
               y1="500"
               x2="380"
               y2="0"
               stroke="#C9C1CF"
-              strokeWidth="1.5"
-            />
-            <line
+              strokeWidth="0.8"
+              />
+              <line
               x1="380"
               y1="0"
               x2="770"
               y2="500"
               stroke="#C9C1CF"
-              strokeWidth="1.5"
-            />
+              strokeWidth="0.8"
+              />
 
-            {/* CENTER INTERSECTING TRIANGLE */}
-            <line
+              {/* CENTER INTERSECTING TRIANGLE */}
+              <line
               x1="530"
               y1="500"
               x2="905"
               y2="0"
               stroke="#A291B178"
-              strokeWidth="1.5"
-            />
-            <line
+              strokeWidth="0.8"
+              />
+              <line
               x1="905"
               y1="0"
               x2="1245"
               y2="500"
               stroke="#F1441A1F"
-              strokeWidth="1.5"
-            />
+              strokeWidth="0.8"
+              />
 
-            {/* PARALLEL INNER RIGHT LINE */}
-            <line
+              {/* PARALLEL INNER RIGHT LINE */}
+              <line
               x1="880"
               y1="0"
               x2="1215"
               y2="500"
               stroke="#8598C7AB"
-              strokeWidth="1.5"
-            />
+              strokeWidth="0.8"
+              />
           </svg>
 
           {/* CONTENT */}
@@ -443,7 +497,7 @@ export default function AffiliationsPage(): React.JSX.Element {
 
             <a
               href="/contact"
-              className="mt-12 inline-flex h-12 items-center justify-center rounded-xl bg-primary px-12 text-sm font-bold uppercase tracking-[0.15em] text-white shadow-xl transition-all hover:-translate-y-1"
+              className="mt-12 inline-flex h-12 items-center justify-center rounded-xl bg-primary px-12 text-sm font-bold uppercase tracking-[0.15em] text-white shadow-xl transition-all hover:-translate-y-1 hover:bg-[#FF7E4A] hover:shadow-[0_8px_20px_#FF5C1A6B]"
             >
               Contact Us
             </a>

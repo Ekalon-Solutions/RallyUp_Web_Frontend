@@ -17,7 +17,7 @@ export default function PrivacyPage(): React.JSX.Element {
             <div className="bg-secondary-purple/40 px-4 py-16 relative z-10">
                 <div className="max-w-3xl mx-auto">
                     <div className="absolute inset-0 -z-10" />
-                    <div className="absolute -bottom-8 -left-10 w-80 h-80 opacity-60 pointer-events-none select-none">
+                    <div className="absolute -bottom-8 -left-10 w-80 h-80 opacity-60 pointer-events-none select-none z-[-5]">
                         <Image src="/Vector.svg" alt="" fill className="object-contain" />
                     </div>
                     <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-background border border-primary/20 mb-6 animate-scale-in">
