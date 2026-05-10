@@ -226,7 +226,7 @@ export default function AffiliationsPage(): React.JSX.Element {
             <div className="grid md:grid-cols-5 gap-6">
               {/* Card 1 */}
               <div className="group md:col-span-3 bg-[#222222] hover:bg-[#444444] rounded-3xl p-8 md:p-10 relative overflow-hidden flex flex-col justify-between hover:shadow-lg transition-all duration-300 min-h-[18rem] md:min-h-[22rem]">
-                <span className="absolute font-[600] top-2 right-2 md:top-auto md:bottom-4 md:right-6 text-[6rem] md:text-[8rem] font-black text-[#2A2A2A] group-hover:text-[#2E2E2E] transition-colors duration-300 leading-none pointer-events-none select-none z-0">
+                <span className="absolute font-[600] top-2 right-2 md:top-auto md:bottom-4 md:right-6 text-[6rem] md:text-[8rem] text-[#2A2A2A] group-hover:text-[#2E2E2E] transition-colors duration-300 leading-none pointer-events-none select-none z-0">
                   01
                 </span>
                 <div className="w-14 h-14 rounded-xl bg-[#8A8A8A] flex items-center justify-center relative z-10 mt-2 md:mt-0">
@@ -242,7 +242,7 @@ export default function AffiliationsPage(): React.JSX.Element {
 
               {/* Card 2 */}
               <div className="group md:col-span-2 bg-[#786FBB] hover:bg-[#8A8EE9] rounded-3xl p-8 md:p-10 relative overflow-hidden flex flex-col justify-between hover:shadow-lg transition-all duration-300 min-h-[18rem] md:min-h-[22rem]">
-                <span className="absolute font-[600] top-2 right-2 md:top-4 md:right-6 text-[6rem] md:text-[8rem] font-black text-[#6961A3] group-hover:text-[#797CCB] transition-colors duration-300 leading-none pointer-events-none select-none z-0">02</span>
+                <span className="absolute font-[600] top-2 right-2 md:top-4 md:right-6 text-[6rem] md:text-[8rem] text-[#6961A3] group-hover:text-[#797CCB] transition-colors duration-300 leading-none pointer-events-none select-none z-0">02</span>
                 <div className="w-14 h-14 rounded-xl bg-[#D6D3F0] flex items-center justify-center relative z-10 mt-2 md:mt-0">
                   <Image src="/affiliationslogo/Framecommunity.svg" alt="Community Building" width={28} height={28} />
                 </div>
@@ -256,7 +256,7 @@ export default function AffiliationsPage(): React.JSX.Element {
 
               {/* Card 3 */}
               <div className="group md:col-span-2 bg-[#D8D5FB] hover:bg-[#BCBDFF] rounded-3xl p-8 md:p-10 relative overflow-hidden flex flex-col justify-between hover:shadow-lg transition-all duration-300 min-h-[18rem] md:min-h-[22rem]">
-                <span className="absolute font-[600] top-2 right-2 md:top-4 md:right-6 text-[6rem] md:text-[8rem] font-black text-[#E9E6FF] group-hover:text-[#DEDFFF] transition-colors duration-300 leading-none pointer-events-none select-none z-0">
+                <span className="absolute font-[600] top-2 right-2 md:top-4 md:right-6 text-[6rem] md:text-[8rem] text-[#E9E6FF] group-hover:text-[#DEDFFF] transition-colors duration-300 leading-none pointer-events-none select-none z-0">
                 03</span>
               <div className="w-14 h-14 rounded-xl bg-[#8076B9] flex items-center justify-center relative z-10 mt-2 md:mt-0">
                   <Image src="/affiliationslogo/Vectortool.svg" alt="Supporter Group Tools" width={28} height={28} />
@@ -271,7 +271,7 @@ export default function AffiliationsPage(): React.JSX.Element {
 
               {/* Card 4 */}
               <div className="group md:col-span-3 bg-[#E4D9DF] hover:bg-[#D8BBEE] rounded-3xl p-8 md:p-10 relative overflow-hidden flex flex-col justify-between hover:shadow-lg transition-all duration-300 min-h-[18rem] md:min-h-[22rem]">
-                <span className="absolute font-[600] top-2 right-2 md:top-auto md:bottom-4 md:right-6 text-[6rem] md:text-[8rem] font-black text-[#F4ECF0] group-hover:text-[#E7DFED] transition-colors duration-300 leading-none pointer-events-none select-none z-0">04</span>
+                <span className="absolute font-[600] top-2 right-2 md:top-auto md:bottom-4 md:right-6 text-[6rem] md:text-[8rem] text-[#F4ECF0] group-hover:text-[#E7DFED] transition-colors duration-300 leading-none pointer-events-none select-none z-0">04</span>
                 <div className="w-14 h-14 rounded-xl bg-[#7B6A76] flex items-center justify-center relative z-10 mt-2 md:mt-0">
                   <Image src="/affiliationslogo/Framepartnership.svg" alt="Custom Partnerships" width={28} height={28} />
                 </div>
@@ -302,7 +302,7 @@ export default function AffiliationsPage(): React.JSX.Element {
             <div className="grid md:grid-cols-3 gap-6">
               {/* Card 1 */}
               <div className="group bg-[#D9DBFF] hover:bg-[#BCBDFF] rounded-3xl p-8 relative overflow-hidden flex flex-col items-start md:items-center text-left md:text-center hover:shadow-lg transition-all duration-300 min-h-[18rem]">
-                <span className="hidden md:flex md:absolute font-[600] top-2 right-2 md:top-4 md:right-6 text-[6.25rem] font-black text-[#BFC3FF] group-hover:text-[#DEDFFF] transition-colors duration-300 leading-none pointer-events-none select-none z-0">
+                <span className="hidden md:flex md:absolute font-[600] top-2 right-2 md:top-4 md:right-6 text-[6.25rem]  text-[#BFC3FF] group-hover:text-[#DEDFFF] transition-colors duration-300 leading-none pointer-events-none select-none z-0">
                   01
                 </span>
 
@@ -330,7 +330,7 @@ export default function AffiliationsPage(): React.JSX.Element {
 
               {/* Card 2 */}
               <div className="group bg-[#E4DCDF] hover:bg-[#D8BBEE] rounded-3xl p-8 relative overflow-hidden flex flex-col items-start md:items-center text-left md:text-center hover:shadow-lg transition-all duration-300 min-h-[18rem]">
-                <span className="hidden md:flex absolute font-[600] top-2 right-2 md:top-4 md:right-6 text-[6.25rem] font-black text-[#D0C7CC] group-hover:text-[#E7DFED] transition-colors duration-300 leading-none pointer-events-none select-none z-0">
+                <span className="hidden md:flex absolute font-[600] top-2 right-2 md:top-4 md:right-6 text-[6.25rem]  text-[#D0C7CC] group-hover:text-[#E7DFED] transition-colors duration-300 leading-none pointer-events-none select-none z-0">
                   02
                 </span>
 
@@ -358,7 +358,7 @@ export default function AffiliationsPage(): React.JSX.Element {
 
               {/* Card 3 */}
               <div className="group bg-[#9AE69D] hover:bg-[#7FD483] rounded-3xl p-8 relative overflow-hidden flex flex-col items-start md:items-center text-left md:text-center hover:shadow-lg transition-all duration-300 min-h-[18rem]">
-                <span className="hidden md:flex absolute font-[600] top-2 right-2 md:top-4 md:right-6 text-[6.25rem] font-black text-[#86CD89] group-hover:text-[#B3EDB6] transition-colors duration-300 leading-none pointer-events-none select-none z-0">
+                <span className="hidden md:flex absolute font-[600] top-2 right-2 md:top-4 md:right-6 text-[6.25rem]  text-[#86CD89] group-hover:text-[#B3EDB6] transition-colors duration-300 leading-none pointer-events-none select-none z-0">
                   03
                 </span>
 

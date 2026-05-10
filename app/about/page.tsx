@@ -59,7 +59,7 @@ export default function AboutPage(): React.JSX.Element {
                     <section className="grid md:grid-cols-2 gap-6">
                         {/* Card 1 */}
                         <div className="bg-[#DCD4E2] hover:bg-[#CBAEE1] rounded-xl p-6 md:p-8 relative overflow-hidden flex flex-col justify-start shadow-[0px_4px_24px_#00000040] transition-shadow">
-                            <span className="absolute top-4 right-6 text-[7rem] font-black text-[#E3DCE8] leading-none pointer-events-none select-none font-sans">R</span>
+                            <span className="absolute top-4 right-6 text-[7rem]  text-[#E3DCE8] leading-none pointer-events-none select-none font-sans">R</span>
                             <div className="w-14 h-14 rounded-xl bg-[#5D5377] flex items-center justify-center mb-6 relative z-10 p-2 shadow-md">
                                 <Image
                                     src="/RallyUpSolutions Logo (Transparent Background).svg"
@@ -77,7 +77,7 @@ export default function AboutPage(): React.JSX.Element {
 
                         {/* Card 2 */}
                         <div className="bg-[#D4D5FB] hover:bg-[#B8BAFF] rounded-xl p-6 md:p-8 relative overflow-hidden flex flex-col justify-start shadow-[0px_4px_24px_#00000040] transition-shadow">
-                            <span className="absolute top-4 right-6 text-[7rem] font-black text-[#E3DCE8] leading-none pointer-events-none select-none font-sans">W</span>
+                            <span className="absolute top-4 right-6 text-[7rem]  text-[#E3DCE8] leading-none pointer-events-none select-none font-sans">W</span>
                             <div className="w-14 h-14 rounded-xl bg-[#7D7FBC] flex items-center justify-center mb-6 relative z-10 p-2 shadow-md">
                                 <Image
                                     src="/Logo.svg"
@@ -196,7 +196,7 @@ export default function AboutPage(): React.JSX.Element {
                             <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
                                 {/* Card 1 */}
                                 <div className="group md:col-span-7 bg-[#2A2A2A] hover:bg-[#444444] rounded-3xl p-6 md:p-10 relative overflow-hidden flex flex-col justify-between hover:shadow-lg transition-all duration-300 min-h-[17.5rem]">
-                                    <span className="absolute top-2 right-2 md:top-auto md:bottom-4 md:right-6 text-[6rem] md:text-[8rem] font-[600] font-black text-[#1A1A1A] group-hover:text-[#2E2E2E] transition-colors duration-300 leading-none pointer-events-none select-none z-0">01</span>
+                                    <span className="absolute top-2 right-2 md:top-auto md:bottom-4 md:right-6 text-[6rem] md:text-[8rem] font-[600]  text-[#1A1A1A] group-hover:text-[#2E2E2E] transition-colors duration-300 leading-none pointer-events-none select-none z-0">01</span>
                                     <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center mb-12 md:mb-16 relative z-10 backdrop-blur-sm">
                                         <Users className="w-7 h-7 text-white" strokeWidth={1.5} />
                                     </div>
@@ -210,7 +210,7 @@ export default function AboutPage(): React.JSX.Element {
 
                                 {/* Card 2 */}
                                 <div className="group md:col-span-5 bg-[#7D7FBC] hover:bg-[#8A8EE9] rounded-3xl p-6 md:p-10 relative overflow-hidden flex flex-col justify-between hover:shadow-lg transition-all duration-300 min-h-[17.5rem]">
-                                    <span className="absolute font-[600] top-2 right-2 md:top-4 md:right-6 text-[6rem] md:text-[8rem] font-black text-[#65679B] group-hover:text-[#797CCB] transition-colors duration-300 leading-none pointer-events-none select-none z-0">02</span>
+                                    <span className="absolute font-[600] top-2 right-2 md:top-4 md:right-6 text-[6rem] md:text-[8rem]  text-[#65679B] group-hover:text-[#797CCB] transition-colors duration-300 leading-none pointer-events-none select-none z-0">02</span>
                                     <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center mb-12 md:mb-16 relative z-10 backdrop-blur-sm">
                                         <BarChart3 className="w-7 h-7 text-white" strokeWidth={1.5} />
                                     </div>
@@ -224,7 +224,7 @@ export default function AboutPage(): React.JSX.Element {
 
                                 {/* Card 3 */}
                                 <div className="group md:col-span-5 bg-[#D6D7FA] hover:bg-[#BCBDFF] rounded-3xl p-6 md:p-10 relative overflow-hidden flex flex-col justify-between hover:shadow-lg transition-all duration-300 min-h-[17.5rem]">
-                                    <span className="absolute top-2 font-[600] right-2 md:top-4 md:right-6 text-[6rem] md:text-[8rem] font-black text-white/60 group-hover:text-[#DEDFFF] transition-colors duration-300 leading-none pointer-events-none select-none z-0">03</span>
+                                    <span className="absolute top-2 font-[600] right-2 md:top-4 md:right-6 text-[6rem] md:text-[8rem]  text-white/60 group-hover:text-[#DEDFFF] transition-colors duration-300 leading-none pointer-events-none select-none z-0">03</span>
                                     <div className="w-14 h-14 rounded-2xl bg-[#7D7FBC] flex items-center justify-center mb-12 md:mb-16 relative z-10 shadow-md">
                                         <Smartphone className="w-7 h-7 text-white" strokeWidth={1.5} />
                                     </div>
@@ -238,7 +238,7 @@ export default function AboutPage(): React.JSX.Element {
 
                                 {/* Card 4 */}
                                 <div className="group md:col-span-7 bg-[#E4DEE3] hover:bg-[#D8BBEE] rounded-3xl p-6 md:p-10 relative overflow-hidden flex flex-col justify-between hover:shadow-lg transition-all duration-300 min-h-[17.5rem]">
-                                    <span className="absolute font-[600] top-2 right-2 md:top-auto md:bottom-4 md:right-6 text-[6rem] md:text-[8rem] font-black text-white/80 group-hover:text-[#E7DFED] transition-colors duration-300 leading-none pointer-events-none select-none z-0">04</span>
+                                    <span className="absolute font-[600] top-2 right-2 md:top-auto md:bottom-4 md:right-6 text-[6rem] md:text-[8rem]  text-white/80 group-hover:text-[#E7DFED] transition-colors duration-300 leading-none pointer-events-none select-none z-0">04</span>
                                     <div className="w-14 h-14 rounded-2xl bg-[#5D5377] flex items-center justify-center mb-12 md:mb-16 relative z-10 shadow-md">
                                         <ShieldCheck className="w-7 h-7 text-white" strokeWidth={1.5} />
                                     </div>
@@ -252,7 +252,7 @@ export default function AboutPage(): React.JSX.Element {
 
                                 {/* Card 5 */}
                                 <div className="group md:col-span-12 bg-[#C2DEF5] hover:bg-[#97BEF7] rounded-3xl p-6 md:p-10 relative overflow-hidden flex flex-col md:flex-row hover:shadow-lg transition-all duration-300 min-h-[15rem] items-stretch">
-                                    <span className="absolute font-[600] top-2 right-2 md:top-auto md:bottom-4 md:right-6 text-[6rem] md:text-[8rem] font-black text-white/80 group-hover:text-[#C9DFFF] transition-colors duration-300 leading-none pointer-events-none select-none z-0">05</span>
+                                    <span className="absolute font-[600] top-2 right-2 md:top-auto md:bottom-4 md:right-6 text-[6rem] md:text-[8rem]  text-white/80 group-hover:text-[#C9DFFF] transition-colors duration-300 leading-none pointer-events-none select-none z-0">05</span>
                                     
                                     <div className="flex flex-col justify-between relative z-10 w-full md:w-1/3">
                                         <div className="w-14 h-14 rounded-2xl bg-[#1D4ED8] flex items-center justify-center mb-8 md:mb-12 shadow-md">
