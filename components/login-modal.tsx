@@ -266,7 +266,7 @@ export function LoginModal({ open, onOpenChange }: LoginModalProps) {
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) resetForm(); onOpenChange(v) }}>
-      <DialogContent className="p-0 gap-0 max-w-[420px] w-full overflow-hidden rounded-2xl border-0 shadow-2xl" hideCloseButton>
+      <DialogContent className="p-0 gap-0 w-[92vw] max-w-[360px] sm:w-full sm:max-w-[420px] overflow-hidden rounded-2xl border-0 shadow-2xl" hideCloseButton>
         <DialogTitle className="sr-only">Login to RallyUp</DialogTitle>
         {/* Header */}
         <div className="relative bg-secondary px-5 pt-4">
@@ -345,7 +345,7 @@ export function LoginModal({ open, onOpenChange }: LoginModalProps) {
                     value={email}
                     onChange={(e) => { setEmail(e.target.value); setEmailError(""); if (e.target.value) setPhone("") }}
                     disabled={!!phone}
-                    className="pl-9 h-12 rounded-xl border-secondary bg-white disabled:opacity-40 text-black focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-primary focus:border-primary"
+                    className="pl-9 h-12 rounded-xl border-secondary bg-white disabled:opacity-40 text-black placeholder:text-xs sm:placeholder:text-sm focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-primary focus:border-primary"
                   />
                 </div>
                 {emailError && <p className="text-red-500 text-xs">{emailError}</p>}
@@ -386,7 +386,7 @@ export function LoginModal({ open, onOpenChange }: LoginModalProps) {
                       value={phone}
                       onChange={(e) => { setPhone(e.target.value); setPhoneError(""); if (e.target.value) setEmail("") }}
                       disabled={!!email}
-                      className="pl-9 h-12 bg-white rounded-xl border-secondary disabled:opacity-40 text-black focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-primary focus:border-primary"
+                      className="pl-9 h-12 bg-white rounded-xl border-secondary disabled:opacity-40 text-black placeholder:text-xs sm:placeholder:text-sm focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-primary focus:border-primary"
                     />
                   </div>
                 </div>
@@ -417,7 +417,7 @@ export function LoginModal({ open, onOpenChange }: LoginModalProps) {
                   value={otp}
                   onChange={(e) => setOtp(e.target.value)}
                   maxLength={6}
-                  className="bg-white h-12 rounded-xl text-center text-xl tracking-[0.4em] border-secondary text-black focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-primary focus:border-primary"
+                  className="bg-white h-12 rounded-xl text-center text-xl tracking-[0.4em] border-secondary text-black placeholder:text-xs sm:placeholder:text-sm placeholder:tracking-normal focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-primary focus:border-primary"
                 />
               </div>
               <div className="flex gap-2">
@@ -477,7 +477,7 @@ export function LoginModal({ open, onOpenChange }: LoginModalProps) {
           <Link href={`/login?tab=${tab}-register`} onClick={() => onOpenChange(false)}>
             <Button
               variant="outline"
-              className="w-full h-12 mt-1 rounded-xl bg-secondary text-white hover:bg-[#4f4f8a] hover:text-white font-bold text-sm gap-2"
+              className="border-secondary border w-full h-12 mt-1 rounded-xl bg-secondary text-white hover:bg-[#4f4f8a] hover:text-white font-bold text-sm gap-2"
             >
               Create Account
               <UserPlus className="w-4 h-4" />

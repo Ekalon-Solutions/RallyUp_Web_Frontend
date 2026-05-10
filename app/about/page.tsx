@@ -113,7 +113,7 @@ export default function AboutPage(): React.JSX.Element {
                     <div className="max-w-8xl mx-auto relative z-10 px-6 sm:px-8 lg:px-12 xl:px-16">
                         <div className="flex items-center gap-2 mb-6">
                             <div className="w-1.5 h-1.5 rounded-full bg-[#67B18A]" />
-                            <span className="text-base font-semibold text-[#67B18A]">Our North Star</span>
+                            <span className="text-base text-[#67B18A]">Our North Star</span>
                         </div>
                         <h2 className="text-3xl lg:text-5xl font-extrabold mb-12 md:mb-16 text-white tracking-tight leading-[1.1]">
                             Why We <span className="text-[#67B18A]">Exist.</span>
@@ -186,7 +186,7 @@ export default function AboutPage(): React.JSX.Element {
                             <div className="hidden md:block mb-12">
                                 <div className="inline-flex items-center gap-2 mb-4">
                                     <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                                    <span className="text-base font-semibold text-primary tracking-wide">What We Do</span>
+                                    <span className="text-base text-primary tracking-wide">What We Do</span>
                                 </div>
                                 <h2 className="text-3xl lg:text-4xl font-extrabold text-[#1A1A1A] tracking-tight leading-[1.1]">
                                     Five Core Features. <span className="text-primary">One Platform.</span>
@@ -196,7 +196,7 @@ export default function AboutPage(): React.JSX.Element {
                             <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
                                 {/* Card 1 */}
                                 <div className="group md:col-span-7 bg-[#2A2A2A] hover:bg-[#444444] rounded-3xl p-6 md:p-10 relative overflow-hidden flex flex-col justify-between hover:shadow-lg transition-all duration-300 min-h-[17.5rem]">
-                                    <span className="absolute bottom-2 right-2 md:bottom-4 md:right-6 text-[6rem] md:text-[8rem] font-[600] font-black text-[#1A1A1A] group-hover:text-[#2E2E2E] transition-colors duration-300 leading-none pointer-events-none select-none z-0">01</span>
+                                    <span className="absolute top-2 right-2 md:top-auto md:bottom-4 md:right-6 text-[6rem] md:text-[8rem] font-[600] font-black text-[#1A1A1A] group-hover:text-[#2E2E2E] transition-colors duration-300 leading-none pointer-events-none select-none z-0">01</span>
                                     <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center mb-12 md:mb-16 relative z-10 backdrop-blur-sm">
                                         <Users className="w-7 h-7 text-white" strokeWidth={1.5} />
                                     </div>
@@ -238,7 +238,7 @@ export default function AboutPage(): React.JSX.Element {
 
                                 {/* Card 4 */}
                                 <div className="group md:col-span-7 bg-[#E4DEE3] hover:bg-[#D8BBEE] rounded-3xl p-6 md:p-10 relative overflow-hidden flex flex-col justify-between hover:shadow-lg transition-all duration-300 min-h-[17.5rem]">
-                                    <span className="absolute font-[600] bottom-2 right-2 md:bottom-4 md:right-6 text-[6rem] md:text-[8rem] font-black text-white/80 group-hover:text-[#E7DFED] transition-colors duration-300 leading-none pointer-events-none select-none z-0">04</span>
+                                    <span className="absolute font-[600] top-2 right-2 md:top-auto md:bottom-4 md:right-6 text-[6rem] md:text-[8rem] font-black text-white/80 group-hover:text-[#E7DFED] transition-colors duration-300 leading-none pointer-events-none select-none z-0">04</span>
                                     <div className="w-14 h-14 rounded-2xl bg-[#5D5377] flex items-center justify-center mb-12 md:mb-16 relative z-10 shadow-md">
                                         <ShieldCheck className="w-7 h-7 text-white" strokeWidth={1.5} />
                                     </div>
@@ -252,7 +252,7 @@ export default function AboutPage(): React.JSX.Element {
 
                                 {/* Card 5 */}
                                 <div className="group md:col-span-12 bg-[#C2DEF5] hover:bg-[#97BEF7] rounded-3xl p-6 md:p-10 relative overflow-hidden flex flex-col md:flex-row hover:shadow-lg transition-all duration-300 min-h-[15rem] items-stretch">
-                                    <span className="absolute font-[600] bottom-2 right-2 md:bottom-4 md:right-6 text-[6rem] md:text-[8rem] font-black text-white/80 group-hover:text-[#C9DFFF] transition-colors duration-300 leading-none pointer-events-none select-none z-0">05</span>
+                                    <span className="absolute font-[600] top-2 right-2 md:top-auto md:bottom-4 md:right-6 text-[6rem] md:text-[8rem] font-black text-white/80 group-hover:text-[#C9DFFF] transition-colors duration-300 leading-none pointer-events-none select-none z-0">05</span>
                                     
                                     <div className="flex flex-col justify-between relative z-10 w-full md:w-1/3">
                                         <div className="w-14 h-14 rounded-2xl bg-[#1D4ED8] flex items-center justify-center mb-8 md:mb-12 shadow-md">
@@ -282,7 +282,7 @@ export default function AboutPage(): React.JSX.Element {
                         <div className="mb-12 relative z-10">
                         <div className="flex items-center gap-2 mb-4">
                             <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                            <span className="text-base font-semibold text-primary tracking-wide">Leadership Team</span>
+                            <span className="text-base text-primary tracking-wide">Leadership Team</span>
                         </div>
                         <h2 className="text-3xl lg:text-4xl font-extrabold text-[#1A1A1A] tracking-tight leading-[1.1]">
                             The <span className="text-primary">People</span> Behind It.
@@ -318,10 +318,10 @@ export default function AboutPage(): React.JSX.Element {
                                     description: "Leads market strategy and sales initiatives. Specialises in scaling startups and SMBs, ensuring Wingman Pro delivers measurable value to organizations and their supporter communities.",
                                 },
                             ].map((leader, i) => (
-                                <div key={leader.name} className="group relative w-full [perspective:1000px]">
-                                    <div className="w-full h-full transition-all duration-700 [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)]">
+                                <div key={leader.name} className="group relative w-full md:[perspective:1000px]">
+                                    <div className="w-full h-full transition-all duration-700 md:[transform-style:preserve-3d] md:group-hover:[transform:rotateY(180deg)]">
                                         {/* Front Face */}
-                                        <div className="relative w-full h-full [backface-visibility:hidden] bg-white rounded-3xl p-8 md:p-10 shadow-sm flex flex-col justify-start border border-white/50">
+                                        <div className="relative w-full h-full md:[backface-visibility:hidden] bg-white rounded-3xl p-8 md:p-10 shadow-sm flex flex-col justify-start border border-white/50">
                                             <div className="w-24 h-24 rounded-full bg-[#E5DFE6] mb-8 overflow-hidden relative shadow-sm">
                                                 <Image
                                                     src={leader.image}
@@ -332,12 +332,16 @@ export default function AboutPage(): React.JSX.Element {
                                                 />
                                             </div>
                                             <h3 className="font-bold text-[#1A1A1A] text-lg mb-3">{leader.name}</h3>
-                                            <p className="text-[#65679B] text-sm font-medium leading-relaxed whitespace-pre-wrap">
+                                            <p className="text-[#65679B] text-sm font-medium leading-relaxed whitespace-pre-wrap md:mb-0">
                                                 {leader.title}
                                             </p>
+                                            {/* Description only shown on mobile */}
+                                            <p className="md:hidden text-secondary text-sm leading-relaxed pt-2">
+                                                {leader.description}
+                                            </p>
                                         </div>
-                                        {/* Back Face */}
-                                        <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] [transform:rotateY(180deg)] bg-secondary rounded-3xl px-6 md:px-8 flex flex-col items-start justify-center text-left shadow-lg border border-black/5">
+                                        {/* Back Face (Hidden on mobile) */}
+                                        <div className="hidden md:flex absolute inset-0 w-full h-full [backface-visibility:hidden] [transform:rotateY(180deg)] bg-secondary rounded-3xl px-6 md:px-8 flex-col items-start justify-center text-left shadow-lg border border-black/5">
                                             <h3 className="font-bold text-white text-xl md:text-2xl mb-4 tracking-wide">{leader.name}</h3>
                                             <p className="text-secondary-purple text-sm md:text-base leading-relaxed font-medium">
                                                 {leader.description}

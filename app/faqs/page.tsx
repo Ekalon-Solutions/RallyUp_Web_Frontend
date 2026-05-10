@@ -196,7 +196,7 @@ export default function FAQsPage(): React.JSX.Element {
                                             <AccordionItem
                                                 key={faqIndex}
                                                 value={`item-${categoryIndex}-${faqIndex}`}
-                                                className="border rounded-2xl px-5 bg-secondary-purple/30 data-[state=open]:border-[color:var(--category-color)] transition-all duration-300 animate-scale-in overflow-hidden"
+                                                className="border border-secondary rounded-2xl px-5 bg-secondary-purple/30 data-[state=open]:border-[color:var(--category-color)] transition-all duration-300 animate-scale-in overflow-hidden"
                                                 style={{ 
                                                     animationDelay: `${(categoryIndex * 0.1) + (faqIndex * 0.05)}s`,
                                                     '--category-color': category.color
