@@ -85,7 +85,7 @@ export default function AffiliationsPage(): React.JSX.Element {
             {/* Badge */}
             <div className="flex items-center gap-2 mb-6">
               <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-              <span className="text-base font-semibold text-primary">Technology Partners & Infrastructure</span>
+              <span className="text-base text-primary">Technology Partners & Infrastructure</span>
             </div>
 
             <h2 className="text-4xl lg:text-6xl font-extrabold mb-6 text-background tracking-tight leading-[1.1]">
@@ -217,7 +217,7 @@ export default function AffiliationsPage(): React.JSX.Element {
           <div className="max-w-8xl mx-auto px-6 sm:px-8 lg:px-12 xl:px-16">
             <div className="flex items-center gap-2 mb-6">
               <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-              <span className="text-base font-semibold text-primary">Partnership Benefits</span>
+              <span className="text-base text-primary">Partnership Benefits</span>
             </div>
             <h2 className="text-4xl lg:text-6xl font-extrabold mb-12 text-background tracking-tight leading-[1.1]">
               What <span className="text-primary">You Get.</span>
@@ -226,7 +226,7 @@ export default function AffiliationsPage(): React.JSX.Element {
             <div className="grid md:grid-cols-5 gap-6">
               {/* Card 1 */}
               <div className="group md:col-span-3 bg-[#222222] hover:bg-[#444444] rounded-3xl p-8 md:p-10 relative overflow-hidden flex flex-col justify-between hover:shadow-lg transition-all duration-300 min-h-[18rem] md:min-h-[22rem]">
-                <span className="absolute font-[600] bottom-2 right-2 md:bottom-4 md:right-6 text-[6rem] md:text-[8rem] font-black text-[#2A2A2A] group-hover:text-[#2E2E2E] transition-colors duration-300 leading-none pointer-events-none select-none z-0">
+                <span className="absolute font-[600] top-2 right-2 md:top-auto md:bottom-4 md:right-6 text-[6rem] md:text-[8rem] font-black text-[#2A2A2A] group-hover:text-[#2E2E2E] transition-colors duration-300 leading-none pointer-events-none select-none z-0">
                   01
                 </span>
                 <div className="w-14 h-14 rounded-xl bg-[#8A8A8A] flex items-center justify-center relative z-10 mt-2 md:mt-0">
@@ -271,7 +271,7 @@ export default function AffiliationsPage(): React.JSX.Element {
 
               {/* Card 4 */}
               <div className="group md:col-span-3 bg-[#E4D9DF] hover:bg-[#D8BBEE] rounded-3xl p-8 md:p-10 relative overflow-hidden flex flex-col justify-between hover:shadow-lg transition-all duration-300 min-h-[18rem] md:min-h-[22rem]">
-                <span className="absolute font-[600] bottom-2 right-2 md:bottom-4 md:right-6 text-[6rem] md:text-[8rem] font-black text-[#F4ECF0] group-hover:text-[#E7DFED] transition-colors duration-300 leading-none pointer-events-none select-none z-0">04</span>
+                <span className="absolute font-[600] top-2 right-2 md:top-auto md:bottom-4 md:right-6 text-[6rem] md:text-[8rem] font-black text-[#F4ECF0] group-hover:text-[#E7DFED] transition-colors duration-300 leading-none pointer-events-none select-none z-0">04</span>
                 <div className="w-14 h-14 rounded-xl bg-[#7B6A76] flex items-center justify-center relative z-10 mt-2 md:mt-0">
                   <Image src="/affiliationslogo/Framepartnership.svg" alt="Custom Partnerships" width={28} height={28} />
                 </div>
@@ -293,7 +293,7 @@ export default function AffiliationsPage(): React.JSX.Element {
           <div className="max-w-8xl mx-auto px-6 sm:px-8 lg:px-12 xl:px-16">
             <div className="flex items-center gap-2 mb-6">
               <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-              <span className="text-base font-semibold text-primary">League & Organizational Affiliates</span>
+              <span className="text-base text-primary">League & Organizational Affiliates</span>
             </div>
             <h2 className="text-4xl lg:text-6xl font-extrabold mb-12 text-background tracking-tight leading-[1.1]">
               Who We <span className="text-primary">Work With.</span>
@@ -301,43 +301,85 @@ export default function AffiliationsPage(): React.JSX.Element {
 
             <div className="grid md:grid-cols-3 gap-6">
               {/* Card 1 */}
-              <div className="group bg-[#D9DBFF] hover:bg-[#BCBDFF] rounded-3xl p-8 relative overflow-hidden flex flex-col justify-between items-center text-center hover:shadow-lg transition-all duration-300 min-h-[18rem]">
-                <span className="absolute font-[600] top-2 right-2 md:top-4 md:right-6 text-[6.25rem] font-black text-[#BFC3FF] group-hover:text-[#DEDFFF] transition-colors duration-300 leading-none pointer-events-none select-none z-0">01</span>
+              <div className="group bg-[#D9DBFF] hover:bg-[#BCBDFF] rounded-3xl p-8 relative overflow-hidden flex flex-col items-start md:items-center text-left md:text-center hover:shadow-lg transition-all duration-300 min-h-[18rem]">
+                <span className="hidden md:flex md:absolute font-[600] top-2 right-2 md:top-4 md:right-6 text-[6.25rem] font-black text-[#BFC3FF] group-hover:text-[#DEDFFF] transition-colors duration-300 leading-none pointer-events-none select-none z-0">
+                  01
+                </span>
+
                 <div className="w-14 h-14 rounded-xl bg-[#7D7FBC] flex items-center justify-center mb-6 relative z-10 mt-2">
-                  <Image src="/affiliationslogo/Framesupporter.svg" alt="Supporter Group Networks" width={28} height={28} />
+                  <Image
+                    src="/affiliationslogo/Framesupporter.svg"
+                    alt="Supporter Group Networks"
+                    width={28}
+                    height={28}
+                  />
                 </div>
-                <div className="mt-auto relative z-10 w-full flex flex-col items-center">
-                  <h3 className="font-bold text-background text-lg mb-4">Supporter Group Networks</h3>
+
+                <div className="mt-auto relative z-10 w-full flex flex-col items-start md:items-center">
+                  <h3 className="text-background text-lg mb-4">
+                    Supporter Group Networks
+                  </h3>
+
                   <p className="text-[#7D7FBC] text-sm leading-relaxed max-w-sm group-hover:text-[#5B5D99] transition-colors duration-300">
-                    Collaborations with global supporter networks — sharing best practices in member management and delivering shared knowledge among Wingman Pro communities.
+                    Collaborations with global supporter networks — sharing best practices
+                    in member management and delivering shared knowledge among Wingman Pro
+                    communities.
                   </p>
                 </div>
               </div>
 
               {/* Card 2 */}
-              <div className="group bg-[#E4DCDF] hover:bg-[#D8BBEE] rounded-3xl p-8 relative overflow-hidden flex flex-col justify-between items-center text-center hover:shadow-lg transition-all duration-300 min-h-[18rem]">
-                <span className="absolute font-[600] top-2 right-2 md:top-4 md:right-6 text-[6.25rem] font-black text-[#D0C7CC] group-hover:text-[#E7DFED] transition-colors duration-300 leading-none pointer-events-none select-none z-0">02</span>
+              <div className="group bg-[#E4DCDF] hover:bg-[#D8BBEE] rounded-3xl p-8 relative overflow-hidden flex flex-col items-start md:items-center text-left md:text-center hover:shadow-lg transition-all duration-300 min-h-[18rem]">
+                <span className="hidden md:flex absolute font-[600] top-2 right-2 md:top-4 md:right-6 text-[6.25rem] font-black text-[#D0C7CC] group-hover:text-[#E7DFED] transition-colors duration-300 leading-none pointer-events-none select-none z-0">
+                  02
+                </span>
+
                 <div className="w-14 h-14 rounded-xl bg-[#A2919A] flex items-center justify-center mb-6 relative z-10 mt-2">
-                  <Image src="/affiliationslogo/Vectorcorporate.svg" alt="Corporate Sponsors" width={28} height={28} />
+                  <Image
+                    src="/affiliationslogo/Vectorcorporate.svg"
+                    alt="Corporate Sponsors"
+                    width={28}
+                    height={28}
+                  />
                 </div>
-                <div className="mt-auto relative z-10 w-full flex flex-col items-center">
-                  <h3 className="font-bold text-background text-lg mb-4">Corporate Sponsors</h3>
+
+                <div className="mt-auto relative z-10 w-full flex flex-col items-start md:items-center">
+                  <h3 className="text-background text-lg mb-4">
+                    Corporate Sponsors
+                  </h3>
+
                   <p className="text-[#A2919A] text-sm leading-relaxed max-w-sm group-hover:text-[#7A6B73] transition-colors duration-300">
-                    Streamlined engagement channels between sponsors and our network of engaged supporter groups — unlocking new revenue opportunities for partner clubs.
+                    Streamlined engagement channels between sponsors and our network of
+                    engaged supporter groups — unlocking new revenue opportunities for
+                    partner clubs.
                   </p>
                 </div>
               </div>
 
               {/* Card 3 */}
-              <div className="group bg-[#9AE69D] hover:bg-[#7FD483] rounded-3xl p-8 relative overflow-hidden flex flex-col justify-between items-center text-center hover:shadow-lg transition-all duration-300 min-h-[18rem]">
-                <span className="absolute font-[600] top-2 right-2 md:top-4 md:right-6 text-[6.25rem] font-black text-[#86CD89] group-hover:text-[#B3EDB6] transition-colors duration-300 leading-none pointer-events-none select-none z-0">03</span>
+              <div className="group bg-[#9AE69D] hover:bg-[#7FD483] rounded-3xl p-8 relative overflow-hidden flex flex-col items-start md:items-center text-left md:text-center hover:shadow-lg transition-all duration-300 min-h-[18rem]">
+                <span className="hidden md:flex absolute font-[600] top-2 right-2 md:top-4 md:right-6 text-[6.25rem] font-black text-[#86CD89] group-hover:text-[#B3EDB6] transition-colors duration-300 leading-none pointer-events-none select-none z-0">
+                  03
+                </span>
+
                 <div className="w-14 h-14 rounded-xl bg-[#5C9460] flex items-center justify-center mb-6 relative z-10 mt-2">
-                  <Image src="/affiliationslogo/Framegrassroots.svg" alt="Youth & Grassroots Programs" width={28} height={28} />
+                  <Image
+                    src="/affiliationslogo/Framegrassroots.svg"
+                    alt="Youth & Grassroots Programs"
+                    width={28}
+                    height={28}
+                  />
                 </div>
-                <div className="mt-auto relative z-10 w-full flex flex-col items-center">
-                  <h3 className="font-bold text-background text-lg mb-4">Youth & Grassroots Programs</h3>
+
+                <div className="mt-auto relative z-10 w-full flex flex-col items-start md:items-center">
+                  <h3 className="text-background text-lg mb-4">
+                    Youth & Grassroots Programs
+                  </h3>
+
                   <p className="text-[#5C9460] text-sm leading-relaxed max-w-sm group-hover:text-[#3B663E] transition-colors duration-300">
-                    Purpose-built tracking for attendance and engagement scoring — documenting development, supporting grant obligations, and growing local communities.
+                    Purpose-built tracking for attendance and engagement scoring —
+                    documenting development, supporting grant obligations, and growing
+                    local communities.
                   </p>
                 </div>
               </div>
@@ -362,7 +404,7 @@ export default function AffiliationsPage(): React.JSX.Element {
           <div className="max-w-8xl mx-auto relative z-10 px-6 sm:px-8 lg:px-12 xl:px-16">
             <div className="flex items-center gap-2 mb-6">
               <div className="w-1.5 h-1.5 rounded-full bg-[#67B18A]" />
-              <span className="text-base font-semibold text-[#67B18A]">Global Reach</span>
+              <span className="text-base text-[#67B18A]">Global Reach</span>
             </div>
             <h2 className="text-4xl lg:text-6xl font-extrabold mb-16 text-white tracking-tight leading-[1.1]">
               We're <span className="text-[#67B18A]">Everywhere.</span>
@@ -370,31 +412,33 @@ export default function AffiliationsPage(): React.JSX.Element {
 
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
               {/* Card 1 */}
-              <div className="rounded-3xl border-2 border-white/10 bg-[#2A2A2A]/50 backdrop-blur-sm p-8 flex flex-col justify-start hover:bg-[#333333]/80 transition-colors min-h-[16.25rem]">
+              <div className="group rounded-3xl border-2 border-white/10 bg-[#2A2A2A]/50 backdrop-blur-sm p-8 flex flex-col justify-start hover:bg-primary/20 hover:border-primary transition-all duration-300 min-h-[16.25rem]">
                 <div className="w-14 h-14 rounded-xl bg-[#665D96] flex items-center justify-center mb-8">
                   <Image src="/affiliationslogo/Frameasia.svg" alt="Asia-Pacific Icon" width={28} height={28} />
                 </div>
                 <h3 className="font-bold text-white text-xl mb-3">Asia-Pacific</h3>
                 <p className="text-[#A291B1] text-sm leading-relaxed">
-                  India • Singapore • Malaysia<br/>
+                  India • Singapore • Malaysia
+                  <br />
                   Indonesia • Thailand • Australia
                 </p>
               </div>
 
               {/* Card 2 */}
-              <div className="rounded-3xl border-2 border-white/10 bg-[#2A2A2A]/50 backdrop-blur-sm p-8 flex flex-col justify-start hover:bg-[#333333]/80 transition-colors min-h-[16.25rem]">
+              <div className="group rounded-3xl border-2 border-white/10 bg-[#2A2A2A]/50 backdrop-blur-sm p-8 flex flex-col justify-start hover:bg-primary/20 hover:border-primary transition-all duration-300 min-h-[16.25rem]">
                 <div className="w-14 h-14 rounded-xl bg-[#E28D69] flex items-center justify-center mb-8">
                   <Image src="/affiliationslogo/Framemiddleeast.svg" alt="Middle East Icon" width={28} height={28} />
                 </div>
                 <h3 className="font-bold text-white text-xl mb-3">Middle East</h3>
                 <p className="text-[#A291B1] text-sm leading-relaxed">
-                  UAE<br/>
+                  UAE
+                  <br />
                   & expanding regionally
                 </p>
               </div>
 
               {/* Card 3 */}
-              <div className="rounded-3xl border-2 border-white/10 bg-[#2A2A2A]/50 backdrop-blur-sm p-8 flex flex-col justify-start hover:bg-[#333333]/80 transition-colors min-h-[16.25rem]">
+              <div className="group rounded-3xl border-2 border-white/10 bg-[#2A2A2A]/50 backdrop-blur-sm p-8 flex flex-col justify-start hover:bg-primary/20 hover:border-primary transition-all duration-300 min-h-[16.25rem]">
                 <div className="w-14 h-14 rounded-xl bg-[#A2919A] flex items-center justify-center mb-8">
                   <Image src="/affiliationslogo/Frameamericas.svg" alt="Americas Icon" width={28} height={28} />
                 </div>
@@ -405,13 +449,14 @@ export default function AffiliationsPage(): React.JSX.Element {
               </div>
 
               {/* Card 4 */}
-              <div className="rounded-3xl border-2 border-white/10 bg-[#2A2A2A]/50 backdrop-blur-sm p-8 flex flex-col justify-start hover:bg-[#333333]/80 transition-colors min-h-[16.25rem]">
+              <div className="group rounded-3xl border-2 border-white/10 bg-[#2A2A2A]/50 backdrop-blur-sm p-8 flex flex-col justify-start hover:bg-primary/20 hover:border-primary transition-all duration-300 min-h-[16.25rem]">
                 <div className="w-14 h-14 rounded-xl bg-[#67B18A] flex items-center justify-center mb-8">
                   <Image src="/affiliationslogo/Frameeurope.svg" alt="Europe Icon" width={28} height={28} />
                 </div>
                 <h3 className="font-bold text-white text-xl mb-3">Europe</h3>
                 <p className="text-[#A291B1] text-sm leading-relaxed">
-                  United Kingdom • Germany<br/>
+                  United Kingdom • Germany
+                  <br />
                   & growing presence
                 </p>
               </div>

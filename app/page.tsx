@@ -629,89 +629,127 @@ function FAQ() {
   const [open, setOpen] = useState<number | null>(null)
 
   return (
-    <section className="py-16 md:py-20 lg:py-24 relative isolate overflow-hidden" id="faqs">
-      <div className="absolute inset-0 bg-secondary-purple/40 -z-10" />
-                                  <svg
-                                className="hidden md:block absolute inset-0 w-full h-full"
-                                viewBox="0 0 1440 500"
-                                preserveAspectRatio="none"
-                                xmlns="http://www.w3.org/2000/svg"
-                            >
-                                {/* LEFT TRIANGLE */}
-                                <line
-                                x1="0"
-                                y1="500"
-                                x2="380"
-                                y2="0"
-                                stroke="#C9C1CF"
-                                strokeWidth="0.8"
-                                />
-                                <line
-                                x1="380"
-                                y1="0"
-                                x2="770"
-                                y2="500"
-                                stroke="#C9C1CF"
-                                strokeWidth="0.8"
-                                />
+    <section
+      className="py-16 md:py-20 lg:py-24 relative isolate overflow-hidden"
+      id="faqs"
+    >
+      {/* Background */}
+      <div className="absolute inset-0 bg-secondary-purple/40 -z-20" />
 
-                                {/* CENTER INTERSECTING TRIANGLE */}
-                                <line
-                                x1="530"
-                                y1="500"
-                                x2="905"
-                                y2="0"
-                                stroke="#A291B178"
-                                strokeWidth="0.8"
-                                />
-                                <line
-                                x1="905"
-                                y1="0"
-                                x2="1245"
-                                y2="500"
-                                stroke="#F1441A1F"
-                                strokeWidth="0.8"
-                                />
+      {/* SVG Background Lines */}
+      <svg
+        className="hidden md:block absolute inset-0 w-full h-full -z-10 pointer-events-none"
+        viewBox="0 0 1440 500"
+        preserveAspectRatio="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        {/* LEFT TRIANGLE */}
+        <line
+          x1="0"
+          y1="500"
+          x2="380"
+          y2="0"
+          stroke="#C9C1CF"
+          strokeWidth="0.8"
+        />
+        <line
+          x1="380"
+          y1="0"
+          x2="770"
+          y2="500"
+          stroke="#C9C1CF"
+          strokeWidth="0.8"
+        />
 
-                                {/* PARALLEL INNER RIGHT LINE */}
-                                <line
-                                x1="880"
-                                y1="0"
-                                x2="1215"
-                                y2="500"
-                                stroke="#8598C7AB"
-                                strokeWidth="0.8"
-                                />
-                            </svg>
-      {/* Decorative Vector — right corner */}
-      <div className="absolute -bottom-32 -left-10 w-[45vw] h-[45vw] max-w-[22rem] h-[22rem] opacity-60 pointer-events-none select-none z-[-5]">
-        <Image src="/Vector.svg" alt="" fill className="object-contain" />
+        {/* CENTER INTERSECTING TRIANGLE */}
+        <line
+          x1="530"
+          y1="500"
+          x2="905"
+          y2="0"
+          stroke="#A291B178"
+          strokeWidth="0.8"
+        />
+        <line
+          x1="905"
+          y1="0"
+          x2="1245"
+          y2="500"
+          stroke="#F1441A1F"
+          strokeWidth="0.8"
+        />
+
+        {/* PARALLEL INNER RIGHT LINE */}
+        <line
+          x1="880"
+          y1="0"
+          x2="1215"
+          y2="500"
+          stroke="#8598C7AB"
+          strokeWidth="0.8"
+        />
+      </svg>
+
+      {/* Decorative Vector */}
+      <div className="absolute -bottom-32 -left-10 w-[45vw] h-[45vw] max-w-[22rem] max-h-[22rem] opacity-60 pointer-events-none select-none -z-10">
+        <Image
+          src="/Vector.svg"
+          alt=""
+          fill
+          className="object-contain"
+        />
       </div>
 
-      <div className="mx-auto max-w-8xl px-6 sm:px-8 lg:px-12 xl:px-16">
-        <h2 className="flex flex-col items-start gap-2 md:items-center md:text-4xl text-4xl lg:text-5xl font-bold text-center mb-12">
-          <span className="text-background">Frequently Asked</span>{" "}
-          <span className="text-primary">Questions</span>
+      {/* Main Content */}
+      <div className="relative z-10 mx-auto max-w-8xl px-6 sm:px-8 lg:px-12 xl:px-16">
+        <h2 className="flex flex-col items-start gap-2 md:items-center text-4xl lg:text-5xl font-bold text-center mb-12">
+          <span className="text-background">
+            Frequently Asked
+          </span>
+
+          <span className="text-primary">
+            Questions
+          </span>
         </h2>
 
         <div className="max-w-3xl mx-auto space-y-3">
           {faqs.map((faq, i) => (
-            <div key={i} className={`border rounded-[20px] overflow-hidden ${open === i ? "bg-secondary/30 border-primary" : "bg-[#DCD4E2] border-[#6668A1]"}`}>
+            <div
+              key={i}
+              className={`border rounded-[20px] overflow-hidden transition-all duration-300 ${
+                open === i
+                  ? "bg-secondary/30 border-primary"
+                  : "bg-[#DCD4E2] border-[#6668A1]"
+              }`}
+            >
               <button
-                onClick={() => setOpen(open === i ? null : i)}
+                onClick={() =>
+                  setOpen(open === i ? null : i)
+                }
                 className="w-full flex items-center justify-between px-5 py-4 text-left gap-4"
               >
-                {open === i ? (<span className="text-primary font-medium text-sm">{faq.q}</span>)
-                  : (<span className="text-secondary font-medium text-sm">{faq.q}</span>)}
+                {open === i ? (
+                  <span className="text-primary font-medium text-sm">
+                    {faq.q}
+                  </span>
+                ) : (
+                  <span className="text-secondary font-medium text-sm">
+                    {faq.q}
+                  </span>
+                )}
+
                 {open === i ? (
                   <ChevronUp className="w-4 h-4 text-secondary flex-shrink-0" />
                 ) : (
                   <ChevronDown className="w-4 h-4 text-secondary flex-shrink-0" />
                 )}
               </button>
+
               {open === i && (
                 <div className="px-5 pb-5">
-                  <p className="text-secondary text-sm leading-relaxed">{faq.a}</p>
+                  <p className="text-secondary text-sm leading-relaxed">
+                    {faq.a}
+                  </p>
                 </div>
               )}
             </div>
