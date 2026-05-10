@@ -217,8 +217,8 @@ export default function AffiliationsPage(): React.JSX.Element {
                     style={{ width: 'auto', height: 'auto' }}
                   />
                 </div>
-                <h3 className="font-bold text-background text-lg">Payment Gateways</h3>
-                <p className="text-[#44867B] text-sm leading-relaxed max-w-sm">
+                <h3 className="text-background text-lg">Payment Gateways</h3>
+                <p className="text-[#8598C7] text-sm leading-relaxed max-w-sm">
                   Secure transaction processing for memberships, donations, and merchandise sales.
                 </p>
               </div>
@@ -228,8 +228,8 @@ export default function AffiliationsPage(): React.JSX.Element {
                 <div className="w-14 h-14 rounded-2xl bg-[#6668A1] flex items-center justify-center shadow-sm mb-2">
                   <Image src="/affiliationslogo/Framecloud.svg" alt="Cloud Hosting" width={32} height={32} />
                 </div>
-                <h3 className="font-bold text-white text-lg">Cloud Hosting &<br/>Infrastructure</h3>
-                <p className="text-[#E2DCE7] text-sm leading-relaxed max-w-sm">
+                <h3 className="text-white text-lg">Cloud Hosting & Infrastructure</h3>
+                <p className="text-black text-sm leading-relaxed max-w-sm">
                   Reliable, scalable servers to ensure your group's digital presence is always online.
                 </p>
               </div>
@@ -239,8 +239,8 @@ export default function AffiliationsPage(): React.JSX.Element {
                 <div className="w-14 h-14 rounded-2xl bg-[#E18F67] flex items-center justify-center shadow-sm mb-2">
                   <Image src="/affiliationslogo/Frameauthentication.svg" alt="Authentication Services" width={32} height={32} />
                 </div>
-                <h3 className="font-bold text-background text-lg">Authentication<br/>Services</h3>
-                <p className="text-[#E18F67] text-sm leading-relaxed max-w-sm">
+                <h3 className="text-background text-lg">Authentication Services</h3>
+                <p className="text-[#8598C7] text-sm leading-relaxed max-w-sm">
                   Secure user logins and identity verification to protect member data.
                 </p>
               </div>
