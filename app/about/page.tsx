@@ -28,13 +28,13 @@ import {
 
 export default function AboutPage(): React.JSX.Element {
     return (
-        <main className="min-h-screen bg-white text-background relative overflow-x-hidden public-theme">
+        <main className="min-h-screen bg-white text-background relative overflow-x-clip public-theme">
             {/* <JellyCursor /> */}
             <ParticleBackground />
             <SiteNavbar />
 
               <section className="relative w-full py-12 lg:py-15 flex flex-col justify-center min-h-[60vh]">
-                <div className="max-w-8xl mx-auto px-4 w-full">
+                <div className="max-w-8xl mx-auto px-6 sm:px-8 lg:px-12 xl:px-16 w-full">
                     {/* Hero Section */}
                     <FadeIn>
                     <div className="mb-16">
@@ -58,8 +58,8 @@ export default function AboutPage(): React.JSX.Element {
                 <FadeIn>
                     <section className="grid md:grid-cols-2 gap-6">
                         {/* Card 1 */}
-                        <div className="bg-[#E4DEE3] rounded-xl p-6 md:p-8 relative overflow-hidden flex flex-col justify-start hover:shadow-lg transition-shadow">
-                            <span className="absolute top-4 right-6 text-[7rem] font-black text-[#D6CDD4] leading-none pointer-events-none select-none font-sans">R</span>
+                        <div className="bg-[#DCD4E2] hover:bg-[#CBAEE1] rounded-xl p-6 md:p-8 relative overflow-hidden flex flex-col justify-start shadow-[0px_4px_24px_#00000040] transition-shadow">
+                            <span className="absolute top-4 right-6 text-[7rem] font-black text-[#E3DCE8] leading-none pointer-events-none select-none font-sans">R</span>
                             <div className="w-14 h-14 rounded-xl bg-[#5D5377] flex items-center justify-center mb-6 relative z-10 p-2 shadow-md">
                                 <Image
                                     src="/RallyUpSolutions Logo (Transparent Background).svg"
@@ -70,25 +70,25 @@ export default function AboutPage(): React.JSX.Element {
                                 />
                             </div>
                             <h3 className="font-bold text-[#1A1A1A] text-xl mb-3 relative z-10">RallyUp Solutions Private Limited</h3>
-                            <p className="text-[#5D5377] text-sm leading-relaxed relative z-10">
+                            <p className="text-[#675477] text-sm leading-relaxed relative z-10">
                                 We engineer robust, scalable, and intelligent software for the global sports ecosystem — eliminating fragmentation and administrative overload that hinder growth and engagement. From grassroots groups to professional bodies, we empower organizations to operate with the efficiency and insight required in the digital age.
                             </p>
                         </div>
 
                         {/* Card 2 */}
-                        <div className="bg-[#D9DCFA] rounded-xl p-6 md:p-8 relative overflow-hidden flex flex-col justify-start hover:shadow-lg transition-shadow">
-                            <span className="absolute top-4 right-6 text-[7rem] font-black text-[#C9CDF4] leading-none pointer-events-none select-none font-sans">W</span>
+                        <div className="bg-[#D4D5FB] hover:bg-[#B8BAFF] rounded-xl p-6 md:p-8 relative overflow-hidden flex flex-col justify-start shadow-[0px_4px_24px_#00000040] transition-shadow">
+                            <span className="absolute top-4 right-6 text-[7rem] font-black text-[#E3DCE8] leading-none pointer-events-none select-none font-sans">W</span>
                             <div className="w-14 h-14 rounded-xl bg-[#7D7FBC] flex items-center justify-center mb-6 relative z-10 p-2 shadow-md">
                                 <Image
                                     src="/Logo.svg"
                                     alt="Wingman Pro"
-                                    width={32}
-                                    height={32}
+                                    width={42}
+                                    height={42}
                                     className="object-contain"
                                 />
                             </div>
                             <h3 className="font-bold text-[#1A1A1A] text-xl mb-3 relative z-10">Wingman Pro</h3>
-                            <p className="text-[#65679B] text-sm leading-relaxed relative z-10">
+                            <p className="text-[#6668A1] text-sm leading-relaxed relative z-10">
                                 The realization of our mission: a single, secure platform that brings membership management, payments, communications, and events into one seamless system. Wingman Pro replaces multiple tools with an intuitive experience, freeing managers and volunteers to focus on growing communities and delivering great matchday moments.
                             </p>
                         </div>
@@ -98,9 +98,9 @@ export default function AboutPage(): React.JSX.Element {
             </section>
 
             {/* Why We Exist Section */}
-            <section className="py-24 px-4 bg-[#222222] relative w-full overflow-hidden">
+            <section className="py-16 md:py-20 lg:py-24 bg-[#222222] relative w-full overflow-hidden">
                 {/* Large faint background text */}
-                <div className="absolute top-1/2 -translate-y-[65%] flex items-center justify-center pointer-events-none select-none z-0 w-full">
+                <div className="hidden md:flex  absolute top-1/2 -translate-y-[65%] flex items-center justify-center pointer-events-none select-none z-0 w-full">
                     <span 
                         className="text-[160px] text-[#353434] tracking-wider"
                         style={{ fontFamily: 'var(--font-purple-purse)' }}
@@ -110,7 +110,7 @@ export default function AboutPage(): React.JSX.Element {
                 </div>
 
                 <FadeIn>
-                    <div className="max-w-8xl mx-auto relative z-10">
+                    <div className="max-w-8xl mx-auto relative z-10 px-6 sm:px-8 lg:px-12 xl:px-16">
                         <div className="flex items-center gap-2 mb-6">
                             <div className="w-1.5 h-1.5 rounded-full bg-[#67B18A]" />
                             <span className="text-base font-semibold text-[#67B18A]">Our North Star</span>
@@ -120,39 +120,51 @@ export default function AboutPage(): React.JSX.Element {
                         </h2>
 
                         <div className="grid md:grid-cols-2 gap-6 md:gap-8">
+
                             {/* Mission Card */}
-                            <div className="rounded-3xl border border-white/10 bg-[#2A2A2A]/50 backdrop-blur-sm p-8 md:p-12 flex flex-col justify-start hover:bg-[#333333]/80 transition-colors">
-                                <span className="text-[#67B18A] font-semibold text-base mb-6 md:mb-8 block">Mission</span>
-                                <h3 className="font-bold text-white text-2xl md:text-3xl mb-6 md:mb-8 leading-[1.3] tracking-wide">
-                                    Unified.<br/>
-                                    Efficient.<br/>
+                            <div className="group rounded-3xl border-2 border-white/10 bg-[#2A2A2A]/50 backdrop-blur-sm p-8 md:p-12 flex flex-col justify-start hover:border-primary hover:bg-[#333333]/80 transition-all duration-300">
+
+                                <span className="text-[#67B18A] group-hover:text-primary font-semibold text-base mb-6 md:mb-8 block transition-colors duration-300">
+                                    Mission
+                                </span>
+
+                                <h3 className="font-bold text-white text-2xl md:text-3xl mb-6 md:mb-8 leading-[1.3] tracking-wide transition-colors duration-300">
+                                    Unified.<br />
+                                    Efficient.<br />
                                     Compliant.
                                 </h3>
-                                <p className="text-[#A3A3A3] text-sm leading-relaxed">
+
+                                <p className="text-[#A3A3A3] group-hover:text-[#E18F67] text-sm leading-relaxed transition-colors duration-300">
                                     To eliminate administrative fragmentation in sports organizations globally by providing a unified, intelligent platform that maximizes operational efficiency, compliance, and member engagement.
                                 </p>
                             </div>
 
                             {/* Vision Card */}
-                            <div className="rounded-3xl border border-white/10 bg-[#2A2A2A]/50 backdrop-blur-sm p-8 md:p-12 flex flex-col justify-start hover:bg-[#333333]/80 transition-colors">
-                                <span className="text-[#67B18A] font-semibold text-base mb-6 md:mb-8 block">Vision</span>
-                                <h3 className="font-bold text-white text-2xl md:text-3xl mb-6 md:mb-8 leading-[1.3] tracking-wide">
-                                    Leading.<br/>
-                                    Global.<br/>
+                            <div className="group rounded-3xl border-2 border-white/10 bg-[#2A2A2A]/50 backdrop-blur-sm p-8 md:p-12 flex flex-col justify-start hover:border-primary hover:bg-[#333333]/80 transition-all duration-300">
+
+                                <span className="text-[#67B18A] group-hover:text-primary font-semibold text-base mb-6 md:mb-8 block transition-colors duration-300">
+                                    Vision
+                                </span>
+
+                                <h3 className="font-bold text-white text-2xl md:text-3xl mb-6 md:mb-8 leading-[1.3] tracking-wide transition-colors duration-300">
+                                    Leading.<br />
+                                    Global.<br />
                                     Trusted.
                                 </h3>
-                                <p className="text-[#A3A3A3] text-sm leading-relaxed">
+
+                                <p className="text-[#A3A3A3] group-hover:text-[#E18F67] text-sm leading-relaxed transition-colors duration-300">
                                     To become the leading global technology partner for sports clubs and supporter groups, recognized for transforming community management through innovation and unparalleled user experience.
                                 </p>
                             </div>
+
                         </div>
                     </div>
                 </FadeIn>
             </section>
 
-            <section className="py-24 px-4 relative z-10">
+            <section className="py-16 md:py-20 lg:py-24 relative z-10">
                 <FadeIn>
-                    <div className="max-w-8xl mx-auto relative">
+                    <div className="max-w-8xl mx-auto relative px-6 sm:px-8 lg:px-12 xl:px-16">
                         {/* Background Decoration */}
                         <div className="absolute inset-0 -z-10 overflow-hidden">
                             <div className="absolute top-0 right-0 w-96 h-96 bg-secondary-purple/50 rounded-full blur-3xl animate-float" />
@@ -183,8 +195,8 @@ export default function AboutPage(): React.JSX.Element {
                             
                             <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
                                 {/* Card 1 */}
-                                <div className="md:col-span-7 bg-[#2A2A2A] rounded-3xl p-6 md:p-10 relative overflow-hidden flex flex-col justify-between hover:shadow-lg transition-shadow min-h-[17.5rem]">
-                                    <span className="absolute top-6 right-6 md:top-8 md:right-10 text-[6rem] md:text-[8rem] font-black text-[#1A1A1A] leading-none pointer-events-none select-none z-0">01</span>
+                                <div className="group md:col-span-7 bg-[#2A2A2A] hover:bg-[#444444] rounded-3xl p-6 md:p-10 relative overflow-hidden flex flex-col justify-between hover:shadow-lg transition-all duration-300 min-h-[17.5rem]">
+                                    <span className="absolute bottom-2 right-2 md:bottom-4 md:right-6 text-[6rem] md:text-[8rem] font-[600] font-black text-[#1A1A1A] group-hover:text-[#2E2E2E] transition-colors duration-300 leading-none pointer-events-none select-none z-0">01</span>
                                     <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center mb-12 md:mb-16 relative z-10 backdrop-blur-sm">
                                         <Users className="w-7 h-7 text-white" strokeWidth={1.5} />
                                     </div>
@@ -197,8 +209,8 @@ export default function AboutPage(): React.JSX.Element {
                                 </div>
 
                                 {/* Card 2 */}
-                                <div className="md:col-span-5 bg-[#7D7FBC] rounded-3xl p-6 md:p-10 relative overflow-hidden flex flex-col justify-between hover:shadow-lg transition-shadow min-h-[17.5rem]">
-                                    <span className="absolute top-6 right-6 md:top-8 md:right-10 text-[6rem] md:text-[8rem] font-black text-[#65679B] leading-none pointer-events-none select-none z-0">02</span>
+                                <div className="group md:col-span-5 bg-[#7D7FBC] hover:bg-[#8A8EE9] rounded-3xl p-6 md:p-10 relative overflow-hidden flex flex-col justify-between hover:shadow-lg transition-all duration-300 min-h-[17.5rem]">
+                                    <span className="absolute font-[600] top-2 right-2 md:top-4 md:right-6 text-[6rem] md:text-[8rem] font-black text-[#65679B] group-hover:text-[#797CCB] transition-colors duration-300 leading-none pointer-events-none select-none z-0">02</span>
                                     <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center mb-12 md:mb-16 relative z-10 backdrop-blur-sm">
                                         <BarChart3 className="w-7 h-7 text-white" strokeWidth={1.5} />
                                     </div>
@@ -211,8 +223,8 @@ export default function AboutPage(): React.JSX.Element {
                                 </div>
 
                                 {/* Card 3 */}
-                                <div className="md:col-span-5 bg-[#D6D7FA] rounded-3xl p-6 md:p-10 relative overflow-hidden flex flex-col justify-between hover:shadow-lg transition-shadow min-h-[17.5rem]">
-                                    <span className="absolute top-6 right-6 md:top-8 md:right-10 text-[6rem] md:text-[8rem] font-black text-white/60 leading-none pointer-events-none select-none z-0">03</span>
+                                <div className="group md:col-span-5 bg-[#D6D7FA] hover:bg-[#BCBDFF] rounded-3xl p-6 md:p-10 relative overflow-hidden flex flex-col justify-between hover:shadow-lg transition-all duration-300 min-h-[17.5rem]">
+                                    <span className="absolute top-2 font-[600] right-2 md:top-4 md:right-6 text-[6rem] md:text-[8rem] font-black text-white/60 group-hover:text-[#DEDFFF] transition-colors duration-300 leading-none pointer-events-none select-none z-0">03</span>
                                     <div className="w-14 h-14 rounded-2xl bg-[#7D7FBC] flex items-center justify-center mb-12 md:mb-16 relative z-10 shadow-md">
                                         <Smartphone className="w-7 h-7 text-white" strokeWidth={1.5} />
                                     </div>
@@ -225,8 +237,8 @@ export default function AboutPage(): React.JSX.Element {
                                 </div>
 
                                 {/* Card 4 */}
-                                <div className="md:col-span-7 bg-[#E4DEE3] rounded-3xl p-6 md:p-10 relative overflow-hidden flex flex-col justify-between hover:shadow-lg transition-shadow min-h-[17.5rem]">
-                                    <span className="absolute top-6 right-6 md:top-8 md:right-10 text-[6rem] md:text-[8rem] font-black text-white/80 leading-none pointer-events-none select-none z-0">04</span>
+                                <div className="group md:col-span-7 bg-[#E4DEE3] hover:bg-[#D8BBEE] rounded-3xl p-6 md:p-10 relative overflow-hidden flex flex-col justify-between hover:shadow-lg transition-all duration-300 min-h-[17.5rem]">
+                                    <span className="absolute font-[600] bottom-2 right-2 md:bottom-4 md:right-6 text-[6rem] md:text-[8rem] font-black text-white/80 group-hover:text-[#E7DFED] transition-colors duration-300 leading-none pointer-events-none select-none z-0">04</span>
                                     <div className="w-14 h-14 rounded-2xl bg-[#5D5377] flex items-center justify-center mb-12 md:mb-16 relative z-10 shadow-md">
                                         <ShieldCheck className="w-7 h-7 text-white" strokeWidth={1.5} />
                                     </div>
@@ -239,8 +251,8 @@ export default function AboutPage(): React.JSX.Element {
                                 </div>
 
                                 {/* Card 5 */}
-                                <div className="md:col-span-12 bg-[#C2DEF5] rounded-3xl p-6 md:p-10 relative overflow-hidden flex flex-col md:flex-row hover:shadow-lg transition-shadow min-h-[15rem] items-stretch">
-                                    <span className="absolute top-6 right-6 md:top-8 md:right-10 text-[6rem] md:text-[8rem] font-black text-white/80 leading-none pointer-events-none select-none z-0">05</span>
+                                <div className="group md:col-span-12 bg-[#C2DEF5] hover:bg-[#97BEF7] rounded-3xl p-6 md:p-10 relative overflow-hidden flex flex-col md:flex-row hover:shadow-lg transition-all duration-300 min-h-[15rem] items-stretch">
+                                    <span className="absolute font-[600] bottom-2 right-2 md:bottom-4 md:right-6 text-[6rem] md:text-[8rem] font-black text-white/80 group-hover:text-[#C9DFFF] transition-colors duration-300 leading-none pointer-events-none select-none z-0">05</span>
                                     
                                     <div className="flex flex-col justify-between relative z-10 w-full md:w-1/3">
                                         <div className="w-14 h-14 rounded-2xl bg-[#1D4ED8] flex items-center justify-center mb-8 md:mb-12 shadow-md">
@@ -263,9 +275,9 @@ export default function AboutPage(): React.JSX.Element {
                 </FadeIn>
             </section>
             
-            <section className="py-24 px-4 bg-secondary-purple relative z-10">
+            <section className="py-16 md:py-20 lg:py-24 bg-secondary-purple relative z-10">
                 <FadeIn>
-                    <div className="max-w-8xl mx-auto">
+                    <div className="max-w-8xl mx-auto px-6 sm:px-8 lg:px-12 xl:px-16">
                         {/* Leadership Team Header */}
                         <div className="mb-12 relative z-10">
                         <div className="flex items-center gap-2 mb-4">
@@ -344,23 +356,57 @@ export default function AboutPage(): React.JSX.Element {
             <div className="w-full">
                 <FadeIn>
                     <div className="relative overflow-hidden bg-[linear-gradient(to_right,#DCD4E2_50%,#8598C7_100%)]">
-                        {/* Exact geometric line pattern */}
                         <svg
-                            className="absolute inset-0 w-full h-full"
+                            className="hidden md:block absolute inset-0 w-full h-full"
                             viewBox="0 0 1440 500"
                             preserveAspectRatio="none"
                             xmlns="http://www.w3.org/2000/svg"
                         >
                             {/* LEFT TRIANGLE */}
-                            <line x1="0" y1="500" x2="380" y2="0" stroke="#C9C1CF" strokeWidth="1.5" />
-                            <line x1="380" y1="0" x2="770" y2="500" stroke="#C9C1CF" strokeWidth="1.5" />
+                            <line
+                            x1="0"
+                            y1="500"
+                            x2="380"
+                            y2="0"
+                            stroke="#C9C1CF"
+                            strokeWidth="0.8"
+                            />
+                            <line
+                            x1="380"
+                            y1="0"
+                            x2="770"
+                            y2="500"
+                            stroke="#C9C1CF"
+                            strokeWidth="0.8"
+                            />
 
                             {/* CENTER INTERSECTING TRIANGLE */}
-                            <line x1="530" y1="500" x2="905" y2="0" stroke="#A291B178" strokeWidth="1.5" />
-                            <line x1="905" y1="0" x2="1245" y2="500" stroke="#F1441A1F" strokeWidth="1.5" />
+                            <line
+                            x1="530"
+                            y1="500"
+                            x2="905"
+                            y2="0"
+                            stroke="#A291B178"
+                            strokeWidth="0.8"
+                            />
+                            <line
+                            x1="905"
+                            y1="0"
+                            x2="1245"
+                            y2="500"
+                            stroke="#F1441A1F"
+                            strokeWidth="0.8"
+                            />
 
                             {/* PARALLEL INNER RIGHT LINE */}
-                            <line x1="880" y1="0" x2="1215" y2="500" stroke="#8598C7AB" strokeWidth="1.5" />
+                            <line
+                            x1="880"
+                            y1="0"
+                            x2="1215"
+                            y2="500"
+                            stroke="#8598C7AB"
+                            strokeWidth="0.8"
+                            />
                         </svg>
                         
                         <div className="relative z-10 px-6 py-16 md:py-14 flex flex-col items-center text-center">
@@ -372,20 +418,20 @@ export default function AboutPage(): React.JSX.Element {
                                 Let's Build <span className="text-primary">The Future.</span>
                             </h2>
 
-                            <p className="mt-8 max-w-3xl text-[#5D5377] text-xl md:text-lg font-medium">
+                            <p className="mt-8 max-w-3xl text-secondary text-xl md:text-lg font-medium">
                                 Are you a sports league, governing body, or technology provider ready to integrate with the future of club and membership management?
                             </p>
                             
                             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-12 w-full">
                                 <a
                                   href="/contact"
-                                  className="inline-flex h-12 items-center justify-center rounded-xl bg-primary px-12 text-sm font-bold uppercase tracking-[0.15em] text-white shadow-xl transition-all hover:-translate-y-1"
+                                  className="inline-flex h-12 items-center justify-center rounded-xl bg-primary px-6 text-sm font-bold uppercase tracking-[0.15em] text-white shadow-xl transition-all hover:-translate-y-1 hover:bg-[#FF7E4A] hover:shadow-[0_8px_20px_#FF5C1A6B] w-full sm:w-[280px] whitespace-nowrap"
                                 >
                                   Contact Us
                                 </a>
                                 <a
                                   href="/affiliations"
-                                  className="inline-flex h-12 items-center justify-center rounded-xl bg-[#65679B] px-12 text-sm font-bold uppercase tracking-[0.15em] text-white shadow-xl transition-all hover:-translate-y-1"
+                                  className="inline-flex h-12 items-center justify-center rounded-xl bg-[#65679B] px-6 text-sm font-bold uppercase tracking-[0.15em] text-white shadow-xl transition-all hover:-translate-y-1 hover:bg-[#7C7FDF] hover:shadow-[0_8px_20px_#6668A1D9] w-full sm:w-[280px] whitespace-nowrap"
                                 >
                                   Explore Affiliations
                                 </a>

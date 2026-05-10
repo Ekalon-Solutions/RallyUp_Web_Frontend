@@ -63,7 +63,7 @@ function Hero() {
     <section className="bg-white relative overflow-hidden" id="home">
 
       {/* ── Mobile layout ── */}
-      <div className="lg:hidden">
+      <div className="md:hidden">
         {/* Full-width dark image section with sweeping curved bottom */}
         <div
           className="relative w-full overflow-hidden"
@@ -93,25 +93,25 @@ function Hero() {
         </div>
 
         {/* Text content below */}
-        <div className="relative px-5 py-7 space-y-5 bg-white overflow-hidden">
+        <div className="relative isolate px-6 sm:px-8 py-7 space-y-5 bg-white overflow-hidden">
           {/* Decorative Vector — top-right corner */}
-          <div className="absolute -bottom-8 -left-10 w-80 h-80 opacity-60 pointer-events-none select-none">
+          <div className="absolute -bottom-8 -left-10 w-80 h-80 opacity-60 pointer-events-none select-none z-[-5]">
             <Image src="/Vector.svg" alt="" fill className="object-contain" />
           </div>
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-background border border-primary">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#1A1A1A] border border-[#E18F67]">
             <div className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
-            <span className="text-primary/60 text-[10px] font-medium leading-tight">
-              Club Management platform
+            <span className="text-[#E18F67] text-[10px] font-medium leading-tight">
+              The first AI-powered platform for Supporter Groups and Sports Clubs.
             </span>
           </div>
 
-          <h1 className="text-3xl font-bold text-background leading-tight">
-            Don&apos;t Just Run Your Club.{" "}
+          <h1 className="text-4xl font-bold text-background leading-[1.1] tracking-tight">
+            Don&apos;t Just Run Your Club.<br />
             <span className="text-primary">Revolutionize.</span>
           </h1>
 
           <p className="text-background text-base leading-relaxed">
-            One platform for membership, ticketing, payments and fan engagement.
+            One platform for membership, ticketing,<br />payments and fan engagement.
           </p>
 
           <div className="flex flex-row items-center gap-3 pt-1">
@@ -137,32 +137,36 @@ function Hero() {
       </div>
 
       {/* ── Desktop layout ── */}
-      <div className="hidden lg:block">
-        <div className="mx-auto py-8 lg:py-16 px-4 sm:px-6 lg:px-0">
-          <div className="grid lg:grid-cols-[3fr_3fr] gap-0 items-center">
-            {/* Left Column */}
-            <div className="space-y-6 ml-0 lg:ml-4">
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-background border border-primary my-4">
+      <div className="hidden md:block relative w-full overflow-hidden">
+        <div className="grid md:grid-cols-2 items-center">
+          {/* Left Column */}
+          <div className="w-full flex justify-end">
+            <div className="w-full max-w-[768px] py-8 md:py-16 pl-6 sm:pl-8 lg:pl-12 xl:pl-16 pr-4 lg:pr-8 space-y-2">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#1A1A1A] border border-[#E18F67]">
                 <div className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
-                <span className="text-[#E18F67] text-[10px] font-medium leading-tight">
+                <span className="text-[#E18F67] text-[10px] font-medium leading-tight tracking-wide">
                   The first AI-powered platform for Supporter Groups and Sports Clubs.
                 </span>
               </div>
 
-              <h1 className="text-4xl xl:text-5xl font-bold text-background leading-tight">
-                Don&apos;t Just Run Your Club.{" "}
+              <h1 className="text-[2rem] xl:text-[2.5rem] font-bold text-background">
+                <span className="lg:whitespace-nowrap">
+                  Don&apos;t Just Run Your Club.
+                </span>
+                {/* <br className="hidden md:block" /> */}
+                <br />
                 <span className="text-primary">Revolutionize.</span>
               </h1>
 
-              <p className="text-background text-xl leading-relaxed max-w-lg">
-                One platform for membership, ticketing, payments and fan engagement.
+              <p className="text-background text-lg lg:text-xl leading-relaxed max-w-lg mt-4">
+                One platform for membership, ticketing,<br className="hidden lg:block" />payments and fan engagement.
               </p>
 
-              <div className="flex flex-row items-center gap-4 pt-2">
+              <div className="flex flex-wrap items-center gap-4 pt-6">
                 <Link href="/contact">
                   <Button
                     variant="default"
-                    className="px-8 h-10 text-white font-medium text-xs rounded-[5px] uppercase tracking-wider"
+                    className="px-4 lg:px-8 h-12 text-white font-bold text-xs rounded-lg uppercase tracking-wider bg-primary hover:bg-primary/90"
                   >
                     Book a Demo
                   </Button>
@@ -170,25 +174,25 @@ function Hero() {
                 <Link href="#features">
                   <Button
                     variant="outline"
-                    className="px-8 h-10 border font-medium !text-white text-xs rounded-[5px] uppercase decoration-none hover:none tracking-wider flex items-center gap-2"
+                    className="px-4 lg:px-8 h-12 border-transparent bg-[#1A1A1A] font-bold text-white text-xs rounded-lg uppercase hover:bg-[#2A2A2A] transition-colors tracking-wider flex items-center gap-2"
                   >
                     Explore Features
-                    <ArrowRight className="w-3.5 h-3.5 text-white hover:text-white" />
+                    <ArrowRight className="w-4 h-4 text-white" />
                   </Button>
                 </Link>
               </div>
             </div>
+          </div>
 
-            {/* Right Column — decorated image */}
-            <div className="relative h-[65vh] xl:h-[70vh]">
-              <div className="absolute top-0 right-0 w-[110%] h-[90%] bg-primary rounded-[20px]" />
-              <div
-                className="absolute top-[6%] right-[0%] w-[105%] h-[92%] rounded-l-[20px]"
-                style={{ background: "linear-gradient(128deg, #222 41.5%, #434242 98.5%)" }}
-              />
-              <div className="absolute top-[8%] right-[4%] w-[100%] h-[88%] z-10">
-                <AnimatedLogo />
-              </div>
+          {/* Right Column — decorated image */}
+          <div className="relative h-[65vh] xl:h-[75vh] w-full pt-8 md:pt-16">
+            <div className="absolute top-8 right-0 w-full lg:w-[110%] h-[90%] bg-primary rounded-l-[40px]" />
+            <div
+              className="absolute top-[calc(2rem+5%)] right-[0%] w-full lg:w-[105%] h-[92%] rounded-l-[40px]"
+              style={{ background: "linear-gradient(128deg, #222 41.5%, #434242 98.5%)" }}
+            />
+            <div className="absolute top-[calc(2rem+10%)] right-[5%] w-[90%] h-[80%] lg:right-[4%] lg:w-[100%] lg:h-[85%] z-10">
+              <AnimatedLogo />
             </div>
           </div>
         </div>
@@ -204,6 +208,7 @@ const tabConfig: Array<{
   id: FeatureTab
   label: string
   Icon: React.ComponentType<{ className?: string }>
+  imageIcon?: string
   headline: [string, string]
   sub: string
   cards: Array<{ Icon: React.ComponentType<{ className?: string }>; title: string; desc: string; accent: string }>
@@ -212,6 +217,7 @@ const tabConfig: Array<{
       id: "feed",
       label: "Feed",
       Icon: LayoutGrid,
+      imageIcon: "/Feed.svg",
       headline: ["Your Club.", "All in One Place."],
       sub: "Track matches, manage members, vote, and stay updated — all in one dashboard.",
       cards: [
@@ -223,6 +229,7 @@ const tabConfig: Array<{
       id: "events",
       label: "Events",
       Icon: Calendar,
+      imageIcon: "/Events.svg",
       headline: ["Don't Miss", "A Single Moment."],
       sub: "Browse screenings, CSR drives, and meetups — search, register, and relive events in one place.",
       cards: [
@@ -234,6 +241,7 @@ const tabConfig: Array<{
       id: "leaderboard",
       label: "Leaderboard",
       Icon: BarChart2,
+      imageIcon: "/Leaderboard.svg",
       headline: ["Compete.", "Climb the Ranks."],
       sub: "Attend more events, climb the ranks, and earn points with every show of loyalty.",
       cards: [
@@ -245,6 +253,7 @@ const tabConfig: Array<{
       id: "chants",
       label: "Club Chants",
       Icon: Volume2,
+      imageIcon: "/ClubChants.svg",
       headline: ["Sing Loud.", "Know Every Word."],
       sub: "Songs, chants, and traditions — all in one place. Learn them and never stay silent again.",
       cards: [
@@ -256,6 +265,7 @@ const tabConfig: Array<{
       id: "merch",
       label: "Merchandise",
       Icon: ShoppingCart,
+      imageIcon: "/Merchandise.svg",
       headline: ["Gear Up.", "Stand Out."],
       sub: "Official merch — scarves, bottles, collectibles, and more. Show the world where your heart belongs.",
       cards: [
@@ -284,7 +294,12 @@ function FeaturesShowcase() {
   useEffect(() => {
     if (paused) return
     const delay = 1500 // Reduced from 3000ms to 1500ms for faster animation
-    const id = setInterval(() => setActiveIdx((i) => (i + 1) % tabConfig.length), delay)
+    const id = setInterval(() => {
+      setActiveIdx((i) => {
+        if (i < 2) return i + 1;
+        return 0;
+      })
+    }, delay)
     return () => clearInterval(id)
   }, [paused])
 
@@ -308,21 +323,21 @@ function FeaturesShowcase() {
 
   return (
     <section
-      className="bg-white lg:bg-secondary-purple py-6"
+      className="bg-white md:bg-secondary-purple py-16 md:py-20 lg:py-24"
       id="features"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      <div className="mx-auto max-w-8xl px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-8xl px-6 sm:px-8 lg:px-12 xl:px-16">
 
         {/* ── Mobile layout ── */}
-        <div className="lg:hidden space-y-6 mt-2">
+        <div className="md:hidden space-y-6 mt-2">
           <div className="px-1">
             {/* Headline */}
-            <h2 className="text-[40px] font-black leading-[1.1] tracking-tight">
-              <span className="text-[#1E1E2C]">{active.headline[0]}</span>
+            <h2 className="text-4xl font-bold font-black leading-[1.05] tracking-tight">
+              <span className="text-[#1E1E2C]">Your Club.</span>
               <br />
-              <span className="text-primary">{active.headline[1]}</span>
+              <span className="text-primary">All in One Place.</span>
             </h2>
           </div>
 
@@ -342,7 +357,13 @@ function FeaturesShowcase() {
                         : "bg-transparent text-[#61628E] border-[#8C8DAB] hover:bg-gray-50"
                         }`}
                     >
-                      <Icon className="w-[15px] h-[15px]" />
+                      {tab.imageIcon ? (
+                        <div className="relative w-[15px] h-[15px] flex-shrink-0">
+                          <Image src={tab.imageIcon} alt={tab.label} fill className="object-contain" />
+                        </div>
+                      ) : (
+                        <Icon className="w-[15px] h-[15px]" />
+                      )}
                       {tab.label}
                     </button>
                   )
@@ -378,7 +399,7 @@ function FeaturesShowcase() {
                   const CardIcon = card.Icon
                   return (
                     <div key={i} className="bg-[#E5E4FA] rounded-[20px] border border-[#A5A6C4] flex items-center gap-4 p-4 shadow-sm">
-                      <div className={`${card.accent} w-[52px] h-[52px] rounded-[14px] flex items-center justify-center flex-shrink-0 shadow-sm`}>
+                      <div className={`${card.accent} w-[52px] h-[52px] rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm`}>
                         <CardIcon className="w-5 h-5 text-white" />
                       </div>
                       <div className="flex-1 flex flex-col pt-0.5">
@@ -394,7 +415,7 @@ function FeaturesShowcase() {
         </div>
 
         {/* ── Desktop layout ── */}
-        <div className="hidden bg-white lg:grid lg:grid-cols-[minmax(250px,25%)_1fr] items-center border-t rounded-r-[32px] border-gray-100">
+        <div className="hidden bg-white md:grid md:grid-cols-[minmax(250px,25%)_1fr] items-center border-t rounded-r-[32px] border-gray-100">
 
           {/* Left — vertical sidebar */}
           <div className="relative rounded-l-[32px] rounded-b-[32px] flex flex-col justify-center h-full">
@@ -403,44 +424,51 @@ function FeaturesShowcase() {
               <hr className="border-gray-200 border-t-2 mb-4 mt-4" />
             </div>
 
-            <div className="flex flex-col space-y-2 relative border-r-2 border-gray-100 pl-8 pr-6 pt-6">
-
-              {/* Active Indicator Line Track */}
-              <div className="absolute mr-4 right-[-2px] w-[4px] bg-gray-200 rounded-full h-[328px] top-[24px]">
-                {/* Active Indicator Line */}
-                <div
-                  className={`absolute right-0 w-[4px] bg-gray-400 rounded-full transition-all duration-300 ease-in-out h-12 ${[
-                    "top-0",
-                    "top-[56px]",
-                    "top-[112px]",
-                    "top-[168px]",
-                    "top-[224px]",
-                    "top-[280px]"
-                  ][activeIdx] || "top-0"
-                    }`}
-                />
-              </div>
-
-              {tabConfig.map((tab, i) => {
-                const Icon = tab.Icon
-                const isActive = i === activeIdx
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveIdx(i)}
-                    className={`group flex items-center justify-between w-full px-5 h-12 rounded-[14px] transition-all duration-200 ${isActive
-                      ? "bg-secondary/20 text-black font-bold"
-                      : "text-[#666] hover:bg-gray-50 hover:text-black"
+            <div className="relative pl-8 pt-6 pb-6 mr-4">
+              <div className="flex flex-col space-y-2 relative h-[272px] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] pr-6 border-r-2 border-gray-100">
+                {/* Active Indicator Line Track */}
+                <div className="absolute right-[-2px] w-[4px] bg-gray-200 rounded-full h-[328px] top-0">
+                  {/* Active Indicator Line */}
+                  <div
+                    className={`absolute right-0 w-[4px] bg-gray-400 rounded-full transition-all duration-300 ease-in-out h-12 ${[
+                      "top-0",
+                      "top-[56px]",
+                      "top-[112px]",
+                      "top-[168px]",
+                      "top-[224px]",
+                      "top-[280px]"
+                    ][activeIdx] || "top-0"
                       }`}
-                  >
-                    <div className="flex items-center gap-3.5">
-                      <Icon className={`w-[18px] h-[18px] flex-shrink-0 ${isActive ? "text-black" : "text-[#888] group-hover:text-black"}`} />
-                      <span className="text-md lg:text-lg">{tab.label}</span>
-                    </div>
-                    {isActive && <ArrowRight className="w-4 h-4 text-black" />}
-                  </button>
-                )
-              })}
+                  />
+                </div>
+
+                {tabConfig.map((tab, i) => {
+                  const Icon = tab.Icon
+                  const isActive = i === activeIdx
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveIdx(i)}
+                      className={`group flex items-center justify-between w-full px-5 h-12 rounded-[14px] transition-all duration-200 flex-shrink-0 ${isActive
+                        ? "bg-secondary text-black"
+                        : "text-[#666] hover:text-black"
+                        }`}
+                    >
+                      <div className="flex items-center gap-3.5">
+                        {tab.imageIcon ? (
+                          <div className="relative w-[18px] h-[18px] flex-shrink-0">
+                            <Image src={tab.imageIcon} alt={tab.label} fill className="object-contain" />
+                          </div>
+                        ) : (
+                          <Icon className={`w-[18px] h-[18px] flex-shrink-0 ${isActive ? "text-black" : "text-[#888] group-hover:text-black"}`} />
+                        )}
+                        <span className="text-md  text-black md:text-lg">{tab.label}</span>
+                      </div>
+                      {isActive && <ArrowRight className="w-4 h-4 text-black" />}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
 
             <div className="w-full">
@@ -451,8 +479,8 @@ function FeaturesShowcase() {
 
           {/* Right — content panel */}
           <div className="bg-gradient-to-b from-secondary/30 via-secondary/60 to-secondary/90 
-            rounded-[32px] p-4 pr-8 lg:pr-10 xl:pr-12 
-            pb-8 lg:pb-12 xl:pb-16 
+            rounded-[32px] p-4 pr-8 md:pr-10 xl:pr-12 
+            pb-8 md:pb-12 xl:pb-16 
             relative overflow-hidden flex items-stretch shadow-md">
             <div className="bg-gradient-to-b from-white to-secondary-purple rounded-[24px] w-full p-10 xl:p-12 shadow-sm relative z-10 flex flex-col justify-center min-h-[460px]">
               <div className="space-y-8">
@@ -474,12 +502,12 @@ function FeaturesShowcase() {
 
 
                 {/* Cards */}
-                <div className="grid grid-cols-2 gap-8 pt-6">
+                <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-8 pt-6">
                   {active.cards.map((card, i) => {
                     const CardIcon = card.Icon
                     return (
                       <div key={i} className="flex gap-4">
-                        <div className={`${card.accent} w-[60px] h-[60px] rounded-2xl flex items-center justify-center flex-shrink-0 shadow-sm`}>
+                        <div className={`${card.accent} w-[60px] h-[60px] rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm`}>
                           <CardIcon className="w-6 h-6 text-white" />
                         </div>
                         <div className="flex flex-col pt-1">
@@ -494,7 +522,7 @@ function FeaturesShowcase() {
             </div>
 
             {/* Logo in bottom right */}
-            <div className="absolute bottom-6 right-6 lg:bottom-2 lg:right-2 w-14 h-14 bg-background rounded-full flex items-center justify-center shadow-xl z-20 rotate-[45deg]">
+            <div className="absolute bottom-6 right-6 md:bottom-2 md:right-2 w-14 h-14 bg-background rounded-full flex items-center justify-center shadow-xl z-20 rotate-[45deg]">
               <div className="w-9 h-9 relative">
                 <Image src="Logo.svg" alt="Wingman" fill className="object-contain" />
               </div>
@@ -542,16 +570,16 @@ function ImageMarquee() {
 function ContactCTA() {
   return (
     <section className="bg-white py-16 md:py-20 lg:py-24" id="contact">
-      <div className="mx-auto max-w-8xl px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-8xl px-6 sm:px-8 lg:px-12 xl:px-16">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-stretch">
           {/* Left */}
           <div className="flex flex-col gap-8">
             <div>
-              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight mb-3">
-                <span className="text-background">Ready to</span>{" "}
+              <h2 className="text-4xl lg:text-5xl font-bold font-black flex flex-wrap gap-x-2 gap-y-1 leading-[1.1] mb-4">
+                <span className="text-[#1E1E2C]">Ready to</span>
                 <span className="text-primary">Upgrade Your Club?</span>
               </h2>
-              <p className="text-secondary text-lg leading-relaxed max-w-md">
+              <p className="text-[#595A8D] text-lg leading-relaxed max-w-md">
                 Book a consultation or join the wait-list. Takes two minutes.
               </p>
             </div>
@@ -601,14 +629,66 @@ function FAQ() {
   const [open, setOpen] = useState<number | null>(null)
 
   return (
-    <section className="py-16 md:py-20 lg:py-24 relative overflow-hidden" id="faqs">
+    <section className="py-16 md:py-20 lg:py-24 relative isolate overflow-hidden" id="faqs">
       <div className="absolute inset-0 bg-secondary-purple/40 -z-10" />
+                                  <svg
+                                className="hidden md:block absolute inset-0 w-full h-full"
+                                viewBox="0 0 1440 500"
+                                preserveAspectRatio="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                            >
+                                {/* LEFT TRIANGLE */}
+                                <line
+                                x1="0"
+                                y1="500"
+                                x2="380"
+                                y2="0"
+                                stroke="#C9C1CF"
+                                strokeWidth="0.8"
+                                />
+                                <line
+                                x1="380"
+                                y1="0"
+                                x2="770"
+                                y2="500"
+                                stroke="#C9C1CF"
+                                strokeWidth="0.8"
+                                />
+
+                                {/* CENTER INTERSECTING TRIANGLE */}
+                                <line
+                                x1="530"
+                                y1="500"
+                                x2="905"
+                                y2="0"
+                                stroke="#A291B178"
+                                strokeWidth="0.8"
+                                />
+                                <line
+                                x1="905"
+                                y1="0"
+                                x2="1245"
+                                y2="500"
+                                stroke="#F1441A1F"
+                                strokeWidth="0.8"
+                                />
+
+                                {/* PARALLEL INNER RIGHT LINE */}
+                                <line
+                                x1="880"
+                                y1="0"
+                                x2="1215"
+                                y2="500"
+                                stroke="#8598C7AB"
+                                strokeWidth="0.8"
+                                />
+                            </svg>
       {/* Decorative Vector — right corner */}
-      <div className="absolute -bottom-8 -left-10 w-80 h-80 opacity-60 pointer-events-none select-none">
+      <div className="absolute -bottom-32 -left-10 w-[45vw] h-[45vw] max-w-[22rem] h-[22rem] opacity-60 pointer-events-none select-none z-[-5]">
         <Image src="/Vector.svg" alt="" fill className="object-contain" />
       </div>
 
-      <div className="mx-auto max-w-8xl px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-8xl px-6 sm:px-8 lg:px-12 xl:px-16">
         <h2 className="flex flex-col items-start gap-2 md:items-center md:text-4xl text-4xl lg:text-5xl font-bold text-center mb-12">
           <span className="text-background">Frequently Asked</span>{" "}
           <span className="text-primary">Questions</span>
@@ -616,7 +696,7 @@ function FAQ() {
 
         <div className="max-w-3xl mx-auto space-y-3">
           {faqs.map((faq, i) => (
-            <div key={i} className={`border rounded-[20px] overflow-hidden ${open === i ? "bg-secondary/30 border-primary" : "bg-secondary/30"}`}>
+            <div key={i} className={`border rounded-[20px] overflow-hidden ${open === i ? "bg-secondary/30 border-primary" : "bg-[#DCD4E2] border-[#6668A1]"}`}>
               <button
                 onClick={() => setOpen(open === i ? null : i)}
                 className="w-full flex items-center justify-between px-5 py-4 text-left gap-4"
@@ -644,7 +724,7 @@ function FAQ() {
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-white text-slate-900 relative overflow-x-hidden public-theme">
+    <div className="min-h-screen bg-white text-slate-900 relative overflow-x-clip public-theme">
       {/* <JellyCursor /> */}
       <SiteNavbar brandName="Wingman Pro" />
       <FadeIn>

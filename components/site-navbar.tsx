@@ -55,7 +55,7 @@ export function SiteNavbar({ brandName = "Wingman Pro" }: SiteNavbarProps) {
     <>
       <LoginModal open={loginOpen} onOpenChange={setLoginOpen} />
       <header className="sticky top-0 z-50 bg-background border-b border-slate-200/60 dark:border-white/10 shadow-sm">
-        <div className="mx-auto px-2 py-4 flex items-center justify-between h-14 lg:h-20">
+        <div className="mx-auto max-w-8xl px-6 sm:px-8 lg:px-12 xl:px-16 py-4 flex items-center justify-between h-14 lg:h-20">
           <Link href="/" className="flex items-center gap-3.5 group">
             <div className="relative w-12 h-12">
               <Image
@@ -85,23 +85,23 @@ export function SiteNavbar({ brandName = "Wingman Pro" }: SiteNavbarProps) {
                 variant="outline" 
                 onClick={handleLoginClick} 
                 disabled={isLoading}
-                className="h-8 px-4 border border-[#727274] text-sm uppercase tracking-wide active:scale-95 text-white hover:bg-accent hover:text-accent-foreground"
+                className="h-8 px-4 border border-[#727274] text-sm uppercase tracking-wide active:scale-95 text-white hover:bg-[#434344]"
               >
                 {isAuthenticated ? "Dashboard" : "Log In"}
               </Button>
-
+{/* 
               <Button
                 variant="outline"
                 asChild
                 className="h-8 px-4 border border-[#727274] bg-black text-sm uppercase tracking-wide active:scale-95 text-white hover:bg-accent hover:text-accent-foreground"
               >
                 <Link href="/clubs">Browse Clubs</Link>
-              </Button>
+              </Button> */}
 
               <Button
                 variant="default"
                 asChild
-                className="h-8 px-4 text-sm uppercase tracking-wide active:scale-95 text-white bg-primary hover:bg-primary/90"
+                className="h-8 px-4 text-sm uppercase tracking-wide active:scale-95 text-white bg-primary hover:bg-[#FF7E4A] hover:shadow-[0_8px_20px_#FF5C1A6B] transition-all"
               >
                 <Link href="/contact">Contact Us</Link>
               </Button>
@@ -167,9 +167,9 @@ export function SiteNavbar({ brandName = "Wingman Pro" }: SiteNavbarProps) {
               <div className="relative z-10 flex flex-col text-center text-white pb-8 h-full justify-between">
 
                 <div className="flex flex-col gap-10 font-extrabold tracking-widest text-[15px] mt-32">
-                  <Link href="/#features" onClick={() => setMobileOpen(false)} className="hover:text-primary transition-colors">FEATURES</Link>
+                  {/* <Link href="/#features" onClick={() => setMobileOpen(false)} className="hover:text-primary transition-colors">FEATURES</Link> */}
                   <Link href="/affiliations" onClick={() => setMobileOpen(false)} className="hover:text-primary transition-colors">AFFILIATIONS</Link>
-                  <Link href="/pricing" onClick={() => setMobileOpen(false)} className="hover:text-primary transition-colors">PRICING</Link>
+                  {/* <Link href="/pricing" onClick={() => setMobileOpen(false)} className="hover:text-primary transition-colors">PRICING</Link> */}
                   <Link href="/about" onClick={() => setMobileOpen(false)} className="hover:text-primary transition-colors">ABOUT</Link>
                   <Link href="/faqs" onClick={() => setMobileOpen(false)} className="hover:text-primary transition-colors">FAQS</Link>
                 </div>
@@ -182,14 +182,14 @@ export function SiteNavbar({ brandName = "Wingman Pro" }: SiteNavbarProps) {
                       handleLoginClick()
                     }} 
                     disabled={isLoading}
-                    className="font-bold text-sm uppercase tracking-wide"
+                    className="font-bold text-sm uppercase tracking-wide hover:bg-[#434344]"
                   >
                     {isAuthenticated ? "Dashboard" : "Log In"}
                   </Button>
-                  <Button variant="outline" asChild className="h-11 px-6 border-2 font-bold text-sm uppercase tracking-wide active:scale-95">
+                  {/* <Button variant="outline" asChild className="h-11 px-6 border-2 font-bold text-sm uppercase tracking-wide active:scale-95">
                     <Link href="/clubs">Browse Clubs</Link>
-                  </Button>
-                  <Button variant="default" asChild className="h-11 px-8 font-bold text-sm uppercase tracking-wide active:scale-95">
+                  </Button> */}
+                  <Button variant="default" asChild className="h-11 px-8 font-bold text-sm uppercase tracking-wide active:scale-95 bg-primary hover:bg-[#FF7E4A] hover:shadow-[0_8px_20px_#FF5C1A6B] transition-all text-white">
                     <Link href="/contact">Contact Us</Link>
                   </Button>
                 </div>

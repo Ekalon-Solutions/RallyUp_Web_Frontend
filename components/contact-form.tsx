@@ -31,7 +31,7 @@ export function ContactForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 bg-secondary-purple/50 p-4 rounded-[10px]">
+    <form onSubmit={handleSubmit} className="space-y-5 bg-[#EEEAF1] p-6 lg:p-8 rounded-2xl shadow-[0px_4px_24px_#00000040]">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-1.5">
           <label className="text-secondary text-xs font-semibold">Full Name</label>
@@ -48,7 +48,7 @@ export function ContactForm() {
               placeholder="Enter your full name"
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              className="w-full h-11 pl-10 pr-4 border rounded-[10px] text-xs placeholder-[#888] focus:outline-none focus:border-secondary bg-white"
+              className="w-full h-12 pl-10 pr-4 border border-[#888888] rounded-[8px] text-xs placeholder-[#A09FA5] focus:outline-none focus:border-[#A5A2B5] bg-white shadow-sm"
             />
           </div>
         </div>
@@ -67,7 +67,7 @@ export function ContactForm() {
               placeholder="Enter your email"
               value={form.email}
               onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-              className="w-full h-11 pl-10 pr-4 border rounded-[10px] text-xs placeholder-[#888] focus:outline-none focus:border-secondary bg-white"
+              className="w-full h-12 pl-10 pr-4 border border-[#888888] rounded-[8px] text-xs placeholder-[#A09FA5] focus:outline-none focus:border-[#A5A2B5] bg-white shadow-sm"
             />
           </div>
         </div>
@@ -78,7 +78,7 @@ export function ContactForm() {
         <select
           value={form.topic}
           onChange={(e) => setForm((f) => ({ ...f, topic: e.target.value }))}
-          className="w-full h-11 px-4 border rounded-[10px] text-xs text-[#888] focus:outline-none focus:border-secondary appearance-none bg-white"
+          className="w-full h-12 px-4 border border-[#888888] rounded-[8px] text-xs text-[#888] focus:outline-none focus:border-[#A5A2B5] appearance-none bg-white shadow-sm"
         >
           <option>Product Support</option>
           <option>Sales Inquiry</option>
@@ -94,25 +94,24 @@ export function ContactForm() {
           value={form.message}
           onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))}
           rows={4}
-          className="w-full px-4 py-3 border rounded-[10px] text-xs text-[#888] placeholder-[#888] focus:outline-none focus:border-secondary resize-none bg-white"
+          className="w-full px-4 py-3 border border-[#888888] rounded-[8px] text-xs text-[#888] placeholder-[#A09FA5] focus:outline-none focus:border-[#A5A2B5] resize-none bg-white shadow-sm"
         />
       </div>
 
-      <div className="flex flex-col gap-3 pt-1">
+      <div className="flex flex-col gap-3 pt-2">
         <Button
           type="submit"
-          variant="secondary"
-          className="bg-secondary/40"
+          className="bg-[#A291B1] hover:bg-[#C5B0D8] shadow-[0px_8px_16px_#DFDFFFB0] text-white h-12 rounded-[6px] font-bold text-xs hover:text-sm uppercase tracking-wider w-full transition-all duration-300"
         >
           Submit
         </Button>
-        <Link href="/clubs" className="flex-1">
+        <Link href="/clubs" className="w-full">
           <Button
             type="button"
-            variant="secondary"
-            className="w-full"
+            className="bg-[#6668A1] hover:bg-[#9497E3] shadow-[0px_8px_16px_#6668A17D] text-white h-12 rounded-[6px] font-bold text-xs hover:text-sm uppercase tracking-wider w-full transition-all duration-300 flex items-center justify-center gap-2"
           >
             Join Waiting List
+            <span>→</span>
           </Button>
         </Link>
       </div>
