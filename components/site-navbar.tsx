@@ -123,7 +123,7 @@ export function SiteNavbar({ brandName = "Wingman Pro" }: SiteNavbarProps) {
                 variant="ghost"
                 size="icon"
                 aria-label="Menu"
-                className="lg:hidden text-slate-900 dark:text-white h-11 w-11 rounded-xl hover:bg-slate-100 dark:hover:bg-white/10"
+                className="lg:hidden text-white h-11 w-11 rounded-xl hover:bg-white/10"
                 onClick={() => setMobileOpen(!mobileOpen)}
               >
                 {mobileOpen ? <X className="h-7 w-7" /> : <Menu className="h-7 w-7" />}
