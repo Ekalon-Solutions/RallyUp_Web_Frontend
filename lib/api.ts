@@ -1251,6 +1251,11 @@ class ApiClient {
     return this.request(endpoint);
   }
 
+  async getClubEventRegistrations(clubId?: string): Promise<ApiResponse<any[]>> {
+    const endpoint = clubId ? `/events/club/registrations?clubId=${encodeURIComponent(clubId)}` : '/events/club/registrations';
+    return this.request(endpoint);
+  }
+
   async getPublicEvents(clubId?: string): Promise<ApiResponse<Event[]>> {
     const endpoint = clubId ? `/events/public?clubId=${clubId}` : '/events/public';
     return this.request(endpoint);

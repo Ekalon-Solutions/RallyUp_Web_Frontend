@@ -233,48 +233,22 @@ export default function OrdersPage() {
         setEventStats(null)
         return
       }
-      const response = await apiClient.getEventsByClub(clubId)
+      const response = await apiClient.getClubEventRegistrations(clubId)
       if (response.success && response.data) {
-        const data: any = response.data
-        const events = Array.isArray(data) ? data : (data?.events || [])
-        // Flatten event registrations into a list
-        const registrations: any[] = []
-        events.forEach((event: any) => {
-          if (event.registrations && Array.isArray(event.registrations)) {
-            event.registrations.forEach((reg: any) => {
-              registrations.push({
-                ...reg,
-                eventId: event._id,
-                eventTitle: event.title,
-                eventStartTime: event.startTime,
-                eventVenue: event.venue,
-                eventCategory: event.category,
-                ticketPrice: event.ticketPrice,
-                currency: event.currency || 'USD',
-                type: 'event'
-              })
-            })
-          }
-        })
-        
-        // Calculate stats
-        const totalRegistrations = registrations.length
-        const confirmedRegistrations = registrations.filter(reg => reg.status === 'confirmed').length
-        const pendingRegistrations = registrations.filter(reg => reg.status === 'pending').length
-        const cancelledRegistrations = registrations.filter(reg => reg.status === 'cancelled').length
+        const registrations: any[] = Array.isArray((response.data as any)?.data) ? (response.data as any).data : []
+
         const totalRevenue = registrations
           .filter(reg => reg.status === 'confirmed' && reg.amountPaid && reg.paymentId)
           .reduce((sum, reg) => sum + (reg.amountPaid || 0), 0)
-        
+
         setEventStats({
-          totalOrders: totalRegistrations,
-          totalRevenue: totalRevenue,
-          pendingOrders: pendingRegistrations,
-          completedOrders: confirmedRegistrations,
-          cancelledOrders: cancelledRegistrations
+          totalOrders: registrations.length,
+          totalRevenue,
+          pendingOrders: registrations.filter(reg => reg.status === 'pending').length,
+          completedOrders: registrations.filter(reg => reg.status === 'confirmed').length,
+          cancelledOrders: registrations.filter(reg => reg.status === 'cancelled').length,
         })
-        
-        // Store all registrations
+
         setAllEventRegistrations(registrations)
       }
     } catch (error) {
