@@ -838,34 +838,9 @@ export default function PublicClubPage() {
                                           style={isEventFull ? undefined : { backgroundColor: primaryColor, color: "white" }}
                                           variant={isEventFull ? "secondary" : "default"}
                                           disabled={isEventFull}
-                                          onClick={async () => {
+                                          onClick={() => {
                                             if (isEventFull) return
-                                            
-                                            // Check if user is already registered (for members only)
-                                            try {
-                                              const checkResult = await apiClient.checkEventRegistration(event._id)
-                                              if (checkResult.success && checkResult.data) {
-                                                const { isRegistered, isMember, canRegisterMultiple } = checkResult.data
-                                                
-                                                // If member and already registered, show error
-                                                if (isMember && isRegistered) {
-                                                  toast.error("You are already registered for this event")
-                                                  return
-                                                }
-                                                
-                                                // For non-members or not registered, proceed with registration
-                                                setEventForRegistration(event)
-                                                setShowEventRegistrationModal(true)
-                                              } else {
-                                                // If check fails, proceed anyway
-                                                setEventForRegistration(event)
-                                                setShowEventRegistrationModal(true)
-                                              }
-                                            } catch (error) {
-                                              // If check fails, proceed anyway
-                                              setEventForRegistration(event)
-                                              setShowEventRegistrationModal(true)
-                                            }
+                                            router.push(`/clubs/${slug}/events/${event._id}`)
                                           }}
                                         >
                                           {isEventFull ? "Event Full" : event.ticketPrice && event.ticketPrice > 0 ? "Buy Tickets" : "Register"}
