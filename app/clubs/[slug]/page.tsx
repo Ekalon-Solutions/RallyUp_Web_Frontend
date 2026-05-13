@@ -500,7 +500,7 @@ export default function PublicClubPage() {
         </div>
       </header>
 
-      <section className="relative overflow-hidden py-24 lg:py-40">
+      {/* <section className="relative overflow-hidden py-24 lg:py-40">
         <div
           className="absolute inset-0 opacity-[0.04] pointer-events-none"
           style={{
@@ -587,7 +587,7 @@ export default function PublicClubPage() {
             </div>
           </div>
         </div>
-      </section>
+      </section> */}
 
       {hasCommunitySections && (
         <section className="container mx-auto px-6 py-28 md:py-40">

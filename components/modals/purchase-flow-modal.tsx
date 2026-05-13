@@ -239,6 +239,15 @@ export function PurchaseFlowModal({
                 "Continue"
               )}
             </Button>
+
+            <Button
+              variant="ghost"
+              onClick={() => setValidationResult({ isMember: false })}
+              disabled={loading}
+              className="w-full text-muted-foreground"
+            >
+              I'm not a member
+            </Button>
           </div>
         ) : validationResult.isMember ? (
           <div className="space-y-4 py-4">
@@ -256,7 +265,7 @@ export function PurchaseFlowModal({
                 Login
               </Button>
               <Button variant="outline" onClick={handleContinue} className="flex-1">
-                Continue
+                Continue as Guest
               </Button>
             </div>
           </div>
@@ -276,7 +285,7 @@ export function PurchaseFlowModal({
                 Register
               </Button>
               <Button variant="outline" onClick={handleContinue} className="flex-1">
-                Continue
+                Continue as Guest
               </Button>
             </div>
           </div>
