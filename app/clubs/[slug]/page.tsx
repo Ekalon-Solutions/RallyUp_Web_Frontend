@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { apiClient, News, Event, Chant } from "@/lib/api"
-import { formatDisplayDate } from "@/lib/utils"
+import { formatDisplayDate, slugify } from "@/lib/utils"
 import { getNewsImageUrl } from "@/lib/config"
 import UserEventRegistrationModal from "@/components/modals/user-event-registration-modal"
 import { EventCheckoutModal } from "@/components/modals/event-checkout-modal"
@@ -840,7 +840,7 @@ export default function PublicClubPage() {
                                           disabled={isEventFull}
                                           onClick={() => {
                                             if (isEventFull) return
-                                            router.push(`/clubs/${slug}/events/${event._id}`)
+                                            router.push(`/clubs/${slug}/events/${slugify(event.title)}`)
                                           }}
                                         >
                                           {isEventFull ? "Event Full" : event.ticketPrice && event.ticketPrice > 0 ? "Buy Tickets" : "Register"}

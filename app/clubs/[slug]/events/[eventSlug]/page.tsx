@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Card, CardContent } from "@/components/ui/card"
 import { apiClient, Event } from "@/lib/api"
-import { formatDisplayDate } from "@/lib/utils"
+import { formatDisplayDate, slugify } from "@/lib/utils"
 import UserEventRegistrationModal from "@/components/modals/user-event-registration-modal"
 import { EventCheckoutModal } from "@/components/modals/event-checkout-modal"
 import {
@@ -50,7 +50,7 @@ export default function EventDetailPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const slug = params.slug as string
-  const eventId = params.eventId as string
+  const eventSlug = params.eventSlug as string
 
   const [loading, setLoading] = useState(true)
   const [club, setClub] = useState<Club | null>(null)
@@ -65,14 +65,14 @@ export default function EventDetailPage() {
 
   useEffect(() => {
     loadData()
-  }, [slug, eventId])
+  }, [slug, eventSlug])
 
   // Resume purchase after login/register redirect
   useEffect(() => {
     const resume = searchParams.get("resumePurchase")
     if (resume !== "1" || !club?._id || !event) return
     const intent = getStoredPurchaseIntent()
-    if (!intent || intent.type !== "event" || intent.clubId !== club._id || intent.eventId !== eventId) return
+    if (!intent || intent.type !== "event" || intent.clubId !== club._id || intent.eventId !== event._id) return
 
     const storedAttendees = intent.attendees || []
 
@@ -85,7 +85,7 @@ export default function EventDetailPage() {
       window.history.replaceState({}, "", url.pathname + url.search)
     }
 
-    apiClient.checkEventRegistration(eventId).then((checkResult) => {
+    apiClient.checkEventRegistration(event._id).then((checkResult) => {
       if (checkResult.success && checkResult.data) {
         const { isRegistered, isMember } = checkResult.data
         if (isMember && isRegistered) {
@@ -99,15 +99,14 @@ export default function EventDetailPage() {
       }
       finish()
     }).catch(finish)
-  }, [searchParams, club?._id, event, eventId])
+  }, [searchParams, club?._id, event])
 
   const loadData = async () => {
     try {
       setLoading(true)
-      const [clubRes, settingsRes, eventRes] = await Promise.all([
+      const [clubRes, settingsRes] = await Promise.all([
         apiClient.getClubById(slug, true),
         apiClient.getClubSettings(slug, true),
-        apiClient.getPublicEventById(eventId),
       ])
 
       if (clubRes.success && clubRes.data) setClub(clubRes.data)
@@ -115,7 +114,14 @@ export default function EventDetailPage() {
         const actual = settingsRes.data.data || settingsRes.data
         setSettings(actual)
       }
-      if (eventRes.success && eventRes.data) setEvent(eventRes.data)
+
+      if (clubRes.success && clubRes.data) {
+        const eventsRes = await apiClient.getPublicEvents(clubRes.data._id)
+        if (eventsRes.success && eventsRes.data) {
+          const found = eventsRes.data.find((e) => slugify(e.title) === eventSlug)
+          if (found) setEvent(found)
+        }
+      }
     } catch {
     } finally {
       setLoading(false)
@@ -169,7 +175,7 @@ export default function EventDetailPage() {
 
   const isEventFull = event.maxAttendees != null && (event.currentAttendees ?? 0) >= event.maxAttendees
   const isPaid = event.ticketPrice != null && event.ticketPrice > 0
-  const returnPath = `/clubs/${slug}/events/${eventId}`
+  const returnPath = `/clubs/${slug}/events/${eventSlug}`
 
   return (
     <div className="min-h-screen bg-background">
