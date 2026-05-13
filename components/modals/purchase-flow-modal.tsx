@@ -225,29 +225,31 @@ export function PurchaseFlowModal({
               </div>
             </div>
 
-            <Button
-              onClick={handleValidate}
-              disabled={loading || !mobileNumber.trim()}
-              className="w-full"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Checking...
-                </>
-              ) : (
-                "Continue"
-              )}
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={handleValidate}
+                disabled={loading || !mobileNumber.trim()}
+                className="flex-1"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Checking...
+                  </>
+                ) : (
+                  "Continue"
+                )}
+              </Button>
 
-            <Button
-              variant="ghost"
-              onClick={() => setValidationResult({ isMember: false })}
-              disabled={loading}
-              className="w-full text-muted-foreground"
-            >
-              I'm not a member
-            </Button>
+              <Button
+                variant="secondary"
+                onClick={() => setValidationResult({ isMember: false })}
+                disabled={loading}
+                className="flex-1 border border-input"
+              >
+                I'm not a member
+              </Button>
+            </div>
           </div>
         ) : validationResult.isMember ? (
           <div className="space-y-4 py-4">
