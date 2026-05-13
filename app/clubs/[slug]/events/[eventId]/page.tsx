@@ -317,27 +317,6 @@ export default function EventDetailPage() {
                   </div>
                 )}
 
-                {/* Attendees */}
-                {event.maxAttendees != null && (
-                  <div className="flex items-start gap-3">
-                    <div
-                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-                      style={{ backgroundColor: `${primaryColor}18`, color: primaryColor }}
-                    >
-                      <Users className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Capacity</p>
-                      <p className="font-semibold mt-0.5">
-                        {event.currentAttendees || 0} / {event.maxAttendees} registered
-                        {isEventFull && (
-                          <span className="ml-2 text-sm font-bold text-destructive">(Full)</span>
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
                 {/* Price */}
                 {isPaid && (
                   <div className="flex items-start gap-3">
