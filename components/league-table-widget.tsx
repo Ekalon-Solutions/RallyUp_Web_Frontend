@@ -134,10 +134,10 @@ export default function LeagueTableWidget({ leagueId, highlightTeamId, highlight
                       <span className="inline-flex items-center justify-center gap-1">
                         {String(standing.strForm).split("").map((ch, idx) => {
                           const c = (ch || '').toUpperCase()
-                          if (c === 'W') return <span key={idx} className="text-green-600 font-bold text-base leading-none">✓</span>
-                          if (c === 'L') return <span key={idx} className="text-red-600 font-bold text-base leading-none">✕</span>
-                          if (c === 'D') return <span key={idx} className="text-orange-600 font-bold text-base leading-none">–</span>
-                          return <span key={idx} className="text-muted-foreground text-base leading-none">–</span>
+                          if (c === 'W') return <img key={idx} src="/Green_Check.svg" alt="Win" className="w-4 h-4" />
+                          if (c === 'L') return <img key={idx} src="/Red-Cross.svg" alt="Loss" className="w-4 h-4" />
+                          if (c === 'D') return <img key={idx} src="/Grey_Dash.svg" alt="Draw" className="w-4 h-4" />
+                          return <img key={idx} src="/Grey_Dash.svg" alt="-" className="w-4 h-4" />
                         })}
                       </span>
                     ) : (

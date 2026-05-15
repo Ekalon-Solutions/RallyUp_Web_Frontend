@@ -177,7 +177,7 @@ function DashboardSidebar({
 }: DashboardSidebarProps) {
   return (
     <div className={cn("flex flex-col h-full bg-card", mobile ? "w-full" : "w-72")}>
-      <Link href="/" className="flex items-center gap-3 p-8 border-b hover:opacity-90 transition-opacity">
+      <Link href="/" className="flex items-center gap-2 h-16 p-2 border-b hover:opacity-90 transition-opacity">
         <div className="relative w-10 h-10 overflow-hidden rounded-xl bg-white shadow-md border-2 ring-2 ring-primary/5">
           <Image
             src="/WingmanPro Logo (White BG).svg"

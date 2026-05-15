@@ -10,7 +10,7 @@ import { useAuth } from "@/contexts/auth-context"
 import { PollsWidget } from "@/components/polls-widget"
 import { LatestEventsWidget } from "@/components/latest-events-widget"
 import { LatestNewsWidget } from "@/components/latest-news-widget"
-import LeagueTableWidget from "@/components/league-table-widget"
+
 import { apiClient } from "@/lib/api"
 import { useClubSettings } from "@/hooks/useClubSettings"
 
@@ -308,12 +308,7 @@ export default function DashboardPage() {
 
           {user && (clubName || ('club' in user && user.club)) && (
             <div className="space-y-6">
-              {/* League Table Widget */}
-              {clubSettings?.sports?.teamId && (
-                <div className="w-full rounded-[2.5rem] overflow-hidden border-2 shadow-xl bg-card p-4">
-                  <LeagueTableWidget leagueId={clubSettings.sports.leagueId} />
-                </div>
-              )}
+              
 
               <div className="w-full rounded-[2.5rem] overflow-hidden border-2 shadow-xl bg-card p-2">
                 <LatestEventsWidget limit={5} showManageButton={true} />
