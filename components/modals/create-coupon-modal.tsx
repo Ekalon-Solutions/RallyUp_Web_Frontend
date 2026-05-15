@@ -371,7 +371,7 @@ export function CreateCouponModal({ isOpen, onClose, onSuccess, editCoupon, club
                 className={errors.discountValue ? "border-red-500" : ""}
                 min="0"
                 max={formData.discountType === "percentage" ? "100" : undefined}
-                step={formData.discountType === "percentage" ? "1" : "10"}
+                step="1"
               />
               {errors.discountValue && <p className="text-red-500 text-sm">{errors.discountValue}</p>}
             </div>
@@ -476,7 +476,7 @@ export function CreateCouponModal({ isOpen, onClose, onSuccess, editCoupon, club
               value={formData.minPurchaseAmount}
               onChange={(e) => setFormData({ ...formData, minPurchaseAmount: e.target.value })}
               min="0"
-              step="10"
+              step="1"
             />
             <p className="text-xs text-muted-foreground">
               Coupon will only apply to tickets above this amount
