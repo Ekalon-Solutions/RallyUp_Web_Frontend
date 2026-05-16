@@ -30,7 +30,8 @@ import {
   Calendar,
   MoreHorizontal,
   Edit,
-  Download
+  Download,
+  Mail
 } from 'lucide-react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -150,6 +151,7 @@ export default function OrdersPage() {
   const [selectedRegistrationMeta, setSelectedRegistrationMeta] = useState<any | null>(null)
   const [showRegistrationModal, setShowRegistrationModal] = useState(false)
   const [registrationLoading, setRegistrationLoading] = useState(false)
+  const [resendingTicketId, setResendingTicketId] = useState<string | null>(null)
 
   useEffect(() => {
     if (user?.role === 'admin' || user?.role === 'super_admin') {
@@ -565,6 +567,60 @@ export default function OrdersPage() {
     }
   }
 
+  const handleResendTicketEmail = async (reg: any) => {
+    const registrationId = reg.registrationId || reg._id
+    if (!registrationId) {
+      toast({
+        title: 'Cannot resend',
+        description: 'Registration ID is missing for this ticket.',
+        variant: 'destructive',
+      })
+      return
+    }
+    if (reg.status && reg.status !== 'confirmed') {
+      toast({
+        title: 'Cannot resend',
+        description: 'Ticket email can only be resent for confirmed registrations.',
+        variant: 'destructive',
+      })
+      return
+    }
+    const email = (reg.userEmail || '').toLowerCase()
+    if (!email || email.endsWith('@guest.rallyup.local')) {
+      toast({
+        title: 'Cannot resend',
+        description: 'This registration has no deliverable email address.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    try {
+      setResendingTicketId(String(registrationId))
+      const response = await apiClient.resendEventTicketEmail(String(registrationId))
+      if (response.success) {
+        toast({
+          title: 'Ticket email sent',
+          description: response.message || `Confirmation email sent to ${reg.userEmail}`,
+        })
+      } else {
+        toast({
+          title: 'Failed to resend',
+          description: response.message || response.error || 'Could not send ticket email',
+          variant: 'destructive',
+        })
+      }
+    } catch {
+      toast({
+        title: 'Failed to resend',
+        description: 'Could not send ticket email. Please try again.',
+        variant: 'destructive',
+      })
+    } finally {
+      setResendingTicketId(null)
+    }
+  }
+
   const handleViewRegistrationDetails = async (reg: any) => {
     setSelectedRegistrationMeta(reg)
     setSelectedRegistration(null)
@@ -975,6 +1031,13 @@ export default function OrdersPage() {
                     {typeFilter === 'events' && eventRegistrations.map((reg) => {
                       const regStatus = reg.status || 'confirmed'
                       const StatusIcon = regStatus === 'confirmed' ? CheckCircle : (regStatus === 'cancelled' ? XCircle : Clock)
+                      const registrationId = String(reg.registrationId || reg._id || '')
+                      const canResendQr =
+                        regStatus === 'confirmed' &&
+                        Boolean(registrationId) &&
+                        Boolean(reg.userEmail) &&
+                        !String(reg.userEmail).toLowerCase().endsWith('@guest.rallyup.local')
+                      const isResendingQr = resendingTicketId === registrationId
                       return (
                         <TableRow key={`${reg.eventId}-${reg.userId}-${reg.registrationDate}`}>
                           <TableCell className="font-medium">
@@ -1022,15 +1085,36 @@ export default function OrdersPage() {
                             </div>
                           </TableCell>
                           <TableCell className="text-right">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 px-2 text-muted-foreground hover:text-foreground"
-                              onClick={() => handleViewRegistrationDetails(reg)}
-                            >
-                              <Eye className="h-4 w-4 mr-1" />
-                              View
-                            </Button>
+                            <div className="flex items-center justify-end gap-1 flex-wrap">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 px-2 text-muted-foreground hover:text-foreground"
+                                onClick={() => handleViewRegistrationDetails(reg)}
+                              >
+                                <Eye className="h-4 w-4 mr-1" />
+                                View
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 px-2 text-muted-foreground hover:text-foreground"
+                                onClick={() => handleResendTicketEmail(reg)}
+                                disabled={!canResendQr || (resendingTicketId !== null && !isResendingQr)}
+                              >
+                                {isResendingQr ? (
+                                  <>
+                                    <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                                    Sending...
+                                  </>
+                                ) : (
+                                  <>
+                                    <Mail className="h-4 w-4 mr-1" />
+                                    Resend QR
+                                  </>
+                                )}
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       )

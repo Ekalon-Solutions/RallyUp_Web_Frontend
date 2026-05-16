@@ -84,32 +84,63 @@ function hasValidBrowserHeaders(request: NextRequest): boolean {
 
 function isSuspiciousRequest(request: NextRequest): boolean {
   const userAgent = request.headers.get('user-agent') || ''
-  
+
   if (!userAgent) {
     return true
   }
-  
+
   if (userAgent.includes('HeadlessChrome') || userAgent.includes('Headless')) {
     return true
   }
-  
+
   if (userAgent.length < 20) {
     return true
   }
-  
+
   if (!hasValidBrowserHeaders(request)) {
     return true
   }
-  
+
   return false
 }
+
+/** Only apply challenge redirect on authenticated/app areas — not the public marketing site. */
+function isProtectedPath(pathname: string): boolean {
+  return (
+    pathname.startsWith('/dashboard') ||
+    pathname.startsWith('/system-owner-login') ||
+    pathname.startsWith('/admin')
+  )
+}
+
+const PUBLIC_BYPASS_PATHS = new Set([
+  '/',
+  '/delete-account',
+  '/challenge',
+  '/privacy',
+  '/terms',
+  '/contact',
+  '/refund',
+  '/child-safety',
+  '/login',
+  '/register',
+  '/splash',
+  '/clubs',
+  '/merchandise',
+  '/membership-plans',
+  '/robots.txt',
+  '/sitemap.xml',
+])
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Allow /delete-account route to bypass all middleware checks
-  if (pathname === "/delete-account") {
+  if (PUBLIC_BYPASS_PATHS.has(pathname)) {
     return NextResponse.next()
+  }
+
+  if (request.cookies.get('verified')?.value === 'true') {
+    return applySecurityHeaders(NextResponse.next())
   }
   
   if (
@@ -127,17 +158,14 @@ export function middleware(request: NextRequest) {
              'unknown'
   
   if (isBlockedUserAgent(userAgent)) {
-    // console.log(`🚫 Blocked scraping tool: ${userAgent} from ${ip}`)
     return new NextResponse('Access Denied', { status: 403 })
   }
   
-  if (isSuspiciousRequest(request)) {
-    // console.log(`⚠️ Suspicious request detected: ${userAgent} from ${ip}`)
+  if (isProtectedPath(pathname) && isSuspiciousRequest(request)) {
     return NextResponse.redirect(new URL('/challenge', request.url))
   }
   
   if (!checkRateLimit(ip)) {
-    // console.log(`🚨 Rate limit exceeded for ${ip}`)
     return new NextResponse('Too Many Requests', { 
       status: 429,
       headers: {
@@ -146,26 +174,20 @@ export function middleware(request: NextRequest) {
     })
   }
   
-  const response = NextResponse.next()
-  
+  return applySecurityHeaders(NextResponse.next())
+}
+
+function applySecurityHeaders(response: NextResponse) {
   response.headers.set('X-Frame-Options', 'SAMEORIGIN')
   response.headers.set('X-Content-Type-Options', 'nosniff')
   response.headers.set('X-XSS-Protection', '1; mode=block')
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
   response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), interest-cohort=()')
-  
   return response
 }
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except:
-     * - api routes (handled separately)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
     '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
 }

@@ -1256,6 +1256,12 @@ class ApiClient {
     return this.request(endpoint);
   }
 
+  async resendEventTicketEmail(registrationId: string): Promise<ApiResponse<{ message: string }>> {
+    return this.request(`/events/club/registrations/${encodeURIComponent(registrationId)}/resend-ticket`, {
+      method: 'POST',
+    });
+  }
+
   async getPublicEvents(clubId?: string): Promise<ApiResponse<Event[]>> {
     const endpoint = clubId ? `/events/public?clubId=${clubId}` : '/events/public';
     return this.request(endpoint);

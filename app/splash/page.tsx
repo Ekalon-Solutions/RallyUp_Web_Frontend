@@ -23,7 +23,7 @@ export default function SplashPage() {
   const router = useRouter()
   const [clubs, setClubs] = useState<Club[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [isSelecting, setIsSelecting] = useState(false)
+  const [selectingClubId, setSelectingClubId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!user) return
@@ -179,8 +179,9 @@ export default function SplashPage() {
     loadClubs()
   }, [user, activeClubId, setActiveClubId, router])
 
-  const handleClubSelect = async (clubId: string) => {
-    setIsSelecting(true)
+  const handleClubSelect = (clubId: string) => {
+    if (selectingClubId) return
+    setSelectingClubId(clubId)
     setActiveClubId(clubId)
     setTimeout(() => {
       router.push('/dashboard')
@@ -238,11 +239,16 @@ export default function SplashPage() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-            {clubs.map((club) => (
+            {clubs.map((club) => {
+              const isThisClubSelecting = selectingClubId === club._id
+              const isAnotherClubSelecting = selectingClubId !== null && !isThisClubSelecting
+              return (
               <Card
                 key={club._id}
-                className="group cursor-pointer border-2 hover:border-primary transition-all duration-300 hover:shadow-xl rounded-2xl overflow-hidden bg-card"
-                onClick={() => !isSelecting && handleClubSelect(club._id)}
+                className={`group cursor-pointer border-2 hover:border-primary transition-all duration-300 hover:shadow-xl rounded-2xl overflow-hidden bg-card ${
+                  isAnotherClubSelecting ? 'opacity-50 pointer-events-none' : ''
+                } ${isThisClubSelecting ? 'border-primary ring-2 ring-primary/20' : ''}`}
+                onClick={() => !selectingClubId && handleClubSelect(club._id)}
               >
                 <CardContent className="p-6 flex flex-col items-center text-center space-y-4">
                   <div className="relative w-24 h-24 md:w-28 md:h-28 rounded-2xl bg-muted flex items-center justify-center overflow-hidden border-2 border-border group-hover:border-primary transition-all duration-300 group-hover:scale-105">
@@ -276,9 +282,9 @@ export default function SplashPage() {
                       e.stopPropagation()
                       handleClubSelect(club._id)
                     }}
-                    disabled={isSelecting}
+                    disabled={selectingClubId !== null}
                   >
-                    {isSelecting ? (
+                    {isThisClubSelecting ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         Loading...
@@ -289,7 +295,7 @@ export default function SplashPage() {
                   </Button>
                 </CardContent>
               </Card>
-            ))}
+            )})}
           </div>
         </div>
       </div>
