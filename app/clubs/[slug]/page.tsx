@@ -52,6 +52,7 @@ interface ClubSettings {
     secondaryColor: string
     fontFamily: string
     logo: string | null
+    heroImage: string | null
     motto: string
     socialMedia?: ClubSettingsSocialMedia | null
   }
@@ -383,6 +384,7 @@ export default function PublicClubPage() {
     secondaryColor: "",
     fontFamily: "",
     logo: null,
+    heroImage: null,
     motto: "",
     socialMedia: undefined,
   }
@@ -477,6 +479,37 @@ export default function PublicClubPage() {
           </div>
         </div>
       </header>
+
+      {/* Hero Image Section */}
+      {designSettings.heroImage ? (
+        <div className="relative w-full h-48 md:h-64 lg:h-80 overflow-hidden">
+          <img
+            src={designSettings.heroImage}
+            alt={`${title} hero`}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+        </div>
+      ) : (
+        <div
+          className="w-full h-48 md:h-64 lg:h-80 relative overflow-hidden"
+          style={{
+            background: `linear-gradient(135deg, ${primaryColor} 0%, ${designSettings.secondaryColor || primaryColor} 100%)`
+          }}
+        >
+          <div
+            className="absolute inset-0 opacity-10 pointer-events-none"
+            style={{
+              backgroundImage: `radial-gradient(circle at 2px 2px, white 1px, transparent 0)`,
+              backgroundSize: '30px 30px'
+            }}
+          />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
+            <Users className="h-16 w-16 md:h-24 md:w-24 text-white/30 mx-auto mb-4" />
+            <p className="text-white/50 text-lg font-medium">Club Crowd</p>
+          </div>
+        </div>
+      )}
 
       {/* <section className="relative overflow-hidden py-24 lg:py-40">
         <div
