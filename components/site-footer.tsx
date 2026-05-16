@@ -3,6 +3,7 @@
 import React from "react"
 import Link from "next/link"
 import Image from "next/image"
+import { EkalonAttribution } from "@/components/ekalon-attribution"
 
 type SiteFooterProps = {
   brandName?: string
@@ -66,13 +67,16 @@ export function SiteFooter({ brandName = "Wingman Pro" }: SiteFooterProps) {
         </div>
       </div>
       
-      <div className="mx-auto max-w-7xl px-6 mt-16 pt-8 border-t border-slate-200 dark:border-white/10 flex flex-col md:flex-row items-center justify-between gap-6">
-        <p className="text-sm font-bold text-slate-500 dark:text-slate-400 text-center md:text-left">
-          © 2025 RallyUp Solutions Private Limited. All rights reserved.
-        </p>
-        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-          Proprietary Service of RallyUp Solutions Pvt. Ltd.
-        </p>
+      <div className="mx-auto max-w-7xl px-6 mt-16 pt-8 border-t border-slate-200 dark:border-white/10 flex flex-col items-center gap-4">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-6 w-full">
+          <p className="text-sm font-bold text-slate-500 dark:text-slate-400 text-center md:text-left">
+            © 2025 RallyUp Solutions Private Limited. All rights reserved.
+          </p>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+            Proprietary Service of RallyUp Solutions Pvt. Ltd.
+          </p>
+        </div>
+        <EkalonAttribution className="text-center" />
       </div>
     </footer>
   )

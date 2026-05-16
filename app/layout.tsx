@@ -10,6 +10,7 @@ import { SocketWrapper } from "@/components/socket-wrapper"
 import { Toaster } from "sonner"
 import Analytics from "@/components/Analytics"
 import { AntiScrapingProtection } from "@/components/anti-scraping-protection"
+import { EkalonBranding } from "@/components/ekalon-branding"
 import Script from "next/script"
 
 const inter = Inter({ 
@@ -116,11 +117,6 @@ export default function RootLayout({
             gtag('config', 'G-SDPCKFH4E2');
           `}
         </Script>
-        <Script id="ekalon-branding">
-          {`
-//             console.log('%cDeveloped by Ekalon Solutions', 'color: #0ea5e9; font-size: 16px; font-weight: bold; padding: 4px;');
-          `}
-        </Script>
       </head>
 
       <body className={inter.className}>
@@ -137,6 +133,7 @@ export default function RootLayout({
             <SocketWrapper>
               <CartProvider>
                 {children}
+                <EkalonBranding />
                 <Toaster />
               </CartProvider>
             </SocketWrapper>

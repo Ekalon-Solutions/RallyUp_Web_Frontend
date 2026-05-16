@@ -16,6 +16,7 @@ import { PurchaseFlowModal, setStoredPurchaseIntent, getStoredPurchaseIntent, cl
 import { CheckoutModal } from "@/components/modals/checkout-modal"
 import NewsReadMoreModal from "@/components/modals/news-readmore-modal"
 import { SocialBrandButton } from "@/components/club-public/social-platform-icons"
+import { EkalonAttribution } from "@/components/ekalon-attribution"
 import { toast } from "sonner"
 import {
   Globe,
@@ -1146,9 +1147,10 @@ export default function PublicClubPage() {
             </div>
           )}
 
-          <div className={`${footerColumnCount > 0 ? "border-t mt-10 pt-6" : ""} text-center text-xs text-muted-foreground`}>
+          <div className={`${footerColumnCount > 0 ? "border-t mt-10 pt-6" : ""} text-center text-xs text-muted-foreground space-y-3`}>
             <p>Powered by RallyUp</p>
-            <p className="mt-2">© 2025 RallyUp Solutions Private Limited. All rights reserved.</p>
+            <p>© 2025 RallyUp Solutions Private Limited. All rights reserved.</p>
+            <EkalonAttribution className="text-center" />
           </div>
         </div>
       </footer>

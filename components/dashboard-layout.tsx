@@ -51,8 +51,8 @@ import { SubscriptionCancelledModal } from "@/components/modals/subscription-can
 import { apiClient, type StorageAlertStatus } from "@/lib/api"
 import { BASE_STORAGE_GB } from "@/lib/storageConstants"
 import type { WebsiteSectionKey } from "@/lib/websiteSections"
+import { EkalonAttribution } from "@/components/ekalon-attribution"
 
-/** User (member) pathnames that are gated by member section visibility. Feed (/dashboard/user) is always allowed. */
 const USER_PATH_TO_SECTION: Record<string, WebsiteSectionKey> = {
   "/dashboard/user/news": "news",
   "/dashboard/user/events": "events",
@@ -220,7 +220,6 @@ function DashboardSidebar({
 
       <div className="p-6 border-t bg-muted/20">
         <div className="space-y-4">
-          {/* Selected Club - same multi-club behavior as splash */}
           {(() => {
             const currentClub = sidebarClubs.find((c) => c._id === activeClubId) ?? sidebarClubs[0]
             const settingsLogo = settings ? ((settings as any).designSettings?.logo) : undefined
@@ -370,8 +369,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { user, logout, isAdmin, activeClubId, setActiveClubId } = useAuth()
-
-  // Storage alert state (admin/super_admin only)
   const [storageAlertStatus, setStorageAlertStatus] = useState<StorageAlertStatus | null>(null)
   const [storageBannerDismissed, setStorageBannerDismissed] = useState(false)
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false)
@@ -402,8 +399,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const { isSectionVisible, settings, loading: settingsLoading } = useClubSettings(clubId)
   
   useDesignSettings(clubId)
-
-  // Redirect to feed when current page is not allowed for the selected club (e.g. after switching clubs)
   const isRegularUser = !user?.role || user.role === "member"
   useEffect(() => {
     if (!isRegularUser || !clubId || settingsLoading || !pathname) return
@@ -420,7 +415,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const isAdminRole = user?.role === 'admin' || user?.role === 'super_admin'
 
-  // Fetch storage alert status for admins
   useEffect(() => {
     if (!isAdminRole) return
     const clubId = getUserClubId()
@@ -431,8 +425,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           setShowSubscriptionModal(true)
         }
       }
-    }).catch(() => {/* non-critical */})
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    }).catch(() => {})
   }, [isAdminRole, activeClubId])
 
   const sidebarClubs = useMemo(() => {
@@ -531,7 +524,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
-      {/* Desktop Sidebar */}
       <div className="hidden lg:flex lg:flex-col lg:w-72 lg:border-r bg-muted/5">
         <DashboardSidebar
           navigation={getNavigation()}
@@ -545,7 +537,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         />
       </div>
 
-      {/* Mobile Sidebar */}
       <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
         <SheetContent side="left" className="p-0 w-72">
           <DashboardSidebar
@@ -563,9 +554,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         </SheetContent>
       </Sheet>
 
-      {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
         <header className="flex items-center justify-between p-4 border-b lg:px-8 h-16 bg-background/80 backdrop-blur-md sticky top-0 z-40">
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="icon" className="lg:hidden h-10 w-10" onClick={() => setSidebarOpen(true)}>
@@ -573,7 +562,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               <span className="sr-only">Open sidebar</span>
             </Button>
             
-            {/* Mobile Logo */}
             <Link href="/" className="flex items-center gap-2 lg:hidden hover:opacity-90 transition-opacity">
               <div className="relative w-8 h-8 overflow-hidden rounded-lg bg-white shadow-sm border">
                 <Image
@@ -601,7 +589,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           </div>
         </header>
 
-        {/* Page Content */}
         <main className="flex-1 overflow-auto bg-muted/5">
           <div className="container mx-auto p-6 md:p-8 lg:p-10 max-w-[1600px]">
             {isAdminRole && storageAlertStatus?.alertLevel && !storageBannerDismissed && (
@@ -614,6 +601,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               />
             )}
             {children}
+          </div>
+          <div className="mt-10 pt-6 border-t flex justify-center">
+            <EkalonAttribution className="text-center" />
           </div>
         </main>
       </div>
