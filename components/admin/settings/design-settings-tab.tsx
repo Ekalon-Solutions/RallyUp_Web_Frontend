@@ -49,6 +49,7 @@ interface DesignSettings {
   secondaryColor: string
   fontFamily: string
   logo: string | null
+  heroImage: string | null
   motto: string
   socialMedia: {
     facebook: string
@@ -67,6 +68,7 @@ export function DesignSettingsTab() {
     secondaryColor: "#8b5cf6",
     fontFamily: "Inter",
     logo: null,
+    heroImage: null,
     motto: "",
     socialMedia: {
       facebook: "",
@@ -109,6 +111,7 @@ export function DesignSettingsTab() {
           secondaryColor: "#8b5cf6",
           fontFamily: "Inter",
           logo: null,
+          heroImage: null,
           motto: "",
           socialMedia: {
             facebook: "",
@@ -150,6 +153,33 @@ export function DesignSettingsTab() {
       }
       reader.readAsDataURL(file)
     }
+  }
+
+  const handleHeroImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      if (!file.type.startsWith('image/')) {
+        toast.error("Please upload an image file (JPG, PNG)")
+        return
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error("File size must be less than 5MB")
+        return
+      }
+
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setSettings({ ...settings, heroImage: reader.result as string })
+        toast.success("Hero image uploaded successfully")
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const handleRemoveHeroImage = () => {
+    setSettings({ ...settings, heroImage: null })
+    toast.success("Hero image removed")
   }
 
   const handleSave = async () => {
@@ -304,7 +334,7 @@ export function DesignSettingsTab() {
             Branding
           </CardTitle>
           <CardDescription>
-            Upload your club logo and set your motto
+            Upload your club logo, hero image, and set your motto
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -332,6 +362,43 @@ export function DesignSettingsTab() {
                   PNG or JPG (max 2MB)
                 </p>
               </div>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="heroImage">Hero Image</Label>
+            <div className="flex items-center gap-4">
+              {settings.heroImage && (
+                <div className="w-40 h-24 rounded-lg border-2 overflow-hidden">
+                  <img
+                    src={settings.heroImage}
+                    alt="Hero Image"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+              <div className="flex-1">
+                <Input
+                  id="heroImage"
+                  type="file"
+                  accept="image/png,image/jpeg,image/jpg"
+                  onChange={handleHeroImageUpload}
+                  className="cursor-pointer"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  PNG or JPG (max 5MB). Recommended aspect ratio 16:9
+                </p>
+              </div>
+              {settings.heroImage && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRemoveHeroImage}
+                >
+                  Remove
+                </Button>
+              )}
             </div>
           </div>
 
