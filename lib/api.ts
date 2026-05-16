@@ -1256,9 +1256,10 @@ class ApiClient {
     return this.request(endpoint);
   }
 
-  async resendEventTicketEmail(registrationId: string): Promise<ApiResponse<{ message: string }>> {
+  async resendEventTicketEmail(registrationId: string, overrideEmail?: string): Promise<ApiResponse<{ message: string }>> {
     return this.request(`/events/club/registrations/${encodeURIComponent(registrationId)}/resend-ticket`, {
       method: 'POST',
+      body: JSON.stringify(overrideEmail ? { overrideEmail } : {}),
     });
   }
 

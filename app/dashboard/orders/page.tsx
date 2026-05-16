@@ -152,6 +152,9 @@ export default function OrdersPage() {
   const [showRegistrationModal, setShowRegistrationModal] = useState(false)
   const [registrationLoading, setRegistrationLoading] = useState(false)
   const [resendingTicketId, setResendingTicketId] = useState<string | null>(null)
+  const [editingEmail, setEditingEmail] = useState(false)
+  const [emailInput, setEmailInput] = useState('')
+  const [sendingQrFromModal, setSendingQrFromModal] = useState(false)
 
   useEffect(() => {
     if (user?.role === 'admin' || user?.role === 'super_admin') {
@@ -625,6 +628,8 @@ export default function OrdersPage() {
     setSelectedRegistrationMeta(reg)
     setSelectedRegistration(null)
     setShowRegistrationModal(true)
+    setEditingEmail(false)
+    setEmailInput(reg.userEmail || '')
     const registrationId = reg.registrationId || reg._id
     if (registrationId) {
       setRegistrationLoading(true)
@@ -638,6 +643,28 @@ export default function OrdersPage() {
       } finally {
         setRegistrationLoading(false)
       }
+    }
+  }
+
+  const handleSendQrFromModal = async () => {
+    const registrationId = selectedRegistrationMeta?.registrationId || selectedRegistrationMeta?._id
+    if (!registrationId) return
+    const targetEmail = emailInput.trim()
+    const originalEmail = selectedRegistrationMeta?.userEmail || ''
+    setSendingQrFromModal(true)
+    try {
+      const res = await apiClient.resendEventTicketEmail(String(registrationId), targetEmail !== originalEmail ? targetEmail : undefined)
+      if (res.success) {
+        setShowRegistrationModal(false)
+        toast({ title: 'QR Sent', description: `Ticket email sent to ${targetEmail || originalEmail}` })
+        loadEventRegistrations()
+      } else {
+        toast({ title: 'Failed to Send QR', description: res.error || res.message || 'Unknown error', variant: 'destructive' })
+      }
+    } catch {
+      toast({ title: 'Error', description: 'Failed to send ticket email', variant: 'destructive' })
+    } finally {
+      setSendingQrFromModal(false)
     }
   }
 
@@ -1441,9 +1468,29 @@ export default function OrdersPage() {
                       <span className="text-muted-foreground">Name:</span>
                       <span className="font-medium">{selectedRegistrationMeta?.userName || 'N/A'}</span>
                     </div>
-                    <div className="flex justify-between">
+                    <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">Email:</span>
-                      <span>{selectedRegistrationMeta?.userEmail || 'N/A'}</span>
+                      {editingEmail ? (
+                        <div className="flex items-center gap-1">
+                          <Input
+                            className="h-7 text-xs w-48"
+                            value={emailInput}
+                            onChange={(e) => setEmailInput(e.target.value)}
+                            type="email"
+                            placeholder="Enter email"
+                          />
+                          <Button size="sm" variant="ghost" className="h-7 px-2" onClick={() => setEditingEmail(false)}>
+                            <CheckCircle className="h-3.5 w-3.5 text-green-600" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1">
+                          <span className="text-sm">{emailInput || selectedRegistrationMeta?.userEmail || 'N/A'}</span>
+                          <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => { setEmailInput(selectedRegistrationMeta?.userEmail || ''); setEditingEmail(true) }}>
+                            <Edit className="h-3 w-3 text-muted-foreground" />
+                          </Button>
+                        </div>
+                      )}
                     </div>
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Event:</span>
@@ -1604,7 +1651,16 @@ export default function OrdersPage() {
                 )}
               </div>
             )}
-            <DialogFooter>
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              {selectedRegistrationMeta?.status === 'confirmed' && (
+                <Button onClick={handleSendQrFromModal} disabled={sendingQrFromModal} className="w-full sm:w-auto">
+                  {sendingQrFromModal ? (
+                    <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />Sending...</>
+                  ) : (
+                    <><Mail className="h-4 w-4 mr-2" />Send QR</>
+                  )}
+                </Button>
+              )}
               <Button variant="outline" onClick={() => setShowRegistrationModal(false)}>
                 Close
               </Button>
