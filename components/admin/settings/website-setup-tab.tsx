@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
-import { Save, Globe, Eye, EyeOff, ExternalLink, Copy, Share2 } from "lucide-react"
+import { Save, Globe, Eye, EyeOff, ExternalLink, Copy, Share2, Image as ImageIcon } from "lucide-react"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
@@ -46,6 +46,8 @@ export function WebsiteSetupTab() {
   const [memberSections, setMemberSections] = useState<Record<string, boolean>>({
     ...DEFAULT_WEBSITE_SECTIONS,
   })
+  const [heroImage, setHeroImage] = useState<string | null>(null)
+  const [savedDesignSettings, setSavedDesignSettings] = useState<Record<string, any>>({})
 
   const currentClubSlug = useMemo(() => {
     if (!user || !clubId) return null
@@ -90,6 +92,9 @@ export function WebsiteSetupTab() {
           ...DEFAULT_WEBSITE_SECTIONS,
           ...sanitizeWebsiteSections(memberVisibility.sections),
         })
+        const ds = actualData.designSettings || {}
+        setSavedDesignSettings(ds)
+        setHeroImage(ds.heroImage ?? null)
       } else {
         toast.error("Failed to load settings - invalid response")
       }
@@ -98,6 +103,30 @@ export function WebsiteSetupTab() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleHeroImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      toast.error("Please upload an image file (JPG, PNG)")
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("File size must be less than 5MB")
+      return
+    }
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setHeroImage(reader.result as string)
+      toast.success("Hero image uploaded successfully")
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleRemoveHeroImage = () => {
+    setHeroImage(null)
+    toast.success("Hero image removed")
   }
 
   const handleSave = async (e?: React.MouseEvent) => {
@@ -120,6 +149,7 @@ export function WebsiteSetupTab() {
           isPublished: websiteInfo.isPublished,
         }),
         apiClient.updateMemberSectionVisibility(clubId, { sections: memberSections }),
+        apiClient.updateDesignSettings(clubId, { ...savedDesignSettings, heroImage } as any),
       ])
 
       if (websiteRes.success && memberVisRes.success) {
@@ -264,6 +294,34 @@ export function WebsiteSetupTab() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="heroImage" className="flex items-center gap-2">
+              <ImageIcon className="h-4 w-4" />
+              Hero Image
+            </Label>
+            <div className="flex items-start gap-4">
+              {heroImage && (
+                <div className="w-40 h-24 rounded-lg border-2 overflow-hidden flex-shrink-0">
+                  <img src={heroImage} alt="Hero" className="w-full h-full object-cover" />
+                </div>
+              )}
+              <div className="flex-1 space-y-1">
+                <Input
+                  id="heroImage"
+                  type="file"
+                  accept="image/png,image/jpeg,image/jpg"
+                  onChange={handleHeroImageUpload}
+                  className="cursor-pointer"
+                />
+                <p className="text-xs text-muted-foreground">PNG or JPG (max 5MB). Recommended 16:9</p>
+              </div>
+              {heroImage && (
+                <Button type="button" variant="outline" size="sm" onClick={handleRemoveHeroImage}>
+                  Remove
+                </Button>
+              )}
+            </div>
+          </div>
           <div className="space-y-2">
             <Label htmlFor="title">Website Title</Label>
             <Input

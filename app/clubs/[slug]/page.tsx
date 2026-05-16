@@ -527,8 +527,6 @@ export default function PublicClubPage() {
             }}
           />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
-            <Users className="h-16 w-16 md:h-24 md:w-24 text-white/30 mx-auto mb-4" />
-            <p className="text-white/50 text-lg font-medium">Club Crowd</p>
           </div>
         </div>
       )}
