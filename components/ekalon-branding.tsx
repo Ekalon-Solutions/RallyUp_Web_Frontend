@@ -21,11 +21,10 @@ export function EkalonBranding() {
     const section = getPageSection(pathname)
     const label = PAGE_SECTION_LABELS[section]
 
-    console.groupCollapsed(`%cWingman Pro · ${label}`, TITLE_STYLE)
+    console.log(`%cWingman Pro · ${label}`, TITLE_STYLE)
     console.log("%cDesigned and Developed by Ekalon Solutions", TITLE_STYLE)
     console.log(`%c${EKALON_URL}`, LINK_STYLE)
     console.log("%cPage: %s", BODY_STYLE, pathname)
-    console.groupEnd()
   }, [pathname])
 
   if (pageHasDedicatedFooter(pathname)) {
