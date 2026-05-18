@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -9,79 +10,137 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
-import { TimeInput } from "@/components/ui/time-input"
-import { TimePickerCompact } from "@/components/ui/time-picker-compact"
-import { ArrowLeft, Save, Upload } from "lucide-react"
+import { Separator } from "@/components/ui/separator"
+import { ArrowLeft, Save, Loader2 } from "lucide-react"
 import Link from "next/link"
+import { toast } from "sonner"
+import { apiClient } from "@/lib/api"
+import { useAuth } from "@/contexts/auth-context"
+import { VenueTierMatrixBuilder, VenueDraft } from "@/components/admin/venue-tier-matrix-builder"
+
+const CATEGORIES = [
+  { value: "screenings", label: "Screenings" },
+  { value: "footy-meets", label: "Footy Meets" },
+  { value: "tournaments", label: "Tournaments" },
+  { value: "auctions", label: "Auctions" },
+  { value: "club-events", label: "Club Events" },
+  { value: "social-events", label: "Social Events" },
+  { value: "csr-events", label: "CSR Events" },
+  { value: "watch-parties", label: "Watch Parties" },
+  { value: "travel-days", label: "Travel Days" },
+  { value: "workshops", label: "Workshops" },
+  { value: "general-meeting", label: "General Meeting" },
+  { value: "matchday", label: "Matchday" },
+  { value: "others", label: "Others" },
+]
+
+const CURRENCIES = ["INR", "USD", "EUR", "GBP", "AUD", "CAD", "JPY", "BRL", "MXN", "ZAR"]
 
 export default function CreateEventPage() {
-  const [eventData, setEventData] = useState({
+  const router = useRouter()
+  const { user } = useAuth()
+  const [loading, setLoading] = useState(false)
+  const [venues, setVenues] = useState<VenueDraft[]>([])
+
+  const [form, setForm] = useState({
     title: "",
-    category: "general",
-    date: "",
-    time: "12:00 PM",
-    location: "",
+    category: "club-events",
+    startTime: "",
+    endTime: "",
+    venue: "",
     description: "",
-    maxAttendees: 100,
-    attendancePoints: 0,
-    isPublished: false,
-    organizer: "",
-    notes: "",
+    maxAttendees: "",
+    ticketPrice: "0",
+    currency: "INR",
+    requiresTicket: false,
+    memberOnly: false,
+    bookingStartTime: "",
+    bookingEndTime: "",
+    attendancePoints: "0",
+    waitlistEnabled: false,
+    waitlistPercentage: "25",
+    waitlistPurchaseWindowHours: "12",
   })
 
-  const [useCompactTimePicker, setUseCompactTimePicker] = useState(false)
+  const set = (field: string, value: string | boolean) =>
+    setForm((prev) => ({ ...prev, [field]: value }))
 
-  const handleInputChange = (field: string, value: string | boolean | number) => {
-    setEventData((prev) => ({ ...prev, [field]: value }))
-  }
+  const clubId = (() => {
+    const u = user as any
+    return u?.club?._id ?? u?.club ?? ""
+  })()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    // Basic validation
-    if (!eventData.title || !eventData.date || !eventData.time || !eventData.location) {
-      alert('Please fill in all required fields')
-      return
+
+    if (!form.title.trim()) { toast.error("Event title is required"); return }
+    if (!form.startTime) { toast.error("Start time is required"); return }
+    if (!form.venue.trim() && venues.length === 0) { toast.error("Venue or venue matrix is required"); return }
+    if (!form.bookingStartTime) { toast.error("Booking start time is required"); return }
+    if (!form.bookingEndTime) { toast.error("Booking end time is required"); return }
+    if (!form.description.trim()) { toast.error("Description is required"); return }
+
+    // Validate matrix entries if present
+    if (venues.length > 0) {
+      for (const v of venues) {
+        if (!v.name.trim()) { toast.error("All venues must have a name"); return }
+        for (const t of v.tiers) {
+          if (!t.name.trim()) { toast.error(`All tiers in "${v.name}" must have a name`); return }
+          if (t.allocation < 1) { toast.error(`Allocation for "${v.name} – ${t.name}" must be at least 1`); return }
+        }
+      }
     }
 
+    setLoading(true)
     try {
-      // attempt to POST to backend events API; best-effort (requires auth on backend)
-      const resp = await fetch('/api/events', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(eventData),
-      })
-
-      if (!resp.ok) {
-        const body = await resp.json().catch(() => ({}))
-        throw new Error(body?.message || 'Failed to create event')
+      const payload = {
+        title: form.title.trim(),
+        category: form.category,
+        startTime: new Date(form.startTime).toISOString(),
+        endTime: form.endTime ? new Date(form.endTime).toISOString() : undefined,
+        venue: form.venue.trim() || (venues[0]?.name ?? "Multiple Venues"),
+        description: form.description.trim(),
+        maxAttendees: form.maxAttendees ? Number(form.maxAttendees) : undefined,
+        ticketPrice: venues.length > 0 ? 0 : Number(form.ticketPrice) || 0,
+        currency: form.currency,
+        requiresTicket: form.requiresTicket,
+        memberOnly: form.memberOnly,
+        bookingStartTime: new Date(form.bookingStartTime).toISOString(),
+        bookingEndTime: new Date(form.bookingEndTime).toISOString(),
+        attendancePoints: Number(form.attendancePoints) || 0,
+        clubId: clubId || undefined,
+        waitlist: form.waitlistEnabled
+          ? {
+              enabled: true,
+              percentage: Number(form.waitlistPercentage) || 25,
+              purchaseWindowHours: Number(form.waitlistPurchaseWindowHours) || 12,
+            }
+          : undefined,
+        venues: venues.length > 0
+          ? venues.map((v) => ({
+              name: v.name,
+              tiers: v.tiers.map((t) => ({ name: t.name, price: t.price, allocation: t.allocation })),
+            }))
+          : undefined,
       }
 
-      alert('Event created successfully!')
-
-      // Reset form
-      setEventData({
-        title: "",
-        category: "general",
-        date: "",
-        time: "12:00 PM",
-        location: "",
-        description: "",
-        maxAttendees: 100,
-        attendancePoints: 0,
-        isPublished: false,
-        organizer: "",
-        notes: "",
-      })
-    } catch (error: any) {
-      // console.error('Error creating event:', error)
-      alert('Error creating event: ' + (error?.message || error))
+      const res = await apiClient.createEvent(payload)
+      if (!res.success) {
+        toast.error((res as any).message ?? res.error ?? "Failed to create event")
+        return
+      }
+      toast.success("Event created successfully!")
+      router.push("/dashboard/events")
+    } catch (err: any) {
+      toast.error(err?.message ?? "Error creating event")
+    } finally {
+      setLoading(false)
     }
   }
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="space-y-6 max-w-4xl mx-auto pb-10">
         <div className="flex items-center gap-4">
           <Link href="/dashboard/events">
             <Button variant="ghost" size="sm">
@@ -92,7 +151,7 @@ export default function CreateEventPage() {
           <h1 className="text-3xl font-bold">Create Event</h1>
         </div>
 
-        <form onSubmit={handleSubmit} className="grid gap-6 lg:grid-cols-2">
+        <form onSubmit={handleSubmit} className="space-y-6">
           {/* Basic Details */}
           <Card>
             <CardHeader>
@@ -104,174 +163,229 @@ export default function CreateEventPage() {
                 <Input
                   id="title"
                   placeholder="Enter event title"
-                  value={eventData.title}
-                  onChange={(e) => handleInputChange("title", e.target.value)}
-                />
-              </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="category">Category</Label>
-                <Select value={eventData.category} onValueChange={(value) => handleInputChange("category", value)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="general">General</SelectItem>
-                    <SelectItem value="sports">Sports</SelectItem>
-                    <SelectItem value="music">Music</SelectItem>
-                    <SelectItem value="business">Business</SelectItem>
-                    <SelectItem value="education">Education</SelectItem>
-                    <SelectItem value="community">Community</SelectItem>
-                    <SelectItem value="charity">Charity</SelectItem>
-                    <SelectItem value="technology">Technology</SelectItem>
-                    <SelectItem value="health">Health</SelectItem>
-                    <SelectItem value="entertainment">Entertainment</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="date">Event Date *</Label>
-                  <Input
-                    id="date"
-                    type="date"
-                    value={eventData.date}
-                    onChange={(e) => handleInputChange("date", e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-muted-foreground">Time Input Style:</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">
-                        {useCompactTimePicker ? 'Dropdown' : 'Manual'}
-                      </span>
-                      <Switch
-                        checked={useCompactTimePicker}
-                        onCheckedChange={setUseCompactTimePicker}
-                      />
-                    </div>
-                  </div>
-                  
-                  {useCompactTimePicker ? (
-                    <TimePickerCompact
-                      value={eventData.time}
-                      onChange={(value) => handleInputChange("time", value)}
-                      label="Event Time *"
-                      required
-                    />
-                  ) : (
-                    <TimeInput
-                      value={eventData.time}
-                      onChange={(value) => handleInputChange("time", value)}
-                      label="Event Time *"
-                      required
-                    />
-                  )}
-                </div>
-              </div>
-
-              
-
-              <div className="grid gap-2">
-                <Label htmlFor="location">Event Location *</Label>
-                <Input
-                  id="location"
-                  placeholder="Enter event location"
-                  value={eventData.location}
-                  onChange={(e) => handleInputChange("location", e.target.value)}
+                  value={form.title}
+                  onChange={(e) => set("title", e.target.value)}
                   required
                 />
               </div>
 
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label>Category</Label>
+                  <Select value={form.category} onValueChange={(v) => set("category", v)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {CATEGORIES.map((c) => (
+                        <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label>Currency</Label>
+                  <Select value={form.currency} onValueChange={(v) => set("currency", v)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {CURRENCIES.map((c) => (
+                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="startTime">Start Time *</Label>
+                  <Input id="startTime" type="datetime-local" value={form.startTime} onChange={(e) => set("startTime", e.target.value)} required />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="endTime">End Time</Label>
+                  <Input id="endTime" type="datetime-local" value={form.endTime} onChange={(e) => set("endTime", e.target.value)} />
+                </div>
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="description">Description *</Label>
+                <Textarea
+                  id="description"
+                  placeholder="Describe the event"
+                  value={form.description}
+                  onChange={(e) => set("description", e.target.value)}
+                  rows={3}
+                  required
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Venue & Ticket Matrix */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Venue & Tickets</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {venues.length === 0 && (
+                <>
+                  <div className="grid gap-2">
+                    <Label htmlFor="venue">Venue *</Label>
+                    <Input
+                      id="venue"
+                      placeholder="Enter venue name / address"
+                      value={form.venue}
+                      onChange={(e) => set("venue", e.target.value)}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-2">
+                      <Label htmlFor="ticketPrice">Ticket Price</Label>
+                      <Input
+                        id="ticketPrice"
+                        type="number"
+                        min={0}
+                        placeholder="0"
+                        value={form.ticketPrice}
+                        onChange={(e) => set("ticketPrice", e.target.value)}
+                      />
+                    </div>
+                    <div className="grid gap-2">
+                      <Label htmlFor="maxAttendees">Max Attendees</Label>
+                      <Input
+                        id="maxAttendees"
+                        type="number"
+                        min={1}
+                        placeholder="Leave blank for unlimited"
+                        value={form.maxAttendees}
+                        onChange={(e) => set("maxAttendees", e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  <Separator />
+                </>
+              )}
+
+              <VenueTierMatrixBuilder
+                venues={venues}
+                onChange={setVenues}
+                currency={form.currency}
+              />
+
+              {venues.length > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Using multi-venue matrix — single ticket price and max attendees are managed per tier.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Booking Window */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Booking Window</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="bookingStartTime">Booking Opens *</Label>
+                  <Input id="bookingStartTime" type="datetime-local" value={form.bookingStartTime} onChange={(e) => set("bookingStartTime", e.target.value)} required />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="bookingEndTime">Booking Closes *</Label>
+                  <Input id="bookingEndTime" type="datetime-local" value={form.bookingEndTime} onChange={(e) => set("bookingEndTime", e.target.value)} required />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Event Settings</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>Members Only</Label>
+                  <p className="text-xs text-muted-foreground">Only club members can register</p>
+                </div>
+                <Switch checked={form.memberOnly} onCheckedChange={(v) => set("memberOnly", v)} />
+              </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>Requires Ticket</Label>
+                  <p className="text-xs text-muted-foreground">Payment required to confirm registration</p>
+                </div>
+                <Switch checked={form.requiresTicket} onCheckedChange={(v) => set("requiresTicket", v)} />
+              </div>
               <div className="grid gap-2">
                 <Label htmlFor="attendancePoints">Attendance Points</Label>
                 <Input
                   id="attendancePoints"
                   type="number"
-                  placeholder="Points awarded for attending"
-                  value={String(eventData.attendancePoints ?? 0)}
-                  onChange={(e) => handleInputChange("attendancePoints", parseInt(e.target.value || '0'))}
                   min={0}
+                  placeholder="0"
+                  value={form.attendancePoints}
+                  onChange={(e) => set("attendancePoints", e.target.value)}
                 />
-                <p className="text-sm text-muted-foreground">Points awarded to members when attendance is recorded via QR scan.</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Event Details */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Event Details</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-2">
-                <Label htmlFor="description">Description</Label>
-                <Textarea
-                  id="description"
-                  placeholder="Enter event description"
-                  value={eventData.description}
-                  onChange={(e) => handleInputChange("description", e.target.value)}
-                  rows={4}
-                />
+                <p className="text-xs text-muted-foreground">Points awarded to members upon QR attendance scan</p>
               </div>
 
-              <div className="grid gap-2">
-                <Label htmlFor="maxAttendees">Maximum Attendees</Label>
-                <Input
-                  id="maxAttendees"
-                  type="number"
-                  placeholder="Enter maximum number of attendees"
-                  value={eventData.maxAttendees}
-                  onChange={(e) => handleInputChange("maxAttendees", parseInt(e.target.value))}
-                  min="1"
-                  required
-                />
-              </div>
+              <Separator />
 
-              <div className="grid gap-2">
-                <Label htmlFor="notes">Additional Notes</Label>
-                <Textarea
-                  id="notes"
-                  placeholder="Any additional information about the event"
-                  value={eventData.notes}
-                  onChange={(e) => handleInputChange("notes", e.target.value)}
-                  rows={3}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Event Settings */}
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle>Event Settings</CardTitle>
-            </CardHeader>
-            <CardContent>
               <div className="flex items-center justify-between">
-                <Label htmlFor="isPublished">Publish Event Immediately</Label>
-                <Switch
-                  id="isPublished"
-                  checked={eventData.isPublished}
-                  onCheckedChange={(checked) => handleInputChange("isPublished", checked)}
-                />
+                <div>
+                  <Label>Enable Waitlist</Label>
+                  <p className="text-xs text-muted-foreground">Allow members to join a waitlist when event is full</p>
+                </div>
+                <Switch checked={form.waitlistEnabled} onCheckedChange={(v) => set("waitlistEnabled", v)} />
               </div>
-              <p className="text-sm text-muted-foreground mt-2">
-                Published events will be visible to all members. Unpublished events are saved as drafts.
-              </p>
+
+              {form.waitlistEnabled && (
+                <div className="grid grid-cols-2 gap-4 pl-4 border-l-2 border-muted">
+                  <div className="grid gap-2">
+                    <Label>Waitlist Size (% of capacity)</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={100}
+                      value={form.waitlistPercentage}
+                      onChange={(e) => set("waitlistPercentage", e.target.value)}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label>Purchase Window (hours)</Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      max={168}
+                      value={form.waitlistPurchaseWindowHours}
+                      onChange={(e) => set("waitlistPurchaseWindowHours", e.target.value)}
+                    />
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
-          {/* Action Buttons */}
-          <div className="lg:col-span-2 flex justify-end gap-4">
+          {/* Actions */}
+          <div className="flex justify-end gap-4">
             <Link href="/dashboard/events">
-              <Button variant="outline">Cancel</Button>
+              <Button variant="outline" type="button">Cancel</Button>
             </Link>
-            <Button type="submit">
-              <Save className="w-4 h-4 mr-2" />
-              Create Event
+            <Button type="submit" disabled={loading}>
+              {loading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  Create Event
+                </>
+              )}
             </Button>
           </div>
         </form>

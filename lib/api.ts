@@ -267,6 +267,26 @@ export interface Chant {
   updatedAt: string;
 }
 
+export interface VenueTier {
+  _id: string;
+  name: string;
+  price: number;
+  allocation: number;
+  sold: number;
+}
+
+export interface EventVenue {
+  _id: string;
+  name: string;
+  tiers: VenueTier[];
+}
+
+export interface VenueTierCartItem {
+  venueId: string;
+  tierId: string;
+  quantity: number;
+}
+
 export interface Event {
   eventDate: string;
   eventTime: string;
@@ -294,6 +314,14 @@ export interface Event {
     registrationDate: string;
     status: 'confirmed' | 'pending' | 'cancelled';
     notes?: string;
+    venueItems?: Array<{
+      venueId: string;
+      venueName: string;
+      tierId: string;
+      tierName: string;
+      quantity: number;
+      price: number;
+    }>;
   }>;
   currentAttendees: number;
   earlyBirdDiscount?: {
@@ -308,6 +336,8 @@ export interface Event {
     percentage: number;
     purchaseWindowHours: number;
   }
+  venues?: EventVenue[];
+  currency?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -1419,16 +1449,19 @@ class ApiClient {
     description: string;
     maxAttendees?: number;
     ticketPrice: number;
+    currency?: string;
     requiresTicket: boolean;
     memberOnly: boolean;
     clubId?: string;
-    awayDayEvent: boolean;
+    awayDayEvent?: boolean;
     bookingStartTime?: string;
     bookingEndTime?: string;
+    attendancePoints?: number;
     earlyBirdDiscount?: any;
     memberDiscount?: any;
     groupDiscount?: any;
     waitlist?: { enabled: boolean; percentage?: number; purchaseWindowHours?: number };
+    venues?: Array<{ name: string; tiers: Array<{ name: string; price: number; allocation: number }> }>;
   }): Promise<ApiResponse<{ message: string; event: Event }>> {
     return this.request('/events', {
       method: 'POST',
@@ -1545,6 +1578,41 @@ class ApiClient {
     pointsDiscount?: number;
   }): Promise<ApiResponse<{ pendingRegistrationId?: string }>> {
     return this.request(`/events/public/${eventId}/register/pending`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async bookVenueTierMatrix(eventId: string, data: {
+    items: VenueTierCartItem[];
+    attendees?: Array<{ name: string; phone: string }>;
+    razorpayOrderId?: string;
+    paymentId?: string;
+    amountPaid?: number;
+    reservationToken?: string;
+    couponCode?: string;
+    couponDiscount?: number;
+    earlyBirdDiscountAmt?: number;
+    pointsDiscount?: number;
+  }): Promise<ApiResponse<{ message: string; event: Event }>> {
+    return this.request(`/events/${eventId}/book-matrix`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async createPendingVenueTierBooking(eventId: string, data: {
+    items: VenueTierCartItem[];
+    attendees?: Array<{ name: string; phone: string }>;
+    razorpayOrderId: string;
+    amountPaid: number;
+    reservationToken?: string;
+    couponCode?: string;
+    couponDiscount?: number;
+    earlyBirdDiscountAmt?: number;
+    pointsDiscount?: number;
+  }): Promise<ApiResponse<{ registrationId: string }>> {
+    return this.request(`/events/${eventId}/book-matrix/pending`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
