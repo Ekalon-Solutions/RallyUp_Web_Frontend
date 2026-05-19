@@ -3,12 +3,13 @@
 import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
-import { CreditCard, Loader2, Plus, Minus, MapPin, Tag, X } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { CreditCard, Loader2, Plus, Minus, MapPin, Tag, X, User, Phone } from "lucide-react"
 import { toast } from "sonner"
-import { apiClient, Event, EventVenue, VenueTierCartItem } from "@/lib/api"
+import { apiClient, Event, VenueTierCartItem } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
 import { calculateTransactionFees, PLATFORM_FEE_PERCENT, RAZORPAY_FEE_PERCENT } from "@/lib/transactionFees"
 import { useRouter } from "next/navigation"
@@ -25,10 +26,17 @@ interface VenueTierCartModalProps {
   onFailure: () => void
 }
 
+interface AttendeeSlot {
+  venueId: string
+  venueName: string
+  tierId: string
+  tierName: string
+  name: string
+  phone: string
+}
+
 interface CartState {
-  [venueId: string]: {
-    [tierId: string]: number
-  }
+  [venueId: string]: { [tierId: string]: number }
 }
 
 const currencySymbols: Record<string, string> = {
@@ -45,6 +53,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
   const { user } = useAuth()
   const router = useRouter()
   const [cart, setCart] = useState<CartState>({})
+  const [attendeeSlots, setAttendeeSlots] = useState<AttendeeSlot[]>([])
   const [loading, setLoading] = useState(false)
   const [razorpayOpen, setRazorpayOpen] = useState(false)
   const [scriptLoaded, setScriptLoaded] = useState(false)
@@ -59,9 +68,16 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
   const [availablePoints, setAvailablePoints] = useState<number | null>(null)
   const [reserving, setReserving] = useState(false)
 
+  const userDefaultName: string = (user as any)?.name
+    ?? `${(user as any)?.first_name ?? ""} ${(user as any)?.last_name ?? ""}`.trim()
+    ?? ""
+  const userDefaultPhone: string = (user as any)?.phoneNumber ?? (user as any)?.phone ?? ""
+
+  // Reset all state when modal opens/closes
   useEffect(() => {
     if (isOpen) {
       setCart({})
+      setAttendeeSlots([])
       setLocalCouponCode("")
       setCouponApplied(false)
       setCouponDiscount(0)
@@ -71,6 +87,33 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
       setReservedDiscount(0)
     }
   }, [isOpen])
+
+  // Sync attendee slots whenever cart changes
+  useEffect(() => {
+    if (!event?.venues) return
+    setAttendeeSlots(prev => {
+      const newSlots: AttendeeSlot[] = []
+      for (const venue of event.venues!) {
+        for (const tier of venue.tiers) {
+          const qty = cart[venue._id]?.[tier._id] ?? 0
+          const existing = prev.filter(s => s.venueId === venue._id && s.tierId === tier._id)
+          for (let q = 0; q < qty; q++) {
+            const slot = existing[q]
+            const isVeryFirst = newSlots.length === 0 && q === 0
+            newSlots.push(slot ?? {
+              venueId: venue._id,
+              venueName: venue.name,
+              tierId: tier._id,
+              tierName: tier.name,
+              name: isVeryFirst ? userDefaultName : "",
+              phone: isVeryFirst ? userDefaultPhone : "",
+            })
+          }
+        }
+      }
+      return newSlots
+    })
+  }, [cart])
 
   // Load Razorpay SDK
   useEffect(() => {
@@ -98,26 +141,6 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
 
   const venues = event.venues
 
-  const setQty = (venueId: string, tierId: string, delta: number) => {
-    setCart((prev) => {
-      const vCart = prev[venueId] ?? {}
-      const current = vCart[tierId] ?? 0
-      const next = Math.max(0, current + delta)
-      const venue = venues.find((v) => v._id === venueId)!
-      const tier = venue.tiers.find((t) => t._id === tierId)!
-      const available = tier.allocation - tier.sold
-      if (next > available) {
-        toast.error(`Only ${available} seats available for ${venue.name} – ${tier.name}`)
-        return prev
-      }
-      const updated = { ...prev, [venueId]: { ...vCart, [tierId]: next } }
-      // Remove zero-qty entries
-      if (next === 0) delete updated[venueId][tierId]
-      if (Object.keys(updated[venueId]).length === 0) delete updated[venueId]
-      return updated
-    })
-  }
-
   const cartItems: Array<VenueTierCartItem & { venueName: string; tierName: string; price: number }> = []
   for (const venue of venues) {
     for (const tier of venue.tiers) {
@@ -133,6 +156,33 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         })
       }
     }
+  }
+
+  const setQty = (venueId: string, tierId: string, delta: number) => {
+    setCart((prev) => {
+      const vCart = prev[venueId] ?? {}
+      const current = vCart[tierId] ?? 0
+      const next = Math.max(0, current + delta)
+      const venue = venues.find((v) => v._id === venueId)!
+      const tier = venue.tiers.find((t) => t._id === tierId)!
+      const available = tier.allocation - tier.sold
+      if (next > available) {
+        toast.error(`Only ${available} seats available for ${venue.name} – ${tier.name}`)
+        return prev
+      }
+      const updated = { ...prev, [venueId]: { ...vCart, [tierId]: next } }
+      if (next === 0) delete updated[venueId][tierId]
+      if (Object.keys(updated[venueId]).length === 0) delete updated[venueId]
+      return updated
+    })
+  }
+
+  const updateSlot = (idx: number, field: "name" | "phone", value: string) => {
+    setAttendeeSlots(prev => {
+      const copy = [...prev]
+      copy[idx] = { ...copy[idx], [field]: value }
+      return copy
+    })
   }
 
   const subtotal = cartItems.reduce((sum, i) => sum + i.price * i.quantity, 0)
@@ -193,6 +243,21 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
     if (!user) { toast.error("Please log in to purchase tickets"); return }
     if (!scriptLoaded) { toast.error("Payment system still loading — please wait"); return }
 
+    // Validate attendee details
+    for (let i = 0; i < attendeeSlots.length; i++) {
+      const s = attendeeSlots[i]
+      if (!s.name.trim()) {
+        toast.error(`Enter name for Ticket ${i + 1} (${s.venueName} – ${s.tierName})`)
+        return
+      }
+      if (!s.phone.trim()) {
+        toast.error(`Enter phone for Ticket ${i + 1} (${s.venueName} – ${s.tierName})`)
+        return
+      }
+    }
+
+    const bookingAttendees = attendeeSlots.map(s => ({ name: s.name.trim(), phone: s.phone.trim() }))
+
     setLoading(true)
     try {
       const apiItems = cartItems.map(({ venueId, tierId, quantity }) => ({ venueId, tierId, quantity }))
@@ -204,6 +269,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         }
         const res = await apiClient.bookVenueTierMatrix(event._id, {
           items: apiItems,
+          attendees: bookingAttendees,
           reservationToken: reservationToken ?? undefined,
           couponCode: localCouponCode || undefined,
           couponDiscount: couponDiscount || undefined,
@@ -237,9 +303,9 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
       if (!orderRes.ok) throw new Error("Failed to create payment order")
       const { razorpayOrderId, amount, currency: orderCurrency } = await orderRes.json()
 
-      // Pending record
       await apiClient.createPendingVenueTierBooking(event._id, {
         items: apiItems,
+        attendees: bookingAttendees,
         razorpayOrderId,
         amountPaid: Math.round(amountToCharge),
         reservationToken: reservationToken ?? undefined,
@@ -258,7 +324,6 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         handler: async (response: any) => {
           const { razorpay_payment_id: paymentId, razorpay_order_id: orderId } = response
           try {
-            // Verify (best-effort)
             await fetch("/api/razorpay/verify-payment", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -276,6 +341,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
 
             const res = await apiClient.bookVenueTierMatrix(event._id, {
               items: apiItems,
+              attendees: bookingAttendees,
               razorpayOrderId: orderId,
               paymentId,
               amountPaid: Math.round(amountToCharge),
@@ -300,9 +366,9 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
           }
         },
         prefill: {
-          name: (user as any)?.name ?? (user as any)?.first_name ?? "",
+          name: bookingAttendees[0]?.name ?? userDefaultName,
           email: (user as any)?.email ?? "",
-          contact: (user as any)?.phoneNumber ?? "",
+          contact: bookingAttendees[0]?.phone ?? userDefaultPhone,
         },
         theme: { color: "#3b82f6" },
         modal: {
@@ -352,7 +418,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto space-y-4 py-2 px-1">
-          {/* Venue × Tier grid */}
+          {/* Venue × Tier quantity selector */}
           {venues.map((venue) => {
             const available = venue.tiers.some((t) => t.allocation - t.sold > 0)
             return (
@@ -383,10 +449,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
                         </div>
                         <div className="flex items-center gap-1.5 flex-shrink-0">
                           <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="h-7 w-7 p-0"
+                            type="button" variant="outline" size="sm" className="h-7 w-7 p-0"
                             onClick={() => setQty(venue._id, tier._id, -1)}
                             disabled={qty === 0}
                           >
@@ -394,10 +457,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
                           </Button>
                           <span className="w-6 text-center text-sm font-medium">{qty}</span>
                           <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="h-7 w-7 p-0"
+                            type="button" variant="outline" size="sm" className="h-7 w-7 p-0"
                             onClick={() => setQty(venue._id, tier._id, 1)}
                             disabled={remaining === 0 || qty >= remaining}
                           >
@@ -411,6 +471,52 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
               </Card>
             )
           })}
+
+          {/* Attendee details — one row per ticket slot */}
+          {attendeeSlots.length > 0 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">Attendee Details</CardTitle>
+                <CardDescription className="text-xs">Enter name and phone for each ticket</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {attendeeSlots.map((slot, i) => (
+                  <div key={`${slot.venueId}-${slot.tierId}-${i}`} className="space-y-2">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <Badge variant="outline" className="text-xs">Ticket {i + 1}</Badge>
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        <MapPin className="w-3 h-3" />{slot.venueName}
+                      </span>
+                      <span className="text-xs text-muted-foreground">—</span>
+                      <span className="text-xs text-muted-foreground flex items-center gap-1">
+                        <Tag className="w-3 h-3" />{slot.tierName}
+                      </span>
+                    </div>
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <User className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                        <Input
+                          placeholder="Full name"
+                          value={slot.name}
+                          onChange={e => updateSlot(i, "name", e.target.value)}
+                          className="pl-8 h-9 text-sm"
+                        />
+                      </div>
+                      <div className="relative flex-1">
+                        <Phone className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                        <Input
+                          placeholder="Phone number"
+                          value={slot.phone}
+                          onChange={e => updateSlot(i, "phone", e.target.value)}
+                          className="pl-8 h-9 text-sm"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Order summary */}
           {cartItems.length > 0 && (
@@ -557,7 +663,10 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
             ) : cartItems.length === 0 ? (
               "Select tickets to continue"
             ) : (
-              "Pay Now"
+              <>
+                <CreditCard className="w-4 h-4 mr-2" />
+                {amountToCharge <= 0 ? "Confirm Booking" : `Pay ${fmt(amountToCharge, currency)}`}
+              </>
             )}
           </Button>
         </div>

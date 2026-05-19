@@ -331,6 +331,7 @@ export interface Event {
     startTime: string,
     endTime: string,
   }
+  attendancePoints?: number;
   waitlist?: {
     enabled: boolean;
     percentage: number;
@@ -872,6 +873,24 @@ class ApiClient {
       method: 'POST',
       body: JSON.stringify(data),
     });
+  }
+
+  async getScanPreview(registrationId: string, attendeeId: string): Promise<ApiResponse<{
+    attendeeName: string;
+    attendeePhone: string;
+    attended: boolean;
+    eventTitle: string;
+    eventVenue: string;
+    eventId: string;
+    registrationId: string;
+    attendeeId: string;
+    venueItems: Array<{ venueId: string; venueName: string; tierId: string; tierName: string; quantity: number; price: number }>;
+  }>> {
+    const params = new URLSearchParams({ registrationId, attendeeId });
+    const res = await this.request<any>(`/events/scan-preview?${params.toString()}`);
+    if (!res.success) return res;
+    // Backend returns { success: true, data: {...} }; unwrap the nested data layer
+    return { success: true, data: res.data?.data ?? res.data };
   }
 
   async userRegister(data: {
@@ -1478,11 +1497,16 @@ class ApiClient {
     description?: string;
     maxAttendees?: number;
     ticketPrice?: number;
+    currency?: string;
     requiresTicket?: boolean;
     memberOnly?: boolean;
     clubId?: string;
     awayDayEvent?: boolean;
+    bookingStartTime?: string;
+    bookingEndTime?: string;
+    attendancePoints?: number;
     waitlist?: { enabled?: boolean; percentage?: number; purchaseWindowHours?: number };
+    venues?: Array<{ name: string; tiers: Array<{ name: string; price: number; allocation: number }> }>;
   }): Promise<ApiResponse<{ message: string; event: Event }>> {
     return this.request(`/events/${id}`, {
       method: 'PUT',

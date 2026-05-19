@@ -145,6 +145,11 @@ const config: Config = {
 				'marquee': {
 					'0%': { transform: 'translateX(0%)' },
 					'100%': { transform: 'translateX(-50%)' }
+				},
+				'scan-line': {
+					'0%': { top: '0%' },
+					'50%': { top: '100%' },
+					'100%': { top: '0%' }
 				}
 			},
 			animation: {
@@ -160,7 +165,8 @@ const config: Config = {
 				'bounce-subtle': 'bounce-subtle 2s ease-in-out infinite',
 				'wiggle': 'wiggle 1s ease-in-out infinite',
 				'glow-pulse': 'glow-pulse 2s ease-in-out infinite',
-				'marquee': 'marquee 8s linear infinite'
+				'marquee': 'marquee 8s linear infinite',
+				'scan-line': 'scan-line 2s linear infinite'
 			}
 		}
 	},
