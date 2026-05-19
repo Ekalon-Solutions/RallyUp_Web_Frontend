@@ -3,143 +3,155 @@
 import React, { Suspense, useEffect, useState } from 'react'
 import { ProtectedRoute } from '@/components/protected-route'
 import { DashboardLayout } from '@/components/dashboard-layout'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { apiClient } from '@/lib/api'
 import { toast } from 'sonner'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Loader2, CheckCircle2, XCircle, AlertCircle, User, Phone } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import {
+  Loader2, CheckCircle2, XCircle, AlertCircle,
+  User, Phone, MapPin, Tag, ScanLine, ArrowLeft,
+} from 'lucide-react'
 
-type AttendanceState = 'loading' | 'success' | 'error' | 'already_marked' | 'server_error'
+type PageState = 'loading' | 'preview' | 'marking' | 'success' | 'already_marked' | 'error'
 
-interface AttendeeInfo {
-  name: string
-  phone: string
+interface VenueItem {
+  venueId: string
+  venueName: string
+  tierId: string
+  tierName: string
+  quantity: number
+  price: number
+}
+
+interface ScanPreview {
+  attendeeName: string
+  attendeePhone: string
+  attended: boolean
+  eventTitle: string
+  eventVenue: string
+  eventId: string
+  registrationId: string
+  attendeeId: string
+  venueItems: VenueItem[]
 }
 
 function AttendanceLandingPageInner() {
+  const router = useRouter()
   const searchParams = useSearchParams()
   const registrationId = searchParams.get('registrationId')
   const attendeeId = searchParams.get('attendeeId')
-  const [state, setState] = useState<AttendanceState>('loading')
+
+  const [state, setState] = useState<PageState>('loading')
+  const [preview, setPreview] = useState<ScanPreview | null>(null)
   const [errorMessage, setErrorMessage] = useState<string>('')
-  const [attendeeInfo, setAttendeeInfo] = useState<AttendeeInfo | null>(null)
   const [pointsAwarded, setPointsAwarded] = useState<number | null>(null)
 
   useEffect(() => {
-    const fetchAttendeeInfo = async () => {
-      if (!registrationId || !attendeeId) return
-
-      try {
-        const regResponse = await apiClient.getRegistrationById(registrationId)
-        if (regResponse.success && regResponse.data?.registration) {
-          const registration = regResponse.data.registration
-          const attendee = (registration.attendees || []).find(
-            (a: any) => String(a._id) === String(attendeeId)
-          )
-          if (attendee) {
-            setAttendeeInfo({
-              name: attendee.name || 'Unknown',
-              phone: attendee.phone || 'N/A'
-            })
-          }
-        }
-      } catch (error) {
-      }
-    }
-
-    const callApi = async () => {
+    const load = async () => {
       if (!registrationId || !attendeeId) {
         setState('error')
         setErrorMessage('Missing registration ID or attendee ID')
-        toast.error('Missing required parameters')
         return
       }
 
-      setState('loading')
-      
-      await fetchAttendeeInfo()
-      
       try {
-        const response = await apiClient.adminLogAttendance({registrationId, attendeeId})
-        
-        if (response.success && response.data?.registration) {
-          const registration = response.data.registration
-          const attendee = (registration.attendees || []).find(
-            (a: any) => String(a._id) === String(attendeeId)
-          )
-          if (attendee) {
-            setAttendeeInfo({
-              name: attendee.name || 'Unknown',
-              phone: attendee.phone || 'N/A'
-            })
-          }
-        }
-        // capture awarded points if backend returned the value
-        if (response.success && typeof response.data?.pointsAwarded === 'number') {
-          setPointsAwarded(response.data.pointsAwarded)
-        }
-        
-        if (!response.success) {
-          const errorMsg = response.error || response.message || 'Failed to mark attendance'
-          setErrorMessage(errorMsg)
-          
-          const statusCode = response.status || response.errorDetails?.status
-          
-          if (errorMsg.toLowerCase().includes('already marked') || 
-              errorMsg.toLowerCase().includes('already attended')) {
-            setState('already_marked')
-            toast.error(errorMsg)
-          } else if (statusCode === 500 || errorMsg.toLowerCase().includes('server error')) {
-            setState('server_error')
-            toast.error('Server error occurred while marking attendance')
-          } else {
-            setState('error')
-            toast.error(errorMsg)
-          }
+        const res = await apiClient.getScanPreview(registrationId, attendeeId)
+        if (!res.success) {
+          setState('error')
+          setErrorMessage(res.error || res.message || 'Failed to load ticket details')
           return
         }
-
-        setState('success')
-        toast.success(response.data?.message || 'Attendance marked successfully')
-      } catch (error: any) {
-        const errorMsg = error?.message || error?.error || error?.errorDetails?.details || 'An unexpected error occurred'
-        setErrorMessage(errorMsg)
-        
-        const statusCode = error?.status || error?.statusCode || error?.errorDetails?.status
-        if (statusCode === 500 || errorMsg.toLowerCase().includes('server error')) {
-          setState('server_error')
-          toast.error('Server error occurred while marking attendance')
-        } else {
-          setState('error')
-          toast.error('Error calling attendance API')
-        }
+        setPreview(res.data!)
+        setState('preview')
+      } catch (err: any) {
+        setState('error')
+        setErrorMessage(err?.message || 'An unexpected error occurred')
       }
     }
-
-    callApi()
+    load()
   }, [registrationId, attendeeId])
 
-  const renderAttendeeInfo = () => {
-    if (!attendeeInfo) return null
-    
+  const handleMarkAttendance = async () => {
+    if (!registrationId || !attendeeId) return
+    setState('marking')
+    try {
+      const response = await apiClient.adminLogAttendance({ registrationId, attendeeId })
+      if (response.success) {
+        if (typeof response.data?.pointsAwarded === 'number') {
+          setPointsAwarded(response.data.pointsAwarded)
+        }
+        setState('success')
+        toast.success(response.data?.message || 'Attendance marked successfully')
+      } else {
+        const msg = response.error || response.message || 'Failed to mark attendance'
+        setErrorMessage(msg)
+        if (msg.toLowerCase().includes('already marked') || msg.toLowerCase().includes('already attended')) {
+          setState('already_marked')
+        } else {
+          setState('error')
+        }
+        toast.error(msg)
+      }
+    } catch (err: any) {
+      const msg = err?.message || 'An unexpected error occurred'
+      setErrorMessage(msg)
+      setState('error')
+      toast.error(msg)
+    }
+  }
+
+  const handleReject = () => {
+    router.push('/dashboard/events/scanner')
+  }
+
+  const renderVenueItems = (items: VenueItem[] | undefined | null) => {
+    if (!items?.length) return null
     return (
-      <div className="mt-4 p-4 bg-muted/50 rounded-lg border">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-            <User className="w-5 h-5 text-primary" />
-          </div>
-          <div className="flex-1">
-            <p className="font-medium text-sm text-muted-foreground">Attendee</p>
-            <p className="font-semibold">{attendeeInfo.name}</p>
-            <div className="flex items-center gap-1 mt-1">
-              <Phone className="w-3 h-3 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground">{attendeeInfo.phone}</p>
+      <div className="mt-4 space-y-2">
+        <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Ticket Details</p>
+        {items.map((item, i) => (
+          <div key={i} className="flex items-start gap-3 p-3 bg-muted/40 rounded-lg border">
+            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center mt-0.5">
+              <MapPin className="w-4 h-4 text-primary" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-medium text-sm">{item.venueName}</p>
+              <div className="flex items-center gap-2 mt-1">
+                <Tag className="w-3 h-3 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">{item.tierName}</span>
+                <Badge variant="secondary" className="text-xs">×{item.quantity}</Badge>
+                {item.price > 0 && (
+                  <span className="text-xs text-muted-foreground ml-auto">₹{item.price}</span>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        ))}
       </div>
     )
   }
+
+  const renderAttendeeCard = (p: ScanPreview) => (
+    <div className="p-4 bg-muted/50 rounded-lg border">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+          <User className="w-5 h-5 text-primary" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Attendee</p>
+          <p className="font-semibold truncate">{p.attendeeName}</p>
+          {p.attendeePhone && (
+            <div className="flex items-center gap-1 mt-0.5">
+              <Phone className="w-3 h-3 text-muted-foreground" />
+              <p className="text-sm text-muted-foreground">{p.attendeePhone}</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  )
 
   const renderContent = () => {
     switch (state) {
@@ -149,18 +161,81 @@ function AttendanceLandingPageInner() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
-                Marking Attendance
+                Loading Ticket Details
               </CardTitle>
-              <CardDescription>Please wait while we process your attendance...</CardDescription>
+              <CardDescription>Fetching ticket information…</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex flex-col items-center justify-center py-8">
                 <Loader2 className="w-16 h-16 animate-spin text-blue-600 mb-4" />
-                <p className="text-muted-foreground text-center">
-                  Processing attendance check-in...
-                </p>
               </div>
-              {renderAttendeeInfo()}
+            </CardContent>
+          </Card>
+        )
+
+      case 'preview':
+        return (
+          <Card className="max-w-md mx-auto">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <ScanLine className="w-5 h-5 text-blue-600" />
+                Confirm Ticket
+              </CardTitle>
+              <CardDescription className="font-medium text-base text-foreground mt-1">
+                {preview!.eventTitle}
+              </CardDescription>
+              {preview!.eventVenue && !preview!.venueItems.length && (
+                <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                  <MapPin className="w-3.5 h-3.5" /> {preview!.eventVenue}
+                </p>
+              )}
+              {preview!.attended && (
+                <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 border-yellow-200 mt-2 w-fit">
+                  <AlertCircle className="w-3 h-3 mr-1" /> Already attended
+                </Badge>
+              )}
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {renderAttendeeCard(preview!)}
+              {renderVenueItems(preview!.venueItems)}
+              <div className="flex gap-3 pt-2">
+                <Button
+                  variant="outline"
+                  className="flex-1 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                  onClick={handleReject}
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Reject
+                </Button>
+                <Button
+                  className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                  onClick={handleMarkAttendance}
+                >
+                  <CheckCircle2 className="w-4 h-4 mr-2" />
+                  Mark Attendance
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground text-center">
+                Rejecting does not invalidate the QR — the member can re-scan at the correct venue.
+              </p>
+            </CardContent>
+          </Card>
+        )
+
+      case 'marking':
+        return (
+          <Card className="max-w-md mx-auto">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+                Marking Attendance
+              </CardTitle>
+              <CardDescription>Please wait…</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col items-center justify-center py-8">
+                <Loader2 className="w-16 h-16 animate-spin text-blue-600 mb-4" />
+              </div>
             </CardContent>
           </Card>
         )
@@ -171,28 +246,32 @@ function AttendanceLandingPageInner() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-green-700">
                 <CheckCircle2 className="w-5 h-5 text-green-600" />
-                Attendance Marked Successfully
+                Attendance Marked
               </CardTitle>
               <CardDescription className="text-green-600">
-                The attendee has been successfully marked as present.
+                {preview?.eventTitle}
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-col items-center justify-center py-8">
+              <div className="flex flex-col items-center justify-center py-6">
                 <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-4">
                   <CheckCircle2 className="w-10 h-10 text-green-600" />
                 </div>
-                <p className="text-center font-medium text-green-700">
-                  Attendance has been recorded!
-                </p>
-                <p className="text-sm text-muted-foreground text-center mt-2">
-                  The attendee is now marked as present for this event.
-                </p>
+                <p className="text-center font-medium text-green-700">Attendance recorded!</p>
                 {pointsAwarded !== null && (
-                  <p className="text-center font-semibold text-green-700 mt-3">You earned {pointsAwarded} points</p>
+                  <p className="text-center font-semibold text-green-700 mt-2">+{pointsAwarded} loyalty points</p>
                 )}
               </div>
-              {renderAttendeeInfo()}
+              {preview && renderAttendeeCard(preview)}
+              {preview && renderVenueItems(preview.venueItems)}
+              <Button
+                variant="outline"
+                className="w-full mt-4"
+                onClick={() => router.push('/dashboard/events/scanner')}
+              >
+                <ScanLine className="w-4 h-4 mr-2" />
+                Scan Next
+              </Button>
             </CardContent>
           </Card>
         )
@@ -203,54 +282,28 @@ function AttendanceLandingPageInner() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-yellow-700">
                 <AlertCircle className="w-5 h-5 text-yellow-600" />
-                Attendance Already Marked
+                Already Marked
               </CardTitle>
               <CardDescription className="text-yellow-600">
-                This attendee has already been marked as present.
+                {errorMessage || 'This attendee has already been marked as present.'}
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-col items-center justify-center py-8">
+              <div className="flex flex-col items-center justify-center py-6">
                 <div className="w-16 h-16 rounded-full bg-yellow-100 flex items-center justify-center mb-4">
                   <AlertCircle className="w-10 h-10 text-yellow-600" />
                 </div>
-                <p className="text-center font-medium text-yellow-700">
-                  Attendance was already recorded
-                </p>
-                <p className="text-sm text-muted-foreground text-center mt-2">
-                  {errorMessage || 'This attendee has already been marked as present for this event.'}
-                </p>
               </div>
-              {renderAttendeeInfo()}
-            </CardContent>
-          </Card>
-        )
-
-      case 'server_error':
-        return (
-          <Card className="max-w-md mx-auto border-red-200">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-red-700">
-                <XCircle className="w-5 h-5 text-red-600" />
-                Server Error
-              </CardTitle>
-              <CardDescription className="text-red-600">
-                A server error occurred while marking attendance.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col items-center justify-center py-8">
-                <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mb-4">
-                  <XCircle className="w-10 h-10 text-red-600" />
-                </div>
-                <p className="text-center font-medium text-red-700">
-                  Failed to mark attendance
-                </p>
-                <p className="text-sm text-muted-foreground text-center mt-2">
-                  {errorMessage || 'A server error (500) occurred. Please try again later or contact support.'}
-                </p>
-              </div>
-              {renderAttendeeInfo()}
+              {preview && renderAttendeeCard(preview)}
+              {preview && renderVenueItems(preview.venueItems)}
+              <Button
+                variant="outline"
+                className="w-full mt-4"
+                onClick={() => router.push('/dashboard/events/scanner')}
+              >
+                <ScanLine className="w-4 h-4 mr-2" />
+                Scan Next
+              </Button>
             </CardContent>
           </Card>
         )
@@ -261,25 +314,26 @@ function AttendanceLandingPageInner() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-red-700">
                 <XCircle className="w-5 h-5 text-red-600" />
-                Attendance Marking Failed
+                Error
               </CardTitle>
               <CardDescription className="text-red-600">
-                Unable to mark attendance at this time.
+                {errorMessage || 'An error occurred.'}
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-col items-center justify-center py-8">
+              <div className="flex flex-col items-center justify-center py-6">
                 <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mb-4">
                   <XCircle className="w-10 h-10 text-red-600" />
                 </div>
-                <p className="text-center font-medium text-red-700">
-                  Failed to mark attendance
-                </p>
-                <p className="text-sm text-muted-foreground text-center mt-2">
-                  {errorMessage || 'An error occurred while marking attendance. Please try again.'}
-                </p>
               </div>
-              {renderAttendeeInfo()}
+              <Button
+                variant="outline"
+                className="w-full mt-2"
+                onClick={() => router.push('/dashboard/events/scanner')}
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back to Scanner
+              </Button>
             </CardContent>
           </Card>
         )

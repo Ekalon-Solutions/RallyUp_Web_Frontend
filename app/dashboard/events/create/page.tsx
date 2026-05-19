@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { Suspense, useEffect, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -36,10 +36,25 @@ const CATEGORIES = [
 
 const CURRENCIES = ["INR", "USD", "EUR", "GBP", "AUD", "CAD", "JPY", "BRL", "MXN", "ZAR"]
 
-export default function CreateEventPage() {
+/** Convert an ISO string to the value format expected by datetime-local inputs */
+function toDatetimeLocal(iso?: string): string {
+  if (!iso) return ""
+  try {
+    return new Date(iso).toISOString().slice(0, 16)
+  } catch {
+    return ""
+  }
+}
+
+function CreateEventForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const editId = searchParams.get("edit")
+  const isEditMode = Boolean(editId)
+
   const { user } = useAuth()
   const [loading, setLoading] = useState(false)
+  const [fetchingEvent, setFetchingEvent] = useState(isEditMode)
   const [venues, setVenues] = useState<VenueDraft[]>([])
 
   const [form, setForm] = useState({
@@ -70,6 +85,62 @@ export default function CreateEventPage() {
     return u?.club?._id ?? u?.club ?? ""
   })()
 
+  // Pre-fill form when editing
+  useEffect(() => {
+    if (!editId) return
+    const fetchEvent = async () => {
+      setFetchingEvent(true)
+      try {
+        const res = await apiClient.getEventById(editId)
+        if (!res.success || !res.data) {
+          toast.error("Failed to load event")
+          router.push("/dashboard/events")
+          return
+        }
+        const ev = res.data
+        setForm({
+          title: ev.title ?? "",
+          category: ev.category ?? "club-events",
+          startTime: toDatetimeLocal(ev.startTime),
+          endTime: toDatetimeLocal(ev.endTime),
+          venue: ev.venues?.length ? "" : (ev.venue ?? ""),
+          description: ev.description ?? "",
+          maxAttendees: ev.maxAttendees ? String(ev.maxAttendees) : "",
+          ticketPrice: String(ev.ticketPrice ?? 0),
+          currency: ev.currency ?? "INR",
+          requiresTicket: ev.requiresTicket ?? false,
+          memberOnly: ev.memberOnly ?? false,
+          bookingStartTime: toDatetimeLocal(ev.bookingStartTime),
+          bookingEndTime: toDatetimeLocal(ev.bookingEndTime),
+          attendancePoints: String(ev.attendancePoints ?? 0),
+          waitlistEnabled: ev.waitlist?.enabled ?? false,
+          waitlistPercentage: String(ev.waitlist?.percentage ?? 25),
+          waitlistPurchaseWindowHours: String(ev.waitlist?.purchaseWindowHours ?? 12),
+        })
+        if (ev.venues?.length) {
+          setVenues(
+            ev.venues.map((v) => ({
+              id: v._id,
+              name: v.name,
+              tiers: v.tiers.map((t) => ({
+                id: t._id,
+                name: t.name,
+                price: t.price,
+                allocation: t.allocation,
+              })),
+            }))
+          )
+        }
+      } catch {
+        toast.error("Error loading event")
+        router.push("/dashboard/events")
+      } finally {
+        setFetchingEvent(false)
+      }
+    }
+    fetchEvent()
+  }, [editId, router])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -80,7 +151,6 @@ export default function CreateEventPage() {
     if (!form.bookingEndTime) { toast.error("Booking end time is required"); return }
     if (!form.description.trim()) { toast.error("Description is required"); return }
 
-    // Validate matrix entries if present
     if (venues.length > 0) {
       for (const v of venues) {
         if (!v.name.trim()) { toast.error("All venues must have a name"); return }
@@ -124,18 +194,37 @@ export default function CreateEventPage() {
           : undefined,
       }
 
-      const res = await apiClient.createEvent(payload)
-      if (!res.success) {
-        toast.error((res as any).message ?? res.error ?? "Failed to create event")
-        return
+      if (isEditMode && editId) {
+        const res = await apiClient.updateEvent(editId, payload)
+        if (!res.success) {
+          toast.error((res as any).message ?? res.error ?? "Failed to update event")
+          return
+        }
+        toast.success("Event updated successfully!")
+      } else {
+        const res = await apiClient.createEvent(payload)
+        if (!res.success) {
+          toast.error((res as any).message ?? res.error ?? "Failed to create event")
+          return
+        }
+        toast.success("Event created successfully!")
       }
-      toast.success("Event created successfully!")
       router.push("/dashboard/events")
     } catch (err: any) {
-      toast.error(err?.message ?? "Error creating event")
+      toast.error(err?.message ?? "Error saving event")
     } finally {
       setLoading(false)
     }
+  }
+
+  if (fetchingEvent) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+        </div>
+      </DashboardLayout>
+    )
   }
 
   return (
@@ -148,7 +237,7 @@ export default function CreateEventPage() {
               Back to Events
             </Button>
           </Link>
-          <h1 className="text-3xl font-bold">Create Event</h1>
+          <h1 className="text-3xl font-bold">{isEditMode ? "Edit Event" : "Create Event"}</h1>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -378,12 +467,12 @@ export default function CreateEventPage() {
               {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Creating...
+                  {isEditMode ? "Saving..." : "Creating..."}
                 </>
               ) : (
                 <>
                   <Save className="w-4 h-4 mr-2" />
-                  Create Event
+                  {isEditMode ? "Save Changes" : "Create Event"}
                 </>
               )}
             </Button>
@@ -391,5 +480,19 @@ export default function CreateEventPage() {
         </form>
       </div>
     </DashboardLayout>
+  )
+}
+
+export default function CreateEventPage() {
+  return (
+    <Suspense fallback={
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+        </div>
+      </DashboardLayout>
+    }>
+      <CreateEventForm />
+    </Suspense>
   )
 }
