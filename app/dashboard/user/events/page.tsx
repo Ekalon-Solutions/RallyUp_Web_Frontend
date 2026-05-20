@@ -158,7 +158,7 @@ function UserEventsPageInner() {
   const [showEventCheckoutModal, setShowEventCheckoutModal] = useState(false);
   const [eventForPayment, setEventForPayment] = useState<Event | null>(null);
   const [attendeesForPayment, setAttendeesForPayment] = useState<any[]>([]);
-  const [couponForPayment, setCouponForPayment] = useState<{code: string; discount: number} | null>(null);
+  const [couponForPayment, setCouponForPayment] = useState<{ code: string; discount: number } | null>(null);
   const [handledDeepLinkEventId, setHandledDeepLinkEventId] = useState<string | null>(null);
   const [waitlistStatus, setWaitlistStatus] = useState<Array<{
     eventId: string;
@@ -390,9 +390,9 @@ function UserEventsPageInner() {
   const isEventUpcoming = (event: Event) => {
     return new Date(event.startTime) > new Date();
   };
-  
+
   const isEventMembersOnly = (event: Event) => {
-    return (event.memberOnly ? user?.memberships?.map(a=>a?.club_id?._id).includes(event.clubId || "null") || false : true)
+    return (event.memberOnly ? user?.memberships?.map(a => a?.club_id?._id).includes(event.clubId || "null") || false : true)
   }
 
   const isEventPast = (event: Event) => {
@@ -541,7 +541,7 @@ function UserEventsPageInner() {
                         {category === "all"
                           ? "All Categories"
                           : category.charAt(0).toUpperCase() +
-                            category.slice(1)}
+                          category.slice(1)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -815,19 +815,18 @@ function UserEventsPageInner() {
                           {event.maxAttendees ? (
                             <div className="w-full bg-gray-200 rounded-full h-2">
                               <div
-                                className={`h-2 rounded-full transition-all ${
-                                  getAttendancePercentage(
+                                className={`h-2 rounded-full transition-all ${getAttendancePercentage(
+                                  event.currentAttendees || 0,
+                                  event.maxAttendees
+                                ) >= 90
+                                  ? "bg-red-500"
+                                  : getAttendancePercentage(
                                     event.currentAttendees || 0,
                                     event.maxAttendees
-                                  ) >= 90
-                                    ? "bg-red-500"
-                                    : getAttendancePercentage(
-                                        event.currentAttendees || 0,
-                                        event.maxAttendees
-                                      ) >= 75
+                                  ) >= 75
                                     ? "bg-yellow-500"
                                     : "bg-green-500"
-                                }`}
+                                  }`}
                                 style={{
                                   width: `${Math.min(
                                     getAttendancePercentage(
@@ -851,7 +850,11 @@ function UserEventsPageInner() {
                             const myReg = user?._id
                               ? (event.registrations || []).find((r: any) => r.userId === user._id)
                               : null;
-                            if (myReg?.status === 'confirmed') {
+
+                            const hasConfirmed = (event.registrations || []).some(
+                              (r: any) => r.userId === user._id && r.status === "confirmed"
+                            );
+                            if (hasConfirmed) {
                               return (
                                 <div className="flex gap-2">
                                   <Button
@@ -872,13 +875,6 @@ function UserEventsPageInner() {
                                     <Trash className="w-4 h-4 text-white" />
                                   </Button>
                                 </div>
-                              );
-                            }
-                            if (myReg?.status === 'pending') {
-                              return (
-                                <Button disabled className="w-full" variant="outline">
-                                  Payment Pending...
-                                </Button>
                               );
                             }
                             if (event.maxAttendees && isEventFull(event)) {
@@ -1040,19 +1036,18 @@ function UserEventsPageInner() {
                           {event.maxAttendees ? (
                             <div className="w-full bg-gray-200 rounded-full h-2">
                               <div
-                                className={`h-2 rounded-full transition-all ${
-                                  getAttendancePercentage(
+                                className={`h-2 rounded-full transition-all ${getAttendancePercentage(
+                                  event.currentAttendees || 0,
+                                  event.maxAttendees
+                                ) >= 90
+                                  ? "bg-red-500"
+                                  : getAttendancePercentage(
                                     event.currentAttendees || 0,
                                     event.maxAttendees
-                                  ) >= 90
-                                    ? "bg-red-500"
-                                    : getAttendancePercentage(
-                                        event.currentAttendees || 0,
-                                        event.maxAttendees
-                                      ) >= 75
+                                  ) >= 75
                                     ? "bg-yellow-500"
                                     : "bg-green-500"
-                                }`}
+                                  }`}
                                 style={{
                                   width: `${Math.min(
                                     getAttendancePercentage(
@@ -1103,37 +1098,37 @@ function UserEventsPageInner() {
         ticketPrice={registrationEvent?.ticketPrice || 0}
         event={registrationEvent}
       />
-        <EventCheckoutModal
-          isOpen={showEventCheckoutModal}
-          onClose={() => { setShowEventCheckoutModal(false); setWaitlistTokenForCheckout(null); }}
-          event={
-            eventForPayment
-              ? {
-                  _id: (eventForPayment as any)._id,
-                  name: (eventForPayment as any).title || (eventForPayment as any).name || "Event",
-                  price: (eventForPayment as any).ticketPrice ?? (eventForPayment as any).price ?? 0,
-                  ticketPrice: (eventForPayment as any).ticketPrice,
-                  earlyBirdDiscount: (eventForPayment as any).earlyBirdDiscount,
-                  memberDiscount: (eventForPayment as any).memberDiscount,
-                  groupDiscount: (eventForPayment as any).groupDiscount,
-                  currency: (eventForPayment as any).currency,
-                }
-              : undefined
-          }
-          attendees={attendeesForPayment}
-          couponCode={couponForPayment?.code}
-          waitlistToken={waitlistTokenForCheckout}
-          onSuccess={() => {
-            setShowEventCheckoutModal(false);
-            setWaitlistTokenForCheckout(null);
-            fetchEvents();
-            apiClient.getMyWaitlistStatus().then((r) => r.success && r.data && setWaitlistStatus(r.data));
-            toast.success("Payment successful!");
-          }}
-          onFailure={()=> {
-            toast.error("Payment failed. Please try again.");
-          }}
-        />
+      <EventCheckoutModal
+        isOpen={showEventCheckoutModal}
+        onClose={() => { setShowEventCheckoutModal(false); setWaitlistTokenForCheckout(null); }}
+        event={
+          eventForPayment
+            ? {
+              _id: (eventForPayment as any)._id,
+              name: (eventForPayment as any).title || (eventForPayment as any).name || "Event",
+              price: (eventForPayment as any).ticketPrice ?? (eventForPayment as any).price ?? 0,
+              ticketPrice: (eventForPayment as any).ticketPrice,
+              earlyBirdDiscount: (eventForPayment as any).earlyBirdDiscount,
+              memberDiscount: (eventForPayment as any).memberDiscount,
+              groupDiscount: (eventForPayment as any).groupDiscount,
+              currency: (eventForPayment as any).currency,
+            }
+            : undefined
+        }
+        attendees={attendeesForPayment}
+        couponCode={couponForPayment?.code}
+        waitlistToken={waitlistTokenForCheckout}
+        onSuccess={() => {
+          setShowEventCheckoutModal(false);
+          setWaitlistTokenForCheckout(null);
+          fetchEvents();
+          apiClient.getMyWaitlistStatus().then((r) => r.success && r.data && setWaitlistStatus(r.data));
+          toast.success("Payment successful!");
+        }}
+        onFailure={() => {
+          toast.error("Payment failed. Please try again.");
+        }}
+      />
       {refundCancelEventId && refundEstimate && (
         <RefundConfirmationModal
           estimate={refundEstimate}
