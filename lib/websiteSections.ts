@@ -111,12 +111,6 @@ export const MEMBER_DASHBOARD_SECTION_OPTIONS: readonly WebsiteSectionOption[] =
     description: "Show volunteer opportunities in the member dashboard.",
     keys: ["volunteer"],
   },
-  {
-    id: "guessTheScore",
-    label: "Guess The Score",
-    description: "Show the Guess The Score game in the member dashboard.",
-    keys: ["guessTheScore"],
-  },
 ] as const
 
 export const DEFAULT_WEBSITE_SECTIONS: Record<WebsiteSectionKey, boolean> = {
