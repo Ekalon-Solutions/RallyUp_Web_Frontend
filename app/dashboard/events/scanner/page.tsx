@@ -238,29 +238,7 @@ export default function ScannerPage() {
           )}
 
           {/* Manual / hardware scanner fallback */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Manual Entry</CardTitle>
-              <CardDescription>
-                Paste the full ticket URL from a hardware scanner or share link.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleManualSubmit} className="flex gap-2">
-                <div className="flex-1">
-                  <Label htmlFor="qr-input" className="sr-only">Ticket URL</Label>
-                  <Input
-                    id="qr-input"
-                    placeholder="Paste ticket URL here…"
-                    value={manualInput}
-                    onChange={(e) => setManualInput(e.target.value)}
-                    autoComplete="off"
-                  />
-                </div>
-                <Button type="submit">Go</Button>
-              </form>
-            </CardContent>
-          </Card>
+         
         </div>
       </DashboardLayout>
     </ProtectedRoute>

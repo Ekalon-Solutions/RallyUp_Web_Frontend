@@ -7,8 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import {
   CreditCard, Loader2,
-  Tag, X
+  Tag, X, Users
 } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
@@ -82,6 +83,8 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
   const [localCouponCode, setLocalCouponCode] = useState("")
   const [validatingCoupon, setValidatingCoupon] = useState(false)
   const [couponApplied, setCouponApplied] = useState(false)
+  const [attributedClub, setAttributedClub] = useState("")
+  const [attributedClubError, setAttributedClubError] = useState("")
 
     const reservePointsNow = async () => {
     if (!redeemPoints || Number(redeemPoints) <= 0) {
@@ -141,6 +144,8 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
       setCouponApplied(false)
       setCouponDiscount(0)
       setCouponName("")
+      setAttributedClub("")
+      setAttributedClubError("")
     }
   }, [isOpen, skipMemberValidation])
 
@@ -310,6 +315,10 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
     toast.info("Coupon removed")
   }
 
+  const jointScreening = eventData?.jointScreening
+  const isJointEvent = Boolean(jointScreening?.enabled && (jointScreening?.partnerClubNames?.length ?? 0) > 0)
+  const partnerClubOptions: string[] = jointScreening?.partnerClubNames ?? []
+
   const handlePayment = async () => {
     if (!scriptLoaded) {
       toast.error("Payment system is still loading. Please wait.")
@@ -318,6 +327,11 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
 
     if (!event?._id) {
       toast.error("Event information is missing")
+      return
+    }
+
+    if (isJointEvent && !attributedClub) {
+      setAttributedClubError("Please select your club affiliation to continue")
       return
     }
 
@@ -380,6 +394,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
               couponDiscount || undefined,
               earlyBirdDiscountTotal || undefined,
               reservedDiscount || undefined,
+              attributedClub || undefined,
             )
           : await apiClient.registerForPublicEvent(String(event._id), {
               registrantName: attendees?.[0]?.name || 'Guest',
@@ -391,6 +406,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
               couponDiscount: couponDiscount || undefined,
               earlyBirdDiscountAmt: earlyBirdDiscountTotal || undefined,
               pointsDiscount: reservedDiscount || undefined,
+              attributed_club: attributedClub || undefined,
             })
 
         if (response.success) {
@@ -448,6 +464,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
             couponDiscount: couponDiscount || undefined,
             earlyBirdDiscountAmt: earlyBirdDiscountTotal || undefined,
             pointsDiscount: reservedDiscount || undefined,
+            attributed_club: attributedClub || undefined,
           })
         } else {
           await apiClient.createPendingPublicRegistration(String(event._id), {
@@ -462,6 +479,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
             couponDiscount: couponDiscount || undefined,
             earlyBirdDiscountAmt: earlyBirdDiscountTotal || undefined,
             pointsDiscount: reservedDiscount || undefined,
+            attributed_club: attributedClub || undefined,
           })
         }
       } catch (pendingError) {
@@ -540,6 +558,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
                   couponDiscount || undefined,
                   earlyBirdDiscountTotal || undefined,
                   reservedDiscount || undefined,
+                  attributedClub || undefined,
                 )
               : await apiClient.registerForPublicEvent(String(event._id), {
                   registrantName: attendees?.[0]?.name || 'Guest',
@@ -555,6 +574,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
                   couponDiscount: couponDiscount || undefined,
                   earlyBirdDiscountAmt: earlyBirdDiscountTotal || undefined,
                   pointsDiscount: reservedDiscount || undefined,
+                  attributed_club: attributedClub || undefined,
                 })
 
             if (registerResponse.success) {
@@ -689,6 +709,37 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
               <CardTitle>{event?.name}</CardTitle>
             </CardHeader>
             <CardContent>
+              {isJointEvent && (
+                <div className="mb-4 space-y-1.5">
+                  <label className="text-sm font-medium flex items-center gap-2">
+                    <Users className="w-4 h-4" />
+                    Club Affiliation <span className="text-destructive">*</span>
+                  </label>
+                  <p className="text-xs text-muted-foreground">
+                    This is a joint screening. Please select your club so revenue can be attributed correctly.
+                  </p>
+                  <Select
+                    value={attributedClub}
+                    onValueChange={(v) => {
+                      setAttributedClub(v)
+                      if (v) setAttributedClubError("")
+                    }}
+                  >
+                    <SelectTrigger className={attributedClubError ? "border-destructive" : ""}>
+                      <SelectValue placeholder="Select your club…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {partnerClubOptions.map((club) => (
+                        <SelectItem key={club} value={club}>{club}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {attributedClubError && (
+                    <p className="text-xs text-destructive">{attributedClubError}</p>
+                  )}
+                  <Separator className="mt-3" />
+                </div>
+              )}
               <div className="space-y-3">
                 <div className="flex justify-between items-center text-sm sm:text-base">
                   <span>Price per ticket:</span>

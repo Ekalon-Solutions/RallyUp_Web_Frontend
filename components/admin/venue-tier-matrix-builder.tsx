@@ -1,19 +1,25 @@
 "use client"
 
-import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Trash2, MapPin, Tag } from "lucide-react"
+import { Switch } from "@/components/ui/switch"
+import { Plus, Trash2, MapPin, Tag, Users } from "lucide-react"
 import { cn } from "@/lib/utils"
+
+export interface ClubAllocationDraft {
+  clubName: string
+  allocation: number
+}
 
 export interface TierDraft {
   id: string
   name: string
   price: number
   allocation: number
+  clubAllocations?: ClubAllocationDraft[]
 }
 
 export interface VenueDraft {
@@ -26,27 +32,43 @@ interface VenueTierMatrixBuilderProps {
   venues: VenueDraft[]
   onChange: (venues: VenueDraft[]) => void
   currency?: string
+  jointScreening?: { enabled: boolean; partnerClubNames: string[] }
 }
 
 function generateId() {
   return Math.random().toString(36).slice(2, 10)
 }
 
-export function VenueTierMatrixBuilder({ venues, onChange, currency = "INR" }: VenueTierMatrixBuilderProps) {
+export function VenueTierMatrixBuilder({
+  venues,
+  onChange,
+  currency = "INR",
+  jointScreening,
+}: VenueTierMatrixBuilderProps) {
   const currencySymbols: Record<string, string> = {
     INR: "₹", USD: "$", EUR: "€", GBP: "£", AUD: "A$", CAD: "CA$",
     JPY: "¥", BRL: "R$", MXN: "$", ZAR: "R",
   }
   const sym = currencySymbols[currency] ?? currency + " "
 
+  const isJointEvent = Boolean(
+    jointScreening?.enabled && (jointScreening?.partnerClubNames?.length ?? 0) > 0
+  )
+  const clubNames = jointScreening?.partnerClubNames ?? []
+
+  const makeDefaultTier = (name = "General", price = 0, allocation = 50): TierDraft => {
+    if (isJointEvent && clubNames.length > 0) {
+      const perClub = Math.max(1, Math.floor(allocation / clubNames.length))
+      const clubAllocations = clubNames.map((cn) => ({ clubName: cn, allocation: perClub }))
+      return { id: generateId(), name, price, allocation: perClub * clubNames.length, clubAllocations }
+    }
+    return { id: generateId(), name, price, allocation }
+  }
+
   const addVenue = () => {
     onChange([
       ...venues,
-      {
-        id: generateId(),
-        name: "",
-        tiers: [{ id: generateId(), name: "General", price: 0, allocation: 50 }],
-      },
+      { id: generateId(), name: "", tiers: [makeDefaultTier()] },
     ])
   }
 
@@ -62,7 +84,7 @@ export function VenueTierMatrixBuilder({ venues, onChange, currency = "INR" }: V
     onChange(
       venues.map((v) =>
         v.id === venueId
-          ? { ...v, tiers: [...v.tiers, { id: generateId(), name: "", price: 0, allocation: 50 }] }
+          ? { ...v, tiers: [...v.tiers, makeDefaultTier("", 0, 50)] }
           : v
       )
     )
@@ -76,13 +98,44 @@ export function VenueTierMatrixBuilder({ venues, onChange, currency = "INR" }: V
     )
   }
 
-  const updateTier = (venueId: string, tierId: string, field: keyof TierDraft, value: string | number) => {
+  const updateTier = (venueId: string, tierId: string, field: keyof TierDraft, value: string | number | ClubAllocationDraft[] | undefined) => {
+    onChange(
+      venues.map((v) =>
+        v.id === venueId
+          ? { ...v, tiers: v.tiers.map((t) => (t.id === tierId ? { ...t, [field]: value } : t)) }
+          : v
+      )
+    )
+  }
+
+  const toggleClubAllocations = (venueId: string, tierId: string, enabled: boolean) => {
+    const tier = venues.find((v) => v.id === venueId)?.tiers.find((t) => t.id === tierId)
+    if (!tier) return
+    if (enabled) {
+      // Distribute current allocation evenly across clubs as starting point
+      const perClub = clubNames.length > 0 ? Math.max(1, Math.floor(tier.allocation / clubNames.length)) : 1
+      const clubAllocations: ClubAllocationDraft[] = clubNames.map((name) => ({ clubName: name, allocation: perClub }))
+      updateTier(venueId, tierId, "clubAllocations", clubAllocations)
+    } else {
+      updateTier(venueId, tierId, "clubAllocations", undefined)
+    }
+  }
+
+  const updateClubAllocation = (venueId: string, tierId: string, clubName: string, allocation: number) => {
     onChange(
       venues.map((v) =>
         v.id === venueId
           ? {
               ...v,
-              tiers: v.tiers.map((t) => (t.id === tierId ? { ...t, [field]: value } : t)),
+              tiers: v.tiers.map((t) => {
+                if (t.id !== tierId) return t
+                const updated = (t.clubAllocations ?? []).map((ca) =>
+                  ca.clubName === clubName ? { ...ca, allocation } : ca
+                )
+                // Recalculate total allocation from sum of club allocations
+                const total = updated.reduce((s, ca) => s + ca.allocation, 0)
+                return { ...t, clubAllocations: updated, allocation: Math.max(1, total) }
+              }),
             }
           : v
       )
@@ -135,7 +188,7 @@ export function VenueTierMatrixBuilder({ venues, onChange, currency = "INR" }: V
             </div>
           </CardHeader>
 
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-4">
             {/* Matrix header */}
             <div className="grid grid-cols-[1fr_100px_100px_36px] gap-2 px-1">
               <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1">
@@ -145,57 +198,104 @@ export function VenueTierMatrixBuilder({ venues, onChange, currency = "INR" }: V
                 Price ({sym})
               </span>
               <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                Allocation
+                {isJointEvent ? "Total Seats" : "Allocation"}
               </span>
               <span />
             </div>
 
-            {venue.tiers.map((tier, ti) => (
-              <div key={tier.id} className="grid grid-cols-[1fr_100px_100px_36px] gap-2 items-center">
-                <Input
-                  placeholder={`Tier ${ti + 1} (e.g. VIP, Basic)`}
-                  value={tier.name}
-                  onChange={(e) => updateTier(venue.id, tier.id, "name", e.target.value)}
-                  className="text-sm"
-                />
-                <div className="relative">
-                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
-                    {sym}
-                  </span>
-                  <Input
-                    type="number"
-                    min={0}
-                    value={tier.price}
-                    onChange={(e) => updateTier(venue.id, tier.id, "price", Number(e.target.value) || 0)}
-                    className="pl-6 text-sm"
-                    placeholder="0"
-                  />
-                </div>
-                <Input
-                  type="number"
-                  min={1}
-                  value={tier.allocation}
-                  onChange={(e) => updateTier(venue.id, tier.id, "allocation", Number(e.target.value) || 1)}
-                  className="text-sm"
-                  placeholder="50"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => removeTier(venue.id, tier.id)}
-                  disabled={venue.tiers.length === 1}
-                  className={cn(
-                    "p-0 w-9 h-9",
-                    venue.tiers.length === 1
-                      ? "opacity-30 cursor-not-allowed"
-                      : "text-destructive hover:text-destructive hover:bg-destructive/10"
+            {venue.tiers.map((tier, ti) => {
+              const hasClubAllocations = isJointEvent && Boolean(tier.clubAllocations?.length)
+              return (
+                <div key={tier.id} className="space-y-2">
+                  <div className="grid grid-cols-[1fr_100px_100px_36px] gap-2 items-center">
+                    <Input
+                      placeholder={`Tier ${ti + 1} (e.g. VIP, Basic)`}
+                      value={tier.name}
+                      onChange={(e) => updateTier(venue.id, tier.id, "name", e.target.value)}
+                      className="text-sm"
+                    />
+                    <div className="relative">
+                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground pointer-events-none">
+                        {sym}
+                      </span>
+                      <Input
+                        type="number"
+                        min={0}
+                        value={tier.price}
+                        onChange={(e) => updateTier(venue.id, tier.id, "price", Number(e.target.value) || 0)}
+                        className="pl-6 text-sm"
+                        placeholder="0"
+                      />
+                    </div>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={tier.allocation}
+                      onChange={(e) => updateTier(venue.id, tier.id, "allocation", Number(e.target.value) || 1)}
+                      className="text-sm"
+                      placeholder="50"
+                      disabled={hasClubAllocations}
+                      title={hasClubAllocations ? "Auto-computed from club allocations" : undefined}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeTier(venue.id, tier.id)}
+                      disabled={venue.tiers.length === 1}
+                      className={cn(
+                        "p-0 w-9 h-9",
+                        venue.tiers.length === 1
+                          ? "opacity-30 cursor-not-allowed"
+                          : "text-destructive hover:text-destructive hover:bg-destructive/10"
+                      )}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+
+                  {/* Per-club allocation toggle (joint events only) */}
+                  {isJointEvent && (
+                    <div className="ml-1 pl-3 border-l-2 border-muted space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-xs flex items-center gap-1.5 text-muted-foreground">
+                          <Users className="w-3.5 h-3.5" />
+                          Per-club allocation
+                        </Label>
+                        <Switch
+                          checked={hasClubAllocations}
+                          onCheckedChange={(v) => toggleClubAllocations(venue.id, tier.id, v)}
+                        />
+                      </div>
+
+                      {hasClubAllocations && (
+                        <div className="grid gap-2 pt-1">
+                          {(tier.clubAllocations ?? []).map((ca) => (
+                            <div key={ca.clubName} className="flex items-center gap-2">
+                              <span className="text-xs font-medium w-32 truncate flex-shrink-0">{ca.clubName}</span>
+                              <Input
+                                type="number"
+                                min={0}
+                                value={ca.allocation}
+                                onChange={(e) =>
+                                  updateClubAllocation(venue.id, tier.id, ca.clubName, Number(e.target.value) || 0)
+                                }
+                                className="h-8 text-xs w-24"
+                                placeholder="0"
+                              />
+                              <span className="text-xs text-muted-foreground">seats</span>
+                            </div>
+                          ))}
+                          <p className="text-xs text-muted-foreground">
+                            Total: {(tier.clubAllocations ?? []).reduce((s, ca) => s + ca.allocation, 0)} seats
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   )}
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </Button>
-              </div>
-            ))}
+                </div>
+              )
+            })}
 
             <Button
               type="button"
@@ -213,6 +313,7 @@ export function VenueTierMatrixBuilder({ venues, onChange, currency = "INR" }: V
               {venue.tiers.filter((t) => t.name).map((tier) => (
                 <Badge key={tier.id} variant="secondary" className="text-xs">
                   {tier.name}: {sym}{tier.price.toLocaleString()} × {tier.allocation} seats
+                  {tier.clubAllocations?.length ? " (club-split)" : ""}
                 </Badge>
               ))}
             </div>
@@ -227,7 +328,14 @@ export function VenueTierMatrixBuilder({ venues, onChange, currency = "INR" }: V
             <div key={v.id}>
               <span className="font-medium">{v.name || "(unnamed venue)"}</span>
               {" — "}
-              {v.tiers.map((t) => `${t.name || "(tier)"}: ${t.allocation} seats`).join(", ")}
+              {v.tiers.map((t) => {
+                const base = `${t.name || "(tier)"}: ${t.allocation} seats`
+                if (t.clubAllocations?.length) {
+                  const breakdown = t.clubAllocations.map((ca) => `${ca.clubName}: ${ca.allocation}`).join(", ")
+                  return `${base} (${breakdown})`
+                }
+                return base
+              }).join(", ")}
             </div>
           ))}
           <p className="pt-1">

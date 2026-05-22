@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
-import { CreditCard, Loader2, Plus, Minus, MapPin, Tag, X, User, Phone } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { CreditCard, Loader2, Plus, Minus, MapPin, Tag, X, User, Phone, Users } from "lucide-react"
 import { toast } from "sonner"
 import { apiClient, Event, VenueTierCartItem } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
@@ -67,6 +69,12 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
   const [reservedDiscount, setReservedDiscount] = useState(0)
   const [availablePoints, setAvailablePoints] = useState<number | null>(null)
   const [reserving, setReserving] = useState(false)
+  const [attributedClub, setAttributedClub] = useState("")
+  const [showClubAlert, setShowClubAlert] = useState(false)
+
+  const jointScreening = event?.jointScreening
+  const isJointEvent = Boolean(jointScreening?.enabled && (jointScreening?.partnerClubNames?.length ?? 0) > 0)
+  const partnerClubOptions: string[] = jointScreening?.partnerClubNames ?? []
 
   const userDefaultName: string = (user as any)?.name
     ?? `${(user as any)?.first_name ?? ""} ${(user as any)?.last_name ?? ""}`.trim()
@@ -85,6 +93,8 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
       setRedeemPoints("")
       setReservationToken(null)
       setReservedDiscount(0)
+      setAttributedClub("")
+      setShowClubAlert(false)
     }
   }, [isOpen])
 
@@ -158,6 +168,15 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
     }
   }
 
+  const getClubRemaining = (tier: { allocation: number; sold: number; clubAllocations?: Array<{ clubName: string; allocation: number; sold: number }> }) => {
+    if (attributedClub && tier.clubAllocations?.length) {
+      const ca = tier.clubAllocations.find((c) => c.clubName === attributedClub)
+      if (!ca) return 0
+      return Math.max(0, ca.allocation - ca.sold)
+    }
+    return Math.max(0, tier.allocation - tier.sold)
+  }
+
   const setQty = (venueId: string, tierId: string, delta: number) => {
     setCart((prev) => {
       const vCart = prev[venueId] ?? {}
@@ -165,9 +184,12 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
       const next = Math.max(0, current + delta)
       const venue = venues.find((v) => v._id === venueId)!
       const tier = venue.tiers.find((t) => t._id === tierId)!
-      const available = tier.allocation - tier.sold
+      const available = getClubRemaining(tier)
       if (next > available) {
-        toast.error(`Only ${available} seats available for ${venue.name} – ${tier.name}`)
+        const label = attributedClub && tier.clubAllocations?.length
+          ? `Only ${available} seats available for ${attributedClub} in ${venue.name} – ${tier.name}`
+          : `Only ${available} seats available for ${venue.name} – ${tier.name}`
+        toast.error(label)
         return prev
       }
       const updated = { ...prev, [venueId]: { ...vCart, [tierId]: next } }
@@ -243,6 +265,12 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
     if (!user) { toast.error("Please log in to purchase tickets"); return }
     if (!scriptLoaded) { toast.error("Payment system still loading — please wait"); return }
 
+    // Validate joint screening club affiliation
+    if (isJointEvent && !attributedClub) {
+      setShowClubAlert(true)
+      return
+    }
+
     // Validate attendee details
     for (let i = 0; i < attendeeSlots.length; i++) {
       const s = attendeeSlots[i]
@@ -275,6 +303,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
           couponDiscount: couponDiscount || undefined,
           pointsDiscount: reservedDiscount || undefined,
           amountPaid: 0,
+          attributed_club: attributedClub || undefined,
         })
         if (res.success) {
           toast.success("Tickets booked!")
@@ -312,6 +341,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         couponCode: localCouponCode || undefined,
         couponDiscount: couponDiscount || undefined,
         pointsDiscount: reservedDiscount || undefined,
+        attributed_club: attributedClub || undefined,
       }).catch((err) => console.warn("[VenueTierCart] Pending booking failed:", err))
 
       const options = {
@@ -349,6 +379,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
               couponCode: localCouponCode || undefined,
               couponDiscount: couponDiscount || undefined,
               pointsDiscount: reservedDiscount || undefined,
+              attributed_club: attributedClub || undefined,
             })
             if (res.success) {
               toast.success("Payment successful! Tickets confirmed.")
@@ -399,6 +430,20 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
   const currency = event.currency ?? "INR"
 
   return (
+    <>
+    <AlertDialog open={showClubAlert} onOpenChange={setShowClubAlert}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Select Your Club Affiliation</AlertDialogTitle>
+          <AlertDialogDescription>
+            This is a joint screening event. Please select which club you are supporting before proceeding to payment.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogAction onClick={() => setShowClubAlert(false)}>OK, I'll select</AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
     <Dialog
       open={isOpen}
       onOpenChange={() => { if (!razorpayOpen) onClose() }}
@@ -418,6 +463,44 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto space-y-4 py-2 px-1">
+          {/* Club affiliation — shown first so remaining counts are correct */}
+          {isJointEvent && (
+            <Card className={!attributedClub ? "border-destructive/60" : undefined}>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-1.5">
+                  <Users className="w-4 h-4 text-muted-foreground" />
+                  Club Affiliation
+                  <Badge variant="destructive" className="text-xs ml-1">Required</Badge>
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Select which club you are supporting — {jointScreening?.homeTeam} or {jointScreening?.awayTeam}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Select
+                  value={attributedClub}
+                  onValueChange={(v) => {
+                    setAttributedClub(v)
+                    // Reset cart so club-specific remaining counts apply cleanly
+                    setCart({})
+                  }}
+                >
+                  <SelectTrigger className={!attributedClub ? "border-destructive/60" : undefined}>
+                    <SelectValue placeholder="Select your club…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {partnerClubOptions.map((club) => (
+                      <SelectItem key={club} value={club}>{club}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {!attributedClub && (
+                  <p className="text-xs text-destructive mt-1.5">You must select a club before proceeding to payment.</p>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           {/* Venue × Tier quantity selector */}
           {venues.map((venue) => {
             const available = venue.tiers.some((t) => t.allocation - t.sold > 0)
@@ -431,7 +514,9 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
                 </CardHeader>
                 <CardContent className="space-y-2">
                   {venue.tiers.map((tier) => {
-                    const remaining = tier.allocation - tier.sold
+                    const remaining = getClubRemaining(tier)
+                    const hasClubSplit = Boolean(tier.clubAllocations?.length)
+                    const clubNotSelected = isJointEvent && hasClubSplit && !attributedClub
                     const qty = cart[venue._id]?.[tier._id] ?? 0
                     return (
                       <div key={tier._id} className="flex items-center justify-between gap-2">
@@ -442,9 +527,17 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
                             <Badge variant="secondary" className="text-xs">
                               {fmt(tier.price, currency)}
                             </Badge>
+                            {hasClubSplit && (
+                              <Badge variant="outline" className="text-xs">club-split</Badge>
+                            )}
                           </div>
-                          <p className={`text-xs mt-0.5 ${remaining === 0 ? "text-destructive" : "text-muted-foreground"}`}>
-                            {remaining === 0 ? "Sold out" : `${remaining} remaining`}
+                          <p className={`text-xs mt-0.5 ${remaining === 0 || clubNotSelected ? "text-muted-foreground" : remaining <= 5 ? "text-amber-600" : "text-muted-foreground"}`}>
+                            {clubNotSelected
+                              ? "Select your club above to see availability"
+                              : remaining === 0
+                              ? `Sold out${attributedClub && hasClubSplit ? ` for ${attributedClub}` : ""}`
+                              : `${remaining} remaining${attributedClub && hasClubSplit ? ` for ${attributedClub}` : ""}`
+                            }
                           </p>
                         </div>
                         <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -459,7 +552,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
                           <Button
                             type="button" variant="outline" size="sm" className="h-7 w-7 p-0"
                             onClick={() => setQty(venue._id, tier._id, 1)}
-                            disabled={remaining === 0 || qty >= remaining}
+                            disabled={clubNotSelected || remaining === 0 || qty >= remaining}
                           >
                             <Plus className="w-3 h-3" />
                           </Button>
@@ -672,5 +765,6 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         </div>
       </DialogContent>
     </Dialog>
+    </>
   )
 }

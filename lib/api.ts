@@ -267,12 +267,19 @@ export interface Chant {
   updatedAt: string;
 }
 
+export interface VenueClubAllocation {
+  clubName: string;
+  allocation: number;
+  sold: number;
+}
+
 export interface VenueTier {
   _id: string;
   name: string;
   price: number;
   allocation: number;
   sold: number;
+  clubAllocations?: VenueClubAllocation[];
 }
 
 export interface EventVenue {
@@ -337,6 +344,12 @@ export interface Event {
     percentage: number;
     purchaseWindowHours: number;
   }
+  jointScreening?: {
+    enabled: boolean;
+    homeTeam?: string;
+    awayTeam?: string;
+    partnerClubNames?: string[];
+  };
   venues?: EventVenue[];
   currency?: string;
   createdAt: string;
@@ -1480,7 +1493,8 @@ class ApiClient {
     memberDiscount?: any;
     groupDiscount?: any;
     waitlist?: { enabled: boolean; percentage?: number; purchaseWindowHours?: number };
-    venues?: Array<{ name: string; tiers: Array<{ name: string; price: number; allocation: number }> }>;
+    venues?: Array<{ name: string; tiers: Array<{ name: string; price: number; allocation: number; clubAllocations?: Array<{ clubName: string; allocation: number }> }> }>;
+    jointScreening?: { enabled: boolean; homeTeam?: string; awayTeam?: string; partnerClubNames?: string[] };
   }): Promise<ApiResponse<{ message: string; event: Event }>> {
     return this.request('/events', {
       method: 'POST',
@@ -1506,7 +1520,8 @@ class ApiClient {
     bookingEndTime?: string;
     attendancePoints?: number;
     waitlist?: { enabled?: boolean; percentage?: number; purchaseWindowHours?: number };
-    venues?: Array<{ name: string; tiers: Array<{ name: string; price: number; allocation: number }> }>;
+    venues?: Array<{ name: string; tiers: Array<{ name: string; price: number; allocation: number; clubAllocations?: Array<{ clubName: string; allocation: number }> }> }>;
+    jointScreening?: { enabled: boolean; homeTeam?: string; awayTeam?: string; partnerClubNames?: string[] };
   }): Promise<ApiResponse<{ message: string; event: Event }>> {
     return this.request(`/events/${id}`, {
       method: 'PUT',
@@ -1542,10 +1557,10 @@ class ApiClient {
     });
   }
 
-  async registerForEvent(eventId: string, notes?: string, attendees?: Array<{ name: string; phone: string }>, couponCode?: string | null, orderID?: string, paymentID?: string, signature?: string, waitlistToken?: string, reservationToken?: string, amountPaid?: number, couponDiscount?: number, earlyBirdDiscountAmt?: number, pointsDiscount?: number): Promise<ApiResponse<{ message: string; event: Event }>> {
+  async registerForEvent(eventId: string, notes?: string, attendees?: Array<{ name: string; phone: string }>, couponCode?: string | null, orderID?: string, paymentID?: string, signature?: string, waitlistToken?: string, reservationToken?: string, amountPaid?: number, couponDiscount?: number, earlyBirdDiscountAmt?: number, pointsDiscount?: number, attributed_club?: string): Promise<ApiResponse<{ message: string; event: Event }>> {
     return this.request(`/events/${eventId}/register`, {
       method: 'POST',
-      body: JSON.stringify({ notes, attendees, couponCode, orderID, paymentID, signature, waitlistToken, reservationToken, amountPaid, couponDiscount, earlyBirdDiscountAmt, pointsDiscount }),
+      body: JSON.stringify({ notes, attendees, couponCode, orderID, paymentID, signature, waitlistToken, reservationToken, amountPaid, couponDiscount, earlyBirdDiscountAmt, pointsDiscount, attributed_club }),
     });
   }
 
@@ -1564,6 +1579,7 @@ class ApiClient {
     couponDiscount?: number;
     earlyBirdDiscountAmt?: number;
     pointsDiscount?: number;
+    attributed_club?: string;
   }): Promise<ApiResponse<{ message: string; event: Event }>> {
     return this.request(`/events/public/${eventId}/register`, {
       method: 'POST',
@@ -1581,6 +1597,7 @@ class ApiClient {
     couponDiscount?: number;
     earlyBirdDiscountAmt?: number;
     pointsDiscount?: number;
+    attributed_club?: string;
   }): Promise<ApiResponse<{ pendingRegistrationId?: string }>> {
     return this.request(`/events/${eventId}/register/pending`, {
       method: 'POST',
@@ -1600,11 +1617,20 @@ class ApiClient {
     couponDiscount?: number;
     earlyBirdDiscountAmt?: number;
     pointsDiscount?: number;
+    attributed_club?: string;
   }): Promise<ApiResponse<{ pendingRegistrationId?: string }>> {
     return this.request(`/events/public/${eventId}/register/pending`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
+  }
+
+  async getRevenueReconciliation(clubId?: string, attributed_club?: string): Promise<ApiResponse<any[]>> {
+    const params = new URLSearchParams();
+    if (clubId) params.set('clubId', clubId);
+    if (attributed_club) params.set('attributed_club', attributed_club);
+    const qs = params.toString();
+    return this.request(`/events/revenue-reconciliation${qs ? `?${qs}` : ''}`);
   }
 
   async bookVenueTierMatrix(eventId: string, data: {
@@ -1618,6 +1644,7 @@ class ApiClient {
     couponDiscount?: number;
     earlyBirdDiscountAmt?: number;
     pointsDiscount?: number;
+    attributed_club?: string;
   }): Promise<ApiResponse<{ message: string; event: Event }>> {
     return this.request(`/events/${eventId}/book-matrix`, {
       method: 'POST',
@@ -1635,6 +1662,7 @@ class ApiClient {
     couponDiscount?: number;
     earlyBirdDiscountAmt?: number;
     pointsDiscount?: number;
+    attributed_club?: string;
   }): Promise<ApiResponse<{ registrationId: string }>> {
     return this.request(`/events/${eventId}/book-matrix/pending`, {
       method: 'POST',

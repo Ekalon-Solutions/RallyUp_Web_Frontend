@@ -178,7 +178,7 @@ export function LoginModal({ open, onOpenChange }: LoginModalProps) {
           localStorage.setItem("userType", tab === "user" ? "member" : (res.data as any).role || "admin")
           toast.success("Signed in successfully!")
           onOpenChange(false)
-          window.location.href = "/login" // Redirect to trigger auth context update
+          window.location.href = "/splash"
         } else {
           toast.error(res.message || res.error || "Invalid OTP")
         }
@@ -199,14 +199,14 @@ export function LoginModal({ open, onOpenChange }: LoginModalProps) {
             localStorage.setItem("userType", tab === "user" ? "member" : res.data.role || "admin")
             toast.success("Signed in successfully!")
             onOpenChange(false)
-            window.location.href = "/login" // Same redirect as email to trigger auth context update
+            window.location.href = "/splash"
           } else {
             // If no token, use existing login flow
             const backendResult = await login(email, phone, countryCode, tab === "admin")
             if (backendResult?.success) {
               toast.success("Signed in successfully!")
               onOpenChange(false)
-              window.location.href = "/login" // Redirect to trigger auth context update
+              window.location.href = "/splash"
             } else {
               toast.error(backendResult?.error || "Login failed")
             }
