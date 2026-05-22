@@ -58,9 +58,11 @@ const setupRecaptcha = (phoneNumber: string) => {
 interface LoginModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  /** Called after successful login. When provided, skips the /splash redirect. */
+  onSuccess?: () => void
 }
 
-export function LoginModal({ open, onOpenChange }: LoginModalProps) {
+export function LoginModal({ open, onOpenChange, onSuccess }: LoginModalProps) {
   const { login, isAuthenticated } = useAuth()
   const router = useRouter()
 
@@ -199,14 +201,14 @@ export function LoginModal({ open, onOpenChange }: LoginModalProps) {
             localStorage.setItem("userType", tab === "user" ? "member" : res.data.role || "admin")
             toast.success("Signed in successfully!")
             onOpenChange(false)
-            window.location.href = "/splash"
+            if (onSuccess) { onSuccess() } else { window.location.href = "/splash" }
           } else {
             // If no token, use existing login flow
             const backendResult = await login(email, phone, countryCode, tab === "admin")
             if (backendResult?.success) {
               toast.success("Signed in successfully!")
               onOpenChange(false)
-              window.location.href = "/splash"
+              if (onSuccess) { onSuccess() } else { window.location.href = "/splash" }
             } else {
               toast.error(backendResult?.error || "Login failed")
             }

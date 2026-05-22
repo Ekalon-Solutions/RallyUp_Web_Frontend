@@ -8,10 +8,10 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { apiClient, News, Event, Chant } from "@/lib/api"
-import { formatDisplayDate, slugify } from "@/lib/utils"
+import { formatDisplayDate } from "@/lib/utils"
 import { getNewsImageUrl } from "@/lib/config"
-import UserEventRegistrationModal from "@/components/modals/user-event-registration-modal"
 import { EventCheckoutModal } from "@/components/modals/event-checkout-modal"
+import { VenueTierCartModal } from "@/components/modals/venue-tier-cart-modal"
 import { PurchaseFlowModal, setStoredPurchaseIntent, getStoredPurchaseIntent, clearStoredPurchaseIntent } from "@/components/modals/purchase-flow-modal"
 import { CheckoutModal } from "@/components/modals/checkout-modal"
 import NewsReadMoreModal from "@/components/modals/news-readmore-modal"
@@ -147,86 +147,63 @@ export default function PublicClubPage() {
   const [loadingContent, setLoadingContent] = useState(false)
   const [activeTab, setActiveTab] = useState<string>("")
 
-  const [showEventRegistrationModal, setShowEventRegistrationModal] = useState(false)
   const [eventForRegistration, setEventForRegistration] = useState<Event | null>(null)
   const [showPurchaseFlowModal, setShowPurchaseFlowModal] = useState(false)
   const [showEventCheckoutModal, setShowEventCheckoutModal] = useState(false)
   const [eventCheckoutAsGuest, setEventCheckoutAsGuest] = useState(false)
-  const [attendeesForPayment, setAttendeesForPayment] = useState<any[]>([])
-  const [showReadMoreModal, setShowReadMoreModal] = useState(false)
-  const [selectedNewsForReadMore, setSelectedNewsForReadMore] = useState<News | null>(null)
+  const [showVenueTierCartModal, setShowVenueTierCartModal] = useState(false)
   const [purchaseFlowReason, setPurchaseFlowReason] = useState<"event" | "merchandise" | null>(null)
   const [merchandiseForQuickBuy, setMerchandiseForQuickBuy] = useState<any | null>(null)
   const [showMerchandiseCheckoutModal, setShowMerchandiseCheckoutModal] = useState(false)
   const [merchandiseCheckoutItems, setMerchandiseCheckoutItems] = useState<any[]>([])
+  const [showReadMoreModal, setShowReadMoreModal] = useState(false)
+  const [selectedNewsForReadMore, setSelectedNewsForReadMore] = useState<News | null>(null)
 
-  // Resume purchase after login/register redirect (same tab or email link in new tab). Only clear intent when we consume it here.
+  const handleEventClick = (event: Event) => {
+    setEventForRegistration(event)
+    setPurchaseFlowReason("event")
+    setShowPurchaseFlowModal(true)
+  }
+
+  // Resume purchase after login redirect
   useEffect(() => {
     const resume = searchParams.get("resumePurchase")
     if (resume !== "1" || !club?._id) return
     const intent = getStoredPurchaseIntent()
     if (!intent || intent.clubId !== club._id) return
 
+    const clearParam = () => {
+      clearStoredPurchaseIntent()
+      const url = new URL(window.location.href)
+      url.searchParams.delete("resumePurchase")
+      window.history.replaceState({}, "", url.pathname + url.search)
+    }
+
     if (intent.type === "event") {
       const eventId = intent.eventId
       const storedEvent = intent.event as Event | undefined
-      const ev = storedEvent && storedEvent._id === eventId ? storedEvent : events.find((e) => e._id === eventId)
+      const ev = storedEvent && storedEvent._id === eventId
+        ? storedEvent
+        : events.find((e) => e._id === eventId)
       if (!ev) return
-      
-      // Check if user is already registered (for members only)
-      apiClient.checkEventRegistration(eventId).then(checkResult => {
-        if (checkResult.success && checkResult.data) {
-          const { isRegistered, isMember } = checkResult.data
-          
-          // If member and already registered, show error and don't open checkout
-          if (isMember && isRegistered) {
-            toast.error("You are already registered for this event")
-            clearStoredPurchaseIntent()
-            const url = new URL(window.location.href)
-            url.searchParams.delete("resumePurchase")
-            window.history.replaceState({}, "", url.pathname + url.search)
-            return
-          }
-          
-          // For non-members or not registered, proceed with checkout
-          setEventForRegistration(ev)
-          setAttendeesForPayment(intent.attendees || [])
-          setShowEventCheckoutModal(true)
-          clearStoredPurchaseIntent()
-          const url = new URL(window.location.href)
-          url.searchParams.delete("resumePurchase")
-          window.history.replaceState({}, "", url.pathname + url.search)
-        } else {
-          // If check fails, proceed anyway
-          setEventForRegistration(ev)
-          setAttendeesForPayment(intent.attendees || [])
-          setShowEventCheckoutModal(true)
-          clearStoredPurchaseIntent()
-          const url = new URL(window.location.href)
-          url.searchParams.delete("resumePurchase")
-          window.history.replaceState({}, "", url.pathname + url.search)
-        }
-      }).catch(() => {
-        // If check fails, proceed anyway
-        setEventForRegistration(ev)
-        setAttendeesForPayment(intent.attendees || [])
+      setEventForRegistration(ev)
+      const hasVenues = Array.isArray((ev as any).venues) && (ev as any).venues.length > 0
+      if (hasVenues) {
+        setShowVenueTierCartModal(true)
+      } else {
         setShowEventCheckoutModal(true)
-        clearStoredPurchaseIntent()
-        const url = new URL(window.location.href)
-        url.searchParams.delete("resumePurchase")
-        window.history.replaceState({}, "", url.pathname + url.search)
-      })
+      }
+      clearParam()
       return
-    } else if (intent.type === "merchandise") {
+    }
+
+    if (intent.type === "merchandise") {
       const item = intent.item
       if (item?._id && item?.club?._id) {
         setMerchandiseCheckoutItems([{ ...item, quantity: item.quantity ?? 1 }])
         setShowMerchandiseCheckoutModal(true)
       }
-      clearStoredPurchaseIntent()
-      const url = new URL(window.location.href)
-      url.searchParams.delete("resumePurchase")
-      window.history.replaceState({}, "", url.pathname + url.search)
+      clearParam()
     }
   }, [searchParams, club?._id, events])
 
@@ -833,18 +810,17 @@ export default function PublicClubPage() {
 
                                     {(() => {
                                       const isEventFull = event.maxAttendees != null && (event.currentAttendees ?? 0) >= event.maxAttendees
+                                      const hasVenues = Array.isArray((event as any).venues) && (event as any).venues.length > 0
+                                      const label = isEventFull ? "Event Full" : hasVenues || (event.ticketPrice && event.ticketPrice > 0) ? "Buy Tickets" : "Register"
                                       return (
                                         <Button
                                           className="w-full mt-2"
                                           style={isEventFull ? undefined : { backgroundColor: primaryColor, color: "white" }}
                                           variant={isEventFull ? "secondary" : "default"}
                                           disabled={isEventFull}
-                                          onClick={() => {
-                                            if (isEventFull) return
-                                            router.push(`/clubs/${slug}/events/${slugify(event.title)}`)
-                                          }}
+                                          onClick={() => handleEventClick(event)}
                                         >
-                                          {isEventFull ? "Event Full" : event.ticketPrice && event.ticketPrice > 0 ? "Buy Tickets" : "Register"}
+                                          {label}
                                         </Button>
                                       )
                                     })()}
@@ -1155,29 +1131,13 @@ export default function PublicClubPage() {
         </div>
       </footer>
 
-      <UserEventRegistrationModal
-        eventId={eventForRegistration?._id || null}
-        isOpen={showEventRegistrationModal}
-        onClose={() => {
-          setShowEventRegistrationModal(false)
-        }}
-        ticketPrice={eventForRegistration?.ticketPrice || 0}
-        event={eventForRegistration}
-        onRegister={(payload) => {
-          setAttendeesForPayment(payload.attendees || [])
-          setShowEventRegistrationModal(false)
-          setPurchaseFlowReason("event")
-          setShowPurchaseFlowModal(true)
-        }}
-      />
-
+      {/* Purchase flow — member phone check, login, or continue as guest */}
       {club?._id && (eventForRegistration || merchandiseForQuickBuy) && (
         <PurchaseFlowModal
           isOpen={showPurchaseFlowModal}
           onClose={() => {
             setShowPurchaseFlowModal(false)
             setPurchaseFlowReason(null)
-            setMerchandiseForQuickBuy(null)
           }}
           clubId={club._id}
           clubName={club.name}
@@ -1185,8 +1145,13 @@ export default function PublicClubPage() {
           onContinueToPayment={() => {
             setShowPurchaseFlowModal(false)
             if (purchaseFlowReason === "event" && eventForRegistration) {
-              setEventCheckoutAsGuest(true)
-              setShowEventCheckoutModal(true)
+              const hasVenues = Array.isArray((eventForRegistration as any).venues) && (eventForRegistration as any).venues.length > 0
+              if (hasVenues) {
+                setShowVenueTierCartModal(true)
+              } else {
+                setEventCheckoutAsGuest(true)
+                setShowEventCheckoutModal(true)
+              }
             } else if (purchaseFlowReason === "merchandise" && merchandiseForQuickBuy) {
               const item = merchandiseForQuickBuy
               setMerchandiseCheckoutItems([{
@@ -1213,7 +1178,7 @@ export default function PublicClubPage() {
                 slug,
                 eventId: eventForRegistration._id,
                 event: eventForRegistration,
-                attendees: attendeesForPayment,
+                attendees: [],
                 returnPath: returnUrl,
               })
             } else if (purchaseFlowReason === "merchandise" && merchandiseForQuickBuy) {
@@ -1239,40 +1204,26 @@ export default function PublicClubPage() {
             router.push(`/login?next=${encodeURIComponent(returnUrl)}`)
           }}
           onRegister={(registerNextUrl) => {
-            if (purchaseFlowReason === "event" && eventForRegistration) {
-              setStoredPurchaseIntent({
-                type: "event",
-                clubId: club._id,
-                slug,
-                eventId: eventForRegistration._id,
-                event: eventForRegistration,
-                attendees: attendeesForPayment,
-                returnPath: registerNextUrl,
-              })
-            } else if (purchaseFlowReason === "merchandise" && merchandiseForQuickBuy) {
-              const item = merchandiseForQuickBuy
-              setStoredPurchaseIntent({
-                type: "merchandise",
-                clubId: club._id,
-                slug,
-                item: {
-                  _id: item._id,
-                  name: item.name,
-                  price: item.price,
-                  currency: item.currency || "INR",
-                  quantity: 1,
-                  featuredImage: item.featuredImage,
-                  stockQuantity: item.stockQuantity,
-                  tags: item.tags,
-                  club: item.club || { _id: club._id, name: club.name },
-                },
-                returnPath: registerNextUrl,
-              })
-            }
             router.push(registerNextUrl)
           }}
         />
       )}
+
+      {/* Multi-ticket checkout (venue-tier matrix events) */}
+      <VenueTierCartModal
+        isOpen={showVenueTierCartModal}
+        onClose={() => {
+          setShowVenueTierCartModal(false)
+          setEventForRegistration(null)
+        }}
+        event={eventForRegistration}
+        onSuccess={() => {
+          setShowVenueTierCartModal(false)
+          setEventForRegistration(null)
+          if (club?._id) loadContent(club._id)
+        }}
+        onFailure={() => {}}
+      />
 
       <CheckoutModal
         isOpen={showMerchandiseCheckoutModal}
@@ -1295,31 +1246,28 @@ export default function PublicClubPage() {
           setShowEventCheckoutModal(false)
           setEventCheckoutAsGuest(false)
           setEventForRegistration(null)
-          setAttendeesForPayment([])
         }}
         skipMemberValidation={eventCheckoutAsGuest}
         event={
           eventForRegistration
             ? {
-              _id: eventForRegistration._id,
-              name: eventForRegistration.title,
-              price: eventForRegistration.ticketPrice || 0,
-              ticketPrice: eventForRegistration.ticketPrice || 0,
-              earlyBirdDiscount: (eventForRegistration as any).earlyBirdDiscount,
-              memberDiscount: (eventForRegistration as any).memberDiscount,
-              groupDiscount: (eventForRegistration as any).groupDiscount,
-              currency: (eventForRegistration as any).currency || "INR",
-            }
+                _id: eventForRegistration._id,
+                name: eventForRegistration.title,
+                price: eventForRegistration.ticketPrice || 0,
+                ticketPrice: eventForRegistration.ticketPrice || 0,
+                earlyBirdDiscount: (eventForRegistration as any).earlyBirdDiscount,
+                memberDiscount: (eventForRegistration as any).memberDiscount,
+                groupDiscount: (eventForRegistration as any).groupDiscount,
+                currency: (eventForRegistration as any).currency || "INR",
+                jointScreening: (eventForRegistration as any).jointScreening,
+              }
             : undefined
         }
-        attendees={attendeesForPayment}
+        attendees={[]}
         onSuccess={() => {
-          if (club?._id) {
-            loadContent(club._id)
-          }
+          if (club?._id) loadContent(club._id)
         }}
-        onFailure={() => {
-        }}
+        onFailure={() => {}}
       />
 
       <NewsReadMoreModal
