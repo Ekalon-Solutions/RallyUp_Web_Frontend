@@ -424,7 +424,7 @@ export default function OrdersPage() {
 
         const headers = [
           'Name', 'Email', 'Event', 'Status', 'Amount Paid',
-          'Currency', 'Early Bird Discount', 'Coupon Code', 'Coupon Discount',
+          'Currency', 'Attendees', 'Early Bird Discount', 'Coupon Code', 'Coupon Discount',
           'Points Discount', 'Payment ID', 'Order ID', 'Registration Date'
         ]
         const rows = filtered.map((reg: any) => [
@@ -434,6 +434,7 @@ export default function OrdersPage() {
           reg.status || '',
           reg.amountPaid ?? reg.ticketPrice ?? 0,
           reg.currency || 'USD',
+          reg.numAttendees ?? 1,
           reg.earlyBirdDiscountAmt ?? 0,
           reg.couponCode || '',
           reg.couponDiscount ?? 0,
