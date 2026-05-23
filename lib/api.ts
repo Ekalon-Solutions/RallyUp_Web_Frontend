@@ -604,6 +604,10 @@ export interface MembershipPlan {
     apiAccess: boolean;
     customIntegrations: boolean;
   };
+  referralReward?: {
+    enabled: boolean;
+    points: number;
+  };
   isActive: boolean;
   club: string;
   createdAt: string;
@@ -2389,9 +2393,22 @@ class ApiClient {
     });
   }
 
+  async getActiveMembersPerPlan(clubId: string): Promise<ApiResponse<Record<string, number>>> {
+    return this.request(`/user-memberships/active-per-plan?clubId=${encodeURIComponent(clubId)}`);
+  }
+
+  async checkReferralPhone(phone: string): Promise<ApiResponse<{
+    exists: boolean;
+    isSelf?: boolean;
+    name?: string;
+  }>> {
+    return this.request(`/membership-plans/referral-check?phone=${encodeURIComponent(phone)}`);
+  }
+
   async subscribeMembershipPlan(
     planId: string,
-    payment?: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }
+    payment?: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string },
+    referralPhone?: string
   ): Promise<ApiResponse<{
     message: string;
     data: {
@@ -2399,9 +2416,12 @@ class ApiClient {
       isUpgrade: boolean;
     }
   }>> {
+    const body: any = {};
+    if (payment) body.payment = payment;
+    if (referralPhone) body.referralPhone = referralPhone;
     return this.request(`/membership-plans/${planId}/subscribe`, {
       method: 'POST',
-      body: payment ? JSON.stringify({ payment }) : undefined,
+      body: Object.keys(body).length > 0 ? JSON.stringify(body) : undefined,
     });
   }
 

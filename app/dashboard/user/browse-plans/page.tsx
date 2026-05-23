@@ -1,10 +1,13 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Check, Star, CreditCard, Calendar, Users, Building2, ArrowUp, ArrowDown } from "lucide-react"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Check, Star, CreditCard, Calendar, Users, Building2, ArrowUp, ArrowDown, Info, Loader2, AlertTriangle, UserCheck } from "lucide-react"
 import { toast } from "sonner"
 import { apiClient, MembershipPlan } from "@/lib/api"
 import { formatDisplayDate } from "@/lib/utils"
@@ -32,12 +35,58 @@ export default function BrowseMembershipPlansPage() {
     currency: string
     paymentMethod: string
     isUpgrade?: boolean
+    referralPhone?: string
   } | null>(null)
   const { user, checkAuth } = useAuth()
   const clubId = useRequiredClubId()
 
+  // Referral field state
+  const [referralPhone, setReferralPhone] = useState("")
+  const [referralStatus, setReferralStatus] = useState<"idle" | "checking" | "found" | "not-found" | "self">("idle")
+  const [referralName, setReferralName] = useState<string | null>(null)
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   useEffect(() => {
   }, [])
+
+  // Debounced referral phone validation
+  useEffect(() => {
+    const digits = referralPhone.replace(/\D/g, "")
+    if (digits.length === 0) {
+      setReferralStatus("idle")
+      setReferralName(null)
+      return
+    }
+    if (digits.length < 10) {
+      setReferralStatus("idle")
+      setReferralName(null)
+      return
+    }
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    setReferralStatus("checking")
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const res = await apiClient.checkReferralPhone(digits)
+        if (res.success && res.data) {
+          if (res.data.isSelf) {
+            setReferralStatus("self")
+            setReferralName(null)
+          } else if (res.data.exists) {
+            setReferralStatus("found")
+            setReferralName(res.data.name ?? null)
+          } else {
+            setReferralStatus("not-found")
+            setReferralName(null)
+          }
+        } else {
+          setReferralStatus("idle")
+        }
+      } catch {
+        setReferralStatus("idle")
+      }
+    }, 600)
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
+  }, [referralPhone])
 
   useEffect(() => {
     if (clubId) {
@@ -114,6 +163,7 @@ export default function BrowseMembershipPlansPage() {
       const isUpgrade = Boolean(currentMembership && !isMembershipExpired() && plan.price > currentPlanPrice)
       const baseAmount = isUpgrade ? Math.max(0, plan.price - currentPlanPrice) : plan.price
       const feeBreakdown = calculateTransactionFees(baseAmount)
+      const validReferral = referralStatus === "found" ? referralPhone.replace(/\D/g, "") : undefined
       setPendingPayment({
         planId,
         planName: plan.name,
@@ -126,14 +176,16 @@ export default function BrowseMembershipPlansPage() {
         currency,
         paymentMethod: "all",
         isUpgrade,
+        referralPhone: validReferral,
       })
       return
     }
 
     // Free plan: subscribe directly
+    const validReferralFree = referralStatus === "found" ? referralPhone.replace(/\D/g, "") : undefined
     try {
       setIsAssigning(planId)
-      const response = await apiClient.subscribeMembershipPlan(planId)
+      const response = await apiClient.subscribeMembershipPlan(planId, undefined, validReferralFree)
       if (response.success) {
         const message = response.data && "isUpgrade" in response.data && response.data.isUpgrade
           ? "Membership plan upgraded successfully!"
@@ -161,14 +213,14 @@ export default function BrowseMembershipPlansPage() {
     razorpaySignature: string
   ) => {
     if (!pendingPayment) return
-    const { planId } = pendingPayment
+    const { planId, referralPhone: pendingReferral } = pendingPayment
     try {
       setIsAssigning(planId)
-      const response = await apiClient.subscribeMembershipPlan(planId, {
-        razorpay_payment_id: paymentId,
-        razorpay_order_id: razorpayOrderId,
-        razorpay_signature: razorpaySignature,
-      })
+      const response = await apiClient.subscribeMembershipPlan(
+        planId,
+        { razorpay_payment_id: paymentId, razorpay_order_id: razorpayOrderId, razorpay_signature: razorpaySignature },
+        pendingReferral
+      )
       if (response.success) {
         const message =
           response.data && "isUpgrade" in response.data && response.data.isUpgrade
@@ -436,6 +488,75 @@ export default function BrowseMembershipPlansPage() {
                           Active (lifetime). You can upgrade to a higher-tier plan anytime.
                         </p>
                       )
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Referral field */}
+          {clubId && (
+            <Card>
+              <CardContent className="pt-5 pb-5">
+                <div className="flex flex-col sm:flex-row sm:items-end gap-3">
+                  <div className="flex-1 space-y-1.5">
+                    <div className="flex items-center gap-1.5">
+                      <Label htmlFor="referralPhone" className="text-sm font-medium">
+                        Referral Mobile Number
+                      </Label>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">
+                            Enter the registered mobile number of the member who referred you to earn them points!
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      <span className="text-xs text-muted-foreground">(Optional)</span>
+                    </div>
+                    <div className="relative">
+                      <Input
+                        id="referralPhone"
+                        type="tel"
+                        placeholder="Enter 10-digit mobile number"
+                        value={referralPhone}
+                        onChange={(e) => setReferralPhone(e.target.value.replace(/\D/g, "").slice(0, 15))}
+                        className={
+                          referralStatus === "found" ? "border-green-500 pr-9" :
+                          referralStatus === "self" || referralStatus === "not-found" ? "border-amber-400 pr-9" :
+                          "pr-9"
+                        }
+                        maxLength={15}
+                      />
+                      <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
+                        {referralStatus === "checking" && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
+                        {referralStatus === "found" && <UserCheck className="w-4 h-4 text-green-600" />}
+                        {(referralStatus === "not-found" || referralStatus === "self") && <AlertTriangle className="w-4 h-4 text-amber-500" />}
+                      </div>
+                    </div>
+
+                    {referralStatus === "found" && referralName && (
+                      <p className="text-xs text-green-600 font-medium">
+                        ✓ Referral confirmed — {referralName} will earn points when you subscribe!
+                      </p>
+                    )}
+                    {referralStatus === "found" && !referralName && (
+                      <p className="text-xs text-green-600 font-medium">
+                        ✓ Referral confirmed — your friend will earn points when you subscribe!
+                      </p>
+                    )}
+                    {referralStatus === "not-found" && (
+                      <p className="text-xs text-amber-600">
+                        Member not found. Please check the number to ensure your friend gets their points.
+                      </p>
+                    )}
+                    {referralStatus === "self" && (
+                      <p className="text-xs text-destructive font-medium">
+                        You cannot refer yourself.
+                      </p>
                     )}
                   </div>
                 </div>
