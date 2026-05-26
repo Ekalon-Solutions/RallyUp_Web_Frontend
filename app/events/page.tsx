@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Calendar, Search, MapPin, Clock, Users, Ticket, UserCheck, Bus, Filter } from "lucide-react"
 import { EventRegistrationModal } from "@/components/modals/event-registration-modal"
+import { VenueTierCartModal } from "@/components/modals/venue-tier-cart-modal"
 import { apiClient, Event } from "@/lib/api"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
@@ -25,6 +26,8 @@ export default function PublicEventsPage() {
 
   const [registrationModalOpen, setRegistrationModalOpen] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
+  const [showVenueTierCartModal, setShowVenueTierCartModal] = useState(false)
+  const [venueTierEvent, setVenueTierEvent] = useState<Event | null>(null)
 
   useEffect(() => {
     fetchEvents()
@@ -90,6 +93,13 @@ export default function PublicEventsPage() {
       toast.error("Please log in to register for events")
       return
     }
+
+    if ((event as any).venues && (event as any).venues.length > 0) {
+      setVenueTierEvent(event)
+      setShowVenueTierCartModal(true)
+      return
+    }
+
     setSelectedEvent(event)
     setRegistrationModalOpen(true)
   }
@@ -171,6 +181,42 @@ export default function PublicEventsPage() {
     }
   }
 
+  const currencySymbols: Record<string, string> = {
+    INR: "₹", USD: "$", EUR: "€", GBP: "£", AUD: "A$", CAD: "CA$",
+    JPY: "¥", BRL: "R$", MXN: "$", ZAR: "R",
+  }
+
+  const getVenueDisplay = (event: Event) => {
+    if ((event as any).venues && (event as any).venues.length > 0) {
+      return (event as any).venues.map((v: any) => v.name).join(", ")
+    }
+    return event.venue || "—"
+  }
+
+  const getMatrixPriceDisplay = (event: Event): string | null => {
+    if (!(event as any).venues?.length) return null
+    const allPrices = (event as any).venues.flatMap((v: any) => v.tiers.map((t: any) => t.price))
+    if (!allPrices.length) return null
+    const min = Math.min(...allPrices)
+    const max = Math.max(...allPrices)
+    const sym = currencySymbols[(event as any).currency ?? "INR"] ?? ((event as any).currency + " ")
+    return min === max ? `${sym}${min.toLocaleString()}` : `${sym}${min.toLocaleString()} – ${sym}${max.toLocaleString()}`
+  }
+
+  const getCapacity = (event: Event): { count: number; max: number | null } => {
+    if ((event as any).venues?.length) {
+      let total = 0, sold = 0
+      for (const v of (event as any).venues) {
+        for (const t of v.tiers) {
+          total += t.allocation ?? 0
+          sold += t.sold ?? 0
+        }
+      }
+      return { count: sold, max: total }
+    }
+    return { count: event.currentAttendees || 0, max: event.maxAttendees ?? null }
+  }
+
   const isUserRegistered = (eventId: string) => {
     return userRegistrations.has(eventId)
   }
@@ -201,6 +247,20 @@ export default function PublicEventsPage() {
             event={selectedEvent}
             isRegistered={selectedEvent ? isUserRegistered(selectedEvent._id) : false}
             registrationStatus={selectedEvent ? getRegistrationStatus(selectedEvent._id) : undefined}
+          />
+
+          <VenueTierCartModal
+            isOpen={showVenueTierCartModal}
+            onClose={() => { setShowVenueTierCartModal(false); setVenueTierEvent(null) }}
+            event={venueTierEvent}
+            onSuccess={() => {
+              setShowVenueTierCartModal(false)
+              setVenueTierEvent(null)
+              handleRegistrationSuccess()
+            }}
+            onFailure={() => {
+              setShowVenueTierCartModal(false)
+            }}
           />
 
           <Card>
@@ -265,7 +325,9 @@ export default function PublicEventsPage() {
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                   {events.map((event) => {
                     const isRegistered = isUserRegistered(event._id)
-                    const isEventFull = event.maxAttendees && event.currentAttendees >= event.maxAttendees
+                    const hasVenues = (event as any).venues && (event as any).venues.length > 0
+                    const { count: capacityCount, max: capacityMax } = getCapacity(event)
+                    const isEventFull = capacityMax !== null ? capacityCount >= capacityMax : false
                     const canRegister = event.isActive && !isEventFull && !isRegistered
 
                     return (
@@ -304,24 +366,32 @@ export default function PublicEventsPage() {
                             
                             <div className="flex items-center gap-2">
                               <MapPin className="w-4 h-4 text-muted-foreground" />
-                              <span className="line-clamp-1">{event.venue}</span>
+                              <span className="line-clamp-1">{getVenueDisplay(event)}</span>
                             </div>
                             
                             <div className="flex items-center gap-2">
                               <Users className="w-4 h-4 text-muted-foreground" />
                               <span>
-                                {event.currentAttendees}
-                                {event.maxAttendees ? ` / ${event.maxAttendees}` : ''} attendees
+                                {capacityCount}
+                                {capacityMax !== null ? ` / ${capacityMax}` : ''} attendees
                                 {isEventFull && <span className="text-red-600 font-medium"> (FULL)</span>}
                               </span>
                             </div>
                             
-                            {event.ticketPrice > 0 && (
+                            {hasVenues ? (
+                              <div className="flex items-center gap-2">
+                                <Ticket className="w-4 h-4 text-muted-foreground" />
+                                <span className="text-sm font-medium text-primary">
+                                  {getMatrixPriceDisplay(event)}
+                                </span>
+                                <Badge variant="outline" className="text-xs">Multi-venue</Badge>
+                              </div>
+                            ) : event.ticketPrice > 0 ? (
                               <div className="flex items-center gap-2">
                                 <Ticket className="w-4 h-4 text-muted-foreground" />
                                 <span>₹{event.ticketPrice}</span>
                               </div>
-                            )}
+                            ) : null}
                             
                             {event.memberOnly && (
                               <div className="flex items-center gap-2">
