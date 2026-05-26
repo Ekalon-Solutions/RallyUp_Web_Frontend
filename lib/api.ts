@@ -267,6 +267,33 @@ export interface Chant {
   updatedAt: string;
 }
 
+export interface VenueClubAllocation {
+  clubName: string;
+  allocation: number;
+  sold: number;
+}
+
+export interface VenueTier {
+  _id: string;
+  name: string;
+  price: number;
+  allocation: number;
+  sold: number;
+  clubAllocations?: VenueClubAllocation[];
+}
+
+export interface EventVenue {
+  _id: string;
+  name: string;
+  tiers: VenueTier[];
+}
+
+export interface VenueTierCartItem {
+  venueId: string;
+  tierId: string;
+  quantity: number;
+}
+
 export interface Event {
   eventDate: string;
   eventTime: string;
@@ -294,6 +321,14 @@ export interface Event {
     registrationDate: string;
     status: 'confirmed' | 'pending' | 'cancelled';
     notes?: string;
+    venueItems?: Array<{
+      venueId: string;
+      venueName: string;
+      tierId: string;
+      tierName: string;
+      quantity: number;
+      price: number;
+    }>;
   }>;
   currentAttendees: number;
   earlyBirdDiscount?: {
@@ -303,11 +338,20 @@ export interface Event {
     startTime: string,
     endTime: string,
   }
+  attendancePoints?: number;
   waitlist?: {
     enabled: boolean;
     percentage: number;
     purchaseWindowHours: number;
   }
+  jointScreening?: {
+    enabled: boolean;
+    homeTeam?: string;
+    awayTeam?: string;
+    partnerClubNames?: string[];
+  };
+  venues?: EventVenue[];
+  currency?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -559,6 +603,10 @@ export interface MembershipPlan {
     prioritySupport: boolean;
     apiAccess: boolean;
     customIntegrations: boolean;
+  };
+  referralReward?: {
+    enabled: boolean;
+    points: number;
   };
   isActive: boolean;
   club: string;
@@ -842,6 +890,24 @@ class ApiClient {
       method: 'POST',
       body: JSON.stringify(data),
     });
+  }
+
+  async getScanPreview(registrationId: string, attendeeId: string): Promise<ApiResponse<{
+    attendeeName: string;
+    attendeePhone: string;
+    attended: boolean;
+    eventTitle: string;
+    eventVenue: string;
+    eventId: string;
+    registrationId: string;
+    attendeeId: string;
+    venueItems: Array<{ venueId: string; venueName: string; tierId: string; tierName: string; quantity: number; price: number }>;
+  }>> {
+    const params = new URLSearchParams({ registrationId, attendeeId });
+    const res = await this.request<any>(`/events/scan-preview?${params.toString()}`);
+    if (!res.success) return res;
+    // Backend returns { success: true, data: {...} }; unwrap the nested data layer
+    return { success: true, data: res.data?.data ?? res.data };
   }
 
   async userRegister(data: {
@@ -1419,16 +1485,20 @@ class ApiClient {
     description: string;
     maxAttendees?: number;
     ticketPrice: number;
+    currency?: string;
     requiresTicket: boolean;
     memberOnly: boolean;
     clubId?: string;
-    awayDayEvent: boolean;
+    awayDayEvent?: boolean;
     bookingStartTime?: string;
     bookingEndTime?: string;
+    attendancePoints?: number;
     earlyBirdDiscount?: any;
     memberDiscount?: any;
     groupDiscount?: any;
     waitlist?: { enabled: boolean; percentage?: number; purchaseWindowHours?: number };
+    venues?: Array<{ name: string; tiers: Array<{ name: string; price: number; allocation: number; clubAllocations?: Array<{ clubName: string; allocation: number }> }> }>;
+    jointScreening?: { enabled: boolean; homeTeam?: string; awayTeam?: string; partnerClubNames?: string[] };
   }): Promise<ApiResponse<{ message: string; event: Event }>> {
     return this.request('/events', {
       method: 'POST',
@@ -1445,11 +1515,17 @@ class ApiClient {
     description?: string;
     maxAttendees?: number;
     ticketPrice?: number;
+    currency?: string;
     requiresTicket?: boolean;
     memberOnly?: boolean;
     clubId?: string;
     awayDayEvent?: boolean;
+    bookingStartTime?: string;
+    bookingEndTime?: string;
+    attendancePoints?: number;
     waitlist?: { enabled?: boolean; percentage?: number; purchaseWindowHours?: number };
+    venues?: Array<{ name: string; tiers: Array<{ name: string; price: number; allocation: number; clubAllocations?: Array<{ clubName: string; allocation: number }> }> }>;
+    jointScreening?: { enabled: boolean; homeTeam?: string; awayTeam?: string; partnerClubNames?: string[] };
   }): Promise<ApiResponse<{ message: string; event: Event }>> {
     return this.request(`/events/${id}`, {
       method: 'PUT',
@@ -1485,10 +1561,10 @@ class ApiClient {
     });
   }
 
-  async registerForEvent(eventId: string, notes?: string, attendees?: Array<{ name: string; phone: string }>, couponCode?: string | null, orderID?: string, paymentID?: string, signature?: string, waitlistToken?: string, reservationToken?: string, amountPaid?: number, couponDiscount?: number, earlyBirdDiscountAmt?: number, pointsDiscount?: number): Promise<ApiResponse<{ message: string; event: Event }>> {
+  async registerForEvent(eventId: string, notes?: string, attendees?: Array<{ name: string; phone: string }>, couponCode?: string | null, orderID?: string, paymentID?: string, signature?: string, waitlistToken?: string, reservationToken?: string, amountPaid?: number, couponDiscount?: number, earlyBirdDiscountAmt?: number, pointsDiscount?: number, attributed_club?: string): Promise<ApiResponse<{ message: string; event: Event }>> {
     return this.request(`/events/${eventId}/register`, {
       method: 'POST',
-      body: JSON.stringify({ notes, attendees, couponCode, orderID, paymentID, signature, waitlistToken, reservationToken, amountPaid, couponDiscount, earlyBirdDiscountAmt, pointsDiscount }),
+      body: JSON.stringify({ notes, attendees, couponCode, orderID, paymentID, signature, waitlistToken, reservationToken, amountPaid, couponDiscount, earlyBirdDiscountAmt, pointsDiscount, attributed_club }),
     });
   }
 
@@ -1507,6 +1583,7 @@ class ApiClient {
     couponDiscount?: number;
     earlyBirdDiscountAmt?: number;
     pointsDiscount?: number;
+    attributed_club?: string;
   }): Promise<ApiResponse<{ message: string; event: Event }>> {
     return this.request(`/events/public/${eventId}/register`, {
       method: 'POST',
@@ -1524,6 +1601,7 @@ class ApiClient {
     couponDiscount?: number;
     earlyBirdDiscountAmt?: number;
     pointsDiscount?: number;
+    attributed_club?: string;
   }): Promise<ApiResponse<{ pendingRegistrationId?: string }>> {
     return this.request(`/events/${eventId}/register/pending`, {
       method: 'POST',
@@ -1543,8 +1621,54 @@ class ApiClient {
     couponDiscount?: number;
     earlyBirdDiscountAmt?: number;
     pointsDiscount?: number;
+    attributed_club?: string;
   }): Promise<ApiResponse<{ pendingRegistrationId?: string }>> {
     return this.request(`/events/public/${eventId}/register/pending`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getRevenueReconciliation(clubId?: string, attributed_club?: string): Promise<ApiResponse<any[]>> {
+    const params = new URLSearchParams();
+    if (clubId) params.set('clubId', clubId);
+    if (attributed_club) params.set('attributed_club', attributed_club);
+    const qs = params.toString();
+    return this.request(`/events/revenue-reconciliation${qs ? `?${qs}` : ''}`);
+  }
+
+  async bookVenueTierMatrix(eventId: string, data: {
+    items: VenueTierCartItem[];
+    attendees?: Array<{ name: string; phone: string }>;
+    razorpayOrderId?: string;
+    paymentId?: string;
+    amountPaid?: number;
+    reservationToken?: string;
+    couponCode?: string;
+    couponDiscount?: number;
+    earlyBirdDiscountAmt?: number;
+    pointsDiscount?: number;
+    attributed_club?: string;
+  }): Promise<ApiResponse<{ message: string; event: Event }>> {
+    return this.request(`/events/${eventId}/book-matrix`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async createPendingVenueTierBooking(eventId: string, data: {
+    items: VenueTierCartItem[];
+    attendees?: Array<{ name: string; phone: string }>;
+    razorpayOrderId: string;
+    amountPaid: number;
+    reservationToken?: string;
+    couponCode?: string;
+    couponDiscount?: number;
+    earlyBirdDiscountAmt?: number;
+    pointsDiscount?: number;
+    attributed_club?: string;
+  }): Promise<ApiResponse<{ registrationId: string }>> {
+    return this.request(`/events/${eventId}/book-matrix/pending`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -2269,9 +2393,22 @@ class ApiClient {
     });
   }
 
+  async getActiveMembersPerPlan(clubId: string): Promise<ApiResponse<Record<string, number>>> {
+    return this.request(`/user-memberships/active-per-plan?clubId=${encodeURIComponent(clubId)}`);
+  }
+
+  async checkReferralPhone(phone: string): Promise<ApiResponse<{
+    exists: boolean;
+    isSelf?: boolean;
+    name?: string;
+  }>> {
+    return this.request(`/membership-plans/referral-check?phone=${encodeURIComponent(phone)}`);
+  }
+
   async subscribeMembershipPlan(
     planId: string,
-    payment?: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }
+    payment?: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string },
+    referralPhone?: string
   ): Promise<ApiResponse<{
     message: string;
     data: {
@@ -2279,9 +2416,12 @@ class ApiClient {
       isUpgrade: boolean;
     }
   }>> {
+    const body: any = {};
+    if (payment) body.payment = payment;
+    if (referralPhone) body.referralPhone = referralPhone;
     return this.request(`/membership-plans/${planId}/subscribe`, {
       method: 'POST',
-      body: payment ? JSON.stringify({ payment }) : undefined,
+      body: Object.keys(body).length > 0 ? JSON.stringify(body) : undefined,
     });
   }
 

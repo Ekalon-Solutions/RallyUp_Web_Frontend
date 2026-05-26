@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Save, Palette, Upload, Image as ImageIcon } from "lucide-react"
+import { Save, Palette, Image as ImageIcon } from "lucide-react"
 import { toast } from "sonner"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { apiClient } from "@/lib/api"
@@ -49,6 +49,7 @@ interface DesignSettings {
   secondaryColor: string
   fontFamily: string
   logo: string | null
+  heroImage: string | null
   motto: string
   socialMedia: {
     facebook: string
@@ -67,6 +68,7 @@ export function DesignSettingsTab() {
     secondaryColor: "#8b5cf6",
     fontFamily: "Inter",
     logo: null,
+    heroImage: null,
     motto: "",
     socialMedia: {
       facebook: "",
@@ -109,6 +111,7 @@ export function DesignSettingsTab() {
           secondaryColor: "#8b5cf6",
           fontFamily: "Inter",
           logo: null,
+          heroImage: null,
           motto: "",
           socialMedia: {
             facebook: "",
@@ -304,7 +307,7 @@ export function DesignSettingsTab() {
             Branding
           </CardTitle>
           <CardDescription>
-            Upload your club logo and set your motto
+            Upload your club logo, hero image, and set your motto
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

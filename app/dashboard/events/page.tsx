@@ -5,21 +5,21 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calendar, Search, MoreHorizontal, Edit, Trash2, MapPin, Clock, Users, Plus, Filter, Ban, CheckCircle, Radio } from "lucide-react"
+import { Calendar, Search, MoreHorizontal, Edit, Trash2, MapPin, Clock, Users, Plus, Filter, Ban, CheckCircle, Radio, ScanLine } from "lucide-react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
-import { CreateEventModal } from "@/components/modals/create-event-modal"
 import { EventRegistrationModal } from "@/components/modals/event-registration-modal"
 import { apiClient, Event } from "@/lib/api"
 import { formatDisplayDate } from "@/lib/utils"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
-import { useCallback, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
+import { useRouter } from "next/navigation"
 
 export default function EventsPage() {
+  const router = useRouter()
   const { isAdmin, user } = useAuth()
   const clubId = useRequiredClubId()
   const [events, setEvents] = useState<Event[]>([])
@@ -28,12 +28,6 @@ export default function EventsPage() {
   const [categoryFilter, setCategoryFilter] = useState<string>("all")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [timeFilter, setTimeFilter] = useState<string>("all")
-  const [currentPage, setCurrentPage] = useState(1)
-  const [totalPages, setTotalPages] = useState(1)
-
-  // Form states for add/edit event
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
-  const [editingEvent, setEditingEvent] = useState<Event | null>(null)
 
   // Registration modal states
   const [registrationModalOpen, setRegistrationModalOpen] = useState(false)
@@ -45,7 +39,7 @@ export default function EventsPage() {
     if (user && !isAdmin) {
       fetchUserRegistrations()
     }
-  }, [currentPage, searchTerm, categoryFilter, statusFilter, timeFilter, user, isAdmin, clubId])
+  }, [searchTerm, categoryFilter, statusFilter, timeFilter, user, isAdmin, clubId])
 
   const fetchEvents = async () => {
     try {
@@ -60,7 +54,6 @@ export default function EventsPage() {
       if (response.success && response.data) {
         let filteredEvents = response.data
 
-        // Apply search filter
         if (searchTerm) {
           filteredEvents = filteredEvents.filter(event =>
             event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -69,19 +62,16 @@ export default function EventsPage() {
           )
         }
 
-        // Apply category filter
         if (categoryFilter !== "all") {
           filteredEvents = filteredEvents.filter(event => event.category === categoryFilter)
         }
 
-        // Apply status filter
         if (statusFilter !== "all") {
           filteredEvents = filteredEvents.filter(event =>
             statusFilter === "active" ? event.isActive : !event.isActive
           )
         }
 
-        // Apply time filter
         if (timeFilter !== "all") {
           const now = new Date()
           filteredEvents = filteredEvents.filter(event => {
@@ -89,17 +79,15 @@ export default function EventsPage() {
             const end = event.endTime ? new Date(event.endTime) : null
             if (timeFilter === "upcoming") return start > now
             if (timeFilter === "live") return start <= now && (!end || end > now)
-            return end ? end <= now : start < now // past
+            return end ? end <= now : start < now
           })
         }
 
         setEvents(filteredEvents)
       } else {
-        // console.error("Failed to fetch events:", response.error)
         toast.error("Failed to fetch events")
       }
-    } catch (error) {
-      // console.error("Error fetching events:", error)
+    } catch {
       toast.error("Error fetching events")
     } finally {
       setLoading(false)
@@ -116,26 +104,13 @@ export default function EventsPage() {
         })
         setUserRegistrations(registrationsMap)
       }
-    } catch (error) {
-      // console.error("Error fetching user registrations:", error)
-    }
-  }
-
-  const handleRegisterForEvent = (event: Event) => {
-    setSelectedEvent(event)
-    setRegistrationModalOpen(true)
-  }
-
-  const handleRegistrationSuccess = () => {
-    fetchEvents()
-    if (user && !isAdmin) {
-      fetchUserRegistrations()
+    } catch {
+      // non-critical
     }
   }
 
   const handleDeleteEvent = async (eventId: string) => {
     if (!confirm("Are you sure you want to delete this event?")) return
-
     try {
       const response = await apiClient.deleteEvent(eventId)
       if (response.success) {
@@ -144,8 +119,7 @@ export default function EventsPage() {
       } else {
         toast.error(response.error || "Failed to delete event")
       }
-    } catch (error) {
-      // console.error("Error deleting event:", error)
+    } catch {
       toast.error("Error deleting event")
     }
   }
@@ -154,289 +128,286 @@ export default function EventsPage() {
     try {
       const response = await apiClient.toggleEventStatus(eventId, !currentStatus)
       if (response.success) {
-        toast.success(`Event ${!currentStatus ? 'activated' : 'deactivated'} successfully`)
+        toast.success(`Event ${!currentStatus ? "activated" : "deactivated"} successfully`)
         fetchEvents()
       } else {
         toast.error(response.error || "Failed to update event status")
       }
-    } catch (error) {
-      // console.error("Error toggling event status:", error)
+    } catch {
       toast.error("Error updating event status")
     }
   }
-
-  const formatDate = (dateString: string) => formatDisplayDate(dateString)
 
   const getRegistrationStatus = (eventId: string) => {
     const registration = userRegistrations.get(eventId)
     return registration ? registration.status : null
   }
 
-  const isUserRegistered = (eventId: string) => {
-    return userRegistrations.has(eventId)
+  const isUserRegistered = (eventId: string) => userRegistrations.has(eventId)
+
+  const getVenueDisplay = (event: Event) => {
+    if (event.venues && event.venues.length > 0) {
+      return event.venues.map(v => v.name).join(", ")
+    }
+    return event.venue || "—"
   }
 
   return (
     <ProtectedRoute requireAdmin={true}>
       <DashboardLayout>
         <div className="space-y-6">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div>
-                  <h1 className="text-2xl sm:text-3xl font-bold">Events Management</h1>
-                  <p className="text-muted-foreground text-sm sm:text-base">Create and manage events for your supporter group</p>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold">Events Management</h1>
+              <p className="text-muted-foreground text-sm sm:text-base">Create and manage events for your supporter group</p>
+            </div>
+            <div className="flex gap-2 w-full sm:w-auto">
+              <Button variant="outline" onClick={() => router.push("/dashboard/events/scanner")} className="flex-1 sm:flex-none">
+                <ScanLine className="w-4 h-4 mr-2" />
+                Scanner
+              </Button>
+              <Button onClick={() => router.push("/dashboard/events/create")} className="flex-1 sm:flex-none">
+                <Plus className="w-4 h-4 mr-2" />
+                Create Event
+              </Button>
+            </div>
+          </div>
+
+          {/* Event Registration Modal (member-facing) */}
+          <EventRegistrationModal
+            isOpen={registrationModalOpen}
+            onClose={() => {
+              setRegistrationModalOpen(false)
+              setSelectedEvent(null)
+            }}
+            onSuccess={() => {
+              fetchEvents()
+              if (user && !isAdmin) fetchUserRegistrations()
+            }}
+            event={selectedEvent}
+            isRegistered={selectedEvent ? isUserRegistered(selectedEvent._id) : false}
+            registrationStatus={selectedEvent ? getRegistrationStatus(selectedEvent._id) : undefined}
+          />
+
+          {/* Filters and Search */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Events</CardTitle>
+              <CardDescription>Search and filter your events</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col sm:flex-row gap-4 mb-4">
+                <div className="flex-1">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Search events..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
                 </div>
-                <Button onClick={() => setIsAddDialogOpen(true)} className="w-full sm:w-auto">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Event
-                </Button>
+                <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                  <SelectTrigger className="w-full sm:w-48">
+                    <Filter className="w-4 h-4 mr-2" />
+                    <SelectValue placeholder="Filter by category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    <SelectItem value="screenings">📺 Screenings</SelectItem>
+                    <SelectItem value="footy-meets">⚽ Footy Meets</SelectItem>
+                    <SelectItem value="tournaments">🏆 Tournaments</SelectItem>
+                    <SelectItem value="auctions">🔨 Auctions</SelectItem>
+                    <SelectItem value="club-events">🎪 Club Events</SelectItem>
+                    <SelectItem value="social-events">🎉 Social Events</SelectItem>
+                    <SelectItem value="csr-events">🤝 CSR Events</SelectItem>
+                    <SelectItem value="watch-parties">📺 Watch Parties</SelectItem>
+                    <SelectItem value="travel-days">🚌 Travel Days</SelectItem>
+                    <SelectItem value="workshops">🎓 Workshops</SelectItem>
+                    <SelectItem value="general-meeting">👥 General Meeting</SelectItem>
+                    <SelectItem value="matchday">⚽ Matchday</SelectItem>
+                    <SelectItem value="others">📅 Others</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-full sm:w-48">
+                    <Filter className="w-4 h-4 mr-2" />
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Events</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={timeFilter} onValueChange={setTimeFilter}>
+                  <SelectTrigger className="w-full sm:w-48">
+                    <Clock className="w-4 h-4 mr-2" />
+                    <SelectValue placeholder="Filter by time" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Time</SelectItem>
+                    <SelectItem value="upcoming">Upcoming</SelectItem>
+                    <SelectItem value="live">🔴 Live Now</SelectItem>
+                    <SelectItem value="past">Past</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
-              {/* Create Event Modal */}
-              <CreateEventModal
-                isOpen={isAddDialogOpen}
-                onClose={() => {
-                  setIsAddDialogOpen(false)
-                  setEditingEvent(null)
-                }}
-                onSuccess={() => {
-                  fetchEvents()
-                  setIsAddDialogOpen(false)
-                  setEditingEvent(null)
-                }}
-                editEvent={editingEvent}
-              />
-
-              {/* Event Registration Modal */}
-              <EventRegistrationModal
-                isOpen={registrationModalOpen}
-                onClose={() => {
-                  setRegistrationModalOpen(false)
-                  setSelectedEvent(null)
-                }}
-                onSuccess={handleRegistrationSuccess}
-                event={selectedEvent}
-                isRegistered={selectedEvent ? isUserRegistered(selectedEvent._id) : false}
-                registrationStatus={selectedEvent ? getRegistrationStatus(selectedEvent._id) : undefined}
-              />
-
-              {/* Filters and Search */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Events</CardTitle>
-                  <CardDescription>Search and filter your events</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-col sm:flex-row gap-4 mb-4">
-                    <div className="flex-1">
-                      <div className="relative">
-                        <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          placeholder="Search events..."
-                          value={searchTerm}
-                          onChange={(e) => setSearchTerm(e.target.value)}
-                          className="pl-10"
-                        />
-                      </div>
-                    </div>
-                    <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-                      <SelectTrigger className="w-full sm:w-48">
-                        <Filter className="w-4 h-4 mr-2" />
-                        <SelectValue placeholder="Filter by category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Categories</SelectItem>
-                        <SelectItem value="screenings">📺 Screenings</SelectItem>
-                        <SelectItem value="footy-meets">⚽ Footy Meets</SelectItem>
-                        <SelectItem value="tournaments">🏆 Tournaments</SelectItem>
-                        <SelectItem value="auctions">🔨 Auctions</SelectItem>
-                        <SelectItem value="club-events">🎪 Club Events</SelectItem>
-                        <SelectItem value="social-events">🎉 Social Events</SelectItem>
-                        <SelectItem value="csr-events">🤝 CSR Events</SelectItem>
-                        <SelectItem value="watch-parties">📺 Watch Parties</SelectItem>
-                        <SelectItem value="travel-days">🚌 Travel Days</SelectItem>
-                        <SelectItem value="workshops">🎓 Workshops</SelectItem>
-                        <SelectItem value="general-meeting">👥 General Meeting</SelectItem>
-                        <SelectItem value="matchday">⚽ Matchday</SelectItem>
-                        <SelectItem value="others">📅 Others</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Select value={statusFilter} onValueChange={setStatusFilter}>
-                      <SelectTrigger className="w-full sm:w-48">
-                        <Filter className="w-4 h-4 mr-2" />
-                        <SelectValue placeholder="Filter by status" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Events</SelectItem>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="inactive">Inactive</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Select value={timeFilter} onValueChange={setTimeFilter}>
-                      <SelectTrigger className="w-full sm:w-48">
-                        <Clock className="w-4 h-4 mr-2" />
-                        <SelectValue placeholder="Filter by time" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Time</SelectItem>
-                        <SelectItem value="upcoming">Upcoming</SelectItem>
-                        <SelectItem value="live">🔴 Live Now</SelectItem>
-                        <SelectItem value="past">Past</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="rounded-md border overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="min-w-[200px]">Event</TableHead>
-                          <TableHead className="min-w-[120px]">Category</TableHead>
-                          <TableHead className="min-w-[150px]">Date & Time</TableHead>
-                          <TableHead className="min-w-[150px]">Location</TableHead>
-                          <TableHead className="min-w-[120px]">Attendance</TableHead>
-                          <TableHead className="min-w-[100px]">Status</TableHead>
-                          <TableHead className="text-right min-w-[100px]">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {loading ? (
-                          <TableRow>
-                            <TableCell colSpan={7} className="text-center py-8">
-                              Loading events...
-                            </TableCell>
-                          </TableRow>
-                        ) : events.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={7} className="text-center py-8">
-                              No events found
-                            </TableCell>
-                          </TableRow>
-                        ) : (
-                          events.map((event) => (
-                            <TableRow key={event._id}>
-                              <TableCell>
-                                <div className="min-w-[200px]">
-                                  <div className="font-medium break-words">{event.title}</div>
-                                  <div className="text-sm text-muted-foreground line-clamp-2 break-words">
-                                    {event.description}
-                                  </div>
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <Badge variant="secondary">
-                                  {event.category.charAt(0).toUpperCase() + event.category.slice(1)}
-                                </Badge>
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-1">
-                                  <Calendar className="w-3 h-3" />
-                                  <span className="text-sm">{formatDate(event.startTime)}</span>
-                                </div>
-                                {event.endTime && (
-                                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                    <Clock className="w-3 h-3" />
-                                    <span>Ends: {formatDate(event.endTime)}</span>
-                                  </div>
+              <div className="rounded-md border overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="min-w-[200px]">Event</TableHead>
+                      <TableHead className="min-w-[120px]">Category</TableHead>
+                      <TableHead className="min-w-[150px]">Date & Time</TableHead>
+                      <TableHead className="min-w-[150px]">Location</TableHead>
+                      <TableHead className="min-w-[120px]">Attendance</TableHead>
+                      <TableHead className="min-w-[100px]">Status</TableHead>
+                      <TableHead className="text-right min-w-[100px]">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {loading ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-8">
+                          Loading events...
+                        </TableCell>
+                      </TableRow>
+                    ) : events.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-8">
+                          No events found
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      events.map((event) => (
+                        <TableRow key={event._id}>
+                          <TableCell>
+                            <div className="min-w-[200px]">
+                              <div className="font-medium break-words">{event.title}</div>
+                              <div className="text-sm text-muted-foreground line-clamp-2 break-words">
+                                {event.description}
+                              </div>
+                              {event.venues && event.venues.length > 0 && (
+                                <Badge variant="outline" className="mt-1 text-xs">Multi-venue</Badge>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="secondary">
+                              {event.category.charAt(0).toUpperCase() + event.category.slice(1)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              <Calendar className="w-3 h-3" />
+                              <span className="text-sm">{formatDisplayDate(event.startTime)}</span>
+                            </div>
+                            {event.endTime && (
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <Clock className="w-3 h-3" />
+                                <span>Ends: {formatDisplayDate(event.endTime)}</span>
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-start gap-1 min-w-[150px]">
+                              <MapPin className="w-3 h-3 flex-shrink-0 mt-0.5" />
+                              <span className="text-sm break-words">{getVenueDisplay(event)}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              <Users className="w-3 h-3" />
+                              <span className="text-sm">
+                                {event.currentAttendees}
+                                {event.maxAttendees ? ` / ${event.maxAttendees}` : ""}
+                                {event.maxAttendees != null && event.currentAttendees >= event.maxAttendees && (
+                                  <span className="text-red-600 font-medium"> (FULL)</span>
                                 )}
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-1 min-w-[150px]">
-                                  <MapPin className="w-3 h-3 flex-shrink-0" />
-                                  <span className="text-sm break-words">{event.venue}</span>
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex items-center gap-1">
-                                  <Users className="w-3 h-3" />
-                                  <span className="text-sm">
-                                    {event.currentAttendees}
-                                    {event.maxAttendees ? ` / ${event.maxAttendees}` : ''}
-                                    {event.maxAttendees && event.currentAttendees >= event.maxAttendees && (
-                                      <span className="text-red-600 font-medium"> (FULL)</span>
-                                    )}
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-col gap-1">
+                              <Badge variant={event.isActive ? "default" : "secondary"}>
+                                {event.isActive ? "Active" : "Inactive"}
+                              </Badge>
+                              {(() => {
+                                const now = new Date()
+                                const start = new Date(event.startTime)
+                                const end = event.endTime ? new Date(event.endTime) : null
+                                return start <= now && (!end || end > now) ? (
+                                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-600">
+                                    <Radio className="w-3 h-3" />
+                                    LIVE
                                   </span>
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                <div className="flex flex-col gap-1">
-                                  <Badge variant={event.isActive ? "default" : "secondary"}>
-                                    {event.isActive ? "Active" : "Inactive"}
-                                  </Badge>
-                                  {(() => {
-                                    const now = new Date()
-                                    const start = new Date(event.startTime)
-                                    const end = event.endTime ? new Date(event.endTime) : null
-                                    const isLive = start <= now && (!end || end > now)
-                                    return isLive ? (
-                                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-green-600">
-                                        <Radio className="w-3 h-3" />
-                                        LIVE
-                                      </span>
-                                    ) : null
-                                  })()}
-                                </div>
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <div className="flex items-center justify-end gap-2">
-                                  {/* Registration Button for Users */}
-                                  {!isAdmin && event.isActive && (
-                                    <Button
-                                      size="sm"
-                                      variant={isUserRegistered(event._id) ? "outline" : "default"}
-                                      onClick={() => handleRegisterForEvent(event)}
-                                      disabled={event.maxAttendees && event.currentAttendees >= event.maxAttendees}
-                                    >
-                                      {isUserRegistered(event._id) ? "Registered" : "Register"}
+                                ) : null
+                              })()}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              {!isAdmin && event.isActive && (
+                                <Button
+                                  size="sm"
+                                  variant={isUserRegistered(event._id) ? "outline" : "default"}
+                                  onClick={() => { setSelectedEvent(event); setRegistrationModalOpen(true) }}
+                                  disabled={event.maxAttendees != null && event.currentAttendees >= event.maxAttendees}
+                                >
+                                  {isUserRegistered(event._id) ? "Registered" : "Register"}
+                                </Button>
+                              )}
+
+                              {isAdmin && (
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" className="h-8 w-8 p-0">
+                                      <MoreHorizontal className="h-4 w-4" />
                                     </Button>
-                                  )}
-                                  
-                                  {/* Admin Actions */}
-                                  {isAdmin && (
-                                    <DropdownMenu>
-                                      <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" className="h-8 w-8 p-0">
-                                          <MoreHorizontal className="h-4 w-4" />
-                                        </Button>
-                                      </DropdownMenuTrigger>
-                                      <DropdownMenuContent align="end">
-                                        <DropdownMenuItem onClick={() => {
-                                          setEditingEvent(event)
-                                          setIsAddDialogOpen(true)
-                                        }}>
-                                          <Edit className="w-4 h-4 mr-2" />
-                                          Edit
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => handleToggleStatus(event._id, event.isActive)}>
-                                          {event.isActive ? (
-                                            <>
-                                              <Ban className="w-4 h-4 mr-2" />
-                                              Deactivate
-                                            </>
-                                          ) : (
-                                            <>
-                                              <CheckCircle className="w-4 h-4 mr-2" />
-                                              Activate
-                                            </>
-                                          )}
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => handleDeleteEvent(event._id)}>
-                                          <Trash2 className="w-4 h-4 mr-2" />
-                                          Delete
-                                        </DropdownMenuItem>
-                                      </DropdownMenuContent>
-                                    </DropdownMenu>
-                                  )}
-                                </div>
-                              </TableCell>
-                            </TableRow>
-                          ))
-                        )}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => router.push(`/dashboard/events/create?edit=${event._id}`)}>
+                                      <Edit className="w-4 h-4 mr-2" />
+                                      Edit
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => router.push(`/dashboard/events/scanner?eventId=${event._id}`)}>
+                                      <ScanLine className="w-4 h-4 mr-2" />
+                                      Scan QR
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleToggleStatus(event._id, event.isActive)}>
+                                      {event.isActive ? (
+                                        <>
+                                          <Ban className="w-4 h-4 mr-2" />
+                                          Deactivate
+                                        </>
+                                      ) : (
+                                        <>
+                                          <CheckCircle className="w-4 h-4 mr-2" />
+                                          Activate
+                                        </>
+                                      )}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleDeleteEvent(event._id)}>
+                                      <Trash2 className="w-4 h-4 mr-2" />
+                                      Delete
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </DashboardLayout>
     </ProtectedRoute>
   )

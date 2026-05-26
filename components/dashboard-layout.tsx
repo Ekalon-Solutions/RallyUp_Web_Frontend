@@ -369,6 +369,18 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { user, logout, isAdmin, activeClubId, setActiveClubId } = useAuth()
+
+  // Prevent body scroll so only the inner <main> scrolls (avoids double scrollbar)
+  useEffect(() => {
+    document.documentElement.style.overflow = "hidden"
+    document.body.style.overflow = "hidden"
+    return () => {
+      document.documentElement.style.overflow = ""
+      document.body.style.overflow = ""
+    }
+  }, [])
+
+  // Storage alert state (admin/super_admin only)
   const [storageAlertStatus, setStorageAlertStatus] = useState<StorageAlertStatus | null>(null)
   const [storageBannerDismissed, setStorageBannerDismissed] = useState(false)
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false)

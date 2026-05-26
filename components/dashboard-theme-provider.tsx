@@ -11,6 +11,8 @@ export function DashboardThemeProvider() {
     if (pathname.startsWith("/dashboard")) {
       html.classList.add("dashboard-theme")
       html.classList.remove("public-page")
+    } else if (pathname.startsWith("/clubs/")) {
+      html.classList.remove("public-page", "dashboard-theme")
     } else {
       html.classList.add("public-page")
       html.classList.remove("dashboard-theme")

@@ -42,6 +42,7 @@ import EventDetailsModal from "@/components/modals/event-details-modal";
 import UserEventRegistrationModal from "@/components/modals/user-event-registration-modal";
 import { EventCheckoutModal } from "@/components/modals/event-checkout-modal";
 import { RefundConfirmationModal } from "@/components/modals/refund-confirmation-modal";
+import { VenueTierCartModal } from "@/components/modals/venue-tier-cart-modal";
 
 const eventCategories = [
   "all",
@@ -177,6 +178,8 @@ function UserEventsPageInner() {
   const [refundEstimate, setRefundEstimate] = useState<any | null>(null);
   const [refundModalLoading, setRefundModalLoading] = useState(false);
   const [refundModalError, setRefundModalError] = useState<string | null>(null);
+  const [showVenueTierCartModal, setShowVenueTierCartModal] = useState(false);
+  const [venueTierEvent, setVenueTierEvent] = useState<Event | null>(null);
 
   useEffect(() => {
     fetchEvents();
@@ -267,8 +270,18 @@ function UserEventsPageInner() {
       return;
     }
     const event = events.find(e => e._id === eventId);
+    if (!event) return;
+
+    // Matrix events: skip registration modal — attendee collection is inline in cart
+    if (event.venues && event.venues.length > 0) {
+      setVenueTierEvent(event);
+      setShowVenueTierCartModal(true);
+      return;
+    }
+
+    // Standard events: registration modal first
     setRegistrationEventId(eventId);
-    setRegistrationEvent(event || null);
+    setRegistrationEvent(event);
     setShowRegistrationModal(true);
   };
 
@@ -329,6 +342,15 @@ function UserEventsPageInner() {
       toast.error("Event not found. Please refresh and try again.");
       return;
     }
+
+    // Multi-venue/tier matrix event → open cart modal (attendee collection is inline)
+    if (event.venues && event.venues.length > 0) {
+      setVenueTierEvent(event);
+      setShowVenueTierCartModal(true);
+      return;
+    }
+
+    // Standard single-ticket event → existing checkout flow
     if (payload.couponCode) {
       setCouponForPayment({ code: payload.couponCode, discount: 0 });
     } else {
@@ -377,14 +399,40 @@ function UserEventsPageInner() {
     const symbol = currencySymbols[c] || `${c} `;
     return `${symbol}${Number(amount || 0).toLocaleString()}`;
   };
-  const getAttendancePercentage = (current: number, max: number) => {
-    return Math.round((current / max) * 100);
+  const getCapacity = (event: Event): { count: number; max: number | null } => {
+    if (event.venues?.length) {
+      let total = 0, sold = 0;
+      for (const v of event.venues) {
+        for (const t of v.tiers) {
+          total += t.allocation ?? 0;
+          sold += t.sold ?? 0;
+        }
+      }
+      return { count: sold, max: total };
+    }
+    return { count: event.currentAttendees || 0, max: event.maxAttendees ?? null };
   };
 
   const isEventFull = (event: Event) => {
-    return event.maxAttendees
-      ? event.currentAttendees >= event.maxAttendees
-      : false;
+    const { count, max } = getCapacity(event);
+    return max !== null ? count >= max : false;
+  };
+
+  const getVenueDisplay = (event: Event) => {
+    if (event.venues && event.venues.length > 0) {
+      return event.venues.map(v => v.name).join(", ");
+    }
+    return event.venue || "—";
+  };
+
+  const getMatrixPriceDisplay = (event: Event): string | null => {
+    if (!event.venues?.length) return null;
+    const allPrices = event.venues.flatMap(v => v.tiers.map(t => t.price));
+    if (!allPrices.length) return null;
+    const min = Math.min(...allPrices);
+    const max = Math.max(...allPrices);
+    const sym = currencySymbols[event.currency ?? "INR"] ?? (event.currency + " ");
+    return min === max ? `${sym}${min.toLocaleString()}` : `${sym}${min.toLocaleString()} – ${sym}${max.toLocaleString()}`;
   };
 
   const isEventUpcoming = (event: Event) => {
@@ -671,7 +719,7 @@ function UserEventsPageInner() {
                           </div>
                           <div className="flex items-center gap-2">
                             <MapPin className="w-4 h-4 text-muted-foreground" />
-                            <span className="truncate">{event.venue}</span>
+                            <span className="truncate">{getVenueDisplay(event)}</span>
                           </div>
                         </div>
                         <div className="pt-2">
@@ -777,73 +825,61 @@ function UserEventsPageInner() {
                           )}
                           <div className="flex items-center gap-2">
                             <MapPin className="w-4 h-4 text-muted-foreground" />
-                            <span className="truncate">{event.venue}</span>
+                            <span className="truncate">{getVenueDisplay(event)}</span>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Users className="w-4 h-4 text-muted-foreground" />
-                            <span className="text-xs">
-                              {event.currentAttendees}
-                              {event.maxAttendees
-                                ? `/${event.maxAttendees}`
-                                : ""}{" "}
-                              attendees
-                            </span>
-                          </div>
-                          {event.ticketPrice && (
+                          {(() => {
+                            const { count, max } = getCapacity(event);
+                            return (
+                              <div className="flex items-center gap-2">
+                                <Users className="w-4 h-4 text-muted-foreground" />
+                                <span className="text-xs">
+                                  {count}{max !== null ? `/${max}` : ""} attendees
+                                </span>
+                              </div>
+                            );
+                          })()}
+                          {event.venues?.length ? (
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-primary">
+                                {getMatrixPriceDisplay(event)}
+                              </span>
+                              <Badge variant="outline" className="text-xs">Multi-venue</Badge>
+                            </div>
+                          ) : event.ticketPrice ? (
                             <div className="flex items-center gap-2">
                               <span className="text-sm font-medium text-primary">
                                 Price: {formatCurrency(event.ticketPrice, (event as any).currency)}
                               </span>
                             </div>
-                          )}
+                          ) : null}
                         </div>
 
-                        {/* Attendance Progress Bar */}
-                        <div className="space-y-1">
-                          <div className="flex justify-between text-xs text-muted-foreground">
-                            <span>Capacity</span>
-                            {event.maxAttendees && (
-                              <span>
-                                {getAttendancePercentage(
-                                  event.currentAttendees || 0,
-                                  event.maxAttendees
-                                )}
-                                %
-                              </span>
-                            )}
-                          </div>
-                          {event.maxAttendees ? (
-                            <div className="w-full bg-gray-200 rounded-full h-2">
-                              <div
-                                className={`h-2 rounded-full transition-all ${getAttendancePercentage(
-                                  event.currentAttendees || 0,
-                                  event.maxAttendees
-                                ) >= 90
-                                  ? "bg-red-500"
-                                  : getAttendancePercentage(
-                                    event.currentAttendees || 0,
-                                    event.maxAttendees
-                                  ) >= 75
-                                    ? "bg-yellow-500"
-                                    : "bg-green-500"
-                                  }`}
-                                style={{
-                                  width: `${Math.min(
-                                    getAttendancePercentage(
-                                      event.currentAttendees || 0,
-                                      event.maxAttendees
-                                    ),
-                                    100
-                                  )}%`,
-                                }}></div>
+                        {/* Capacity */}
+                        {(() => {
+                          const { count, max } = getCapacity(event);
+                          const pct = max !== null ? Math.min(Math.round((count / max) * 100), 100) : 0;
+                          return (
+                            <div className="space-y-1">
+                              <div className="flex justify-between text-xs text-muted-foreground">
+                                <span>Capacity</span>
+                                {max !== null && <span>{pct}%</span>}
+                              </div>
+                              {max !== null ? (
+                                <div className="w-full bg-gray-200 rounded-full h-2">
+                                  <div
+                                    className={`h-2 rounded-full transition-all ${pct >= 90 ? "bg-red-500" : pct >= 75 ? "bg-yellow-500" : "bg-green-500"}`}
+                                    style={{ width: `${pct}%` }}
+                                  />
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                  <InfinityIcon className="h-3 w-3" />
+                                  <span>Unlimited capacity</span>
+                                </div>
+                              )}
                             </div>
-                          ) : (
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <InfinityIcon className="h-3 w-3" />
-                              <span>Unlimited capacity</span>
-                            </div>
-                          )}
-                        </div>
+                          );
+                        })()}
 
                         <div className="pt-2">
                           {(() => {
@@ -1005,66 +1041,47 @@ function UserEventsPageInner() {
                           </div>
                           <div className="flex items-center gap-2">
                             <MapPin className="w-4 h-4 text-muted-foreground" />
-                            <span className="truncate">{event.venue}</span>
+                            <span className="truncate">{getVenueDisplay(event)}</span>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Users className="w-4 h-4 text-muted-foreground" />
-                            <span className="text-xs">
-                              {event.currentAttendees}
-                              {event.maxAttendees
-                                ? `/${event.maxAttendees}`
-                                : ""}{" "}
-                              attendees
-                            </span>
-                          </div>
+                          {(() => {
+                            const { count, max } = getCapacity(event);
+                            return (
+                              <div className="flex items-center gap-2">
+                                <Users className="w-4 h-4 text-muted-foreground" />
+                                <span className="text-xs">
+                                  {count}{max !== null ? `/${max}` : ""} attendees
+                                </span>
+                              </div>
+                            );
+                          })()}
                         </div>
 
-                        {/* Attendance Progress Bar */}
-                        <div className="space-y-1">
-                          <div className="flex justify-between text-xs text-muted-foreground">
-                            <span>Capacity</span>
-                            {event.maxAttendees && (
-                              <span>
-                                {getAttendancePercentage(
-                                  event.currentAttendees || 0,
-                                  event.maxAttendees
-                                )}
-                                %
-                              </span>
-                            )}
-                          </div>
-                          {event.maxAttendees ? (
-                            <div className="w-full bg-gray-200 rounded-full h-2">
-                              <div
-                                className={`h-2 rounded-full transition-all ${getAttendancePercentage(
-                                  event.currentAttendees || 0,
-                                  event.maxAttendees
-                                ) >= 90
-                                  ? "bg-red-500"
-                                  : getAttendancePercentage(
-                                    event.currentAttendees || 0,
-                                    event.maxAttendees
-                                  ) >= 75
-                                    ? "bg-yellow-500"
-                                    : "bg-green-500"
-                                  }`}
-                                style={{
-                                  width: `${Math.min(
-                                    getAttendancePercentage(
-                                      event.currentAttendees || 0,
-                                      event.maxAttendees
-                                    ),
-                                    100
-                                  )}%`,
-                                }}></div>
+                        {/* Capacity */}
+                        {(() => {
+                          const { count, max } = getCapacity(event);
+                          const pct = max !== null ? Math.min(Math.round((count / max) * 100), 100) : 0;
+                          return (
+                            <div className="space-y-1">
+                              <div className="flex justify-between text-xs text-muted-foreground">
+                                <span>Capacity</span>
+                                {max !== null && <span>{pct}%</span>}
+                              </div>
+                              {max !== null ? (
+                                <div className="w-full bg-gray-200 rounded-full h-2">
+                                  <div
+                                    className={`h-2 rounded-full transition-all ${pct >= 90 ? "bg-red-500" : pct >= 75 ? "bg-yellow-500" : "bg-green-500"}`}
+                                    style={{ width: `${pct}%` }}
+                                  />
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                                  <InfinityIcon className="h-3 w-3" />
+                                  <span>Unlimited capacity</span>
+                                </div>
+                              )}
                             </div>
-                          ) : (
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <InfinityIcon className="h-3 w-3" />
-                              <span>Unlimited capacity</span>
-                            </div>
-                          )}
-                        </div>
+                          );
+                        })()}
                         <div className="pt-2">
                           <Button variant="outline" className="w-full" disabled>
                             Event Ended
@@ -1143,6 +1160,19 @@ function UserEventsPageInner() {
           }}
         />
       )}
+      <VenueTierCartModal
+        isOpen={showVenueTierCartModal}
+        onClose={() => { setShowVenueTierCartModal(false); setVenueTierEvent(null); }}
+        event={venueTierEvent}
+        onSuccess={() => {
+          setShowVenueTierCartModal(false);
+          setVenueTierEvent(null);
+          fetchEvents();
+        }}
+        onFailure={() => {
+          setShowVenueTierCartModal(false);
+        }}
+      />
     </ProtectedRoute>
   );
 }

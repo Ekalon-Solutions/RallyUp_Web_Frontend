@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback, useMemo } from "react"
+import React, { useState, useEffect, useCallback, useMemo } from "react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -20,7 +20,7 @@ import {
   setWebsiteOptionEnabled,
 } from "@/lib/websiteSections"
 import { toast } from "sonner"
-import { Loader2, ExternalLink } from "lucide-react"
+import { Loader2, ExternalLink, Image as ImageIcon } from "lucide-react"
 
 export default function WebsitePage() {
   const { user } = useAuth()
@@ -66,6 +66,7 @@ export default function WebsitePage() {
     secondaryColor: "#8b5cf6",
     fontFamily: "Inter",
     logo: null as string | null,
+    heroImage: null as string | null,
     motto: "",
   })
 
@@ -86,6 +87,7 @@ export default function WebsitePage() {
           secondaryColor: currentDesignSettings.secondaryColor || "#8b5cf6",
           fontFamily: currentDesignSettings.fontFamily || "Inter",
           logo: currentDesignSettings.logo || null,
+          heroImage: currentDesignSettings.heroImage || null,
           motto: currentDesignSettings.motto || "",
         })
 
@@ -123,6 +125,22 @@ export default function WebsitePage() {
       ...prev,
       navigation: setWebsiteOptionEnabled(prev.navigation, option, checked),
     }))
+  }
+
+  const handleHeroImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      toast.error("Please upload an image file (JPG, PNG)")
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("File size must be less than 5MB")
+      return
+    }
+    const reader = new FileReader()
+    reader.onloadend = () => setDesignSettings((prev) => ({ ...prev, heroImage: reader.result as string }))
+    reader.readAsDataURL(file)
   }
 
   const handleSave = async () => {
@@ -318,6 +336,38 @@ export default function WebsitePage() {
                   rows={8}
                   className="resize-none text-lg border-2 p-4"
                 />
+              </div>
+
+              <div className="grid gap-4">
+                <Label className="text-base font-bold flex items-center gap-2">
+                  <ImageIcon className="h-4 w-4" />
+                  Hero Image
+                </Label>
+                {designSettings.heroImage && (
+                  <div className="relative w-full max-w-lg h-40 rounded-xl overflow-hidden border-2">
+                    <img src={designSettings.heroImage} alt="Hero" className="w-full h-full object-cover" />
+                  </div>
+                )}
+                <div className="flex items-center gap-4">
+                  <Input
+                    id="heroImage"
+                    type="file"
+                    accept="image/png,image/jpeg,image/jpg"
+                    onChange={handleHeroImageUpload}
+                    className="cursor-pointer h-12 border-2 flex-1"
+                  />
+                  {designSettings.heroImage && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setDesignSettings((prev) => ({ ...prev, heroImage: null }))}
+                      className="h-12 border-2 font-bold shrink-0"
+                    >
+                      Remove
+                    </Button>
+                  )}
+                </div>
+                <p className="text-sm text-muted-foreground">PNG or JPG (max 5MB). Recommended aspect ratio 16:9.</p>
               </div>
             </CardContent>
           </Card>

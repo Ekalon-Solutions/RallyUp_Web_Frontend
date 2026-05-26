@@ -17,7 +17,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
-import { Plus, CreditCard, Users, Calendar, Edit, Trash2 } from "lucide-react"
+import { Plus, CreditCard, Users, Calendar, Edit, Trash2, Gift, TrendingUp } from "lucide-react"
+import { Switch } from "@/components/ui/switch"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api"
@@ -44,6 +45,7 @@ interface MembershipPlan {
     apiAccess: boolean
     customIntegrations: boolean
   }
+  referralReward?: { enabled: boolean; points: number }
   isActive: boolean
   createdAt: string
 }
@@ -65,6 +67,7 @@ export default function MembershipPlansPage() {
   const [isDeleting, setIsDeleting] = useState(false)
   const [isUpdating, setIsUpdating] = useState(false)
   const [plansWithCards, setPlansWithCards] = useState<Set<string>>(new Set())
+  const [activeMembersPerPlan, setActiveMembersPerPlan] = useState<Record<string, number>>({})
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -72,6 +75,8 @@ export default function MembershipPlansPage() {
     currency: "INR",
     planStartDate: "",
     planEndDate: "",
+    referralRewardEnabled: false,
+    referralRewardPoints: 0,
     features: {
       maxEvents: 10,
       maxNews: 5,
@@ -122,6 +127,9 @@ export default function MembershipPlansPage() {
 
         if (clubId) {
           await loadPlansWithCards(clubId, plansData)
+          apiClient.getActiveMembersPerPlan(clubId).then((r) => {
+            if (r.success && r.data) setActiveMembersPerPlan(r.data)
+          }).catch(() => {})
         }
       } else {
         const errorDetails = (response as any).errorDetails || {}
@@ -260,6 +268,10 @@ export default function MembershipPlansPage() {
       const payload: any = { ...formData, clubId: activeClubId }
       if (formData.planStartDate) payload.planStartDate = formData.planStartDate
       if (formData.planEndDate) payload.planEndDate = formData.planEndDate
+      payload.referralReward = {
+        enabled: formData.referralRewardEnabled,
+        points: formData.referralRewardEnabled ? Math.max(0, Math.floor(formData.referralRewardPoints)) : 0,
+      }
       const response = await (apiClient as any).createMembershipPlan(payload)
 
       if (response.success) {
@@ -272,6 +284,8 @@ export default function MembershipPlansPage() {
           currency: "USD",
           planStartDate: "",
           planEndDate: "",
+          referralRewardEnabled: false,
+          referralRewardPoints: 0,
           features: {
             maxEvents: 10,
             maxNews: 5,
@@ -393,6 +407,8 @@ export default function MembershipPlansPage() {
       currency: plan.currency,
       planStartDate: toDateInputValue(plan.planStartDate),
       planEndDate: toDateInputValue(plan.planEndDate),
+      referralRewardEnabled: plan.referralReward?.enabled ?? false,
+      referralRewardPoints: plan.referralReward?.points ?? 0,
       features: {
         maxEvents: plan.features.maxEvents,
         maxNews: plan.features.maxNews,
@@ -480,6 +496,10 @@ export default function MembershipPlansPage() {
       const updatePayload: any = { ...formData }
       if (formData.planStartDate) updatePayload.planStartDate = formData.planStartDate
       if (formData.planEndDate) updatePayload.planEndDate = formData.planEndDate
+      updatePayload.referralReward = {
+        enabled: formData.referralRewardEnabled,
+        points: formData.referralRewardEnabled ? Math.max(0, Math.floor(formData.referralRewardPoints)) : 0,
+      }
       const response = await apiClient.updateMembershipPlan(editingPlan._id, updatePayload)
 
       if (response.success) {
@@ -493,6 +513,8 @@ export default function MembershipPlansPage() {
           currency: "USD",
           planStartDate: "",
           planEndDate: "",
+          referralRewardEnabled: false,
+          referralRewardPoints: 0,
           features: {
             maxEvents: 10,
             maxNews: 5,
@@ -727,6 +749,37 @@ export default function MembershipPlansPage() {
                       </div>
                     </div>
 
+                    <div className="border-t pt-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="font-semibold text-foreground flex items-center gap-1.5">
+                            <Gift className="w-4 h-4" />
+                            Referral Rewards
+                          </h3>
+                          <p className="text-xs text-muted-foreground mt-0.5">Award points to members who refer new sign-ups on this plan</p>
+                        </div>
+                        <Switch
+                          checked={formData.referralRewardEnabled}
+                          onCheckedChange={(v) => setFormData({ ...formData, referralRewardEnabled: v })}
+                        />
+                      </div>
+                      {formData.referralRewardEnabled && (
+                        <div className="space-y-2 pl-4 border-l-2 border-muted">
+                          <Label htmlFor="create-referralPoints">Points per successful referral</Label>
+                          <Input
+                            id="create-referralPoints"
+                            type="number"
+                            min={0}
+                            step={1}
+                            placeholder="e.g. 100"
+                            value={formData.referralRewardPoints}
+                            onChange={(e) => setFormData({ ...formData, referralRewardPoints: Math.max(0, Math.floor(Number(e.target.value) || 0)) })}
+                          />
+                          <p className="text-xs text-muted-foreground">Positive integer only. Awarded each time a new member subscribes using a referrer's number.</p>
+                        </div>
+                      )}
+                    </div>
+
                     <div className="flex gap-2">
                       <Button type="submit" disabled={isCreating} className="flex-1">
                         {isCreating ? "Creating..." : "Create Plan"}
@@ -898,6 +951,37 @@ export default function MembershipPlansPage() {
                       </div>
                     </div>
 
+                    <div className="border-t pt-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="font-semibold text-foreground flex items-center gap-1.5">
+                            <Gift className="w-4 h-4" />
+                            Referral Rewards
+                          </h3>
+                          <p className="text-xs text-muted-foreground mt-0.5">Award points to members who refer new sign-ups on this plan</p>
+                        </div>
+                        <Switch
+                          checked={formData.referralRewardEnabled}
+                          onCheckedChange={(v) => setFormData({ ...formData, referralRewardEnabled: v })}
+                        />
+                      </div>
+                      {formData.referralRewardEnabled && (
+                        <div className="space-y-2 pl-4 border-l-2 border-muted">
+                          <Label htmlFor="edit-referralPoints">Points per successful referral</Label>
+                          <Input
+                            id="edit-referralPoints"
+                            type="number"
+                            min={0}
+                            step={1}
+                            placeholder="e.g. 100"
+                            value={formData.referralRewardPoints}
+                            onChange={(e) => setFormData({ ...formData, referralRewardPoints: Math.max(0, Math.floor(Number(e.target.value) || 0)) })}
+                          />
+                          <p className="text-xs text-muted-foreground">Positive integer only. Awarded each time a new member subscribes using a referrer's number.</p>
+                        </div>
+                      )}
+                    </div>
+
                     <div className="flex gap-2">
                       <Button type="submit" disabled={isUpdating} className="flex-1">
                         {isUpdating ? "Updating..." : "Update Plan"}
@@ -1023,6 +1107,41 @@ export default function MembershipPlansPage() {
                         </div>
                       </div>
                     )}
+
+                  <div className="border-t pt-3 space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="flex items-center gap-2 text-foreground">
+                        <Gift className="w-4 h-4" />
+                        Referral Reward
+                      </span>
+                      <span className="text-foreground font-medium">
+                        {plan.referralReward?.enabled && (plan.referralReward.points ?? 0) > 0
+                          ? `${plan.referralReward.points} pts`
+                          : <span className="text-muted-foreground text-xs">Disabled</span>}
+                      </span>
+                    </div>
+                    {plan.referralReward?.enabled && (plan.referralReward.points ?? 0) > 0 && (
+                      <div className="flex items-center justify-between text-sm bg-amber-50 dark:bg-amber-950/30 rounded-md px-2 py-1.5">
+                        <span className="flex items-center gap-1.5 text-amber-700 dark:text-amber-400">
+                          <TrendingUp className="w-3.5 h-3.5" />
+                          Points Liability
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="cursor-help text-amber-500 underline decoration-dotted text-xs">(?)</span>
+                              </TooltipTrigger>
+                              <TooltipContent className="max-w-xs">
+                                Active members × referral points = maximum points that could be owed if every member refers someone.
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </span>
+                        <span className="font-bold text-amber-800 dark:text-amber-300 text-xs">
+                          {(activeMembersPerPlan[plan._id] ?? 0)} × {plan.referralReward.points} = {(activeMembersPerPlan[plan._id] ?? 0) * plan.referralReward.points} pts
+                        </span>
+                      </div>
+                    )}
+                  </div>
 
                   <div className="flex flex-col gap-2">
                     <div className="flex flex-col sm:flex-row gap-2">
