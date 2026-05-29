@@ -83,7 +83,6 @@ export default function RevenueReconciliationPage() {
           <Link href="/dashboard/events">
             <Button variant="ghost" size="sm">
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Events
             </Button>
           </Link>
           <h1 className="text-3xl font-bold flex-1">Revenue Reconciliation</h1>

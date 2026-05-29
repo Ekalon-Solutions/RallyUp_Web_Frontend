@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -33,10 +34,36 @@ interface VenueTierMatrixBuilderProps {
   onChange: (venues: VenueDraft[]) => void
   currency?: string
   jointScreening?: { enabled: boolean; partnerClubNames: string[] }
+  cardClassName?: string
 }
 
 function generateId() {
   return Math.random().toString(36).slice(2, 10)
+}
+
+function makeDefaultTier(
+  jointScreening: VenueTierMatrixBuilderProps["jointScreening"],
+  name = "General",
+  price = 0,
+  allocation = 50
+): TierDraft {
+  const isJointEvent = Boolean(
+    jointScreening?.enabled && (jointScreening?.partnerClubNames?.length ?? 0) > 0
+  )
+  const clubNames = jointScreening?.partnerClubNames ?? []
+  if (isJointEvent && clubNames.length > 0) {
+    const perClub = Math.max(1, Math.floor(allocation / clubNames.length))
+    const clubAllocations = clubNames.map((cn) => ({ clubName: cn, allocation: perClub }))
+    return { id: generateId(), name, price, allocation: perClub * clubNames.length, clubAllocations }
+  }
+  return { id: generateId(), name, price, allocation }
+}
+
+/** Empty venue card — same structure as clicking "Add Venue". */
+export function createEmptyVenueDraft(
+  jointScreening?: VenueTierMatrixBuilderProps["jointScreening"]
+): VenueDraft {
+  return { id: generateId(), name: "", tiers: [makeDefaultTier(jointScreening)] }
 }
 
 export function VenueTierMatrixBuilder({
@@ -44,6 +71,7 @@ export function VenueTierMatrixBuilder({
   onChange,
   currency = "INR",
   jointScreening,
+  cardClassName,
 }: VenueTierMatrixBuilderProps) {
   const currencySymbols: Record<string, string> = {
     INR: "₹", USD: "$", EUR: "€", GBP: "£", AUD: "A$", CAD: "CA$",
@@ -66,15 +94,22 @@ export function VenueTierMatrixBuilder({
   }
 
   const addVenue = () => {
-    onChange([
-      ...venues,
-      { id: generateId(), name: "", tiers: [makeDefaultTier()] },
-    ])
+    onChange([...venues, createEmptyVenueDraft(jointScreening)])
   }
 
   const removeVenue = (venueId: string) => {
+    if (venues.length <= 1) return
     onChange(venues.filter((v) => v.id !== venueId))
   }
+
+  // Show one venue card immediately (same as clicking "Add Venue" once).
+  useEffect(() => {
+    if (venues.length === 0) {
+      onChange([createEmptyVenueDraft(jointScreening)])
+    }
+    // Only re-run when venue list becomes empty; jointScreening read at seed time.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [venues.length])
 
   const updateVenueName = (venueId: string, name: string) => {
     onChange(venues.map((v) => (v.id === venueId ? { ...v, name } : v)))
@@ -157,14 +192,8 @@ export function VenueTierMatrixBuilder({
         </Button>
       </div>
 
-      {venues.length === 0 && (
-        <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
-          No venues added. Click <strong>Add Venue</strong> to start building the matrix, or leave empty to use the single-ticket mode above.
-        </div>
-      )}
-
       {venues.map((venue, vi) => (
-        <Card key={venue.id} className="border-2">
+        <Card key={venue.id} className={cn("border-2", cardClassName)}>
           <CardHeader className="pb-3">
             <div className="flex items-center gap-2">
               <MapPin className="w-4 h-4 text-muted-foreground flex-shrink-0" />
@@ -181,7 +210,13 @@ export function VenueTierMatrixBuilder({
                 variant="ghost"
                 size="sm"
                 onClick={() => removeVenue(venue.id)}
-                className="text-destructive hover:text-destructive hover:bg-destructive/10 flex-shrink-0"
+                disabled={venues.length <= 1}
+                className={cn(
+                  "flex-shrink-0",
+                  venues.length <= 1
+                    ? "opacity-30 cursor-not-allowed"
+                    : "text-destructive hover:text-destructive hover:bg-destructive/10"
+                )}
               >
                 <Trash2 className="w-4 h-4" />
               </Button>
@@ -256,7 +291,7 @@ export function VenueTierMatrixBuilder({
 
                   {/* Per-club allocation toggle (joint events only) */}
                   {isJointEvent && (
-                    <div className="ml-1 pl-3 border-l-2 border-muted space-y-2">
+                    <div className={cn("ml-1 pl-3 border-l-2 space-y-2", cardClassName ?? "border-muted")}>
                       <div className="flex items-center justify-between">
                         <Label className="text-xs flex items-center gap-1.5 text-muted-foreground">
                           <Users className="w-3.5 h-3.5" />
@@ -302,7 +337,10 @@ export function VenueTierMatrixBuilder({
               variant="outline"
               size="sm"
               onClick={() => addTier(venue.id)}
-              className="w-full border-dashed text-xs"
+              className={cn(
+                "w-full border-dashed text-xs",
+                cardClassName ? "border-gray-300 dark:border-gray-600" : undefined
+              )}
             >
               <Plus className="w-3 h-3 mr-1" />
               Add Tier

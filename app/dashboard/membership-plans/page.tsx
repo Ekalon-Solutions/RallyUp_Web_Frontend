@@ -650,14 +650,15 @@ export default function MembershipPlansPage() {
                     Create Plan
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-2xl">
-                  <DialogHeader>
+                <DialogContent className="flex flex-col top-[4vh] translate-y-0 sm:top-[50%] sm:translate-y-[-50%] w-[calc(100vw-2rem)] max-w-3xl lg:max-w-4xl max-h-[min(90dvh,90vh)] p-0 gap-0 overflow-hidden">
+                  <DialogHeader className="shrink-0 px-6 pt-6 pb-2 pr-10">
                     <DialogTitle>Create New Membership Plan</DialogTitle>
                     <DialogDescription>
                       Create a new membership plan with features and pricing
                     </DialogDescription>
                   </DialogHeader>
-                  <form onSubmit={handleCreatePlan} className="space-y-4">
+                  <form onSubmit={handleCreatePlan} className="flex flex-col min-h-0 flex-1">
+                    <div className="flex-1 overflow-y-auto px-6 py-2 space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="name">Plan Name</Label>
@@ -675,27 +676,6 @@ export default function MembershipPlansPage() {
                           type="number"
                           value={formData.price}
                           onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) || 0 })}
-                          required
-                        />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="bookingStartDate">Booking Start Date</Label>
-                        <Input
-                          id="bookingStartDate"
-                          type="date"
-                          value={formData.bookingStartDate}
-                          onChange={(e) => setFormData({ ...formData, bookingStartDate: e.target.value })}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="bookingEndDate">Booking End Date</Label>
-                        <Input
-                          id="bookingEndDate"
-                          type="date"
-                          value={formData.bookingEndDate}
-                          onChange={(e) => setFormData({ ...formData, bookingEndDate: e.target.value })}
                           required
                         />
                       </div>
@@ -767,18 +747,18 @@ export default function MembershipPlansPage() {
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="edit-bookingStartDate">Booking Start Date</Label>
+                        <Label htmlFor="bookingStartDate">Booking Start Date</Label>
                         <Input
-                          id="edit-bookingStartDate"
+                          id="bookingStartDate"
                           type="date"
                           value={formData.bookingStartDate}
                           onChange={(e) => setFormData({ ...formData, bookingStartDate: e.target.value })}
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="edit-bookingEndDate">Booking End Date</Label>
+                        <Label htmlFor="bookingEndDate">Booking End Date</Label>
                         <Input
-                          id="edit-bookingEndDate"
+                          id="bookingEndDate"
                           type="date"
                           value={formData.bookingEndDate}
                           onChange={(e) => setFormData({ ...formData, bookingEndDate: e.target.value })}
@@ -879,27 +859,29 @@ export default function MembershipPlansPage() {
                         </div>
                       )}
                     </div>
+                    </div>
 
-                    <div className="flex gap-2">
+                    <div className="shrink-0 flex flex-col-reverse sm:flex-row gap-2 px-6 py-4 border-t bg-background">
+                      <Button type="button" variant="outline" onClick={() => setShowCreateDialog(false)} className="sm:flex-initial">
+                        Cancel
+                      </Button>
                       <Button type="submit" disabled={isCreating} className="flex-1">
                         {isCreating ? "Creating..." : "Create Plan"}
-                      </Button>
-                      <Button type="button" variant="outline" onClick={() => setShowCreateDialog(false)}>
-                        Cancel
                       </Button>
                     </div>
                   </form>
                 </DialogContent>
               </Dialog>
               <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-                <DialogContent className="max-w-2xl w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
-                  <DialogHeader>
+                <DialogContent className="flex flex-col top-[4vh] translate-y-0 sm:top-[50%] sm:translate-y-[-50%] w-[calc(100vw-2rem)] max-w-3xl lg:max-w-4xl max-h-[min(90dvh,90vh)] p-0 gap-0 overflow-hidden">
+                  <DialogHeader className="shrink-0 px-6 pt-6 pb-2 pr-10">
                     <DialogTitle>Edit Membership Plan</DialogTitle>
                     <DialogDescription>
                       Update the membership plan details and features
                     </DialogDescription>
                   </DialogHeader>
-                  <form onSubmit={handleUpdatePlan} className="space-y-4">
+                  <form onSubmit={handleUpdatePlan} className="flex flex-col min-h-0 flex-1">
+                    <div className="flex-1 overflow-y-auto px-6 py-2 space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="edit-name">Plan Name</Label>
@@ -1081,16 +1063,17 @@ export default function MembershipPlansPage() {
                         </div>
                       )}
                     </div>
+                    </div>
 
-                    <div className="flex gap-2">
-                      <Button type="submit" disabled={isUpdating} className="flex-1">
-                        {isUpdating ? "Updating..." : "Update Plan"}
-                      </Button>
+                    <div className="shrink-0 flex flex-col-reverse sm:flex-row gap-2 px-6 py-4 border-t bg-background">
                       <Button type="button" variant="outline" onClick={() => {
                         setShowEditDialog(false)
                         setEditingPlan(null)
-                      }}>
+                      }} className="sm:flex-initial">
                         Cancel
+                      </Button>
+                      <Button type="submit" disabled={isUpdating} className="flex-1">
+                        {isUpdating ? "Updating..." : "Update Plan"}
                       </Button>
                     </div>
                   </form>

@@ -15,8 +15,9 @@ import { ArrowLeft, Save, Loader2, Tv2, Plus, X, Percent } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api"
+import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/auth-context"
-import { VenueTierMatrixBuilder, VenueDraft, TierDraft } from "@/components/admin/venue-tier-matrix-builder"
+import { VenueTierMatrixBuilder, VenueDraft, TierDraft, createEmptyVenueDraft } from "@/components/admin/venue-tier-matrix-builder"
 
 const CATEGORIES = [
   { value: "screenings", label: "Screenings" },
@@ -326,21 +327,25 @@ function CreateEventForm() {
     )
   }
 
+  const sectionBorder = "border-gray-300 dark:border-gray-600"
+  const nestedBorder = "border-l-2 border-gray-300 dark:border-gray-600"
+  const fieldBorder =
+    "[&_input]:border-gray-300 [&_textarea]:border-gray-300 dark:[&_input]:border-gray-600 dark:[&_textarea]:border-gray-600 [&_.border-input]:border-gray-300 dark:[&_.border-input]:border-gray-600"
+
   return (
     <DashboardLayout>
-      <div className="space-y-6 max-w-4xl mx-auto pb-10">
+      <div className="space-y-6 w-full max-w-7xl pb-10 -mx-2 md:-mx-4 lg:-mx-6">
         <div className="flex items-center gap-4">
           <Link href="/dashboard/events">
             <Button variant="ghost" size="sm">
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Events
             </Button>
           </Link>
           <h1 className="text-3xl font-bold">{isEditMode ? "Edit Event" : "Create Event"}</h1>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <Card>
+        <form onSubmit={handleSubmit} className={cn("space-y-6", fieldBorder)}>
+          <Card className={sectionBorder}>
             <CardHeader>
               <CardTitle>Basic Details</CardTitle>
             </CardHeader>
@@ -406,7 +411,7 @@ function CreateEventForm() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className={sectionBorder}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Tv2 className="w-5 h-5" />
@@ -426,7 +431,7 @@ function CreateEventForm() {
               </div>
 
               {form.jointScreeningEnabled && (
-                <div className="space-y-4 pl-4 border-l-2 border-muted">
+                <div className={cn("space-y-4 pl-4", nestedBorder)}>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="grid gap-2">
                       <Label htmlFor="homeTeam">Home Team</Label>
@@ -512,7 +517,7 @@ function CreateEventForm() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className={sectionBorder}>
             <CardHeader>
               <CardTitle>Venue & Tickets</CardTitle>
             </CardHeader>
@@ -528,7 +533,21 @@ function CreateEventForm() {
                   checked={form.multiTicketEnabled}
                   onCheckedChange={(v) => {
                     set("multiTicketEnabled", v)
-                    if (!v) setVenues([])
+                    if (!v) {
+                      setVenues([])
+                    } else {
+                      setVenues((prev) =>
+                        prev.length === 0
+                          ? [
+                              createEmptyVenueDraft(
+                                form.jointScreeningEnabled
+                                  ? { enabled: true, partnerClubNames }
+                                  : undefined
+                              ),
+                            ]
+                          : prev
+                      )
+                    }
                   }}
                 />
               </div>
@@ -570,7 +589,7 @@ function CreateEventForm() {
                     </div>
                   </div>
 
-                  <Separator />
+                  <Separator className="bg-gray-300 dark:bg-gray-600" />
                 </>
               )}
 
@@ -579,6 +598,7 @@ function CreateEventForm() {
                   venues={venues}
                   onChange={setVenues}
                   currency={form.currency}
+                  cardClassName={sectionBorder}
                   jointScreening={
                     form.jointScreeningEnabled
                       ? { enabled: true, partnerClubNames }
@@ -595,7 +615,7 @@ function CreateEventForm() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className={sectionBorder}>
             <CardHeader>
               <CardTitle>Booking Window</CardTitle>
             </CardHeader>
@@ -613,7 +633,7 @@ function CreateEventForm() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className={sectionBorder}>
             <CardHeader>
               <CardTitle>Event Settings</CardTitle>
             </CardHeader>
@@ -639,7 +659,7 @@ function CreateEventForm() {
                 <p className="text-xs text-muted-foreground">For multi-ticket purchases, loyalty awarding is capped at 1x member value per transaction.</p>
               </div>
 
-              <Separator />
+              <Separator className="bg-gray-300 dark:bg-gray-600" />
 
               <div className="flex items-center justify-between">
                 <div>
@@ -650,7 +670,7 @@ function CreateEventForm() {
               </div>
 
               {form.waitlistEnabled && (
-                <div className="grid grid-cols-2 gap-4 pl-4 border-l-2 border-muted">
+                <div className={cn("grid grid-cols-2 gap-4 pl-4", nestedBorder)}>
                   <div className="grid gap-2">
                     <Label>Waitlist Size (% of capacity)</Label>
                     <Input
@@ -676,7 +696,7 @@ function CreateEventForm() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className={sectionBorder}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Percent className="w-5 h-5" />
@@ -693,7 +713,7 @@ function CreateEventForm() {
               </div>
 
               {form.earlyBirdEnabled && (
-                <div className="space-y-4 pl-4 border-l-2 border-muted">
+                <div className={cn("space-y-4 pl-4", nestedBorder)}>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="grid gap-2">
                       <Label>Discount Type</Label>
