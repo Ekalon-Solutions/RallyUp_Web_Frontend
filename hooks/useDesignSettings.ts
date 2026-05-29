@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import { useClubSettings } from './useClubSettings'
+import { getClubPrimaryColor } from '@/lib/clubThemeButton'
 
 const CLUB_FONT_LINK_ID = 'club-design-font'
 
@@ -110,5 +111,7 @@ export function useDesignSettings(clubId?: string) {
     }
   }, [settings])
 
-  return { settings }
+  const primaryColor = getClubPrimaryColor(settings)
+
+  return { settings, primaryColor }
 }

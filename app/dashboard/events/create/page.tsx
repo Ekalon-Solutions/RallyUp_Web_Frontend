@@ -16,6 +16,8 @@ import Link from "next/link"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api"
 import { cn } from "@/lib/utils"
+import { clubActionButtonClassName, clubActionButtonStyle } from "@/lib/clubThemeButton"
+import { useDesignSettings } from "@/hooks/useDesignSettings"
 import { useAuth } from "@/contexts/auth-context"
 import { VenueTierMatrixBuilder, VenueDraft, TierDraft, createEmptyVenueDraft } from "@/components/admin/venue-tier-matrix-builder"
 
@@ -77,8 +79,6 @@ function CreateEventForm() {
     waitlistPercentage: "25",
     waitlistPurchaseWindowHours: "12",
     jointScreeningEnabled: false,
-    homeTeam: "",
-    awayTeam: "",
     earlyBirdEnabled: false,
     earlyBirdType: "percentage",
     earlyBirdValue: "",
@@ -126,6 +126,10 @@ function CreateEventForm() {
     const u = user as any
     return u?.club?._id ?? u?.club ?? ""
   })()
+
+  const { primaryColor } = useDesignSettings(clubId)
+  const clubBtnClass = clubActionButtonClassName()
+  const clubBtnStyle = clubActionButtonStyle(primaryColor)
   
   useEffect(() => {
     if (!editId) return
@@ -158,8 +162,6 @@ function CreateEventForm() {
           waitlistPercentage: String(ev.waitlist?.percentage ?? 25),
           waitlistPurchaseWindowHours: String(ev.waitlist?.purchaseWindowHours ?? 12),
           jointScreeningEnabled: ev.jointScreening?.enabled ?? false,
-          homeTeam: ev.jointScreening?.homeTeam ?? "",
-          awayTeam: ev.jointScreening?.awayTeam ?? "",
           earlyBirdEnabled: ev.earlyBirdDiscount?.enabled ?? false,
           earlyBirdType: ev.earlyBirdDiscount?.type ?? "percentage",
           earlyBirdValue: ev.earlyBirdDiscount?.value ? String(ev.earlyBirdDiscount.value) : "",
@@ -277,8 +279,6 @@ function CreateEventForm() {
         } : { enabled: false, type: "percentage" as const, value: 0 },
         jointScreening: {
           enabled: form.jointScreeningEnabled,
-          homeTeam: form.jointScreeningEnabled ? form.homeTeam.trim() || undefined : undefined,
-          awayTeam: form.jointScreeningEnabled ? form.awayTeam.trim() || undefined : undefined,
           partnerClubNames: form.jointScreeningEnabled ? partnerClubNames.filter(Boolean) : [],
         },
         venues: form.multiTicketEnabled && venues.length > 0
@@ -432,29 +432,8 @@ function CreateEventForm() {
 
               {form.jointScreeningEnabled && (
                 <div className={cn("space-y-4 pl-4", nestedBorder)}>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="homeTeam">Home Team</Label>
-                      <Input
-                        id="homeTeam"
-                        placeholder="e.g. Arsenal"
-                        value={form.homeTeam}
-                        onChange={(e) => set("homeTeam", e.target.value)}
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="awayTeam">Away Team</Label>
-                      <Input
-                        id="awayTeam"
-                        placeholder="e.g. Chelsea"
-                        value={form.awayTeam}
-                        onChange={(e) => set("awayTeam", e.target.value)}
-                      />
-                    </div>
-                  </div>
-
                   <div className="grid gap-2">
-                    <Label>Partner Club Names</Label>
+                    <Label>Partner Club Name</Label>
                     <p className="text-xs text-muted-foreground">
                       Each club gets its own seat allocation in the ticket matrix below
                     </p>
@@ -476,8 +455,10 @@ function CreateEventForm() {
                       />
                       <Button
                         type="button"
-                        variant="outline"
-                        size="sm"
+                        variant="ghost"
+                        size="icon"
+                        className={cn("shrink-0", clubBtnClass)}
+                        style={clubBtnStyle}
                         onClick={() => {
                           const name = newPartnerClub.trim()
                           if (name && !partnerClubNames.includes(name)) {
@@ -598,6 +579,7 @@ function CreateEventForm() {
                   venues={venues}
                   onChange={setVenues}
                   currency={form.currency}
+                  primaryColor={primaryColor}
                   cardClassName={sectionBorder}
                   jointScreening={
                     form.jointScreeningEnabled
@@ -780,7 +762,13 @@ function CreateEventForm() {
             <Link href="/dashboard/events">
               <Button variant="outline" type="button">Cancel</Button>
             </Link>
-            <Button type="submit" disabled={loading}>
+            <Button
+              type="submit"
+              variant="ghost"
+              disabled={loading}
+              className={clubBtnClass}
+              style={clubBtnStyle}
+            >
               {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />

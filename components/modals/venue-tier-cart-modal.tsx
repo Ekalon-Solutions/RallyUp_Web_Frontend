@@ -498,7 +498,9 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
                   <Badge variant="destructive" className="text-xs ml-1">Required</Badge>
                 </CardTitle>
                 <CardDescription className="text-xs">
-                  Select which club you are supporting — {jointScreening?.homeTeam} or {jointScreening?.awayTeam}
+                  {partnerClubOptions.length > 0
+                    ? `Select which club you are supporting — ${partnerClubOptions.join(", ")}`
+                    : "Select which partner club you are supporting"}
                 </CardDescription>
               </CardHeader>
               <CardContent>

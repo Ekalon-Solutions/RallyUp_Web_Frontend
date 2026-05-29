@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { Plus, Trash2, MapPin, Tag, Users } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { clubActionButtonClassName, clubActionButtonStyle } from "@/lib/clubThemeButton"
 
 export interface ClubAllocationDraft {
   clubName: string
@@ -35,24 +36,31 @@ interface VenueTierMatrixBuilderProps {
   currency?: string
   jointScreening?: { enabled: boolean; partnerClubNames: string[] }
   cardClassName?: string
+  /** Club brand color for Add Venue / Add Tier buttons (e.g. Arsenal red). */
+  primaryColor?: string
 }
 
 function generateId() {
   return Math.random().toString(36).slice(2, 10)
 }
 
+function perClubAllocation(total: number, clubCount: number): number {
+  if (clubCount <= 0 || total <= 0) return 0
+  return Math.floor(total / clubCount)
+}
+
 function makeDefaultTier(
   jointScreening: VenueTierMatrixBuilderProps["jointScreening"],
   name = "General",
   price = 0,
-  allocation = 50
+  allocation = 0
 ): TierDraft {
   const isJointEvent = Boolean(
     jointScreening?.enabled && (jointScreening?.partnerClubNames?.length ?? 0) > 0
   )
   const clubNames = jointScreening?.partnerClubNames ?? []
   if (isJointEvent && clubNames.length > 0) {
-    const perClub = Math.max(1, Math.floor(allocation / clubNames.length))
+    const perClub = perClubAllocation(allocation, clubNames.length)
     const clubAllocations = clubNames.map((cn) => ({ clubName: cn, allocation: perClub }))
     return { id: generateId(), name, price, allocation: perClub * clubNames.length, clubAllocations }
   }
@@ -72,7 +80,10 @@ export function VenueTierMatrixBuilder({
   currency = "INR",
   jointScreening,
   cardClassName,
+  primaryColor,
 }: VenueTierMatrixBuilderProps) {
+  const clubBtnClass = clubActionButtonClassName()
+  const clubBtnStyle = clubActionButtonStyle(primaryColor)
   const currencySymbols: Record<string, string> = {
     INR: "₹", USD: "$", EUR: "€", GBP: "£", AUD: "A$", CAD: "CA$",
     JPY: "¥", BRL: "R$", MXN: "$", ZAR: "R",
@@ -186,7 +197,14 @@ export function VenueTierMatrixBuilder({
             Add venues and ticket tiers — each combination has its own allocation.
           </p>
         </div>
-        <Button type="button" variant="outline" size="sm" onClick={addVenue}>
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className={clubBtnClass}
+          style={clubBtnStyle}
+          onClick={addVenue}
+        >
           <Plus className="w-4 h-4 mr-1" />
           Add Venue
         </Button>
@@ -334,13 +352,11 @@ export function VenueTierMatrixBuilder({
 
             <Button
               type="button"
-              variant="outline"
+              variant="ghost"
               size="sm"
               onClick={() => addTier(venue.id)}
-              className={cn(
-                "w-full border-dashed text-xs",
-                cardClassName ? "border-gray-300 dark:border-gray-600" : undefined
-              )}
+              className={cn("w-full text-xs", clubBtnClass)}
+              style={clubBtnStyle}
             >
               <Plus className="w-3 h-3 mr-1" />
               Add Tier
