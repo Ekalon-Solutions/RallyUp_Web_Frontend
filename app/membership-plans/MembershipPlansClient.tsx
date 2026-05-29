@@ -20,6 +20,8 @@ type PublicMembershipPlan = {
   duration?: number
   planStartDate?: string
   planEndDate?: string
+  bookingStartDate?: string
+  bookingEndDate?: string
   features?: {
     maxEvents?: number
     maxNews?: number
@@ -92,6 +94,15 @@ export default function MembershipPlansClient({ clubId }: { clubId: string }) {
     const months = duration % 12
     if (months === 0) return `${years} year${years > 1 ? "s" : ""}`
     return `${years} year${years > 1 ? "s" : ""} ${months} month${months > 1 ? "s" : ""}`
+  }
+
+  const getPlanSalesState = (plan: PublicMembershipPlan) => {
+    const now = Date.now()
+    const bookingStartMs = plan.bookingStartDate ? new Date(plan.bookingStartDate).getTime() : null
+    const bookingEndMs = plan.bookingEndDate ? new Date(plan.bookingEndDate).getTime() : null
+    const notStarted = Boolean(bookingStartMs && now < bookingStartMs)
+    const closed = Boolean(bookingEndMs && now > bookingEndMs)
+    return { isOpen: !notStarted && !closed, closed, notStarted }
   }
 
   return (
@@ -182,6 +193,16 @@ export default function MembershipPlansClient({ clubId }: { clubId: string }) {
                       <CardDescription>{plan.description}</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
+                      {(() => {
+                        const salesState = getPlanSalesState(plan)
+                        return !salesState.isOpen ? (
+                          <div className="text-center">
+                            <Badge variant="secondary">
+                              {salesState.closed ? "Membership Closed" : "Unavailable"}
+                            </Badge>
+                          </div>
+                        ) : null
+                      })()}
                       <div className="text-center">
                         <div className="text-3xl font-black">
                           {formatPrice(plan.price || 0, plan.currency || "INR")}
@@ -219,9 +240,16 @@ export default function MembershipPlansClient({ clubId }: { clubId: string }) {
                         Join flow continues on Clubs page
                       </div>
 
-                      <Link href={`/clubs?search=${encodeSearchParam(club.name)}`} className="block">
-                        <Button className="w-full">Continue to Join</Button>
-                      </Link>
+                      {(() => {
+                        const salesState = getPlanSalesState(plan)
+                        return (
+                          <Link href={`/clubs?search=${encodeSearchParam(club.name)}`} className="block">
+                            <Button className="w-full" disabled={!salesState.isOpen}>
+                              {salesState.closed ? "Membership Closed" : salesState.notStarted ? "Unavailable" : "Continue to Join"}
+                            </Button>
+                          </Link>
+                        )
+                      })()}
                     </CardContent>
                   </Card>
                 ))}

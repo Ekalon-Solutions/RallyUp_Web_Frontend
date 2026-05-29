@@ -62,6 +62,11 @@ export default function BrowseMembershipPlansPage() {
       setReferralName(null)
       return
     }
+    if (digits.length !== 10) {
+      setReferralStatus("idle")
+      setReferralName(null)
+      return
+    }
     if (debounceRef.current) clearTimeout(debounceRef.current)
     setReferralStatus("checking")
     debounceRef.current = setTimeout(async () => {
@@ -152,6 +157,17 @@ export default function BrowseMembershipPlansPage() {
       return
     }
     const planId = plan._id
+    const salesState = getPlanSalesState(plan)
+    if (!salesState.isOpen) {
+      if (salesState.closed && currentMembership && isMembershipExpired()) {
+        toast.error("Contact Club Admin")
+      } else if (salesState.closed) {
+        toast.error("Membership Closed")
+      } else {
+        toast.error("Membership sales are not open yet for this plan")
+      }
+      return
+    }
 
     // Paid plan: show payment modal first, then subscribe with payment
     if (plan.price > 0) {
@@ -362,6 +378,8 @@ export default function BrowseMembershipPlansPage() {
   }
 
   const isPlanDisabled = (plan: MembershipPlan) => {
+    const salesState = getPlanSalesState(plan)
+    if (!salesState.isOpen) return true
     if (isCurrentPlan(plan)) {
       return true
     }
@@ -378,6 +396,10 @@ export default function BrowseMembershipPlansPage() {
   }
 
   const getButtonText = (plan: MembershipPlan) => {
+    const salesState = getPlanSalesState(plan)
+    if (!salesState.isOpen) {
+      return salesState.closed ? "Membership Closed" : "Unavailable"
+    }
     if (isCurrentPlan(plan)) {
       return 'Your Current Plan'
     }
@@ -395,6 +417,15 @@ export default function BrowseMembershipPlansPage() {
       }
       return 'Select Plan'
     }
+  }
+
+  const getPlanSalesState = (plan: MembershipPlan) => {
+    const now = Date.now()
+    const bookingStartMs = (plan as any).bookingStartDate ? new Date((plan as any).bookingStartDate).getTime() : null
+    const bookingEndMs = (plan as any).bookingEndDate ? new Date((plan as any).bookingEndDate).getTime() : null
+    const notStarted = Boolean(bookingStartMs && now < bookingStartMs)
+    const closed = Boolean(bookingEndMs && now > bookingEndMs)
+    return { isOpen: !notStarted && !closed, closed, notStarted }
   }
 
   if (isLoading) {
@@ -523,13 +554,15 @@ export default function BrowseMembershipPlansPage() {
                         type="tel"
                         placeholder="Enter 10-digit mobile number"
                         value={referralPhone}
-                        onChange={(e) => setReferralPhone(e.target.value.replace(/\D/g, "").slice(0, 15))}
+                        onChange={(e) => setReferralPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
                         className={
                           referralStatus === "found" ? "border-green-500 pr-9" :
                           referralStatus === "self" || referralStatus === "not-found" ? "border-amber-400 pr-9" :
                           "pr-9"
                         }
-                        maxLength={15}
+                        maxLength={10}
+                        inputMode="numeric"
+                        pattern="[0-9]{10}"
                       />
                       <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
                         {referralStatus === "checking" && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
@@ -587,6 +620,7 @@ export default function BrowseMembershipPlansPage() {
                 const membershipExpired = isMembershipExpired()
                 const featureList = getFeatureList(plan.features)
                 const buttonText = getButtonText(plan)
+                const salesState = getPlanSalesState(plan)
                 
                 return (
                   <Card 
@@ -620,6 +654,13 @@ export default function BrowseMembershipPlansPage() {
                     
                     <CardHeader className="text-center pb-2">
                       <CardTitle className="text-xl">{plan.name}</CardTitle>
+                      {!salesState.isOpen && (
+                        <div className="pt-1">
+                          <Badge variant="secondary">
+                            {salesState.closed ? "Membership Closed" : "Unavailable"}
+                          </Badge>
+                        </div>
+                      )}
                       <CardDescription className="text-sm">
                         {plan.description}
                       </CardDescription>

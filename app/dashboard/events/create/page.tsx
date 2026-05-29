@@ -84,6 +84,7 @@ function CreateEventForm() {
     earlyBirdStartTime: "",
     earlyBirdEndTime: "",
     earlyBirdMembersOnly: false,
+    multiTicketEnabled: false,
   })
   const [partnerClubNames, setPartnerClubNames] = useState<string[]>([])
   const [newPartnerClub, setNewPartnerClub] = useState("")
@@ -91,13 +92,11 @@ function CreateEventForm() {
   const set = (field: string, value: string | boolean) =>
     setForm((prev) => ({ ...prev, [field]: value }))
 
-  // Auto-sync club allocations on all tiers whenever joint screening state or clubs change
   useEffect(() => {
     setVenues((prev) => {
       if (prev.length === 0) return prev
 
       if (!form.jointScreeningEnabled) {
-        // Clear club allocations when joint screening is turned off
         return prev.map((v) => ({
           ...v,
           tiers: v.tiers.map((t) => ({ ...t, clubAllocations: undefined })),
@@ -106,7 +105,6 @@ function CreateEventForm() {
 
       if (partnerClubNames.length === 0) return prev
 
-      // Enable and sync club allocations across all existing tiers
       return prev.map((v) => ({
         ...v,
         tiers: v.tiers.map((t) => {
@@ -121,15 +119,13 @@ function CreateEventForm() {
         }),
       }))
     })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.jointScreeningEnabled, partnerClubNames])
 
   const clubId = (() => {
     const u = user as any
     return u?.club?._id ?? u?.club ?? ""
   })()
-
-  // Pre-fill form when editing
+  
   useEffect(() => {
     if (!editId) return
     const fetchEvent = async () => {
@@ -169,6 +165,7 @@ function CreateEventForm() {
           earlyBirdStartTime: toDatetimeLocal(ev.earlyBirdDiscount?.startTime),
           earlyBirdEndTime: toDatetimeLocal(ev.earlyBirdDiscount?.endTime),
           earlyBirdMembersOnly: ev.earlyBirdDiscount?.membersOnly ?? false,
+          multiTicketEnabled: Boolean(ev.venues?.length),
         })
         setPartnerClubNames(ev.jointScreening?.partnerClubNames ?? [])
         if (ev.venues?.length) {
@@ -208,12 +205,19 @@ function CreateEventForm() {
       toast.error("Add at least one partner club name for joint screening")
       return
     }
-    if (!form.venue.trim() && venues.length === 0) { toast.error("Venue or venue matrix is required"); return }
+    if (form.multiTicketEnabled && venues.length === 0) {
+      toast.error("Add at least one venue and ticket tier for multi-ticket events")
+      return
+    }
+    if (!form.multiTicketEnabled && !form.venue.trim()) {
+      toast.error("Venue is required")
+      return
+    }
     if (!form.bookingStartTime) { toast.error("Booking start time is required"); return }
     if (!form.bookingEndTime) { toast.error("Booking end time is required"); return }
     if (!form.description.trim()) { toast.error("Description is required"); return }
 
-    if (venues.length > 0) {
+    if (form.multiTicketEnabled && venues.length > 0) {
       for (const v of venues) {
         if (!v.name.trim()) { toast.error("All venues must have a name"); return }
         for (const t of v.tiers) {
@@ -247,7 +251,7 @@ function CreateEventForm() {
         venue: form.venue.trim() || (venues[0]?.name ?? "Multiple Venues"),
         description: form.description.trim(),
         maxAttendees: form.maxAttendees ? Number(form.maxAttendees) : undefined,
-        ticketPrice: venues.length > 0 ? 0 : Number(form.ticketPrice) || 0,
+        ticketPrice: form.multiTicketEnabled ? 0 : Number(form.ticketPrice) || 0,
         currency: form.currency,
         requiresTicket: form.requiresTicket,
         memberOnly: form.memberOnly,
@@ -276,7 +280,7 @@ function CreateEventForm() {
           awayTeam: form.jointScreeningEnabled ? form.awayTeam.trim() || undefined : undefined,
           partnerClubNames: form.jointScreeningEnabled ? partnerClubNames.filter(Boolean) : [],
         },
-        venues: venues.length > 0
+        venues: form.multiTicketEnabled && venues.length > 0
           ? venues.map((v) => ({
               name: v.name,
               tiers: v.tiers.map((t) => ({
@@ -336,7 +340,6 @@ function CreateEventForm() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Basic Details */}
           <Card>
             <CardHeader>
               <CardTitle>Basic Details</CardTitle>
@@ -403,7 +406,6 @@ function CreateEventForm() {
             </CardContent>
           </Card>
 
-          {/* Joint Screening — before Venue & Tickets so clubs are set before building the matrix */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -510,13 +512,28 @@ function CreateEventForm() {
             </CardContent>
           </Card>
 
-          {/* Venue & Ticket Matrix */}
           <Card>
             <CardHeader>
               <CardTitle>Venue & Tickets</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {venues.length === 0 && (
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>Multi-ticket event</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Enable venue x ticket-tier matrix allocation and multi-combo checkout.
+                  </p>
+                </div>
+                <Switch
+                  checked={form.multiTicketEnabled}
+                  onCheckedChange={(v) => {
+                    set("multiTicketEnabled", v)
+                    if (!v) setVenues([])
+                  }}
+                />
+              </div>
+
+              {!form.multiTicketEnabled && (
                 <>
                   <div className="grid gap-2">
                     <Label htmlFor="venue">Venue *</Label>
@@ -557,18 +574,20 @@ function CreateEventForm() {
                 </>
               )}
 
-              <VenueTierMatrixBuilder
-                venues={venues}
-                onChange={setVenues}
-                currency={form.currency}
-                jointScreening={
-                  form.jointScreeningEnabled
-                    ? { enabled: true, partnerClubNames }
-                    : undefined
-                }
-              />
+              {form.multiTicketEnabled && (
+                <VenueTierMatrixBuilder
+                  venues={venues}
+                  onChange={setVenues}
+                  currency={form.currency}
+                  jointScreening={
+                    form.jointScreeningEnabled
+                      ? { enabled: true, partnerClubNames }
+                      : undefined
+                  }
+                />
+              )}
 
-              {venues.length > 0 && (
+              {form.multiTicketEnabled && venues.length > 0 && (
                 <p className="text-xs text-muted-foreground">
                   Using multi-venue matrix — single ticket price and max attendees are managed per tier.
                 </p>
@@ -576,7 +595,6 @@ function CreateEventForm() {
             </CardContent>
           </Card>
 
-          {/* Booking Window */}
           <Card>
             <CardHeader>
               <CardTitle>Booking Window</CardTitle>
@@ -595,7 +613,6 @@ function CreateEventForm() {
             </CardContent>
           </Card>
 
-          {/* Settings */}
           <Card>
             <CardHeader>
               <CardTitle>Event Settings</CardTitle>
@@ -619,6 +636,7 @@ function CreateEventForm() {
                   onChange={(e) => set("attendancePoints", e.target.value)}
                 />
                 <p className="text-xs text-muted-foreground">Points awarded to members upon QR attendance scan</p>
+                <p className="text-xs text-muted-foreground">For multi-ticket purchases, loyalty awarding is capped at 1x member value per transaction.</p>
               </div>
 
               <Separator />
@@ -658,7 +676,6 @@ function CreateEventForm() {
             </CardContent>
           </Card>
 
-          {/* Early Bird Discount */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -739,7 +756,6 @@ function CreateEventForm() {
             </CardContent>
           </Card>
 
-          {/* Actions */}
           <div className="flex justify-end gap-4">
             <Link href="/dashboard/events">
               <Button variant="outline" type="button">Cancel</Button>

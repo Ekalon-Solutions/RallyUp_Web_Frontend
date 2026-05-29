@@ -78,6 +78,8 @@ interface MembershipPlan {
  duration?: number
  planStartDate?: string
  planEndDate?: string
+ bookingStartDate?: string
+ bookingEndDate?: string
  features: {
  maxEvents: number
  maxNews: number
@@ -262,6 +264,17 @@ function ClubsPageContent() {
  }
 
  const handleJoinClub = (club: Club, plan: MembershipPlan) => {
+ const now = Date.now()
+ const bookingStartMs = plan.bookingStartDate ? new Date(plan.bookingStartDate).getTime() : null
+ const bookingEndMs = plan.bookingEndDate ? new Date(plan.bookingEndDate).getTime() : null
+ if (bookingStartMs && now < bookingStartMs) {
+ toast.error("Membership sales are not open yet for this plan")
+ return
+ }
+ if (bookingEndMs && now > bookingEndMs) {
+ toast.error("Membership Closed. Contact Club Admin")
+ return
+ }
  setSelectedClub(club)
  setSelectedPlan(plan)
  setShowRegistrationDialog(true)
@@ -429,7 +442,7 @@ function ClubsPageContent() {
  }
  }
  } catch (error) {
- // console.error("Registration error:", error)
+ console.error("Registration error:", error)
  toast.error("An error occurred during registration")
  } finally {
  setIsRegistering(false)
@@ -448,6 +461,15 @@ function ClubsPageContent() {
  const start = new Date(plan.planStartDate).toLocaleDateString(undefined, { month:"short", day:"numeric", year:"numeric"})
  const end = new Date(plan.planEndDate).toLocaleDateString(undefined, { month:"short", day:"numeric", year:"numeric"})
  return `${start} – ${end}`
+ }
+
+ const getPlanSalesState = (plan: MembershipPlan) => {
+ const now = Date.now()
+ const bookingStartMs = plan.bookingStartDate ? new Date(plan.bookingStartDate).getTime() : null
+ const bookingEndMs = plan.bookingEndDate ? new Date(plan.bookingEndDate).getTime() : null
+ const notStarted = Boolean(bookingStartMs && now < bookingStartMs)
+ const closed = Boolean(bookingEndMs && now > bookingEndMs)
+ return { isOpen: !notStarted && !closed, closed, notStarted }
  }
  const months = plan.duration ?? 0
  if (months === 0) return"Lifetime"
@@ -774,7 +796,8 @@ function ClubsPageContent() {
  {club.membershipPlans?.filter(plan => plan.isActive).slice(0, 2).map((plan) => {
  const isJoined = isClubJoined(club._id)
  const isLimitReached = club.memberInfo?.isLimitReached || false
- const isDisabled = isJoined || isLimitReached
+ const salesState = getPlanSalesState(plan)
+ const isDisabled = isJoined || isLimitReached || !salesState.isOpen
  return (
  <div key={plan._id} className={cn(
 "border-2 rounded-2xl p-4 transition-all duration-300",
@@ -793,6 +816,11 @@ function ClubsPageContent() {
  Full
  </Badge>
  )}
+ {!salesState.isOpen && !isJoined && !isLimitReached && (
+ <Badge className="bg-secondary text-secondary border-0 text-[9px] h-4">
+ {salesState.closed ? "Membership Closed" : "Unavailable"}
+ </Badge>
+ )}
  </h5>
  <span className="text-lg font-black text-primary">
  {formatPrice(plan.price, plan.currency)}
@@ -802,6 +830,13 @@ function ClubsPageContent() {
  <div className="mb-3 p-2 bg-primary rounded-lg">
  <p className="text-xs font-bold text-primary">
  Maximum member limit reached ({club.memberInfo.currentCount}/{club.memberInfo.maxLimit})
+ </p>
+ </div>
+ )}
+ {!salesState.isOpen && !isJoined && !isLimitReached && (
+ <div className="mb-3 p-2 bg-secondary rounded-lg">
+ <p className="text-xs font-bold text-secondary">
+ {salesState.closed ? "Membership Closed" : "Membership sales not started yet"}
  </p>
  </div>
  )}
@@ -842,6 +877,8 @@ function ClubsPageContent() {
  </>
  ) : isLimitReached ? (
 "Club Full"
+ ) : !salesState.isOpen ? (
+ salesState.closed ? "Membership Closed" : "Unavailable"
  ) : (
  <>Join <ArrowRight className="w-3 h-3 ml-1.5"/></>
  )}
@@ -929,7 +966,9 @@ function ClubsPageContent() {
  {club.membershipPlans?.filter(plan => plan.isActive).length > 0 && (() => {
  const isJoined = isClubJoined(club._id)
  const isLimitReached = club.memberInfo?.isLimitReached || false
- const isDisabled = isJoined || isLimitReached
+ const firstPlan = club.membershipPlans?.filter(plan => plan.isActive)[0]!
+ const salesState = getPlanSalesState(firstPlan)
+ const isDisabled = isJoined || isLimitReached || !salesState.isOpen
  return (
  <>
  {isLimitReached && !isJoined && club.memberInfo && (
@@ -941,7 +980,7 @@ function ClubsPageContent() {
  )}
  <Button
  size="lg"
- onClick={() => handleJoinClub(club, club.membershipPlans?.filter(plan => plan.isActive)[0]!)}
+ onClick={() => handleJoinClub(club, firstPlan)}
  disabled={isDisabled}
  className={cn(
 "flex-1 md:w-full h-14 rounded-2xl font-black shadow-xl transition-all active:scale-95",
@@ -955,6 +994,8 @@ function ClubsPageContent() {
  </>
  ) : isLimitReached ? (
 "Club Full"
+ ) : !salesState.isOpen ? (
+ salesState.closed ? "Membership Closed" : "Unavailable"
  ) : (
  'Join Now'
  )}
@@ -1024,7 +1065,8 @@ function ClubsPageContent() {
  {selectedClub.membershipPlans?.filter(plan => plan.isActive).map((plan) => {
  const isJoined = isClubJoined(selectedClub._id)
  const isLimitReached = selectedClub.memberInfo?.isLimitReached || false
- const isDisabled = isJoined || isLimitReached
+ const salesState = getPlanSalesState(plan)
+ const isDisabled = isJoined || isLimitReached || !salesState.isOpen
  return (
  <Card key={plan._id} className={cn(
 "border-2 transition-colors",
@@ -1043,6 +1085,11 @@ function ClubsPageContent() {
  {isLimitReached && !isJoined && (
  <Badge className="bg-primary text-primary border-primary">
  Full
+ </Badge>
+ )}
+ {!salesState.isOpen && !isJoined && !isLimitReached && (
+ <Badge className="bg-secondary text-secondary border-secondary">
+ {salesState.closed ? "Membership Closed" : "Unavailable"}
  </Badge>
  )}
  </CardTitle>
@@ -1073,6 +1120,13 @@ function ClubsPageContent() {
  <div className="p-3 bg-primary rounded-lg">
  <p className="text-sm font-bold text-primary">
  Maximum member limit reached ({selectedClub.memberInfo.currentCount}/{selectedClub.memberInfo.maxLimit})
+ </p>
+ </div>
+ )}
+ {!salesState.isOpen && !isJoined && !isLimitReached && (
+ <div className="p-3 bg-secondary rounded-lg">
+ <p className="text-sm font-bold text-secondary">
+ {salesState.closed ? "Membership Closed. Contact Club Admin" : "Membership sales are not open yet for this plan"}
  </p>
  </div>
  )}
@@ -1128,6 +1182,8 @@ function ClubsPageContent() {
  </>
  ) : isLimitReached ? (
 "Club Full"
+ ) : !salesState.isOpen ? (
+ salesState.closed ? "Membership Closed" : "Unavailable"
  ) : (
  <>
  Join with {plan.name}

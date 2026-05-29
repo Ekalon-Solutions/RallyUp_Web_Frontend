@@ -108,7 +108,8 @@ export function WebsiteSetupTab() {
   const handleHeroImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    if (!file.type.startsWith('image/')) {
+    const allowedTypes = ["image/jpeg", "image/jpg", "image/png"]
+    if (!allowedTypes.includes(file.type.toLowerCase())) {
       toast.error("Please upload an image file (JPG, PNG)")
       return
     }
@@ -116,12 +117,39 @@ export function WebsiteSetupTab() {
       toast.error("File size must be less than 5MB")
       return
     }
-    const reader = new FileReader()
-    reader.onloadend = () => {
-      setHeroImage(reader.result as string)
+
+    const imageUrl = URL.createObjectURL(file)
+    const image = new window.Image()
+    image.onload = () => {
+      const targetWidth = 1600
+      const targetHeight = 900
+      const canvas = document.createElement("canvas")
+      canvas.width = targetWidth
+      canvas.height = targetHeight
+      const ctx = canvas.getContext("2d")
+
+      if (!ctx) {
+        URL.revokeObjectURL(imageUrl)
+        toast.error("Failed to process image")
+        return
+      }
+
+      const scale = Math.max(targetWidth / image.width, targetHeight / image.height)
+      const drawWidth = image.width * scale
+      const drawHeight = image.height * scale
+      const offsetX = (targetWidth - drawWidth) / 2
+      const offsetY = (targetHeight - drawHeight) / 2
+
+      ctx.drawImage(image, offsetX, offsetY, drawWidth, drawHeight)
+      setHeroImage(canvas.toDataURL("image/jpeg", 0.9))
       toast.success("Hero image uploaded successfully")
+      URL.revokeObjectURL(imageUrl)
     }
-    reader.readAsDataURL(file)
+    image.onerror = () => {
+      URL.revokeObjectURL(imageUrl)
+      toast.error("Unable to read selected image")
+    }
+    image.src = imageUrl
   }
 
   const handleRemoveHeroImage = () => {

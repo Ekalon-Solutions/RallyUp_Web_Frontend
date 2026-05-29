@@ -81,7 +81,6 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
     ?? ""
   const userDefaultPhone: string = (user as any)?.phoneNumber ?? (user as any)?.phone ?? ""
 
-  // Reset all state when modal opens/closes
   useEffect(() => {
     if (isOpen) {
       setCart({})
@@ -98,7 +97,6 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
     }
   }, [isOpen])
 
-  // Sync attendee slots whenever cart changes
   useEffect(() => {
     if (!event?.venues) return
     setAttendeeSlots(prev => {
@@ -125,7 +123,6 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
     })
   }, [cart])
 
-  // Load Razorpay SDK
   useEffect(() => {
     if (isOpen && !scriptLoaded) {
       const script = document.createElement("script")
@@ -138,7 +135,6 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
     }
   }, [isOpen, scriptLoaded])
 
-  // Fetch available loyalty points
   useEffect(() => {
     if (isOpen && user && event?.clubId) {
       apiClient.getMemberPoints((user as any)._id, event.clubId)
@@ -288,6 +284,36 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
 
     setLoading(true)
     try {
+      const fresh = await apiClient.getPublicEventById(event._id)
+      const freshEvent = fresh.success ? fresh.data : null
+      if (freshEvent?.venues?.length) {
+        for (const item of cartItems) {
+          const venue = freshEvent.venues.find((v) => v._id === item.venueId)
+          const tier = venue?.tiers.find((t) => t._id === item.tierId)
+          if (!venue || !tier) {
+            toast.error("Ticket matrix changed. Please review your cart and try again.")
+            setLoading(false)
+            return
+          }
+
+          let available = Math.max(0, (tier.allocation ?? 0) - (tier.sold ?? 0))
+          if (attributedClub && tier.clubAllocations?.length) {
+            const clubAllocation = tier.clubAllocations.find((ca) => ca.clubName === attributedClub)
+            available = clubAllocation ? Math.max(0, (clubAllocation.allocation ?? 0) - (clubAllocation.sold ?? 0)) : 0
+          }
+
+          if (item.quantity > available) {
+            toast.error(
+              attributedClub && tier.clubAllocations?.length
+                ? `Only ${available} seats left for ${attributedClub} in ${venue.name} - ${tier.name}`
+                : `Only ${available} seats left in ${venue.name} - ${tier.name}`
+            )
+            setLoading(false)
+            return
+          }
+        }
+      }
+
       const apiItems = cartItems.map(({ venueId, tierId, quantity }) => ({ venueId, tierId, quantity }))
 
       // Free checkout
@@ -317,8 +343,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         setLoading(false)
         return
       }
-
-      // Razorpay flow
+      
       const orderRes = await fetch("/api/razorpay/create-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -698,7 +723,6 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
             </div>
           )}
 
-          {/* Coupon */}
           {cartItems.length > 0 && (
             <div className="space-y-2">
               <label className="text-sm font-medium flex items-center gap-1.5">

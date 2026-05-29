@@ -35,6 +35,8 @@ interface MembershipPlan {
   duration?: number
   planStartDate?: string
   planEndDate?: string
+  bookingStartDate?: string
+  bookingEndDate?: string
   features: {
     maxEvents: number
     maxNews: number
@@ -75,6 +77,8 @@ export default function MembershipPlansPage() {
     currency: "INR",
     planStartDate: "",
     planEndDate: "",
+    bookingStartDate: "",
+    bookingEndDate: "",
     referralRewardEnabled: false,
     referralRewardPoints: 0,
     features: {
@@ -252,10 +256,27 @@ export default function MembershipPlansPage() {
         setIsCreating(false)
         return
       }
+      if (!formData.bookingEndDate) {
+        toast.error('Booking End Date is required.')
+        setIsCreating(false)
+        return
+      }
       const start = new Date(formData.planStartDate)
       const end = new Date(formData.planEndDate)
+      const bookingStart = formData.bookingStartDate ? new Date(formData.bookingStartDate) : null
+      const bookingEnd = new Date(formData.bookingEndDate)
       if (isNaN(start.getTime()) || isNaN(end.getTime())) {
         toast.error('Please enter valid plan start and end dates.')
+        setIsCreating(false)
+        return
+      }
+      if (bookingStart && isNaN(bookingStart.getTime())) {
+        toast.error('Please enter a valid booking start date.')
+        setIsCreating(false)
+        return
+      }
+      if (isNaN(bookingEnd.getTime())) {
+        toast.error('Please enter a valid booking end date.')
         setIsCreating(false)
         return
       }
@@ -264,15 +285,22 @@ export default function MembershipPlansPage() {
         setIsCreating(false)
         return
       }
+      if (bookingStart && bookingEnd <= bookingStart) {
+        toast.error('Booking End Date must be after Booking Start Date.')
+        setIsCreating(false)
+        return
+      }
 
       const payload: any = { ...formData, clubId: activeClubId }
       if (formData.planStartDate) payload.planStartDate = formData.planStartDate
       if (formData.planEndDate) payload.planEndDate = formData.planEndDate
+      if (formData.bookingStartDate) payload.bookingStartDate = formData.bookingStartDate
+      if (formData.bookingEndDate) payload.bookingEndDate = formData.bookingEndDate
       payload.referralReward = {
         enabled: formData.referralRewardEnabled,
         points: formData.referralRewardEnabled ? Math.max(0, Math.floor(formData.referralRewardPoints)) : 0,
       }
-      const response = await (apiClient as any).createMembershipPlan(payload)
+      const response = await apiClient.createMembershipPlan(payload)
 
       if (response.success) {
         toast.success(`Membership plan "${formData.name}" created successfully with price ${formData.currency} ${formData.price}.`)
@@ -284,6 +312,8 @@ export default function MembershipPlansPage() {
           currency: "USD",
           planStartDate: "",
           planEndDate: "",
+          bookingStartDate: "",
+          bookingEndDate: "",
           referralRewardEnabled: false,
           referralRewardPoints: 0,
           features: {
@@ -407,6 +437,8 @@ export default function MembershipPlansPage() {
       currency: plan.currency,
       planStartDate: toDateInputValue(plan.planStartDate),
       planEndDate: toDateInputValue(plan.planEndDate),
+      bookingStartDate: toDateInputValue(plan.bookingStartDate),
+      bookingEndDate: toDateInputValue(plan.bookingEndDate),
       referralRewardEnabled: plan.referralReward?.enabled ?? false,
       referralRewardPoints: plan.referralReward?.points ?? 0,
       features: {
@@ -480,10 +512,27 @@ export default function MembershipPlansPage() {
         setIsUpdating(false)
         return
       }
+      if (!formData.bookingEndDate) {
+        toast.error('Booking End Date is required.')
+        setIsUpdating(false)
+        return
+      }
       const start = new Date(formData.planStartDate)
       const end = new Date(formData.planEndDate)
+      const bookingStart = formData.bookingStartDate ? new Date(formData.bookingStartDate) : null
+      const bookingEnd = new Date(formData.bookingEndDate)
       if (isNaN(start.getTime()) || isNaN(end.getTime())) {
         toast.error('Please enter valid plan start and end dates.')
+        setIsUpdating(false)
+        return
+      }
+      if (bookingStart && isNaN(bookingStart.getTime())) {
+        toast.error('Please enter a valid booking start date.')
+        setIsUpdating(false)
+        return
+      }
+      if (isNaN(bookingEnd.getTime())) {
+        toast.error('Please enter a valid booking end date.')
         setIsUpdating(false)
         return
       }
@@ -492,10 +541,17 @@ export default function MembershipPlansPage() {
         setIsUpdating(false)
         return
       }
+      if (bookingStart && bookingEnd <= bookingStart) {
+        toast.error('Booking End Date must be after Booking Start Date.')
+        setIsUpdating(false)
+        return
+      }
 
       const updatePayload: any = { ...formData }
       if (formData.planStartDate) updatePayload.planStartDate = formData.planStartDate
       if (formData.planEndDate) updatePayload.planEndDate = formData.planEndDate
+      if (formData.bookingStartDate) updatePayload.bookingStartDate = formData.bookingStartDate
+      if (formData.bookingEndDate) updatePayload.bookingEndDate = formData.bookingEndDate
       updatePayload.referralReward = {
         enabled: formData.referralRewardEnabled,
         points: formData.referralRewardEnabled ? Math.max(0, Math.floor(formData.referralRewardPoints)) : 0,
@@ -513,6 +569,8 @@ export default function MembershipPlansPage() {
           currency: "USD",
           planStartDate: "",
           planEndDate: "",
+          bookingStartDate: "",
+          bookingEndDate: "",
           referralRewardEnabled: false,
           referralRewardPoints: 0,
           features: {
@@ -621,6 +679,27 @@ export default function MembershipPlansPage() {
                         />
                       </div>
                     </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="bookingStartDate">Booking Start Date</Label>
+                        <Input
+                          id="bookingStartDate"
+                          type="date"
+                          value={formData.bookingStartDate}
+                          onChange={(e) => setFormData({ ...formData, bookingStartDate: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="bookingEndDate">Booking End Date</Label>
+                        <Input
+                          id="bookingEndDate"
+                          type="date"
+                          value={formData.bookingEndDate}
+                          onChange={(e) => setFormData({ ...formData, bookingEndDate: e.target.value })}
+                          required
+                        />
+                      </div>
+                    </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="description">Description</Label>
@@ -682,6 +761,27 @@ export default function MembershipPlansPage() {
                           type="date"
                           value={formData.planEndDate}
                           onChange={(e) => setFormData({ ...formData, planEndDate: e.target.value })}
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-bookingStartDate">Booking Start Date</Label>
+                        <Input
+                          id="edit-bookingStartDate"
+                          type="date"
+                          value={formData.bookingStartDate}
+                          onChange={(e) => setFormData({ ...formData, bookingStartDate: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-bookingEndDate">Booking End Date</Label>
+                        <Input
+                          id="edit-bookingEndDate"
+                          type="date"
+                          value={formData.bookingEndDate}
+                          onChange={(e) => setFormData({ ...formData, bookingEndDate: e.target.value })}
                           required
                         />
                       </div>

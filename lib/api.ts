@@ -337,6 +337,7 @@ export interface Event {
     value: number
     startTime: string,
     endTime: string,
+    membersOnly?: boolean,
   }
   attendancePoints?: number;
   waitlist?: {
@@ -594,6 +595,8 @@ export interface MembershipPlan {
   duration?: number;
   planStartDate?: string;
   planEndDate?: string;
+  bookingStartDate?: string;
+  bookingEndDate?: string;
   features: {
     maxEvents: number;
     maxNews: number;
@@ -896,6 +899,8 @@ class ApiClient {
     attendeeName: string;
     attendeePhone: string;
     attended: boolean;
+    assignedVenueName?: string;
+    assignedTierName?: string;
     eventTitle: string;
     eventVenue: string;
     eventId: string;
@@ -2349,8 +2354,14 @@ class ApiClient {
     currency: string;
     planStartDate?: string;
     planEndDate?: string;
+    bookingStartDate?: string;
+    bookingEndDate?: string;
     duration?: number;
     features: any;
+    referralReward?: {
+      enabled: boolean;
+      points: number;
+    };
   }): Promise<ApiResponse<{ message: string; membershipPlan: MembershipPlan }>> {
     return this.request('/membership-plans', {
       method: 'POST',
@@ -3491,6 +3502,7 @@ class ApiClient {
     secondaryColor: string;
     fontFamily: string;
     logo: string | null;
+    heroImage?: string | null;
     motto: string;
     socialMedia: {
       facebook: string;

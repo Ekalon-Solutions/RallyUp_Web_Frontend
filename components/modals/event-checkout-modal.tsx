@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
@@ -85,6 +86,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
   const [couponApplied, setCouponApplied] = useState(false)
   const [attributedClub, setAttributedClub] = useState("")
   const [attributedClubError, setAttributedClubError] = useState("")
+  const [showClubAlert, setShowClubAlert] = useState(false)
 
     const reservePointsNow = async () => {
     if (!redeemPoints || Number(redeemPoints) <= 0) {
@@ -146,6 +148,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
       setCouponName("")
       setAttributedClub("")
       setAttributedClubError("")
+      setShowClubAlert(false)
     }
   }, [isOpen, skipMemberValidation])
 
@@ -332,6 +335,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
 
     if (isJointEvent && !attributedClub) {
       setAttributedClubError("Please select your club affiliation to continue")
+      setShowClubAlert(true)
       return
     }
 
@@ -687,6 +691,20 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
   }
 
   return (
+    <>
+      <AlertDialog open={showClubAlert} onOpenChange={setShowClubAlert}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Select Your Club Affiliation</AlertDialogTitle>
+            <AlertDialogDescription>
+              This is a joint screening event. Please select the club you support before proceeding to payment.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setShowClubAlert(false)}>OK, I'll select</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     <Dialog open={isOpen} onOpenChange={() => { if (!razorpayOpen) onClose() }} modal={!razorpayOpen}>
       <DialogContent
         className="max-w-md w-[95vw] sm:w-full max-h-[90vh] overflow-hidden flex flex-col p-4 sm:p-6"
@@ -1003,5 +1021,6 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
         />
       )}
     </Dialog>
+    </>
   )
 }

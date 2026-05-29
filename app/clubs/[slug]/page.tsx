@@ -491,20 +491,15 @@ export default function PublicClubPage() {
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
         </div>
       ) : (
-        <div
-          className="w-full h-48 md:h-64 lg:h-80 relative overflow-hidden"
-          style={{
-            background: `linear-gradient(135deg, ${primaryColor} 0%, ${designSettings.secondaryColor || primaryColor} 100%)`
-          }}
-        >
-          <div
-            className="absolute inset-0 opacity-10 pointer-events-none"
-            style={{
-              backgroundImage: `radial-gradient(circle at 2px 2px, white 1px, transparent 0)`,
-              backgroundSize: '30px 30px'
-            }}
+        <div className="relative w-full h-48 md:h-64 lg:h-80 overflow-hidden">
+          <img
+            src="/club-crowd-fallback.jpg"
+            alt="Club crowd placeholder"
+            className="w-full h-full object-cover"
           />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
+          <div className="absolute inset-0 bg-gradient-to-t from-black/45 to-black/15" />
+          <div className="absolute inset-0 flex items-end p-4 md:p-6 lg:p-8">
+            <p className="text-white/90 text-sm md:text-base font-semibold tracking-wide">Club Crowd</p>
           </div>
         </div>
       )}
