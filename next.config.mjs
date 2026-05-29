@@ -12,6 +12,15 @@ const nextConfig = {
   async headers() {
     return [
       {
+        source: '/dashboard/events/scanner',
+        headers: [
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(self), microphone=(), geolocation=(), interest-cohort=(), browsing-topics=()',
+          },
+        ],
+      },
+      {
         source: '/:path*',
         headers: [
           {

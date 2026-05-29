@@ -140,7 +140,7 @@ export function middleware(request: NextRequest) {
   }
 
   if (request.cookies.get('verified')?.value === 'true') {
-    return applySecurityHeaders(NextResponse.next())
+    return applySecurityHeaders(NextResponse.next(), pathname)
   }
   
   if (
@@ -174,15 +174,25 @@ export function middleware(request: NextRequest) {
     })
   }
   
-  return applySecurityHeaders(NextResponse.next())
+  return applySecurityHeaders(NextResponse.next(), pathname)
 }
 
-function applySecurityHeaders(response: NextResponse) {
+function cameraPermissionsPolicy(pathname: string): string {
+  if (pathname.startsWith('/dashboard/events/scanner')) {
+    return 'camera=(self)'
+  }
+  return 'camera=()'
+}
+
+function applySecurityHeaders(response: NextResponse, pathname = '') {
   response.headers.set('X-Frame-Options', 'SAMEORIGIN')
   response.headers.set('X-Content-Type-Options', 'nosniff')
   response.headers.set('X-XSS-Protection', '1; mode=block')
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
-  response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), interest-cohort=()')
+  response.headers.set(
+    'Permissions-Policy',
+    `${cameraPermissionsPolicy(pathname)}, microphone=(), geolocation=(), interest-cohort=()`
+  )
   return response
 }
 

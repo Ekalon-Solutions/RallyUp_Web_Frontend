@@ -10,48 +10,38 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ScanLine, Camera, CameraOff, Loader2, AlertCircle } from 'lucide-react'
-
-declare global {
-  interface Window {
-    BarcodeDetector?: any
-  }
-}
+import { BrowserQRCodeReader, IScannerControls } from '@zxing/browser'
 
 function parseQrUrl(raw: string): { registrationId: string; attendeeId: string } | null {
   try {
-    // Handle both full URLs and raw param strings
     const url = raw.startsWith('http') ? new URL(raw) : new URL(`https://x.invalid/?${raw}`)
     const registrationId = url.searchParams.get('registrationId')
     const attendeeId = url.searchParams.get('attendeeId')
     if (registrationId && attendeeId) return { registrationId, attendeeId }
   } catch {
-    // not a URL — ignore
   }
   return null
 }
 
-type ScannerState = 'idle' | 'starting' | 'scanning' | 'error' | 'unsupported'
+function pickPreferredCameraId(devices: MediaDeviceInfo[]): string | undefined {
+  const backCamera = devices.find((device) =>
+    /back|rear|environment/i.test(device.label)
+  )
+  return backCamera?.deviceId || devices[0]?.deviceId
+}
+
+type ScannerState = 'idle' | 'starting' | 'scanning' | 'error'
 
 export default function ScannerPage() {
   const router = useRouter()
   const videoRef = useRef<HTMLVideoElement>(null)
-  const streamRef = useRef<MediaStream | null>(null)
-  const detectorRef = useRef<any>(null)
-  const rafRef = useRef<number | null>(null)
+  const readerRef = useRef<BrowserQRCodeReader | null>(null)
+  const controlsRef = useRef<IScannerControls | null>(null)
   const lastScanRef = useRef<string>('')
 
   const [scannerState, setScannerState] = useState<ScannerState>('idle')
   const [cameraError, setCameraError] = useState<string>('')
   const [manualInput, setManualInput] = useState<string>('')
-  const [isBarcodeApiSupported, setIsBarcodeApiSupported] = useState<boolean | null>(null)
-
-  useEffect(() => {
-    const supported =
-      typeof window !== 'undefined' &&
-      'BarcodeDetector' in window
-    setIsBarcodeApiSupported(supported)
-    if (!supported) setScannerState('unsupported')
-  }, [])
 
   const navigateToAttendance = useCallback((registrationId: string, attendeeId: string) => {
     router.push(
@@ -60,71 +50,79 @@ export default function ScannerPage() {
   }, [router])
 
   const stopScanner = useCallback(() => {
-    if (rafRef.current != null) {
-      cancelAnimationFrame(rafRef.current)
-      rafRef.current = null
-    }
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((t) => t.stop())
-      streamRef.current = null
-    }
+    controlsRef.current?.stop()
+    controlsRef.current = null
+    readerRef.current = null
     if (videoRef.current) {
+      const stream = videoRef.current.srcObject as MediaStream | null
+      stream?.getTracks().forEach((track) => track.stop())
       videoRef.current.srcObject = null
     }
   }, [])
 
+  const handleScanResult = useCallback((raw: string) => {
+    if (!raw || raw === lastScanRef.current) return
+    lastScanRef.current = raw
+    const parsed = parseQrUrl(raw)
+    if (parsed) {
+      stopScanner()
+      navigateToAttendance(parsed.registrationId, parsed.attendeeId)
+    } else {
+      toast.error('QR code not recognised — make sure you scan a RallyUp event ticket')
+    }
+  }, [navigateToAttendance, stopScanner])
+
   const startScanner = useCallback(async () => {
+    if (!videoRef.current) return
+
     setScannerState('starting')
     setCameraError('')
     lastScanRef.current = ''
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
-      })
-      streamRef.current = stream
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream
-        await videoRef.current.play()
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error('Camera access is not supported in this browser.')
       }
 
-      detectorRef.current = new window.BarcodeDetector!({ formats: ['qr_code'] })
-      setScannerState('scanning')
+      const reader = new BrowserQRCodeReader()
+      readerRef.current = reader
 
-      const tick = async () => {
-        if (!videoRef.current || !detectorRef.current) return
-        try {
-          const barcodes = await detectorRef.current.detect(videoRef.current)
-          for (const barcode of barcodes) {
-            const raw: string = barcode.rawValue
-            if (raw === lastScanRef.current) continue // debounce same code
-            lastScanRef.current = raw
-            const parsed = parseQrUrl(raw)
-            if (parsed) {
-              stopScanner()
-              navigateToAttendance(parsed.registrationId, parsed.attendeeId)
-              return
-            } else {
-              toast.error('QR code not recognised — make sure you scan a RallyUp event ticket')
-            }
+      const devices = await BrowserQRCodeReader.listVideoInputDevices()
+      if (devices.length === 0) {
+        const notFound = new DOMException('No camera found on this device.', 'NotFoundError')
+        throw notFound
+      }
+
+      const deviceId = pickPreferredCameraId(devices)
+      const controls = await reader.decodeFromVideoDevice(
+        deviceId,
+        videoRef.current,
+        (result) => {
+          if (result) {
+            handleScanResult(result.getText())
           }
-        } catch {
-          // detect() can throw on frames before video is ready — ignore
         }
-        rafRef.current = requestAnimationFrame(tick)
-      }
-      rafRef.current = requestAnimationFrame(tick)
-    } catch (err: any) {
+      )
+
+      controlsRef.current = controls
+      setScannerState('scanning')
+    } catch (err: unknown) {
+      stopScanner()
+      const error = err as { name?: string; message?: string }
       const msg =
-        err?.name === 'NotAllowedError'
-          ? 'Camera access denied. Please allow camera permissions and try again.'
-          : err?.name === 'NotFoundError'
-          ? 'No camera found on this device.'
-          : err?.message || 'Failed to start camera.'
+        error?.name === 'NotAllowedError' || error?.name === 'PermissionDeniedError'
+          ? 'Camera access denied. Please allow camera permissions for this site and try again.'
+          : error?.name === 'NotFoundError'
+            ? 'No camera found on this device.'
+            : error?.name === 'NotReadableError'
+              ? 'Camera is already in use by another application.'
+              : error?.name === 'OverconstrainedError'
+                ? 'Could not use the selected camera. Try another device or browser.'
+                : error?.message || 'Failed to start camera.'
       setCameraError(msg)
       setScannerState('error')
     }
-  }, [navigateToAttendance, stopScanner])
+  }, [handleScanResult, stopScanner])
 
   useEffect(() => {
     return () => stopScanner()
@@ -156,89 +154,96 @@ export default function ScannerPage() {
             </p>
           </div>
 
-          {isBarcodeApiSupported === false && (
-            <Card className="border-yellow-200 bg-yellow-50">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-yellow-800 text-base flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4" /> Camera scanning not supported
-                </CardTitle>
-                <CardDescription className="text-yellow-700">
-                  Your browser does not support the BarcodeDetector API (Safari / Firefox). Use a hardware QR
-                  scanner or paste the ticket URL below.
-                </CardDescription>
-              </CardHeader>
-            </Card>
-          )}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Camera Scanner</CardTitle>
+              <CardDescription>Point the camera at the attendee&apos;s QR code.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden">
+                <video
+                  ref={videoRef}
+                  className="w-full h-full object-cover"
+                  playsInline
+                  muted
+                  autoPlay
+                  aria-label="Camera feed"
+                />
+                {scannerState === 'scanning' && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="w-48 h-48 border-2 border-white/70 rounded-lg relative">
+                      <span className="absolute -top-px -left-px w-6 h-6 border-t-4 border-l-4 border-green-400 rounded-tl-md" />
+                      <span className="absolute -top-px -right-px w-6 h-6 border-t-4 border-r-4 border-green-400 rounded-tr-md" />
+                      <span className="absolute -bottom-px -left-px w-6 h-6 border-b-4 border-l-4 border-green-400 rounded-bl-md" />
+                      <span className="absolute -bottom-px -right-px w-6 h-6 border-b-4 border-r-4 border-green-400 rounded-br-md" />
+                      <div className="absolute inset-x-0 top-0 h-0.5 bg-green-400/80 animate-scan-line" />
+                    </div>
+                  </div>
+                )}
+                {scannerState !== 'scanning' && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-white/60 gap-2">
+                    <CameraOff className="w-12 h-12" />
+                    <p className="text-sm">Camera not active</p>
+                  </div>
+                )}
+              </div>
 
-          {isBarcodeApiSupported && (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Camera Scanner</CardTitle>
-                <CardDescription>Point the camera at the attendee&apos;s QR code.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Video viewport */}
-                <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden">
-                  <video
-                    ref={videoRef}
-                    className="w-full h-full object-cover"
-                    playsInline
-                    muted
-                    aria-label="Camera feed"
+              {cameraError && (
+                <p className="text-sm text-red-600 flex items-center gap-1">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" /> {cameraError}
+                </p>
+              )}
+
+              {scannerState === 'idle' || scannerState === 'error' ? (
+                <Button className="w-full" onClick={startScanner}>
+                  <Camera className="w-4 h-4 mr-2" />
+                  Start Camera
+                </Button>
+              ) : scannerState === 'starting' ? (
+                <Button className="w-full" disabled>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Starting…
+                </Button>
+              ) : (
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => {
+                    stopScanner()
+                    setScannerState('idle')
+                  }}
+                >
+                  <CameraOff className="w-4 h-4 mr-2" />
+                  Stop Camera
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Manual Entry</CardTitle>
+              <CardDescription>
+                Paste the ticket URL if the camera is unavailable or you use a hardware scanner.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleManualSubmit} className="space-y-3">
+                <div className="space-y-2">
+                  <Label htmlFor="manual-qr">Ticket URL or QR payload</Label>
+                  <Input
+                    id="manual-qr"
+                    value={manualInput}
+                    onChange={(e) => setManualInput(e.target.value)}
+                    placeholder="https://…?registrationId=…&attendeeId=…"
                   />
-                  {/* Viewfinder overlay */}
-                  {scannerState === 'scanning' && (
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                      <div className="w-48 h-48 border-2 border-white/70 rounded-lg relative">
-                        <span className="absolute -top-px -left-px w-6 h-6 border-t-4 border-l-4 border-green-400 rounded-tl-md" />
-                        <span className="absolute -top-px -right-px w-6 h-6 border-t-4 border-r-4 border-green-400 rounded-tr-md" />
-                        <span className="absolute -bottom-px -left-px w-6 h-6 border-b-4 border-l-4 border-green-400 rounded-bl-md" />
-                        <span className="absolute -bottom-px -right-px w-6 h-6 border-b-4 border-r-4 border-green-400 rounded-br-md" />
-                        {/* Scanning line animation */}
-                        <div className="absolute inset-x-0 top-0 h-0.5 bg-green-400/80 animate-scan-line" />
-                      </div>
-                    </div>
-                  )}
-                  {scannerState !== 'scanning' && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center text-white/60 gap-2">
-                      <CameraOff className="w-12 h-12" />
-                      <p className="text-sm">Camera not active</p>
-                    </div>
-                  )}
                 </div>
-
-                {cameraError && (
-                  <p className="text-sm text-red-600 flex items-center gap-1">
-                    <AlertCircle className="w-4 h-4 flex-shrink-0" /> {cameraError}
-                  </p>
-                )}
-
-                {scannerState === 'idle' || scannerState === 'error' ? (
-                  <Button className="w-full" onClick={startScanner}>
-                    <Camera className="w-4 h-4 mr-2" />
-                    Start Camera
-                  </Button>
-                ) : scannerState === 'starting' ? (
-                  <Button className="w-full" disabled>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Starting…
-                  </Button>
-                ) : (
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => { stopScanner(); setScannerState('idle') }}
-                  >
-                    <CameraOff className="w-4 h-4 mr-2" />
-                    Stop Camera
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Manual / hardware scanner fallback */}
-         
+                <Button type="submit" variant="secondary" className="w-full">
+                  Open Attendance
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
         </div>
       </DashboardLayout>
     </ProtectedRoute>
