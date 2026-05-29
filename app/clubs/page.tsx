@@ -483,9 +483,9 @@ function ClubsPageContent() {
 
  const getStatusColor = (status: string) => {
  switch (status) {
- case 'active': return 'bg-primary text-primary border-primary'
+ case 'active': return 'bg-primary/10 text-primary border-primary/30'
  case 'inactive': return 'bg-secondary/30 text-secondary border-border'
- case 'suspended': return 'bg-primary text-primary border-primary'
+ case 'suspended': return 'bg-primary/10 text-primary border-primary/30'
  default: return 'bg-secondary/30 text-secondary border-border'
  }
  }
@@ -802,7 +802,7 @@ function ClubsPageContent() {
  return (
  <div key={plan._id} className={cn(
 "border-2 rounded-2xl p-4 transition-all duration-300",
- isJoined ?"border-primary bg-primary shadow-inner": isLimitReached ?"border-primary bg-primary":"border-border hover:border-primary hover:bg-secondary-purple/50"
+ isJoined ?"border-primary bg-primary/10 shadow-sm": isLimitReached ?"border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/40":"border-border hover:border-primary hover:bg-secondary-purple/50"
  )}>
  <div className="flex items-center justify-between mb-2">
  <h5 className="font-black text-sm flex items-center gap-2">
@@ -828,15 +828,15 @@ function ClubsPageContent() {
  </span>
  </div>
  {isLimitReached && !isJoined && club.memberInfo && (
- <div className="mb-3 p-2 bg-primary rounded-lg">
- <p className="text-xs font-bold text-primary">
+ <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-2 dark:border-amber-800 dark:bg-amber-950/40">
+ <p className="text-xs font-bold text-amber-900 dark:text-amber-100">
  Maximum member limit reached ({club.memberInfo.currentCount}/{club.memberInfo.maxLimit})
  </p>
  </div>
  )}
  {!salesState.isOpen && !isJoined && !isLimitReached && (
- <div className="mb-3 p-2 bg-secondary rounded-lg">
- <p className="text-xs font-bold text-secondary">
+ <div className="mb-3 rounded-lg border border-border bg-muted p-2">
+ <p className="text-xs font-bold text-foreground">
  {salesState.closed ? "Membership Closed" : "Membership sales not started yet"}
  </p>
  </div>
@@ -868,7 +868,7 @@ function ClubsPageContent() {
  disabled={isDisabled}
  className={cn(
 "h-9 px-4 font-bold text-xs rounded-xl transition-all shadow-md active:scale-95",
- isJoined ?"bg-primary text-primary hover:bg-primary": isLimitReached ?"bg-secondary/30 text-secondary cursor-not-allowed":"bg-primary text-white"
+ isJoined ?"bg-muted text-muted-foreground cursor-not-allowed": isLimitReached ?"bg-secondary/30 text-secondary cursor-not-allowed":"bg-primary text-white"
  )}
  >
  {isJoined ? (
@@ -985,7 +985,7 @@ function ClubsPageContent() {
  disabled={isDisabled}
  className={cn(
 "flex-1 md:w-full h-14 rounded-2xl font-black shadow-xl transition-all active:scale-95",
- isJoined ?"bg-primary text-primary hover:bg-primary": isLimitReached ?"bg-secondary/30 text-secondary cursor-not-allowed":"bg-primary text-white"
+ isJoined ?"bg-muted text-muted-foreground cursor-not-allowed": isLimitReached ?"bg-secondary/30 text-secondary cursor-not-allowed":"bg-primary text-white"
  )}
  >
  {isJoined ? (
@@ -1071,25 +1071,25 @@ function ClubsPageContent() {
  return (
  <Card key={plan._id} className={cn(
 "border-2 transition-colors",
- isJoined ?"border-primary bg-primary": isLimitReached ?"border-primary bg-primary":"hover:border-primary"
+ isJoined ?"border-primary bg-primary/10": isLimitReached ?"border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/40":"hover:border-primary"
  )}>
  <CardHeader>
  <div className="flex items-center justify-between">
  <CardTitle className="text-lg flex items-center gap-2">
  {plan.name}
  {isJoined && (
- <Badge className="bg-primary text-primary border-primary">
+ <Badge className="bg-primary text-primary-foreground border-0">
  <CheckCircle className="w-3 h-3 mr-1"/>
  Joined
  </Badge>
  )}
  {isLimitReached && !isJoined && (
- <Badge className="bg-primary text-primary border-primary">
+ <Badge className="bg-amber-600 text-white border-0">
  Full
  </Badge>
  )}
  {!salesState.isOpen && !isJoined && !isLimitReached && (
- <Badge className="bg-secondary text-secondary border-secondary">
+ <Badge className="bg-muted text-muted-foreground border border-border">
  {salesState.closed ? "Membership Closed" : "Unavailable"}
  </Badge>
  )}
@@ -1118,15 +1118,15 @@ function ClubsPageContent() {
  <p className="text-muted-foreground">{plan.description}</p>
 
  {isLimitReached && !isJoined && selectedClub.memberInfo && (
- <div className="p-3 bg-primary rounded-lg">
- <p className="text-sm font-bold text-primary">
+ <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-950/40">
+ <p className="text-sm font-bold text-amber-900 dark:text-amber-100">
  Maximum member limit reached ({selectedClub.memberInfo.currentCount}/{selectedClub.memberInfo.maxLimit})
  </p>
  </div>
  )}
  {!salesState.isOpen && !isJoined && !isLimitReached && (
- <div className="p-3 bg-secondary rounded-lg">
- <p className="text-sm font-bold text-secondary">
+ <div className="rounded-lg border border-border bg-muted p-3">
+ <p className="text-sm font-bold text-foreground">
  {salesState.closed ? "Membership Closed. Contact Club Admin" : "Membership sales are not open yet for this plan"}
  </p>
  </div>
@@ -1318,8 +1318,8 @@ function ClubsPageContent() {
 
  {/* Registration Dialog */}
  <Dialog open={showRegistrationDialog} onOpenChange={setShowRegistrationDialog}>
- <DialogContent className="sm:max-w-2xl max-w-full max-h-[80vh] overflow-y-auto">
- <DialogHeader>
+ <DialogContent className="flex max-h-[90vh] max-w-full flex-col overflow-hidden p-0 sm:max-w-2xl">
+ <DialogHeader className="shrink-0 px-6 pt-6">
  <DialogTitle className="flex items-center gap-2">
  <div className="bg-primary rounded-lg p-2">
  <Users className="w-5 h-5 text-white"/>
@@ -1343,7 +1343,7 @@ function ClubsPageContent() {
  </DialogDescription>
  </DialogHeader>
 
- <div className="max-h-[70vh] overflow-y-auto pr-2">
+ <div className="flex-1 overflow-y-auto px-6 pb-6">
  <form onSubmit={handleRegistration} className="space-y-4">
  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
  <div className="space-y-2">
@@ -1532,39 +1532,25 @@ function ClubsPageContent() {
 
  {selectedPlan && (
  <div className="space-y-4">
- <div className="bg-primary border border-primary p-4 rounded-lg">
- <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
- <Award className="w-4 h-4 text-primary"/>
- Selected Plan: {selectedPlan.name}
+ <div className="rounded-lg border-2 border-primary/30 bg-muted/70 p-4 shadow-sm dark:bg-muted/40">
+ <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
+ <Award className="h-4 w-4 shrink-0 text-primary"/>
+ <span>
+ Selected Plan: <span className="text-primary">{selectedPlan.name}</span>
+ </span>
  </h4>
- <div className="text-sm text-muted-foreground space-y-1">
- <div className="flex justify-between">
- <span>Price:</span>
+ <div className="space-y-2 text-sm">
+ <div className="flex justify-between gap-4">
+ <span className="text-muted-foreground">Price:</span>
  <span className="font-semibold text-primary">{formatPrice(selectedPlan.price, selectedPlan.currency)}</span>
  </div>
- <div className="flex justify-between">
- <span>Duration:</span>
- <span>{formatPlanPeriod(selectedPlan)}</span>
+ <div className="flex justify-between gap-4">
+ <span className="text-muted-foreground">Duration:</span>
+ <span className="font-medium text-foreground">{formatPlanPeriod(selectedPlan)}</span>
  </div>
- {/* {(selectedPlan.planStartDate || selectedPlan.planEndDate) && (
- <>
- {selectedPlan.planStartDate && (
- <div className="flex justify-between">
- <span>Start:</span>
- <span>{new Date(selectedPlan.planStartDate).toLocaleDateString(undefined, { month:"short", day:"numeric", year:"numeric"})}</span>
- </div>
- )}
- {selectedPlan.planEndDate && (
- <div className="flex justify-between">
- <span>End:</span>
- <span>{new Date(selectedPlan.planEndDate).toLocaleDateString(undefined, { month:"short", day:"numeric", year:"numeric"})}</span>
- </div>
- )}
- </>
- )} */}
- <div className="flex justify-between">
- <span>Features:</span>
- <span>{selectedPlan.features.maxEvents} events, {selectedPlan.features.maxNews} news items</span>
+ <div className="flex justify-between gap-4">
+ <span className="text-muted-foreground">Features:</span>
+ <span className="text-right font-medium text-foreground">{selectedPlan.features.maxEvents} events, {selectedPlan.features.maxNews} news items</span>
  </div>
  </div>
  </div>

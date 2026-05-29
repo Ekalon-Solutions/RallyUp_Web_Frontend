@@ -4353,6 +4353,86 @@ class ApiClient {
   async calculateGTSPoints(fixtureId: string, clubId: string): Promise<ApiResponse<any>> {
     return this.post('/gts/calculate', { fixtureId, clubId });
   }
+
+  async listNotificationTemplates(clubId: string): Promise<
+    ApiResponse<{
+      templates: any[];
+      mappingOverview: Record<string, any[]>;
+      variables: Array<{ key: string; placeholder: string; sample: string }>;
+      charLimits: Record<string, { subject?: number; body: number }>;
+      triggerLabels: Record<string, string>;
+    }>
+  > {
+    const res = await this.get(`/clubs/${clubId}/notification-templates`);
+    if (res.success && res.data) {
+      return { ...res, data: (res.data as any).data ?? res.data };
+    }
+    return res;
+  }
+
+  async getNotificationTemplate(clubId: string, templateId: string): Promise<ApiResponse<any>> {
+    const res = await this.get(`/clubs/${clubId}/notification-templates/${templateId}`);
+    if (res.success && res.data) {
+      return { ...res, data: (res.data as any).data ?? res.data };
+    }
+    return res;
+  }
+
+  async updateNotificationTemplate(
+    clubId: string,
+    templateId: string,
+    data: { subject?: string; body: string; suppressionEnabled?: boolean }
+  ): Promise<ApiResponse<any> & { undoSnapshot?: any; validation?: any }> {
+    const res = await this.put(`/clubs/${clubId}/notification-templates/${templateId}`, data);
+    if (res.success && res.data) {
+      const body = res.data as any;
+      return {
+        ...res,
+        data: body.data ?? body,
+        undoSnapshot: body.undoSnapshot,
+        validation: body.validation,
+      };
+    }
+    return res;
+  }
+
+  async resetNotificationTemplate(
+    clubId: string,
+    templateId: string
+  ): Promise<ApiResponse<any> & { undoSnapshot?: any }> {
+    const res = await this.post(`/clubs/${clubId}/notification-templates/${templateId}/reset`, {});
+    if (res.success && res.data) {
+      const body = res.data as any;
+      return {
+        ...res,
+        data: body.data ?? body,
+        undoSnapshot: body.undoSnapshot,
+      };
+    }
+    return res;
+  }
+
+  async undoResetNotificationTemplate(
+    clubId: string,
+    templateId: string,
+    undoSnapshot: Record<string, unknown>
+  ): Promise<ApiResponse<any>> {
+    const res = await this.post(`/clubs/${clubId}/notification-templates/${templateId}/undo-reset`, { undoSnapshot });
+    if (res.success && res.data) {
+      return { ...res, data: (res.data as any).data ?? res.data };
+    }
+    return res;
+  }
+
+  async globalResetNotificationTemplates(
+    clubId: string
+  ): Promise<ApiResponse<{ resetCount: number; templates: any[] }>> {
+    const res = await this.post(`/clubs/${clubId}/notification-templates/global-reset`, {});
+    if (res.success && res.data) {
+      return { ...res, data: (res.data as any).data ?? res.data };
+    }
+    return res;
+  }
 }
 
 export const apiClient = new ApiClient(API_BASE_URL);

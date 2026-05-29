@@ -42,6 +42,9 @@ const ACTION_LABELS: Record<string, string> = {
   REFUND_PROCESSED: "Refund processed",
   REFUND_RECALCULATED: "Refund recalculated",
   REFUND_POLICY_CHANGED: "Refund policy changed",
+  NOTIFICATION_TEMPLATE_UPDATED: "Notification template updated",
+  NOTIFICATION_TEMPLATE_RESET: "Notification template reset",
+  NOTIFICATION_TEMPLATE_GLOBAL_RESET: "Notification templates global reset",
   HIGH_RISK_ACTION: "High-risk action",
 }
 
