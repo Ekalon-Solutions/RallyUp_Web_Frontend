@@ -18,6 +18,7 @@ import EventDetailsModal from '@/components/modals/event-details-modal'
 import UserEventRegistrationModal from "@/components/modals/user-event-registration-modal"
 import { EventCheckoutModal } from "@/components/modals/event-checkout-modal"
 import { RefundConfirmationModal } from "@/components/modals/refund-confirmation-modal"
+import { MemberTicketRefundAction } from "@/components/member/member-ticket-refund-action"
 
 function AttendanceMarker({ event, userId }: { event: Event; userId?: string }) {
   const [registration, setRegistration] = useState<any | null>(null)
@@ -91,16 +92,12 @@ import LeagueTableWidget from "@/components/league-table-widget"
 import { useClubSettings } from "@/hooks/useClubSettings"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 
-// Component: display upcoming fixtures for the user's active club
 function FixturesCards({ clubId }: { clubId?: string | undefined }) {
   const [fixtures, setFixtures] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
   const [showAll, setShowAll] = useState(false)
   const INITIAL_COUNT = 6
 
-  // helper to format startTime into "DD Month YYYY (Weekday) HH:MM IST"
-  // The backend (IST server) stores TheSportsDB UTC times as-if they were IST,
-  // effectively saving them 5:30h behind the real UTC. We add 5:30h back before displaying.
   const formatFixtureDate = (isoDate: string) => {
     const d = new Date(isoDate)
     if (isNaN(d.getTime())) return ''
@@ -121,10 +118,8 @@ function FixturesCards({ clubId }: { clubId?: string | undefined }) {
       try {
         const resp = await apiClient.listAvailableExternalTicketFixtures(clubId) as any
         const data = resp?.data?.data || []
-        console.log("data:", data)
 
         const rawArr = Array.isArray(data) ? data : []
-        // Deduplicate by _id to prevent double-rendering
         const seen = new Map<string, any>()
         rawArr.forEach((f) => seen.set(String(f._id), f))
         const fixturesArr = Array.from(seen.values())
@@ -164,12 +159,10 @@ function FixturesCards({ clubId }: { clubId?: string | undefined }) {
                 <CardHeader className="flex items-center justify-between pb-2">
                   <div className="flex items-center gap-3">
                     {f.homeTeamBadge ? (
-                      // eslint-disable-next-line @next/next/no-img-element
                       <img src={f.homeTeamBadge} alt={f.homeTeam || 'home'} className="w-8 h-8 object-contain" />
                     ) : null}
                     <CardTitle className="text-sm font-medium">{f.title}</CardTitle>
                     {f.awayTeamBadge ? (
-                      // eslint-disable-next-line @next/next/no-img-element
                       <img src={f.awayTeamBadge} alt={f.awayTeam || 'away'} className="w-8 h-8 object-contain" />
                     ) : null}
                   </div>
@@ -268,16 +261,13 @@ export default function UserDashboardPage() {
 
   const { settings: clubSettings, isSectionVisible } = useClubSettings(clubId || undefined)
 
-  // Get user's display name
   const getUserDisplayName = () => {
     if (!user) return 'Member';
 
-    // Try to get name from different possible sources
     if (user.name) {
       return user.name;
     }
 
-    // Check if we have first_name and last_name
     if (user && typeof user === 'object') {
       const userAny = user as any;
       if (userAny.first_name && userAny.last_name) {
@@ -324,8 +314,6 @@ export default function UserDashboardPage() {
       setLoading(true)
 
       if (!clubId) {
-        // clubId may still be resolving after login/signup – don't toast here,
-        // the empty-state UI already communicates the lack of membership.
         setLoading(false)
         return
       }
@@ -340,7 +328,6 @@ export default function UserDashboardPage() {
         setEvents(eventsData)
       }
 
-      // fetch member points and redemption rate for display
       try {
         if (user && clubId) {
           const [ptsResp, settingsResp] = await Promise.all([
@@ -357,7 +344,6 @@ export default function UserDashboardPage() {
           setTotalPoints(null)
         }
       } catch (e) {
-        // ignore
       }
 
       if (user) {
@@ -392,7 +378,6 @@ export default function UserDashboardPage() {
         setUserRegistrations(registrationsMap)
       }
     } catch (error) {
-      // console.error("Error fetching user registrations:", error)
     }
   }
 
@@ -414,7 +399,6 @@ export default function UserDashboardPage() {
     if (!payload || !payload.eventId) return
     const event = events.find((e) => e._id === payload.eventId);
     if (event?.ticketPrice) {
-      // Open EventCheckoutModal for paid events
       setShowEventCheckoutModal(true);
       setEventForPayment({ ...event, price: event.ticketPrice } as Event & {
         price: number;
@@ -451,7 +435,6 @@ export default function UserDashboardPage() {
         },
       })
     } catch (error) {
-      // console.error("Registration API error", error)
       toast.error("Failed to register for event")
     }
   }
@@ -480,6 +463,24 @@ export default function UserDashboardPage() {
     try {
       setRefundModalLoading(true)
       setRefundModalError(null)
+      const policyRes = await apiClient.getEventRefundPolicy(eventId)
+      const policy = policyRes.success && policyRes.data ? policyRes.data : null
+      if (policy?.event_cancelled) {
+        toast.info("This event was cancelled by the club. Automatic refund processing applies.")
+        return
+      }
+      if (policy && policy.is_refund_allowed === false) {
+        toast.error("Policy restriction", {
+          description: "This ticket is non-refundable and cannot be cancelled for a refund.",
+        })
+        return
+      }
+      if (policy?.refund_window_closed) {
+        toast.error("Refund window closed", {
+          description: "The club's cancellation cut-off has passed for this event.",
+        })
+        return
+      }
       const res = await apiClient.estimateRefund({ sourceType: "event_ticket", eventId })
       if (res.success && res.data) {
         const rawData = res.data as any
@@ -527,7 +528,6 @@ export default function UserDashboardPage() {
     const registrationFromEvent = (event.registrations || []).find(
       (r: any) => String(r?.userId) === String(user._id) && (r.status === "confirmed")
     )
-    console.log("event.registrationFromEvent", registrationFromEvent)
 
     if (registrationFromEvent) {
       return registrationFromEvent
@@ -548,7 +548,6 @@ export default function UserDashboardPage() {
 
   const getRegistrationStatusForEvent = (event: Event) => {
     const registration = getUserRegistrationForEvent(event)
-    console.log(registration,"====+++regs")
     return registration?.status ?? null
   }
 
@@ -612,7 +611,6 @@ export default function UserDashboardPage() {
   const renderActionButtons = (event: Event) => {
     const registered = isUserRegisteredForEvent(event)
     const registrationStatus = getRegistrationStatusForEvent(event)
-    console.log(registrationStatus,"==========status")
     const eventFull = isEventFull(event)
 
     if (!user) {
@@ -640,18 +638,12 @@ export default function UserDashboardPage() {
               ? "Registered"
               : "View registration"}
           </Button>
-          <Button
-            variant="destructive"
-            onClick={(e) => {
-              e.stopPropagation()
-              initiateRefundCancel(event._id)
-            }}
-            disabled={cancellingEventId === event._id || refundModalLoading}
-            className="h-10 w-10 p-0 flex items-center justify-center"
-            title="Cancel registration"
-          >
-            <Trash className="w-4 h-4" />
-          </Button>
+          <MemberTicketRefundAction
+            eventId={event._id}
+            eventIsActive={event.isActive !== false}
+            onRequestRefund={() => initiateRefundCancel(event._id)}
+            loading={cancellingEventId === event._id || refundModalLoading}
+          />
         </div>
       )
     }
@@ -818,8 +810,6 @@ export default function UserDashboardPage() {
     )
   }
 
-
-  // Get membership plan icon
   const getPlanIcon = (planName?: string) => {
     if (!planName) return <Calendar className="w-4 h-4" />
 
@@ -1247,12 +1237,11 @@ export default function UserDashboardPage() {
                         </Badge>
                       </div>
 
-                      {/* News Articles */}
                       <div className="space-y-4">
                         {(() => {
                           const publishedNews = (news || []).filter(article => article.isPublished)
                             .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-                            .slice(0, 6); // Show only latest 6 articles
+                            .slice(0, 6); 
 
                           return publishedNews.map((article) => (
                             <Card key={article._id} className="hover:shadow-md transition-shadow">

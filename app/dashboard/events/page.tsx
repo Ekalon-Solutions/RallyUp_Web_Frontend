@@ -29,7 +29,6 @@ export default function EventsPage() {
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [timeFilter, setTimeFilter] = useState<string>("all")
 
-  // Registration modal states
   const [registrationModalOpen, setRegistrationModalOpen] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
   const [userRegistrations, setUserRegistrations] = useState<Map<string, any>>(new Map())

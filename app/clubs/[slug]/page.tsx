@@ -11,6 +11,7 @@ import { apiClient, News, Event, Chant, Album } from "@/lib/api"
 import { formatDisplayDate } from "@/lib/utils"
 import { getNewsImageUrl } from "@/lib/config"
 import { EventCheckoutModal } from "@/components/modals/event-checkout-modal"
+import { RefundPolicyBadge } from "@/components/refund-policy-badge"
 import { VenueTierCartModal } from "@/components/modals/venue-tier-cart-modal"
 import { PurchaseFlowModal, setStoredPurchaseIntent, getStoredPurchaseIntent, clearStoredPurchaseIntent } from "@/components/modals/purchase-flow-modal"
 import { CheckoutModal } from "@/components/modals/checkout-modal"
@@ -18,7 +19,6 @@ import NewsReadMoreModal from "@/components/modals/news-readmore-modal"
 import { SocialBrandButton } from "@/components/club-public/social-platform-icons"
 import { EkalonAttribution } from "@/components/ekalon-attribution"
 import { ClubGallerySection } from "@/components/club-public/club-gallery-section"
-import { toast } from "sonner"
 import {
   Globe,
   Mail,
@@ -48,7 +48,6 @@ interface ClubSettings {
     isPublished: boolean
     sections: Record<string, boolean>
   }
-  /** Matches ClubSettings in API: social links live on designSettings.socialMedia */
   designSettings: {
     primaryColor: string
     secondaryColor: string
@@ -60,7 +59,6 @@ interface ClubSettings {
   }
 }
 
-/** Subdocument on club settings (Mongo designSettings.socialMedia) */
 interface ClubSettingsSocialMedia {
   facebook?: string
   twitter?: string
@@ -98,7 +96,6 @@ function isSocialMediaObject(v: unknown): v is Record<string, unknown> {
   return v != null && typeof v === "object" && !Array.isArray(v)
 }
 
-/** Club settings Mongo schema: `designSettings.socialMedia`. Returns null if missing or not a plain object. */
 function getSocialMediaRecordFromClubSettings(settings: ClubSettings): Record<string, unknown> | null {
   const nested = settings.designSettings?.socialMedia
   if (!isSocialMediaObject(nested)) return null
@@ -178,7 +175,6 @@ export default function PublicClubPage() {
     setShowPurchaseFlowModal(true)
   }
 
-  // Resume purchase after login redirect
   useEffect(() => {
     const resume = searchParams.get("resumePurchase")
     if (resume !== "1" || !club?._id) return
@@ -371,12 +367,6 @@ export default function PublicClubPage() {
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Go Back
               </Button>
-              {/* <Link href="/clubs" className="w-full">
-                <Button variant="outline" className="w-full">
-                  <Search className="mr-2 h-4 w-4" />
-                  Explore Other Clubs
-                </Button>
-              </Link> */}
               <Link href="/" className="w-full">
                 <Button variant="ghost" className="w-full">
                   <Home className="mr-2 h-4 w-4" />
@@ -396,7 +386,6 @@ export default function PublicClubPage() {
   }
 
   const { websiteSetup, designSettings: designSettingsRaw } = settings
-  /** Club-settings API: `data.designSettings` (includes `socialMedia` with facebook, twitter, instagram, youtube). */
   const designSettings = designSettingsRaw ?? {
     primaryColor: "#3b82f6",
     secondaryColor: "",
@@ -467,7 +456,6 @@ export default function PublicClubPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* ── Sticky header ── */}
       <header className="sticky top-0 z-50 bg-background/90 backdrop-blur-xl border-b shadow-sm">
         <div className="container mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0 flex-shrink-0">
@@ -567,7 +555,6 @@ export default function PublicClubPage() {
         </div>
       </header>
 
-      {/* Hero Image Section */}
       {designSettings.heroImage ? (
         <div className="relative w-full h-48 md:h-64 lg:h-80 overflow-hidden">
           <img
@@ -588,101 +575,11 @@ export default function PublicClubPage() {
         </div>
       )}
 
-      {/* <section className="relative overflow-hidden py-24 lg:py-40">
-        <div
-          className="absolute inset-0 opacity-[0.04] pointer-events-none"
-          style={{
-            backgroundImage: `radial-gradient(circle at 2px 2px, ${primaryColor} 1px, transparent 0)`,
-            backgroundSize: '40px 40px'
-          }}
-        />
-        <div
-          className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full opacity-[0.08] pointer-events-none"
-          style={{
-            background: `radial-gradient(circle at center, ${primaryColor} 0%, transparent 70%)`,
-            filter: 'blur(120px)'
-          }}
-        />
-
-        <div className="container mx-auto px-6 relative">
-          <div className="max-w-5xl mx-auto text-center space-y-12">
-            {(designSettings.logo || club.logo) && (
-              <div className="flex justify-center animate-scale-in">
-                <div className="relative group">
-                  <div
-                    className="absolute -inset-10 rounded-[2rem] opacity-35 blur-3xl transition-opacity duration-700 group-hover:opacity-55"
-                    style={{
-                      background: `radial-gradient(circle, ${primaryColor} 0%, transparent 72%)`,
-                    }}
-                  />
-                  <div
-                    className="relative flex h-36 w-36 items-center justify-center overflow-hidden rounded-3xl border-2 bg-gradient-to-br from-card via-card to-muted/40 shadow-2xl ring-4 ring-background/80 transition-all duration-300 md:h-44 md:w-44 md:rounded-[1.85rem]"
-                    style={{ borderColor: `${primaryColor}4d` }}
-                  >
-                    <img
-                      src={designSettings.logo || club.logo}
-                      alt={`${title} logo`}
-                      className="max-h-[82%] max-w-[82%] object-contain object-center transition-transform duration-300 group-hover:scale-[1.04]"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="space-y-6 animate-slide-up">
-              <h1
-                className="text-5xl md:text-7xl lg:text-8xl font-black tracking-tight leading-[1.1]"
-                style={{ color: primaryColor }}
-              >
-                {title}
-              </h1>
-
-              {designSettings.motto && (
-                <div className="relative inline-block px-8 py-3">
-                  <div className="absolute inset-0 bg-primary/5 blur-md rounded-2xl" />
-                  <p className="relative text-2xl md:text-3xl font-semibold italic text-muted-foreground/90 leading-relaxed">
-                    "{designSettings.motto}"
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {description && (
-              <p className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed animate-slide-up" style={{ animationDelay: '0.1s' }}>
-                {description}
-              </p>
-            )}
-
-            <div className="pt-10 flex flex-col sm:flex-row items-center justify-center gap-6 animate-slide-up" style={{ animationDelay: '0.2s' }}>
-              <Link href={clubSearchHref} className="w-full sm:w-auto">
-                <Button
-                  size="lg"
-                  className="w-full sm:px-12 h-16 text-xl font-bold shadow-xl hover:shadow-primary/25 transition-all rounded-2xl group"
-                  style={{
-                    backgroundColor: primaryColor,
-                    color: 'white'
-                  }}
-                >
-                  <Users className="mr-3 h-7 w-7 group-hover:scale-110 transition-transform" />
-                  Join Our Club
-                </Button>
-              </Link>
-              <Link href={`/login`} className="w-full sm:w-auto">
-                <Button size="lg" variant="outline" className="w-full sm:px-12 h-16 text-xl font-bold bg-background/50 backdrop-blur-md border-2 hover:bg-muted/50 rounded-2xl">
-                  Member Login
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section> */}
-
       {hasCommunitySections && (
         <section className="container mx-auto px-6 py-12 md:py-16">
           <div className="max-w-7xl mx-auto space-y-10 md:space-y-12">
             <div className="space-y-8">
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                  {/* Mobile / tablet tab bar; desktop nav lives in header */}
                   <TabsList className="flex md:hidden flex-wrap w-full max-w-4xl mx-auto gap-2 h-auto bg-muted/50 p-2">
                     {websiteSetup.sections.events && (
                       <TabsTrigger
@@ -874,11 +771,16 @@ export default function PublicClubPage() {
                                           {event.isActive ? 'Active' : 'Inactive'}
                                         </Badge>
                                       )}
-                                      {event.ticketPrice !== undefined && event.ticketPrice > 0 && (
-                                        <Badge variant="outline" className="text-xs font-bold">
-                                          ₹{event.ticketPrice}
-                                        </Badge>
-                                      )}
+                                      <div className="flex flex-wrap items-center gap-1.5 justify-end">
+                                        {event.ticketPrice !== undefined && event.ticketPrice > 0 && (
+                                          <Badge variant="outline" className="text-xs font-bold">
+                                            ₹{event.ticketPrice}
+                                          </Badge>
+                                        )}
+                                        {event.ticketPrice !== undefined && event.ticketPrice > 0 && event._id && (
+                                          <RefundPolicyBadge eventId={event._id} className="text-[10px]" source="event_detail" />
+                                        )}
+                                      </div>
                                     </div>
                                     <CardTitle className="text-xl line-clamp-2 break-words">{event.title}</CardTitle>
                                     {event.description && (
@@ -964,13 +866,6 @@ export default function PublicClubPage() {
                             </div>
                             Merchandise
                           </CardTitle>
-                          {/* {club?._id && (
-                          <Link href={`/merchandise?clubId=${club._id}`}>
-                            <Button variant="outline" className="border-2 font-bold">
-                              Shop All
-                            </Button>
-                          </Link>
-                        )} */}
                         </CardHeader>
                         <CardContent>
                           {loadingContent ? (
@@ -1161,7 +1056,6 @@ export default function PublicClubPage() {
                 footerColumnCount >= 3 ? "md:grid-cols-3 md:divide-y-0 md:divide-x" : "",
               ].join(" ")}
             >
-              {/* Column 1 — Email / Phone */}
               {hasContactInfo && (
                 <div className="flex flex-col items-center gap-5 py-10 first:pt-0 last:pb-0 md:py-0 md:px-10 md:first:pl-0 md:last:pr-0">
                   <div className="space-y-1 text-center">
@@ -1220,7 +1114,6 @@ export default function PublicClubPage() {
                 </div>
               )}
 
-              {/* Column 2 — Website */}
               {hasClubWebsite && (
                 <div className="flex flex-col items-center gap-4 py-10 first:pt-0 last:pb-0 md:py-0 md:px-10 md:first:pl-0 md:last:pr-0">
                   <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
@@ -1245,7 +1138,6 @@ export default function PublicClubPage() {
                 </div>
               )}
 
-              {/* Column 3 — Social */}
               {hasSocialLinks && (
                 <div className="flex flex-col items-center gap-4 py-10 first:pt-0 last:pb-0 md:py-0 md:px-10 md:first:pl-0 md:last:pr-0">
                   <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-muted-foreground">
@@ -1269,7 +1161,6 @@ export default function PublicClubPage() {
         </div>
       </footer>
 
-      {/* Purchase flow — member phone check, login, or continue as guest */}
       {club?._id && (eventForRegistration || merchandiseForQuickBuy) && (
         <PurchaseFlowModal
           isOpen={showPurchaseFlowModal}
@@ -1346,7 +1237,6 @@ export default function PublicClubPage() {
         />
       )}
 
-      {/* Multi-ticket checkout (venue-tier matrix events) */}
       <VenueTierCartModal
         isOpen={showVenueTierCartModal}
         onClose={() => {

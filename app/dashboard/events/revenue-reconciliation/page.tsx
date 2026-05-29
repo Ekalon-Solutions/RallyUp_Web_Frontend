@@ -92,11 +92,16 @@ export default function RevenueReconciliationPage() {
           </Button>
         </div>
 
-        <p className="text-muted-foreground text-sm">
-          Revenue attributed to partner clubs from joint screening events. Each row shows earnings grouped by the club affiliation selected at checkout.
-        </p>
-
-        {/* Filter bar */}
+          <p className="text-muted-foreground text-sm">
+            Revenue attributed to partner clubs from joint screening events. Each row shows earnings grouped by the club affiliation selected at checkout.
+          </p>
+          <p className="text-sm">
+            <Link href="/dashboard/admin/refunds" className="text-primary underline-offset-4 hover:underline">
+              View Event Refund Report
+            </Link>
+            {" "}for ticket-level refund status and blocked-refund savings.
+          </p>
+          
         <div className="flex items-center gap-3 flex-wrap">
           <Filter className="w-4 h-4 text-muted-foreground" />
           <span className="text-sm font-medium">Filter by club:</span>
@@ -125,7 +130,6 @@ export default function RevenueReconciliationPage() {
           </Card>
         ) : (
           <>
-            {/* Summary row */}
             <div className="grid grid-cols-2 gap-4">
               <Card>
                 <CardContent className="py-4">
@@ -141,7 +145,6 @@ export default function RevenueReconciliationPage() {
               </Card>
             </div>
 
-            {/* Groups */}
             <div className="space-y-4">
               {data.map((group) => {
                 const key = group._id ?? "__unattributed__"

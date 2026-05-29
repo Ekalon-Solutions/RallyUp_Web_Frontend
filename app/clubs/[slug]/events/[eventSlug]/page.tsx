@@ -27,6 +27,7 @@ import {
   Home,
 } from "lucide-react"
 import Link from "next/link"
+import { RefundPolicyBadge } from "@/components/refund-policy-badge"
 
 interface ClubSettings {
   websiteSetup: {
@@ -359,6 +360,9 @@ export default function EventDetailPage() {
                           ₹{event.ticketPrice}{" "}
                           <span className="text-base font-semibold text-muted-foreground">(+ Fees)</span>
                         </p>
+                        <div className="mt-2">
+                          <RefundPolicyBadge eventId={event._id} source="event_detail" />
+                        </div>
                       </div>
                     </div>
                   )}

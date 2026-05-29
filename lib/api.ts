@@ -77,6 +77,7 @@ export interface Admin {
   countryCode: string;
   isPhoneVerified: boolean;
   role: 'admin' | 'super_admin';
+  adminTitle?: string;
   club?: Club;
   clubs?: Club[];
   isActive?: boolean;
@@ -353,6 +354,11 @@ export interface Event {
   };
   venues?: EventVenue[];
   currency?: string;
+  isRefundAllowed?: boolean;
+  is_refund_allowed?: boolean;
+  refundCutoffHours?: number;
+  refund_cutoff_hours?: number;
+  refundPolicyLastUpdated?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -911,7 +917,6 @@ class ApiClient {
     const params = new URLSearchParams({ registrationId, attendeeId });
     const res = await this.request<any>(`/events/scan-preview?${params.toString()}`);
     if (!res.success) return res;
-    // Backend returns { success: true, data: {...} }; unwrap the nested data layer
     return { success: true, data: res.data?.data ?? res.data };
   }
 
@@ -1383,7 +1388,6 @@ class ApiClient {
     );
   }
 
-  // Call backend sports endpoint directly (public, no auth required)
   async proxyInternalNextMatches(params: { team?: string; teamId?: string; clubId?: string; leagueId?: string } = {}): Promise<ApiResponse<any>> {
     const query: Record<string, string> = {};
     if (params.team) query.team = params.team;
@@ -1504,6 +1508,10 @@ class ApiClient {
     waitlist?: { enabled: boolean; percentage?: number; purchaseWindowHours?: number };
     venues?: Array<{ name: string; tiers: Array<{ name: string; price: number; allocation: number; clubAllocations?: Array<{ clubName: string; allocation: number }> }> }>;
     jointScreening?: { enabled: boolean; homeTeam?: string; awayTeam?: string; partnerClubNames?: string[] };
+    isRefundAllowed?: boolean;
+    is_refund_allowed?: boolean;
+    refundCutoffHours?: number;
+    refund_cutoff_hours?: number;
   }): Promise<ApiResponse<{ message: string; event: Event }>> {
     return this.request('/events', {
       method: 'POST',
@@ -1531,6 +1539,13 @@ class ApiClient {
     waitlist?: { enabled?: boolean; percentage?: number; purchaseWindowHours?: number };
     venues?: Array<{ name: string; tiers: Array<{ name: string; price: number; allocation: number; clubAllocations?: Array<{ clubName: string; allocation: number }> }> }>;
     jointScreening?: { enabled: boolean; homeTeam?: string; awayTeam?: string; partnerClubNames?: string[] };
+    isRefundAllowed?: boolean;
+    is_refund_allowed?: boolean;
+    refundCutoffHours?: number;
+    refund_cutoff_hours?: number;
+    refund_policy_change_reason?: string;
+    reason?: string;
+    acknowledgeLivePolicyImpact?: boolean;
   }): Promise<ApiResponse<{ message: string; event: Event }>> {
     return this.request(`/events/${id}`, {
       method: 'PUT',
@@ -1640,6 +1655,49 @@ class ApiClient {
     if (attributed_club) params.set('attributed_club', attributed_club);
     const qs = params.toString();
     return this.request(`/events/revenue-reconciliation${qs ? `?${qs}` : ''}`);
+  }
+
+  async getEventRefundLog(params: {
+    clubId: string;
+    policyFilter?: 'all' | 'refundable' | 'non_refundable';
+    page?: number;
+    limit?: number;
+  }): Promise<ApiResponse<{
+    rows: Array<Record<string, unknown>>;
+    pagination: { page: number; limit: number; totalItems: number; totalPages: number };
+    summary: {
+      totalTickets: number;
+      totalRevenue: number;
+      totalSavings: number;
+      blockedAttemptCount: number;
+      manualOverrideCount: number;
+    };
+  }>> {
+    const qs = new URLSearchParams();
+    qs.set('clubId', params.clubId);
+    if (params.policyFilter && params.policyFilter !== 'all') qs.set('policyFilter', params.policyFilter);
+    if (params.page) qs.set('page', String(params.page));
+    if (params.limit) qs.set('limit', String(params.limit));
+    return this.request(`/refunds/admin/event-refund-log?${qs.toString()}`);
+  }
+
+  async downloadEventRefundLogCsv(params: {
+    clubId: string;
+    policyFilter?: 'all' | 'refundable' | 'non_refundable';
+  }): Promise<{ success: boolean; error?: string }> {
+    try {
+      const qs = new URLSearchParams();
+      qs.set('clubId', params.clubId);
+      if (params.policyFilter && params.policyFilter !== 'all') qs.set('policyFilter', params.policyFilter);
+      const result = await this.downloadFile(`/refunds/admin/event-refund-log/export?${qs.toString()}`);
+      if (!result.success || !result.blob) {
+        return { success: false, error: result.error ?? 'Export failed' };
+      }
+      triggerBlobDownload(result.blob, result.filename ?? 'event-refund-log.csv');
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error?.message ?? 'Export failed' };
+    }
   }
 
   async bookVenueTierMatrix(eventId: string, data: {
@@ -2448,7 +2506,317 @@ class ApiClient {
     });
   }
 
+  async getMemberElevationContext(clubId: string): Promise<ApiResponse<{
+    club: { _id: string; name: string };
+    isPrimaryOwner: boolean;
+    startingRoles: Array<{ value: string; label: string }>;
+    quota: { current: number; max: number | null; atLimit: boolean };
+  }>> {
+    return this.request(`/member-elevation/${encodeURIComponent(clubId)}/context`);
+  }
 
+  async searchMembersForElevation(
+    clubId: string,
+    q: string,
+    limit = 20
+  ): Promise<ApiResponse<{
+    members: Array<{
+      _id: string;
+      name: string;
+      email?: string;
+      phoneNumber?: string;
+      countryCode?: string;
+      profilePicture?: string;
+      membershipStatus: string;
+      isActive: boolean;
+      isAlreadyAdmin: boolean;
+      canElevate: boolean;
+      elevateDisabledReason: string | null;
+    }>;
+  }>> {
+    const params = new URLSearchParams({ q, limit: String(limit) });
+    return this.request(`/member-elevation/${encodeURIComponent(clubId)}/search?${params}`);
+  }
+
+  async elevateMemberToAdmin(
+    clubId: string,
+    data: { userId: string; startingRole: string; acknowledged: boolean }
+  ): Promise<ApiResponse<{
+    message: string;
+    admin: { _id: string; name: string; email: string; role: string; adminTitle?: string; startingRoleLabel?: string };
+    member: { _id: string; isAlreadyAdmin: boolean; canElevate: boolean };
+  }>> {
+    return this.request(`/member-elevation/${encodeURIComponent(clubId)}/elevate`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getClubAdminRoster(clubId: string): Promise<ApiResponse<{
+    club: { _id: string; name: string };
+    admins: Array<{
+      adminId: string;
+      name: string;
+      email: string;
+      adminTier: string;
+      roleLabel: string;
+      isOwner: boolean;
+      canRevoke: boolean;
+      profilePicture?: string;
+      invitationEmail?: {
+        status: string;
+        sentAt?: string;
+        label: string;
+      } | null;
+    }>;
+    bouncedInvitations?: Array<{
+      adminId: string;
+      email: string;
+      bouncedAt?: string;
+    }>;
+  }>> {
+    const res = await this.request<any>(
+      `/member-elevation/${encodeURIComponent(clubId)}/admins`
+    );
+    if (res.success && res.data) {
+      return { ...res, data: res.data.data ?? res.data };
+    }
+    return res;
+  }
+
+  async checkDemoteAdmin(
+    clubId: string,
+    adminId: string
+  ): Promise<ApiResponse<{
+    requiresReplacement: boolean;
+    isLastClubAdmin: boolean;
+    blockingVenues: Array<{
+      eventId: string;
+      eventTitle: string;
+      venueId: string;
+      venueName: string;
+    }>;
+    eligibleReplacements: Array<{
+      adminId: string;
+      name: string;
+      email: string;
+      adminTier: string;
+    }>;
+  }>> {
+    const res = await this.request<any>(
+      `/member-elevation/${encodeURIComponent(clubId)}/demote-check?adminId=${encodeURIComponent(adminId)}`
+    );
+    if (res.success && res.data) {
+      return { ...res, data: res.data.data ?? res.data };
+    }
+    return res;
+  }
+
+  async demoteAdminFromClub(
+    clubId: string,
+    data: {
+      adminId: string;
+      reason: string;
+      replacementAdminId?: string;
+    }
+  ): Promise<ApiResponse<{
+    message: string;
+    accessTokenInvalidated: boolean;
+    sessionsTerminated: number;
+    globalLogout: boolean;
+  }>> {
+    return this.request(`/member-elevation/${encodeURIComponent(clubId)}/demote`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async validateAdminInvitation(token: string): Promise<ApiResponse<{
+    clubId: string;
+    adminId: string;
+    email: string;
+    roleLabel: string;
+    moduleSummary: string[];
+    needsEmailVerification: boolean;
+    status: string;
+  }>> {
+    const res = await this.request<any>('/admin-invitations/validate', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    });
+    if (res.success && res.data) {
+      return { ...res, data: res.data.data ?? res.data };
+    }
+    return res;
+  }
+
+  async acceptAdminInvitation(token: string): Promise<ApiResponse<{
+    clubId: string;
+    redirectUrl: string;
+    needsEmailVerification: boolean;
+    email: string;
+  }>> {
+    const res = await this.request<any>('/admin-invitations/accept', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    });
+    if (res.success && res.data) {
+      return { ...res, data: res.data.data ?? res.data };
+    }
+    return res;
+  }
+
+  async resendAdminInvitationEmail(
+    clubId: string,
+    adminId: string
+  ): Promise<ApiResponse<{ message: string }>> {
+    return this.request(
+      `/member-elevation/${encodeURIComponent(clubId)}/admins/${encodeURIComponent(adminId)}/resend-invitation`,
+      { method: 'POST' }
+    );
+  }
+
+  async getPermissionMatrix(clubId: string): Promise<ApiResponse<{
+    club: { _id: string; name: string };
+    modules: Array<{ id: string; label: string; category: string; navHref?: string }>;
+    categories: string[];
+    admins: Array<{
+      adminId: string;
+      name: string;
+      email: string;
+      adminTier: string;
+      isOwner: boolean;
+      isLocked: boolean;
+      permissionsMatrix: Record<string, { view: boolean; edit: boolean }>;
+    }>;
+  }>> {
+    const res = await this.request<any>(
+      `/member-elevation/${encodeURIComponent(clubId)}/permission-matrix`
+    );
+    if (res.success && res.data) {
+      return { ...res, data: res.data.data ?? res.data };
+    }
+    return res;
+  }
+
+  async patchPermissionMatrix(
+    clubId: string,
+    data: {
+      adminId: string;
+      moduleId?: string;
+      accessType?: 'view' | 'edit';
+      value?: boolean;
+      confirmFinanceReporting?: boolean;
+    }
+  ): Promise<ApiResponse<{
+    saved: boolean;
+    permissionsMatrix: Record<string, { view: boolean; edit: boolean }>;
+    sessionsTerminated?: number;
+    code?: string;
+    requiresConfirmation?: boolean;
+  }>> {
+    const res = await this.request<any>(
+      `/member-elevation/${encodeURIComponent(clubId)}/permission-matrix`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      }
+    );
+    return res;
+  }
+
+  async patchPermissionMatrixCategory(
+    clubId: string,
+    data: {
+      adminId: string;
+      category: string;
+      accessType: 'view' | 'edit';
+      value: boolean;
+      confirmFinanceReporting?: boolean;
+    }
+  ): Promise<ApiResponse<{
+    saved: boolean;
+    permissionsMatrix: Record<string, { view: boolean; edit: boolean }>;
+    code?: string;
+    requiresConfirmation?: boolean;
+  }>> {
+    const res = await this.request<any>(
+      `/member-elevation/${encodeURIComponent(clubId)}/permission-matrix/category`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      }
+    );
+    if (!res.success && res.data) {
+      return { ...res, data: res.data };
+    }
+    return res;
+  }
+
+  async getPermissionMatrixPreview(
+    clubId: string,
+    adminId: string
+  ): Promise<ApiResponse<{
+    admin: { _id: string; name: string; email: string };
+    permissionsMatrix: Record<string, { view: boolean; edit: boolean }>;
+    visibleModules: Array<{
+      moduleId: string;
+      label: string;
+      href?: string;
+      canEdit: boolean;
+      category: string;
+    }>;
+    hiddenCount: number;
+  }>> {
+    const res = await this.request<any>(
+      `/member-elevation/${encodeURIComponent(clubId)}/permission-matrix/${encodeURIComponent(adminId)}/preview`
+    );
+    if (res.success && res.data) {
+      return { ...res, data: res.data.data ?? res.data };
+    }
+    return res;
+  }
+
+  async getClubAdminActivityLog(
+    clubId: string,
+    params?: { page?: number; limit?: number; action?: string }
+  ): Promise<ApiResponse<{
+    entries: Array<{
+      _id: string;
+      actorId: string;
+      actorName?: string;
+      actorType: string;
+      targetId?: string;
+      targetType?: string;
+      action: string;
+      oldState: string;
+      newState: string;
+      summary?: string;
+      riskLevel: 'low' | 'medium' | 'high';
+      permissionSnapshotAtAction?: Record<string, unknown>;
+      relatedEntityId?: string;
+      relatedEntityType?: string;
+      ipAddress: string;
+      deviceInfo?: { userAgent?: string; deviceType?: string };
+      metadata?: Record<string, unknown>;
+      timestamp: string;
+    }>;
+    pagination: {
+      currentPage: number;
+      totalPages: number;
+      totalItems: number;
+      itemsPerPage: number;
+    };
+  }>> {
+    const search = new URLSearchParams();
+    if (params?.page) search.set('page', String(params.page));
+    if (params?.limit) search.set('limit', String(params.limit));
+    if (params?.action) search.set('action', params.action);
+    const qs = search.toString();
+    return this.request(
+      `/member-elevation/${encodeURIComponent(clubId)}/activity-log${qs ? `?${qs}` : ''}`
+    );
+  }
 
   async getStaff(params?: {
     role?: string;
@@ -3736,6 +4104,54 @@ class ApiClient {
     });
   }
 
+  async getEventRefundPolicy(eventId: string): Promise<ApiResponse<{
+    eventId: string;
+    clubId: string;
+    clubName: string;
+    eventTitle: string;
+    eventStartTime?: string;
+    refundable: boolean;
+    is_refund_allowed: boolean;
+    grandfathered_purchase?: boolean;
+    refund_window_closed?: boolean;
+    event_cancelled?: boolean;
+    policySummaryLine?: string;
+    currentRefundPercentage: number;
+    hoursRemainingToCancel: number | null;
+    cancelCutoffAt: string | null;
+    policyText: string;
+    usesStandardTemplate: boolean;
+    rules: Array<{ daysBefore: number; refundPercentage: number }>;
+    platformTermsUrl: string;
+  }>> {
+    return this.request(`/refunds/policy/event/${encodeURIComponent(eventId)}`);
+  }
+
+  async trackRefundPolicyModalOpen(data: {
+    eventId?: string;
+    clubId: string;
+    source?: 'badge' | 'checkout' | 'event_detail' | 'other';
+    context?: 'checkout' | 'browse';
+  }): Promise<ApiResponse<void>> {
+    return this.request('/refunds/policy/track-open', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getRefundPolicyModalAnalytics(params: {
+    clubId: string;
+    days?: number;
+  }): Promise<ApiResponse<{
+    periodDays: number;
+    totalOpens: number;
+    topEvents: Array<{ eventId: string; count: number; eventTitle?: string }>;
+    bySource: Array<{ source: string; count: number }>;
+    dailyOpens: Array<{ date: string; count: number }>;
+  }>> {
+    return this.get('/refunds/admin/policy-analytics', { params });
+  }
+
   async getClubStats(clubId: string): Promise<ApiResponse<{
     totalMembers: number;
     activeMembers: number;
@@ -3822,9 +4238,7 @@ class ApiClient {
       body: JSON.stringify(data),
     });
   }
-
-  // ─── Guess The Score (GTS) ────────────────────────────────────────────────
-
+  
   async getGTSPreferences(clubId: string): Promise<ApiResponse<{
     hasAcceptedConsent: boolean;
     isInClubLeague: boolean;

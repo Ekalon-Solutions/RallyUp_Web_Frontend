@@ -35,13 +35,14 @@ import {
   Search,
   Filter,
   Infinity as InfinityIcon,
-  Trash,
   User,
 } from "lucide-react";
 import EventDetailsModal from "@/components/modals/event-details-modal";
 import UserEventRegistrationModal from "@/components/modals/user-event-registration-modal";
 import { EventCheckoutModal } from "@/components/modals/event-checkout-modal";
 import { RefundConfirmationModal } from "@/components/modals/refund-confirmation-modal";
+import { MemberTicketRefundAction } from "@/components/member/member-ticket-refund-action";
+import { RefundPolicyBadge } from "@/components/refund-policy-badge";
 import { VenueTierCartModal } from "@/components/modals/venue-tier-cart-modal";
 
 const eventCategories = [
@@ -246,6 +247,16 @@ function UserEventsPageInner() {
     })();
   }, [events, handledDeepLinkEventId, loading, searchParams, user]);
 
+  useEffect(() => {
+    const refund = searchParams.get("refund");
+    const eventId = searchParams.get("eventId");
+    if (refund !== "1" || !eventId || loading) return;
+    const found = events.find((e) => String(e._id) === String(eventId));
+    if (found) {
+      initiateRefundCancel(found._id);
+    }
+  }, [searchParams, events, loading]);
+
   const fetchEvents = async () => {
     try {
       setLoading(true);
@@ -279,14 +290,12 @@ function UserEventsPageInner() {
     const event = events.find(e => e._id === eventId);
     if (!event) return;
 
-    // Matrix events: skip registration modal — attendee collection is inline in cart
     if (hasVenueTierMatrix(event)) {
       setVenueTierEvent(event);
       setShowVenueTierCartModal(true);
       return;
     }
 
-    // Standard events: registration modal first
     setRegistrationEventId(eventId);
     setRegistrationEvent(event);
     setShowRegistrationModal(true);
@@ -350,14 +359,12 @@ function UserEventsPageInner() {
       return;
     }
 
-    // Multi-venue/tier matrix event → open cart modal (attendee collection is inline)
     if (hasVenueTierMatrix(event)) {
       setVenueTierEvent(event);
       setShowVenueTierCartModal(true);
       return;
     }
 
-    // Standard single-ticket event → existing checkout flow
     if (payload.couponCode) {
       setCouponForPayment({ code: payload.couponCode, discount: 0 });
     } else {
@@ -496,11 +503,28 @@ function UserEventsPageInner() {
     try {
       setRefundModalLoading(true);
       setRefundModalError(null);
+      const policyRes = await apiClient.getEventRefundPolicy(eventId);
+      const policy = policyRes.success && policyRes.data ? policyRes.data : null;
+      if (policy?.event_cancelled) {
+        toast.info("This event was cancelled by the club. Automatic refund processing applies.");
+        return;
+      }
+      if (policy && policy.is_refund_allowed === false) {
+        toast.error("Policy restriction", {
+          description: "This ticket is non-refundable and cannot be cancelled for a refund.",
+        });
+        return;
+      }
+      if (policy?.refund_window_closed) {
+        toast.error("Refund window closed", {
+          description: "The club's cancellation cut-off has passed for this event.",
+        });
+        return;
+      }
       const res = await apiClient.estimateRefund({ sourceType: 'event_ticket', eventId });
       if (res.success && res.data) {
         const rawData = res.data as any;
         const estimate = rawData?.data != null ? rawData.data : rawData;
-        // If nothing was paid, skip the refund modal and just cancel directly
         if (!estimate.breakdown?.grossPaid && estimate.estimatedRefund === 0) {
           await handleCancelRegistration(eventId);
           return;
@@ -508,7 +532,6 @@ function UserEventsPageInner() {
         setRefundEstimate(estimate);
         setRefundCancelEventId(eventId);
       } else {
-        // Estimate failed — fall back to simple cancel
         await handleCancelRegistration(eventId);
       }
     } catch {
@@ -568,7 +591,6 @@ function UserEventsPageInner() {
             </p>
           </div>
 
-          {/* Filters */}
           <Card>
             <CardContent className="pt-6">
               <div className="flex flex-col sm:flex-row gap-4">
@@ -695,11 +717,11 @@ function UserEventsPageInner() {
                               {event.description}
                             </CardDescription>
                           </div>
-                          <div className="ml-2 flex-shrink-0 space-y-1">
+                          <div className="ml-2 flex-shrink-0 space-y-1 flex flex-col items-end">
                             <Badge variant="secondary" className="block">
                               {event.category}
                             </Badge>
-                            {/* Attendance marker */}
+                            <RefundPolicyBadge eventId={event._id} className="text-[10px]" source="event_detail" />
                             <AttendanceMarker
                               event={event}
                               userId={user?._id}
@@ -799,10 +821,11 @@ function UserEventsPageInner() {
                               {event.description}
                             </CardDescription>
                           </div>
-                          <div className="ml-2 flex-shrink-0 space-y-1">
+                          <div className="ml-2 flex-shrink-0 space-y-1 flex flex-col items-end">
                             <Badge variant="secondary" className="block">
                               {event.category}
                             </Badge>
+                            <RefundPolicyBadge eventId={event._id} className="text-[10px]" source="event_detail" />
                           </div>
                         </div>
                       </CardHeader>
@@ -861,7 +884,6 @@ function UserEventsPageInner() {
                           ) : null}
                         </div>
 
-                        {/* Capacity */}
                         {(() => {
                           const { count, max } = getCapacity(event);
                           const pct = max !== null ? Math.min(Math.round((count / max) * 100), 100) : 0;
@@ -906,17 +928,12 @@ function UserEventsPageInner() {
                                     variant="outline">
                                     Registered
                                   </Button>
-                                  <Button
-                                    variant="destructive"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      initiateRefundCancel(event._id);
-                                    }}
-                                    disabled={cancellingEventId === event._id || refundModalLoading}
-                                    className="h-10 w-10 p-0 flex items-center justify-center"
-                                    title="Cancel registration">
-                                    <Trash className="w-4 h-4 text-white" />
-                                  </Button>
+                                  <MemberTicketRefundAction
+                                    eventId={event._id}
+                                    eventIsActive={event.isActive !== false}
+                                    onRequestRefund={() => initiateRefundCancel(event._id)}
+                                    loading={cancellingEventId === event._id || refundModalLoading}
+                                  />
                                 </div>
                               );
                             }
@@ -994,7 +1011,6 @@ function UserEventsPageInner() {
             )}
           </div>
 
-          {/* Past Events */}
           {pastEvents.length > 0 && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
@@ -1022,10 +1038,11 @@ function UserEventsPageInner() {
                               {event.description}
                             </CardDescription>
                           </div>
-                          <div className="ml-2 flex-shrink-0 space-y-1">
+                          <div className="ml-2 flex-shrink-0 space-y-1 flex flex-col items-end">
                             <Badge variant="secondary" className="block">
                               {event.category}
                             </Badge>
+                            <RefundPolicyBadge eventId={event._id} className="text-[10px]" source="event_detail" />
                           </div>
                         </div>
                       </CardHeader>
@@ -1063,7 +1080,6 @@ function UserEventsPageInner() {
                           })()}
                         </div>
 
-                        {/* Capacity */}
                         {(() => {
                           const { count, max } = getCapacity(event);
                           const pct = max !== null ? Math.min(Math.round((count / max) * 100), 100) : 0;

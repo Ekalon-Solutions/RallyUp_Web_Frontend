@@ -13,10 +13,13 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { RefundDetailsModal } from '@/components/modals/refund-details-modal'
 import { getApiUrl } from '@/lib/config'
-import { ChevronLeft, ChevronRight, Eye, CheckCircle, Plus, Trash2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Eye, CheckCircle, Plus, Trash2, BarChart3 } from 'lucide-react'
+import { Switch } from '@/components/ui/switch'
+import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
 import { toast as sonnerToast } from 'sonner'
 import { useRequiredClubId } from '@/hooks/useRequiredClubId'
+import { EventRefundLogPanel } from '@/components/admin/event-refund-log-panel'
 
 interface RefundRequest {
   _id: string
@@ -73,6 +76,17 @@ export default function RefundsPage() {
   const [rulesSaving, setRulesSaving] = useState(false)
   const [rulesType, setRulesType] = useState<'event_ticket' | 'store_order'>('event_ticket')
   const [newRule, setNewRule] = useState({ daysBefore: 7, refundPercentage: 50 })
+  const [policyText, setPolicyText] = useState('')
+  const [policyTextSaving, setPolicyTextSaving] = useState(false)
+  const [grandfatherPurchasedRefunds, setGrandfatherPurchasedRefunds] = useState(true)
+  const [grandfatherSaving, setGrandfatherSaving] = useState(false)
+  const [policyAnalytics, setPolicyAnalytics] = useState<{
+    totalOpens: number
+    periodDays: number
+    topEvents: Array<{ eventId: string; count: number; eventTitle?: string }>
+    bySource: Array<{ source: string; count: number }>
+  } | null>(null)
+  const [policyAnalyticsLoading, setPolicyAnalyticsLoading] = useState(false)
 
   useEffect(() => {
     fetchRefunds()
@@ -81,6 +95,37 @@ export default function RefundsPage() {
   useEffect(() => {
     if (clubId) fetchRules()
   }, [clubId, rulesType])
+
+  useEffect(() => {
+    if (!clubId) return
+    const loadPolicyMeta = async () => {
+      setPolicyAnalyticsLoading(true)
+      try {
+        const token = localStorage.getItem('token')
+        const [textRes, analyticsRes] = await Promise.all([
+          fetch(getApiUrl(`/refunds/admin/policy-text?clubId=${clubId}`), {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          fetch(getApiUrl(`/refunds/admin/policy-analytics?clubId=${clubId}&days=30`), {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+        ])
+        const textData = await textRes.json()
+        const analyticsData = await analyticsRes.json()
+        if (textRes.ok && textData.success) {
+          setPolicyText(textData.data?.customCancellationText || '')
+          setGrandfatherPurchasedRefunds(textData.data?.grandfatherPurchasedRefunds !== false)
+        }
+        if (analyticsRes.ok && analyticsData.success) {
+          setPolicyAnalytics(analyticsData.data)
+        }
+      } catch {
+      } finally {
+        setPolicyAnalyticsLoading(false)
+      }
+    }
+    loadPolicyMeta()
+  }, [clubId])
 
   useEffect(() => {
     if (!selectedRefund || selectedRefund.status !== 'requested') {
@@ -199,6 +244,56 @@ export default function RefundsPage() {
     setRules(rules.filter((_, i) => i !== idx))
   }
 
+  const saveGrandfathering = async (enabled: boolean) => {
+    if (!clubId) return
+    const previous = grandfatherPurchasedRefunds
+    setGrandfatherPurchasedRefunds(enabled)
+    try {
+      setGrandfatherSaving(true)
+      const token = localStorage.getItem('token')
+      const res = await fetch(getApiUrl('/refunds/admin/refund-grandfathering'), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ clubId, grandfatherPurchasedRefunds: enabled }),
+      })
+      const data = await res.json()
+      if (res.ok && data.success) {
+        sonnerToast.success('Refund grandfathering preference saved')
+      } else {
+        setGrandfatherPurchasedRefunds(previous)
+        sonnerToast.error(data.message || 'Failed to update grandfathering setting')
+      }
+    } catch {
+      setGrandfatherPurchasedRefunds(previous)
+      sonnerToast.error('Failed to update grandfathering setting')
+    } finally {
+      setGrandfatherSaving(false)
+    }
+  }
+
+  const savePolicyText = async () => {
+    if (!clubId) return
+    try {
+      setPolicyTextSaving(true)
+      const token = localStorage.getItem('token')
+      const res = await fetch(getApiUrl('/refunds/admin/policy-text'), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ clubId, customCancellationText: policyText }),
+      })
+      const data = await res.json()
+      if (res.ok && data.success) {
+        sonnerToast.success('Cancellation policy text saved')
+      } else {
+        sonnerToast.error(data.message || 'Failed to save policy text')
+      }
+    } catch {
+      sonnerToast.error('Failed to save policy text')
+    } finally {
+      setPolicyTextSaving(false)
+    }
+  }
+
   const fetchRefunds = async () => {
     try {
       setLoading(true)
@@ -306,10 +401,110 @@ export default function RefundsPage() {
 
         <Tabs defaultValue="requests">
           <TabsList>
-            <TabsTrigger value="requests">Refund Log</TabsTrigger>
+            <TabsTrigger value="requests">Refund Requests</TabsTrigger>
+            <TabsTrigger value="event-log">Event Refund Report</TabsTrigger>
             <TabsTrigger value="rules">Refund Rules</TabsTrigger>
           </TabsList>
-          <TabsContent value="rules" className="mt-4">
+          <TabsContent value="event-log" className="mt-4">
+            <EventRefundLogPanel />
+          </TabsContent>
+          <TabsContent value="rules" className="mt-4 space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5" />
+                  Policy modal engagement
+                </CardTitle>
+                <CardDescription>
+                  How often members opened the refund policy modal before purchasing (last 30 days).
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {policyAnalyticsLoading ? (
+                  <p className="text-sm text-muted-foreground">Loading analytics…</p>
+                ) : policyAnalytics ? (
+                  <div className="space-y-4">
+                    <p className="text-3xl font-bold">{policyAnalytics.totalOpens}</p>
+                    <p className="text-sm text-muted-foreground">Total policy modal opens</p>
+                    {policyAnalytics.bySource?.length > 0 && (
+                      <ul className="text-sm space-y-1">
+                        {policyAnalytics.bySource.map((s) => (
+                          <li key={s.source} className="flex justify-between max-w-xs">
+                            <span className="capitalize">{s.source.replace('_', ' ')}</span>
+                            <span className="font-medium">{s.count}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {policyAnalytics.topEvents?.length > 0 && (
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                          Top events
+                        </p>
+                        <ul className="text-sm space-y-1">
+                          {policyAnalytics.topEvents.slice(0, 5).map((e) => (
+                            <li key={e.eventId} className="flex justify-between gap-4">
+                              <span className="truncate">{e.eventTitle || e.eventId}</span>
+                              <span className="font-medium shrink-0">{e.count}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No data yet.</p>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Mid-event refund grandfathering</CardTitle>
+                <CardDescription>
+                  When an admin disables refunds on a live event, members who purchased while refunds
+                  were allowed may still cancel if this setting is enabled.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between gap-4 rounded-lg border p-4">
+                  <div className="space-y-1">
+                    <Label htmlFor="grandfather-refunds">Grandfather purchased refunds</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Protect ticket holders who bought under the previous refundable terms.
+                    </p>
+                  </div>
+                  <Switch
+                    id="grandfather-refunds"
+                    checked={grandfatherPurchasedRefunds}
+                    disabled={grandfatherSaving}
+                    onCheckedChange={saveGrandfathering}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Club cancellation policy (member-facing)</CardTitle>
+                <CardDescription>
+                  Custom text shown in the refund policy modal. Leave empty to use the Wingman Pro standard template.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Textarea
+                  value={policyText}
+                  onChange={(e) => setPolicyText(e.target.value)}
+                  placeholder="Describe your club's cancellation and refund terms for ticket buyers…"
+                  rows={6}
+                  maxLength={8000}
+                />
+                <Button onClick={savePolicyText} disabled={policyTextSaving}>
+                  {policyTextSaving ? 'Saving…' : 'Save policy text'}
+                </Button>
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader>
                 <CardTitle>Refund Rules</CardTitle>

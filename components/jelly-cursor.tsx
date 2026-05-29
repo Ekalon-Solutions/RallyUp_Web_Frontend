@@ -14,7 +14,6 @@ export function JellyCursor() {
     const follower = followerRef.current
     if (!cursor || !follower) return
 
-    // Only show on non-touch devices
     if (window.matchMedia("(pointer: coarse)").matches) {
       cursor.style.display = "none"
       follower.style.display = "none"

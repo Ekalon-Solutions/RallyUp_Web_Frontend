@@ -36,6 +36,7 @@ import {
   RotateCcw,
   Trophy,
   Images,
+  UserPlus,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -52,6 +53,7 @@ import { apiClient, type StorageAlertStatus } from "@/lib/api"
 import { BASE_STORAGE_GB } from "@/lib/storageConstants"
 import type { WebsiteSectionKey } from "@/lib/websiteSections"
 import { EkalonAttribution } from "@/components/ekalon-attribution"
+import { usePrimaryClubOwner } from "@/hooks/usePrimaryClubOwner"
 
 const USER_PATH_TO_SECTION: Record<string, WebsiteSectionKey> = {
   "/dashboard/user/news": "news",
@@ -369,6 +371,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { user, logout, isAdmin, activeClubId, setActiveClubId } = useAuth()
+  const { isPrimaryOwner } = usePrimaryClubOwner()
 
   // Prevent body scroll so only the inner <main> scrolls (avoids double scrollbar)
   useEffect(() => {
@@ -475,7 +478,13 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         nav = systemOwnerNavigation
         break
       case 'super_admin':
-        nav = superAdminNavigation
+        nav = isPrimaryOwner
+          ? [
+              ...superAdminNavigation.slice(0, 2),
+              { name: "Elevate Admin", href: "/dashboard/elevate-admin", icon: UserPlus },
+              ...superAdminNavigation.slice(2),
+            ]
+          : superAdminNavigation
         break
       case 'admin':
         nav = adminNavigation

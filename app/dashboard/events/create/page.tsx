@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useEffect, useState } from "react"
+import { Suspense, useEffect, useRef, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { Button } from "@/components/ui/button"
@@ -20,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { ArrowLeft, Save, Loader2, Plus, X } from "lucide-react"
+import { ArrowLeft, Save, Loader2, Plus, X, ChevronRight, ChevronLeft, Check } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api"
@@ -29,6 +29,50 @@ import { clubActionButtonClassName, clubActionButtonStyle } from "@/lib/clubThem
 import { useDesignSettings } from "@/hooks/useDesignSettings"
 import { useAuth } from "@/contexts/auth-context"
 import { VenueTierMatrixBuilder, VenueDraft, TierDraft, createEmptyVenueDraft } from "@/components/admin/venue-tier-matrix-builder"
+import { EventRefundToggleSection } from "@/components/admin/event-refund-toggle-section"
+import { EventRefundPolicyImpactDialog } from "@/components/admin/event-refund-policy-impact-dialog"
+
+const WIZARD_STEPS = [
+  { id: "details", label: "Event Details" },
+  { id: "pricing", label: "Pricing & Logistics" },
+  { id: "schedule", label: "Schedule & Publish" },
+] as const
+
+function isEventCompletedClient(ev: { startTime?: string; endTime?: string }): boolean {
+  const now = Date.now()
+  const end = ev.endTime ? new Date(ev.endTime).getTime() : null
+  const start = ev.startTime ? new Date(ev.startTime).getTime() : null
+  if (end != null && !Number.isNaN(end) && end < now) return true
+  if (start != null && !Number.isNaN(start) && start < now && (end == null || Number.isNaN(end))) return true
+  return false
+}
+
+function isPaidEvent(
+  form: { multiTicketEnabled: boolean; ticketPrice: string },
+  venues: VenueDraft[]
+): boolean {
+  if (form.multiTicketEnabled) {
+    return venues.some((v) => v.tiers.some((t) => t.price > 0))
+  }
+  return Number(form.ticketPrice) > 0
+}
+
+function isRefundCutoffValid(refundCutoffHours: string, isRefundAllowed: boolean, isFreeEvent: boolean): boolean {
+  if (isFreeEvent || !isRefundAllowed) return true
+  if (refundCutoffHours.trim() === "") return false
+  const h = Number(refundCutoffHours)
+  return Number.isFinite(h) && h >= 0 && Number.isInteger(h)
+}
+
+function isRefundPolicyReady(
+  isRefundAllowed: boolean,
+  refundCutoffHours: string,
+  isFreeEvent: boolean
+): boolean {
+  if (isFreeEvent) return true
+  if (typeof isRefundAllowed !== "boolean") return false
+  return isRefundCutoffValid(refundCutoffHours, isRefundAllowed, isFreeEvent)
+}
 
 const CATEGORIES = [
   { value: "screenings", label: "Screenings" },
@@ -48,7 +92,6 @@ const CATEGORIES = [
 
 const CURRENCIES = ["INR", "USD", "EUR", "GBP", "AUD", "CAD", "JPY", "BRL", "MXN", "ZAR"]
 
-/** Convert an ISO string to the value format expected by datetime-local inputs */
 function toDatetimeLocal(iso?: string): string {
   if (!iso) return ""
   try {
@@ -95,10 +138,17 @@ function CreateEventForm() {
     earlyBirdEndTime: "",
     earlyBirdMembersOnly: false,
     multiTicketEnabled: false,
+    isRefundAllowed: true,
+    refundCutoffHours: "24",
+    refundPolicyChangeReason: "",
   })
+  const initialRefundAllowedRef = useRef<boolean | null>(null)
+  const [wizardStep, setWizardStep] = useState(0)
   const [partnerClubNames, setPartnerClubNames] = useState<string[]>([])
   const [newPartnerClub, setNewPartnerClub] = useState("")
   const [partnerClubToRemove, setPartnerClubToRemove] = useState<string | null>(null)
+  const [eventEditMeta, setEventEditMeta] = useState({ liveWithHolders: false, completed: false })
+  const [showPolicyImpactDialog, setShowPolicyImpactDialog] = useState(false)
 
   const set = (field: string, value: string | boolean) =>
     setForm((prev) => ({ ...prev, [field]: value }))
@@ -141,6 +191,79 @@ function CreateEventForm() {
   const { primaryColor } = useDesignSettings(clubId)
   const clubBtnClass = clubActionButtonClassName()
   const clubBtnStyle = clubActionButtonStyle(primaryColor)
+
+  const paidEvent = isPaidEvent(form, venues)
+  const refundCutoffInvalid =
+    paidEvent && form.isRefundAllowed && !isRefundCutoffValid(form.refundCutoffHours, form.isRefundAllowed, !paidEvent)
+  const canPublish =
+    isRefundPolicyReady(form.isRefundAllowed, form.refundCutoffHours, !paidEvent) && !loading
+
+  const validateStep = (step: number): boolean => {
+    if (step === 0) {
+      if (!form.title.trim()) { toast.error("Event title is required"); return false }
+      if (!form.startTime) { toast.error("Start time is required"); return false }
+      if (!form.description.trim()) { toast.error("Description is required"); return false }
+      if (form.jointScreeningEnabled && partnerClubNames.length === 0) {
+        toast.error("Add at least one partner club name for joint screening")
+        return false
+      }
+      return true
+    }
+    if (step === 1) {
+      if (form.multiTicketEnabled && venues.length === 0) {
+        toast.error("Add at least one venue and ticket tier for multi-ticket events")
+        return false
+      }
+      if (!form.multiTicketEnabled && !form.venue.trim()) {
+        toast.error("Venue is required")
+        return false
+      }
+      if (form.multiTicketEnabled && venues.length > 0) {
+        for (const v of venues) {
+          if (!v.name.trim()) { toast.error("All venues must have a name"); return false }
+          for (const t of v.tiers) {
+            if (!t.name.trim()) { toast.error(`All tiers in "${v.name}" must have a name`); return false }
+            if (t.allocation < 1) { toast.error(`Allocation for "${v.name} – ${t.name}" must be at least 1`); return false }
+          }
+        }
+      }
+      if (paidEvent && !isRefundPolicyReady(form.isRefundAllowed, form.refundCutoffHours, false)) {
+        toast.error("Set a valid refund cut-off (non-negative whole hours) or fix the refund toggle")
+        return false
+      }
+      return true
+    }
+    if (step === 2) {
+      if (!form.bookingStartTime) { toast.error("Booking start time is required"); return false }
+      if (!form.bookingEndTime) { toast.error("Booking end time is required"); return false }
+      if (form.earlyBirdEnabled) {
+        const ebVal = Number(form.earlyBirdValue)
+        if (!form.earlyBirdValue || ebVal <= 0) { toast.error("Early bird discount value must be greater than 0"); return false }
+        if (form.earlyBirdType === "percentage" && ebVal > 100) { toast.error("Percentage discount cannot exceed 100%"); return false }
+        if (form.earlyBirdType === "fixed" && ebVal > (Number(form.ticketPrice) || 0)) { toast.error("Fixed discount cannot exceed the ticket price"); return false }
+        if (!form.earlyBirdStartTime) { toast.error("Early bird start time is required"); return false }
+        if (!form.earlyBirdEndTime) { toast.error("Early bird end time is required"); return false }
+        const ebStart = new Date(form.earlyBirdStartTime)
+        const ebEnd = new Date(form.earlyBirdEndTime)
+        const eventStart = form.startTime ? new Date(form.startTime) : null
+        if (eventStart && ebStart >= eventStart) { toast.error("Early bird start time must be before event start time"); return false }
+        if (ebEnd <= ebStart) { toast.error("Early bird end time must be after early bird start time"); return false }
+      }
+      if (!isRefundPolicyReady(form.isRefundAllowed, form.refundCutoffHours, !paidEvent)) {
+        toast.error("Refund policy is incomplete — go back to Pricing & Logistics to fix it")
+        return false
+      }
+      return true
+    }
+    return true
+  }
+
+  const goNext = () => {
+    if (!validateStep(wizardStep)) return
+    setWizardStep((s) => Math.min(s + 1, WIZARD_STEPS.length - 1))
+  }
+
+  const goBack = () => setWizardStep((s) => Math.max(s - 1, 0))
   
   useEffect(() => {
     if (!editId) return
@@ -180,7 +303,15 @@ function CreateEventForm() {
           earlyBirdEndTime: toDatetimeLocal(ev.earlyBirdDiscount?.endTime),
           earlyBirdMembersOnly: ev.earlyBirdDiscount?.membersOnly ?? false,
           multiTicketEnabled: Boolean(ev.venues?.length),
+          isRefundAllowed: ev.isRefundAllowed !== false && ev.is_refund_allowed !== false,
+          refundCutoffHours: String(ev.refundCutoffHours ?? ev.refund_cutoff_hours ?? 24),
+          refundPolicyChangeReason: "",
         })
+        initialRefundAllowedRef.current = ev.isRefundAllowed !== false && ev.is_refund_allowed !== false
+        const completed = isEventCompletedClient(ev)
+        const confirmedRegs = (ev.registrations || []).filter((r: { status?: string }) => r.status === "confirmed").length
+        const liveWithHolders = ev.isActive !== false && !completed && confirmedRegs > 0
+        setEventEditMeta({ liveWithHolders, completed })
         setPartnerClubNames(ev.jointScreening?.partnerClubNames ?? [])
         if (ev.venues?.length) {
           setVenues(
@@ -210,53 +341,37 @@ function CreateEventForm() {
     fetchEvent()
   }, [editId, router])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (!form.title.trim()) { toast.error("Event title is required"); return }
-    if (!form.startTime) { toast.error("Start time is required"); return }
-    if (form.jointScreeningEnabled && partnerClubNames.length === 0) {
-      toast.error("Add at least one partner club name for joint screening")
+  const performSubmit = async (acknowledgeLivePolicyImpact = false) => {
+    if (
+      isEditMode &&
+      initialRefundAllowedRef.current !== null &&
+      form.isRefundAllowed !== initialRefundAllowedRef.current &&
+      !form.refundPolicyChangeReason.trim()
+    ) {
+      toast.error("Please provide a reason when changing the refund allowed setting")
       return
     }
-    if (form.multiTicketEnabled && venues.length === 0) {
-      toast.error("Add at least one venue and ticket tier for multi-ticket events")
-      return
-    }
-    if (!form.multiTicketEnabled && !form.venue.trim()) {
-      toast.error("Venue is required")
-      return
-    }
-    if (!form.bookingStartTime) { toast.error("Booking start time is required"); return }
-    if (!form.bookingEndTime) { toast.error("Booking end time is required"); return }
-    if (!form.description.trim()) { toast.error("Description is required"); return }
 
-    if (form.multiTicketEnabled && venues.length > 0) {
-      for (const v of venues) {
-        if (!v.name.trim()) { toast.error("All venues must have a name"); return }
-        for (const t of v.tiers) {
-          if (!t.name.trim()) { toast.error(`All tiers in "${v.name}" must have a name`); return }
-          if (t.allocation < 1) { toast.error(`Allocation for "${v.name} – ${t.name}" must be at least 1`); return }
-        }
-      }
-    }
+    const toggleChanging =
+      isEditMode &&
+      initialRefundAllowedRef.current !== null &&
+      form.isRefundAllowed !== initialRefundAllowedRef.current
 
-    if (form.earlyBirdEnabled) {
-      const ebVal = Number(form.earlyBirdValue)
-      if (!form.earlyBirdValue || ebVal <= 0) { toast.error("Early bird discount value must be greater than 0"); return }
-      if (form.earlyBirdType === "percentage" && ebVal > 100) { toast.error("Percentage discount cannot exceed 100%"); return }
-      if (form.earlyBirdType === "fixed" && ebVal > (Number(form.ticketPrice) || 0)) { toast.error("Fixed discount cannot exceed the ticket price"); return }
-      if (!form.earlyBirdStartTime) { toast.error("Early bird start time is required"); return }
-      if (!form.earlyBirdEndTime) { toast.error("Early bird end time is required"); return }
-      const ebStart = new Date(form.earlyBirdStartTime)
-      const ebEnd = new Date(form.earlyBirdEndTime)
-      const eventStart = form.startTime ? new Date(form.startTime) : null
-      if (eventStart && ebStart >= eventStart) { toast.error("Early bird start time must be before event start time"); return }
-      if (ebEnd <= ebStart) { toast.error("Early bird end time must be after early bird start time"); return }
+    if (
+      isEditMode &&
+      eventEditMeta.liveWithHolders &&
+      toggleChanging &&
+      !acknowledgeLivePolicyImpact
+    ) {
+      setShowPolicyImpactDialog(true)
+      return
     }
 
     setLoading(true)
     try {
+      const cutoffHours = paidEvent && form.isRefundAllowed
+        ? Number(form.refundCutoffHours)
+        : 24
       const payload = {
         title: form.title.trim(),
         category: form.category,
@@ -303,12 +418,25 @@ function CreateEventForm() {
               })),
             }))
           : undefined,
+        isRefundAllowed: paidEvent ? form.isRefundAllowed : true,
+        refund_cutoff_hours: cutoffHours,
+        ...(isEditMode && form.refundPolicyChangeReason.trim()
+          ? { refund_policy_change_reason: form.refundPolicyChangeReason.trim() }
+          : {}),
+        ...(acknowledgeLivePolicyImpact ? { acknowledgeLivePolicyImpact: true } : {}),
       }
 
       if (isEditMode && editId) {
         const res = await apiClient.updateEvent(editId, payload)
         if (!res.success) {
-          toast.error((res as any).message ?? res.error ?? "Failed to update event")
+          const msg = (res as any).message ?? res.error ?? "Failed to update event"
+          if (String(msg).includes("Cannot Modify Historical Policies")) {
+            toast.error("Cannot Modify Historical Policies")
+          } else if ((res as any).code === "LIVE_POLICY_CHANGE_REQUIRES_ACK") {
+            setShowPolicyImpactDialog(true)
+          } else {
+            toast.error(msg)
+          }
           return
         }
         toast.success("Event updated successfully!")
@@ -325,7 +453,21 @@ function CreateEventForm() {
       toast.error(err?.message ?? "Error saving event")
     } finally {
       setLoading(false)
+      setShowPolicyImpactDialog(false)
     }
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    for (let s = 0; s < WIZARD_STEPS.length; s++) {
+      if (!validateStep(s)) {
+        setWizardStep(s)
+        return
+      }
+    }
+
+    await performSubmit(false)
   }
 
   if (fetchingEvent) {
@@ -353,10 +495,47 @@ function CreateEventForm() {
           <h1 className="text-3xl font-bold">{isEditMode ? "Edit Event" : "Create Event"}</h1>
         </div>
 
+        <nav aria-label="Event creation steps" className="flex flex-wrap gap-2">
+          {WIZARD_STEPS.map((step, index) => {
+            const done = index < wizardStep
+            const current = index === wizardStep
+            return (
+              <button
+                key={step.id}
+                type="button"
+                onClick={() => {
+                  if (index < wizardStep) setWizardStep(index)
+                }}
+                disabled={index > wizardStep}
+                className={cn(
+                  "inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium border transition-colors",
+                  current && "border-[hsl(var(--success))] bg-[hsl(var(--success)/0.12)] text-[hsl(var(--success))]",
+                  done && "border-border bg-muted/50 text-foreground cursor-pointer hover:bg-muted",
+                  !current && !done && "border-border text-muted-foreground opacity-60 cursor-not-allowed"
+                )}
+              >
+                <span
+                  className={cn(
+                    "flex h-6 w-6 items-center justify-center rounded-full text-xs",
+                    current && "bg-[hsl(var(--success))] text-[hsl(var(--success-foreground))]",
+                    done && "bg-muted-foreground/20",
+                    !current && !done && "bg-muted"
+                  )}
+                >
+                  {done ? <Check className="h-3.5 w-3.5" /> : index + 1}
+                </span>
+                {step.label}
+              </button>
+            )
+          })}
+        </nav>
+
         <form
           onSubmit={handleSubmit}
           className="space-y-6 dark:[color-scheme:dark] [&_input]:border-border [&_input]:bg-background [&_input]:text-foreground [&_textarea]:border-border [&_textarea]:bg-background [&_textarea]:text-foreground [&_[role=combobox]]:border-border [&_[role=combobox]]:bg-background [&_[role=combobox]]:text-foreground"
         >
+          {wizardStep === 0 && (
+          <>
           <Card className={sectionBorder}>
             <CardHeader>
               <CardTitle>Basic Details</CardTitle>
@@ -425,9 +604,7 @@ function CreateEventForm() {
 
           <Card className={sectionBorder}>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                Joint Screening
-              </CardTitle>
+              <CardTitle className="flex items-center gap-2">Joint Screening</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
@@ -508,12 +685,18 @@ function CreateEventForm() {
               )}
             </CardContent>
           </Card>
+          </>
+          )}
 
+          {wizardStep === 1 && (
+          <>
           <Card className={sectionBorder}>
             <CardHeader>
-              <CardTitle>Venue & Tickets</CardTitle>
+              <CardTitle>Pricing & Logistics</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <p className="text-sm font-medium">Venue & Tickets</p>
               <div className="flex items-center justify-between">
                 <div>
                   <Label>Multi-ticket event</Label>
@@ -605,9 +788,29 @@ function CreateEventForm() {
                   Using venue x tier matrix — single ticket price and max attendees are managed per tier.
                 </p>
               )}
+              </div>
+
+              <Separator />
+
+              <EventRefundToggleSection
+                isRefundAllowed={form.isRefundAllowed}
+                onRefundAllowedChange={(v) => set("isRefundAllowed", v)}
+                refundCutoffHours={form.refundCutoffHours}
+                onRefundCutoffHoursChange={(v) => set("refundCutoffHours", v)}
+                isFreeEvent={!paidEvent}
+                isCompleted={eventEditMeta.completed}
+                isEditMode={isEditMode}
+                refundPolicyChangeReason={form.refundPolicyChangeReason}
+                onRefundPolicyChangeReasonChange={(v) => set("refundPolicyChangeReason", v)}
+                cutoffInvalid={refundCutoffInvalid}
+              />
             </CardContent>
           </Card>
+          </>
+          )}
 
+          {wizardStep === 2 && (
+          <>
           <Card className={sectionBorder}>
             <CardHeader>
               <CardTitle>Booking Window</CardTitle>
@@ -767,29 +970,56 @@ function CreateEventForm() {
               )}
             </CardContent>
           </Card>
+          </>
+          )}
 
-          <div className="flex justify-end gap-4">
-            <Link href="/dashboard/events">
-              <Button variant="outline" type="button">Cancel</Button>
-            </Link>
-            <Button
-              type="submit"
-              variant="ghost"
-              disabled={loading}
-              className={clubBtnClass}
-              style={clubBtnStyle}
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  {isEditMode ? "Saving..." : "Creating..."}
-                </>
-              ) : (
-                <>
-                  {isEditMode ? "Save Changes" : "Create Event"}
-                </>
+          <div className="flex justify-between gap-4 pt-2">
+            <div className="flex gap-2">
+              <Link href="/dashboard/events">
+                <Button variant="outline" type="button">Cancel</Button>
+              </Link>
+              {wizardStep > 0 && (
+                <Button type="button" variant="outline" onClick={goBack}>
+                  <ChevronLeft className="w-4 h-4 mr-1" />
+                  Back
+                </Button>
               )}
-            </Button>
+            </div>
+            <div className="flex gap-2">
+              {wizardStep < WIZARD_STEPS.length - 1 ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className={clubBtnClass}
+                  style={clubBtnStyle}
+                  onClick={goNext}
+                >
+                  Next
+                  <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
+              ) : (
+                <Button
+                  type="submit"
+                  variant="ghost"
+                  disabled={loading || !canPublish}
+                  className={clubBtnClass}
+                  style={clubBtnStyle}
+                  title={!canPublish ? "Fix refund policy settings before publishing" : undefined}
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      {isEditMode ? "Saving..." : "Creating..."}
+                    </>
+                  ) : (
+                    <>
+                      <Save className="w-4 h-4 mr-2" />
+                      {isEditMode ? "Save Changes" : "Publish Event"}
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
           </div>
         </form>
 
@@ -826,6 +1056,14 @@ function CreateEventForm() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        <EventRefundPolicyImpactDialog
+          open={showPolicyImpactDialog}
+          onOpenChange={setShowPolicyImpactDialog}
+          changingToNonRefundable={!form.isRefundAllowed}
+          loading={loading}
+          onConfirm={() => performSubmit(true)}
+        />
       </div>
     </DashboardLayout>
   )

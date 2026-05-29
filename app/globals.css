@@ -2,7 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Custom scrollbar styles */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
 }
@@ -21,13 +20,11 @@
   background: rgba(255, 255, 255, 0.5);
 }
 
-/* Firefox scrollbar */
 .custom-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.3) rgba(255, 255, 255, 0.1);
 }
 
-/* Disable scroll-to-change on number inputs */
 input[type='number']::-webkit-outer-spin-button,
 input[type='number']::-webkit-inner-spin-button {
   -webkit-appearance: none;
@@ -78,6 +75,8 @@ input[type='number'] {
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
   }
   .dark {
     --background: 0 0% 3.9%;
@@ -112,6 +111,8 @@ input[type='number'] {
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
+    --success: 142 65% 42%;
+    --success-foreground: 0 0% 100%;
   }
 }
 
@@ -155,9 +156,6 @@ html.public-page.dark,
   --sidebar-ring: 12 89% 52%;
 }
 
-/* ---------------- DASHBOARD THEME (mirrors @layer base :root / .dark) ---------------- */
-/* html.dashboard-theme covers Radix UI portals; .dashboard-theme covers the SSR wrapper div */
-
 html.dashboard-theme,
 .dashboard-theme {
   --background: 0 0% 100%;
@@ -193,6 +191,8 @@ html.dashboard-theme,
   --sidebar-accent-foreground: 240 5.9% 10%;
   --sidebar-border: 220 13% 91%;
   --sidebar-ring: 217.2 91.2% 59.8%;
+  --success: 142 71% 45%;
+  --success-foreground: 0 0% 100%;
 }
 
 html.dashboard-theme.dark,
@@ -229,6 +229,8 @@ html.dashboard-theme.dark,
   --sidebar-accent-foreground: 240 4.8% 95.9%;
   --sidebar-border: 240 3.7% 15.9%;
   --sidebar-ring: 217.2 91.2% 59.8%;
+  --success: 142 65% 42%;
+  --success-foreground: 0 0% 100%;
 }
 
 @layer base {
@@ -239,8 +241,6 @@ html.dashboard-theme.dark,
     @apply bg-background text-foreground;
   }
 }
-
-/* ---------------- ANIMATIONS ---------------- */
 
 @keyframes float {
 
@@ -373,8 +373,6 @@ html.dashboard-theme.dark,
     opacity: 1;
   }
 }
-
-/* ---------------- ANIMATION CLASSES ---------------- */
 
 .animate-float {
   animation: float 6s ease-in-out infinite;

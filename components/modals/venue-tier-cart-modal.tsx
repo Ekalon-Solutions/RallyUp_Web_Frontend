@@ -15,6 +15,10 @@ import { apiClient, Event, VenueTierCartItem } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
 import { calculateTransactionFees, PLATFORM_FEE_PERCENT, RAZORPAY_FEE_PERCENT } from "@/lib/transactionFees"
 import { useRouter } from "next/navigation"
+import { RefundPolicyBadge } from "@/components/refund-policy-badge"
+import { RefundPolicyCheckoutLine } from "@/components/member/refund-policy-checkout-line"
+import { RefundPolicyModal } from "@/components/modals/refund-policy-modal"
+import { useCheckoutRefundPolicy } from "@/hooks/useCheckoutRefundPolicy"
 
 declare global {
   interface Window { Razorpay: any }
@@ -208,6 +212,9 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
   const netAmount = Math.max(afterCoupon - (reservedDiscount || 0), 0)
   const feeBreakdown = netAmount > 0 ? calculateTransactionFees(netAmount) : null
   const amountToCharge = feeBreakdown ? feeBreakdown.finalAmount : netAmount
+  const checkoutEventId = event?._id ? String(event._id) : undefined
+  const isPaidCheckout = amountToCharge > 0
+  const refundPolicy = useCheckoutRefundPolicy(checkoutEventId, isOpen, isPaidCheckout)
 
   const reservePoints = async () => {
     if (!redeemPoints || Number(redeemPoints) <= 0) { toast.error("Enter points to redeem"); return }
@@ -760,9 +767,27 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
             </div>
           )}
 
+          {checkoutEventId && (
+            <div className="flex flex-col gap-3 pb-2">
+              <RefundPolicyCheckoutLine eventId={checkoutEventId} />
+              {isPaidCheckout && (
+                <div className="flex flex-col items-center gap-2">
+                  <RefundPolicyBadge eventId={checkoutEventId} source="checkout" isCheckoutFlow />
+                  {refundPolicy.payBlockedByPolicy && (
+                    <p className="text-xs text-amber-700 dark:text-amber-400 text-center max-w-sm">
+                      Review the refund policy and tap &quot;I Understand&quot; before paying.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
           <p className="text-xs text-muted-foreground text-center pb-2">
-            By completing payment, you agree to our{" "}
-            <a href="/refund" target="_blank" rel="noopener noreferrer" className="text-sky-600 hover:text-sky-500 underline">Refund and Cancellation Policy</a>.
+            Platform fees may be non-refundable per{" "}
+            <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-primary underline underline-offset-2">
+              Global Platform Terms
+            </a>
+            .
           </p>
         </div>
 
@@ -773,7 +798,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
           </div>
           <Button
             onClick={handlePayment}
-            disabled={loading || cartItems.length === 0}
+            disabled={loading || cartItems.length === 0 || refundPolicy.payBlockedByPolicy}
             className="w-full"
             size="lg"
           >
@@ -791,6 +816,16 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         </div>
       </DialogContent>
     </Dialog>
+    {checkoutEventId && (
+      <RefundPolicyModal
+        eventId={checkoutEventId}
+        open={refundPolicy.policyModalOpen}
+        onOpenChange={refundPolicy.setPolicyModalOpen}
+        isCheckoutFlow
+        source="checkout"
+        onAcknowledged={refundPolicy.onPolicyAcknowledged}
+      />
+    )}
     </>
   )
 }

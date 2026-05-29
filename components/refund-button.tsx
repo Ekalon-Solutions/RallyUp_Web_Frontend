@@ -55,8 +55,15 @@ export function RefundButton({ sourceType, eventId, orderId, onRefundRequested }
       
       if (response.ok && data.success && data.data) {
         setEstimate(data.data)
+        setError(null)
       } else {
-        setError(data.message || 'Failed to load refund information')
+        const msg =
+          data.code === 'REFUND_POLICY_RESTRICTED'
+            ? data.message ||
+              'This club does not allow refunds for this specific event as per their stated policy.'
+            : data.message || 'Failed to load refund information'
+        setError(msg)
+        setEstimate(null)
       }
     } catch (err: any) {
       console.error('Failed to fetch refund estimate:', err)
@@ -89,7 +96,13 @@ export function RefundButton({ sourceType, eventId, orderId, onRefundRequested }
           : 'Order cancelled : Refund will be processed in 5-7 working days excluding the platform fees, payment gateway fees and taxes. Please refer to the refund policy for more details.'
         toast({ title: sourceType === 'event_ticket' ? 'Ticket cancelled' : 'Order cancelled', description: msg })
       } else {
-        setError(data.message || 'Failed to request refund')
+        const msg =
+          data.code === 'REFUND_POLICY_RESTRICTED'
+            ? data.message ||
+              'This club does not allow refunds for this specific event as per their stated policy.'
+            : data.message || 'Failed to request refund'
+        setError(msg)
+        toast({ title: 'Refund not available', description: msg, variant: 'destructive' })
       }
     } catch (err: any) {
       setError('Failed to request refund')
