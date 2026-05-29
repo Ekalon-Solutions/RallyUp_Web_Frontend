@@ -163,6 +163,15 @@ export default function PublicClubPage() {
   const [showReadMoreModal, setShowReadMoreModal] = useState(false)
   const [selectedNewsForReadMore, setSelectedNewsForReadMore] = useState<News | null>(null)
 
+  const hasVenueTierMatrix = (ev: Event | null | undefined) =>
+    Boolean(
+      ev &&
+      Array.isArray((ev as any).venues) &&
+      (ev as any).venues.some(
+        (v: any) => Array.isArray(v?.tiers) && v.tiers.length > 0
+      )
+    )
+
   const handleEventClick = (event: Event) => {
     setEventForRegistration(event)
     setPurchaseFlowReason("event")
@@ -191,8 +200,7 @@ export default function PublicClubPage() {
         : events.find((e) => e._id === eventId)
       if (!ev) return
       setEventForRegistration(ev)
-      const hasVenues = Array.isArray((ev as any).venues) && (ev as any).venues.length > 0
-      if (hasVenues) {
+      if (hasVenueTierMatrix(ev)) {
         setShowVenueTierCartModal(true)
       } else {
         setShowEventCheckoutModal(true)
@@ -462,7 +470,7 @@ export default function PublicClubPage() {
       {/* ── Sticky header ── */}
       <header className="sticky top-0 z-50 bg-background/90 backdrop-blur-xl border-b shadow-sm">
         <div className="container mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 min-w-0">
+          <div className="flex items-center gap-3 min-w-0 flex-shrink-0">
             {(designSettings.logo || club.logo) && (
               <img
                 src={designSettings.logo || club.logo!}
@@ -470,8 +478,76 @@ export default function PublicClubPage() {
                 className="h-9 w-9 flex-shrink-0 object-contain rounded-lg"
               />
             )}
-            <span className="font-black text-base sm:text-lg tracking-tight truncate">{title}</span>
+            <span className="font-black text-base sm:text-lg tracking-tight truncate">
+              {title}
+            </span>
           </div>
+
+          {hasCommunitySections && (
+            <nav className="hidden md:flex items-center justify-center gap-4 text-sm font-semibold">
+              {websiteSetup.sections.events && (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("events")}
+                  className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full transition-colors ${
+                    activeTab === "events"
+                      ? "text-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                  style={activeTab === "events" ? { color: primaryColor } : undefined}
+                >
+                  <Calendar className="h-4 w-4" />
+                  <span>Events &amp; Activities</span>
+                </button>
+              )}
+              {websiteSetup.sections.news && (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("news")}
+                  className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full transition-colors ${
+                    activeTab === "news"
+                      ? "text-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                  style={activeTab === "news" ? { color: primaryColor } : undefined}
+                >
+                  <Newspaper className="h-4 w-4" />
+                  <span>News &amp; Updates</span>
+                </button>
+              )}
+              {(websiteSetup.sections.store || websiteSetup.sections.merchandise) && (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("store")}
+                  className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full transition-colors ${
+                    activeTab === "store"
+                      ? "text-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                  style={activeTab === "store" ? { color: primaryColor } : undefined}
+                >
+                  <Store className="h-4 w-4" />
+                  <span>Merchandise</span>
+                </button>
+              )}
+              {websiteSetup.sections.chants && (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("chants")}
+                  className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-full transition-colors ${
+                    activeTab === "chants"
+                      ? "text-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                  style={activeTab === "chants" ? { color: primaryColor } : undefined}
+                >
+                  <Music className="h-4 w-4" />
+                  <span>Club Chants</span>
+                </button>
+              )}
+            </nav>
+          )}
+
           <div className="flex items-center gap-2 flex-shrink-0">
             <Link href={clubSearchHref}>
               <Button
@@ -606,7 +682,8 @@ export default function PublicClubPage() {
           <div className="max-w-7xl mx-auto space-y-24">
             <div className="space-y-8">
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                  <TabsList className="flex flex-wrap w-full max-w-4xl mx-auto gap-2 h-auto bg-muted/50 p-2">
+                  {/* Mobile / tablet tab bar; desktop nav lives in header */}
+                  <TabsList className="flex md:hidden flex-wrap w-full max-w-4xl mx-auto gap-2 h-auto bg-muted/50 p-2">
                     {websiteSetup.sections.events && (
                       <TabsTrigger
                         value="events"
@@ -848,8 +925,8 @@ export default function PublicClubPage() {
 
                                     {(() => {
                                       const isEventFull = event.maxAttendees != null && (event.currentAttendees ?? 0) >= event.maxAttendees
-                                      const hasVenues = Array.isArray((event as any).venues) && (event as any).venues.length > 0
-                                      const label = isEventFull ? "Event Full" : hasVenues || (event.ticketPrice && event.ticketPrice > 0) ? "Buy Tickets" : "Register"
+                                      const hasTierMatrix = hasVenueTierMatrix(event)
+                                      const label = isEventFull ? "Event Full" : hasTierMatrix || (event.ticketPrice && event.ticketPrice > 0) ? "Buy Tickets" : "Register"
                                       return (
                                         <Button
                                           className="w-full mt-2"
@@ -1206,8 +1283,7 @@ export default function PublicClubPage() {
           onContinueToPayment={() => {
             setShowPurchaseFlowModal(false)
             if (purchaseFlowReason === "event" && eventForRegistration) {
-              const hasVenues = Array.isArray((eventForRegistration as any).venues) && (eventForRegistration as any).venues.length > 0
-              if (hasVenues) {
+              if (hasVenueTierMatrix(eventForRegistration)) {
                 setShowVenueTierCartModal(true)
               } else {
                 setEventCheckoutAsGuest(true)

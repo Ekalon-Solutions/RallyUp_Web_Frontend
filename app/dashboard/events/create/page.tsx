@@ -518,7 +518,7 @@ function CreateEventForm() {
                 <div>
                   <Label>Multi-ticket event</Label>
                   <p className="text-xs text-muted-foreground">
-                    Enable venue x ticket-tier matrix allocation and multi-combo checkout.
+                    Enable venue x ticket-tier matrix allocation (works for single or multiple venues) and multi-combo checkout.
                   </p>
                 </div>
                 <Switch
@@ -602,7 +602,7 @@ function CreateEventForm() {
 
               {form.multiTicketEnabled && venues.length > 0 && (
                 <p className="text-xs text-muted-foreground">
-                  Using multi-venue matrix — single ticket price and max attendees are managed per tier.
+                  Using venue x tier matrix — single ticket price and max attendees are managed per tier.
                 </p>
               )}
             </CardContent>

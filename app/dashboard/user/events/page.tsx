@@ -181,6 +181,13 @@ function UserEventsPageInner() {
   const [showVenueTierCartModal, setShowVenueTierCartModal] = useState(false);
   const [venueTierEvent, setVenueTierEvent] = useState<Event | null>(null);
 
+  const hasVenueTierMatrix = (event: Event | null | undefined) =>
+    Boolean(
+      event &&
+      Array.isArray(event.venues) &&
+      event.venues.some((v) => Array.isArray(v?.tiers) && v.tiers.length > 0)
+    );
+
   useEffect(() => {
     fetchEvents();
   }, [clubId]);
@@ -273,7 +280,7 @@ function UserEventsPageInner() {
     if (!event) return;
 
     // Matrix events: skip registration modal — attendee collection is inline in cart
-    if (event.venues && event.venues.length > 0) {
+    if (hasVenueTierMatrix(event)) {
       setVenueTierEvent(event);
       setShowVenueTierCartModal(true);
       return;
@@ -344,7 +351,7 @@ function UserEventsPageInner() {
     }
 
     // Multi-venue/tier matrix event → open cart modal (attendee collection is inline)
-    if (event.venues && event.venues.length > 0) {
+    if (hasVenueTierMatrix(event)) {
       setVenueTierEvent(event);
       setShowVenueTierCartModal(true);
       return;
