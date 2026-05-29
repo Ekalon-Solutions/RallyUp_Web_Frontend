@@ -161,10 +161,10 @@ export default function EventDetailPage() {
 
   if (!event || !club) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center space-y-4">
+      <div className="min-h-screen flex items-center justify-center px-4 sm:px-6 py-12">
+        <div className="text-center space-y-6 max-w-md">
           <p className="text-xl font-semibold text-muted-foreground">Event not found.</p>
-          <Button variant="outline" onClick={() => router.push(`/clubs/${slug}`)}>
+          <Button variant="outline" className="px-6" onClick={() => router.push(`/clubs/${slug}`)}>
             <ArrowLeft className="mr-2 h-4 w-4" />
             Back to Club
           </Button>
@@ -181,19 +181,19 @@ export default function EventDetailPage() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-background/90 backdrop-blur-xl border-b shadow-sm">
-        <div className="container mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
+        <div className="container mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-3.5 sm:py-4 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
             {logo && (
-              <img src={logo} alt={title} className="h-9 w-9 flex-shrink-0 object-contain rounded-lg" />
+              <img src={logo} alt={title} className="h-9 w-9 sm:h-10 sm:w-10 flex-shrink-0 object-contain rounded-lg" />
             )}
             <span className="font-black text-base sm:text-lg tracking-tight truncate">{title}</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
             <Button
               size="sm"
               variant="ghost"
               onClick={() => router.push(`/clubs/${slug}`)}
-              className="font-semibold"
+              className="font-semibold px-3 sm:px-4"
             >
               <ArrowLeft className="mr-1.5 h-4 w-4" />
               Back
@@ -202,26 +202,29 @@ export default function EventDetailPage() {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 sm:px-6 py-10 max-w-4xl">
+      <main className="container mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 py-8 sm:py-12 lg:py-14">
         {/* Breadcrumb */}
-        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-8">
-          <Link href="/" className="hover:text-foreground transition-colors">
+        <nav
+          aria-label="Breadcrumb"
+          className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground mb-6 sm:mb-10"
+        >
+          <Link href="/" className="inline-flex items-center hover:text-foreground transition-colors shrink-0">
             <Home className="h-4 w-4" />
           </Link>
-          <span>/</span>
-          <Link href={`/clubs/${slug}`} className="hover:text-foreground transition-colors">
+          <span className="text-muted-foreground/60" aria-hidden>/</span>
+          <Link href={`/clubs/${slug}`} className="hover:text-foreground transition-colors truncate max-w-[40vw] sm:max-w-none">
             {title}
           </Link>
-          <span>/</span>
-          <span className="text-foreground font-medium truncate">{event.title}</span>
-        </div>
+          <span className="text-muted-foreground/60" aria-hidden>/</span>
+          <span className="text-foreground font-medium truncate min-w-0">{event.title}</span>
+        </nav>
 
-        <div className="grid gap-8 lg:grid-cols-3">
+        <div className="grid gap-8 sm:gap-10 lg:gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(280px,340px)] lg:items-start">
           {/* Main content */}
-          <div className="lg:col-span-2 space-y-8">
+          <div className="min-w-0 space-y-6 sm:space-y-8 order-2 lg:order-1">
             {/* Title & badges */}
-            <div className="space-y-4">
-              <div className="flex flex-wrap gap-2">
+            <header className="space-y-4 sm:space-y-5">
+              <div className="flex flex-wrap items-center gap-2">
                 {event.isActive !== undefined && (
                   <Badge variant={event.isActive ? "default" : "secondary"}>
                     {event.isActive ? "Active" : "Inactive"}
@@ -232,7 +235,7 @@ export default function EventDetailPage() {
                 )}
                 {isPaid && (
                   <Badge variant="outline" className="font-bold">
-                    ₹{event.ticketPrice}
+                    ₹{event.ticketPrice} (+ Fees)
                   </Badge>
                 )}
                 {!isPaid && (
@@ -241,110 +244,130 @@ export default function EventDetailPage() {
                   </Badge>
                 )}
               </div>
-              <h1 className="text-3xl sm:text-4xl font-black tracking-tight leading-tight">
+              <h1 className="text-3xl sm:text-4xl lg:text-[2.75rem] font-black tracking-tight leading-[1.15] text-balance">
                 {event.title}
               </h1>
-            </div>
+            </header>
 
-            <Separator />
+            <Separator className="my-2 sm:my-0" />
 
             {/* Description */}
-            {event.description && (
-              <div className="space-y-3">
-                  <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
+            {event.description ? (
+              <section className="rounded-2xl border border-border/80 bg-muted/25 px-5 py-6 sm:px-7 sm:py-8 space-y-4">
+                <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">
+                  About this event
+                </h2>
+                <p className="text-base sm:text-[1.0625rem] text-muted-foreground leading-relaxed whitespace-pre-wrap">
                   {event.description}
                 </p>
-              </div>
-            )}
+              </section>
+            ) : null}
           </div>
 
           {/* Sidebar */}
-          <div className="space-y-4">
-            <Card className="border-2 shadow-md">
-              <CardContent className="pt-6 space-y-5">
+          <aside className="order-1 lg:order-2 lg:sticky lg:top-[4.5rem]">
+            <Card className="border-2 shadow-md overflow-hidden">
+              <CardContent className="p-5 sm:p-6 lg:p-7 space-y-6">
                 {/* Date */}
-                {(event.eventDate || event.startTime) && (
-                  <div className="flex items-start gap-3">
-                    <div
-                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-                      style={{ backgroundColor: `${primaryColor}18`, color: primaryColor }}
-                    >
-                      <Calendar className="h-5 w-5" />
+                <div className="space-y-5 sm:space-y-6">
+                  {(event.eventDate || event.startTime) && (
+                    <div className="flex items-start gap-3.5 sm:gap-4">
+                      <div
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
+                        style={{ backgroundColor: `${primaryColor}18`, color: primaryColor }}
+                      >
+                        <Calendar className="h-5 w-5" />
+                      </div>
+                      <div className="min-w-0 pt-0.5">
+                        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Date</p>
+                        <p className="font-semibold mt-1 leading-snug">
+                          {formatDisplayDate(event.eventDate || event.startTime)}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Date</p>
-                      <p className="font-semibold mt-0.5">
-                        {formatDisplayDate(event.eventDate || event.startTime)}
-                      </p>
-                    </div>
-                  </div>
-                )}
+                  )}
 
-                {/* Time */}
-                {(event.eventTime || event.startTime) && (
-                  <div className="flex items-start gap-3">
-                    <div
-                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-                      style={{ backgroundColor: `${primaryColor}18`, color: primaryColor }}
-                    >
-                      <Clock className="h-5 w-5" />
+                  {(event.eventTime || event.startTime) && (
+                    <div className="flex items-start gap-3.5 sm:gap-4">
+                      <div
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
+                        style={{ backgroundColor: `${primaryColor}18`, color: primaryColor }}
+                      >
+                        <Clock className="h-5 w-5" />
+                      </div>
+                      <div className="min-w-0 pt-0.5">
+                        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Time</p>
+                        <p className="font-semibold mt-1 leading-snug">
+                          {event.eventTime ||
+                            new Date(event.startTime).toLocaleTimeString("en-US", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          {event.endTime && (
+                            <span>
+                              {" "}– {new Date(event.endTime).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
+                            </span>
+                          )}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Time</p>
-                      <p className="font-semibold mt-0.5">
-                        {event.eventTime ||
-                          new Date(event.startTime).toLocaleTimeString("en-US", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        {event.endTime && (
-                          <span className="text-muted-foreground">
-                            {" "}– {new Date(event.endTime).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
-                          </span>
-                        )}
-                      </p>
-                    </div>
-                  </div>
-                )}
+                  )}
 
-                {/* Venue */}
-                {event.venue && (
-                  <div className="flex items-start gap-3">
-                    <div
-                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-                      style={{ backgroundColor: `${primaryColor}18`, color: primaryColor }}
-                    >
-                      <MapPin className="h-5 w-5" />
+                  {event.venue && (
+                    <div className="flex items-start gap-3.5 sm:gap-4">
+                      <div
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
+                        style={{ backgroundColor: `${primaryColor}18`, color: primaryColor }}
+                      >
+                        <MapPin className="h-5 w-5" />
+                      </div>
+                      <div className="min-w-0 pt-0.5">
+                        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Venue</p>
+                        <p className="font-semibold mt-1 leading-snug break-words">{event.venue}</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Venue</p>
-                      <p className="font-semibold mt-0.5">{event.venue}</p>
-                    </div>
-                  </div>
-                )}
+                  )}
 
-                {/* Price */}
-                {isPaid && (
-                  <div className="flex items-start gap-3">
-                    <div
-                      className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-                      style={{ backgroundColor: `${primaryColor}18`, color: primaryColor }}
-                    >
-                      <Ticket className="h-5 w-5" />
+                  {event.maxAttendees != null && (
+                    <div className="flex items-start gap-3.5 sm:gap-4">
+                      <div
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
+                        style={{ backgroundColor: `${primaryColor}18`, color: primaryColor }}
+                      >
+                        <Users className="h-5 w-5" />
+                      </div>
+                      <div className="min-w-0 pt-0.5">
+                        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Capacity</p>
+                        <p className="font-semibold mt-1 leading-snug">
+                          {event.currentAttendees ?? 0} / {event.maxAttendees} registered
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Ticket Price</p>
-                      <p className="text-xl font-black mt-0.5" style={{ color: primaryColor }}>
-                        ₹{event.ticketPrice}
-                      </p>
-                    </div>
-                  </div>
-                )}
+                  )}
 
-                <Separator />
+                  {isPaid && (
+                    <div className="flex items-start gap-3.5 sm:gap-4">
+                      <div
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
+                        style={{ backgroundColor: `${primaryColor}18`, color: primaryColor }}
+                      >
+                        <Ticket className="h-5 w-5" />
+                      </div>
+                      <div className="min-w-0 pt-0.5">
+                        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Ticket Price</p>
+                        <p className="text-2xl font-black mt-1 leading-none" style={{ color: primaryColor }}>
+                          ₹{event.ticketPrice}{" "}
+                          <span className="text-base font-semibold text-muted-foreground">(+ Fees)</span>
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <Separator className="my-1" />
 
                 <Button
-                  className="w-full h-12 text-base font-bold rounded-xl"
+                  className="w-full h-12 sm:h-[3.25rem] text-base font-bold rounded-xl mt-1"
                   style={isEventFull ? undefined : { backgroundColor: primaryColor, color: "white" }}
                   variant={isEventFull ? "secondary" : "default"}
                   disabled={isEventFull}
@@ -354,7 +377,7 @@ export default function EventDetailPage() {
                 </Button>
               </CardContent>
             </Card>
-          </div>
+          </aside>
         </div>
       </main>
 
