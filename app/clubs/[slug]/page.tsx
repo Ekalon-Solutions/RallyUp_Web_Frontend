@@ -678,8 +678,8 @@ export default function PublicClubPage() {
       </section> */}
 
       {hasCommunitySections && (
-        <section className="container mx-auto px-6 py-28 md:py-40">
-          <div className="max-w-7xl mx-auto space-y-24">
+        <section className="container mx-auto px-6 py-12 md:py-16">
+          <div className="max-w-7xl mx-auto space-y-10 md:space-y-12">
             <div className="space-y-8">
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                   {/* Mobile / tablet tab bar; desktop nav lives in header */}
