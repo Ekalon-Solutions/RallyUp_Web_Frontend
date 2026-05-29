@@ -449,36 +449,37 @@ function ClubsPageContent() {
  }
  }
 
- const formatPrice = (price: number, currency: string) => {
- return new Intl.NumberFormat('en-US', {
- style: 'currency',
- currency: currency
- }).format(price)
- }
+  const formatPrice = (price: number, currency: string) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency
+    }).format(price)
+  }
 
- const formatPlanPeriod = (plan: MembershipPlan) => {
- if (plan.planStartDate && plan.planEndDate) {
- const start = new Date(plan.planStartDate).toLocaleDateString(undefined, { month:"short", day:"numeric", year:"numeric"})
- const end = new Date(plan.planEndDate).toLocaleDateString(undefined, { month:"short", day:"numeric", year:"numeric"})
- return `${start} – ${end}`
- }
+  const getPlanSalesState = (plan: MembershipPlan) => {
+    const now = Date.now()
+    const bookingStartMs = plan.bookingStartDate ? new Date(plan.bookingStartDate).getTime() : null
+    const bookingEndMs = plan.bookingEndDate ? new Date(plan.bookingEndDate).getTime() : null
+    const notStarted = Boolean(bookingStartMs && now < bookingStartMs)
+    const closed = Boolean(bookingEndMs && now > bookingEndMs)
+    return { isOpen: !notStarted && !closed, closed, notStarted }
+  }
 
- const getPlanSalesState = (plan: MembershipPlan) => {
- const now = Date.now()
- const bookingStartMs = plan.bookingStartDate ? new Date(plan.bookingStartDate).getTime() : null
- const bookingEndMs = plan.bookingEndDate ? new Date(plan.bookingEndDate).getTime() : null
- const notStarted = Boolean(bookingStartMs && now < bookingStartMs)
- const closed = Boolean(bookingEndMs && now > bookingEndMs)
- return { isOpen: !notStarted && !closed, closed, notStarted }
- }
- const months = plan.duration ?? 0
- if (months === 0) return"Lifetime"
- if (months === 1) return"1 Month"
- if (months === 3) return"3 Months"
- if (months === 6) return"6 Months"
- if (months === 12) return"1 Year"
- return `${months} Months`
- }
+  const formatPlanPeriod = (plan: MembershipPlan) => {
+    if (plan.planStartDate && plan.planEndDate) {
+      const start = new Date(plan.planStartDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
+      const end = new Date(plan.planEndDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
+      return `${start} – ${end}`
+    }
+
+    const months = plan.duration ?? 0
+    if (months === 0) return "Lifetime"
+    if (months === 1) return "1 Month"
+    if (months === 3) return "3 Months"
+    if (months === 6) return "6 Months"
+    if (months === 12) return "1 Year"
+    return `${months} Months`
+  }
 
  const getStatusColor = (status: string) => {
  switch (status) {
@@ -631,9 +632,9 @@ function ClubsPageContent() {
  <h1 className="text-5xl md:text-7xl font-black leading-none text-white drop-shadow-sm">
  Join the Community
  </h1>
- <p className="text-xl md:text-2xl text-primary max-w-3xl mx-auto font-medium leading-relaxed">
- Discover and join supporter clubs to connect with fellow fans, attend exclusive events, and be part of something special.
- </p>
+            <p className="text-xl md:text-2xl text-white/90 max-w-3xl mx-auto font-medium leading-relaxed">
+              Discover and join supporter clubs to connect with fellow fans, attend exclusive events, and be part of something special.
+            </p>
  </div>
  </div>
  </div>
