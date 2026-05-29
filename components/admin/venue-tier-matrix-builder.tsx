@@ -56,7 +56,6 @@ interface VenueTierMatrixBuilderProps {
   jointScreening?: { enabled: boolean; partnerClubNames: string[]; homeClubName?: string }
   cardClassName?: string
   primaryColor?: string
-  hideAddVenueButton?: boolean
   externalFirstVenueFields?: boolean
 }
 
@@ -100,7 +99,6 @@ export function VenueTierMatrixBuilder({
   jointScreening,
   cardClassName,
   primaryColor,
-  hideAddVenueButton = false,
   externalFirstVenueFields = false,
 }: VenueTierMatrixBuilderProps) {
   const clubBtnClass = clubActionButtonClassName()
@@ -252,27 +250,12 @@ export function VenueTierMatrixBuilder({
 
   return (
     <div className="space-y-4">
-      {!hideAddVenueButton && (
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-sm font-semibold">Venue & Tier Matrix</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Add venues and ticket tiers — each combination has its own allocation.
-            </p>
-          </div>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className={clubBtnClass}
-            style={clubBtnStyle}
-            onClick={addVenue}
-          >
-            <Plus className="w-4 h-4 mr-1" />
-            Add Venue
-          </Button>
-        </div>
-      )}
+      <div>
+        <h3 className="text-sm font-semibold">Venue & Tier Matrix</h3>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          Add venues and ticket tiers — each combination has its own allocation.
+        </p>
+      </div>
 
       {venues.map((venue, vi) => {
         const hideVenueNameRow = externalFirstVenueFields && vi === 0
@@ -484,6 +467,20 @@ export function VenueTierMatrixBuilder({
         </Card>
         )
       })}
+
+      <div className="flex items-center justify-end">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className={clubBtnClass}
+          style={clubBtnStyle}
+          onClick={addVenue}
+        >
+          <Plus className="w-4 h-4 mr-1" />
+          Add Venue
+        </Button>
+      </div>
 
       {venues.length > 0 && (
         <div className="rounded-lg bg-muted/40 p-3 text-xs text-muted-foreground space-y-1">

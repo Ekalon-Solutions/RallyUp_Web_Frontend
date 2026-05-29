@@ -30,6 +30,10 @@ import { useDesignSettings } from "@/hooks/useDesignSettings"
 import { useAuth } from "@/contexts/auth-context"
 import { VenueTierMatrixBuilder, VenueDraft, TierDraft, createEmptyVenueDraft } from "@/components/admin/venue-tier-matrix-builder"
 import { getJointScreeningClubNames } from "@/lib/joint-screening-clubs"
+import {
+  validateJointScreeningPartners,
+  validatePricingLogisticsStep,
+} from "@/lib/event-pricing-validation"
 import { EventRefundToggleSection } from "@/components/admin/event-refund-toggle-section"
 import { EventRefundPolicyImpactDialog } from "@/components/admin/event-refund-policy-impact-dialog"
 
@@ -212,34 +216,49 @@ function CreateEventForm() {
   const canPublish =
     isRefundPolicyReady(form.isRefundAllowed, form.refundCutoffHours, !paidEvent) && !loading
 
+  const primaryVenueName = form.multiTicketEnabled
+    ? (venues[0]?.name ?? "")
+    : form.venue
+  const primaryTicketPrice = form.multiTicketEnabled
+    ? String(venues[0]?.tiers[0]?.price ?? 0)
+    : form.ticketPrice
+  const primaryMaxAttendees = form.multiTicketEnabled
+    ? (venues[0]?.tiers[0]?.allocation ? String(venues[0].tiers[0].allocation) : "")
+    : form.maxAttendees
+
   const validateStep = (step: number): boolean => {
     if (step === 0) {
       if (!form.title.trim()) { toast.error("Event title is required"); return false }
       if (!form.startTime) { toast.error("Start time is required"); return false }
       if (!form.description.trim()) { toast.error("Description is required"); return false }
-      if (form.jointScreeningEnabled && partnerClubNames.length === 0) {
-        toast.error("Add at least one partner club name for joint screening")
+      const partnerCheck = validateJointScreeningPartners(
+        form.jointScreeningEnabled,
+        partnerClubNames,
+        homeClubName
+      )
+      if (!partnerCheck.ok) {
+        toast.error(partnerCheck.message)
         return false
       }
       return true
     }
     if (step === 1) {
-      if (form.multiTicketEnabled && venues.length === 0) {
-        toast.error("Add at least one venue and ticket tier for multi-ticket events")
+      const pricingCheck = validatePricingLogisticsStep({
+        multiTicketEnabled: form.multiTicketEnabled,
+        venue: form.venue,
+        ticketPrice: form.ticketPrice,
+        maxAttendees: form.maxAttendees,
+        venues,
+        jointScreeningEnabled: form.jointScreeningEnabled,
+        partnerClubNames,
+        homeClubName,
+        primaryVenueName,
+        primaryTicketPrice,
+        primaryMaxAttendees,
+      })
+      if (!pricingCheck.ok) {
+        toast.error(pricingCheck.message)
         return false
-      }
-      if (!form.multiTicketEnabled && !form.venue.trim()) {
-        toast.error("Venue is required")
-        return false
-      }
-      if (form.multiTicketEnabled && venues.length > 0) {
-        for (const v of venues) {
-          if (!v.name.trim()) { toast.error("All venues must have a name"); return false }
-          for (const t of v.tiers) {
-            if (!t.name.trim()) { toast.error(`All tiers in "${v.name}" must have a name`); return false }
-            if (t.allocation < 1) { toast.error(`Allocation for "${v.name} – ${t.name}" must be at least 1`); return false }
-          }
-        }
       }
       if (paidEvent && !isRefundPolicyReady(form.isRefundAllowed, form.refundCutoffHours, false)) {
         toast.error("Set a valid refund cut-off (non-negative whole hours) or fix the refund toggle")
@@ -315,35 +334,6 @@ function CreateEventForm() {
     })
   }
 
-  const addMultiVenue = () => {
-    setVenues((prev) => {
-      const base =
-        prev.length > 0
-          ? [...prev]
-          : (() => {
-              const draft = createEmptyVenueDraft(jointScreeningConfig)
-              draft.name = form.venue
-              draft.tiers[0] = {
-                ...draft.tiers[0],
-                price: Number(form.ticketPrice) || 0,
-                allocation: form.maxAttendees ? Number(form.maxAttendees) : 0,
-              }
-              return [draft]
-            })()
-      return [...base, createEmptyVenueDraft(jointScreeningConfig)]
-    })
-  }
-
-  const primaryVenueName = form.multiTicketEnabled
-    ? (venues[0]?.name ?? "")
-    : form.venue
-  const primaryTicketPrice = form.multiTicketEnabled
-    ? String(venues[0]?.tiers[0]?.price ?? 0)
-    : form.ticketPrice
-  const primaryMaxAttendees = form.multiTicketEnabled
-    ? (venues[0]?.tiers[0]?.allocation ? String(venues[0].tiers[0].allocation) : "")
-    : form.maxAttendees
-  
   useEffect(() => {
     if (!editId) return
     const fetchEvent = async () => {
@@ -891,20 +881,6 @@ function CreateEventForm() {
                 </div>
               </div>
 
-              {form.multiTicketEnabled && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className={cn("w-fit", clubBtnClass)}
-                  style={clubBtnStyle}
-                  onClick={addMultiVenue}
-                >
-                  <Plus className="w-4 h-4 mr-1" />
-                  Add Venue
-                </Button>
-              )}
-
               {form.multiTicketEnabled && venues.length > 0 && (
                 <VenueTierMatrixBuilder
                   venues={venues}
@@ -912,7 +888,6 @@ function CreateEventForm() {
                   currency={form.currency}
                   primaryColor={primaryColor}
                   cardClassName={sectionBorder}
-                  hideAddVenueButton
                   externalFirstVenueFields
                   jointScreening={
                     form.jointScreeningEnabled
