@@ -17,7 +17,7 @@ import {
   Mail,
   Phone,
   Calendar,
-  DollarSign,
+  Tag,
   CheckCircle,
   ArrowRight,
   Search,
@@ -32,7 +32,11 @@ import {
   Users2,
   CalendarDays,
   Newspaper,
-  ExternalLink
+  ExternalLink,
+  Loader2,
+  AlertTriangle,
+  UserCheck,
+  Info
 } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
@@ -42,6 +46,8 @@ import { PaymentSimulationModal } from "@/components/modals/payment-simulation-m
 import { SiteNavbar } from "@/components/site-navbar"
 import { SiteFooter } from "@/components/site-footer"
 import { cn } from "@/lib/utils"
+import { apiClient } from "@/lib/api"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 interface Club {
   _id: string
@@ -91,6 +97,30 @@ interface MembershipPlan {
     customIntegrations: boolean
   }
   isActive: boolean
+  referralReward?: { enabled: boolean; points: number }
+}
+
+type ReferralStatus = "idle" | "checking" | "found" | "not-found" | "not-member" | "self"
+
+const EMPTY_REGISTRATION = {
+  username: "",
+  first_name: "",
+  last_name: "",
+  email: "",
+  date_of_birth: "",
+  gender: "male",
+  phoneNumber: "",
+  countryCode: "+91",
+  address_line1: "",
+  address_line2: "",
+  city: "",
+  state_province: "",
+  zip_code: "",
+  country: "",
+  level_name: "",
+  id_proof_type: "Aadhar",
+  id_proof_number: "",
+  name: ""
 }
 
 function ClubsPageContent() {
@@ -105,26 +135,11 @@ function ClubsPageContent() {
   const [statusFilter, setStatusFilter] = useState("all")
   const [priceFilter, setPriceFilter] = useState("all")
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
-  const [registrationData, setRegistrationData] = useState({
-    username: "",
-    first_name: "",
-    last_name: "",
-    email: "",
-    date_of_birth: "",
-    gender: "male",
-    phoneNumber: "",
-    countryCode: "+91",
-    address_line1: "",
-    address_line2: "",
-    city: "",
-    state_province: "",
-    zip_code: "",
-    country: "",
-    level_name: "",
-    id_proof_type: "Aadhar",
-    id_proof_number: "",
-    name: ""
-  })
+  const [registrationData, setRegistrationData] = useState({ ...EMPTY_REGISTRATION })
+  const [referralPhone, setReferralPhone] = useState("")
+  const [referralStatus, setReferralStatus] = useState<ReferralStatus>("idle")
+  const [referralName, setReferralName] = useState<string | null>(null)
+  const [pendingReferralPhone, setPendingReferralPhone] = useState<string | undefined>(undefined)
   const [isRegistering, setIsRegistering] = useState(false)
   const [registrationErrors, setRegistrationErrors] = useState({ phoneNumber: "" })
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
@@ -189,6 +204,65 @@ function ClubsPageContent() {
   useEffect(() => {
     filterClubs()
   }, [clubs, searchTerm, statusFilter, priceFilter])
+
+  useEffect(() => {
+    const digits = referralPhone.replace(/\D/g, "")
+    if (digits.length !== 10 || !selectedClub?._id) {
+      setReferralStatus("idle")
+      setReferralName(null)
+      return
+    }
+
+    const refereeDigits = registrationData.phoneNumber.replace(/\D/g, "")
+    const timer = setTimeout(async () => {
+      setReferralStatus("checking")
+      try {
+        const res = await apiClient.checkReferralPhone(digits, {
+          clubId: selectedClub._id,
+          refereePhone: refereeDigits.length >= 9 ? refereeDigits : undefined,
+        })
+        if (res.success && res.data) {
+          if (res.data.isSelf) {
+            setReferralStatus("self")
+            setReferralName(null)
+          } else if (res.data.exists && res.data.isMember === false) {
+            setReferralStatus("not-member")
+            setReferralName(res.data.name ?? null)
+          } else if (res.data.exists) {
+            setReferralStatus("found")
+            setReferralName(res.data.name ?? null)
+          } else {
+            setReferralStatus("not-found")
+            setReferralName(null)
+          }
+        } else {
+          setReferralStatus("idle")
+        }
+      } catch {
+        setReferralStatus("idle")
+      }
+    }, 600)
+
+    return () => clearTimeout(timer)
+  }, [referralPhone, selectedClub?._id, registrationData.phoneNumber])
+
+  const resetReferralState = () => {
+    setReferralPhone("")
+    setReferralStatus("idle")
+    setReferralName(null)
+    setPendingReferralPhone(undefined)
+  }
+
+  const getValidReferralPhone = (): string | undefined => {
+    if (referralStatus !== "found") return undefined
+    const digits = referralPhone.replace(/\D/g, "")
+    return digits.length === 10 ? digits : undefined
+  }
+
+  const resetRegistrationForm = () => {
+    setRegistrationData({ ...EMPTY_REGISTRATION })
+    resetReferralState()
+  }
 
   const fetchClubs = async () => {
     try {
@@ -275,6 +349,7 @@ function ClubsPageContent() {
     }
     setSelectedClub(club)
     setSelectedPlan(plan)
+    resetReferralState()
     setShowRegistrationDialog(true)
   }
 
@@ -336,6 +411,7 @@ function ClubsPageContent() {
         const paymentMethod = 'all'
 
         setPendingRegistrationData({ ...registrationData })
+        setPendingReferralPhone(getValidReferralPhone())
         setPendingOrder({ orderId, orderNumber, total, currency, paymentMethod })
         setIsPaymentModalOpen(true)
         toast.info("Complete payment to create your account and activate membership.")
@@ -357,47 +433,20 @@ function ClubsPageContent() {
             localStorage.setItem('token', registerData.token)
             localStorage.setItem('userType', 'member')
 
-            const joinResponse = await fetch(getApiUrl(API_ENDPOINTS.users.joinClubRequest), {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${registerData.token}`
-              },
-              body: JSON.stringify({
-                clubId: selectedClub._id,
-                membershipPlanId: selectedPlan._id
-              })
-            })
+            const subscribeRes = await apiClient.subscribeMembershipPlan(
+              selectedPlan._id,
+              undefined,
+              getValidReferralPhone()
+            )
 
-            const joinData = await joinResponse.json()
-
-            if (joinResponse.ok) {
+            if (subscribeRes.success) {
               toast.success("Successfully joined the club!")
               setShowRegistrationDialog(false)
-              setRegistrationData({
-                username: "",
-                first_name: "",
-                last_name: "",
-                email: "",
-                date_of_birth: "",
-                gender: "male",
-                phoneNumber: "",
-                countryCode: "+91",
-                address_line1: "",
-                address_line2: "",
-                city: "",
-                state_province: "",
-                zip_code: "",
-                country: "",
-                level_name: "",
-                id_proof_type: "Aadhar",
-                id_proof_number: "",
-                name: ""
-              })
+              resetRegistrationForm()
               fetchClubs()
               router.push("/dashboard/user/my-clubs")
             } else {
-              toast.error(joinData.message || "Failed to join club after registration")
+              toast.error(subscribeRes.error || subscribeRes.message || "Failed to join club after registration")
             }
           } else {
             toast.error("Registration token missing")
@@ -529,56 +578,27 @@ function ClubsPageContent() {
       localStorage.setItem('token', registerData.token)
       localStorage.setItem('userType', 'member')
 
-      const response = await fetch(getApiUrl(API_ENDPOINTS.users.joinClubRequest), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${registerData.token}`
+      const subscribeRes = await apiClient.subscribeMembershipPlan(
+        selectedPlan._id,
+        {
+          razorpay_payment_id: paymentId,
+          razorpay_order_id: razorpayOrderId,
+          razorpay_signature: razorpaySignature,
         },
-        body: JSON.stringify({
-          clubId: selectedClub._id,
-          membershipPlanId: selectedPlan._id,
-          payment: {
-            orderId,
-            paymentId,
-            razorpayOrderId,
-            razorpaySignature
-          }
-        })
-      })
+        pendingReferralPhone
+      )
 
-      const data = await response.json()
-
-      if (response.ok) {
+      if (subscribeRes.success) {
         toast.success("Payment successful — membership activated.")
         setShowRegistrationDialog(false)
         setIsPaymentModalOpen(false)
         setPendingOrder(null)
         setPendingRegistrationData(null)
-        setRegistrationData({
-          username: "",
-          first_name: "",
-          last_name: "",
-          email: "",
-          date_of_birth: "",
-          gender: "male",
-          phoneNumber: "",
-          countryCode: "+91",
-          address_line1: "",
-          address_line2: "",
-          city: "",
-          state_province: "",
-          zip_code: "",
-          country: "",
-          level_name: "",
-          id_proof_type: "Aadhar",
-          id_proof_number: "",
-          name: ""
-        })
+        resetRegistrationForm()
         fetchClubs()
         router.push("/dashboard/user/my-clubs")
       } else {
-        toast.error(data.message || "Failed to activate membership after payment.")
+        toast.error(subscribeRes.error || subscribeRes.message || "Failed to activate membership after payment.")
       }
     } catch (error) {
       toast.error("An error occurred while finalizing membership after payment.")
@@ -587,6 +607,7 @@ function ClubsPageContent() {
       setIsPaymentModalOpen(false)
       setPendingOrder(null)
       setPendingRegistrationData(null)
+      setPendingReferralPhone(undefined)
     }
   }
 
@@ -595,6 +616,7 @@ function ClubsPageContent() {
     setIsPaymentModalOpen(false)
     setPendingOrder(null)
     setPendingRegistrationData(null)
+    setPendingReferralPhone(undefined)
   }
 
   return (
@@ -645,7 +667,7 @@ function ClubsPageContent() {
 
               <Select value={priceFilter} onValueChange={setPriceFilter}>
                 <SelectTrigger className="w-full sm:w-44 h-14 border-2 rounded-2xl font-bold">
-                  <DollarSign className="w-4 h-4 mr-2" />
+                  <Tag className="w-4 h-4 mr-2" />
                   <SelectValue placeholder="Price" />
                 </SelectTrigger>
                 <SelectContent className="rounded-2xl border-2">
@@ -1481,6 +1503,78 @@ function ClubsPageContent() {
               </div>
 
               {selectedPlan && (
+                <div className="rounded-lg border border-border bg-muted/50 p-4 space-y-2">
+                  <div className="flex items-center gap-1.5">
+                    <Label htmlFor="referralPhone" className="text-sm font-medium">
+                      Referral Mobile Number
+                    </Label>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+                        </TooltipTrigger>
+                        <TooltipContent className="max-w-xs">
+                          Enter the registered mobile number of an active {selectedClub?.name} member who referred you.
+                          {selectedPlan.referralReward?.enabled && selectedPlan.referralReward.points > 0
+                            ? ` They will earn ${selectedPlan.referralReward.points} loyalty points when you join.`
+                            : ""}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    <span className="text-xs text-muted-foreground">(Optional)</span>
+                  </div>
+                  <div className="relative">
+                    <Input
+                      id="referralPhone"
+                      type="tel"
+                      placeholder="10-digit mobile number of referring member"
+                      value={referralPhone}
+                      onChange={(e) => setReferralPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                      className={cn(
+                        "h-12 pr-10",
+                        referralStatus === "found" && "border-green-500",
+                        (referralStatus === "not-found" || referralStatus === "not-member" || referralStatus === "self") && "border-amber-400"
+                      )}
+                      maxLength={10}
+                      inputMode="numeric"
+                    />
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      {referralStatus === "checking" && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                      {referralStatus === "found" && <UserCheck className="h-4 w-4 text-green-600" />}
+                      {(referralStatus === "not-found" || referralStatus === "not-member" || referralStatus === "self") && (
+                        <AlertTriangle className="h-4 w-4 text-amber-500" />
+                      )}
+                    </div>
+                  </div>
+                  {referralStatus === "found" && referralName && (
+                    <p className="text-xs font-medium text-green-600">
+                      Referral confirmed — {referralName} will earn referral points when you join.
+                    </p>
+                  )}
+                  {referralStatus === "found" && !referralName && (
+                    <p className="text-xs font-medium text-green-600">
+                      Referral confirmed — your referrer will earn points when you join.
+                    </p>
+                  )}
+                  {referralStatus === "not-found" && (
+                    <p className="text-xs text-amber-600">
+                      No member found with this number. Check the number so your referrer gets credit.
+                    </p>
+                  )}
+                  {referralStatus === "not-member" && (
+                    <p className="text-xs text-amber-600">
+                      {referralName
+                        ? `${referralName} is registered but not an active member of ${selectedClub?.name}.`
+                        : "This number is not an active member of this club."}
+                    </p>
+                  )}
+                  {referralStatus === "self" && (
+                    <p className="text-xs font-medium text-destructive">You cannot refer yourself.</p>
+                  )}
+                </div>
+              )}
+
+              {selectedPlan && (
                 <div className="space-y-4">
                   <div className="rounded-lg border-2 border-primary/30 bg-muted/70 p-4 shadow-sm dark:bg-muted/40">
                     <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
@@ -1507,24 +1601,15 @@ function ClubsPageContent() {
                 </div>
               )}
 
-              <div className="flex gap-2">
-                <Button
-                  type="submit"
-                  disabled={isRegistering}
-                  className="flex-1 bg-primary hover:from-blue-700 hover:to-purple-700"
-                >
-                  {isRegistering
-                    ? (selectedPlan?.price ? "Registering, then Pay…" : "Registering…")
-                    : (selectedPlan?.price ? "Pay & Create Account" : "Register & Join")}
-                </Button>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowRegistrationDialog(false)}
-                >
-                  Cancel
-                </Button>
-              </div>
+              <Button
+                type="submit"
+                disabled={isRegistering}
+                className="w-full bg-primary hover:from-blue-700 hover:to-purple-700"
+              >
+                {isRegistering
+                  ? (selectedPlan?.price ? "Registering, then Pay…" : "Registering…")
+                  : (selectedPlan?.price ? "Pay & Create Account" : "Register & Join")}
+              </Button>
             </form>
           </div>
         </DialogContent>
@@ -1540,6 +1625,7 @@ function ClubsPageContent() {
               setIsPaymentModalOpen(false)
               setPendingOrder(null)
               setPendingRegistrationData(null)
+              setPendingReferralPhone(undefined)
             }}
             onPaymentSuccess={handlePaymentSuccess}
             onPaymentFailure={handlePaymentFailure}

@@ -40,16 +40,14 @@ export default function BrowseMembershipPlansPage() {
   const { user, checkAuth } = useAuth()
   const clubId = useRequiredClubId()
 
-  // Referral field state
   const [referralPhone, setReferralPhone] = useState("")
-  const [referralStatus, setReferralStatus] = useState<"idle" | "checking" | "found" | "not-found" | "self">("idle")
+  const [referralStatus, setReferralStatus] = useState<"idle" | "checking" | "found" | "not-found" | "not-member" | "self">("idle")
   const [referralName, setReferralName] = useState<string | null>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
   }, [])
 
-  // Debounced referral phone validation
   useEffect(() => {
     const digits = referralPhone.replace(/\D/g, "")
     if (digits.length === 0) {
@@ -71,11 +69,17 @@ export default function BrowseMembershipPlansPage() {
     setReferralStatus("checking")
     debounceRef.current = setTimeout(async () => {
       try {
-        const res = await apiClient.checkReferralPhone(digits)
+        const res = await apiClient.checkReferralPhone(digits, {
+          clubId: clubId ?? undefined,
+          refereePhone: user?.phoneNumber?.replace(/\D/g, ""),
+        })
         if (res.success && res.data) {
           if (res.data.isSelf) {
             setReferralStatus("self")
             setReferralName(null)
+          } else if (res.data.exists && res.data.isMember === false) {
+            setReferralStatus("not-member")
+            setReferralName(res.data.name ?? null)
           } else if (res.data.exists) {
             setReferralStatus("found")
             setReferralName(res.data.name ?? null)
@@ -91,7 +95,7 @@ export default function BrowseMembershipPlansPage() {
       }
     }, 600)
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
-  }, [referralPhone])
+  }, [referralPhone, clubId, user?.phoneNumber])
 
   useEffect(() => {
     if (clubId) {
@@ -169,12 +173,10 @@ export default function BrowseMembershipPlansPage() {
       return
     }
 
-    // Paid plan: show payment modal first, then subscribe with payment
     if (plan.price > 0) {
       const orderId = `membership-${planId}-${user._id}-${Date.now()}`
       const orderNumber = `ORD-${Math.floor(Math.random() * 900000) + 100000}`
       const currency = plan.currency || "INR"
-      // On upgrade: charge only the difference; apply GST + platform fee on that difference (same as event purchase)
       const currentPlanPrice = currentMembership?.membership_level_id?.price ?? 0
       const isUpgrade = Boolean(currentMembership && !isMembershipExpired() && plan.price > currentPlanPrice)
       const baseAmount = isUpgrade ? Math.max(0, plan.price - currentPlanPrice) : plan.price
@@ -197,7 +199,6 @@ export default function BrowseMembershipPlansPage() {
       return
     }
 
-    // Free plan: subscribe directly
     const validReferralFree = referralStatus === "found" ? referralPhone.replace(/\D/g, "") : undefined
     try {
       setIsAssigning(planId)
@@ -557,7 +558,7 @@ export default function BrowseMembershipPlansPage() {
                         onChange={(e) => setReferralPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
                         className={
                           referralStatus === "found" ? "border-green-500 pr-9" :
-                          referralStatus === "self" || referralStatus === "not-found" ? "border-amber-400 pr-9" :
+                          referralStatus === "self" || referralStatus === "not-found" || referralStatus === "not-member" ? "border-amber-400 pr-9" :
                           "pr-9"
                         }
                         maxLength={10}
@@ -567,7 +568,7 @@ export default function BrowseMembershipPlansPage() {
                       <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
                         {referralStatus === "checking" && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}
                         {referralStatus === "found" && <UserCheck className="w-4 h-4 text-green-600" />}
-                        {(referralStatus === "not-found" || referralStatus === "self") && <AlertTriangle className="w-4 h-4 text-amber-500" />}
+                        {(referralStatus === "not-found" || referralStatus === "self" || referralStatus === "not-member") && <AlertTriangle className="w-4 h-4 text-amber-500" />}
                       </div>
                     </div>
 
@@ -584,6 +585,11 @@ export default function BrowseMembershipPlansPage() {
                     {referralStatus === "not-found" && (
                       <p className="text-xs text-amber-600">
                         Member not found. Please check the number to ensure your friend gets their points.
+                      </p>
+                    )}
+                    {referralStatus === "not-member" && (
+                      <p className="text-xs text-amber-600">
+                        {referralName ? `${referralName} is registered but not an active member of this club.` : "This number is not an active member of this club."}
                       </p>
                     )}
                     {referralStatus === "self" && (

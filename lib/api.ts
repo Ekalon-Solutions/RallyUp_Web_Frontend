@@ -2466,12 +2466,23 @@ class ApiClient {
     return this.request(`/user-memberships/active-per-plan?clubId=${encodeURIComponent(clubId)}`);
   }
 
-  async checkReferralPhone(phone: string): Promise<ApiResponse<{
+  async checkReferralPhone(
+    phone: string,
+    options?: { clubId?: string; refereePhone?: string }
+  ): Promise<ApiResponse<{
     exists: boolean;
     isSelf?: boolean;
+    isMember?: boolean;
     name?: string;
   }>> {
-    return this.request(`/membership-plans/referral-check?phone=${encodeURIComponent(phone)}`);
+    const params = new URLSearchParams({ phone });
+    if (options?.clubId) params.set('clubId', options.clubId);
+    if (options?.refereePhone) params.set('refereePhone', options.refereePhone);
+    const res = await this.request(`/membership-plans/referral-check?${params.toString()}`);
+    if (res.success && res.data) {
+      return { ...res, data: (res.data as any).exists !== undefined ? res.data : (res.data as any) };
+    }
+    return res;
   }
 
   async subscribeMembershipPlan(
@@ -4282,17 +4293,9 @@ class ApiClient {
     return this.request(`/gts/fixtures?clubId=${encodeURIComponent(clubId)}`);
   }
 
-  /**
-   * Submit (or update) a GTS prediction.
-   * The backend resolves firstName, lastName, username, and clubName from the
-   * authenticated token so they are stored in the master GTS predictions collection.
-   * Submissions are rejected server-side if received after Lock Time (T−90 mins).
-   */
   async submitGTSPrediction(data: {
     fixtureId: string;
-    /** StrTime value from SportsDB – used server-side to enforce T−90 lock */
     strTime: string;
-    /** ISO date string from SportsDB dateEvent */
     dateEvent: string;
     homeScore: number;
     awayScore: number;
@@ -4318,7 +4321,6 @@ class ApiClient {
       homeScore: number;
       awayScore: number;
       matchDate: string;
-      /** ISO timestamp when the prediction was locked */
       lockedAt?: string;
       pointsEarned?: number | null;
       result?: 'exact' | 'close' | 'correct_outcome' | 'incorrect' | null;
@@ -4328,13 +4330,8 @@ class ApiClient {
     return this.request(`/gts/predictions/me?${qs.toString()}`);
   }
 
-  /**
-   * Leaderboard exposes ONLY: userId (for self-highlight), firstName, lastName,
-   * clubName, points, and rank. No avatar, email, username, or phone is returned.
-   */
   async getGTSLeaderboard(params: { clubId: string; type: 'club' | 'global'; season?: string }): Promise<ApiResponse<{
     leaderboard: Array<{
-      /** Opaque identifier used solely to highlight the current user's own row */
       userId: string;
       firstName: string;
       lastName: string;
@@ -4342,7 +4339,6 @@ class ApiClient {
       points: number;
       rank: number;
     }>;
-    /** Current user's rank in this league (null if not participating) */
     userRank?: number;
     userPoints?: number;
   }>> {
