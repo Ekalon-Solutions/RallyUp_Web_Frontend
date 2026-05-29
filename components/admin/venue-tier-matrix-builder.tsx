@@ -367,10 +367,9 @@ export function VenueTierMatrixBuilder({
                       <Trash2 className="w-3.5 h-3.5" />
                     </Button>
                   </div>
-
-                  {/* Per-club allocation toggle (joint events only) */}
+                  
                   {isJointEvent && (
-                    <div className={cn("ml-1 pl-3 border-l-2 space-y-2", cardClassName ?? "border-muted")}>
+                    <div className={cn("ml-1 pl-3 border-l-2 border-border space-y-2", cardClassName)}>
                       <div className="flex items-center justify-between">
                         <Label className="text-xs flex items-center gap-1.5 text-muted-foreground">
                           <Users className="w-3.5 h-3.5" />

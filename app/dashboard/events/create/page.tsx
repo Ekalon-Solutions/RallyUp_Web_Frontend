@@ -20,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { ArrowLeft, Save, Loader2, Tv2, Plus, X, Percent } from "lucide-react"
+import { ArrowLeft, Save, Loader2, Plus, X } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api"
@@ -338,10 +338,8 @@ function CreateEventForm() {
     )
   }
 
-  const sectionBorder = "border-gray-300 dark:border-gray-600"
-  const nestedBorder = "border-l-2 border-gray-300 dark:border-gray-600"
-  const fieldBorder =
-    "[&_input]:border-gray-300 [&_textarea]:border-gray-300 dark:[&_input]:border-gray-600 dark:[&_textarea]:border-gray-600 [&_.border-input]:border-gray-300 dark:[&_.border-input]:border-gray-600"
+  const sectionBorder = "border-border"
+  const nestedBorder = "border-l-2 border-border"
 
   return (
     <DashboardLayout>
@@ -355,7 +353,10 @@ function CreateEventForm() {
           <h1 className="text-3xl font-bold">{isEditMode ? "Edit Event" : "Create Event"}</h1>
         </div>
 
-        <form onSubmit={handleSubmit} className={cn("space-y-6", fieldBorder)}>
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-6 dark:[color-scheme:dark] [&_input]:border-border [&_input]:bg-background [&_input]:text-foreground [&_textarea]:border-border [&_textarea]:bg-background [&_textarea]:text-foreground [&_[role=combobox]]:border-border [&_[role=combobox]]:bg-background [&_[role=combobox]]:text-foreground"
+        >
           <Card className={sectionBorder}>
             <CardHeader>
               <CardTitle>Basic Details</CardTitle>
@@ -399,11 +400,11 @@ function CreateEventForm() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="startTime">Start Time *</Label>
+                  <Label htmlFor="startTime">Event Start *</Label>
                   <Input id="startTime" type="datetime-local" value={form.startTime} onChange={(e) => set("startTime", e.target.value)} required />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="endTime">End Time</Label>
+                  <Label htmlFor="endTime">Event End</Label>
                   <Input id="endTime" type="datetime-local" value={form.endTime} onChange={(e) => set("endTime", e.target.value)} />
                 </div>
               </div>
@@ -425,7 +426,6 @@ function CreateEventForm() {
           <Card className={sectionBorder}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Tv2 className="w-5 h-5" />
                 Joint Screening
               </CardTitle>
             </CardHeader>
@@ -581,7 +581,7 @@ function CreateEventForm() {
                     </div>
                   </div>
 
-                  <Separator className="bg-gray-300 dark:bg-gray-600" />
+                  <Separator className="bg-border" />
                 </>
               )}
 
@@ -692,7 +692,6 @@ function CreateEventForm() {
           <Card className={sectionBorder}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Percent className="w-5 h-5" />
                 Early Bird Discount
               </CardTitle>
             </CardHeader>

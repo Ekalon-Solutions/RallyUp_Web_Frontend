@@ -3,7 +3,6 @@
 import React, { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -90,7 +89,6 @@ export default function MembershipPlansPage() {
       prioritySupport: false,
       apiAccess: false,
       customIntegrations: false,
-      premiumFeatures: ""
     }
   })
 
@@ -325,7 +323,6 @@ export default function MembershipPlansPage() {
             prioritySupport: false,
             apiAccess: false,
             customIntegrations: false,
-            premiumFeatures: ""
           }
         })
         loadPlans()
@@ -450,7 +447,6 @@ export default function MembershipPlansPage() {
         prioritySupport: plan.features.prioritySupport || false,
         apiAccess: plan.features.apiAccess || false,
         customIntegrations: plan.features.customIntegrations || false,
-        premiumFeatures: (plan.features as any).premiumFeatures || ""
       }
     })
     setShowEditDialog(true)
@@ -582,7 +578,6 @@ export default function MembershipPlansPage() {
             prioritySupport: false,
             apiAccess: false,
             customIntegrations: false,
-            premiumFeatures: ""
           }
         })
         await loadPlans()
@@ -812,21 +807,6 @@ export default function MembershipPlansPage() {
                           />
                         </div>
                       </div>
-
-                      <div className="mt-4">
-                        <Label htmlFor="premiumFeatures">Premium Features</Label>
-                        <Textarea
-                          id="premiumFeatures"
-                          value={formData.features.premiumFeatures || ""}
-                          onChange={(e) => setFormData({
-                            ...formData,
-                            features: { ...formData.features, premiumFeatures: e.target.value }
-                          })}
-                          placeholder="Enter premium features as free text (e.g., Custom Branding, Advanced Analytics, Priority Support, API Access)"
-                          className="mt-2"
-                          rows={4}
-                        />
-                      </div>
                     </div>
 
                     <div className="border-t pt-4 space-y-3">
@@ -1016,21 +996,6 @@ export default function MembershipPlansPage() {
                           />
                         </div>
                       </div>
-
-                      <div className="mt-4">
-                        <Label htmlFor="edit-premiumFeatures">Premium Features</Label>
-                        <Textarea
-                          id="edit-premiumFeatures"
-                          value={formData.features.premiumFeatures || ""}
-                          onChange={(e) => setFormData({
-                            ...formData,
-                            features: { ...formData.features, premiumFeatures: e.target.value }
-                          })}
-                          placeholder="Enter premium features as free text (e.g., Custom Branding, Advanced Analytics, Priority Support, API Access)"
-                          className="mt-2"
-                          rows={4}
-                        />
-                      </div>
                     </div>
 
                     <div className="border-t pt-4 space-y-3">
@@ -1181,15 +1146,6 @@ export default function MembershipPlansPage() {
                       <span className="text-foreground">{plan.features.maxNews}</span>
                     </div>
                   </div>
-
-                  {(plan.features as any).premiumFeatures && (
-                      <div className="border-t pt-4">
-                        <h4 className="font-semibold text-sm mb-2 text-foreground">Premium Features</h4>
-                        <div className="text-sm text-foreground whitespace-pre-line">
-                          {(plan.features as any).premiumFeatures}
-                        </div>
-                      </div>
-                    )}
 
                   <div className="border-t pt-3 space-y-2">
                     <div className="flex items-center justify-between text-sm">
