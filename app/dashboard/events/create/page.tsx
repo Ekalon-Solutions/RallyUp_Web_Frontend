@@ -264,6 +264,71 @@ function CreateEventForm() {
   }
 
   const goBack = () => setWizardStep((s) => Math.max(s - 1, 0))
+
+  const jointScreeningConfig = form.jointScreeningEnabled
+    ? { enabled: true as const, partnerClubNames }
+    : undefined
+
+  const ensureVenuesForMulti = (): VenueDraft[] => {
+    if (venues.length > 0) return venues
+    const draft = createEmptyVenueDraft(jointScreeningConfig)
+    draft.name = form.venue
+    draft.tiers[0] = {
+      ...draft.tiers[0],
+      price: Number(form.ticketPrice) || 0,
+      allocation: form.maxAttendees ? Number(form.maxAttendees) : 0,
+    }
+    return [draft]
+  }
+
+  const updatePrimaryVenueField = (
+    field: "name" | "price" | "allocation",
+    value: string
+  ) => {
+    setVenues((prev) => {
+      const list = prev.length > 0 ? [...prev] : ensureVenuesForMulti()
+      const first = { ...list[0], tiers: [...list[0].tiers] }
+      if (field === "name") {
+        first.name = value
+      } else {
+        const tier = { ...first.tiers[0] }
+        if (field === "price") tier.price = Number(value) || 0
+        if (field === "allocation") tier.allocation = value === "" ? 0 : Number(value) || 0
+        first.tiers[0] = tier
+      }
+      list[0] = first
+      return list
+    })
+  }
+
+  const addMultiVenue = () => {
+    setVenues((prev) => {
+      const base =
+        prev.length > 0
+          ? [...prev]
+          : (() => {
+              const draft = createEmptyVenueDraft(jointScreeningConfig)
+              draft.name = form.venue
+              draft.tiers[0] = {
+                ...draft.tiers[0],
+                price: Number(form.ticketPrice) || 0,
+                allocation: form.maxAttendees ? Number(form.maxAttendees) : 0,
+              }
+              return [draft]
+            })()
+      return [...base, createEmptyVenueDraft(jointScreeningConfig)]
+    })
+  }
+
+  const primaryVenueName = form.multiTicketEnabled
+    ? (venues[0]?.name ?? "")
+    : form.venue
+  const primaryTicketPrice = form.multiTicketEnabled
+    ? String(venues[0]?.tiers[0]?.price ?? 0)
+    : form.ticketPrice
+  const primaryMaxAttendees = form.multiTicketEnabled
+    ? (venues[0]?.tiers[0]?.allocation ? String(venues[0].tiers[0].allocation) : "")
+    : form.maxAttendees
   
   useEffect(() => {
     if (!editId) return
@@ -709,72 +774,121 @@ function CreateEventForm() {
                   onCheckedChange={(v) => {
                     set("multiTicketEnabled", v)
                     if (!v) {
+                      const first = venues[0]
+                      if (first) {
+                        setForm((prev) => ({
+                          ...prev,
+                          venue: first.name || prev.venue,
+                          ticketPrice: String(first.tiers[0]?.price ?? 0),
+                          maxAttendees: first.tiers[0]?.allocation
+                            ? String(first.tiers[0].allocation)
+                            : "",
+                        }))
+                      }
                       setVenues([])
                     } else {
-                      setVenues((prev) =>
-                        prev.length === 0
-                          ? [
-                              createEmptyVenueDraft(
-                                form.jointScreeningEnabled
-                                  ? { enabled: true, partnerClubNames }
-                                  : undefined
-                              ),
-                            ]
-                          : prev
-                      )
+                      setVenues((prev) => {
+                        if (prev.length > 0) return prev
+                        const draft = createEmptyVenueDraft(
+                          form.jointScreeningEnabled
+                            ? { enabled: true, partnerClubNames }
+                            : undefined
+                        )
+                        draft.name = form.venue
+                        draft.tiers[0] = {
+                          ...draft.tiers[0],
+                          price: Number(form.ticketPrice) || 0,
+                          allocation: form.maxAttendees ? Number(form.maxAttendees) : 0,
+                        }
+                        return [draft]
+                      })
                     }
                   }}
                 />
               </div>
 
-              {!form.multiTicketEnabled && (
-                <>
-                  <div className="grid gap-2">
-                    <Label htmlFor="venue">Venue *</Label>
-                    <Input
-                      id="venue"
-                      placeholder="Enter venue name / address"
-                      value={form.venue}
-                      onChange={(e) => set("venue", e.target.value)}
-                    />
-                  </div>
+              <div className="grid gap-2">
+                <Label htmlFor="venue">Venue *</Label>
+                <Input
+                  id="venue"
+                  placeholder="Enter venue name / address"
+                  value={primaryVenueName}
+                  onChange={(e) => {
+                    if (form.multiTicketEnabled) {
+                      updatePrimaryVenueField("name", e.target.value)
+                    } else {
+                      set("venue", e.target.value)
+                    }
+                  }}
+                />
+              </div>
 
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="ticketPrice">Ticket Price</Label>
-                      <Input
-                        id="ticketPrice"
-                        type="number"
-                        min={0}
-                        placeholder="0"
-                        value={form.ticketPrice === "0" ? "" : form.ticketPrice}
-                        onChange={(e) => set("ticketPrice", e.target.value)}
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="maxAttendees">Max Attendees</Label>
-                      <Input
-                        id="maxAttendees"
-                        type="number"
-                        min={1}
-                        placeholder="Leave blank for unlimited"
-                        value={form.maxAttendees}
-                        onChange={(e) => set("maxAttendees", e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  <Separator className="bg-border" />
-                </>
-              )}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="ticketPrice">Ticket Price</Label>
+                  <Input
+                    id="ticketPrice"
+                    type="number"
+                    min={0}
+                    placeholder="0"
+                    value={
+                      (form.multiTicketEnabled ? primaryTicketPrice : form.ticketPrice) === "0"
+                        ? ""
+                        : form.multiTicketEnabled
+                          ? primaryTicketPrice
+                          : form.ticketPrice
+                    }
+                    onChange={(e) => {
+                      if (form.multiTicketEnabled) {
+                        updatePrimaryVenueField("price", e.target.value)
+                      } else {
+                        set("ticketPrice", e.target.value)
+                      }
+                    }}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="maxAttendees">Max Attendees</Label>
+                  <Input
+                    id="maxAttendees"
+                    type="number"
+                    min={1}
+                    placeholder="Leave blank for unlimited"
+                    value={form.multiTicketEnabled ? primaryMaxAttendees : form.maxAttendees}
+                    onChange={(e) => {
+                      if (form.multiTicketEnabled) {
+                        updatePrimaryVenueField("allocation", e.target.value)
+                      } else {
+                        set("maxAttendees", e.target.value)
+                      }
+                    }}
+                  />
+                </div>
+              </div>
 
               {form.multiTicketEnabled && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className={cn("w-fit", clubBtnClass)}
+                  style={clubBtnStyle}
+                  onClick={addMultiVenue}
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  Add Venue
+                </Button>
+              )}
+
+              {form.multiTicketEnabled && venues.length > 0 && (
                 <VenueTierMatrixBuilder
                   venues={venues}
                   onChange={setVenues}
                   currency={form.currency}
                   primaryColor={primaryColor}
                   cardClassName={sectionBorder}
+                  hideAddVenueButton
+                  externalFirstVenueFields
                   jointScreening={
                     form.jointScreeningEnabled
                       ? { enabled: true, partnerClubNames }
@@ -783,14 +897,12 @@ function CreateEventForm() {
                 />
               )}
 
-              {form.multiTicketEnabled && venues.length > 0 && (
+              {form.multiTicketEnabled && venues.length > 1 && (
                 <p className="text-xs text-muted-foreground">
-                  Using venue x tier matrix — single ticket price and max attendees are managed per tier.
+                  Additional venues and ticket tiers are configured below. Primary venue details are set above.
                 </p>
               )}
               </div>
-
-              <Separator />
 
               <EventRefundToggleSection
                 isRefundAllowed={form.isRefundAllowed}

@@ -54,8 +54,9 @@ interface VenueTierMatrixBuilderProps {
   currency?: string
   jointScreening?: { enabled: boolean; partnerClubNames: string[] }
   cardClassName?: string
-  /** Club brand color for Add Venue / Add Tier buttons (e.g. Arsenal red). */
   primaryColor?: string
+  hideAddVenueButton?: boolean
+  externalFirstVenueFields?: boolean
 }
 
 function generateId() {
@@ -98,6 +99,8 @@ export function VenueTierMatrixBuilder({
   jointScreening,
   cardClassName,
   primaryColor,
+  hideAddVenueButton = false,
+  externalFirstVenueFields = false,
 }: VenueTierMatrixBuilderProps) {
   const clubBtnClass = clubActionButtonClassName()
   const clubBtnStyle = clubActionButtonStyle(primaryColor)
@@ -247,28 +250,35 @@ export function VenueTierMatrixBuilder({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-sm font-semibold">Venue & Tier Matrix</h3>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Add venues and ticket tiers — each combination has its own allocation.
-          </p>
+      {!hideAddVenueButton && (
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-semibold">Venue & Tier Matrix</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Add venues and ticket tiers — each combination has its own allocation.
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className={clubBtnClass}
+            style={clubBtnStyle}
+            onClick={addVenue}
+          >
+            <Plus className="w-4 h-4 mr-1" />
+            Add Venue
+          </Button>
         </div>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className={clubBtnClass}
-          style={clubBtnStyle}
-          onClick={addVenue}
-        >
-          <Plus className="w-4 h-4 mr-1" />
-          Add Venue
-        </Button>
-      </div>
+      )}
 
-      {venues.map((venue, vi) => (
+      {venues.map((venue, vi) => {
+        const hideVenueNameRow = externalFirstVenueFields && vi === 0
+        const tiersToRender = externalFirstVenueFields && vi === 0 ? venue.tiers.slice(1) : venue.tiers
+
+        return (
         <Card key={venue.id} className={cn("border-2", cardClassName)}>
+          {!hideVenueNameRow && (
           <CardHeader className="pb-3">
             <div className="flex items-center gap-2">
               <MapPin className="w-4 h-4 text-muted-foreground flex-shrink-0" />
@@ -297,9 +307,35 @@ export function VenueTierMatrixBuilder({
               </Button>
             </div>
           </CardHeader>
+          )}
 
-          <CardContent className="space-y-4">
-            {/* Matrix header */}
+          <CardContent className={cn("space-y-4", hideVenueNameRow && "pt-6")}>
+            {hideVenueNameRow && tiersToRender.length > 0 && (
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Additional ticket tiers
+              </p>
+            )}
+            {externalFirstVenueFields && vi === 0 && venues.length > 1 && (
+              <div className="flex items-center justify-between gap-2 pb-1">
+                <p className="text-sm font-medium">{venue.name.trim() || "Venue 1"}</p>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => requestRemoveVenue(venue.id)}
+                  disabled={venues.length <= 1}
+                  className={cn(
+                    "flex-shrink-0",
+                    venues.length <= 1
+                      ? "opacity-30 cursor-not-allowed"
+                      : "text-destructive hover:text-destructive hover:bg-destructive/10"
+                  )}
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
+            {!(hideVenueNameRow && tiersToRender.length === 0) && (
             <div className="grid grid-cols-[1fr_100px_100px_36px] gap-2 px-1">
               <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1">
                 <Tag className="w-3 h-3" /> Tier Name
@@ -312,14 +348,16 @@ export function VenueTierMatrixBuilder({
               </span>
               <span />
             </div>
+            )}
 
-            {venue.tiers.map((tier, ti) => {
+            {tiersToRender.map((tier, ti) => {
+              const tierIndex = externalFirstVenueFields && vi === 0 ? ti + 1 : ti
               const hasClubAllocations = isJointEvent && Boolean(tier.clubAllocations?.length)
               return (
                 <div key={tier.id} className="space-y-2">
                   <div className="grid grid-cols-[1fr_100px_100px_36px] gap-2 items-center">
                     <Input
-                      placeholder={`Tier ${ti + 1} (e.g. VIP, Basic)`}
+                      placeholder={`Tier ${tierIndex + 1} (e.g. VIP, Basic)`}
                       value={tier.name}
                       onChange={(e) => updateTier(venue.id, tier.id, "name", e.target.value)}
                       className="text-sm"
@@ -427,7 +465,6 @@ export function VenueTierMatrixBuilder({
               Add Tier
             </Button>
 
-            {/* Summary badges */}
             <div className="flex flex-wrap gap-1.5 pt-1">
               {venue.tiers.filter((t) => t.name).map((tier) => (
                 <Badge key={tier.id} variant="secondary" className="text-xs">
@@ -438,7 +475,8 @@ export function VenueTierMatrixBuilder({
             </div>
           </CardContent>
         </Card>
-      ))}
+        )
+      })}
 
       {venues.length > 0 && (
         <div className="rounded-lg bg-muted/40 p-3 text-xs text-muted-foreground space-y-1">
