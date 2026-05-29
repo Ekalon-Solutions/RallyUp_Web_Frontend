@@ -11,6 +11,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { ArrowLeft, Save, Loader2, Tv2, Plus, X, Percent } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
@@ -89,6 +98,7 @@ function CreateEventForm() {
   })
   const [partnerClubNames, setPartnerClubNames] = useState<string[]>([])
   const [newPartnerClub, setNewPartnerClub] = useState("")
+  const [partnerClubToRemove, setPartnerClubToRemove] = useState<string | null>(null)
 
   const set = (field: string, value: string | boolean) =>
     setForm((prev) => ({ ...prev, [field]: value }))
@@ -110,12 +120,13 @@ function CreateEventForm() {
         ...v,
         tiers: v.tiers.map((t) => {
           const existingMap = new Map((t.clubAllocations ?? []).map((ca) => [ca.clubName, ca.allocation]))
-          const basePerClub = Math.max(1, Math.floor(t.allocation / partnerClubNames.length))
+          const basePerClub =
+            t.allocation <= 0 ? 0 : Math.floor(t.allocation / partnerClubNames.length)
           const synced = partnerClubNames.map((name) => ({
             clubName: name,
             allocation: existingMap.has(name) ? existingMap.get(name)! : basePerClub,
           }))
-          const total = Math.max(1, synced.reduce((s, ca) => s + ca.allocation, 0))
+          const total = synced.reduce((s, ca) => s + ca.allocation, 0)
           return { ...t, clubAllocations: synced, allocation: total }
         }),
       }))
@@ -480,7 +491,7 @@ function CreateEventForm() {
                             {club}
                             <button
                               type="button"
-                              onClick={() => setPartnerClubNames(partnerClubNames.filter((c) => c !== club))}
+                              onClick={() => setPartnerClubToRemove(club)}
                               className="hover:text-destructive transition-colors ml-0.5"
                             >
                               <X className="w-3 h-3" />
@@ -553,7 +564,7 @@ function CreateEventForm() {
                         type="number"
                         min={0}
                         placeholder="0"
-                        value={form.ticketPrice}
+                        value={form.ticketPrice === "0" ? "" : form.ticketPrice}
                         onChange={(e) => set("ticketPrice", e.target.value)}
                       />
                     </div>
@@ -634,7 +645,7 @@ function CreateEventForm() {
                   type="number"
                   min={0}
                   placeholder="0"
-                  value={form.attendancePoints}
+                  value={form.attendancePoints === "0" ? "" : form.attendancePoints}
                   onChange={(e) => set("attendancePoints", e.target.value)}
                 />
                 <p className="text-xs text-muted-foreground">Points awarded to members upon QR attendance scan</p>
@@ -783,6 +794,40 @@ function CreateEventForm() {
             </Button>
           </div>
         </form>
+
+        <AlertDialog
+          open={partnerClubToRemove !== null}
+          onOpenChange={(open) => !open && setPartnerClubToRemove(null)}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Remove partner club?</AlertDialogTitle>
+              <AlertDialogDescription>
+                {partnerClubToRemove && (
+                  <>
+                    Remove &quot;{partnerClubToRemove}&quot; from this joint screening? Club-specific seat
+                    splits for this partner will be cleared from ticket tiers.
+                  </>
+                )}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => {
+                  if (partnerClubToRemove) {
+                    setPartnerClubNames(partnerClubNames.filter((c) => c !== partnerClubToRemove))
+                  }
+                  setPartnerClubToRemove(null)
+                }}
+              >
+                Remove
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </DashboardLayout>
   )

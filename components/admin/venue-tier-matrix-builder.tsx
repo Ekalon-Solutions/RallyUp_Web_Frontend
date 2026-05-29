@@ -1,15 +1,29 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
 import { Plus, Trash2, MapPin, Tag, Users } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { clubActionButtonClassName, clubActionButtonStyle } from "@/lib/clubThemeButton"
+import {
+  formatNumberInputValue,
+  parseOptionalNonNegativeInt,
+  parseOptionalNonNegativeNumber,
+} from "@/lib/numberInput"
 
 export interface ClubAllocationDraft {
   clubName: string
@@ -29,6 +43,10 @@ export interface VenueDraft {
   name: string
   tiers: TierDraft[]
 }
+
+type DeleteTarget =
+  | { type: "venue"; venueId: string }
+  | { type: "tier"; venueId: string; tierId: string }
 
 interface VenueTierMatrixBuilderProps {
   venues: VenueDraft[]
@@ -67,7 +85,6 @@ function makeDefaultTier(
   return { id: generateId(), name, price, allocation }
 }
 
-/** Empty venue card — same structure as clicking "Add Venue". */
 export function createEmptyVenueDraft(
   jointScreening?: VenueTierMatrixBuilderProps["jointScreening"]
 ): VenueDraft {
@@ -84,6 +101,7 @@ export function VenueTierMatrixBuilder({
 }: VenueTierMatrixBuilderProps) {
   const clubBtnClass = clubActionButtonClassName()
   const clubBtnStyle = clubActionButtonStyle(primaryColor)
+  const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
   const currencySymbols: Record<string, string> = {
     INR: "₹", USD: "$", EUR: "€", GBP: "£", AUD: "A$", CAD: "CA$",
     JPY: "¥", BRL: "R$", MXN: "$", ZAR: "R",
@@ -95,9 +113,9 @@ export function VenueTierMatrixBuilder({
   )
   const clubNames = jointScreening?.partnerClubNames ?? []
 
-  const makeDefaultTier = (name = "General", price = 0, allocation = 50): TierDraft => {
+  const makeDefaultTier = (name = "General", price = 0, allocation = 0): TierDraft => {
     if (isJointEvent && clubNames.length > 0) {
-      const perClub = Math.max(1, Math.floor(allocation / clubNames.length))
+      const perClub = perClubAllocation(allocation, clubNames.length)
       const clubAllocations = clubNames.map((cn) => ({ clubName: cn, allocation: perClub }))
       return { id: generateId(), name, price, allocation: perClub * clubNames.length, clubAllocations }
     }
@@ -113,13 +131,10 @@ export function VenueTierMatrixBuilder({
     onChange(venues.filter((v) => v.id !== venueId))
   }
 
-  // Show one venue card immediately (same as clicking "Add Venue" once).
   useEffect(() => {
     if (venues.length === 0) {
       onChange([createEmptyVenueDraft(jointScreening)])
     }
-    // Only re-run when venue list becomes empty; jointScreening read at seed time.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [venues.length])
 
   const updateVenueName = (venueId: string, name: string) => {
@@ -130,7 +145,7 @@ export function VenueTierMatrixBuilder({
     onChange(
       venues.map((v) =>
         v.id === venueId
-          ? { ...v, tiers: [...v.tiers, makeDefaultTier("", 0, 50)] }
+          ? { ...v, tiers: [...v.tiers, makeDefaultTier("", 0, 0)] }
           : v
       )
     )
@@ -143,6 +158,48 @@ export function VenueTierMatrixBuilder({
       )
     )
   }
+
+  const requestRemoveVenue = (venueId: string) => {
+    if (venues.length <= 1) return
+    setDeleteTarget({ type: "venue", venueId })
+  }
+
+  const requestRemoveTier = (venueId: string, tierId: string) => {
+    const venue = venues.find((v) => v.id === venueId)
+    if (!venue || venue.tiers.length <= 1) return
+    setDeleteTarget({ type: "tier", venueId, tierId })
+  }
+
+  const confirmDelete = () => {
+    if (!deleteTarget) return
+    if (deleteTarget.type === "venue") {
+      removeVenue(deleteTarget.venueId)
+    } else {
+      removeTier(deleteTarget.venueId, deleteTarget.tierId)
+    }
+    setDeleteTarget(null)
+  }
+
+  const deleteDialogCopy = (() => {
+    if (!deleteTarget) return { title: "", description: "" }
+    if (deleteTarget.type === "venue") {
+      const venue = venues.find((v) => v.id === deleteTarget.venueId)
+      const label = venue?.name?.trim() || `Venue ${venues.findIndex((v) => v.id === deleteTarget.venueId) + 1}`
+      const tierCount = venue?.tiers.length ?? 0
+      return {
+        title: "Remove venue?",
+        description: `Remove "${label}" and its ${tierCount} ticket tier${tierCount === 1 ? "" : "s"}? This cannot be undone.`,
+      }
+    }
+    const venue = venues.find((v) => v.id === deleteTarget.venueId)
+    const tier = venue?.tiers.find((t) => t.id === deleteTarget.tierId)
+    const venueLabel = venue?.name?.trim() || "this venue"
+    const tierLabel = tier?.name?.trim() || "this tier"
+    return {
+      title: "Remove ticket tier?",
+      description: `Remove "${tierLabel}" from ${venueLabel}? This cannot be undone.`,
+    }
+  })()
 
   const updateTier = (venueId: string, tierId: string, field: keyof TierDraft, value: string | number | ClubAllocationDraft[] | undefined) => {
     onChange(
@@ -159,7 +216,7 @@ export function VenueTierMatrixBuilder({
     if (!tier) return
     if (enabled) {
       // Distribute current allocation evenly across clubs as starting point
-      const perClub = clubNames.length > 0 ? Math.max(1, Math.floor(tier.allocation / clubNames.length)) : 1
+      const perClub = perClubAllocation(tier.allocation, clubNames.length)
       const clubAllocations: ClubAllocationDraft[] = clubNames.map((name) => ({ clubName: name, allocation: perClub }))
       updateTier(venueId, tierId, "clubAllocations", clubAllocations)
     } else {
@@ -180,7 +237,7 @@ export function VenueTierMatrixBuilder({
                 )
                 // Recalculate total allocation from sum of club allocations
                 const total = updated.reduce((s, ca) => s + ca.allocation, 0)
-                return { ...t, clubAllocations: updated, allocation: Math.max(1, total) }
+                return { ...t, clubAllocations: updated, allocation: Math.max(0, total) }
               }),
             }
           : v
@@ -227,7 +284,7 @@ export function VenueTierMatrixBuilder({
                 type="button"
                 variant="ghost"
                 size="sm"
-                onClick={() => removeVenue(venue.id)}
+                onClick={() => requestRemoveVenue(venue.id)}
                 disabled={venues.length <= 1}
                 className={cn(
                   "flex-shrink-0",
@@ -274,19 +331,23 @@ export function VenueTierMatrixBuilder({
                       <Input
                         type="number"
                         min={0}
-                        value={tier.price}
-                        onChange={(e) => updateTier(venue.id, tier.id, "price", Number(e.target.value) || 0)}
+                        value={formatNumberInputValue(tier.price)}
+                        onChange={(e) =>
+                          updateTier(venue.id, tier.id, "price", parseOptionalNonNegativeNumber(e.target.value))
+                        }
                         className="pl-6 text-sm"
                         placeholder="0"
                       />
                     </div>
                     <Input
                       type="number"
-                      min={1}
-                      value={tier.allocation}
-                      onChange={(e) => updateTier(venue.id, tier.id, "allocation", Number(e.target.value) || 1)}
+                      min={0}
+                      value={formatNumberInputValue(tier.allocation)}
+                      onChange={(e) =>
+                        updateTier(venue.id, tier.id, "allocation", parseOptionalNonNegativeInt(e.target.value))
+                      }
                       className="text-sm"
-                      placeholder="50"
+                      placeholder="0"
                       disabled={hasClubAllocations}
                       title={hasClubAllocations ? "Auto-computed from club allocations" : undefined}
                     />
@@ -294,7 +355,7 @@ export function VenueTierMatrixBuilder({
                       type="button"
                       variant="ghost"
                       size="sm"
-                      onClick={() => removeTier(venue.id, tier.id)}
+                      onClick={() => requestRemoveTier(venue.id, tier.id)}
                       disabled={venue.tiers.length === 1}
                       className={cn(
                         "p-0 w-9 h-9",
@@ -329,9 +390,14 @@ export function VenueTierMatrixBuilder({
                               <Input
                                 type="number"
                                 min={0}
-                                value={ca.allocation}
+                                value={formatNumberInputValue(ca.allocation)}
                                 onChange={(e) =>
-                                  updateClubAllocation(venue.id, tier.id, ca.clubName, Number(e.target.value) || 0)
+                                  updateClubAllocation(
+                                    venue.id,
+                                    tier.id,
+                                    ca.clubName,
+                                    parseOptionalNonNegativeInt(e.target.value)
+                                  )
                                 }
                                 className="h-8 text-xs w-24"
                                 placeholder="0"
@@ -398,6 +464,21 @@ export function VenueTierMatrixBuilder({
           </p>
         </div>
       )}
+
+      <AlertDialog open={deleteTarget !== null} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{deleteDialogCopy.title}</AlertDialogTitle>
+            <AlertDialogDescription>{deleteDialogCopy.description}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <Button type="button" variant="destructive" onClick={confirmDelete}>
+              Remove
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
