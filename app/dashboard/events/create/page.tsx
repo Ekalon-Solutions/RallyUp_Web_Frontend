@@ -29,6 +29,7 @@ import { clubActionButtonClassName, clubActionButtonStyle } from "@/lib/clubThem
 import { useDesignSettings } from "@/hooks/useDesignSettings"
 import { useAuth } from "@/contexts/auth-context"
 import { VenueTierMatrixBuilder, VenueDraft, TierDraft, createEmptyVenueDraft } from "@/components/admin/venue-tier-matrix-builder"
+import { getJointScreeningClubNames } from "@/lib/joint-screening-clubs"
 import { EventRefundToggleSection } from "@/components/admin/event-refund-toggle-section"
 import { EventRefundPolicyImpactDialog } from "@/components/admin/event-refund-policy-impact-dialog"
 
@@ -153,6 +154,18 @@ function CreateEventForm() {
   const set = (field: string, value: string | boolean) =>
     setForm((prev) => ({ ...prev, [field]: value }))
 
+  const clubId = (() => {
+    const u = user as any
+    return u?.club?._id ?? u?.club ?? ""
+  })()
+
+  const homeClubName = (() => {
+    const u = user as any
+    if (u?.club?.name) return String(u.club.name)
+    const match = u?.clubs?.find((c: { _id?: string }) => String(c._id) === String(clubId))
+    return match?.name ? String(match.name) : ""
+  })()
+
   useEffect(() => {
     setVenues((prev) => {
       if (prev.length === 0) return prev
@@ -166,13 +179,19 @@ function CreateEventForm() {
 
       if (partnerClubNames.length === 0) return prev
 
+      const allocationClubNames = getJointScreeningClubNames({
+        homeClubName,
+        partnerClubNames,
+      })
+      if (allocationClubNames.length === 0) return prev
+
       return prev.map((v) => ({
         ...v,
         tiers: v.tiers.map((t) => {
           const existingMap = new Map((t.clubAllocations ?? []).map((ca) => [ca.clubName, ca.allocation]))
           const basePerClub =
-            t.allocation <= 0 ? 0 : Math.floor(t.allocation / partnerClubNames.length)
-          const synced = partnerClubNames.map((name) => ({
+            t.allocation <= 0 ? 0 : Math.floor(t.allocation / allocationClubNames.length)
+          const synced = allocationClubNames.map((name) => ({
             clubName: name,
             allocation: existingMap.has(name) ? existingMap.get(name)! : basePerClub,
           }))
@@ -181,12 +200,7 @@ function CreateEventForm() {
         }),
       }))
     })
-  }, [form.jointScreeningEnabled, partnerClubNames])
-
-  const clubId = (() => {
-    const u = user as any
-    return u?.club?._id ?? u?.club ?? ""
-  })()
+  }, [form.jointScreeningEnabled, partnerClubNames, homeClubName])
 
   const { primaryColor } = useDesignSettings(clubId)
   const clubBtnClass = clubActionButtonClassName()
@@ -266,7 +280,7 @@ function CreateEventForm() {
   const goBack = () => setWizardStep((s) => Math.max(s - 1, 0))
 
   const jointScreeningConfig = form.jointScreeningEnabled
-    ? { enabled: true as const, partnerClubNames }
+    ? { enabled: true as const, partnerClubNames, homeClubName }
     : undefined
 
   const ensureVenuesForMulti = (): VenueDraft[] => {
@@ -470,6 +484,7 @@ function CreateEventForm() {
         } : { enabled: false, type: "percentage" as const, value: 0 },
         jointScreening: {
           enabled: form.jointScreeningEnabled,
+          homeTeam: form.jointScreeningEnabled && homeClubName ? homeClubName : undefined,
           partnerClubNames: form.jointScreeningEnabled ? partnerClubNames.filter(Boolean) : [],
         },
         venues: form.multiTicketEnabled && venues.length > 0
@@ -688,7 +703,9 @@ function CreateEventForm() {
                   <div className="grid gap-2">
                     <Label>Partner Club Name</Label>
                     <p className="text-xs text-muted-foreground">
-                      Each club gets its own seat allocation in the ticket matrix below
+                      {homeClubName
+                        ? `${homeClubName} (your club) is included automatically. Add partner clubs for shared seat allocation.`
+                        : "Each club gets its own seat allocation in the ticket matrix below"}
                     </p>
                     <div className="flex gap-2">
                       <Input
@@ -699,6 +716,10 @@ function CreateEventForm() {
                           if (e.key === "Enter") {
                             e.preventDefault()
                             const name = newPartnerClub.trim()
+                            if (name && name === homeClubName) {
+                              toast.error("Partner club must be different from your club")
+                              return
+                            }
                             if (name && !partnerClubNames.includes(name)) {
                               setPartnerClubNames([...partnerClubNames, name])
                               setNewPartnerClub("")
@@ -714,6 +735,10 @@ function CreateEventForm() {
                         style={clubBtnStyle}
                         onClick={() => {
                           const name = newPartnerClub.trim()
+                          if (name && name === homeClubName) {
+                            toast.error("Partner club must be different from your club")
+                            return
+                          }
                           if (name && !partnerClubNames.includes(name)) {
                             setPartnerClubNames([...partnerClubNames, name])
                             setNewPartnerClub("")
@@ -891,7 +916,7 @@ function CreateEventForm() {
                   externalFirstVenueFields
                   jointScreening={
                     form.jointScreeningEnabled
-                      ? { enabled: true, partnerClubNames }
+                      ? { enabled: true, partnerClubNames, homeClubName }
                       : undefined
                   }
                 />

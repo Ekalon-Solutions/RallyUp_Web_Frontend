@@ -19,6 +19,7 @@ import { RefundPolicyBadge } from "@/components/refund-policy-badge"
 import { RefundPolicyCheckoutLine } from "@/components/member/refund-policy-checkout-line"
 import { RefundPolicyModal } from "@/components/modals/refund-policy-modal"
 import { useCheckoutRefundPolicy } from "@/hooks/useCheckoutRefundPolicy"
+import { getJointScreeningClubNames } from "@/lib/joint-screening-clubs"
 
 declare global {
   interface Window { Razorpay: any }
@@ -78,7 +79,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
 
   const jointScreening = event?.jointScreening
   const isJointEvent = Boolean(jointScreening?.enabled && (jointScreening?.partnerClubNames?.length ?? 0) > 0)
-  const partnerClubOptions: string[] = jointScreening?.partnerClubNames ?? []
+  const affiliationClubOptions = getJointScreeningClubNames(jointScreening ?? undefined)
 
   const userDefaultName: string = (user as any)?.name
     ?? `${(user as any)?.first_name ?? ""} ${(user as any)?.last_name ?? ""}`.trim()
@@ -505,9 +506,9 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
                   <Badge variant="destructive" className="text-xs ml-1">Required</Badge>
                 </CardTitle>
                 <CardDescription className="text-xs">
-                  {partnerClubOptions.length > 0
-                    ? `Select which club you are supporting — ${partnerClubOptions.join(", ")}`
-                    : "Select which partner club you are supporting"}
+                  {affiliationClubOptions.length > 0
+                    ? `Select which club you are supporting — ${affiliationClubOptions.join(", ")}`
+                    : "Select which club you are supporting"}
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -523,7 +524,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
                     <SelectValue placeholder="Select your club…" />
                   </SelectTrigger>
                   <SelectContent>
-                    {partnerClubOptions.map((club) => (
+                    {affiliationClubOptions.map((club) => (
                       <SelectItem key={club} value={club}>{club}</SelectItem>
                     ))}
                   </SelectContent>

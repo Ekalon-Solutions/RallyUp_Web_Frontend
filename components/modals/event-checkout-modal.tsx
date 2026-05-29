@@ -20,6 +20,7 @@ import { RefundPolicyBadge } from "@/components/refund-policy-badge"
 import { RefundPolicyCheckoutLine } from "@/components/member/refund-policy-checkout-line"
 import { RefundPolicyModal } from "@/components/modals/refund-policy-modal"
 import { useCheckoutRefundPolicy } from "@/hooks/useCheckoutRefundPolicy"
+import { getJointScreeningClubNames } from "@/lib/joint-screening-clubs"
 import { useRouter } from "next/navigation"
 
 declare global {
@@ -324,7 +325,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
 
   const jointScreening = eventData?.jointScreening
   const isJointEvent = Boolean(jointScreening?.enabled && (jointScreening?.partnerClubNames?.length ?? 0) > 0)
-  const partnerClubOptions: string[] = jointScreening?.partnerClubNames ?? []
+  const affiliationClubOptions = getJointScreeningClubNames(jointScreening ?? undefined)
 
   const handlePayment = async () => {
     if (!scriptLoaded) {
@@ -754,7 +755,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
                       <SelectValue placeholder="Select your club…" />
                     </SelectTrigger>
                     <SelectContent>
-                      {partnerClubOptions.map((club) => (
+                      {affiliationClubOptions.map((club) => (
                         <SelectItem key={club} value={club}>{club}</SelectItem>
                       ))}
                     </SelectContent>

@@ -24,6 +24,7 @@ import {
   parseOptionalNonNegativeInt,
   parseOptionalNonNegativeNumber,
 } from "@/lib/numberInput"
+import { getJointScreeningClubNames } from "@/lib/joint-screening-clubs"
 
 export interface ClubAllocationDraft {
   clubName: string
@@ -52,7 +53,7 @@ interface VenueTierMatrixBuilderProps {
   venues: VenueDraft[]
   onChange: (venues: VenueDraft[]) => void
   currency?: string
-  jointScreening?: { enabled: boolean; partnerClubNames: string[] }
+  jointScreening?: { enabled: boolean; partnerClubNames: string[]; homeClubName?: string }
   cardClassName?: string
   primaryColor?: string
   hideAddVenueButton?: boolean
@@ -77,7 +78,7 @@ function makeDefaultTier(
   const isJointEvent = Boolean(
     jointScreening?.enabled && (jointScreening?.partnerClubNames?.length ?? 0) > 0
   )
-  const clubNames = jointScreening?.partnerClubNames ?? []
+  const clubNames = getJointScreeningClubNames(jointScreening)
   if (isJointEvent && clubNames.length > 0) {
     const perClub = perClubAllocation(allocation, clubNames.length)
     const clubAllocations = clubNames.map((cn) => ({ clubName: cn, allocation: perClub }))
@@ -114,7 +115,8 @@ export function VenueTierMatrixBuilder({
   const isJointEvent = Boolean(
     jointScreening?.enabled && (jointScreening?.partnerClubNames?.length ?? 0) > 0
   )
-  const clubNames = jointScreening?.partnerClubNames ?? []
+  const clubNames = getJointScreeningClubNames(jointScreening)
+  const homeClubName = jointScreening?.homeClubName?.trim() ?? ""
 
   const makeDefaultTier = (name = "General", price = 0, allocation = 0): TierDraft => {
     if (isJointEvent && clubNames.length > 0) {
@@ -423,7 +425,12 @@ export function VenueTierMatrixBuilder({
                         <div className="grid gap-2 pt-1">
                           {(tier.clubAllocations ?? []).map((ca) => (
                             <div key={ca.clubName} className="flex items-center gap-2">
-                              <span className="text-xs font-medium w-32 truncate flex-shrink-0">{ca.clubName}</span>
+                              <span className="text-xs font-medium w-32 truncate flex-shrink-0" title={ca.clubName}>
+                                {ca.clubName}
+                                {homeClubName && ca.clubName === homeClubName ? (
+                                  <span className="text-muted-foreground font-normal"> (your club)</span>
+                                ) : null}
+                              </span>
                               <Input
                                 type="number"
                                 min={0}
