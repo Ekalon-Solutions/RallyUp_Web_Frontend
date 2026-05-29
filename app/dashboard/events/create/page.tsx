@@ -786,7 +786,6 @@ function CreateEventForm() {
                 </>
               ) : (
                 <>
-                  <Save className="w-4 h-4 mr-2" />
                   {isEditMode ? "Save Changes" : "Create Event"}
                 </>
               )}
