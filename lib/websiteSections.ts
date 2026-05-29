@@ -41,6 +41,12 @@ export const WEBSITE_SECTION_OPTIONS: readonly WebsiteSectionOption[] = [
     keys: ["chants"],
   },
   {
+    id: "gallery",
+    label: "Gallery",
+    description: "Show photo and video albums on the public site.",
+    keys: ["gallery"],
+  },
+  {
     id: "store",
     label: "Merchandise",
     description: "Show merchandise section on the public site.",
@@ -48,8 +54,6 @@ export const WEBSITE_SECTION_OPTIONS: readonly WebsiteSectionOption[] = [
   },
 ] as const
 
-
-// All sections including polls & members — used in admin member dashboard visibility settings
 export const MEMBER_DASHBOARD_SECTION_OPTIONS: readonly WebsiteSectionOption[] = [
   {
     id: "news",

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { apiClient, News, Event, Chant } from "@/lib/api"
+import { apiClient, News, Event, Chant, Album } from "@/lib/api"
 import { formatDisplayDate } from "@/lib/utils"
 import { getNewsImageUrl } from "@/lib/config"
 import { EventCheckoutModal } from "@/components/modals/event-checkout-modal"
@@ -17,6 +17,7 @@ import { CheckoutModal } from "@/components/modals/checkout-modal"
 import NewsReadMoreModal from "@/components/modals/news-readmore-modal"
 import { SocialBrandButton } from "@/components/club-public/social-platform-icons"
 import { EkalonAttribution } from "@/components/ekalon-attribution"
+import { ClubGallerySection } from "@/components/club-public/club-gallery-section"
 import { toast } from "sonner"
 import {
   Globe,
@@ -34,6 +35,7 @@ import {
   Eye,
   MapPin,
   Clock,
+  Images,
 } from "lucide-react"
 import Link from "next/link"
 
@@ -144,6 +146,7 @@ export default function PublicClubPage() {
   const [news, setNews] = useState<News[]>([])
   const [events, setEvents] = useState<Event[]>([])
   const [chants, setChants] = useState<Chant[]>([])
+  const [galleryAlbums, setGalleryAlbums] = useState<Album[]>([])
   const [merchandise, setMerchandise] = useState<any[]>([])
   const [loadingContent, setLoadingContent] = useState(false)
   const [activeTab, setActiveTab] = useState<string>("")
@@ -252,6 +255,7 @@ export default function PublicClubPage() {
           (websiteSetup.sections?.events && "events") ||
           (websiteSetup.sections?.news && "news") ||
           (storeEnabled && "store") ||
+          (websiteSetup.sections?.gallery && "gallery") ||
           (websiteSetup.sections?.chants && "chants") ||
           ""
 
@@ -284,6 +288,7 @@ export default function PublicClubPage() {
       if (sections.events) requests.events = apiClient.getPublicEvents(clubId)
       if (storeEnabled) requests.store = apiClient.getPublicMerchandise({ clubId, limit: 12 })
       if (sections.chants) requests.chants = apiClient.getPublicChants({ clubId, limit: 20 })
+      if (sections.gallery) requests.gallery = apiClient.getPublicGalleryAlbums(clubId)
 
       const entries = Object.entries(requests)
       if (entries.length === 0) return
@@ -311,6 +316,11 @@ export default function PublicClubPage() {
         if (key === "chants") {
           const chantsData = (res.data as any)?.chants || []
           setChants(chantsData)
+        }
+
+        if (key === "gallery") {
+          const albums = (res.data as any)?.albums || []
+          setGalleryAlbums(albums)
         }
       })
     } catch (error) {
@@ -442,6 +452,7 @@ export default function PublicClubPage() {
     websiteSetup.sections.news ||
     websiteSetup.sections.events ||
     websiteSetup.sections.chants ||
+    websiteSetup.sections.gallery ||
     websiteSetup.sections.store ||
     websiteSetup.sections.merchandise
   )
@@ -493,7 +504,7 @@ export default function PublicClubPage() {
       ) : (
         <div className="relative w-full h-48 md:h-64 lg:h-80 overflow-hidden">
           <img
-            src="/club-crowd-fallback.jpg"
+            src="/club-crowd.png"
             alt="Club crowd placeholder"
             className="w-full h-full object-cover"
           />
@@ -593,14 +604,6 @@ export default function PublicClubPage() {
       {hasCommunitySections && (
         <section className="container mx-auto px-6 py-28 md:py-40">
           <div className="max-w-7xl mx-auto space-y-24">
-            <div className="text-center space-y-6">
-              <h2 className="text-4xl md:text-6xl font-black tracking-tight">Our Community Hub</h2>
-              <div className="w-24 h-2 bg-primary mx-auto rounded-full" style={{ backgroundColor: primaryColor }} />
-              <p className="text-muted-foreground text-xl md:text-2xl max-w-3xl mx-auto leading-relaxed">
-                Everything you need to stay connected with the club and fellow supporters.
-              </p>
-            </div>
-
             <div className="space-y-8">
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                   <TabsList className="flex flex-wrap w-full max-w-4xl mx-auto gap-2 h-auto bg-muted/50 p-2">
@@ -639,6 +642,18 @@ export default function PublicClubPage() {
                       >
                         <Store className="h-5 w-5 mr-2" />
                         Merchandise
+                      </TabsTrigger>
+                    )}
+                    {websiteSetup.sections.gallery && (
+                      <TabsTrigger
+                        value="gallery"
+                        className="text-base font-bold data-[state=active]:bg-background data-[state=active]:shadow-md px-4 py-3"
+                        style={{
+                          color: activeTab === "gallery" ? primaryColor : undefined,
+                        }}
+                      >
+                        <Images className="h-5 w-5 mr-2" />
+                        Gallery
                       </TabsTrigger>
                     )}
                     {websiteSetup.sections.chants && (
@@ -935,6 +950,29 @@ export default function PublicClubPage() {
                               <p className="text-lg text-muted-foreground">No merchandise available yet.</p>
                             </div>
                           )}
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+                  )}
+
+                  {websiteSetup.sections.gallery && (
+                    <TabsContent value="gallery" className="mt-8">
+                      <Card className="border-2 shadow-lg">
+                        <CardHeader>
+                          <CardTitle className="text-3xl font-bold flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                              <Images className="h-6 w-6" style={{ color: primaryColor }} />
+                            </div>
+                            Gallery
+                          </CardTitle>
+                          <CardDescription>Browse photos and videos from club events.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          <ClubGallerySection
+                            albums={galleryAlbums}
+                            loading={loadingContent}
+                            primaryColor={primaryColor}
+                          />
                         </CardContent>
                       </Card>
                     </TabsContent>

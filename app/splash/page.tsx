@@ -207,30 +207,16 @@ export default function SplashPage() {
         <div className="w-full max-w-4xl">
           <div className="text-center mb-8">
             <div className="mx-auto mb-6 relative w-20 h-20 md:w-24 md:h-24">
-              {(() => {
-                const selectedClubForLogo = activeClubId
-                  ? clubs.find((c) => c._id === activeClubId)
-                  : clubs.length >= 1
-                    ? clubs[0]
-                    : null
-                const clubLogo = selectedClubForLogo?.settingsLogo || selectedClubForLogo?.logo
-                const logoToUse = clubLogo ?? "/WingmanPro Logo (White BG).svg"
-                const altText = selectedClubForLogo?.name
-                  ? `${selectedClubForLogo.name} logo`
-                  : "Wingman Pro logo"
-                return (
-                  <Image
-                    src={logoToUse}
-                    alt={altText}
-                    fill
-                    sizes="96px"
-                    className="object-contain"
-                    priority
-                  />
-                )
-              })()}
+              <Image
+                src="/WingmanPro Logo (White BG).svg"
+                alt="Wingman Pro logo"
+                fill
+                sizes="96px"
+                className="object-contain"
+                priority
+              />
             </div>
-            <h1 className="text-3xl md:text-4xl font-black tracking-tight mb-2">
+            <h1 className="text-3xl md:text-4xl font-black tracking-tight mb-2 bg-gradient-to-r from-sky-600 via-blue-600 to-indigo-600 dark:from-sky-300 dark:via-blue-300 dark:to-indigo-300 bg-clip-text text-transparent">
               Select Your Club
             </h1>
             <p className="text-muted-foreground text-lg">

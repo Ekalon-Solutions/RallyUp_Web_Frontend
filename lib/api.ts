@@ -3757,6 +3757,10 @@ class ApiClient {
     return this.request('/orders/admin/stats');
   }
 
+  async getPublicGalleryAlbums(clubId: string): Promise<ApiResponse<{ albums: Album[] }>> {
+    return this.request(`/gallery/public?clubId=${encodeURIComponent(clubId)}`);
+  }
+
   async getMemberAlbums(clubId?: string): Promise<ApiResponse<{ albums: Album[] }>> {
     const endpoint = clubId ? `/gallery/member/albums?clubId=${encodeURIComponent(clubId)}` : '/gallery/member/albums';
     return this.request(endpoint);
