@@ -78,7 +78,7 @@ function perClubAllocation(total: number, clubCount: number): number {
 
 function makeDefaultTier(
   jointScreening: VenueTierMatrixBuilderProps["jointScreening"],
-  name = "General",
+  name = "",
   price = 0,
   allocation = 0
 ): TierDraft {
@@ -97,7 +97,7 @@ function makeDefaultTier(
 export function createEmptyVenueDraft(
   jointScreening?: VenueTierMatrixBuilderProps["jointScreening"]
 ): VenueDraft {
-  return { id: generateId(), name: "", tiers: [makeDefaultTier(jointScreening)] }
+  return { id: generateId(), name: "", tiers: [] }
 }
 
 export function VenueTierMatrixBuilder({
@@ -125,7 +125,7 @@ export function VenueTierMatrixBuilder({
   const clubNames = getJointScreeningClubNames(jointScreening)
   const homeClubName = jointScreening?.homeClubName?.trim() ?? ""
 
-  const makeDefaultTier = (name = "General", price = 0, allocation = 0): TierDraft => {
+  const makeDefaultTier = (name = "", price = 0, allocation = 0): TierDraft => {
     if (isJointEvent && clubNames.length > 0) {
       const perClub = perClubAllocation(allocation, clubNames.length)
       const clubAllocations = clubNames.map((cn) => ({ clubName: cn, allocation: perClub }))
@@ -190,8 +190,6 @@ export function VenueTierMatrixBuilder({
   }
 
   const requestRemoveTier = (venueId: string, tierId: string) => {
-    const venue = venues.find((v) => v.id === venueId)
-    if (!venue || venue.tiers.length <= 1) return
     setDeleteTarget({ type: "tier", venueId, tierId })
   }
 
@@ -341,33 +339,6 @@ export function VenueTierMatrixBuilder({
     )
   }
 
-  useEffect(() => {
-    if (!externalFirstVenueFields || !isJointEvent || venues.length === 0) return
-    const venue = venues[0]
-    const tier = venue?.tiers[0]
-    if (!tier || tier.clubAllocations?.length) return
-    const perClub = perClubAllocation(tier.allocation, clubNames.length)
-    const clubAllocations = clubNames.map((name) => ({ clubName: name, allocation: perClub }))
-    onChange(
-      venues.map((v, i) =>
-        i === 0
-          ? {
-              ...v,
-              tiers: v.tiers.map((t, ti) =>
-                ti === 0
-                  ? {
-                      ...t,
-                      clubAllocations,
-                      allocation: clubAllocations.reduce((s, ca) => s + ca.allocation, 0),
-                    }
-                  : t
-              ),
-            }
-          : v
-      )
-    )
-  }, [externalFirstVenueFields, isJointEvent, venues.length, clubNames.join("|")])
-
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -391,29 +362,9 @@ export function VenueTierMatrixBuilder({
         )}
       </div>
 
-      {externalFirstVenueFields && isJointEvent && venues[0]?.tiers[0] && (
-        <Card className={cn("border-2", cardClassName)}>
-          <CardContent className="pt-6 space-y-3">
-            <div>
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                Primary ticket tier — per-club seats
-              </p>
-              <p className="text-sm font-medium mt-1">
-                {venues[0].tiers[0].name.trim() || "Tier 1"}
-                <span className="text-muted-foreground font-normal">
-                  {" "}
-                  · {venues[0].name.trim() || "Venue 1"}
-                </span>
-              </p>
-            </div>
-            {renderClubAllocationSection(venues[0].id, venues[0].tiers[0], { showToggle: false })}
-          </CardContent>
-        </Card>
-      )}
-
       {venues.map((venue, vi) => {
         const hideVenueNameRow = externalFirstVenueFields && vi === 0
-        const tiersToRender = externalFirstVenueFields && vi === 0 ? venue.tiers.slice(1) : venue.tiers
+        const tiersToRender = venue.tiers
 
         return (
         <Card key={venue.id} className={cn("border-2", cardClassName)}>
@@ -449,14 +400,9 @@ export function VenueTierMatrixBuilder({
           )}
 
           <CardContent className={cn("space-y-4", hideVenueNameRow && "pt-6")}>
-            {hideVenueNameRow && tiersToRender.length === 0 && (
+            {tiersToRender.length === 0 && (
               <p className="text-xs text-muted-foreground rounded-md border border-dashed border-border px-3 py-2">
-                Primary ticket tier is configured above. Use <span className="font-medium">Add Tier</span> to add more types for this venue.
-              </p>
-            )}
-            {hideVenueNameRow && tiersToRender.length > 0 && (
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                Additional ticket tiers
+                No ticket tiers yet. Click <span className="font-medium">Add Tier</span> to create one.
               </p>
             )}
             {externalFirstVenueFields && vi === 0 && venues.length > 1 && (
@@ -511,7 +457,7 @@ export function VenueTierMatrixBuilder({
             )}
 
             {tiersToRender.map((tier, ti) => {
-              const tierIndex = externalFirstVenueFields && vi === 0 ? ti + 1 : ti
+              const tierIndex = ti
               const hasClubAllocations = isJointEvent && Boolean(tier.clubAllocations?.length)
               return (
                 <div key={tier.id} className="space-y-2">
@@ -554,13 +500,7 @@ export function VenueTierMatrixBuilder({
                       variant="ghost"
                       size="sm"
                       onClick={() => requestRemoveTier(venue.id, tier.id)}
-                      disabled={venue.tiers.length === 1}
-                      className={cn(
-                        "p-0 w-9 h-9",
-                        venue.tiers.length === 1
-                          ? "opacity-30 cursor-not-allowed"
-                          : "text-destructive hover:text-destructive hover:bg-destructive/10"
-                      )}
+                      className="p-0 w-9 h-9 text-destructive hover:text-destructive hover:bg-destructive/10"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </Button>

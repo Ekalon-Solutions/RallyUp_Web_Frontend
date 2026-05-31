@@ -176,36 +176,23 @@ function validateVenue(
 
 export function validateMultiTicketPricing(params: {
   venues: VenueDraft[]
-  primaryVenueName: string
-  primaryTicketPrice: string
-  primaryMaxAttendees: string
+  venueNameFallback?: string
   jointScreening?: { enabled: boolean; partnerClubNames: string[]; homeClubName?: string }
 }): PricingValidationResult {
-  if (!params.primaryVenueName.trim()) {
-    return fail("Venue is required")
-  }
-
-  const price = Number(params.primaryTicketPrice)
-  if (params.primaryTicketPrice.trim() !== "" && (!Number.isFinite(price) || price < 0)) {
-    return fail("Ticket price must be zero or a positive number")
-  }
-
-  if (params.primaryMaxAttendees.trim() === "") {
-    return fail("Max attendees is required for the primary venue tier")
-  }
-  const primaryAllocation = parseOptionalPositiveInt(params.primaryMaxAttendees)
-  if (primaryAllocation === null) {
-    return fail("Max attendees must be a whole number of at least 1")
-  }
-
   if (params.venues.length === 0) {
     return fail("Add at least one venue and ticket tier for multi-ticket events")
   }
 
   const venueKeys = new Set<string>()
   for (let vi = 0; vi < params.venues.length; vi++) {
-    const venue = params.venues[vi]
+    let venue = params.venues[vi]
+    if (vi === 0 && !venue.name.trim() && params.venueNameFallback?.trim()) {
+      venue = { ...venue, name: params.venueNameFallback.trim() }
+    }
     const venueKey = normalizeKey(venue.name)
+    if (!venue.name.trim()) {
+      return fail(`Enter a name for venue ${vi + 1}`)
+    }
     if (venueKeys.has(venueKey)) {
       return fail(`Duplicate venue name: "${venue.name.trim()}"`)
     }
@@ -245,9 +232,7 @@ export function validatePricingLogisticsStep(params: {
   if (params.multiTicketEnabled) {
     return validateMultiTicketPricing({
       venues: params.venues,
-      primaryVenueName: params.primaryVenueName,
-      primaryTicketPrice: params.primaryTicketPrice,
-      primaryMaxAttendees: params.primaryMaxAttendees,
+      venueNameFallback: params.primaryVenueName,
       jointScreening: jointConfig,
     })
   }

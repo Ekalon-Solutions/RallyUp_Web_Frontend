@@ -225,22 +225,8 @@ function CreateEventForm() {
     isRefundPolicyReady(form.isRefundAllowed, form.refundCutoffHours, !paidEvent) && !loading
 
   const primaryVenueName = form.multiTicketEnabled
-    ? (venues[0]?.name ?? "")
+    ? (venues[0]?.name ?? form.venue)
     : form.venue
-  const primaryTicketPrice = form.multiTicketEnabled
-    ? String(venues[0]?.tiers[0]?.price ?? 0)
-    : form.ticketPrice
-  const primaryMaxAttendees = form.multiTicketEnabled
-    ? (venues[0]?.tiers[0]?.allocation ? String(venues[0].tiers[0].allocation) : "")
-    : form.maxAttendees
-  const primaryTierName = form.multiTicketEnabled
-    ? (venues[0]?.tiers[0]?.name ?? "")
-    : "General"
-  const primaryTierHasClubSplit =
-    form.multiTicketEnabled &&
-    form.jointScreeningEnabled &&
-    partnerClubNames.length > 0 &&
-    Boolean(venues[0]?.tiers[0]?.clubAllocations?.length)
 
   const validateStep = (step: number): boolean => {
     if (step === 0) {
@@ -269,8 +255,8 @@ function CreateEventForm() {
         partnerClubNames,
         homeClubName,
         primaryVenueName,
-        primaryTicketPrice,
-        primaryMaxAttendees,
+        primaryTicketPrice: form.ticketPrice,
+        primaryMaxAttendees: form.maxAttendees,
       })
       if (!pricingCheck.ok) {
         toast.error(pricingCheck.message)
@@ -322,11 +308,6 @@ function CreateEventForm() {
     if (venues.length > 0) return venues
     const draft = createEmptyVenueDraft(jointScreeningConfig)
     draft.name = form.venue
-    draft.tiers[0] = {
-      ...draft.tiers[0],
-      price: Number(form.ticketPrice) || 0,
-      allocation: form.maxAttendees ? Number(form.maxAttendees) : 0,
-    }
     return [draft]
   }
 
@@ -338,42 +319,10 @@ function CreateEventForm() {
     })
   }
 
-  const updatePrimaryVenueField = (
-    field: "name" | "tierName" | "price" | "allocation",
-    value: string
-  ) => {
+  const updatePrimaryVenueName = (value: string) => {
     setVenues((prev) => {
       const list = prev.length > 0 ? [...prev] : ensureVenuesForMulti()
-      const first = { ...list[0], tiers: [...list[0].tiers] }
-      if (field === "name") {
-        first.name = value
-      } else {
-        const tier = { ...first.tiers[0] }
-        if (field === "tierName") tier.name = value
-        if (field === "price") tier.price = Number(value) || 0
-        if (field === "allocation") {
-          const alloc = value === "" ? 0 : Number(value) || 0
-          if (tier.clubAllocations?.length) {
-            const sum = tier.clubAllocations.reduce((s, ca) => s + ca.allocation, 0)
-            if (sum === 0 && alloc > 0) {
-              const names = tier.clubAllocations.map((ca) => ca.clubName)
-              const perClub = Math.floor(alloc / names.length)
-              tier.clubAllocations = names.map((name, i) => ({
-                clubName: name,
-                allocation:
-                  i === names.length - 1
-                    ? alloc - perClub * (names.length - 1)
-                    : perClub,
-              }))
-            }
-          }
-          tier.allocation = tier.clubAllocations?.length
-            ? tier.clubAllocations.reduce((s, ca) => s + ca.allocation, 0)
-            : alloc
-        }
-        first.tiers[0] = tier
-      }
-      list[0] = first
+      list[0] = { ...list[0], name: value }
       return list
     })
   }
@@ -522,8 +471,8 @@ function CreateEventForm() {
           partnerClubNames: form.jointScreeningEnabled ? partnerClubNames.filter(Boolean) : [],
         },
         venues: form.multiTicketEnabled && venues.length > 0
-          ? venues.map((v) => ({
-              name: v.name,
+          ? venues.map((v, i) => ({
+              name: (i === 0 ? v.name.trim() || form.venue.trim() : v.name.trim()) || v.name,
               tiers: v.tiers.map((t) => ({
                 name: t.name,
                 price: t.price,
@@ -860,13 +809,15 @@ function CreateEventForm() {
                     if (!v) {
                       const first = venues[0]
                       if (first) {
+                        const firstTier = first.tiers[0]
                         setForm((prev) => ({
                           ...prev,
                           venue: first.name || prev.venue,
-                          ticketPrice: String(first.tiers[0]?.price ?? 0),
-                          maxAttendees: first.tiers[0]?.allocation
-                            ? String(first.tiers[0].allocation)
-                            : "",
+                          ticketPrice: firstTier ? String(firstTier.price ?? 0) : prev.ticketPrice,
+                          maxAttendees:
+                            firstTier?.allocation
+                              ? String(firstTier.allocation)
+                              : prev.maxAttendees,
                         }))
                       }
                       setVenues([])
@@ -884,30 +835,17 @@ function CreateEventForm() {
                   placeholder="Enter venue name / address"
                   value={primaryVenueName}
                   onChange={(e) => {
+                    const value = e.target.value
                     if (form.multiTicketEnabled) {
-                      updatePrimaryVenueField("name", e.target.value)
+                      updatePrimaryVenueName(value)
                     } else {
-                      set("venue", e.target.value)
+                      set("venue", value)
                     }
                   }}
                 />
               </div>
 
-              {form.multiTicketEnabled && (
-                <div className="grid gap-2">
-                  <Label htmlFor="primaryTierName">Ticket Tier Name *</Label>
-                  <Input
-                    id="primaryTierName"
-                    placeholder="e.g. General, VIP, Early Bird"
-                    value={primaryTierName}
-                    onChange={(e) => updatePrimaryVenueField("tierName", e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Primary ticket type for this venue — additional tiers can be added below.
-                  </p>
-                </div>
-              )}
-
+              {!form.multiTicketEnabled && (
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="ticketPrice">Ticket Price</Label>
@@ -916,20 +854,8 @@ function CreateEventForm() {
                     type="number"
                     min={0}
                     placeholder="0"
-                    value={
-                      (form.multiTicketEnabled ? primaryTicketPrice : form.ticketPrice) === "0"
-                        ? ""
-                        : form.multiTicketEnabled
-                          ? primaryTicketPrice
-                          : form.ticketPrice
-                    }
-                    onChange={(e) => {
-                      if (form.multiTicketEnabled) {
-                        updatePrimaryVenueField("price", e.target.value)
-                      } else {
-                        set("ticketPrice", e.target.value)
-                      }
-                    }}
+                    value={form.ticketPrice === "0" ? "" : form.ticketPrice}
+                    onChange={(e) => set("ticketPrice", e.target.value)}
                   />
                 </div>
                 <div className="grid gap-2">
@@ -939,28 +865,12 @@ function CreateEventForm() {
                     type="number"
                     min={1}
                     placeholder="Leave blank for unlimited"
-                    value={form.multiTicketEnabled ? primaryMaxAttendees : form.maxAttendees}
-                    onChange={(e) => {
-                      if (form.multiTicketEnabled) {
-                        updatePrimaryVenueField("allocation", e.target.value)
-                      } else {
-                        set("maxAttendees", e.target.value)
-                      }
-                    }}
-                    disabled={primaryTierHasClubSplit}
-                    title={
-                      primaryTierHasClubSplit
-                        ? "Total seats come from per-club allocation below"
-                        : undefined
-                    }
+                    value={form.maxAttendees}
+                    onChange={(e) => set("maxAttendees", e.target.value)}
                   />
-                  {primaryTierHasClubSplit && (
-                    <p className="text-xs text-muted-foreground">
-                      Set Demo Club and partner seats in the primary tier split below the matrix header.
-                    </p>
-                  )}
                 </div>
               </div>
+              )}
 
               {!form.multiTicketEnabled && (
                 <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between rounded-lg border border-dashed border-border px-3 py-2.5">
@@ -997,11 +907,6 @@ function CreateEventForm() {
                 />
               )}
 
-              {form.multiTicketEnabled && venues.length > 1 && (
-                <p className="text-xs text-muted-foreground">
-                  Additional venues and ticket tiers are configured below. Primary venue details are set above.
-                </p>
-              )}
               </div>
 
               <EventRefundToggleSection
