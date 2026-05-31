@@ -38,6 +38,7 @@ import {
 } from "@/lib/event-pricing-validation"
 import { EventRefundToggleSection } from "@/components/admin/event-refund-toggle-section"
 import { EventRefundPolicyImpactDialog } from "@/components/admin/event-refund-policy-impact-dialog"
+import { EventCreatePreview } from "@/components/admin/event-create-preview"
 
 const WIZARD_STEPS = [
   { id: "details", label: "Event Details" },
@@ -222,6 +223,9 @@ function CreateEventForm() {
   const primaryMaxAttendees = form.multiTicketEnabled
     ? (venues[0]?.tiers[0]?.allocation ? String(venues[0].tiers[0].allocation) : "")
     : form.maxAttendees
+  const primaryTierName = form.multiTicketEnabled
+    ? (venues[0]?.tiers[0]?.name ?? "")
+    : "General"
 
   const validateStep = (step: number): boolean => {
     if (step === 0) {
@@ -312,7 +316,7 @@ function CreateEventForm() {
   }
 
   const updatePrimaryVenueField = (
-    field: "name" | "price" | "allocation",
+    field: "name" | "tierName" | "price" | "allocation",
     value: string
   ) => {
     setVenues((prev) => {
@@ -322,6 +326,7 @@ function CreateEventForm() {
         first.name = value
       } else {
         const tier = { ...first.tiers[0] }
+        if (field === "tierName") tier.name = value
         if (field === "price") tier.price = Number(value) || 0
         if (field === "allocation") tier.allocation = value === "" ? 0 : Number(value) || 0
         first.tiers[0] = tier
@@ -585,6 +590,8 @@ function CreateEventForm() {
           </div>
         )}
 
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(280px,320px)] lg:items-start">
+          <div className="min-w-0 space-y-6">
         <nav aria-label="Event creation steps" className="flex flex-wrap gap-2">
           {WIZARD_STEPS.map((step, index) => {
             const done = index < wizardStep
@@ -857,6 +864,21 @@ function CreateEventForm() {
                   }}
                 />
               </div>
+
+              {form.multiTicketEnabled && (
+                <div className="grid gap-2">
+                  <Label htmlFor="primaryTierName">Ticket Tier Name *</Label>
+                  <Input
+                    id="primaryTierName"
+                    placeholder="e.g. General, VIP, Early Bird"
+                    value={primaryTierName}
+                    onChange={(e) => updatePrimaryVenueField("tierName", e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Primary ticket type for this venue — additional tiers can be added below.
+                  </p>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
@@ -1154,6 +1176,30 @@ function CreateEventForm() {
             </div>
           </div>
         </form>
+          </div>
+
+          <aside className="lg:sticky lg:top-6 space-y-4">
+            <EventCreatePreview
+              title={form.title}
+              category={form.category}
+              categoryLabel={CATEGORIES.find((c) => c.value === form.category)?.label}
+              startTime={form.startTime}
+              endTime={form.endTime}
+              description={form.description}
+              venue={form.venue}
+              ticketPrice={form.ticketPrice}
+              maxAttendees={form.maxAttendees}
+              currency={form.currency}
+              multiTicketEnabled={form.multiTicketEnabled}
+              venues={venues}
+              memberOnly={form.memberOnly}
+              isPaid={paidEvent}
+              isRefundAllowed={form.isRefundAllowed}
+              primaryColor={primaryColor}
+              clubName={targetClub?.name}
+            />
+          </aside>
+        </div>
 
         <AlertDialog
           open={partnerClubToRemove !== null}

@@ -295,6 +295,11 @@ export function VenueTierMatrixBuilder({
           )}
 
           <CardContent className={cn("space-y-4", hideVenueNameRow && "pt-6")}>
+            {hideVenueNameRow && tiersToRender.length === 0 && (
+              <p className="text-xs text-muted-foreground rounded-md border border-dashed border-border px-3 py-2">
+                Primary ticket tier is configured above. Use <span className="font-medium">Add Tier</span> to add more types for this venue.
+              </p>
+            )}
             {hideVenueNameRow && tiersToRender.length > 0 && (
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
                 Additional ticket tiers
