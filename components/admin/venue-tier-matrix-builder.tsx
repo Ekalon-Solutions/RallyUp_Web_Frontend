@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
-import { Plus, Trash2, MapPin, Tag, Users } from "lucide-react"
+import { Plus, Trash2, MapPin, Tag, Users, Copy } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { clubActionButtonClassName, clubActionButtonStyle } from "@/lib/clubThemeButton"
 import {
@@ -63,6 +63,14 @@ function generateId() {
   return Math.random().toString(36).slice(2, 10)
 }
 
+function cloneTier(tier: TierDraft): TierDraft {
+  return {
+    ...tier,
+    id: generateId(),
+    clubAllocations: tier.clubAllocations?.map((ca) => ({ ...ca })),
+  }
+}
+
 function perClubAllocation(total: number, clubCount: number): number {
   if (clubCount <= 0 || total <= 0) return 0
   return Math.floor(total / clubCount)
@@ -104,6 +112,7 @@ export function VenueTierMatrixBuilder({
   const clubBtnClass = clubActionButtonClassName()
   const clubBtnStyle = clubActionButtonStyle(primaryColor)
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
+  const [copyTiersOpen, setCopyTiersOpen] = useState(false)
   const currencySymbols: Record<string, string> = {
     INR: "₹", USD: "$", EUR: "€", GBP: "£", AUD: "A$", CAD: "CA$",
     JPY: "¥", BRL: "R$", MXN: "$", ZAR: "R",
@@ -128,6 +137,19 @@ export function VenueTierMatrixBuilder({
   const addVenue = () => {
     onChange([...venues, createEmptyVenueDraft(jointScreening)])
   }
+
+  const applyTiersFromVenue = (sourceVenueId: string) => {
+    const source = venues.find((v) => v.id === sourceVenueId)
+    if (!source || source.tiers.length === 0) return
+    onChange(
+      venues.map((v) =>
+        v.id === sourceVenueId ? v : { ...v, tiers: source.tiers.map(cloneTier) }
+      )
+    )
+  }
+
+  const sourceVenueLabel = venues[0]?.name.trim() || "Venue 1"
+  const otherVenueCount = Math.max(0, venues.length - 1)
 
   const removeVenue = (venueId: string) => {
     if (venues.length <= 1) return
@@ -250,11 +272,25 @@ export function VenueTierMatrixBuilder({
 
   return (
     <div className="space-y-4">
-      <div>
-        <h3 className="text-sm font-semibold">Venue & Tier Matrix</h3>
-        <p className="text-xs text-muted-foreground mt-0.5">
-          Add venues and ticket tiers — each combination has its own allocation.
-        </p>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h3 className="text-sm font-semibold">Venue & Tier Matrix</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Add venues and ticket tiers — each combination has its own allocation.
+          </p>
+        </div>
+        {venues.length > 1 && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="shrink-0 w-full sm:w-auto"
+            onClick={() => setCopyTiersOpen(true)}
+          >
+            <Copy className="w-3.5 h-3.5 mr-1.5" />
+            Copy tiers to all venues
+          </Button>
+        )}
       </div>
 
       {venues.map((venue, vi) => {
@@ -308,20 +344,36 @@ export function VenueTierMatrixBuilder({
             {externalFirstVenueFields && vi === 0 && venues.length > 1 && (
               <div className="flex items-center justify-between gap-2 pb-1">
                 <p className="text-sm font-medium">{venue.name.trim() || "Venue 1"}</p>
+                <div className="flex items-center gap-1">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => requestRemoveVenue(venue.id)}
+                    disabled={venues.length <= 1}
+                    className={cn(
+                      "flex-shrink-0",
+                      venues.length <= 1
+                        ? "opacity-30 cursor-not-allowed"
+                        : "text-destructive hover:text-destructive hover:bg-destructive/10"
+                    )}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            )}
+            {vi > 0 && (
+              <div className="flex flex-wrap items-center justify-end gap-2 pb-1">
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  onClick={() => requestRemoveVenue(venue.id)}
-                  disabled={venues.length <= 1}
-                  className={cn(
-                    "flex-shrink-0",
-                    venues.length <= 1
-                      ? "opacity-30 cursor-not-allowed"
-                      : "text-destructive hover:text-destructive hover:bg-destructive/10"
-                  )}
+                  className="h-7 text-xs text-muted-foreground hover:text-foreground"
+                  onClick={() => applyTiersFromVenue(venues[0].id)}
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Copy className="w-3 h-3 mr-1" />
+                  Same tiers as {sourceVenueLabel}
                 </Button>
               </div>
             )}
@@ -410,33 +462,38 @@ export function VenueTierMatrixBuilder({
                       </div>
 
                       {hasClubAllocations && (
-                        <div className="grid gap-2 pt-1">
-                          {(tier.clubAllocations ?? []).map((ca) => (
-                            <div key={ca.clubName} className="flex items-center gap-2">
-                              <span className="text-xs font-medium w-32 truncate flex-shrink-0" title={ca.clubName}>
-                                {ca.clubName}
-                                {homeClubName && ca.clubName === homeClubName ? (
-                                  <span className="text-muted-foreground font-normal"> (your club)</span>
-                                ) : null}
-                              </span>
-                              <Input
-                                type="number"
-                                min={0}
-                                value={formatNumberInputValue(ca.allocation)}
-                                onChange={(e) =>
-                                  updateClubAllocation(
-                                    venue.id,
-                                    tier.id,
-                                    ca.clubName,
-                                    parseOptionalNonNegativeInt(e.target.value)
-                                  )
-                                }
-                                className="h-8 text-xs w-24"
-                                placeholder="0"
-                              />
-                              <span className="text-xs text-muted-foreground">seats</span>
-                            </div>
-                          ))}
+                        <div className="pt-1 space-y-2">
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                            {(tier.clubAllocations ?? []).map((ca) => (
+                              <div key={ca.clubName} className="flex items-center gap-2 min-w-0">
+                                <span
+                                  className="text-xs font-medium max-w-[120px] sm:max-w-[160px] truncate shrink-0"
+                                  title={ca.clubName}
+                                >
+                                  {ca.clubName}
+                                  {homeClubName && ca.clubName === homeClubName ? (
+                                    <span className="text-muted-foreground font-normal"> (your club)</span>
+                                  ) : null}
+                                </span>
+                                <Input
+                                  type="number"
+                                  min={0}
+                                  value={formatNumberInputValue(ca.allocation)}
+                                  onChange={(e) =>
+                                    updateClubAllocation(
+                                      venue.id,
+                                      tier.id,
+                                      ca.clubName,
+                                      parseOptionalNonNegativeInt(e.target.value)
+                                    )
+                                  }
+                                  className="h-8 text-xs w-20 shrink-0"
+                                  placeholder="0"
+                                />
+                                <span className="text-xs text-muted-foreground shrink-0">seats</span>
+                              </div>
+                            ))}
+                          </div>
                           <p className="text-xs text-muted-foreground">
                             Total: {(tier.clubAllocations ?? []).reduce((s, ca) => s + ca.allocation, 0)} seats
                           </p>
@@ -510,6 +567,34 @@ export function VenueTierMatrixBuilder({
           </p>
         </div>
       )}
+
+      <AlertDialog open={copyTiersOpen} onOpenChange={setCopyTiersOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Copy tiers to all venues?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Copy {venues[0]?.tiers.length ?? 0} ticket tier
+              {(venues[0]?.tiers.length ?? 0) === 1 ? "" : "s"} from &quot;{sourceVenueLabel}&quot; to{" "}
+              {otherVenueCount} other venue{otherVenueCount === 1 ? "" : "s"}. Names, prices, seat counts, and
+              per-club splits will match — you can adjust allocations per venue afterward.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <Button
+              type="button"
+              className={clubBtnClass}
+              style={clubBtnStyle}
+              onClick={() => {
+                applyTiersFromVenue(venues[0].id)
+                setCopyTiersOpen(false)
+              }}
+            >
+              Copy tiers
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={deleteTarget !== null} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent>

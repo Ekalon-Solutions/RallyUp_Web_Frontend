@@ -12,6 +12,7 @@ import { formatDisplayDate } from "@/lib/utils"
 import { getNewsImageUrl } from "@/lib/config"
 import { EventCheckoutModal } from "@/components/modals/event-checkout-modal"
 import { RefundPolicyBadge } from "@/components/refund-policy-badge"
+import { JointScreeningDisplay } from "@/components/events/joint-screening-display"
 import { VenueTierCartModal } from "@/components/modals/venue-tier-cart-modal"
 import { PurchaseFlowModal, setStoredPurchaseIntent, getStoredPurchaseIntent, clearStoredPurchaseIntent } from "@/components/modals/purchase-flow-modal"
 import { CheckoutModal } from "@/components/modals/checkout-modal"
@@ -780,6 +781,7 @@ export default function PublicClubPage() {
                                         {event.ticketPrice !== undefined && event.ticketPrice > 0 && event._id && (
                                           <RefundPolicyBadge eventId={event._id} className="text-[10px]" source="event_detail" />
                                         )}
+                                        <JointScreeningDisplay jointScreening={event.jointScreening} variant="badge" />
                                       </div>
                                     </div>
                                     <CardTitle className="text-xl line-clamp-2 break-words">{event.title}</CardTitle>

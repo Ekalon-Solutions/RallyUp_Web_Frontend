@@ -13,6 +13,7 @@ import { apiClient, Event } from "@/lib/api"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
 import { formatLocalDate } from "@/lib/timezone"
+import { JointScreeningDisplay } from "@/components/events/joint-screening-display"
 
 export default function PublicEventsPage() {
   const { user } = useAuth()
@@ -406,6 +407,8 @@ export default function PublicEventsPage() {
                                 <span className="text-green-600 text-xs">Away day travel</span>
                               </div>
                             )}
+
+                            <JointScreeningDisplay jointScreening={event.jointScreening} variant="badge" />
                           </div>
 
                           {/* Action Button */}

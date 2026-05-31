@@ -315,6 +315,14 @@ function CreateEventForm() {
     return [draft]
   }
 
+  const enableMultiTicketMatrix = () => {
+    set("multiTicketEnabled", true)
+    setVenues((prev) => {
+      if (prev.length > 0) return prev
+      return ensureVenuesForMulti()
+    })
+  }
+
   const updatePrimaryVenueField = (
     field: "name" | "tierName" | "price" | "allocation",
     value: string
@@ -829,25 +837,29 @@ function CreateEventForm() {
                       }
                       setVenues([])
                     } else {
-                      setVenues((prev) => {
-                        if (prev.length > 0) return prev
-                        const draft = createEmptyVenueDraft(
-                          form.jointScreeningEnabled
-                            ? { enabled: true, partnerClubNames }
-                            : undefined
-                        )
-                        draft.name = form.venue
-                        draft.tiers[0] = {
-                          ...draft.tiers[0],
-                          price: Number(form.ticketPrice) || 0,
-                          allocation: form.maxAttendees ? Number(form.maxAttendees) : 0,
-                        }
-                        return [draft]
-                      })
+                      enableMultiTicketMatrix()
                     }
                   }}
                 />
               </div>
+
+              {form.jointScreeningEnabled && partnerClubNames.length > 0 && !form.multiTicketEnabled && (
+                <div className="rounded-lg border border-violet-200 dark:border-violet-800 bg-violet-50/80 dark:bg-violet-950/30 px-3 py-2.5 space-y-2">
+                  <p className="text-sm text-violet-900 dark:text-violet-100">
+                    Joint screening needs per-club seat splits. Turn on the venue × tier matrix to assign seats for each club.
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-8"
+                    onClick={enableMultiTicketMatrix}
+                  >
+                    <Plus className="w-3.5 h-3.5 mr-1.5" />
+                    Set up venues &amp; club seat splits
+                  </Button>
+                </div>
+              )}
 
               <div className="grid gap-2">
                 <Label htmlFor="venue">Venue *</Label>
@@ -922,6 +934,25 @@ function CreateEventForm() {
                   />
                 </div>
               </div>
+
+              {!form.multiTicketEnabled && (
+                <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between rounded-lg border border-dashed border-border px-3 py-2.5">
+                  <p className="text-xs text-muted-foreground">
+                    Need multiple venues or ticket types (VIP, General, etc.)?
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className={cn("shrink-0", clubBtnClass)}
+                    style={clubBtnStyle}
+                    onClick={enableMultiTicketMatrix}
+                  >
+                    <Plus className="w-3.5 h-3.5 mr-1.5" />
+                    Add venue or ticket tier
+                  </Button>
+                </div>
+              )}
 
               {form.multiTicketEnabled && venues.length > 0 && (
                 <VenueTierMatrixBuilder
@@ -1197,6 +1228,9 @@ function CreateEventForm() {
               isRefundAllowed={form.isRefundAllowed}
               primaryColor={primaryColor}
               clubName={targetClub?.name}
+              jointScreeningEnabled={form.jointScreeningEnabled}
+              partnerClubNames={partnerClubNames}
+              homeClubName={homeClubName}
             />
           </aside>
         </div>

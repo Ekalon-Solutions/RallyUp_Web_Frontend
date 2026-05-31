@@ -43,6 +43,7 @@ import { EventCheckoutModal } from "@/components/modals/event-checkout-modal";
 import { RefundConfirmationModal } from "@/components/modals/refund-confirmation-modal";
 import { MemberTicketRefundAction } from "@/components/member/member-ticket-refund-action";
 import { RefundPolicyBadge } from "@/components/refund-policy-badge";
+import { JointScreeningDisplay } from "@/components/events/joint-screening-display";
 import { VenueTierCartModal } from "@/components/modals/venue-tier-cart-modal";
 
 const eventCategories = [
@@ -882,6 +883,7 @@ function UserEventsPageInner() {
                               </span>
                             </div>
                           ) : null}
+                          <JointScreeningDisplay jointScreening={event.jointScreening} variant="badge" />
                         </div>
 
                         {(() => {

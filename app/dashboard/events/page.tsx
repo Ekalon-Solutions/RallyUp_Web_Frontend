@@ -17,6 +17,7 @@ import { useAuth } from "@/contexts/auth-context"
 import { useEffect, useState } from "react"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { useRouter } from "next/navigation"
+import { JointScreeningDisplay } from "@/components/events/joint-screening-display"
 
 export default function EventsPage() {
   const router = useRouter()
@@ -292,6 +293,11 @@ export default function EventsPage() {
                               {event.venues && event.venues.length > 0 && (
                                 <Badge variant="outline" className="mt-1 text-xs">Multi-venue</Badge>
                               )}
+                              <JointScreeningDisplay
+                                jointScreening={event.jointScreening}
+                                variant="badge"
+                                className="mt-1"
+                              />
                             </div>
                           </TableCell>
                           <TableCell>

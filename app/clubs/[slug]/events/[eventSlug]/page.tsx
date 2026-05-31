@@ -28,6 +28,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { RefundPolicyBadge } from "@/components/refund-policy-badge"
+import { JointScreeningDisplay } from "@/components/events/joint-screening-display"
 
 interface ClubSettings {
   websiteSetup: {
@@ -244,6 +245,7 @@ export default function EventDetailPage() {
                     Free
                   </Badge>
                 )}
+                <JointScreeningDisplay jointScreening={event.jointScreening} variant="badge" />
               </div>
               <h1 className="text-3xl sm:text-4xl lg:text-[2.75rem] font-black tracking-tight leading-[1.15] text-balance">
                 {event.title}
@@ -328,6 +330,12 @@ export default function EventDetailPage() {
                       </div>
                     </div>
                   )}
+
+                  <JointScreeningDisplay
+                    jointScreening={event.jointScreening}
+                    variant="detail"
+                    className="mx-0"
+                  />
 
                   {event.maxAttendees != null && (
                     <div className="flex items-start gap-3.5 sm:gap-4">

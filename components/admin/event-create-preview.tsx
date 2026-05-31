@@ -8,6 +8,7 @@ import type { VenueDraft } from "@/components/admin/venue-tier-matrix-builder"
 import { formatDisplayDate } from "@/lib/utils"
 import { cn } from "@/lib/utils"
 import { Calendar, Clock, Eye, MapPin, Ticket, Users } from "lucide-react"
+import { JointScreeningDisplay, isJointScreeningEvent } from "@/components/events/joint-screening-display"
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
   INR: "₹",
@@ -40,6 +41,9 @@ type Props = {
   isRefundAllowed: boolean
   primaryColor?: string
   clubName?: string
+  jointScreeningEnabled?: boolean
+  partnerClubNames?: string[]
+  homeClubName?: string
   className?: string
 }
 
@@ -80,11 +84,18 @@ export function EventCreatePreview({
   isRefundAllowed,
   primaryColor = "#3b82f6",
   clubName,
+  jointScreeningEnabled = false,
+  partnerClubNames = [],
+  homeClubName = "",
   className,
 }: Props) {
   const sym = CURRENCY_SYMBOLS[currency] ?? `${currency} `
   const displayTitle = title.trim() || "Event title"
   const displayCategory = categoryLabel ?? category.replace(/-/g, " ")
+  const jointScreeningConfig = jointScreeningEnabled
+    ? { enabled: true, partnerClubNames, homeClubName: homeClubName || clubName }
+    : null
+  const showJointScreening = isJointScreeningEvent(jointScreeningConfig)
 
   const ticketRows = multiTicketEnabled
     ? venues.flatMap((v) =>
@@ -130,6 +141,9 @@ export function EventCreatePreview({
               <Badge variant="outline" className="text-xs bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200">
                 Members only
               </Badge>
+            )}
+            {showJointScreening && (
+              <JointScreeningDisplay jointScreening={jointScreeningConfig} variant="badge" />
             )}
             {!isPaid ? (
               <Badge variant="outline" className="text-xs text-green-600 border-green-400">
@@ -180,6 +194,13 @@ export function EventCreatePreview({
               icon={Users}
               label="Capacity"
               value={`${totalSeats} seats`}
+              primaryColor={primaryColor}
+            />
+          )}
+          {showJointScreening && (
+            <JointScreeningDisplay
+              jointScreening={jointScreeningConfig}
+              variant="row"
               primaryColor={primaryColor}
             />
           )}
