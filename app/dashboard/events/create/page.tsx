@@ -197,7 +197,17 @@ function CreateEventForm() {
             clubName: name,
             allocation: existingMap.has(name) ? existingMap.get(name)! : basePerClub,
           }))
-          const total = synced.reduce((s, ca) => s + ca.allocation, 0)
+          let total = synced.reduce((s, ca) => s + ca.allocation, 0)
+          if (total === 0 && t.allocation > 0) {
+            const perClub = Math.floor(t.allocation / allocationClubNames.length)
+            synced.forEach((ca, i) => {
+              ca.allocation =
+                i === synced.length - 1
+                  ? t.allocation - perClub * (synced.length - 1)
+                  : perClub
+            })
+            total = t.allocation
+          }
           return { ...t, clubAllocations: synced, allocation: total }
         }),
       }))
@@ -226,6 +236,11 @@ function CreateEventForm() {
   const primaryTierName = form.multiTicketEnabled
     ? (venues[0]?.tiers[0]?.name ?? "")
     : "General"
+  const primaryTierHasClubSplit =
+    form.multiTicketEnabled &&
+    form.jointScreeningEnabled &&
+    partnerClubNames.length > 0 &&
+    Boolean(venues[0]?.tiers[0]?.clubAllocations?.length)
 
   const validateStep = (step: number): boolean => {
     if (step === 0) {
@@ -336,7 +351,26 @@ function CreateEventForm() {
         const tier = { ...first.tiers[0] }
         if (field === "tierName") tier.name = value
         if (field === "price") tier.price = Number(value) || 0
-        if (field === "allocation") tier.allocation = value === "" ? 0 : Number(value) || 0
+        if (field === "allocation") {
+          const alloc = value === "" ? 0 : Number(value) || 0
+          if (tier.clubAllocations?.length) {
+            const sum = tier.clubAllocations.reduce((s, ca) => s + ca.allocation, 0)
+            if (sum === 0 && alloc > 0) {
+              const names = tier.clubAllocations.map((ca) => ca.clubName)
+              const perClub = Math.floor(alloc / names.length)
+              tier.clubAllocations = names.map((name, i) => ({
+                clubName: name,
+                allocation:
+                  i === names.length - 1
+                    ? alloc - perClub * (names.length - 1)
+                    : perClub,
+              }))
+            }
+          }
+          tier.allocation = tier.clubAllocations?.length
+            ? tier.clubAllocations.reduce((s, ca) => s + ca.allocation, 0)
+            : alloc
+        }
         first.tiers[0] = tier
       }
       list[0] = first
@@ -843,24 +877,6 @@ function CreateEventForm() {
                 />
               </div>
 
-              {form.jointScreeningEnabled && partnerClubNames.length > 0 && !form.multiTicketEnabled && (
-                <div className="rounded-lg border border-violet-200 dark:border-violet-800 bg-violet-50/80 dark:bg-violet-950/30 px-3 py-2.5 space-y-2">
-                  <p className="text-sm text-violet-900 dark:text-violet-100">
-                    Joint screening needs per-club seat splits. Turn on the venue × tier matrix to assign seats for each club.
-                  </p>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-8"
-                    onClick={enableMultiTicketMatrix}
-                  >
-                    <Plus className="w-3.5 h-3.5 mr-1.5" />
-                    Set up venues &amp; club seat splits
-                  </Button>
-                </div>
-              )}
-
               <div className="grid gap-2">
                 <Label htmlFor="venue">Venue *</Label>
                 <Input
@@ -931,7 +947,18 @@ function CreateEventForm() {
                         set("maxAttendees", e.target.value)
                       }
                     }}
+                    disabled={primaryTierHasClubSplit}
+                    title={
+                      primaryTierHasClubSplit
+                        ? "Total seats come from per-club allocation below"
+                        : undefined
+                    }
                   />
+                  {primaryTierHasClubSplit && (
+                    <p className="text-xs text-muted-foreground">
+                      Set Demo Club and partner seats in the primary tier split below the matrix header.
+                    </p>
+                  )}
                 </div>
               </div>
 

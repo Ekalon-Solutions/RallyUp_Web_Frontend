@@ -270,6 +270,104 @@ export function VenueTierMatrixBuilder({
     )
   }
 
+  const renderClubAllocationSection = (
+    venueId: string,
+    tier: TierDraft,
+    options?: { showToggle?: boolean }
+  ) => {
+    if (!isJointEvent) return null
+    const showToggle = options?.showToggle !== false
+    const hasClubAllocations = Boolean(tier.clubAllocations?.length)
+
+    return (
+      <div className={cn("ml-1 pl-3 border-l-2 border-border space-y-2", cardClassName)}>
+        {showToggle ? (
+          <div className="flex items-center justify-between">
+            <Label className="text-xs flex items-center gap-1.5 text-muted-foreground">
+              <Users className="w-3.5 h-3.5" />
+              Per-club allocation
+            </Label>
+            <Switch
+              checked={hasClubAllocations}
+              onCheckedChange={(v) => toggleClubAllocations(venueId, tier.id, v)}
+            />
+          </div>
+        ) : (
+          <Label className="text-xs flex items-center gap-1.5 text-muted-foreground">
+            <Users className="w-3.5 h-3.5" />
+            Per-club allocation
+          </Label>
+        )}
+
+        {hasClubAllocations && (
+          <div className="pt-1 space-y-2">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              {(tier.clubAllocations ?? []).map((ca) => (
+                <div key={ca.clubName} className="flex items-center gap-2 min-w-0">
+                  <span
+                    className="text-xs font-medium max-w-[120px] sm:max-w-[160px] truncate shrink-0"
+                    title={ca.clubName}
+                  >
+                    {ca.clubName}
+                    {homeClubName && ca.clubName === homeClubName ? (
+                      <span className="text-muted-foreground font-normal"> (your club)</span>
+                    ) : null}
+                  </span>
+                  <Input
+                    type="number"
+                    min={0}
+                    value={formatNumberInputValue(ca.allocation)}
+                    onChange={(e) =>
+                      updateClubAllocation(
+                        venueId,
+                        tier.id,
+                        ca.clubName,
+                        parseOptionalNonNegativeInt(e.target.value)
+                      )
+                    }
+                    className="h-8 text-xs w-20 shrink-0"
+                    placeholder="0"
+                  />
+                  <span className="text-xs text-muted-foreground shrink-0">seats</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Total: {(tier.clubAllocations ?? []).reduce((s, ca) => s + ca.allocation, 0)} seats
+            </p>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  useEffect(() => {
+    if (!externalFirstVenueFields || !isJointEvent || venues.length === 0) return
+    const venue = venues[0]
+    const tier = venue?.tiers[0]
+    if (!tier || tier.clubAllocations?.length) return
+    const perClub = perClubAllocation(tier.allocation, clubNames.length)
+    const clubAllocations = clubNames.map((name) => ({ clubName: name, allocation: perClub }))
+    onChange(
+      venues.map((v, i) =>
+        i === 0
+          ? {
+              ...v,
+              tiers: v.tiers.map((t, ti) =>
+                ti === 0
+                  ? {
+                      ...t,
+                      clubAllocations,
+                      allocation: clubAllocations.reduce((s, ca) => s + ca.allocation, 0),
+                    }
+                  : t
+              ),
+            }
+          : v
+      )
+    )
+  }, [externalFirstVenueFields, isJointEvent, venues.length, clubNames.join("|")])
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -292,6 +390,26 @@ export function VenueTierMatrixBuilder({
           </Button>
         )}
       </div>
+
+      {externalFirstVenueFields && isJointEvent && venues[0]?.tiers[0] && (
+        <Card className={cn("border-2", cardClassName)}>
+          <CardContent className="pt-6 space-y-3">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Primary ticket tier — per-club seats
+              </p>
+              <p className="text-sm font-medium mt-1">
+                {venues[0].tiers[0].name.trim() || "Tier 1"}
+                <span className="text-muted-foreground font-normal">
+                  {" "}
+                  · {venues[0].name.trim() || "Venue 1"}
+                </span>
+              </p>
+            </div>
+            {renderClubAllocationSection(venues[0].id, venues[0].tiers[0], { showToggle: false })}
+          </CardContent>
+        </Card>
+      )}
 
       {venues.map((venue, vi) => {
         const hideVenueNameRow = externalFirstVenueFields && vi === 0
@@ -448,59 +566,7 @@ export function VenueTierMatrixBuilder({
                     </Button>
                   </div>
                   
-                  {isJointEvent && (
-                    <div className={cn("ml-1 pl-3 border-l-2 border-border space-y-2", cardClassName)}>
-                      <div className="flex items-center justify-between">
-                        <Label className="text-xs flex items-center gap-1.5 text-muted-foreground">
-                          <Users className="w-3.5 h-3.5" />
-                          Per-club allocation
-                        </Label>
-                        <Switch
-                          checked={hasClubAllocations}
-                          onCheckedChange={(v) => toggleClubAllocations(venue.id, tier.id, v)}
-                        />
-                      </div>
-
-                      {hasClubAllocations && (
-                        <div className="pt-1 space-y-2">
-                          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                            {(tier.clubAllocations ?? []).map((ca) => (
-                              <div key={ca.clubName} className="flex items-center gap-2 min-w-0">
-                                <span
-                                  className="text-xs font-medium max-w-[120px] sm:max-w-[160px] truncate shrink-0"
-                                  title={ca.clubName}
-                                >
-                                  {ca.clubName}
-                                  {homeClubName && ca.clubName === homeClubName ? (
-                                    <span className="text-muted-foreground font-normal"> (your club)</span>
-                                  ) : null}
-                                </span>
-                                <Input
-                                  type="number"
-                                  min={0}
-                                  value={formatNumberInputValue(ca.allocation)}
-                                  onChange={(e) =>
-                                    updateClubAllocation(
-                                      venue.id,
-                                      tier.id,
-                                      ca.clubName,
-                                      parseOptionalNonNegativeInt(e.target.value)
-                                    )
-                                  }
-                                  className="h-8 text-xs w-20 shrink-0"
-                                  placeholder="0"
-                                />
-                                <span className="text-xs text-muted-foreground shrink-0">seats</span>
-                              </div>
-                            ))}
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            Total: {(tier.clubAllocations ?? []).reduce((s, ca) => s + ca.allocation, 0)} seats
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                  {renderClubAllocationSection(venue.id, tier)}
                 </div>
               )
             })}
