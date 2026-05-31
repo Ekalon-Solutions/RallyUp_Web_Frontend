@@ -31,7 +31,7 @@ import {
   MoreHorizontal,
   Edit,
   Download,
-  Mail
+  MessageCircle
 } from 'lucide-react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -123,6 +123,8 @@ export default function OrdersPage() {
   const [stats, setStats] = useState<OrderStats | null>(null)
   const [eventStats, setEventStats] = useState<OrderStats | null>(null)
   const [loading, setLoading] = useState(false)
+  const [eventsLoading, setEventsLoading] = useState(true)
+  const [eventsLoaded, setEventsLoaded] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
@@ -152,6 +154,7 @@ export default function OrdersPage() {
   const [showRegistrationModal, setShowRegistrationModal] = useState(false)
   const [registrationLoading, setRegistrationLoading] = useState(false)
   const [resendingTicketId, setResendingTicketId] = useState<string | null>(null)
+  const [cancellingTicketId, setCancellingTicketId] = useState<string | null>(null)
   const [editingEmail, setEditingEmail] = useState(false)
   const [emailInput, setEmailInput] = useState('')
   const [sendingQrFromModal, setSendingQrFromModal] = useState(false)
@@ -159,7 +162,11 @@ export default function OrdersPage() {
   useEffect(() => {
     if (user?.role === 'admin' || user?.role === 'super_admin') {
       loadStats()
-      loadEventRegistrations() // Load event stats on mount
+      if (typeFilter === 'events') {
+        loadEventRegistrations()
+      } else {
+        loadOrders()
+      }
     }
   }, [user?.role, clubId])
 
@@ -167,9 +174,10 @@ export default function OrdersPage() {
     if (user?.role === 'admin' || user?.role === 'super_admin') {
       setCurrentPage(1)
       setEventCurrentPage(1)
-      loadOrders()
       if (typeFilter === 'events') {
         loadEventRegistrations()
+      } else {
+        loadOrders()
       }
     }
   }, [searchTerm, statusFilter, typeFilter, earlyBirdFilter, couponFilter, paymentDateFilter, amountFilter, amountMin, amountMax, clubId])
@@ -207,7 +215,6 @@ export default function OrdersPage() {
         setOrders(response.data.data?.orders || [])
         setTotalPages(response.data.data?.pagination?.totalPages || 1)
       } else {
-        // console.error('API Response:', response)
         toast({
           title: "Error",
           description: response.message || "Failed to fetch orders",
@@ -217,7 +224,6 @@ export default function OrdersPage() {
         setTotalPages(1)
       }
     } catch (error) {
-      // console.error('Error loading orders:', error)
       toast({
         title: "Error",
         description: "Failed to fetch orders",
@@ -231,6 +237,7 @@ export default function OrdersPage() {
   }
 
   const loadEventRegistrations = async () => {
+    setEventsLoading(true)
     try {
       if (!clubId) {
         setAllEventRegistrations([])
@@ -240,7 +247,7 @@ export default function OrdersPage() {
       }
       const response = await apiClient.getClubEventRegistrations(clubId)
       if (response.success && response.data) {
-        const registrations: any[] = Array.isArray((response.data as any)?.data) ? (response.data as any).data : []
+        const registrations: any[] = Array.isArray(response.data) ? response.data : []
 
         const totalRevenue = registrations
           .filter(reg => reg.status === 'confirmed' && reg.amountPaid && reg.paymentId)
@@ -255,18 +262,26 @@ export default function OrdersPage() {
         })
 
         setAllEventRegistrations(registrations)
+        setEventCurrentPage(1)
+        applyEventPaginationFromList(registrations, 1)
+      } else {
+        setAllEventRegistrations([])
+        setEventRegistrations([])
+        setEventStats(null)
       }
     } catch (error) {
       console.error('Error loading event registrations:', error)
       setAllEventRegistrations([])
       setEventRegistrations([])
       setEventStats(null)
+    } finally {
+      setEventsLoading(false)
+      setEventsLoaded(true)
     }
   }
 
-  const applyEventPagination = () => {
-    // Apply filters
-    let filtered = allEventRegistrations
+  const applyEventPaginationFromList = (source: any[], page = eventCurrentPage) => {
+    let filtered = source
     if (searchTerm) {
       filtered = filtered.filter((reg: any) => 
         reg.userName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -313,16 +328,19 @@ export default function OrdersPage() {
       }
     }
     
-    // Apply pagination
     const pageSize = 10
     const totalPages = Math.ceil(filtered.length / pageSize)
     setEventTotalPages(totalPages)
     
-    const startIndex = (eventCurrentPage - 1) * pageSize
+    const startIndex = (page - 1) * pageSize
     const endIndex = startIndex + pageSize
     const paginatedRegistrations = filtered.slice(startIndex, endIndex)
     
     setEventRegistrations(paginatedRegistrations)
+  }
+
+  const applyEventPagination = () => {
+    applyEventPaginationFromList(allEventRegistrations, eventCurrentPage)
   }
 
   const loadStats = async () => {
@@ -337,7 +355,6 @@ export default function OrdersPage() {
       if (response.success && response.data) {
         const apiStats = response.data.data?.overview || null
         if (apiStats) {
-          // Calculate total revenue only for completed orders with paid status
           const allOrdersResponse = await apiClient.get(`/orders/admin/all?clubId=${clubId}&limit=1000`)
           if (allOrdersResponse.success && allOrdersResponse.data) {
             const allOrders = allOrdersResponse.data.data?.orders || []
@@ -357,24 +374,26 @@ export default function OrdersPage() {
         }
       }
     } catch (error) {
-      // console.error('Error loading stats:', error)
     }
   }
 
   const refreshOrders = async () => {
     setRefreshing(true)
-    await loadOrders()
-    if (typeFilter === 'events') {
-      await loadEventRegistrations()
+    try {
+      if (typeFilter === 'events') {
+        await loadEventRegistrations()
+      } else {
+        await loadOrders()
+      }
+      await loadStats()
+    } finally {
+      setRefreshing(false)
     }
-    await loadStats()
-    setRefreshing(false)
   }
 
   const handleDownloadReport = async () => {
     if (typeFilter === 'events') {
       try {
-        // Apply the same filters as applyEventPagination but export all (no pagination)
         let filtered = allEventRegistrations
         if (searchTerm) {
           filtered = filtered.filter((reg: any) =>
@@ -503,7 +522,6 @@ export default function OrdersPage() {
         })
       }
     } catch (error) {
-      // console.error('Error updating order status:', error)
       toast({
         title: "Error",
         description: "Failed to update order status",
@@ -532,7 +550,6 @@ export default function OrdersPage() {
         })
       }
     } catch (error) {
-      // console.error('Error cancelling order:', error)
       toast({
         title: "Error",
         description: "Failed to cancel order",
@@ -561,7 +578,6 @@ export default function OrdersPage() {
         })
       }
     } catch (error) {
-      // console.error('Error updating payment status:', error)
       toast({
         title: "Error",
         description: "Failed to update payment status",
@@ -570,7 +586,7 @@ export default function OrdersPage() {
     }
   }
 
-  const handleResendTicketEmail = async (reg: any) => {
+  const handleResendTicketWhatsApp = async (reg: any) => {
     const registrationId = reg.registrationId || reg._id
     if (!registrationId) {
       toast({
@@ -583,16 +599,15 @@ export default function OrdersPage() {
     if (reg.status && reg.status !== 'confirmed') {
       toast({
         title: 'Cannot resend',
-        description: 'Ticket email can only be resent for confirmed registrations.',
+        description: 'Tickets can only be resent for confirmed registrations.',
         variant: 'destructive',
       })
       return
     }
-    const email = (reg.userEmail || '').toLowerCase()
-    if (!email || email.endsWith('@guest.rallyup.local')) {
+    if (!reg.primaryPhone?.trim()) {
       toast({
         title: 'Cannot resend',
-        description: 'This registration has no deliverable email address.',
+        description: 'This registration has no primary phone number for WhatsApp delivery.',
         variant: 'destructive',
       })
       return
@@ -600,27 +615,92 @@ export default function OrdersPage() {
 
     try {
       setResendingTicketId(String(registrationId))
-      const response = await apiClient.resendEventTicketEmail(String(registrationId))
+      const response = await apiClient.resendEventTicketWhatsApp(String(registrationId))
       if (response.success) {
+        const sent = response.data?.whatsapp?.sentCount
+        const total = response.data?.whatsapp?.messageCount
         toast({
-          title: 'Ticket email sent',
-          description: response.message || `Confirmation email sent to ${reg.userEmail}`,
+          title: sent && sent > 1 ? `${sent} WhatsApp tickets sent` : 'WhatsApp ticket sent',
+          description:
+            response.message ||
+            (sent && total
+              ? `${sent} message(s) (one QR per ticket) to ${reg.primaryPhone}`
+              : `Ticket QR sent via WhatsApp to ${reg.primaryPhone}`),
         })
       } else {
         toast({
           title: 'Failed to resend',
-          description: response.message || response.error || 'Could not send ticket email',
+          description: response.message || response.error || 'Could not send WhatsApp ticket',
           variant: 'destructive',
         })
       }
     } catch {
       toast({
         title: 'Failed to resend',
-        description: 'Could not send ticket email. Please try again.',
+        description: 'Could not send WhatsApp ticket. Please try again.',
         variant: 'destructive',
       })
     } finally {
       setResendingTicketId(null)
+    }
+  }
+
+  const handleCancelEventRegistration = async (reg: any) => {
+    const registrationId = reg.registrationId || reg._id
+    if (!registrationId) {
+      toast({
+        title: 'Cannot cancel',
+        description: 'Registration ID is missing for this ticket.',
+        variant: 'destructive',
+      })
+      return
+    }
+    if (reg.status && reg.status !== 'confirmed') {
+      toast({
+        title: 'Cannot cancel',
+        description: 'Only confirmed registrations can be cancelled.',
+        variant: 'destructive',
+      })
+      return
+    }
+
+    const label = reg.userName || reg.userEmail || 'this registration'
+    if (!window.confirm(`Cancel ticket for ${label}? This frees their seat(s) and invalidates QR check-in.`)) {
+      return
+    }
+
+    try {
+      setCancellingTicketId(String(registrationId))
+      const response = await apiClient.cancelClubEventRegistration(
+        String(registrationId),
+        'Cancelled by club admin'
+      )
+      if (response.success) {
+        toast({
+          title: 'Ticket cancelled',
+          description: response.message || 'Registration cancelled successfully',
+        })
+        await loadEventRegistrations()
+        if (showRegistrationModal && String(selectedRegistrationMeta?.registrationId) === String(registrationId)) {
+          setShowRegistrationModal(false)
+          setSelectedRegistrationMeta(null)
+          setSelectedRegistration(null)
+        }
+      } else {
+        toast({
+          title: 'Failed to cancel',
+          description: response.message || response.error || 'Could not cancel registration',
+          variant: 'destructive',
+        })
+      }
+    } catch {
+      toast({
+        title: 'Failed to cancel',
+        description: 'Could not cancel registration. Please try again.',
+        variant: 'destructive',
+      })
+    } finally {
+      setCancellingTicketId(null)
     }
   }
 
@@ -635,11 +715,13 @@ export default function OrdersPage() {
       setRegistrationLoading(true)
       try {
         const res = await apiClient.getRegistrationById(String(registrationId))
-        if (res.success && res.data?.registration) {
-          setSelectedRegistration(res.data.registration)
+        const registration =
+          res.data?.registration ??
+          (res.data as { registration?: unknown })?.registration
+        if (res.success && registration) {
+          setSelectedRegistration(registration)
         }
       } catch {
-        // leave null, modal will show meta only
       } finally {
         setRegistrationLoading(false)
       }
@@ -649,20 +731,26 @@ export default function OrdersPage() {
   const handleSendQrFromModal = async () => {
     const registrationId = selectedRegistrationMeta?.registrationId || selectedRegistrationMeta?._id
     if (!registrationId) return
-    const targetEmail = emailInput.trim()
-    const originalEmail = selectedRegistrationMeta?.userEmail || ''
+    const phone =
+      selectedRegistrationMeta?.primaryPhone ||
+      selectedRegistration?.attendees?.[0]?.phone ||
+      ''
     setSendingQrFromModal(true)
     try {
-      const res = await apiClient.resendEventTicketEmail(String(registrationId), targetEmail !== originalEmail ? targetEmail : undefined)
+      const res = await apiClient.resendEventTicketWhatsApp(String(registrationId))
       if (res.success) {
+        const sent = res.data?.whatsapp?.sentCount
         setShowRegistrationModal(false)
-        toast({ title: 'QR Sent', description: `Ticket email sent to ${targetEmail || originalEmail}` })
+        toast({
+          title: sent && sent > 1 ? `${sent} WhatsApp tickets sent` : 'QR Sent',
+          description: res.message || `Ticket sent via WhatsApp${phone ? ` to ${phone}` : ''}`,
+        })
         loadEventRegistrations()
       } else {
         toast({ title: 'Failed to Send QR', description: res.error || res.message || 'Unknown error', variant: 'destructive' })
       }
     } catch {
-      toast({ title: 'Error', description: 'Failed to send ticket email', variant: 'destructive' })
+      toast({ title: 'Error', description: 'Failed to send WhatsApp ticket', variant: 'destructive' })
     } finally {
       setSendingQrFromModal(false)
     }
@@ -670,11 +758,16 @@ export default function OrdersPage() {
 
   const formatDate = (dateString: string) => formatLocalDate(dateString, 'long')
 
-  const formatCurrency = (amount: number, currency: string = 'USD') => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: currency
-    }).format(amount)
+  const formatCurrency = (amount: number, currency: string = 'INR') => {
+    const code = currency && /^[A-Z]{3}$/i.test(currency) ? currency.toUpperCase() : 'INR'
+    try {
+      return new Intl.NumberFormat('en-IN', {
+        style: 'currency',
+        currency: code,
+      }).format(amount)
+    } catch {
+      return `₹${amount.toLocaleString('en-IN')}`
+    }
   }
 
   if (user?.role !== 'admin' && user?.role !== 'super_admin') {
@@ -712,7 +805,7 @@ export default function OrdersPage() {
         </div>
 
         {/* Stats Cards */}
-        {((typeFilter === 'products' && stats) || (typeFilter === 'events' && eventStats)) && (
+        {((typeFilter === 'products' && stats) || (typeFilter === 'events' && (eventStats || eventsLoading))) && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -727,7 +820,7 @@ export default function OrdersPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {typeFilter === 'events' ? eventStats?.totalOrders : stats?.totalOrders}
+                  {typeFilter === 'events' && eventsLoading ? '—' : typeFilter === 'events' ? eventStats?.totalOrders : stats?.totalOrders}
                 </div>
               </CardContent>
             </Card>
@@ -740,7 +833,7 @@ export default function OrdersPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-yellow-600">
-                  {typeFilter === 'events' ? eventStats?.pendingOrders : stats?.pendingOrders}
+                  {typeFilter === 'events' && eventsLoading ? '—' : typeFilter === 'events' ? eventStats?.pendingOrders : stats?.pendingOrders}
                 </div>
               </CardContent>
             </Card>
@@ -753,7 +846,7 @@ export default function OrdersPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-green-600">
-                  {typeFilter === 'events' ? eventStats?.completedOrders : stats?.completedOrders}
+                  {typeFilter === 'events' && eventsLoading ? '—' : typeFilter === 'events' ? eventStats?.completedOrders : stats?.completedOrders}
                 </div>
               </CardContent>
             </Card>
@@ -764,7 +857,11 @@ export default function OrdersPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {typeFilter === 'events' ? (eventStats?.totalRevenue ? formatCurrency(eventStats.totalRevenue, 'INR') : '₹0') : (stats?.totalRevenue ? formatCurrency(stats.totalRevenue, 'INR') : '₹0')}
+                  {typeFilter === 'events' && eventsLoading
+                    ? '—'
+                    : typeFilter === 'events'
+                      ? (eventStats?.totalRevenue ? formatCurrency(eventStats.totalRevenue, 'INR') : '₹0')
+                      : (stats?.totalRevenue ? formatCurrency(stats.totalRevenue, 'INR') : '₹0')}
                 </div>
               </CardContent>
             </Card>
@@ -903,11 +1000,14 @@ export default function OrdersPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {loading ? (
-              <div className="flex items-center justify-center h-32">
-                <RefreshCw className="w-6 h-6 animate-spin" />
+            {(typeFilter === 'events' ? eventsLoading : loading) ? (
+              <div className="flex flex-col items-center justify-center h-40 gap-3">
+                <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">
+                  {typeFilter === 'events' ? 'Loading event registrations…' : 'Loading orders…'}
+                </p>
               </div>
-            ) : (typeFilter === 'events' ? eventRegistrations.length === 0 : orders.length === 0) ? (
+            ) : (typeFilter === 'events' ? eventsLoaded && eventRegistrations.length === 0 : orders.length === 0) ? (
               <div className="text-center py-8">
                 {typeFilter === 'events' ? (
                   <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
@@ -1062,9 +1162,10 @@ export default function OrdersPage() {
                       const canResendQr =
                         regStatus === 'confirmed' &&
                         Boolean(registrationId) &&
-                        Boolean(reg.userEmail) &&
-                        !String(reg.userEmail).toLowerCase().endsWith('@guest.rallyup.local')
+                        Boolean(reg.primaryPhone?.trim())
                       const isResendingQr = resendingTicketId === registrationId
+                      const isCancelling = cancellingTicketId === registrationId
+                      const canCancel = regStatus === 'confirmed' && Boolean(registrationId)
                       return (
                         <TableRow key={`${reg.eventId}-${reg.userId}-${reg.registrationDate}`}>
                           <TableCell className="font-medium">
@@ -1126,8 +1227,13 @@ export default function OrdersPage() {
                                 variant="ghost"
                                 size="sm"
                                 className="h-8 px-2 text-muted-foreground hover:text-foreground"
-                                onClick={() => handleResendTicketEmail(reg)}
+                                onClick={() => handleResendTicketWhatsApp(reg)}
                                 disabled={!canResendQr || (resendingTicketId !== null && !isResendingQr)}
+                                title={
+                                  canResendQr
+                                    ? `Send ticket QR via WhatsApp to ${reg.primaryPhone}`
+                                    : 'Primary phone required for WhatsApp ticket'
+                                }
                               >
                                 {isResendingQr ? (
                                   <>
@@ -1136,11 +1242,32 @@ export default function OrdersPage() {
                                   </>
                                 ) : (
                                   <>
-                                    <Mail className="h-4 w-4 mr-1" />
+                                    <MessageCircle className="h-4 w-4 mr-1" />
                                     Resend QR
                                   </>
                                 )}
                               </Button>
+                              {canCancel && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  onClick={() => handleCancelEventRegistration(reg)}
+                                  disabled={cancellingTicketId !== null && !isCancelling}
+                                >
+                                  {isCancelling ? (
+                                    <>
+                                      <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                                      Cancelling...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <XCircle className="h-4 w-4 mr-1" />
+                                      Cancel
+                                    </>
+                                  )}
+                                </Button>
+                              )}
                             </div>
                           </TableCell>
                         </TableRow>
@@ -1524,7 +1651,7 @@ export default function OrdersPage() {
                 {/* Payment Details */}
                 {(() => {
                   const meta = selectedRegistrationMeta
-                  const currency = meta?.currency || 'USD'
+                  const currency = meta?.currency || meta?.currencyAtPurchase || 'INR'
                   const ticketPrice = meta?.ticketPrice ?? 0
                   const numAttendees = selectedRegistration?.attendees?.length ?? 1
                   const originalTotal = ticketPrice * numAttendees
@@ -1657,7 +1784,7 @@ export default function OrdersPage() {
                   {sendingQrFromModal ? (
                     <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />Sending...</>
                   ) : (
-                    <><Mail className="h-4 w-4 mr-2" />Send QR</>
+                    <><MessageCircle className="h-4 w-4 mr-2" />Send QR (WhatsApp)</>
                   )}
                 </Button>
               )}

@@ -17,7 +17,6 @@ import { Upload, Save, Eye, Palette, Type, Image as ImageIcon } from 'lucide-rea
 const CARD_FONTS_GOOGLE_URL =
   "https://fonts.googleapis.com/css2?family=Anton&family=Archivo+Black&family=Barlow:wght@400;500;600;700&family=Bebas+Neue&family=Bitter:wght@400;600;700&family=Exo+2:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Lato:wght@400;700&family=Lora:wght@400;600;700&family=Merriweather:wght@400;700&family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@400;600;700&family=Oswald:wght@400;500;600;700&family=Playfair+Display:wght@400;600;700&family=Poppins:wght@400;500;600;700&family=Roboto:wght@400;500;700&family=Roboto+Slab:wght@400;600;700&family=Teko:wght@400;500;600;700&family=Titillium+Web:wght@400;600;700&display=swap"
 
-// Card style presets
 const CARD_STYLES = [
   { value: 'default', label: 'Classic Blue', colors: { primary: '#2563eb', secondary: '#1e40af' } },
   { value: 'premium', label: 'Premium Gold', colors: { primary: '#fbbf24', secondary: '#dc2626' } },
@@ -58,7 +57,7 @@ const LOGO_SIZES = [
 
 interface MembershipCardCustomizerProps {
   cardId?: string;
-  clubId?: string; // Add clubId prop
+  clubId?: string;
   onSave?: () => void;
 }
 
@@ -68,7 +67,6 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
   const [saving, setSaving] = useState(false);
   const [cardData, setCardData] = useState<any>(null);
   
-  // Customization state
   const [selectedStyle, setSelectedStyle] = useState('default');
   const [primaryColor, setPrimaryColor] = useState('#2563eb');
   const [secondaryColor, setSecondaryColor] = useState('#1e40af');
@@ -78,7 +76,6 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
   const [customLogo, setCustomLogo] = useState<string | null>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
 
-  // Inject Google Fonts for the font preview in the dropdown
   useEffect(() => {
     const linkId = "membership-card-google-fonts"
     if (document.getElementById(linkId)) return
@@ -90,7 +87,6 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
     return () => { document.getElementById(linkId)?.remove() }
   }, [])
 
-  // Fetch existing card data
   useEffect(() => {
     const fetchCardData = async () => {
       try {
@@ -109,7 +105,6 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
               cards = (response.data as any).data;
             }
           } else if (Array.isArray(response.data)) {
-            // User cards API returns array directly
             cards = response.data;
           }
           
@@ -117,7 +112,6 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
             const card = cards[0];
             setCardData(card);
             
-            // Load existing customization if any
             if (card.card.customization) {
               const custom = card.card.customization;
               if (custom.primaryColor) setPrimaryColor(custom.primaryColor);
@@ -126,12 +120,10 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
               if (custom.logoSize) setLogoSize(custom.logoSize);
               if (custom.showLogo !== undefined) setShowLogo(custom.showLogo);
               if (custom.customLogo) {
-                // Ensure the logo URL is properly formatted
                 const logoUrl = custom.customLogo.startsWith('http') ? custom.customLogo : `${getBaseUrl()}${custom.customLogo}`;
                 setCustomLogo(logoUrl);
               }
               
-              // Check if using preset or custom colors
               const preset = CARD_STYLES.find(s => 
                 s.colors?.primary === custom.primaryColor && 
                 s.colors?.secondary === custom.secondaryColor
@@ -139,10 +131,6 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
               setSelectedStyle(preset ? preset.value : 'custom');
             }
           } else {
-            // If no cards found, create a mock card for preview purposes
-            // // console.log('No membership cards found. Creating mock card for preview.');
-            
-            // Create a minimal mock card structure for preview
             const mockCard = {
               card: {
                 _id: 'preview-card',
@@ -177,8 +165,6 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
             setCardData(mockCard);
           }
         } else {
-          // API returned error or no data
-          // // console.warn('API returned no data, creating preview card');
           const mockCard = {
             card: {
               _id: 'preview-card',
@@ -213,9 +199,6 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
           setCardData(mockCard);
         }
       } catch (error: any) {
-        // // console.error('Error fetching card data:', error);
-        
-        // Always create a mock card for preview on error
         const mockCard = {
           card: {
             _id: 'preview-card',
@@ -256,7 +239,6 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
     fetchCardData();
   }, [clubId, cardId, toast]);
 
-  // Handle style preset change
   const handleStyleChange = (style: string) => {
     setSelectedStyle(style);
     const preset = CARD_STYLES.find(s => s.value === style);
@@ -266,12 +248,10 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
     }
   };
 
-  // Handle logo upload
   const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
     if (!file.type.startsWith('image/')) {
       toast({
         title: "Invalid file",
@@ -281,11 +261,10 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
       return;
     }
 
-    // Validate file size (max 2MB)
-    if (file.size > 2 * 1024 * 1024) {
+    if (file.size > 25 * 1024 * 1024) {
       toast({
         title: "File too large",
-        description: "Please upload an image smaller than 2MB",
+        description: "Please upload an image smaller than 25MB",
         variant: "destructive",
       });
       return;
@@ -296,7 +275,6 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
       const formData = new FormData();
       formData.append('image', file);
 
-      // Upload to your backend
       const response = await fetch(getApiUrl('/upload/logo'), {
         method: 'POST',
         headers: {
@@ -310,7 +288,6 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
       }
 
       const data = await response.json();
-      // Ensure the URL is properly formatted (prepend base URL if it's a relative path)
       const logoUrl = data.url?.startsWith('http') ? data.url : `${getBaseUrl()}${data.url}`;
       setCustomLogo(logoUrl);
       
@@ -319,7 +296,6 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
         description: "Logo uploaded successfully",
       });
     } catch (error) {
-      // // console.error('Error uploading logo:', error);
       toast({
         title: "Upload failed",
         description: "Failed to upload logo",
@@ -330,11 +306,9 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
     }
   };
 
-  // Save customization
   const handleSave = async () => {
     if (!cardData) return;
 
-    // Check if this is a preview/mock card
     if (cardData.membershipPlan._id === 'preview-plan' || cardData.card._id === 'preview-card') {
       toast({
         title: "Cannot Save Preview Card",
@@ -391,8 +365,6 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
     );
   }
 
-  // Always show the customizer - we either have real data or mock data
-  // Create preview data with current customization only if cardData exists
   if (!cardData) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -416,7 +388,6 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
     }
   };
 
-  // Check if this is a preview/mock card
   const isPreviewCard = cardData.membershipPlan._id === 'preview-plan' || cardData.card._id === 'preview-card';
 
   return (
@@ -446,7 +417,6 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Left: Editor */}
             <div>
               <Tabs defaultValue="style" className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
@@ -461,7 +431,6 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
                 </TabsList>
 
                 <TabsContent value="style" className="space-y-6">
-                  {/* Card Style Presets */}
                   <div className="space-y-3">
                     <Label>Card Style Preset</Label>
                     <Select value={selectedStyle} onValueChange={handleStyleChange}>
@@ -478,7 +447,6 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
                     </Select>
                   </div>
 
-                  {/* Custom Colors */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="primaryColor">Primary Color</Label>
@@ -530,7 +498,6 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
                     </div>
                   </div>
 
-                  {/* Font Family */}
                   <div className="space-y-3">
                     <Label>Font Family</Label>
                     <Select value={fontFamily} onValueChange={setFontFamily}>
@@ -549,7 +516,6 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
                     </Select>
                   </div>
 
-                  {/* Logo Size */}
                   <div className="space-y-3">
                     <Label>Logo Size</Label>
                     <Select value={logoSize} onValueChange={(value) => setLogoSize(value as 'small' | 'medium' | 'large')}>
@@ -566,7 +532,6 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
                     </Select>
                   </div>
 
-                  {/* Show Logo Toggle */}
                   <div className="flex items-center justify-between space-x-2 p-4 border rounded-lg">
                     <div className="space-y-0.5">
                       <Label htmlFor="showLogo">Show Club Logo</Label>
@@ -587,7 +552,7 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
                     <div>
                       <Label>Custom Logo</Label>
                       <p className="text-sm text-muted-foreground mt-1">
-                        Upload a custom logo for your membership cards (max 2MB)
+                        Upload a custom logo for your membership cards (max 25MB)
                       </p>
                     </div>
 
@@ -635,7 +600,6 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
               </Tabs>
             </div>
 
-            {/* Right: Preview */}
             <div className="lg:sticky lg:top-6 lg:self-start">
               <div className="border rounded-lg p-4 sm:p-6 bg-muted/20">
                 <div className="mb-4">
@@ -660,12 +624,10 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
             </div>
           </div>
 
-          {/* Save Button */}
           <div className="flex justify-end gap-2 mt-6 pt-6 border-t">
             <Button
               variant="outline"
               onClick={() => {
-                // Reset to default
                 setSelectedStyle('default');
                 setPrimaryColor('#2563eb');
                 setSecondaryColor('#1e40af');

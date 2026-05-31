@@ -121,10 +121,8 @@ export function DesignSettingsTab() {
           }
         }
         setSettings(designSettings)
-        // console.log("Loaded design settings:", designSettings)
       }
     } catch (error) {
-      // console.error("Error loading design settings:", error)
       toast.error("Failed to load design settings")
     } finally {
       setLoading(false)
@@ -134,15 +132,13 @@ export function DesignSettingsTab() {
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      // Validate file type
       if (!file.type.startsWith('image/')) {
         toast.error("Please upload an image file (JPG, PNG)")
         return
       }
 
-      // Validate file size (max 2MB)
-      if (file.size > 2 * 1024 * 1024) {
-        toast.error("File size must be less than 2MB")
+      if (file.size > 25 * 1024 * 1024) {
+        toast.error("File size must be less than 25MB")
         return
       }
 
@@ -163,7 +159,6 @@ export function DesignSettingsTab() {
 
     try {
       setSaving(true)
-      // console.log("Saving design settings:", settings)
       
       const response = await apiClient.updateDesignSettings(clubId, settings)
       
@@ -174,7 +169,6 @@ export function DesignSettingsTab() {
         toast.error(response.message || "Failed to save design settings")
       }
     } catch (error) {
-      // console.error("Error saving design settings:", error)
       toast.error("Failed to save design settings")
     } finally {
       setSaving(false)
@@ -191,7 +185,6 @@ export function DesignSettingsTab() {
 
   return (
     <div className="space-y-6">
-      {/* Colors */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -259,7 +252,6 @@ export function DesignSettingsTab() {
         </CardContent>
       </Card>
 
-      {/* Font */}
       <Card>
         <CardHeader>
           <CardTitle>Typography</CardTitle>
@@ -299,7 +291,6 @@ export function DesignSettingsTab() {
         </CardContent>
       </Card>
 
-      {/* Logo & Motto */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -354,7 +345,6 @@ export function DesignSettingsTab() {
         </CardContent>
       </Card>
 
-      {/* Social Media */}
       <Card>
         <CardHeader>
           <CardTitle>Social Media</CardTitle>
@@ -419,7 +409,6 @@ export function DesignSettingsTab() {
         </CardContent>
       </Card>
 
-      {/* Save Button */}
       <div className="flex justify-end">
         <Button onClick={handleSave} disabled={saving} size="lg">
           {saving ? (

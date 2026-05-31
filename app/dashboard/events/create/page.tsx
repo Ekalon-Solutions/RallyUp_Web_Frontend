@@ -28,6 +28,8 @@ import { cn } from "@/lib/utils"
 import { clubActionButtonClassName, clubActionButtonStyle } from "@/lib/clubThemeButton"
 import { useDesignSettings } from "@/hooks/useDesignSettings"
 import { useAuth } from "@/contexts/auth-context"
+import { useSelectedClubId, useAccessibleClubs } from "@/hooks/useSelectedClubId"
+import { getAccessibleClub, isClubAccessible } from "@/lib/clubContext"
 import { VenueTierMatrixBuilder, VenueDraft, TierDraft, createEmptyVenueDraft } from "@/components/admin/venue-tier-matrix-builder"
 import { getJointScreeningClubNames } from "@/lib/joint-screening-clubs"
 import {
@@ -113,6 +115,8 @@ function CreateEventForm() {
   const isEditMode = Boolean(editId)
 
   const { user } = useAuth()
+  const selectedClubId = useSelectedClubId()
+  const accessibleClubs = useAccessibleClubs()
   const [loading, setLoading] = useState(false)
   const [fetchingEvent, setFetchingEvent] = useState(isEditMode)
   const [venues, setVenues] = useState<VenueDraft[]>([])
@@ -158,17 +162,10 @@ function CreateEventForm() {
   const set = (field: string, value: string | boolean) =>
     setForm((prev) => ({ ...prev, [field]: value }))
 
-  const clubId = (() => {
-    const u = user as any
-    return u?.club?._id ?? u?.club ?? ""
-  })()
+  const clubId = selectedClubId ?? ""
+  const targetClub = getAccessibleClub(clubId, accessibleClubs)
 
-  const homeClubName = (() => {
-    const u = user as any
-    if (u?.club?.name) return String(u.club.name)
-    const match = u?.clubs?.find((c: { _id?: string }) => String(c._id) === String(clubId))
-    return match?.name ? String(match.name) : ""
-  })()
+  const homeClubName = targetClub?.name ?? ""
 
   useEffect(() => {
     setVenues((prev) => {
@@ -530,6 +527,11 @@ function CreateEventForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    if (!clubId || !isClubAccessible(clubId, accessibleClubs)) {
+      toast.error("Please select a valid club from the sidebar before publishing.")
+      return
+    }
+
     for (let s = 0; s < WIZARD_STEPS.length; s++) {
       if (!validateStep(s)) {
         setWizardStep(s)
@@ -564,6 +566,24 @@ function CreateEventForm() {
           </Link>
           <h1 className="text-3xl font-bold">{isEditMode ? "Edit Event" : "Create Event"}</h1>
         </div>
+
+        {!isEditMode && (
+          <div
+            className={
+              targetClub
+                ? "rounded-lg border border-primary/20 bg-primary/5 px-4 py-3 text-sm"
+                : "rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100"
+            }
+          >
+            {targetClub ? (
+              <p>
+                <span className="font-semibold">Publishing to:</span> {targetClub.name}
+              </p>
+            ) : (
+              <p>Select a valid club from the sidebar before publishing this event.</p>
+            )}
+          </div>
+        )}
 
         <nav aria-label="Event creation steps" className="flex flex-wrap gap-2">
           {WIZARD_STEPS.map((step, index) => {

@@ -457,13 +457,9 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
       }
 
       const { razorpayOrderId, amount, currency: orderCurrency } = await response.json()
-
-      // Create a pending registration keyed to the Razorpay order ID.
-      // If registerForEvent fails after payment, the backend webhook uses this
-      // record to confirm the registration automatically.
-      try {
-        if (user) {
-          await apiClient.createPendingRegistration(String(event._id), {
+      
+      const pendingResponse = user
+        ? await apiClient.createPendingRegistration(String(event._id), {
             attendees,
             couponCode: localCouponCode || undefined,
             razorpayOrderId,
@@ -475,8 +471,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
             pointsDiscount: reservedDiscount || undefined,
             attributed_club: attributedClub || undefined,
           })
-        } else {
-          await apiClient.createPendingPublicRegistration(String(event._id), {
+        : await apiClient.createPendingPublicRegistration(String(event._id), {
             registrantName: attendees?.[0]?.name || 'Guest',
             registrantEmail: guestEmail.trim(),
             registrantPhone: attendees?.[0]?.phone || '',
@@ -490,10 +485,27 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
             pointsDiscount: reservedDiscount || undefined,
             attributed_club: attributedClub || undefined,
           })
+
+      if (!pendingResponse.success) {
+        const pendingMessage =
+          pendingResponse.message ||
+          pendingResponse.error ||
+          'Unable to start checkout for this event. Please check your details or contact support.'
+        console.warn('[EventCheckoutModal] Pending registration rejected:', {
+          status: pendingResponse.status,
+          message: pendingMessage,
+          razorpayOrderId,
+        })
+        toast.error(pendingMessage)
+        if (reservationToken) {
+          try {
+            await apiClient.cancelReservation(reservationToken)
+          } catch {
+            // ignore
+          }
         }
-      } catch (pendingError) {
-        // Non-blocking: log but don't prevent payment from opening.
-        console.warn('[EventCheckoutModal] Failed to create pending registration:', pendingError)
+        setLoading(false)
+        return
       }
 
       const options = {

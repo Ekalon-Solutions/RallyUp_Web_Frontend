@@ -1,5 +1,6 @@
 import { getApiUrl } from './config';
 import { triggerBlobDownload } from './utils';
+import { patchEventResponseData } from './eventDisplayAdjustments';
 
 const API_BASE_URL = getApiUrl('');
 
@@ -758,9 +759,11 @@ class ApiClient {
         };
       }
 
+      const patchedData = patchEventResponseData(endpoint, data) as T;
+
       return {
         success: true,
-        data,
+        data: patchedData,
       };
     } catch (error) {
       return {
@@ -1329,13 +1332,64 @@ class ApiClient {
 
   async getClubEventRegistrations(clubId?: string): Promise<ApiResponse<any[]>> {
     const endpoint = clubId ? `/events/club/registrations?clubId=${encodeURIComponent(clubId)}` : '/events/club/registrations';
-    return this.request(endpoint);
+    const res = await this.request<{ data?: any[]; success?: boolean } | any[]>(endpoint);
+    if (!res.success || res.data == null) return res as ApiResponse<any[]>;
+    const list = Array.isArray(res.data) ? res.data : (res.data as { data?: any[] }).data;
+    return { ...res, data: Array.isArray(list) ? list : [] };
   }
 
-  async resendEventTicketEmail(registrationId: string, overrideEmail?: string): Promise<ApiResponse<{ message: string }>> {
-    return this.request(`/events/club/registrations/${encodeURIComponent(registrationId)}/resend-ticket`, {
+  /** Resend event ticket QR via AiSensy WhatsApp (one message per ticket; all to primary phone). */
+  async resendEventTicketWhatsApp(registrationId: string): Promise<
+    ApiResponse<{
+      message: string;
+      whatsapp?: {
+        messageCount?: number;
+        sentCount?: number;
+        failedCount?: number;
+        attendees?: Array<{ attendeeName: string; phone: string; ok: boolean; error?: string }>;
+      };
+    }>
+  > {
+    const res = await this.request<{
+      success?: boolean;
+      message?: string;
+      whatsapp?: {
+        messageCount?: number;
+        sentCount?: number;
+        failedCount?: number;
+        attendees?: Array<{ attendeeName: string; phone: string; ok: boolean; error?: string }>;
+      };
+    }>(`/events/club/registrations/${encodeURIComponent(registrationId)}/resend-ticket`, {
       method: 'POST',
-      body: JSON.stringify(overrideEmail ? { overrideEmail } : {}),
+      body: JSON.stringify({}),
+    });
+    if (!res.success || res.data == null) return res as ApiResponse<{ message: string }>;
+    const body = res.data;
+    const message =
+      body.message ||
+      (body.whatsapp?.sentCount
+        ? `WhatsApp ticket sent (${body.whatsapp.sentCount} message${body.whatsapp.sentCount === 1 ? '' : 's'})`
+        : 'WhatsApp ticket sent');
+    return {
+      success: body.success !== false && (body.whatsapp?.sentCount ?? 0) > 0,
+      message,
+      data: { message, whatsapp: body.whatsapp },
+      error: res.error,
+    };
+  }
+
+  /** @deprecated Use resendEventTicketWhatsApp */
+  async resendEventTicketEmail(registrationId: string, overrideEmail?: string): Promise<ApiResponse<{ message: string }>> {
+    return this.resendEventTicketWhatsApp(registrationId);
+  }
+
+  async cancelClubEventRegistration(
+    registrationId: string,
+    reason?: string
+  ): Promise<ApiResponse<{ message: string; data?: { eventTitle?: string; seatsReleased?: number } }>> {
+    return this.request(`/events/club/registrations/${encodeURIComponent(registrationId)}/cancel`, {
+      method: 'POST',
+      body: JSON.stringify(reason ? { reason } : {}),
     });
   }
 
@@ -1810,7 +1864,12 @@ class ApiClient {
   }
 
   async getRegistrationById(registrationId: string): Promise<ApiResponse<{ registration: any }>> {
-    return this.request(`/events/registration/${registrationId}`);
+    const res = await this.request<{ registration?: any; success?: boolean }>(
+      `/events/registration/${registrationId}`
+    );
+    if (!res.success || !res.data) return res as ApiResponse<{ registration: any }>;
+    const registration = res.data.registration ?? (res.data as any).registration;
+    return { ...res, data: { registration } };
   }
 
   async getUserEventRegistrations(): Promise<ApiResponse<Array<{
@@ -4206,6 +4265,16 @@ class ApiClient {
     return this.request('/gallery/albums', {
       method: 'POST',
       body: JSON.stringify(data),
+    });
+  }
+
+  async notifyGalleryUploadSession(
+    albumId: string,
+    sessionId: string
+  ): Promise<ApiResponse<{ message: string; skipped?: boolean }>> {
+    return this.request(`/gallery/albums/${albumId}/notify-upload`, {
+      method: 'POST',
+      body: JSON.stringify({ sessionId }),
     });
   }
 

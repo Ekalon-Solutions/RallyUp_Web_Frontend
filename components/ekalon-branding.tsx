@@ -11,7 +11,6 @@ import {
 } from "@/lib/pageContext"
 
 const TITLE_STYLE = "color: #0ea5e9; font-size: 14px; font-weight: bold;"
-const BODY_STYLE = "color: #64748b; font-size: 12px;"
 const LINK_STYLE = "color: #38bdf8; font-size: 12px;"
 
 export function EkalonBranding() {
@@ -24,7 +23,6 @@ export function EkalonBranding() {
     console.log(`%cWingman Pro · ${label}`, TITLE_STYLE)
     console.log("%cDesigned and Developed by Ekalon Solutions", TITLE_STYLE)
     console.log(`%c${EKALON_URL}`, LINK_STYLE)
-    console.log("%cPage: %s", BODY_STYLE, pathname)
   }, [pathname])
 
   if (pageHasDedicatedFooter(pathname)) {

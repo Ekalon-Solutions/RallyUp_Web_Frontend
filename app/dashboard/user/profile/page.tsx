@@ -11,7 +11,7 @@ import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
 import { useAuth } from "@/contexts/auth-context"
 import { toast } from "sonner"
-import { User, Mail, Phone, Shield, Save, CheckCircle, XCircle, Edit, Building2, MapPin, Loader2, Camera, Search, ArrowRight, Users, FileText, Calendar } from "lucide-react"
+import { User, Shield, Save, CheckCircle, XCircle, Edit, Building2, MapPin, Loader2, Camera, Search, ArrowRight, Users, FileText, Calendar } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { MembershipRenewal } from "@/components/membership-renewal"
 import { useRouter } from "next/navigation"
@@ -284,8 +284,8 @@ export default function UserProfilePage() {
       toast.error("Please choose a JPEG, PNG, GIF, or WebP image")
       return
     }
-    if (file.size > 2 * 1024 * 1024) {
-      toast.error("Image must be smaller than 2MB")
+    if (file.size > 25 * 1024 * 1024) {
+      toast.error("Image must be smaller than 25MB")
       return
     }
     setUploadingPhoto(true)

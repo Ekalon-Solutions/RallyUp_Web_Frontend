@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { apiClient, User, Admin, SystemOwner } from '../lib/api';
+import { buildAccessibleClubs, reconcileActiveClubId } from '../lib/clubContext';
 
 interface AuthContextType {
   user: User | Admin | SystemOwner | null;
@@ -42,6 +43,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
     checkAuth();
+  }, []);
+
+  useEffect(() => {
+    const onStorage = (event: StorageEvent) => {
+      if (event.key !== 'activeClubId') return;
+      setActiveClubIdState(event.newValue);
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
   }, []);
 
   useEffect(() => {
@@ -107,11 +117,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (profileResponse?.success && profileResponse.data) {
-        const clubId = deriveActiveClubIdFromUser(profileResponse.data as any);
-        if (clubId && !activeClubId) {
-          setActiveClubId(clubId);
+        const profile = profileResponse.data as any;
+        const accessible = buildAccessibleClubs(profile);
+        const storedClubId =
+          typeof window !== 'undefined' ? localStorage.getItem('activeClubId') : null;
+        const reconciled = reconcileActiveClubId(storedClubId, accessible);
+        if (reconciled) {
+          setActiveClubId(reconciled);
+        } else {
+          const fallback = deriveActiveClubIdFromUser(profile);
+          if (fallback) {
+            setActiveClubId(fallback);
+          }
         }
-        return profileResponse.data as any;
+        return profile;
       }
     } catch {
     }

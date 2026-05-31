@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -11,19 +11,27 @@ import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { apiClient, Album, AlbumMediaItem, GalleryStorageSummary } from "@/lib/api"
 import { useSocket } from "@/contexts/socket-context"
 import { getApiUrl } from "@/lib/config"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { toast } from "sonner"
-import { FolderPlus, HardDrive, Image as ImageIcon, Upload, ShoppingCart, RefreshCw, Trash2, Play } from "lucide-react"
+import { FolderPlus, HardDrive, Image as ImageIcon, Upload, ShoppingCart, RefreshCw, Trash2, Play, X } from "lucide-react"
 import { PaymentSimulationModal } from "@/components/modals/payment-simulation-modal"
 
 declare global {
   interface Window { Razorpay: any }
 }
-
-// ─── helpers ──────────────────────────────────────────────────────────────────
 
 const bytesToReadable = (bytes: number): string => {
   if (!bytes) return "0 B"
@@ -32,8 +40,6 @@ const bytesToReadable = (bytes: number): string => {
   while (value >= 1024 && idx < units.length - 1) { value /= 1024; idx++ }
   return `${value.toFixed(value >= 10 || idx === 0 ? 0 : 1)} ${units[idx]}`
 }
-
-// ─── types & constants ────────────────────────────────────────────────────────
 
 type StorageGb = 50 | 100 | 300
 type BillingCycle = "monthly" | "quarterly" | "annual"
@@ -52,42 +58,70 @@ const BILLING_DURATION_LABEL: Record<BillingCycle, string> = {
   monthly: "/ month", quarterly: "/ quarter", annual: "/ year",
 }
 
-// ─── file size validation ──────────────────────────────────────────────────────
 
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024         // 5 MB
-const MAX_VIDEO_BYTES = 300 * 1024 * 1024        // 300 MB
+const MAX_IMAGE_BYTES = 25 * 1024 * 1024
+const MAX_VIDEO_BYTES = 1024 * 1024 * 1024
+const MAX_FILES_PER_UPLOAD = 250
+const MAX_BATCH_BYTES = 3 * 1024 * 1024 * 1024
+const UPLOAD_CHUNK_FILES = 15
+const UPLOAD_CONCURRENT_CHUNKS = 3
 const VIDEO_EXTS = /\.(mp4|mpeg|mpg|avi|mov|mkv|webm)$/i
+
+function formatElapsed(seconds: number): string {
+  const s = Math.max(0, Math.floor(seconds))
+  if (s < 60) return `${s}s`
+  const m = Math.floor(s / 60)
+  const rem = s % 60
+  return rem > 0 ? `${m}m ${rem}s` : `${m}m`
+}
 
 function isVideoFile(f: File): boolean {
   return f.type.startsWith("video/") || (!f.type && VIDEO_EXTS.test(f.name))
 }
 
-function validateFileSizes(files: File[]): string[] {
-  return files
+function validateFiles(files: File[]): string[] {
+  const errors: string[] = []
+  if (files.length > MAX_FILES_PER_UPLOAD) {
+    errors.push(`Too many files. Maximum ${MAX_FILES_PER_UPLOAD} per upload.`)
+  }
+  const totalBytes = files.reduce((sum, f) => sum + f.size, 0)
+  if (totalBytes > MAX_BATCH_BYTES) {
+    errors.push(`Total size ${bytesToReadable(totalBytes)} exceeds ${bytesToReadable(MAX_BATCH_BYTES)} per upload. Split into smaller batches.`)
+  }
+  files
     .filter((f) => f.size > (isVideoFile(f) ? MAX_VIDEO_BYTES : MAX_IMAGE_BYTES))
-    .map((f) => `${f.name} exceeds ${isVideoFile(f) ? 300 : 5} MB limit`)
+    .forEach((f) => errors.push(`${f.name} exceeds ${isVideoFile(f) ? '1GB' : '25MB'} limit`))
+  return errors
 }
 
-// ─── upload progress bar ──────────────────────────────────────────────────────
 
 interface UploadProgressBarProps {
-  uploadProgress: number   // 0-100: XHR browser→server transfer
-  serverProgress: number   // 0-100: socket-driven server→S3 processing
-  processingLabel: string  // e.g. "Processing 1/3: photo.jpg"
+  uploadProgress: number
+  serverProgress: number
+  processingLabel: string
   selectedFiles: File[]
+  startedAt: number
 }
 
-function UploadProgressBar({ uploadProgress, serverProgress, processingLabel, selectedFiles }: UploadProgressBarProps) {
+function UploadProgressBar({ uploadProgress, serverProgress, processingLabel, selectedFiles, startedAt }: UploadProgressBarProps) {
+  const [now, setNow] = useState(() => Date.now())
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(id)
+  }, [])
+
   const totalBytes = selectedFiles.reduce((sum, f) => sum + f.size, 0)
   const totalMB = (totalBytes / (1024 * 1024)).toFixed(1)
-  const uploadedMB = ((uploadProgress / 100) * totalBytes / (1024 * 1024)).toFixed(1)
-
-  // Phase 1: transferring  (uploadProgress 0→100)
-  // Phase 2: waiting       (uploadProgress=100, serverProgress=0)
-  // Phase 3: processing    (serverProgress 0→100)
   const isTransferring = uploadProgress < 100
   const isWaiting = !isTransferring && serverProgress === 0
-  const barPercent = isTransferring ? uploadProgress : serverProgress
+  const barPercent = isTransferring ? uploadProgress : Math.max(serverProgress, uploadProgress)
+  const bytesDone = Math.round((barPercent / 100) * totalBytes)
+  const uploadedMB = (bytesDone / (1024 * 1024)).toFixed(1)
+  const elapsedSec = Math.max(1, (now - startedAt) / 1000)
+  const speedBps = bytesDone / elapsedSec
+  const speedLabel = speedBps > 0 ? `${bytesToReadable(speedBps)}/s` : "—"
+  const elapsedLabel = formatElapsed(elapsedSec)
 
   let label: string
   if (isTransferring) {
@@ -95,14 +129,14 @@ function UploadProgressBar({ uploadProgress, serverProgress, processingLabel, se
   } else if (isWaiting) {
     label = "Processing on server…"
   } else {
-    label = processingLabel
+    label = processingLabel || `Saving to storage… ${uploadedMB} / ${totalMB} MB`
   }
 
   return (
     <div className="space-y-1.5">
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <span>{label}</span>
-        {!isWaiting && <span className="font-medium tabular-nums">{barPercent}%</span>}
+      <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+        <span className="min-w-0 truncate">{label}</span>
+        <span className="shrink-0 font-medium tabular-nums">{isWaiting ? "…" : `${barPercent}%`}</span>
       </div>
       <div className="h-2 rounded-full bg-muted overflow-hidden">
         <div
@@ -110,13 +144,21 @@ function UploadProgressBar({ uploadProgress, serverProgress, processingLabel, se
           style={{ width: isWaiting ? "50%" : `${barPercent}%` }}
         />
       </div>
+      <div className="flex items-center justify-between text-[11px] text-muted-foreground tabular-nums">
+        <span>{elapsedLabel} elapsed</span>
+        <span>{speedLabel}</span>
+      </div>
     </div>
   )
 }
 
-// ─── upload helper ────────────────────────────────────────────────────────────
 
-async function uploadAlbumFiles(albumId: string, files: File[], onProgress: (p: number) => void): Promise<any> {
+function uploadAlbumChunk(
+  albumId: string,
+  files: File[],
+  sessionId: string,
+  onChunkProgress: (percent: number) => void
+): Promise<any> {
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null
   const endpoint = getApiUrl(`/gallery/albums/${albumId}/upload`)
   const formData = new FormData()
@@ -125,82 +167,124 @@ async function uploadAlbumFiles(albumId: string, files: File[], onProgress: (p: 
     const xhr = new XMLHttpRequest()
     xhr.open("POST", endpoint)
     if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`)
-    xhr.upload.onprogress = (e) => { if (e.lengthComputable) onProgress(Math.round((e.loaded / e.total) * 100)) }
+    if (sessionId) xhr.setRequestHeader("X-Upload-Session-Id", sessionId)
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) onChunkProgress(Math.round((e.loaded / e.total) * 100))
+    }
     xhr.onload = () => {
       try {
         const json = JSON.parse(xhr.responseText || "{}")
         if (xhr.status >= 200 && xhr.status < 300) {
           resolve(json)
+        } else if (xhr.status === 413) {
+          reject(new Error("File too large for the server. Max 25MB per image, 1GB per video, 250 files and 3GB total per batch."))
+        } else if (xhr.status === 408) {
+          reject(new Error("Upload timed out at the server. Try fewer files at once or a smaller total size."))
         } else {
           const detail = Array.isArray(json?.errors) && json.errors.length
             ? json.errors.join("\n")
-            : json?.message || "Upload failed"
+            : json?.message || `Upload failed (${xhr.status})`
           reject(new Error(detail))
         }
-      } catch { reject(new Error("Upload failed")) }
+      } catch {
+        reject(new Error(xhr.status === 0 ? "Connection lost during upload. Try again with fewer files." : "Upload failed"))
+      }
     }
-    xhr.onerror = () => reject(new Error("Network error during upload"))
+    xhr.onerror = () => reject(new Error("Network error during upload (connection dropped or server restarted)"))
+    xhr.ontimeout = () => reject(new Error("Upload timed out. Try again or use a smaller batch."))
+    xhr.timeout = 0
     xhr.send(formData)
   })
 }
 
-// ─── page ─────────────────────────────────────────────────────────────────────
+async function uploadAlbumFiles(
+  albumId: string,
+  files: File[],
+  onProgress: (p: number) => void,
+  sessionId: string
+): Promise<any> {
+  const totalBytes = files.reduce((sum, f) => sum + f.size, 0)
+  const chunks: File[][] = []
+  for (let i = 0; i < files.length; i += UPLOAD_CHUNK_FILES) {
+    chunks.push(files.slice(i, i + UPLOAD_CHUNK_FILES))
+  }
+  const chunkBytes = chunks.map((c) => c.reduce((sum, f) => sum + f.size, 0))
+  const chunkLoaded = new Array(chunks.length).fill(0)
+
+  const reportProgress = () => {
+    const loaded = chunkLoaded.reduce((a, b) => a + b, 0)
+    onProgress(totalBytes > 0 ? Math.min(100, Math.round((loaded / totalBytes) * 100)) : 0)
+  }
+
+  let lastResult: any = null
+  for (let i = 0; i < chunks.length; i += UPLOAD_CONCURRENT_CHUNKS) {
+    const wave = chunks.slice(i, i + UPLOAD_CONCURRENT_CHUNKS)
+    const results = await Promise.all(
+      wave.map((chunk, waveIdx) => {
+        const idx = i + waveIdx
+        return uploadAlbumChunk(albumId, chunk, sessionId, (chunkPct) => {
+          chunkLoaded[idx] = (chunkPct / 100) * chunkBytes[idx]
+          reportProgress()
+        }).then((res) => {
+          chunkLoaded[idx] = chunkBytes[idx]
+          reportProgress()
+          return res
+        })
+      })
+    )
+    lastResult = results[results.length - 1]
+  }
+  onProgress(100)
+  return lastResult
+}
 
 export default function GalleryManagementPage() {
   const clubId = useRequiredClubId()
 
-  // data
   const [albums, setAlbums] = useState<Album[]>([])
   const [storage, setStorage] = useState<GalleryStorageSummary | null>(null)
   const [loading, setLoading] = useState(true)
 
-  // album creation
   const [albumName, setAlbumName] = useState("")
   const [albumDescription, setAlbumDescription] = useState("")
   const [folderName, setFolderName] = useState("")
   const [creatingAlbum, setCreatingAlbum] = useState(false)
 
-  // upload
   const [selectedAlbumId, setSelectedAlbumId] = useState("")
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [serverProgress, setServerProgress] = useState(0)
+  const [uploadStartedAt, setUploadStartedAt] = useState<number | null>(null)
   const [processingLabel, setProcessingLabel] = useState("")
   const uploadAlbumIdRef = useRef<string>("")
+  const uploadSessionIdRef = useRef<string>("")
 
   const { socket } = useSocket()
 
-  // delete album
   const [deletingAlbumId, setDeletingAlbumId] = useState<string | null>(null)
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [albumToDelete, setAlbumToDelete] = useState<Album | null>(null)
 
-  // delete media item
   const [deletingMediaId, setDeletingMediaId] = useState<string | null>(null)
+  const [mediaToDelete, setMediaToDelete] = useState<{ albumId: string; item: AlbumMediaItem } | null>(null)
 
 
-  // upgrade modal
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false)
 
-  // create album modal
   const [createAlbumModalOpen, setCreateAlbumModalOpen] = useState(false)
 
-  // tiered add-on selection
   const [selectedStorageGb, setSelectedStorageGb] = useState<StorageGb>(100)
   const [selectedBillingCycle, setSelectedBillingCycle] = useState<BillingCycle>("monthly")
   const [addonAutoRenew, setAddonAutoRenew] = useState(true)
 
-  // razorpay plans (fetched from dashboard)
   const [razorpayPlans, setRazorpayPlans] = useState<any[]>([])
   const [checkoutBusy, setCheckoutBusy] = useState(false)
   const razorpayScriptRef = useRef(false)
 
-  // subscription confirmation modal (auto-renew ON)
   const [pendingSubscription, setPendingSubscription] = useState<{
     storageGb: StorageGb; plan: BillingCycle
   } | null>(null)
 
-  // one-time payment modal (auto-renew OFF)
   const [pendingUpgrade, setPendingUpgrade] = useState<{
     storageGb: StorageGb; plan: BillingCycle
     orderId: string; orderNumber: string
@@ -213,7 +297,6 @@ export default function GalleryManagementPage() {
     [albums, selectedAlbumId]
   )
 
-  // ── load Razorpay script once ──────────────────────────────────────────────
   useEffect(() => {
     if (razorpayScriptRef.current || document.querySelector('script[src*="checkout.razorpay"]')) {
       razorpayScriptRef.current = true
@@ -226,15 +309,13 @@ export default function GalleryManagementPage() {
     document.body.appendChild(script)
   }, [])
 
-  // ── fetch Razorpay plans ───────────────────────────────────────────────────
   useEffect(() => {
     fetch("/api/razorpay/plans")
       .then((r) => r.json())
       .then((d) => { if (d.plans) setRazorpayPlans(d.plans) })
-      .catch(() => { /* non-critical */ })
+      .catch(() => {})
   }, [])
 
-  // ── load gallery data ──────────────────────────────────────────────────────
   const loadData = async () => {
     try {
       setLoading(true)
@@ -250,7 +331,6 @@ export default function GalleryManagementPage() {
 
   useEffect(() => { loadData() }, [clubId])
 
-  // ── album creation ─────────────────────────────────────────────────────────
   const handleCreateAlbum = async () => {
     if (!albumName.trim()) { toast.error("Album name is required"); return }
     try {
@@ -269,53 +349,62 @@ export default function GalleryManagementPage() {
     } finally { setCreatingAlbum(false) }
   }
 
-  // ── socket: server-side processing progress ───────────────────────────────
   useEffect(() => {
     if (!socket) return
-    const handleProgress = (data: { albumId: string; processed: number; total: number; percent: number; currentFile: string }) => {
+    const handleProgress = (data: { albumId: string; sessionId?: string; processed: number; total: number; percent: number; currentFile: string }) => {
       if (data.albumId !== uploadAlbumIdRef.current) return
+      if (data.sessionId && uploadSessionIdRef.current && data.sessionId !== uploadSessionIdRef.current) return
       setServerProgress(data.percent)
-      // processed is the index (0-based) mid-file; show file number as min(processed+1, total)
       const fileNum = Math.min(data.processed + 1, data.total)
       setProcessingLabel(`Uploading to S3 — file ${fileNum}/${data.total}: ${data.currentFile}`)
       if (data.processed >= data.total) {
         uploadAlbumIdRef.current = ""
+        uploadSessionIdRef.current = ""
       }
     }
     socket.on("gallery:upload-progress", handleProgress)
     return () => { socket.off("gallery:upload-progress", handleProgress) }
   }, [socket])
 
-  // ── upload ─────────────────────────────────────────────────────────────────
   const handleUpload = async () => {
     if (!selectedAlbumId) { toast.error("Select an album first"); return }
     if (!selectedFiles.length) { toast.error("Select files to upload"); return }
-    const sizeErrors = validateFileSizes(selectedFiles)
+    const sizeErrors = validateFiles(selectedFiles)
     if (sizeErrors.length) { sizeErrors.forEach((msg) => toast.error(msg)); return }
     try {
       setUploading(true)
       setUploadProgress(0)
       setServerProgress(0)
+      setUploadStartedAt(Date.now())
       setProcessingLabel("")
+      const sessionId = typeof crypto !== "undefined" && crypto.randomUUID
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`
       uploadAlbumIdRef.current = selectedAlbumId
-      await uploadAlbumFiles(selectedAlbumId, selectedFiles, setUploadProgress)
-      // Server confirmed done — push to 100% then hide
+      uploadSessionIdRef.current = sessionId
+      await uploadAlbumFiles(selectedAlbumId, selectedFiles, setUploadProgress, sessionId)
       setServerProgress(100)
       await new Promise((r) => setTimeout(r, 400))
+      apiClient.notifyGalleryUploadSession(selectedAlbumId, sessionId).catch(() => {
+      })
       setUploading(false)
       setUploadProgress(0)
       setServerProgress(0)
       toast.success("Files uploaded successfully")
       setSelectedFiles([])
       await loadData()
+      setSelectedAlbumId(selectedAlbumId)
     } catch (e: any) {
       toast.error(e?.message || "Upload failed")
       uploadAlbumIdRef.current = ""
+      uploadSessionIdRef.current = ""
     }
-    finally { setUploading(false) }
+    finally {
+      setUploading(false)
+      setUploadStartedAt(null)
+    }
   }
 
-  // ── set cover ──────────────────────────────────────────────────────────────
   const handleSetCover = async (albumId: string, mediaItem: AlbumMediaItem) => {
     if (mediaItem.type !== "image") { toast.error("Only image can be set as cover"); return }
     const res = await apiClient.setAlbumCoverImage(albumId, mediaItem._id)
@@ -324,24 +413,66 @@ export default function GalleryManagementPage() {
     await loadData()
   }
 
-  // ── delete media item ─────────────────────────────────────────────────────
-  const handleDeleteMediaItem = async (albumId: string, mediaItemId: string) => {
+  const removeSelectedFile = (index: number) => {
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  const confirmDeleteMediaItem = async () => {
+    if (!mediaToDelete) return
+    const { albumId, item } = mediaToDelete
     try {
-      setDeletingMediaId(mediaItemId)
-      const res = await apiClient.deleteMediaItem(albumId, mediaItemId)
+      setDeletingMediaId(item._id)
+      const res = await apiClient.deleteMediaItem(albumId, item._id)
       if (!res.success) { toast.error(res.error || "Failed to delete media item"); return }
       toast.success("Media item deleted")
+      setMediaToDelete(null)
       await loadData()
     } catch { toast.error("Failed to delete media item") }
     finally { setDeletingMediaId(null) }
   }
 
-  // ── delete album ───────────────────────────────────────────────────────────
-  const handleDeleteAlbum = async (albumId: string) => {
-    if (confirmDeleteId !== albumId) { setConfirmDeleteId(albumId); return }
+  const renderMediaThumb = (albumId: string, m: AlbumMediaItem, compact = false) => (
+    <div
+      key={m._id}
+      className={`relative group rounded-md overflow-hidden bg-muted ${compact ? "aspect-square" : "aspect-square"}`}
+    >
+      {m.type === "image" ? (
+        <img src={m.url} alt={m.name} className="w-full h-full object-cover" />
+      ) : (
+        <>
+          <video src={`${m.url}#t=0.001`} className="w-full h-full object-cover" preload="metadata" />
+          <div className="absolute inset-0 flex items-center justify-center bg-black/30 pointer-events-none">
+            <Play className={`${compact ? "h-4 w-4" : "h-5 w-5"} text-white fill-white`} />
+          </div>
+        </>
+      )}
+      {m.type === "image" && (
+        <button
+          type="button"
+          title="Set as cover image"
+          onClick={() => handleSetCover(albumId, m)}
+          className="absolute bottom-0.5 left-0.5 rounded bg-black/60 px-1 py-0.5 text-[10px] text-white hover:bg-black/80"
+        >
+          Cover
+        </button>
+      )}
+      <button
+        type="button"
+        title="Delete"
+        disabled={deletingMediaId === m._id}
+        onClick={() => setMediaToDelete({ albumId, item: m })}
+        className="absolute top-0.5 right-0.5 rounded-full bg-destructive/90 p-1 text-destructive-foreground shadow hover:bg-destructive disabled:opacity-50"
+      >
+        <Trash2 className="h-3 w-3" />
+      </button>
+    </div>
+  )
+
+  const confirmDeleteAlbum = async () => {
+    if (!albumToDelete) return
+    const albumId = albumToDelete._id
     try {
       setDeletingAlbumId(albumId)
-      setConfirmDeleteId(null)
       const res = await apiClient.deleteAlbum(albumId)
       if (!res.success) { toast.error(res.error || "Failed to delete album"); return }
       if (res.data?.deleteErrors?.length) {
@@ -350,12 +481,12 @@ export default function GalleryManagementPage() {
         toast.success("Album deleted")
       }
       if (selectedAlbumId === albumId) setSelectedAlbumId("")
+      setAlbumToDelete(null)
       await loadData()
     } catch { toast.error("Failed to delete album") }
     finally { setDeletingAlbumId(null) }
   }
 
-  // ── activate storage after any successful payment ──────────────────────────
   const activateStorage = async (
     storageGb: StorageGb,
     plan: BillingCycle,
@@ -379,12 +510,10 @@ export default function GalleryManagementPage() {
     await loadData()
   }
 
-  // ── subscription checkout (auto-renew ON) ──────────────────────────────────
   const handleSubscriptionCheckout = async (storageGb: StorageGb, plan: BillingCycle) => {
     const priceInr = STORAGE_PRICING[storageGb][plan]
     const priceInPaise = priceInr * 100
 
-    // find matching plan by amount
     const matchedPlan = razorpayPlans.find(
       (p) => Number(p.item?.amount) === priceInPaise
     )
@@ -405,7 +534,6 @@ export default function GalleryManagementPage() {
 
     setCheckoutBusy(true)
     try {
-      // create subscription from the plan
       const subRes = await fetch("/api/razorpay/create-subscription", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -425,7 +553,6 @@ export default function GalleryManagementPage() {
         theme: { color: "#3b82f6" },
         handler: async (response: any) => {
           try {
-            // verify subscription signature
             const verifyRes = await fetch("/api/razorpay/verify-subscription", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -471,7 +598,6 @@ export default function GalleryManagementPage() {
     }
   }
 
-  // ── buy storage (branches on auto-renew) ──────────────────────────────────
   const handleBuyStorage = () => {
     if (addonAutoRenew) {
       setUpgradeModalOpen(false)
@@ -490,7 +616,6 @@ export default function GalleryManagementPage() {
     }
   }
 
-  // ── one-time payment success (auto-renew OFF) ──────────────────────────────
   const handlePaymentSuccess = async (
     _orderId: string, paymentId: string, razorpayOrderId: string, razorpaySignature: string
   ) => {
@@ -511,7 +636,6 @@ export default function GalleryManagementPage() {
 
   const selectedPrice = STORAGE_PRICING[selectedStorageGb][selectedBillingCycle]
 
-  // ── render ─────────────────────────────────────────────────────────────────
   return (
     <ProtectedRoute requireAdmin={true}>
       <DashboardLayout>
@@ -557,7 +681,6 @@ export default function GalleryManagementPage() {
             </div>
           ) : (
             <>
-              {/* ── Storage Usage ─────────────────────────────────────────── */}
               <Card>
                 <CardHeader className="flex flex-row items-start justify-between gap-4 pb-4">
                   <div>
@@ -582,7 +705,6 @@ export default function GalleryManagementPage() {
                   </Button>
                 </CardHeader>
                 <CardContent className="space-y-3 pt-0">
-                  {/* Progress bar */}
                   <div className="space-y-1.5">
                     <div className="h-2.5 rounded-full bg-muted overflow-hidden">
                       <div
@@ -595,7 +717,6 @@ export default function GalleryManagementPage() {
                       />
                     </div>
                   </div>
-                  {/* Stats row */}
                   <div className="grid grid-cols-3 gap-4 pt-1">
                     {[
                       { label: "Used", value: storage ? `${storage.usage.usedGb} GB` : "—" },
@@ -608,7 +729,6 @@ export default function GalleryManagementPage() {
                       </div>
                     ))}
                   </div>
-                  {/* Active add-ons */}
                   {storage && storage.upgrades.filter((u) => u.isActive).length > 0 && (
                     <div className="flex flex-wrap items-center gap-2 pt-1">
                       <span className="text-xs text-muted-foreground">Active add-ons:</span>
@@ -622,7 +742,6 @@ export default function GalleryManagementPage() {
                 </CardContent>
               </Card>
 
-              {/* ── Upload Media ──────────────────────────────────────────── */}
               <Card>
                 <CardHeader className="pb-4">
                   <CardTitle className="flex items-center gap-2 text-base">
@@ -653,15 +772,18 @@ export default function GalleryManagementPage() {
                       New Album
                     </Button>
                   </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Up to {MAX_FILES_PER_UPLOAD} files per upload · max {bytesToReadable(MAX_BATCH_BYTES)} total · 25MB/image · 1GB/video
+                  </p>
                   <Input
                     type="file"
                     multiple
                     accept="image/jpeg,image/png,video/mp4,video/mpeg,video/avi,video/x-msvideo"
                     onChange={(e) => {
                       const files = Array.from(e.target.files || [])
-                      const errors = validateFileSizes(files)
+                      const errors = validateFiles(files)
                       if (errors.length) {
-                        errors.forEach((msg) => toast.error(msg))
+                        errors.forEach((msg: string) => toast.error(msg))
                         e.target.value = ""
                         setSelectedFiles([])
                         return
@@ -670,18 +792,60 @@ export default function GalleryManagementPage() {
                     }}
                   />
                   {selectedFiles.length > 0 && (
-                    <p className="text-xs text-muted-foreground">
-                      {selectedFiles.length} {selectedFiles.length === 1 ? "file" : "files"} selected
-                    </p>
+                    <div className="space-y-2 rounded-lg border bg-muted/30 p-2">
+                      <p className="text-xs font-medium text-muted-foreground">
+                        {selectedFiles.length} {selectedFiles.length === 1 ? "file" : "files"} ready to upload
+                        {" · "}
+                        {bytesToReadable(selectedFiles.reduce((sum, f) => sum + f.size, 0))} total
+                      </p>
+                      <ul className="max-h-36 space-y-1 overflow-y-auto">
+                        {selectedFiles.map((f, i) => (
+                          <li key={`${f.name}-${f.size}-${i}`} className="flex items-center gap-2 text-xs">
+                            <span className="min-w-0 flex-1 truncate" title={f.name}>{f.name}</span>
+                            <span className="shrink-0 text-muted-foreground">{bytesToReadable(f.size)}</span>
+                            <button
+                              type="button"
+                              className="shrink-0 rounded p-0.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                              title="Remove from upload queue"
+                              disabled={uploading}
+                              onClick={() => removeSelectedFile(i)}
+                            >
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   )}
-                  {uploading && UploadProgressBar({ uploadProgress, serverProgress, processingLabel, selectedFiles })}
+                  {uploading && uploadStartedAt != null && (
+                    <UploadProgressBar
+                      uploadProgress={uploadProgress}
+                      serverProgress={serverProgress}
+                      processingLabel={processingLabel}
+                      selectedFiles={selectedFiles}
+                      startedAt={uploadStartedAt}
+                    />
+                  )}
                   <Button onClick={handleUpload} disabled={uploading} className="w-full">
                     {uploading ? "Uploading..." : "Upload Files"}
                   </Button>
+
+                  {selectedAlbum && selectedAlbum.mediaItems.length > 0 && (
+                    <div className="space-y-2 border-t pt-3">
+                      <p className="text-xs font-medium">
+                        Uploaded in &ldquo;{selectedAlbum.name}&rdquo; ({selectedAlbum.mediaItems.length})
+                      </p>
+                      <div className="grid grid-cols-4 gap-1.5 max-h-56 overflow-y-auto rounded-lg border p-2">
+                        {selectedAlbum.mediaItems.map((m) => renderMediaThumb(selectedAlbum._id, m, true))}
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        Use the trash icon on a file to delete it.
+                      </p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
-
-              {/* ── Album grid ───────────────────────────────────────────── */}
+              
               {albums.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 rounded-xl border border-dashed text-muted-foreground">
                   <ImageIcon className="h-12 w-12 mb-3 opacity-25" />
@@ -692,10 +856,8 @@ export default function GalleryManagementPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {albums.map((album) => (
                     <div key={album._id} className="rounded-xl border bg-card overflow-hidden flex flex-col">
-                      {/* Cover */}
                       <div className="relative h-44 bg-muted shrink-0">
                         {album.coverImage ? (
-                          // eslint-disable-next-line @next/next/no-img-element
                           <img src={album.coverImage} alt={album.name} className="w-full h-full object-cover" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
@@ -705,20 +867,14 @@ export default function GalleryManagementPage() {
                         <button
                           type="button"
                           disabled={deletingAlbumId === album._id}
-                          onClick={() => handleDeleteAlbum(album._id)}
-                          title={confirmDeleteId === album._id ? "Click again to confirm" : "Delete album"}
-                          className={`absolute top-2 right-2 inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium shadow transition-colors disabled:opacity-50 ${
-                            confirmDeleteId === album._id
-                              ? "bg-destructive text-destructive-foreground"
-                              : "bg-black/50 text-white hover:bg-black/70 backdrop-blur-sm"
-                          }`}
+                          onClick={() => setAlbumToDelete(album)}
+                          title="Delete album"
+                          className="absolute top-2 right-2 inline-flex items-center gap-1 rounded-md bg-black/50 px-2 py-1 text-xs font-medium text-white shadow backdrop-blur-sm transition-colors hover:bg-black/70 disabled:opacity-50"
                         >
                           <Trash2 className="h-3 w-3" />
-                          {confirmDeleteId === album._id && <span>Confirm?</span>}
                         </button>
                       </div>
 
-                      {/* Info */}
                       <div className="p-4 flex flex-col gap-3 flex-1">
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0">
@@ -727,65 +883,38 @@ export default function GalleryManagementPage() {
                               {album.mediaItems.length} {album.mediaItems.length === 1 ? "file" : "files"} &middot; {bytesToReadable(album.totalSize)}
                             </p>
                           </div>
-                          <div className="flex gap-1 shrink-0">
-                            <Badge variant="secondary" className="text-xs">
-                              {album.mediaItems.filter((m) => m.type === "image").length} img
-                            </Badge>
-                            {album.mediaItems.filter((m) => m.type === "video").length > 0 && (
-                              <Badge variant="outline" className="text-xs">
-                                {album.mediaItems.filter((m) => m.type === "video").length} vid
-                              </Badge>
-                            )}
-                          </div>
+                          {album.mediaItems.length > 0 && (
+                            <div className="flex gap-1 shrink-0">
+                              {album.mediaItems.filter((m) => m.type === "image").length > 0 && (
+                                <Badge variant="secondary" className="text-xs">
+                                  {album.mediaItems.filter((m) => m.type === "image").length} img
+                                </Badge>
+                              )}
+                              {album.mediaItems.filter((m) => m.type === "video").length > 0 && (
+                                <Badge variant="outline" className="text-xs">
+                                  {album.mediaItems.filter((m) => m.type === "video").length} vid
+                                </Badge>
+                              )}
+                            </div>
+                          )}
                         </div>
 
-                        {/* Expanded media grid */}
                         {selectedAlbum?._id === album._id && selectedAlbum.mediaItems.length > 0 && (
-                          <div className="grid grid-cols-4 gap-1.5 max-h-52 overflow-y-auto rounded-lg">
-                            {selectedAlbum.mediaItems.map((m) => (
-                              <div key={m._id} className="relative group rounded-md overflow-hidden bg-muted aspect-square">
-                                {m.type === "image" ? (
-                                  // eslint-disable-next-line @next/next/no-img-element
-                                  <img src={m.url} alt={m.name} className="w-full h-full object-cover" />
-                                ) : (
-                                  <>
-                                    {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-                                    <video src={`${m.url}#t=0.001`} className="w-full h-full object-cover" preload="metadata" />
-                                    <div className="absolute inset-0 flex items-center justify-center bg-black/30 pointer-events-none">
-                                      <Play className="h-4 w-4 text-white fill-white" />
-                                    </div>
-                                  </>
-                                )}
-                                {m.type === "image" && (
-                                  <button
-                                    type="button"
-                                    title="Set as cover image"
-                                    onClick={() => handleSetCover(album._id, m)}
-                                    className="absolute inset-0 opacity-0 group-hover:opacity-100 bg-black/20 transition-opacity"
-                                  />
-                                )}
-                                <button
-                                  type="button"
-                                  title="Delete"
-                                  disabled={deletingMediaId === m._id}
-                                  onClick={() => handleDeleteMediaItem(album._id, m._id)}
-                                  className="absolute top-0.5 right-0.5 opacity-0 group-hover:opacity-100 transition-opacity bg-destructive text-destructive-foreground rounded-full p-0.5 disabled:opacity-50"
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                </button>
-                              </div>
-                            ))}
+                          <div className="grid grid-cols-4 gap-1.5 max-h-52 overflow-y-auto rounded-lg border p-1.5">
+                            {selectedAlbum.mediaItems.map((m) => renderMediaThumb(album._id, m, true))}
                           </div>
                         )}
 
-                        <Button
-                          variant={selectedAlbum?._id === album._id ? "default" : "outline"}
-                          size="sm"
-                          className="mt-auto w-full"
-                          onClick={() => setSelectedAlbumId(selectedAlbum?._id === album._id ? "" : album._id)}
-                        >
-                          {selectedAlbum?._id === album._id ? "Hide Media" : "Manage Media"}
-                        </Button>
+                        {album.mediaItems.length > 0 && (
+                          <Button
+                            variant={selectedAlbum?._id === album._id ? "default" : "outline"}
+                            size="sm"
+                            className="mt-auto w-full"
+                            onClick={() => setSelectedAlbumId(selectedAlbum?._id === album._id ? "" : album._id)}
+                          >
+                            {selectedAlbum?._id === album._id ? "Hide Media" : "Manage Media"}
+                          </Button>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -795,7 +924,6 @@ export default function GalleryManagementPage() {
           )}
         </div>
 
-        {/* ── Upgrade Storage Modal ──────────────────────────────────────────── */}
         <Dialog open={upgradeModalOpen} onOpenChange={setUpgradeModalOpen}>
           <DialogContent className="max-w-xl">
             <DialogHeader>
@@ -806,7 +934,6 @@ export default function GalleryManagementPage() {
             </DialogHeader>
 
             <div className="space-y-5 py-2">
-              {/* Tier cards */}
               <div className="grid grid-cols-3 gap-3">
                 {([50, 100, 300] as StorageGb[]).map((gb) => (
                   <button
@@ -827,7 +954,6 @@ export default function GalleryManagementPage() {
                 ))}
               </div>
 
-              {/* Billing cycle */}
               <div className="space-y-2">
                 <p className="text-sm font-medium">Billing cycle</p>
                 <div className="grid grid-cols-3 gap-2">
@@ -852,7 +978,6 @@ export default function GalleryManagementPage() {
                 </div>
               </div>
 
-              {/* Auto-renew */}
               <div className="flex items-center justify-between rounded-lg border px-4 py-3">
                 <div>
                   <p className="text-sm font-medium flex items-center gap-1.5">
@@ -868,7 +993,6 @@ export default function GalleryManagementPage() {
                 <Switch checked={addonAutoRenew} onCheckedChange={setAddonAutoRenew} id="modal-auto-renew" />
               </div>
 
-              {/* Summary + CTA */}
               <div className="rounded-lg bg-muted/50 px-4 py-3 flex items-center justify-between gap-4">
                 <div>
                   <p className="text-sm font-medium">
@@ -892,7 +1016,6 @@ export default function GalleryManagementPage() {
         </Dialog>
       </DashboardLayout>
 
-      {/* ── Create Album Modal ──────────────────────────────────────────────── */}
       <Dialog open={createAlbumModalOpen} onOpenChange={(open) => {
         setCreateAlbumModalOpen(open)
         if (!open) { setAlbumName(""); setAlbumDescription(""); setFolderName("") }
@@ -945,7 +1068,6 @@ export default function GalleryManagementPage() {
         </DialogContent>
       </Dialog>
 
-      {/* ── Subscription Confirmation Modal (auto-renew ON) ──────────────────── */}
       {pendingSubscription && (
         <Dialog open={!!pendingSubscription} onOpenChange={(open) => { if (!open) setPendingSubscription(null) }}>
           <DialogContent className="max-w-sm">
@@ -956,7 +1078,6 @@ export default function GalleryManagementPage() {
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-2">
-              {/* Plan summary */}
               <div className="rounded-xl border bg-muted/40 p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Storage</span>
@@ -1007,7 +1128,58 @@ export default function GalleryManagementPage() {
         </Dialog>
       )}
 
-      {/* one-time payment modal (auto-renew OFF) */}
+      <AlertDialog open={!!albumToDelete} onOpenChange={(open) => { if (!open) setAlbumToDelete(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete album?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete &ldquo;{albumToDelete?.name}&rdquo;
+              {albumToDelete && albumToDelete.mediaItems.length > 0
+                ? ` and all ${albumToDelete.mediaItems.length} file(s) in it`
+                : ""}
+              . This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={!!deletingAlbumId}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={!!deletingAlbumId}
+              onClick={(e) => {
+                e.preventDefault()
+                confirmDeleteAlbum()
+              }}
+            >
+              {deletingAlbumId ? "Deleting…" : "Delete album"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!mediaToDelete} onOpenChange={(open) => { if (!open && !deletingMediaId) setMediaToDelete(null) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete file?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Remove &ldquo;{mediaToDelete?.item.name}&rdquo; from this album? The file will be deleted from storage and cannot be recovered.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={!!deletingMediaId}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={!!deletingMediaId}
+              onClick={(e) => {
+                e.preventDefault()
+                confirmDeleteMediaItem()
+              }}
+            >
+              {deletingMediaId ? "Deleting…" : "Delete file"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {pendingUpgrade && (
         <PaymentSimulationModal
           isOpen={!!pendingUpgrade}

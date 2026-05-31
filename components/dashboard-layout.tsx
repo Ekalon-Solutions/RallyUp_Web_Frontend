@@ -4,6 +4,7 @@ import type React from "react"
 
 import { useState, useMemo, useEffect } from "react"
 import { useAuth } from "@/contexts/auth-context"
+import { buildAccessibleClubs, reconcileActiveClubId } from "@/lib/clubContext"
 import { useClubSettings } from "@/hooks/useClubSettings"
 import { useDesignSettings } from "@/hooks/useDesignSettings"
 import { Button } from "@/components/ui/button"
@@ -223,14 +224,18 @@ function DashboardSidebar({
       <div className="p-6 border-t bg-muted/20">
         <div className="space-y-4">
           {(() => {
-            const currentClub = sidebarClubs.find((c) => c._id === activeClubId) ?? sidebarClubs[0]
+            const matchedClub = activeClubId
+              ? sidebarClubs.find((c) => c._id === activeClubId)
+              : null
+            const staleSelection = Boolean(activeClubId && !matchedClub && sidebarClubs.length > 0)
+            const currentClub = matchedClub ?? null
             const settingsLogo = settings ? ((settings as any).designSettings?.logo) : undefined
             const displayLogo = settingsLogo || currentClub?.logo
             const hasMultipleClubs = sidebarClubs.length > 1
 
-            if (!currentClub) return null
+            if (sidebarClubs.length === 0) return null
 
-            const trigger = (
+            const trigger = currentClub ? (
               <div className="flex items-center gap-2 min-w-0 w-full">
                 {displayLogo && (
                   <div className="relative w-6 h-6 rounded-md overflow-hidden flex-shrink-0">
@@ -246,6 +251,17 @@ function DashboardSidebar({
                 <p className="text-sm font-bold text-foreground truncate flex-1">{currentClub.name}</p>
                 {hasMultipleClubs && (
                   <span className="text-xs text-muted-foreground flex-shrink-0">↗</span>
+                )}
+              </div>
+            ) : (
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-amber-700 dark:text-amber-400">
+                  Club unavailable — select one
+                </p>
+                {staleSelection && (
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    Your previous selection is no longer valid.
+                  </p>
                 )}
               </div>
             )
@@ -387,30 +403,25 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const [storageAlertStatus, setStorageAlertStatus] = useState<StorageAlertStatus | null>(null)
   const [storageBannerDismissed, setStorageBannerDismissed] = useState(false)
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false)
-  
-  const getUserClubId = () => {
-    if (!user || user.role === 'system_owner') return undefined
-    const userWithMemberships = user as any
 
-    if (activeClubId) {
-      const activeMembership = userWithMemberships.memberships?.find(
-        (m: any) => (m.club_id?._id || m.club_id) === activeClubId && m.status === 'active'
-      )
-      if (activeMembership) return activeClubId
-      const isAdmin = userWithMemberships.role === 'admin' || userWithMemberships.role === 'super_admin'
-      const inClubs = Array.isArray(userWithMemberships.clubs) &&
-        userWithMemberships.clubs.some((c: any) => (c?._id?.toString?.() ?? c?.toString?.()) === activeClubId)
-      if (isAdmin && inClubs) return activeClubId
+  const sidebarClubs = useMemo(() => buildAccessibleClubs(user), [user])
+
+  useEffect(() => {
+    if (!user || user.role === "system_owner") return
+    if (sidebarClubs.length === 0) return
+
+    const reconciled = reconcileActiveClubId(activeClubId, sidebarClubs)
+    if (reconciled !== activeClubId) {
+      setActiveClubId(reconciled)
     }
+  }, [user, sidebarClubs, activeClubId, setActiveClubId])
 
-    const activeMembership = userWithMemberships.memberships?.find((m: any) => m.status === 'active')
-    if (activeMembership?.club_id?._id) return activeMembership.club_id._id
-    const firstClub = Array.isArray(userWithMemberships.clubs) ? userWithMemberships.clubs[0] : null
-    const firstClubId = firstClub?._id?.toString?.() ?? (typeof firstClub === 'object' ? firstClub?._id : firstClub)
-    return firstClubId ?? undefined
-  }
-  
-  const clubId = getUserClubId()
+  const clubId = useMemo(() => {
+    if (!user || user.role === "system_owner") return undefined
+    const reconciled = reconcileActiveClubId(activeClubId, sidebarClubs)
+    return reconciled ?? undefined
+  }, [user, activeClubId, sidebarClubs])
+
   const { isSectionVisible, settings, loading: settingsLoading } = useClubSettings(clubId)
   
   useDesignSettings(clubId)
@@ -432,7 +443,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   useEffect(() => {
     if (!isAdminRole) return
-    const clubId = getUserClubId()
     apiClient.getStorageAlertStatus(clubId ?? undefined).then((res) => {
       if (res.success && res.data) {
         setStorageAlertStatus(res.data)
@@ -441,34 +451,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         }
       }
     }).catch(() => {})
-  }, [isAdminRole, activeClubId])
+  }, [isAdminRole, clubId])
 
-  const sidebarClubs = useMemo(() => {
-    if (!user || user.role === 'system_owner') return []
-    const userAny = user as any
-    const list: { _id: string; name: string; logo?: string }[] = []
-    const isAdmin = userAny.role === 'admin' || userAny.role === 'super_admin'
-    if (isAdmin && Array.isArray(userAny.clubs)) {
-      userAny.clubs.forEach((c: any) => {
-        const id = c?._id?.toString?.() ?? c?.toString?.() ?? c
-        if (!id) return
-        const name = typeof c === 'object' && c?.name ? c.name : 'Unknown Club'
-        const logo = typeof c === 'object' ? c.logo : undefined
-        if (!list.some((x) => x._id === id)) list.push({ _id: id, name, logo })
-      })
-    }
-    const memberships = userAny?.memberships?.filter((m: any) => m?.status === 'active') ?? []
-    memberships.forEach((m: any) => {
-      const club = m?.club_id ?? m?.club
-      const id = club?._id?.toString?.() ?? (typeof club === 'string' ? club : null)
-      if (!id || list.some((x) => x._id === id)) return
-      const name = typeof club === 'object' && club?.name ? club.name : 'Unknown Club'
-      const logo = typeof club === 'object' ? club.logo : undefined
-      list.push({ _id: id, name, logo })
-    })
-    return list
-  }, [user])
-  
   const getNavigation = () => {
     if (!user) return userNavigation
     

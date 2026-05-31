@@ -123,8 +123,8 @@ export function CreateMerchandiseModal({
         toast.error(`${file.name} is not an image file`)
         return false
       }
-      if (file.size > 10 * 1024 * 1024) {
-        toast.error(`${file.name} is too large. Maximum size is 10MB`)
+      if (file.size > 25 * 1024 * 1024) {
+        toast.error(`${file.name} is too large. Maximum size is 25MB`)
         return false
       }
       return true
@@ -440,7 +440,7 @@ export function CreateMerchandiseModal({
             <CardHeader>
               <CardTitle className="text-lg">Product Images</CardTitle>
               <p className="text-sm text-muted-foreground">
-                Upload up to 5 images (max 10MB each)
+                Upload up to 5 images (max 25MB each)
               </p>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -459,7 +459,7 @@ export function CreateMerchandiseModal({
                     Click to upload images or drag and drop
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
-                    PNG, JPG, GIF up to 10MB each
+                    PNG, JPG, GIF up to 25MB each
                   </p>
                 </label>
               </div>

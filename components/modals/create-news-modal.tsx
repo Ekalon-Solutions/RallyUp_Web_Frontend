@@ -349,7 +349,7 @@ export function CreateNewsModal({ isOpen, onClose, onSuccess, editNews }: Create
                 Upload Images
               </Button>
               <p className="text-sm text-muted-foreground">
-                Upload up to 10 images (JPG, PNG, GIF). Max 5MB each.
+                Upload up to 10 images (JPG, PNG, GIF). Max 25MB each.
               </p>
             </div>
 
