@@ -7,8 +7,10 @@ import { NonRefundableBadge } from "@/components/member/non-refundable-badge"
 import type { VenueDraft } from "@/components/admin/venue-tier-matrix-builder"
 import { formatDisplayDate } from "@/lib/utils"
 import { cn } from "@/lib/utils"
-import { Calendar, Clock, Eye, MapPin, Ticket, Users } from "lucide-react"
+import { Calendar, Clock, Eye, MapPin, Ticket, Users, CalendarClock, Award } from "lucide-react"
 import { JointScreeningDisplay, isJointScreeningEvent } from "@/components/events/joint-screening-display"
+import { WaitlistDisplay } from "@/components/events/waitlist-display"
+import { formatBookingWindow } from "@/components/events/event-schedule-meta"
 
 const CURRENCY_SYMBOLS: Record<string, string> = {
   INR: "₹",
@@ -44,6 +46,11 @@ type Props = {
   jointScreeningEnabled?: boolean
   partnerClubNames?: string[]
   homeClubName?: string
+  bookingStartTime?: string
+  bookingEndTime?: string
+  attendancePoints?: string
+  waitlistEnabled?: boolean
+  waitlistPurchaseWindowHours?: string
   className?: string
 }
 
@@ -87,6 +94,11 @@ export function EventCreatePreview({
   jointScreeningEnabled = false,
   partnerClubNames = [],
   homeClubName = "",
+  bookingStartTime = "",
+  bookingEndTime = "",
+  attendancePoints = "0",
+  waitlistEnabled = false,
+  waitlistPurchaseWindowHours = "12",
   className,
 }: Props) {
   const sym = CURRENCY_SYMBOLS[currency] ?? `${currency} `
@@ -96,6 +108,9 @@ export function EventCreatePreview({
     ? { enabled: true, partnerClubNames, homeClubName: homeClubName || clubName }
     : null
   const showJointScreening = isJointScreeningEvent(jointScreeningConfig)
+  const bookingLabel = formatBookingWindow(bookingStartTime, bookingEndTime)
+  const pointsNum = Number(attendancePoints)
+  const showAttendancePoints = Number.isFinite(pointsNum) && pointsNum > 0
 
   const ticketRows = multiTicketEnabled
     ? venues.flatMap((v) =>
@@ -145,6 +160,11 @@ export function EventCreatePreview({
             {showJointScreening && (
               <JointScreeningDisplay jointScreening={jointScreeningConfig} variant="badge" />
             )}
+            <WaitlistDisplay
+              enabled={waitlistEnabled}
+              purchaseWindowHours={waitlistPurchaseWindowHours}
+              variant="badge"
+            />
             {!isPaid ? (
               <Badge variant="outline" className="text-xs text-green-600 border-green-400">
                 Free
@@ -204,6 +224,28 @@ export function EventCreatePreview({
               primaryColor={primaryColor}
             />
           )}
+          {bookingLabel && (
+            <PreviewRow
+              icon={CalendarClock}
+              label="Booking window"
+              value={bookingLabel}
+              primaryColor={primaryColor}
+            />
+          )}
+          {showAttendancePoints && (
+            <PreviewRow
+              icon={Award}
+              label="Attendance points"
+              value={String(pointsNum)}
+              primaryColor={primaryColor}
+            />
+          )}
+          <WaitlistDisplay
+            enabled={waitlistEnabled}
+            purchaseWindowHours={waitlistPurchaseWindowHours}
+            variant="row"
+            primaryColor={primaryColor}
+          />
         </div>
 
         {ticketRows.length > 0 && (

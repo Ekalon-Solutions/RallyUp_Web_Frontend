@@ -29,6 +29,8 @@ import {
 import Link from "next/link"
 import { RefundPolicyBadge } from "@/components/refund-policy-badge"
 import { JointScreeningDisplay } from "@/components/events/joint-screening-display"
+import { EventScheduleMeta } from "@/components/events/event-schedule-meta"
+import { WaitlistDisplay } from "@/components/events/waitlist-display"
 
 interface ClubSettings {
   websiteSetup: {
@@ -246,6 +248,7 @@ export default function EventDetailPage() {
                   </Badge>
                 )}
                 <JointScreeningDisplay jointScreening={event.jointScreening} variant="badge" />
+                <WaitlistDisplay waitlist={event.waitlist} variant="badge" />
               </div>
               <h1 className="text-3xl sm:text-4xl lg:text-[2.75rem] font-black tracking-tight leading-[1.15] text-balance">
                 {event.title}
@@ -335,6 +338,20 @@ export default function EventDetailPage() {
                     jointScreening={event.jointScreening}
                     variant="detail"
                     className="mx-0"
+                  />
+
+                  <EventScheduleMeta
+                    bookingStartTime={event.bookingStartTime}
+                    bookingEndTime={event.bookingEndTime}
+                    attendancePoints={event.attendancePoints}
+                    className="px-0.5"
+                  />
+
+                  <WaitlistDisplay
+                    waitlist={event.waitlist}
+                    variant="row"
+                    primaryColor={primaryColor}
+                    className="px-0.5"
                   />
 
                   {event.maxAttendees != null && (

@@ -14,6 +14,8 @@ import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
 import { formatLocalDate } from "@/lib/timezone"
 import { JointScreeningDisplay } from "@/components/events/joint-screening-display"
+import { EventScheduleMeta } from "@/components/events/event-schedule-meta"
+import { WaitlistDisplay } from "@/components/events/waitlist-display"
 
 export default function PublicEventsPage() {
   const { user } = useAuth()
@@ -409,6 +411,13 @@ export default function PublicEventsPage() {
                             )}
 
                             <JointScreeningDisplay jointScreening={event.jointScreening} variant="badge" />
+                            <WaitlistDisplay waitlist={event.waitlist} variant="badge" />
+
+                            <EventScheduleMeta
+                              bookingStartTime={event.bookingStartTime}
+                              bookingEndTime={event.bookingEndTime}
+                              attendancePoints={event.attendancePoints}
+                            />
                           </div>
 
                           {/* Action Button */}

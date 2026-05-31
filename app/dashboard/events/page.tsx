@@ -18,6 +18,8 @@ import { useEffect, useState } from "react"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { useRouter } from "next/navigation"
 import { JointScreeningDisplay } from "@/components/events/joint-screening-display"
+import { EventScheduleMeta } from "@/components/events/event-schedule-meta"
+import { WaitlistDisplay } from "@/components/events/waitlist-display"
 
 export default function EventsPage() {
   const router = useRouter()
@@ -298,6 +300,7 @@ export default function EventsPage() {
                                 variant="badge"
                                 className="mt-1"
                               />
+                              <WaitlistDisplay waitlist={event.waitlist} variant="badge" className="mt-1" />
                             </div>
                           </TableCell>
                           <TableCell>
@@ -316,6 +319,13 @@ export default function EventsPage() {
                                 <span>Ends: {formatDisplayDate(event.endTime)}</span>
                               </div>
                             )}
+                            <EventScheduleMeta
+                              bookingStartTime={event.bookingStartTime}
+                              bookingEndTime={event.bookingEndTime}
+                              attendancePoints={event.attendancePoints}
+                              compact
+                              className="mt-1"
+                            />
                           </TableCell>
                           <TableCell>
                             <div className="flex items-start gap-1 min-w-[150px]">

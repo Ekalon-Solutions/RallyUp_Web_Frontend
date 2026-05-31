@@ -363,7 +363,8 @@ function CreateEventForm() {
           earlyBirdValue: ev.earlyBirdDiscount?.value ? String(ev.earlyBirdDiscount.value) : "",
           earlyBirdStartTime: toDatetimeLocal(ev.earlyBirdDiscount?.startTime),
           earlyBirdEndTime: toDatetimeLocal(ev.earlyBirdDiscount?.endTime),
-          earlyBirdMembersOnly: ev.earlyBirdDiscount?.membersOnly ?? false,
+          earlyBirdMembersOnly:
+            (ev.memberOnly ?? false) || (ev.earlyBirdDiscount?.membersOnly ?? false),
           multiTicketEnabled: Boolean(ev.venues?.length),
           isRefundAllowed: ev.isRefundAllowed !== false && ev.is_refund_allowed !== false,
           refundCutoffHours: String(ev.refundCutoffHours ?? ev.refund_cutoff_hours ?? 24),
@@ -463,7 +464,7 @@ function CreateEventForm() {
           value: Number(form.earlyBirdValue),
           startTime: new Date(form.earlyBirdStartTime).toISOString(),
           endTime: new Date(form.earlyBirdEndTime).toISOString(),
-          membersOnly: form.earlyBirdMembersOnly,
+          membersOnly: form.memberOnly ? true : form.earlyBirdMembersOnly,
         } : { enabled: false, type: "percentage" as const, value: 0 },
         jointScreening: {
           enabled: form.jointScreeningEnabled,
@@ -956,7 +957,16 @@ function CreateEventForm() {
                   <Label>Members Only</Label>
                   <p className="text-xs text-muted-foreground">Only club members can register</p>
                 </div>
-                <Switch checked={form.memberOnly} onCheckedChange={(v) => set("memberOnly", v)} />
+                <Switch
+                  checked={form.memberOnly}
+                  onCheckedChange={(v) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      memberOnly: v,
+                      ...(v ? { earlyBirdMembersOnly: true } : {}),
+                    }))
+                  }
+                />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor="attendancePoints">Attendance Points</Label>
@@ -1021,7 +1031,16 @@ function CreateEventForm() {
                   <Label>Enable Early Bird Discount</Label>
                   <p className="text-xs text-muted-foreground">Offer a time-limited discount before a cutoff date</p>
                 </div>
-                <Switch checked={form.earlyBirdEnabled} onCheckedChange={(v) => set("earlyBirdEnabled", v)} />
+                <Switch
+                  checked={form.earlyBirdEnabled}
+                  onCheckedChange={(v) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      earlyBirdEnabled: v,
+                      ...(v && prev.memberOnly ? { earlyBirdMembersOnly: true } : {}),
+                    }))
+                  }
+                />
               </div>
 
               {form.earlyBirdEnabled && (
@@ -1076,10 +1095,15 @@ function CreateEventForm() {
                   <div className="flex items-center justify-between">
                     <div>
                       <Label>Members Only</Label>
-                      <p className="text-xs text-muted-foreground">Restrict this discount to club members</p>
+                      <p className="text-xs text-muted-foreground">
+                        {form.memberOnly
+                          ? "Early bird follows event setting — members-only event"
+                          : "Restrict this discount to club members"}
+                      </p>
                     </div>
                     <Switch
-                      checked={form.earlyBirdMembersOnly}
+                      checked={form.memberOnly || form.earlyBirdMembersOnly}
+                      disabled={form.memberOnly}
                       onCheckedChange={(v) => set("earlyBirdMembersOnly", v)}
                     />
                   </div>
@@ -1163,6 +1187,11 @@ function CreateEventForm() {
               jointScreeningEnabled={form.jointScreeningEnabled}
               partnerClubNames={partnerClubNames}
               homeClubName={homeClubName}
+              bookingStartTime={form.bookingStartTime}
+              bookingEndTime={form.bookingEndTime}
+              attendancePoints={form.attendancePoints}
+              waitlistEnabled={form.waitlistEnabled}
+              waitlistPurchaseWindowHours={form.waitlistPurchaseWindowHours}
             />
           </aside>
         </div>

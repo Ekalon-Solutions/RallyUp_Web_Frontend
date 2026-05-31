@@ -44,6 +44,8 @@ import { RefundConfirmationModal } from "@/components/modals/refund-confirmation
 import { MemberTicketRefundAction } from "@/components/member/member-ticket-refund-action";
 import { RefundPolicyBadge } from "@/components/refund-policy-badge";
 import { JointScreeningDisplay } from "@/components/events/joint-screening-display";
+import { EventScheduleMeta } from "@/components/events/event-schedule-meta";
+import { WaitlistDisplay } from "@/components/events/waitlist-display";
 import { VenueTierCartModal } from "@/components/modals/venue-tier-cart-modal";
 
 const eventCategories = [
@@ -884,6 +886,12 @@ function UserEventsPageInner() {
                             </div>
                           ) : null}
                           <JointScreeningDisplay jointScreening={event.jointScreening} variant="badge" />
+                          <WaitlistDisplay waitlist={event.waitlist} variant="badge" />
+                          <EventScheduleMeta
+                            bookingStartTime={event.bookingStartTime}
+                            bookingEndTime={event.bookingEndTime}
+                            attendancePoints={event.attendancePoints}
+                          />
                         </div>
 
                         {(() => {
