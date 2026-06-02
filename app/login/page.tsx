@@ -1026,7 +1026,7 @@ function AuthPageContent() {
           localStorage.setItem("token", data.token)
           localStorage.setItem("userType", "system_owner")
           toast.success("System Owner signed in successfully!")
-          window.location.href = "/login"
+          window.location.href = "/dashboard"
         } else {
           toast.error(res.message || res.error || "Invalid or expired code. Please try again.")
         }
