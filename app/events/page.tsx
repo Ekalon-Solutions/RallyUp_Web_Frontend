@@ -18,6 +18,7 @@ import { EventScheduleMeta } from "@/components/events/event-schedule-meta"
 import { WaitlistDisplay } from "@/components/events/waitlist-display"
 import {
   formatEventPriceDisplay,
+  getEventCapacity,
   hasVenueTierMatrix,
   isEventPaid,
 } from "@/lib/event-display-price"
@@ -197,17 +198,7 @@ export default function PublicEventsPage() {
   }
 
   const getCapacity = (event: Event): { count: number; max: number | null } => {
-    if ((event as any).venues?.length) {
-      let total = 0, sold = 0
-      for (const v of (event as any).venues) {
-        for (const t of v.tiers) {
-          total += t.allocation ?? 0
-          sold += t.sold ?? 0
-        }
-      }
-      return { count: sold, max: total }
-    }
-    return { count: event.currentAttendees || 0, max: event.maxAttendees ?? null }
+    return getEventCapacity(event)
   }
 
   const isUserRegistered = (eventId: string) => {

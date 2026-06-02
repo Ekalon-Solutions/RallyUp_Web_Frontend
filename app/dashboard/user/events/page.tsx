@@ -49,6 +49,7 @@ import { WaitlistDisplay } from "@/components/events/waitlist-display";
 import { VenueTierCartModal } from "@/components/modals/venue-tier-cart-modal";
 import {
   formatEventPriceDisplay,
+  getEventCapacity,
   getEventLowestTicketPrice,
   hasVenueTierMatrix,
   isEventPaid,
@@ -417,17 +418,7 @@ function UserEventsPageInner() {
     return `${symbol}${Number(amount || 0).toLocaleString()}`;
   };
   const getCapacity = (event: Event): { count: number; max: number | null } => {
-    if (event.venues?.length) {
-      let total = 0, sold = 0;
-      for (const v of event.venues) {
-        for (const t of v.tiers) {
-          total += t.allocation ?? 0;
-          sold += t.sold ?? 0;
-        }
-      }
-      return { count: sold, max: total };
-    }
-    return { count: event.currentAttendees || 0, max: event.maxAttendees ?? null };
+    return getEventCapacity(event)
   };
 
   const isEventFull = (event: Event) => {

@@ -107,7 +107,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
     setAttendeeSlots(prev => {
       const newSlots: AttendeeSlot[] = []
       for (const venue of event.venues!) {
-        for (const tier of venue.tiers) {
+        for (const tier of (Array.isArray(venue.tiers) ? venue.tiers : [])) {
           const qty = cart[venue._id]?.[tier._id] ?? 0
           const existing = prev.filter(s => s.venueId === venue._id && s.tierId === tier._id)
           for (let q = 0; q < qty; q++) {
@@ -152,7 +152,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
 
   const cartItems: Array<VenueTierCartItem & { venueName: string; tierName: string; price: number }> = []
   for (const venue of venues) {
-    for (const tier of venue.tiers) {
+    for (const tier of (Array.isArray(venue.tiers) ? venue.tiers : [])) {
       const qty = cart[venue._id]?.[tier._id] ?? 0
       if (qty > 0) {
         cartItems.push({
@@ -193,7 +193,8 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
       const current = vCart[tierId] ?? 0
       const next = Math.max(0, current + delta)
       const venue = venues.find((v) => v._id === venueId)!
-      const tier = venue.tiers.find((t) => t._id === tierId)!
+      const tier = (Array.isArray(venue.tiers) ? venue.tiers : []).find((t) => t._id === tierId)
+      if (!tier) return prev
       const available = getClubRemaining(tier)
       if (next > available) {
         const label = attributedClub && tier.clubAllocations?.length
@@ -303,7 +304,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
       if (freshEvent?.venues?.length) {
         for (const item of cartItems) {
           const venue = freshEvent.venues.find((v) => v._id === item.venueId)
-          const tier = venue?.tiers.find((t) => t._id === item.tierId)
+          const tier = (Array.isArray(venue?.tiers) ? venue.tiers : []).find((t) => t._id === item.tierId)
           if (!venue || !tier) {
             toast.error("Ticket matrix changed. Please review your cart and try again.")
             setLoading(false)
@@ -540,7 +541,8 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
           )}
 
           {venues.map((venue) => {
-            const available = venue.tiers.some((t) => t.allocation - t.sold > 0)
+            const tiers = Array.isArray(venue.tiers) ? venue.tiers : []
+            const available = tiers.some((t) => t.allocation - t.sold > 0)
             return (
               <Card key={venue._id} className={!available ? "opacity-60" : undefined}>
                 <CardHeader className="pb-2">
@@ -550,7 +552,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  {venue.tiers.map((tier) => {
+                  {tiers.map((tier) => {
                     const remaining = getClubRemaining(tier)
                     const hasClubSplit = Boolean(tier.clubAllocations?.length)
                     const clubNotSelected = isJointEvent && hasClubSplit && !attributedClub

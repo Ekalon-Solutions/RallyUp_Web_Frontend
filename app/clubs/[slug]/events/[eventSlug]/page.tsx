@@ -29,10 +29,15 @@ import {
 import Link from "next/link"
 import {
   formatEventPriceDisplay,
+  formatTierPrice,
+  getEventCapacity,
   getEventLowestTicketPrice,
+  getEventTicketRows,
+  getEventVenueDisplay,
   hasVenueTierMatrix,
   isEventPaid,
 } from "@/lib/event-display-price"
+import { VenueTierCartModal } from "@/components/modals/venue-tier-cart-modal"
 import { RefundPolicyBadge } from "@/components/refund-policy-badge"
 import { JointScreeningDisplay } from "@/components/events/joint-screening-display"
 import { EventScheduleMeta } from "@/components/events/event-schedule-meta"
@@ -70,6 +75,7 @@ export default function EventDetailPage() {
   const [showEventRegistrationModal, setShowEventRegistrationModal] = useState(false)
   const [showPurchaseFlowModal, setShowPurchaseFlowModal] = useState(false)
   const [showEventCheckoutModal, setShowEventCheckoutModal] = useState(false)
+  const [showVenueTierCartModal, setShowVenueTierCartModal] = useState(false)
   const [eventCheckoutAsGuest, setEventCheckoutAsGuest] = useState(false)
   const [attendeesForPayment, setAttendeesForPayment] = useState<any[]>([])
 
@@ -88,7 +94,11 @@ export default function EventDetailPage() {
 
     const finish = () => {
       setAttendeesForPayment(storedAttendees)
-      setShowEventCheckoutModal(true)
+      if (hasVenueTierMatrix(event)) {
+        setShowVenueTierCartModal(true)
+      } else {
+        setShowEventCheckoutModal(true)
+      }
       clearStoredPurchaseIntent()
       const url = new URL(window.location.href)
       url.searchParams.delete("resumePurchase")
@@ -128,8 +138,13 @@ export default function EventDetailPage() {
       if (clubRes.success && clubRes.data) {
         const eventsRes = await apiClient.getPublicEvents(clubRes.data._id)
         if (eventsRes.success && eventsRes.data) {
-          const found = eventsRes.data.find((e) => slugify(e.title) === eventSlug)
-          if (found) setEvent(found)
+          const raw = eventsRes.data as Event[] | { events?: Event[] }
+          const eventsList = Array.isArray(raw) ? raw : raw.events ?? []
+          const found = eventsList.find((e) => slugify(e.title) === eventSlug)
+          if (found?._id) {
+            const fullRes = await apiClient.getPublicEventById(found._id)
+            setEvent(fullRes.success && fullRes.data ? fullRes.data : found)
+          }
         }
       }
     } catch {
@@ -140,8 +155,9 @@ export default function EventDetailPage() {
 
   const handleBuyTickets = async () => {
     if (!event) return
-    const isEventFull = event.maxAttendees != null && (event.currentAttendees ?? 0) >= event.maxAttendees
-    if (isEventFull) return
+    const { count, max } = getEventCapacity(event)
+    const isFull = max != null && count >= max
+    if (isFull) return
 
     try {
       const checkResult = await apiClient.checkEventRegistration(event._id)
@@ -153,6 +169,11 @@ export default function EventDetailPage() {
         }
       }
     } catch {}
+
+    if (hasVenueTierMatrix(event)) {
+      setShowVenueTierCartModal(true)
+      return
+    }
 
     setShowEventRegistrationModal(true)
   }
@@ -183,10 +204,14 @@ export default function EventDetailPage() {
     )
   }
 
-  const isEventFull = event.maxAttendees != null && (event.currentAttendees ?? 0) >= event.maxAttendees
+  const { count: capacityCount, max: capacityMax } = getEventCapacity(event)
+  const isEventFull = capacityMax != null && capacityCount >= capacityMax
   const isPaid = isEventPaid(event)
+  const multiVenue = hasVenueTierMatrix(event)
+  const venueDisplay = getEventVenueDisplay(event)
+  const ticketRows = getEventTicketRows(event)
   const displayPrice = formatEventPriceDisplay(event, {
-    fromPrefix: hasVenueTierMatrix(event),
+    fromPrefix: multiVenue,
     includeFees: true,
   })
   const checkoutTicketPrice = getEventLowestTicketPrice(event)
@@ -277,6 +302,38 @@ export default function EventDetailPage() {
                 </p>
               </section>
             ) : null}
+
+            {ticketRows.length > 0 && (multiVenue || isPaid) && (
+              <section className="rounded-2xl border border-border/80 bg-muted/25 px-5 py-6 sm:px-7 sm:py-8 space-y-4">
+                <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+                  <Ticket className="h-4 w-4" />
+                  Tickets
+                </h2>
+                <ul className="space-y-2">
+                  {ticketRows.map((row, i) => (
+                    <li
+                      key={`${row.venue}-${row.tier}-${i}`}
+                      className="flex items-start justify-between gap-3 rounded-lg bg-background/80 border border-border/60 px-4 py-3"
+                    >
+                      <div className="min-w-0">
+                        {multiVenue && event.venues!.length > 1 && (
+                          <p className="text-xs text-muted-foreground">{row.venue}</p>
+                        )}
+                        <p className="font-semibold">{row.tier}</p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="font-semibold" style={{ color: primaryColor }}>
+                          {formatTierPrice(row.price, event.currency)}
+                        </p>
+                        {row.seats != null && row.seats > 0 && (
+                          <p className="text-xs text-muted-foreground">{row.seats} seats</p>
+                        )}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
           </div>
 
           {/* Sidebar */}
@@ -328,7 +385,7 @@ export default function EventDetailPage() {
                     </div>
                   )}
 
-                  {event.venue && (
+                  {venueDisplay !== "—" && (
                     <div className="flex items-start gap-3.5 sm:gap-4">
                       <div
                         className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
@@ -337,8 +394,10 @@ export default function EventDetailPage() {
                         <MapPin className="h-5 w-5" />
                       </div>
                       <div className="min-w-0 pt-0.5">
-                        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Venue</p>
-                        <p className="font-semibold mt-1 leading-snug break-words">{event.venue}</p>
+                        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                          {multiVenue && event.venues!.length > 1 ? "Venues" : "Venue"}
+                        </p>
+                        <p className="font-semibold mt-1 leading-snug break-words">{venueDisplay}</p>
                       </div>
                     </div>
                   )}
@@ -363,7 +422,7 @@ export default function EventDetailPage() {
                     className="px-0.5"
                   />
 
-                  {event.maxAttendees != null && (
+                  {capacityMax != null && (
                     <div className="flex items-start gap-3.5 sm:gap-4">
                       <div
                         className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
@@ -374,7 +433,7 @@ export default function EventDetailPage() {
                       <div className="min-w-0 pt-0.5">
                         <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Capacity</p>
                         <p className="font-semibold mt-1 leading-snug">
-                          {event.currentAttendees ?? 0} / {event.maxAttendees} registered
+                          {capacityCount} / {capacityMax} registered
                         </p>
                       </div>
                     </div>
@@ -470,6 +529,17 @@ export default function EventDetailPage() {
           }}
         />
       )}
+
+      <VenueTierCartModal
+        isOpen={showVenueTierCartModal}
+        onClose={() => setShowVenueTierCartModal(false)}
+        event={event}
+        onSuccess={() => {
+          setShowVenueTierCartModal(false)
+          loadData()
+        }}
+        onFailure={() => {}}
+      />
 
       <EventCheckoutModal
         isOpen={showEventCheckoutModal}

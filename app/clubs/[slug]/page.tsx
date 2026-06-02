@@ -12,6 +12,8 @@ import { formatDisplayDate, slugify } from "@/lib/utils"
 import { getNewsImageUrl } from "@/lib/config"
 import {
   formatEventPriceDisplay,
+  getEventCapacity,
+  getEventVenueDisplay,
   hasVenueTierMatrix,
   isEventPaid,
 } from "@/lib/event-display-price"
@@ -803,23 +805,29 @@ export default function PublicClubPage() {
                                         </span>
                                       </div>
                                     )}
-                                    {event.venue && (
-                                      <div className="flex items-center gap-2 text-sm">
-                                        <MapPin className="w-4 h-4 text-muted-foreground" />
-                                        <span className="line-clamp-2 break-words">{event.venue}</span>
-                                      </div>
-                                    )}
-                                    {event.maxAttendees != null && (
-                                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                        <Users className="w-4 h-4" />
-                                        <span>
-                                          {event.currentAttendees || 0} / {event.maxAttendees} attendees
-                                          {(event.currentAttendees ?? 0) >= event.maxAttendees && (
-                                            <span className="font-medium text-destructive ml-1">(Full)</span>
-                                          )}
-                                        </span>
-                                      </div>
-                                    )}
+                                    {(() => {
+                                      const venueLabel = getEventVenueDisplay(event)
+                                      return venueLabel !== "—" ? (
+                                        <div className="flex items-center gap-2 text-sm">
+                                          <MapPin className="w-4 h-4 text-muted-foreground" />
+                                          <span className="line-clamp-2 break-words">{venueLabel}</span>
+                                        </div>
+                                      ) : null
+                                    })()}
+                                    {(() => {
+                                      const { count, max } = getEventCapacity(event)
+                                      return max != null ? (
+                                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                          <Users className="w-4 h-4" />
+                                          <span>
+                                            {count} / {max} attendees
+                                            {count >= max && (
+                                              <span className="font-medium text-destructive ml-1">(Full)</span>
+                                            )}
+                                          </span>
+                                        </div>
+                                      ) : null
+                                    })()}
 
                                     <EventScheduleMeta
                                       bookingStartTime={event.bookingStartTime}
@@ -828,7 +836,8 @@ export default function PublicClubPage() {
                                     />
 
                                     {(() => {
-                                      const isEventFull = event.maxAttendees != null && (event.currentAttendees ?? 0) >= event.maxAttendees
+                                      const { count, max } = getEventCapacity(event)
+                                      const isEventFull = max != null && count >= max
                                       const label = isEventFull ? "Event Full" : isEventPaid(event) ? "Buy Tickets" : "Register"
                                       return (
                                         <Button
