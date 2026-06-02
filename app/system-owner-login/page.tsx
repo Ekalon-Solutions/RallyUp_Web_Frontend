@@ -14,6 +14,7 @@ import {
   validateSystemOwnerEmail,
   validateSystemOwnerPhone,
 } from "@/hooks/useSystemOwnerLogin"
+import { CountryCodeSelect } from "@/components/country-code-select"
 
 export default function SystemOwnerLoginPage() {
   const {
@@ -94,14 +95,14 @@ export default function SystemOwnerLoginPage() {
                     <Label htmlFor="system-owner-login-country-code" className="text-white font-medium">
                       Country Code
                     </Label>
-                    <Input
+                    <CountryCodeSelect
                       id="system-owner-login-country-code"
-                      type="text"
-                      placeholder="+91"
+                      variant="login"
                       value={loginData.countryCode}
                       disabled={otpSent || useEmail}
-                      onChange={(e) => setLoginData({ ...loginData, countryCode: e.target.value })}
-                      className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 disabled:opacity-50"
+                      onValueChange={(countryCode) =>
+                        setLoginData({ ...loginData, countryCode })
+                      }
                     />
                   </div>
                   <div className="col-span-2 space-y-2">

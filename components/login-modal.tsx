@@ -13,6 +13,7 @@ import { toast } from "sonner"
 import { apiClient } from "@/lib/api"
 import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth"
 import { auth } from "@/lib/firebase/config"
+import { COUNTRY_DIAL_CODES } from "@/lib/countryCodes"
 
 // Extend window object for global variables
 declare global {
@@ -24,14 +25,6 @@ declare global {
 }
 
 type Tab = "user" | "admin"
-
-const COUNTRY_CODES = [
-  "+91", "+1", "+44", "+61", "+971", "+65", "+81", "+49", "+33", "+86",
-  "+7", "+55", "+52", "+27", "+234", "+254", "+20", "+966", "+60", "+66",
-  "+84", "+63", "+62", "+92", "+880", "+94", "+977", "+975", "+95", "+855",
-  "+856", "+976", "+998", "+996", "+992", "+993", "+93", "+98", "+964",
-  "+963", "+961", "+962", "+972", "+970", "+90", "+30", "+39", "+34", "+351"
-]
 
 const validateEmail = (email: string) => {
   if (!email) return ""
@@ -375,7 +368,7 @@ export function LoginModal({ open, onOpenChange, onSuccess }: LoginModalProps) {
                       disabled={!!email}
                       className="w-full h-12 pl-8 pr-2 rounded-xl border border-secondary text-sm font-medium text-black bg-white focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary disabled:opacity-40 appearance-none"
                     >
-                      {COUNTRY_CODES.map((c) => (
+                      {COUNTRY_DIAL_CODES.map((c) => (
                         <option key={c} value={c}>{c}</option>
                       ))}
                     </select>

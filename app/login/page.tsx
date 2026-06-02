@@ -17,6 +17,7 @@ import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth"
 import { auth } from "@/lib/firebase/config"
 import { apiClient } from "@/lib/api"
 import { getStoredPurchaseIntent } from "@/components/modals/purchase-flow-modal"
+import { CountryCodeSelect } from "@/components/country-code-select"
 
 const DEBUG_OTP = "123456"
 
@@ -1203,16 +1204,17 @@ function AuthPageContent() {
                         <div className="grid grid-cols-3 gap-2">
                           <div className="space-y-2 flex flex-col justify-between">
                             <Label htmlFor="user-login-country-code" className="text-white font-medium">Country Code</Label>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
                               <Phone className="w-4 h-4 text-slate-300 flex-shrink-0" />
-                              <Input
+                              <CountryCodeSelect
                                 id="user-login-country-code"
-                                type="text"
-                                placeholder="+91"
+                                variant="login"
                                 value={userLoginData.countryCode}
-                                onChange={(e) => setUserLoginData({ ...userLoginData, countryCode: e.target.value })}
                                 disabled={!!userLoginData.email}
-                                className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 disabled:opacity-50 disabled:cursor-not-allowed focus:ring-2 focus:ring-sky-400"
+                                onValueChange={(countryCode) =>
+                                  setUserLoginData({ ...userLoginData, countryCode })
+                                }
+                                className="min-w-0 flex-1"
                               />
                             </div>
                           </div>
@@ -1470,15 +1472,16 @@ function AuthPageContent() {
                             <div className="grid grid-cols-3 gap-2">
                               <div className="space-y-2 flex flex flex-col justify-between">
                                 <Label htmlFor="user-country-code" className="text-white font-medium">Country Code</Label>
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 min-w-0">
                                   <Phone className="w-4 h-4 text-slate-300 flex-shrink-0" />
-                                  <Input
+                                  <CountryCodeSelect
                                     id="user-country-code"
-                                    type="text"
-                                    placeholder="+91"
+                                    variant="login"
                                     value={userRegisterData.countryCode}
-                                    onChange={(e) => setUserRegisterData({ ...userRegisterData, countryCode: e.target.value })}
-                                    className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400"
+                                    onValueChange={(countryCode) =>
+                                      setUserRegisterData({ ...userRegisterData, countryCode })
+                                    }
+                                    className="min-w-0 flex-1"
                                   />
                                 </div>
                               </div>
@@ -1881,16 +1884,17 @@ function AuthPageContent() {
                         <div className="grid grid-cols-3 gap-2">
                           <div className="space-y-2" flex-col justify-between>
                             <Label htmlFor="admin-login-country-code" className="text-white font-medium">Country Code</Label>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
                               <Phone className="w-4 h-4 text-slate-300 flex-shrink-0" />
-                              <Input
+                              <CountryCodeSelect
                                 id="admin-login-country-code"
-                                type="text"
-                                placeholder="+91"
+                                variant="login"
                                 value={adminLoginData.countryCode}
-                                onChange={(e) => setAdminLoginData({ ...adminLoginData, countryCode: e.target.value })}
                                 disabled={!!adminLoginData.email}
-                                className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 disabled:opacity-50 disabled:cursor-not-allowed focus:ring-2 focus:ring-sky-400"
+                                onValueChange={(countryCode) =>
+                                  setAdminLoginData({ ...adminLoginData, countryCode })
+                                }
+                                className="min-w-0 flex-1"
                               />
                             </div>
                           </div>
@@ -2116,15 +2120,16 @@ function AuthPageContent() {
                         <div className="grid grid-cols-3 gap-2">
                           <div className="space-y-2 flex flex-col justify-between">
                             <Label htmlFor="admin-country-code" className="text-white font-medium">Country Code</Label>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
                               <Phone className="w-4 h-4 text-slate-300 flex-shrink-0" />
-                              <Input
+                              <CountryCodeSelect
                                 id="admin-country-code"
-                                type="text"
-                                placeholder="+91"
+                                variant="login"
                                 value={adminRegisterData.countryCode}
-                                onChange={(e) => setAdminRegisterData({ ...adminRegisterData, countryCode: e.target.value })}
-                                className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400"
+                                onValueChange={(countryCode) =>
+                                  setAdminRegisterData({ ...adminRegisterData, countryCode })
+                                }
+                                className="min-w-0 flex-1"
                               />
                             </div>
                           </div>
@@ -2262,16 +2267,17 @@ function AuthPageContent() {
                         <div className="grid grid-cols-3 gap-2">
                           <div className="space-y-2 flex flex-col justify-between">
                             <Label htmlFor="system-owner-login-country-code" className="text-white font-medium">Country Code</Label>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
                               <Phone className="w-4 h-4 text-slate-300 flex-shrink-0" />
-                              <Input
+                              <CountryCodeSelect
                                 id="system-owner-login-country-code"
-                                type="text"
-                                placeholder="+91"
+                                variant="login"
                                 value={systemOwnerLoginData.countryCode}
-                                onChange={(e) => setSystemOwnerLoginData({ ...systemOwnerLoginData, countryCode: e.target.value })}
                                 disabled={!!systemOwnerLoginData.email}
-                                className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 disabled:opacity-50 disabled:cursor-not-allowed focus:ring-2 focus:ring-sky-400"
+                                onValueChange={(countryCode) =>
+                                  setSystemOwnerLoginData({ ...systemOwnerLoginData, countryCode })
+                                }
+                                className="min-w-0 flex-1"
                               />
                             </div>
                           </div>
@@ -2490,15 +2496,16 @@ function AuthPageContent() {
                         <div className="grid grid-cols-3 gap-2">
                           <div className="space-y-2 flex flex-col justify-between">
                             <Label htmlFor="system-owner-country-code" className="text-white font-medium">Country Code</Label>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
                               <Phone className="w-4 h-4 text-slate-300 flex-shrink-0" />
-                              <Input
+                              <CountryCodeSelect
                                 id="system-owner-country-code"
-                                type="text"
-                                placeholder="+91"
+                                variant="login"
                                 value={systemOwnerRegisterData.countryCode}
-                                onChange={(e) => setSystemOwnerRegisterData({ ...systemOwnerRegisterData, countryCode: e.target.value })}
-                                className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400"
+                                onValueChange={(countryCode) =>
+                                  setSystemOwnerRegisterData({ ...systemOwnerRegisterData, countryCode })
+                                }
+                                className="min-w-0 flex-1"
                               />
                             </div>
                           </div>
