@@ -139,7 +139,6 @@ export function EventCreatePreview({
     <Card className={cn("border-2 shadow-sm overflow-hidden", className)}>
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center gap-2">
-          <Eye className="h-4 w-4 text-muted-foreground" />
           Event Preview
         </CardTitle>
         <p className="text-xs text-muted-foreground">
