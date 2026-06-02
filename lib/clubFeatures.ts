@@ -71,12 +71,36 @@ export const ADMIN_NAV_FEATURE_MAP: Record<string, ClubFeatureKey | null> = {
   '/dashboard/admin-settings': null,
 };
 
+export function clubFeatureFlags(
+  config: ResolvedClubFeatures | null | undefined
+): ResolvedFeatureFlag[] {
+  return config?.flags ?? [];
+}
+
+/** Ensures `flags` is always an array (stale cache / partial API payloads). */
+export function normalizeResolvedClubFeatures(
+  raw: Partial<ResolvedClubFeatures> | null | undefined
+): ResolvedClubFeatures | null {
+  if (!raw || !raw.clubId) return null;
+  return {
+    clubId: String(raw.clubId),
+    features_schema_version: raw.features_schema_version ?? 0,
+    billing_tier: raw.billing_tier ?? 'free',
+    billing_status: raw.billing_status ?? 'active',
+    billing_trial_ends_at: raw.billing_trial_ends_at,
+    feature_constraints: raw.feature_constraints ?? {},
+    flags: Array.isArray(raw.flags) ? raw.flags : [],
+    estimated_monthly_usd: raw.estimated_monthly_usd ?? 0,
+    synced_at: raw.synced_at ?? new Date().toISOString(),
+  };
+}
+
 export function isFeatureEnabled(
   config: ResolvedClubFeatures | null | undefined,
   key: ClubFeatureKey
 ): boolean {
   if (!config) return true;
-  const flag = config.flags.find((f) => f.key === key);
+  const flag = clubFeatureFlags(config).find((f) => f.key === key);
   return flag?.enabled ?? true;
 }
 
@@ -87,5 +111,5 @@ export function featureState(
   key: ClubFeatureKey
 ): ClubFeatureState {
   if (!config) return 'active';
-  return config.flags.find((f) => f.key === key)?.state ?? 'inactive';
+  return clubFeatureFlags(config).find((f) => f.key === key)?.state ?? 'inactive';
 }

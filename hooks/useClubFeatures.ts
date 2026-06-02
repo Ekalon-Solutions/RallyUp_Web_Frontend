@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { apiClient } from '@/lib/api';
 import type { ClubFeatureKey, ResolvedClubFeatures } from '@/lib/clubFeatures';
+import { clubFeatureFlags, normalizeResolvedClubFeatures } from '@/lib/clubFeatures';
 import { useSocket } from '@/contexts/socket-context';
 import { toast } from 'sonner';
 
@@ -15,7 +16,7 @@ function loadCachedFeatures(clubId: string): ResolvedClubFeatures | null {
   try {
     const parsed = JSON.parse(cached) as { data: ResolvedClubFeatures; savedAt: number };
     if (Date.now() - parsed.savedAt > STALE_MS) return null;
-    return parsed.data;
+    return normalizeResolvedClubFeatures(parsed.data);
   } catch {
     return null;
   }
@@ -39,12 +40,13 @@ export function useClubFeatures(clubId: string | null | undefined) {
     try {
       const res = await apiClient.getMyClubFeatures(clubId);
       if (res.success && res.data) {
-        setConfig(res.data);
-        prevConfigRef.current = res.data;
-        if (typeof window !== 'undefined') {
+        const normalized = normalizeResolvedClubFeatures(res.data);
+        setConfig(normalized);
+        prevConfigRef.current = normalized;
+        if (typeof window !== 'undefined' && normalized) {
           localStorage.setItem(
             `club-features:${clubId}`,
-            JSON.stringify({ data: res.data, savedAt: Date.now() })
+            JSON.stringify({ data: normalized, savedAt: Date.now() })
           );
         }
       } else {
@@ -71,16 +73,22 @@ export function useClubFeatures(clubId: string | null | undefined) {
     const onSync = (payload: { clubId?: string; config?: ResolvedClubFeatures }) => {
       if (payload.clubId && String(payload.clubId) !== String(clubId)) return;
       if (payload.config) {
+        const normalized = normalizeResolvedClubFeatures(payload.config);
+        if (!normalized) {
+          load();
+          return;
+        }
         const prev = prevConfigRef.current;
-        const newlyEnabled = payload.config.flags.filter(
-          (f) => f.enabled && !prev?.flags.find((p) => p.key === f.key)?.enabled
+        const prevFlags = clubFeatureFlags(prev);
+        const newlyEnabled = clubFeatureFlags(normalized).filter(
+          (f) => f.enabled && !prevFlags.find((p) => p.key === f.key)?.enabled
         );
-        setConfig(payload.config);
-        prevConfigRef.current = payload.config;
+        setConfig(normalized);
+        prevConfigRef.current = normalized;
         if (typeof window !== 'undefined') {
           localStorage.setItem(
             `club-features:${clubId}`,
-            JSON.stringify({ data: payload.config, savedAt: Date.now() })
+            JSON.stringify({ data: normalized, savedAt: Date.now() })
           );
         }
         if (newlyEnabled.length > 0) {
@@ -104,7 +112,7 @@ export function useClubFeatures(clubId: string | null | undefined) {
       if (loading && !config) return true;
       if (loadFailed && !config) return true;
       if (!config) return true;
-      return config.flags.find((f) => f.key === key)?.enabled ?? false;
+      return clubFeatureFlags(config).find((f) => f.key === key)?.enabled ?? false;
     },
     [config, loading, loadFailed]
   );

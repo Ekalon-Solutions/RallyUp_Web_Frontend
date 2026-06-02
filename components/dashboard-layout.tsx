@@ -58,7 +58,7 @@ import type { WebsiteSectionKey } from "@/lib/websiteSections"
 import { EkalonAttribution } from "@/components/ekalon-attribution"
 import { usePrimaryClubOwner } from "@/hooks/usePrimaryClubOwner"
 import { useClubFeatures } from "@/hooks/useClubFeatures"
-import { ADMIN_NAV_FEATURE_MAP, CLUB_FEATURE_DISABLED_EVENT, type ClubFeatureKey } from "@/lib/clubFeatures"
+import { ADMIN_NAV_FEATURE_MAP, CLUB_FEATURE_DISABLED_EVENT, clubFeatureFlags, type ClubFeatureKey } from "@/lib/clubFeatures"
 import { UpgradeFeatureModal } from "@/components/modals/upgrade-feature-modal"
 
 const USER_PATH_TO_SECTION: Record<string, WebsiteSectionKey> = {
@@ -501,7 +501,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     const key = ADMIN_NAV_FEATURE_MAP[href]
     if (!key || !clubId) return
     const label =
-      clubFeatures?.flags.find((f) => f.key === key)?.label || key
+      clubFeatureFlags(clubFeatures).find((f) => f.key === key)?.label || key
     setUpgradeModal({ open: true, featureKey: key, label })
   }
 
@@ -509,7 +509,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     if (!isAdminRole || !clubId || clubFeaturesLoading || !pathname) return
     const featureKey = ADMIN_NAV_FEATURE_MAP[pathname]
     if (!featureKey || isClubFeatureEnabled(featureKey)) return
-    const label = clubFeatures?.flags.find((f) => f.key === featureKey)?.label || featureKey
+    const label = clubFeatureFlags(clubFeatures).find((f) => f.key === featureKey)?.label || featureKey
     setUpgradeModal({ open: true, featureKey, label })
     if (pathname !== '/dashboard') {
       router.replace('/dashboard')
@@ -523,7 +523,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       const featureKey = detail?.feature
       if (!featureKey) return
       const label =
-        clubFeatures?.flags.find((f) => f.key === featureKey)?.label || featureKey
+        clubFeatureFlags(clubFeatures).find((f) => f.key === featureKey)?.label || featureKey
       setUpgradeModal({ open: true, featureKey, label })
     }
     window.addEventListener(CLUB_FEATURE_DISABLED_EVENT, onFeatureDisabled)

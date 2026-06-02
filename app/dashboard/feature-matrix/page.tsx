@@ -103,7 +103,11 @@ export default function FeatureMatrixPage() {
     try {
       const res = await apiClient.getClubFeatureMatrix(search.trim() || undefined)
       if (res.success && res.data) {
-        setClubs(res.data.clubs as MatrixClub[])
+        const rows = (res.data.clubs as MatrixClub[]).map((club) => ({
+          ...club,
+          flags: Array.isArray(club.flags) ? club.flags : [],
+        }))
+        setClubs(rows)
         setTooltips(res.data.tooltips || {})
         setLabels(res.data.labels || {})
         setPending({})
@@ -121,15 +125,17 @@ export default function FeatureMatrixPage() {
     return () => clearTimeout(t)
   }, [load])
 
+  const clubFlags = (club: MatrixClub) => club.flags ?? []
+
   const getPendingEnabled = (club: MatrixClub, key: string) => {
     const p = pending[club.clubId]
     if (p && key in p) return p[key]
-    return club.flags.find((f) => f.key === key)?.enabled ?? false
+    return clubFlags(club).find((f) => f.key === key)?.enabled ?? false
   }
 
   const getPendingState = (club: MatrixClub, key: string) => {
     const enabled = getPendingEnabled(club, key)
-    const original = club.flags.find((f) => f.key === key)
+    const original = clubFlags(club).find((f) => f.key === key)
     if (pending[club.clubId]?.[key] !== undefined) {
       return enabled ? "active" : "inactive"
     }
