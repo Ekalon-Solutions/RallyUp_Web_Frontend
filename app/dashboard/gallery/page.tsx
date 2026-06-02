@@ -26,7 +26,7 @@ import { useSocket } from "@/contexts/socket-context"
 import { getApiUrl } from "@/lib/config"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { toast } from "sonner"
-import { FolderPlus, HardDrive, Image as ImageIcon, Upload, ShoppingCart, RefreshCw, Trash2, Play, X } from "lucide-react"
+import { FolderPlus, HardDrive, Image as ImageIcon, Upload, ShoppingCart, RefreshCw, Trash2, Play, X, Megaphone } from "lucide-react"
 import { PaymentSimulationModal } from "@/components/modals/payment-simulation-modal"
 
 declare global {
@@ -65,7 +65,22 @@ const MAX_FILES_PER_UPLOAD = 250
 const MAX_BATCH_BYTES = 3 * 1024 * 1024 * 1024
 const UPLOAD_CHUNK_FILES = 15
 const UPLOAD_CONCURRENT_CHUNKS = 3
+const GALLERY_PUBLISH_COOLDOWN_MS = 5 * 60 * 1000
 const VIDEO_EXTS = /\.(mp4|mpeg|mpg|avi|mov|mkv|webm)$/i
+
+function getPublishCooldownRemaining(lastSent?: string | null, now = Date.now()): number {
+  if (!lastSent) return 0
+  const remaining = GALLERY_PUBLISH_COOLDOWN_MS - (now - new Date(lastSent).getTime())
+  return remaining > 0 ? remaining : 0
+}
+
+function formatPublishCooldown(ms: number): string {
+  const sec = Math.ceil(ms / 1000)
+  const m = Math.floor(sec / 60)
+  const s = sec % 60
+  if (m <= 0) return `${s}s`
+  return s > 0 ? `${m}m ${s}s` : `${m}m`
+}
 
 function formatElapsed(seconds: number): string {
   const s = Math.max(0, Math.floor(seconds))
@@ -292,10 +307,24 @@ export default function GalleryManagementPage() {
     currency: string
   } | null>(null)
 
+  const [publishingAlbumId, setPublishingAlbumId] = useState<string | null>(null)
+  const [cooldownNow, setCooldownNow] = useState(() => Date.now())
+
   const selectedAlbum = useMemo(
     () => albums.find((a) => a._id === selectedAlbumId) || null,
     [albums, selectedAlbumId]
   )
+
+  const hasPublishCooldown = useMemo(
+    () => albums.some((a) => getPublishCooldownRemaining(a.lastNotificationSentAt, cooldownNow) > 0),
+    [albums, cooldownNow]
+  )
+
+  useEffect(() => {
+    if (!hasPublishCooldown) return
+    const id = setInterval(() => setCooldownNow(Date.now()), 1000)
+    return () => clearInterval(id)
+  }, [hasPublishCooldown])
 
   useEffect(() => {
     if (razorpayScriptRef.current || document.querySelector('script[src*="checkout.razorpay"]')) {
@@ -330,6 +359,78 @@ export default function GalleryManagementPage() {
   }
 
   useEffect(() => { loadData() }, [clubId])
+
+  const handlePublishToMembers = async (album: Album) => {
+    if (!album.mediaItems.length) {
+      toast.error("Upload at least one file before notifying members")
+      return
+    }
+    const cooldown = getPublishCooldownRemaining(album.lastNotificationSentAt, cooldownNow)
+    if (cooldown > 0) {
+      toast.error(`Please wait ${formatPublishCooldown(cooldown)} before notifying again`)
+      return
+    }
+    try {
+      setPublishingAlbumId(album._id)
+      const res = await apiClient.publishAlbumToMembers(album._id)
+      if (res.success) {
+        toast.success(res.data?.message || "Members will be notified")
+        await loadData()
+        setCooldownNow(Date.now())
+        return
+      }
+      const payload = res.data as { message?: string; retryAfterSeconds?: number; lastNotificationSentAt?: string } | undefined
+      if (payload?.lastNotificationSentAt) {
+        setAlbums((prev) =>
+          prev.map((a) =>
+            a._id === album._id ? { ...a, lastNotificationSentAt: payload.lastNotificationSentAt } : a
+          )
+        )
+        setCooldownNow(Date.now())
+      }
+      toast.error(res.error || payload?.message || "Could not send notification")
+    } finally {
+      setPublishingAlbumId(null)
+    }
+  }
+
+  const renderPublishButton = (album: Album, compact = false) => {
+    const hasMedia = album.mediaItems.length > 0
+    const cooldown = getPublishCooldownRemaining(album.lastNotificationSentAt, cooldownNow)
+    const onCooldown = cooldown > 0
+    const publishing = publishingAlbumId === album._id
+
+    return (
+      <div className={compact ? "space-y-1" : "space-y-1.5 border-t pt-3"}>
+        <Button
+          variant={hasMedia && !onCooldown ? "default" : "secondary"}
+          disabled={!hasMedia || onCooldown || publishing || uploading}
+          onClick={() => void handlePublishToMembers(album)}
+          className="w-full"
+          size={compact ? "sm" : "default"}
+        >
+          <Megaphone className="h-4 w-4 mr-2 shrink-0" />
+          {publishing
+            ? "Sending…"
+            : onCooldown
+              ? `Notify again in ${formatPublishCooldown(cooldown)}`
+              : "Publish to members"}
+        </Button>
+        {!hasMedia && (
+          <p className="text-[11px] text-muted-foreground text-center">
+            Upload at least one file to notify members
+          </p>
+        )}
+        {hasMedia && !onCooldown && !publishing && (
+          <p className="text-[11px] text-muted-foreground text-center">
+            {compact
+              ? "Email members who opted in. Gallery is visible without this."
+              : "Sends an email to members who opted in. Uploaded photos are already visible in the gallery."}
+          </p>
+        )}
+      </div>
+    )
+  }
 
   const handleCreateAlbum = async () => {
     if (!albumName.trim()) { toast.error("Album name is required"); return }
@@ -385,8 +486,6 @@ export default function GalleryManagementPage() {
       await uploadAlbumFiles(selectedAlbumId, selectedFiles, setUploadProgress, sessionId)
       setServerProgress(100)
       await new Promise((r) => setTimeout(r, 400))
-      apiClient.notifyGalleryUploadSession(selectedAlbumId, sessionId).catch(() => {
-      })
       setUploading(false)
       setUploadProgress(0)
       setServerProgress(0)
@@ -830,6 +929,8 @@ export default function GalleryManagementPage() {
                     {uploading ? "Uploading..." : "Upload Files"}
                   </Button>
 
+                  {selectedAlbum && renderPublishButton(selectedAlbum)}
+
                   {selectedAlbum && selectedAlbum.mediaItems.length > 0 && (
                     <div className="space-y-2 border-t pt-3">
                       <p className="text-xs font-medium">
@@ -915,6 +1016,8 @@ export default function GalleryManagementPage() {
                             {selectedAlbum?._id === album._id ? "Hide Media" : "Manage Media"}
                           </Button>
                         )}
+
+                        {selectedAlbum?._id === album._id && renderPublishButton(album, true)}
                       </div>
                     </div>
                   ))}

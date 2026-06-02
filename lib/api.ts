@@ -200,6 +200,7 @@ export interface Album {
   totalSize: number;
   createdBy: string;
   isDeleted: boolean;
+  lastNotificationSentAt?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -4348,14 +4349,18 @@ class ApiClient {
     });
   }
 
-  async notifyGalleryUploadSession(
-    albumId: string,
-    sessionId: string
-  ): Promise<ApiResponse<{ message: string; skipped?: boolean }>> {
-    return this.request(`/gallery/albums/${albumId}/notify-upload`, {
+  async publishAlbumToMembers(albumId: string): Promise<
+    ApiResponse<{
+      message: string
+      lastNotificationSentAt?: string
+      cooldownSeconds?: number
+      nextAvailableAt?: string
+      retryAfterSeconds?: number
+    }>
+  > {
+    return this.request(`/gallery/albums/${albumId}/publish`, {
       method: 'POST',
-      body: JSON.stringify({ sessionId }),
-    });
+    })
   }
 
   async deleteAlbum(albumId: string): Promise<ApiResponse<{ message: string; deleteErrors: string[] }>> {
