@@ -22,6 +22,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { apiClient, Album, AlbumMediaItem, GalleryStorageSummary } from "@/lib/api"
+import { getAlbumMediaItems, normalizeAlbums } from "@/lib/album-utils"
 import { useSocket } from "@/contexts/socket-context"
 import { getApiUrl } from "@/lib/config"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
@@ -352,7 +353,7 @@ export default function GalleryManagementPage() {
         apiClient.getAdminAlbums(clubId || undefined),
         apiClient.getGalleryStorageSummary(clubId || undefined),
       ])
-      setAlbums(albumsRes.success && albumsRes.data?.albums ? albumsRes.data.albums : [])
+      setAlbums(normalizeAlbums(albumsRes.success && albumsRes.data?.albums ? albumsRes.data.albums : []))
       setStorage(storageRes.success && storageRes.data ? storageRes.data : null)
     } catch { toast.error("Failed to load gallery management data") }
     finally { setLoading(false) }
@@ -361,7 +362,8 @@ export default function GalleryManagementPage() {
   useEffect(() => { loadData() }, [clubId])
 
   const handlePublishToMembers = async (album: Album) => {
-    if (!album.mediaItems.length) {
+    const media = getAlbumMediaItems(album)
+    if (!media.length) {
       toast.error("Upload at least one file before notifying members")
       return
     }
@@ -395,7 +397,8 @@ export default function GalleryManagementPage() {
   }
 
   const renderPublishButton = (album: Album, compact = false) => {
-    const hasMedia = album.mediaItems.length > 0
+    const media = getAlbumMediaItems(album)
+    const hasMedia = media.length > 0
     const cooldown = getPublishCooldownRemaining(album.lastNotificationSentAt, cooldownNow)
     const onCooldown = cooldown > 0
     const publishing = publishingAlbumId === album._id
@@ -931,13 +934,13 @@ export default function GalleryManagementPage() {
 
                   {selectedAlbum && renderPublishButton(selectedAlbum)}
 
-                  {selectedAlbum && selectedAlbum.mediaItems.length > 0 && (
+                  {selectedAlbum && getAlbumMediaItems(selectedAlbum).length > 0 && (
                     <div className="space-y-2 border-t pt-3">
                       <p className="text-xs font-medium">
-                        Uploaded in &ldquo;{selectedAlbum.name}&rdquo; ({selectedAlbum.mediaItems.length})
+                        Uploaded in &ldquo;{selectedAlbum.name}&rdquo; ({getAlbumMediaItems(selectedAlbum).length})
                       </p>
                       <div className="grid grid-cols-4 gap-1.5 max-h-56 overflow-y-auto rounded-lg border p-2">
-                        {selectedAlbum.mediaItems.map((m) => renderMediaThumb(selectedAlbum._id, m, true))}
+                        {getAlbumMediaItems(selectedAlbum).map((m) => renderMediaThumb(selectedAlbum._id, m, true))}
                       </div>
                       <p className="text-[11px] text-muted-foreground">
                         Use the trash icon on a file to delete it.
@@ -955,7 +958,9 @@ export default function GalleryManagementPage() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {albums.map((album) => (
+                  {albums.map((album) => {
+                    const albumMedia = getAlbumMediaItems(album)
+                    return (
                     <div key={album._id} className="rounded-xl border bg-card overflow-hidden flex flex-col">
                       <div className="relative h-44 bg-muted shrink-0">
                         {album.coverImage ? (
@@ -981,32 +986,32 @@ export default function GalleryManagementPage() {
                           <div className="min-w-0">
                             <p className="font-semibold line-clamp-1 text-sm">{album.name}</p>
                             <p className="text-xs text-muted-foreground mt-0.5">
-                              {album.mediaItems.length} {album.mediaItems.length === 1 ? "file" : "files"} &middot; {bytesToReadable(album.totalSize)}
+                              {albumMedia.length} {albumMedia.length === 1 ? "file" : "files"} &middot; {bytesToReadable(album.totalSize)}
                             </p>
                           </div>
-                          {album.mediaItems.length > 0 && (
+                          {albumMedia.length > 0 && (
                             <div className="flex gap-1 shrink-0">
-                              {album.mediaItems.filter((m) => m.type === "image").length > 0 && (
+                              {albumMedia.filter((m) => m.type === "image").length > 0 && (
                                 <Badge variant="secondary" className="text-xs">
-                                  {album.mediaItems.filter((m) => m.type === "image").length} img
+                                  {albumMedia.filter((m) => m.type === "image").length} img
                                 </Badge>
                               )}
-                              {album.mediaItems.filter((m) => m.type === "video").length > 0 && (
+                              {albumMedia.filter((m) => m.type === "video").length > 0 && (
                                 <Badge variant="outline" className="text-xs">
-                                  {album.mediaItems.filter((m) => m.type === "video").length} vid
+                                  {albumMedia.filter((m) => m.type === "video").length} vid
                                 </Badge>
                               )}
                             </div>
                           )}
                         </div>
 
-                        {selectedAlbum?._id === album._id && selectedAlbum.mediaItems.length > 0 && (
+                        {selectedAlbum?._id === album._id && albumMedia.length > 0 && (
                           <div className="grid grid-cols-4 gap-1.5 max-h-52 overflow-y-auto rounded-lg border p-1.5">
-                            {selectedAlbum.mediaItems.map((m) => renderMediaThumb(album._id, m, true))}
+                            {albumMedia.map((m) => renderMediaThumb(album._id, m, true))}
                           </div>
                         )}
 
-                        {album.mediaItems.length > 0 && (
+                        {albumMedia.length > 0 && (
                           <Button
                             variant={selectedAlbum?._id === album._id ? "default" : "outline"}
                             size="sm"
@@ -1020,7 +1025,8 @@ export default function GalleryManagementPage() {
                         {selectedAlbum?._id === album._id && renderPublishButton(album, true)}
                       </div>
                     </div>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
             </>
@@ -1237,8 +1243,8 @@ export default function GalleryManagementPage() {
             <AlertDialogTitle>Delete album?</AlertDialogTitle>
             <AlertDialogDescription>
               This will permanently delete &ldquo;{albumToDelete?.name}&rdquo;
-              {albumToDelete && albumToDelete.mediaItems.length > 0
-                ? ` and all ${albumToDelete.mediaItems.length} file(s) in it`
+              {albumToDelete && getAlbumMediaItems(albumToDelete).length > 0
+                ? ` and all ${getAlbumMediaItems(albumToDelete).length} file(s) in it`
                 : ""}
               . This action cannot be undone.
             </AlertDialogDescription>

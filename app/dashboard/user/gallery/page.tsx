@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { apiClient, Album, AlbumMediaItem } from "@/lib/api"
+import { getAlbumMediaItems, normalizeAlbums } from "@/lib/album-utils"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { toast } from "sonner"
 import {
@@ -44,7 +45,7 @@ export default function UserGalleryPage() {
         setIsLoading(true)
         const res = await apiClient.getMemberAlbums(clubId || undefined)
         if (res.success && res.data?.albums) {
-          setAlbums(res.data.albums)
+          setAlbums(normalizeAlbums(res.data.albums))
         } else {
           setAlbums([])
         }
@@ -58,7 +59,7 @@ export default function UserGalleryPage() {
     fetchAlbums()
   }, [clubId])
 
-  const mediaItems = useMemo(() => selectedAlbum?.mediaItems || [], [selectedAlbum])
+  const mediaItems = useMemo(() => getAlbumMediaItems(selectedAlbum), [selectedAlbum])
   const activeMedia = mediaItems[activeIndex]
 
   const openLightbox = (index: number) => {
@@ -115,6 +116,9 @@ export default function UserGalleryPage() {
               ))}
             </div>
           ) : selectedAlbum ? (
+            (() => {
+              const albumMedia = getAlbumMediaItems(selectedAlbum)
+              return (
             <div className="space-y-5">
               <div className="flex items-center gap-3">
                 <Button
@@ -130,7 +134,7 @@ export default function UserGalleryPage() {
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="font-semibold truncate">{selectedAlbum.name}</span>
                   <Badge variant="secondary" className="shrink-0">
-                    {selectedAlbum.mediaItems.length} items
+                    {albumMedia.length} items
                   </Badge>
                   <span className="text-xs text-muted-foreground shrink-0">
                     {bytesToReadable(selectedAlbum.totalSize)}
@@ -138,14 +142,14 @@ export default function UserGalleryPage() {
                 </div>
               </div>
 
-              {selectedAlbum.mediaItems.length === 0 ? (
+              {albumMedia.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-muted-foreground rounded-xl border border-dashed">
                   <ImageIcon className="h-12 w-12 mb-3 opacity-30" />
                   <p className="font-medium">No media in this album yet</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
-                  {selectedAlbum.mediaItems.map((item, index) => (
+                  {albumMedia.map((item, index) => (
                     <button
                       key={item._id}
                       type="button"
@@ -180,6 +184,8 @@ export default function UserGalleryPage() {
                 </div>
               )}
             </div>
+              )
+            })()
           ) : albums.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-28 text-muted-foreground rounded-xl border border-dashed">
               <FolderOpen className="h-16 w-16 mb-4 opacity-25" />
@@ -188,7 +194,9 @@ export default function UserGalleryPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-              {albums.map((album) => (
+              {albums.map((album) => {
+                const albumMedia = getAlbumMediaItems(album)
+                return (
                 <button
                   key={album._id}
                   type="button"
@@ -215,13 +223,14 @@ export default function UserGalleryPage() {
                     )}
                     <div className="flex items-center gap-2 mt-2">
                       <span className="inline-flex items-center rounded-full bg-white/20 backdrop-blur-sm px-2 py-0.5 text-xs text-white">
-                        {album.mediaItems.length} items
+                        {albumMedia.length} items
                       </span>
                       <span className="text-xs text-white/55">{bytesToReadable(album.totalSize)}</span>
                     </div>
                   </div>
                 </button>
-              ))}
+                )
+              })}
             </div>
           )}
 

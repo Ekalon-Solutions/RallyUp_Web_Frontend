@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
 import { Album, AlbumMediaItem } from "@/lib/api"
+import { getAlbumMediaItems } from "@/lib/album-utils"
 import {
   ChevronLeft,
   ChevronRight,
@@ -38,7 +39,10 @@ export function ClubGallerySection({ albums, loading, primaryColor }: ClubGaller
   const [lightboxOpen, setLightboxOpen] = useState(false)
   const [activeIndex, setActiveIndex] = useState(0)
 
-  const mediaItems = useMemo(() => selectedAlbum?.mediaItems || [], [selectedAlbum])
+  const mediaItems = useMemo(
+    () => getAlbumMediaItems(selectedAlbum),
+    [selectedAlbum]
+  )
   const activeMedia = mediaItems[activeIndex]
 
   const openLightbox = (index: number) => {
@@ -82,6 +86,7 @@ export function ClubGallerySection({ albums, loading, primaryColor }: ClubGaller
   }
 
   if (selectedAlbum) {
+    const albumMedia = getAlbumMediaItems(selectedAlbum)
     return (
       <div className="space-y-5">
         <div className="flex items-center gap-3">
@@ -93,19 +98,19 @@ export function ClubGallerySection({ albums, loading, primaryColor }: ClubGaller
           <div className="flex items-center gap-2 min-w-0">
             <span className="font-semibold truncate">{selectedAlbum.name}</span>
             <Badge variant="secondary" className="shrink-0">
-              {selectedAlbum.mediaItems.length} items
+              {albumMedia.length} items
             </Badge>
           </div>
         </div>
 
-        {selectedAlbum.mediaItems.length === 0 ? (
+        {albumMedia.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-muted-foreground rounded-xl border border-dashed">
             <ImageIcon className="h-12 w-12 mb-3 opacity-30" />
             <p className="font-medium">No media in this album yet</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
-            {selectedAlbum.mediaItems.map((item, index) => (
+            {albumMedia.map((item, index) => (
               <button
                 key={item._id}
                 type="button"
@@ -200,7 +205,9 @@ export function ClubGallerySection({ albums, loading, primaryColor }: ClubGaller
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-      {albums.map((album) => (
+      {albums.map((album) => {
+        const albumMedia = getAlbumMediaItems(album)
+        return (
         <button
           key={album._id}
           type="button"
@@ -228,13 +235,14 @@ export function ClubGallerySection({ albums, loading, primaryColor }: ClubGaller
             )}
             <div className="flex items-center gap-2 mt-2">
               <span className="inline-flex items-center rounded-full bg-white/20 backdrop-blur-sm px-2 py-0.5 text-xs text-white">
-                {album.mediaItems.length} items
+                {albumMedia.length} items
               </span>
               <span className="text-xs text-white/55">{bytesToReadable(album.totalSize)}</span>
             </div>
           </div>
         </button>
-      ))}
+        )
+      })}
     </div>
   )
 }

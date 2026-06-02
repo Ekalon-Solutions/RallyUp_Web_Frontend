@@ -29,6 +29,7 @@ import NewsReadMoreModal from "@/components/modals/news-readmore-modal"
 import { SocialBrandButton } from "@/components/club-public/social-platform-icons"
 import { EkalonAttribution } from "@/components/ekalon-attribution"
 import { ClubGallerySection } from "@/components/club-public/club-gallery-section"
+import { normalizeAlbums } from "@/lib/album-utils"
 import {
   Globe,
   Mail,
@@ -319,7 +320,7 @@ export default function PublicClubPage() {
         }
 
         if (key === "gallery") {
-          const albums = (res.data as any)?.albums || []
+          const albums = normalizeAlbums((res.data as { albums?: Album[] })?.albums)
           setGalleryAlbums(albums)
         }
       })

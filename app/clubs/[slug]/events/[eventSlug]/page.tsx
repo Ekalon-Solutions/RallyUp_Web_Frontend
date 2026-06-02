@@ -316,7 +316,7 @@ export default function EventDetailPage() {
                       className="flex items-start justify-between gap-3 rounded-lg bg-background/80 border border-border/60 px-4 py-3"
                     >
                       <div className="min-w-0">
-                        {multiVenue && event.venues!.length > 1 && (
+                        {multiVenue && (event.venues?.length ?? 0) > 1 && (
                           <p className="text-xs text-muted-foreground">{row.venue}</p>
                         )}
                         <p className="font-semibold">{row.tier}</p>
@@ -395,7 +395,7 @@ export default function EventDetailPage() {
                       </div>
                       <div className="min-w-0 pt-0.5">
                         <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                          {multiVenue && event.venues!.length > 1 ? "Venues" : "Venue"}
+                          {multiVenue && (event.venues?.length ?? 0) > 1 ? "Venues" : "Venue"}
                         </p>
                         <p className="font-semibold mt-1 leading-snug break-words">{venueDisplay}</p>
                       </div>
