@@ -1,4 +1,5 @@
 import type { Event } from '@/lib/api';
+import { normalizeEventVenues } from '@/lib/event-display-price';
 
 export const SMAAASH_DISPLAY_ATTENDEE_OFFSET = 60;
 
@@ -15,11 +16,11 @@ export function getDisplayCurrentAttendees(event: {
   return Math.max(0, raw - SMAAASH_DISPLAY_ATTENDEE_OFFSET);
 }
 
-export function applyEventDisplayAdjustments<T extends Pick<Event, 'title' | 'currentAttendees'>>(
+export function applyEventDisplayAdjustments<T extends Pick<Event, 'title' | 'currentAttendees' | 'venues'>>(
   event: T
 ): T {
-  if (!isSmaaashEvent(event)) return event;
-  return { ...event, currentAttendees: getDisplayCurrentAttendees(event) };
+  const adjusted = !isSmaaashEvent(event) ? event : { ...event, currentAttendees: getDisplayCurrentAttendees(event) };
+  return normalizeEventVenues(adjusted);
 }
 
 export function applyEventsDisplayAdjustments<T extends Pick<Event, 'title' | 'currentAttendees'>>(

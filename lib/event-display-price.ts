@@ -19,6 +19,18 @@ function getVenueTiers(venue: { tiers?: Array<{ price?: number; allocation?: num
   return Array.isArray(venue?.tiers) ? venue.tiers : []
 }
 
+/** Ensure every venue has a tiers array — prevents runtime .length crashes on partial API payloads. */
+export function normalizeEventVenues<T extends Pick<Event, "venues">>(event: T): T {
+  if (!event?.venues || !Array.isArray(event.venues)) return event
+  return {
+    ...event,
+    venues: event.venues.map((venue) => ({
+      ...venue,
+      tiers: getVenueTiers(venue),
+    })),
+  } as T
+}
+
 export function hasVenueTierMatrix(event: Pick<Event, "venues"> | null | undefined): boolean {
   if (!event?.venues?.length) return false
   return event.venues.some((v) => getVenueTiers(v).length > 0)
@@ -62,7 +74,7 @@ export function getEventCurrencySymbol(currency?: string): string {
 }
 
 export function formatEventPriceDisplay(
-  event: Pick<Event, "venues" | "ticketPrice" | "currency">,
+  event: Pick<Event, "venues" | "ticketPrice" | "currency" | "venue" | "currentAttendees" | "maxAttendees">,
   options?: { fromPrefix?: boolean; includeFees?: boolean }
 ): string | null {
   const paid = getEventPaidTierPrices(event)
@@ -106,7 +118,7 @@ export function getEventCapacity(event: EventLike): { count: number; max: number
   }
 }
 
-export function getEventTicketRows(event: Pick<Event, "venues" | "ticketPrice">) {
+export function getEventTicketRows(event: EventLike) {
   if (hasVenueTierMatrix(event)) {
     return event.venues!.flatMap((venue) =>
       getVenueTiers(venue).map((tier) => ({

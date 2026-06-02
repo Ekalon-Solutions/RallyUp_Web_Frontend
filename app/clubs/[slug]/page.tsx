@@ -1281,6 +1281,7 @@ export default function PublicClubPage() {
         />
       )}
 
+      {showVenueTierCartModal && eventForRegistration && (
       <VenueTierCartModal
         isOpen={showVenueTierCartModal}
         onClose={() => {
@@ -1295,6 +1296,7 @@ export default function PublicClubPage() {
         }}
         onFailure={() => {}}
       />
+      )}
 
       <CheckoutModal
         isOpen={showMerchandiseCheckoutModal}

@@ -36,6 +36,7 @@ import {
   getEventVenueDisplay,
   hasVenueTierMatrix,
   isEventPaid,
+  normalizeEventVenues,
 } from "@/lib/event-display-price"
 import { VenueTierCartModal } from "@/components/modals/venue-tier-cart-modal"
 import { RefundPolicyBadge } from "@/components/refund-policy-badge"
@@ -143,7 +144,8 @@ export default function EventDetailPage() {
           const found = eventsList.find((e) => slugify(e.title) === eventSlug)
           if (found?._id) {
             const fullRes = await apiClient.getPublicEventById(found._id)
-            setEvent(fullRes.success && fullRes.data ? fullRes.data : found)
+            const loaded = fullRes.success && fullRes.data ? fullRes.data : found
+            setEvent(normalizeEventVenues(loaded))
           }
         }
       }
@@ -477,7 +479,8 @@ export default function EventDetailPage() {
         </div>
       </main>
 
-      {/* Modals */}
+      {/* Modals — mount only when open to avoid render crashes from partial event payloads */}
+      {showEventRegistrationModal && (
       <UserEventRegistrationModal
         eventId={event._id}
         isOpen={showEventRegistrationModal}
@@ -490,8 +493,9 @@ export default function EventDetailPage() {
           setShowPurchaseFlowModal(true)
         }}
       />
+      )}
 
-      {club._id && (
+      {club._id && showPurchaseFlowModal && (
         <PurchaseFlowModal
           isOpen={showPurchaseFlowModal}
           onClose={() => setShowPurchaseFlowModal(false)}
@@ -531,6 +535,7 @@ export default function EventDetailPage() {
         />
       )}
 
+      {showVenueTierCartModal && (
       <VenueTierCartModal
         isOpen={showVenueTierCartModal}
         onClose={() => setShowVenueTierCartModal(false)}
@@ -541,7 +546,9 @@ export default function EventDetailPage() {
         }}
         onFailure={() => {}}
       />
+      )}
 
+      {showEventCheckoutModal && (
       <EventCheckoutModal
         isOpen={showEventCheckoutModal}
         onClose={() => {
@@ -566,6 +573,7 @@ export default function EventDetailPage() {
         }}
         onFailure={() => {}}
       />
+      )}
     </div>
   )
 }

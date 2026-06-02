@@ -178,7 +178,7 @@ export function RefundPolicyModal({
                 )}
               </div>
 
-              {policy.rules.length > 0 && (
+              {(policy.rules?.length ?? 0) > 0 && (
                 <div className="space-y-2">
                   <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                     <Shield className="h-3.5 w-3.5" />

@@ -176,7 +176,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
   const isPaidCheckout = amountToCharge > 0
   const refundPolicy = useCheckoutRefundPolicy(checkoutEventId, isOpen, isPaidCheckout)
 
-  if (!event || !venues.length) return null
+  if (!event || !venues.length || !isOpen) return null
 
   const getClubRemaining = (tier: { allocation: number; sold: number; clubAllocations?: Array<{ clubName: string; allocation: number; sold: number }> }) => {
     if (attributedClub && tier.clubAllocations?.length) {
