@@ -498,6 +498,7 @@ export default function EventDetailPage() {
           clubId={club._id}
           clubName={club.name}
           returnPath={returnPath}
+          initialMobileNumber={attendeesForPayment[0]?.phone}
           onContinueToPayment={() => {
             setShowPurchaseFlowModal(false)
             setEventCheckoutAsGuest(true)

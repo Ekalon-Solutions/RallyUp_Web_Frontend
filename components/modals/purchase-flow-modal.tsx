@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useCallback, useEffect, useRef, useState } from "react"
 import {
   Dialog,
   DialogContent,
@@ -50,6 +50,33 @@ export type PurchaseIntent =
       returnPath: string
     }
 
+export function parsePhoneForValidation(
+  phone: string,
+  fallbackCountryCode = "+91"
+): { countryCode: string; mobileNumber: string } {
+  const trimmed = phone.trim()
+  if (!trimmed) {
+    return { countryCode: fallbackCountryCode, mobileNumber: "" }
+  }
+
+  if (trimmed.startsWith("+")) {
+    const match = trimmed.match(/^(\+\d{1,4})(\d{6,15})$/)
+    if (match) {
+      return { countryCode: match[1], mobileNumber: match[2] }
+    }
+  }
+
+  const digits = trimmed.replace(/\D/g, "")
+  return { countryCode: fallbackCountryCode, mobileNumber: digits }
+}
+
+export function formatPhoneForDisplay(countryCode: string, mobileNumber: string): string {
+  const code = countryCode.trim() || "+91"
+  const digits = mobileNumber.replace(/\D/g, "")
+  if (!digits) return ""
+  return `${code.startsWith("+") ? code : `+${code}`} ${digits}`
+}
+
 export function getStoredPurchaseIntent(): PurchaseIntent | null {
   if (typeof window === "undefined") return null
   try {
@@ -83,6 +110,9 @@ interface PurchaseFlowModalProps {
   onLogin?: (returnUrl: string) => void
   onRegister?: (returnUrl: string) => void
   returnPath: string
+  /** When set (e.g. from attendee step), membership is checked automatically — no second phone prompt. */
+  initialMobileNumber?: string
+  initialCountryCode?: string
 }
 
 export function PurchaseFlowModal({
@@ -94,6 +124,8 @@ export function PurchaseFlowModal({
   onLogin,
   onRegister,
   returnPath,
+  initialMobileNumber,
+  initialCountryCode = "+91",
 }: PurchaseFlowModalProps) {
   const [mobileNumber, setMobileNumber] = useState("")
   const [countryCode, setCountryCode] = useState("+91")
@@ -102,7 +134,10 @@ export function PurchaseFlowModal({
     isMember: boolean
     message?: string
   } | null>(null)
+  const [allowManualEntry, setAllowManualEntry] = useState(false)
+  const autoValidatedRef = useRef(false)
 
+  const usePrefilledPhone = Boolean(initialMobileNumber?.trim()) && !allowManualEntry
   const returnUrl =
     returnPath + (returnPath.includes("?") ? "&" : "?") + "resumePurchase=1"
   const registerNextUrl =
@@ -110,40 +145,71 @@ export function PurchaseFlowModal({
       ? `/clubs?search=${encodeURIComponent(clubName.trim())}`
       : "/clubs"
 
-  const handleValidate = async () => {
-    if (!mobileNumber || !mobileNumber.trim()) {
-      toast.error("Please enter your mobile number")
-      return
-    }
-    const digits = mobileNumber.replace(/\D/g, "")
-    if (digits.length < 6 || digits.length > 15) {
-      toast.error("Please enter a valid mobile number (6–15 digits)")
-      return
-    }
-
-    setLoading(true)
-    setValidationResult(null)
-
-    try {
-      const response = await apiClient.validateMemberStatus({
-        clubId,
-        mobileNumber: digits,
-        countryCode: countryCode.trim() || "+91",
-      })
-
-      if (response.success && response.data) {
-        const payload = (response.data as any)?.data ?? response.data
-        setValidationResult({ isMember: !!payload?.isMember, message: payload?.message })
-      } else {
-        toast.error(response.message || "Failed to check member status")
+  const validatePhone = useCallback(
+    async (digits: string, code: string) => {
+      if (!digits || digits.length < 6 || digits.length > 15) {
+        toast.error("Please enter a valid mobile number (6–15 digits)")
+        return false
       }
-    } catch (error) {
-      console.error("Validation error:", error)
-      toast.error("An error occurred while checking. Please try again.")
-    } finally {
-      setLoading(false)
-    }
+
+      setLoading(true)
+      setValidationResult(null)
+
+      try {
+        const response = await apiClient.validateMemberStatus({
+          clubId,
+          mobileNumber: digits,
+          countryCode: code.trim() || "+91",
+        })
+
+        if (response.success && response.data) {
+          const payload = (response.data as { data?: { isMember?: boolean; message?: string } })?.data ?? response.data
+          setValidationResult({ isMember: !!payload?.isMember, message: payload?.message })
+          return true
+        }
+
+        toast.error(response.message || "Failed to check member status")
+        return false
+      } catch (error) {
+        console.error("Validation error:", error)
+        toast.error("An error occurred while checking. Please try again.")
+        return false
+      } finally {
+        setLoading(false)
+      }
+    },
+    [clubId]
+  )
+
+  const handleValidate = async () => {
+    const digits = mobileNumber.replace(/\D/g, "")
+    await validatePhone(digits, countryCode)
   }
+
+  useEffect(() => {
+    if (!isOpen) {
+      autoValidatedRef.current = false
+      setAllowManualEntry(false)
+      setMobileNumber("")
+      setCountryCode("+91")
+      setValidationResult(null)
+      setLoading(false)
+      return
+    }
+
+    if (!initialMobileNumber?.trim() || autoValidatedRef.current) return
+
+    const { countryCode: code, mobileNumber: digits } = parsePhoneForValidation(
+      initialMobileNumber,
+      initialCountryCode
+    )
+    setCountryCode(code)
+    setMobileNumber(digits)
+    autoValidatedRef.current = true
+    void validatePhone(digits, code).then((ok) => {
+      if (!ok) setAllowManualEntry(true)
+    })
+  }, [isOpen, initialMobileNumber, initialCountryCode, validatePhone])
 
   const handleLogin = () => {
     onClose()
@@ -169,6 +235,8 @@ export function PurchaseFlowModal({
   }
 
   const handleReset = () => {
+    autoValidatedRef.current = false
+    setAllowManualEntry(false)
     setMobileNumber("")
     setCountryCode("+91")
     setValidationResult(null)
@@ -179,74 +247,104 @@ export function PurchaseFlowModal({
     onClose()
   }
 
+  const checkedPhoneLabel = formatPhoneForDisplay(countryCode, mobileNumber)
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Continue to purchase</DialogTitle>
           <DialogDescription>
-            Enter your mobile number to check your status for {clubName || "this club"}.
+            {usePrefilledPhone
+              ? `Checking your membership status for ${clubName || "this club"}.`
+              : `Enter your mobile number to check your status for ${clubName || "this club"}.`}
           </DialogDescription>
         </DialogHeader>
 
-        {!validationResult ? (
-          <div className="space-y-4 py-4">
-            <div className="grid grid-cols-[auto_1fr] gap-2 items-end">
-              <div className="space-y-2">
-                <Label htmlFor="countryCode">Code</Label>
-                <Input
-                  id="countryCode"
-                  type="text"
-                  placeholder="+91"
-                  value={countryCode}
-                  onChange={(e) => setCountryCode(e.target.value)}
-                  className="w-24"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="mobileNumber">Mobile number</Label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+        {loading ? (
+          <div className="flex flex-col items-center justify-center gap-3 py-10">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground text-center">
+              {usePrefilledPhone && checkedPhoneLabel
+                ? `Checking membership for ${checkedPhoneLabel}…`
+                : "Checking membership status…"}
+            </p>
+          </div>
+        ) : !validationResult ? (
+          usePrefilledPhone ? (
+            <div className="space-y-4 py-4">
+              <Alert>
+                <Phone className="h-4 w-4" />
+                <AlertDescription>
+                  Using the mobile number you already entered
+                  {checkedPhoneLabel ? `: ${checkedPhoneLabel}` : "."}
+                </AlertDescription>
+              </Alert>
+              <Button
+                onClick={() => void validatePhone(mobileNumber.replace(/\D/g, ""), countryCode)}
+                disabled={!mobileNumber.trim()}
+                className="w-full"
+              >
+                Check again
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-[auto_1fr] gap-2 items-end">
+                <div className="space-y-2">
+                  <Label htmlFor="countryCode">Code</Label>
                   <Input
-                    id="mobileNumber"
-                    type="tel"
-                    placeholder="9876543210"
-                    value={mobileNumber}
-                    onChange={(e) => setMobileNumber(e.target.value)}
-                    className="pl-10"
+                    id="countryCode"
+                    type="text"
+                    placeholder="+91"
+                    value={countryCode}
+                    onChange={(e) => setCountryCode(e.target.value)}
+                    className="w-24"
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="mobileNumber">Mobile number</Label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="mobileNumber"
+                      type="tel"
+                      placeholder="9876543210"
+                      value={mobileNumber}
+                      onChange={(e) => setMobileNumber(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleValidate}
+                  disabled={loading || !mobileNumber.trim()}
+                  className="flex-1"
+                >
+                  Continue
+                </Button>
+
+                <Button
+                  variant="secondary"
+                  onClick={() => setValidationResult({ isMember: false })}
+                  disabled={loading}
+                  className="flex-1 border border-input"
+                >
+                  I&apos;m not a member
+                </Button>
               </div>
             </div>
-
-            <div className="flex gap-2">
-              <Button
-                onClick={handleValidate}
-                disabled={loading || !mobileNumber.trim()}
-                className="flex-1"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Checking...
-                  </>
-                ) : (
-                  "Continue"
-                )}
-              </Button>
-
-              <Button
-                variant="secondary"
-                onClick={() => setValidationResult({ isMember: false })}
-                disabled={loading}
-                className="flex-1 border border-input"
-              >
-                I'm not a member
-              </Button>
-            </div>
-          </div>
+          )
         ) : validationResult.isMember ? (
           <div className="space-y-4 py-4">
+            {checkedPhoneLabel && (
+              <p className="text-xs text-muted-foreground text-center">
+                Checked: {checkedPhoneLabel}
+              </p>
+            )}
             <Alert className="border-green-200 bg-green-50">
               <CheckCircle2 className="h-4 w-4 text-green-600" />
               <AlertDescription className="text-green-800">
@@ -267,6 +365,11 @@ export function PurchaseFlowModal({
           </div>
         ) : (
           <div className="space-y-4 py-4">
+            {checkedPhoneLabel && (
+              <p className="text-xs text-muted-foreground text-center">
+                Checked: {checkedPhoneLabel}
+              </p>
+            )}
             <Alert className="border-blue-200 bg-blue-50">
               <Info className="h-4 w-4 text-blue-600" />
               <AlertDescription className="text-blue-800">
