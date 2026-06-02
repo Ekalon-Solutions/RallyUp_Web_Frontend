@@ -27,6 +27,12 @@ import {
   Home,
 } from "lucide-react"
 import Link from "next/link"
+import {
+  formatEventPriceDisplay,
+  getEventLowestTicketPrice,
+  hasVenueTierMatrix,
+  isEventPaid,
+} from "@/lib/event-display-price"
 import { RefundPolicyBadge } from "@/components/refund-policy-badge"
 import { JointScreeningDisplay } from "@/components/events/joint-screening-display"
 import { EventScheduleMeta } from "@/components/events/event-schedule-meta"
@@ -178,7 +184,12 @@ export default function EventDetailPage() {
   }
 
   const isEventFull = event.maxAttendees != null && (event.currentAttendees ?? 0) >= event.maxAttendees
-  const isPaid = event.ticketPrice != null && event.ticketPrice > 0
+  const isPaid = isEventPaid(event)
+  const displayPrice = formatEventPriceDisplay(event, {
+    fromPrefix: hasVenueTierMatrix(event),
+    includeFees: true,
+  })
+  const checkoutTicketPrice = getEventLowestTicketPrice(event)
   const returnPath = `/clubs/${slug}/events/${eventSlug}`
 
   return (
@@ -229,17 +240,15 @@ export default function EventDetailPage() {
             {/* Title & badges */}
             <header className="space-y-4 sm:space-y-5">
               <div className="flex flex-wrap items-center gap-2">
-                {event.isActive !== undefined && (
-                  <Badge variant={event.isActive ? "default" : "secondary"}>
-                    {event.isActive ? "Active" : "Inactive"}
-                  </Badge>
+                {event.isActive === false && (
+                  <Badge variant="secondary">Inactive</Badge>
                 )}
                 {event.category && (
                   <Badge variant="outline">{event.category}</Badge>
                 )}
-                {isPaid && (
+                {isPaid && displayPrice && (
                   <Badge variant="outline" className="font-bold">
-                    ₹{event.ticketPrice} (+ Fees)
+                    {displayPrice}
                   </Badge>
                 )}
                 {!isPaid && (
@@ -382,8 +391,7 @@ export default function EventDetailPage() {
                       <div className="min-w-0 pt-0.5">
                         <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Ticket Price</p>
                         <p className="text-2xl font-black mt-1 leading-none" style={{ color: primaryColor }}>
-                          ₹{event.ticketPrice}{" "}
-                          <span className="text-base font-semibold text-muted-foreground">(+ Fees)</span>
+                          {displayPrice}
                         </p>
                         <div className="mt-2">
                           <RefundPolicyBadge eventId={event._id} source="event_detail" />
@@ -415,7 +423,7 @@ export default function EventDetailPage() {
         eventId={event._id}
         isOpen={showEventRegistrationModal}
         onClose={() => setShowEventRegistrationModal(false)}
-        ticketPrice={event.ticketPrice || 0}
+        ticketPrice={checkoutTicketPrice}
         event={event}
         onRegister={(payload) => {
           setAttendeesForPayment(payload.attendees || [])
@@ -474,8 +482,8 @@ export default function EventDetailPage() {
         event={{
           _id: event._id,
           name: event.title,
-          price: event.ticketPrice || 0,
-          ticketPrice: event.ticketPrice || 0,
+          price: checkoutTicketPrice,
+          ticketPrice: checkoutTicketPrice,
           earlyBirdDiscount: (event as any).earlyBirdDiscount,
           memberDiscount: (event as any).memberDiscount,
           groupDiscount: (event as any).groupDiscount,

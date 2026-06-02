@@ -10,6 +10,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { apiClient, News, Event, Chant, Album } from "@/lib/api"
 import { formatDisplayDate, slugify } from "@/lib/utils"
 import { getNewsImageUrl } from "@/lib/config"
+import {
+  formatEventPriceDisplay,
+  hasVenueTierMatrix,
+  isEventPaid,
+} from "@/lib/event-display-price"
 import { EventCheckoutModal } from "@/components/modals/event-checkout-modal"
 import { RefundPolicyBadge } from "@/components/refund-policy-badge"
 import { JointScreeningDisplay } from "@/components/events/joint-screening-display"
@@ -163,14 +168,6 @@ export default function PublicClubPage() {
   const [showReadMoreModal, setShowReadMoreModal] = useState(false)
   const [selectedNewsForReadMore, setSelectedNewsForReadMore] = useState<News | null>(null)
 
-  const hasVenueTierMatrix = (ev: Event | null | undefined) =>
-    Boolean(
-      ev &&
-      Array.isArray((ev as any).venues) &&
-      (ev as any).venues.some(
-        (v: any) => Array.isArray(v?.tiers) && v.tiers.length > 0
-      )
-    )
 
   useEffect(() => {
     const resume = searchParams.get("resumePurchase")
@@ -766,12 +763,15 @@ export default function PublicClubPage() {
                                         </Badge>
                                       )}
                                       <div className="flex flex-wrap items-center gap-1.5 justify-end ml-auto">
-                                        {event.ticketPrice !== undefined && event.ticketPrice > 0 && (
-                                          <Badge variant="outline" className="text-xs font-bold">
-                                            ₹{event.ticketPrice}
-                                          </Badge>
-                                        )}
-                                        {event.ticketPrice !== undefined && event.ticketPrice > 0 && event._id && (
+                                        {isEventPaid(event) && (() => {
+                                          const priceLabel = formatEventPriceDisplay(event, { fromPrefix: hasVenueTierMatrix(event) })
+                                          return priceLabel ? (
+                                            <Badge variant="outline" className="text-xs font-bold">
+                                              {priceLabel}
+                                            </Badge>
+                                          ) : null
+                                        })()}
+                                        {isEventPaid(event) && event._id && (
                                           <RefundPolicyBadge eventId={event._id} className="text-[10px]" source="event_detail" />
                                         )}
                                         <JointScreeningDisplay jointScreening={event.jointScreening} variant="badge" />
@@ -829,8 +829,7 @@ export default function PublicClubPage() {
 
                                     {(() => {
                                       const isEventFull = event.maxAttendees != null && (event.currentAttendees ?? 0) >= event.maxAttendees
-                                      const hasTierMatrix = hasVenueTierMatrix(event)
-                                      const label = isEventFull ? "Event Full" : hasTierMatrix || (event.ticketPrice && event.ticketPrice > 0) ? "Buy Tickets" : "Register"
+                                      const label = isEventFull ? "Event Full" : isEventPaid(event) ? "Buy Tickets" : "Register"
                                       return (
                                         <Button
                                           className="w-full mt-2"

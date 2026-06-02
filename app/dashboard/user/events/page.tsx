@@ -47,6 +47,12 @@ import { JointScreeningDisplay } from "@/components/events/joint-screening-displ
 import { EventScheduleMeta } from "@/components/events/event-schedule-meta";
 import { WaitlistDisplay } from "@/components/events/waitlist-display";
 import { VenueTierCartModal } from "@/components/modals/venue-tier-cart-modal";
+import {
+  formatEventPriceDisplay,
+  getEventLowestTicketPrice,
+  hasVenueTierMatrix,
+  isEventPaid,
+} from "@/lib/event-display-price";
 
 const eventCategories = [
   "all",
@@ -185,12 +191,6 @@ function UserEventsPageInner() {
   const [showVenueTierCartModal, setShowVenueTierCartModal] = useState(false);
   const [venueTierEvent, setVenueTierEvent] = useState<Event | null>(null);
 
-  const hasVenueTierMatrix = (event: Event | null | undefined) =>
-    Boolean(
-      event &&
-      Array.isArray(event.venues) &&
-      event.venues.some((v) => Array.isArray(v?.tiers) && v.tiers.length > 0)
-    );
 
   useEffect(() => {
     fetchEvents();
@@ -215,7 +215,7 @@ function UserEventsPageInner() {
       setShowEventDetailsModal(true);
       setHandledDeepLinkEventId(eventId);
       if (openCheckout && t && ev) {
-        setEventForPayment({ ...ev, price: ev.ticketPrice ?? 0 } as Event & { price: number });
+        setEventForPayment({ ...ev, price: getEventLowestTicketPrice(ev) } as Event & { price: number });
         setAttendeesForPayment([{ name: (user as any)?.name || `${(user as any)?.first_name || ''} ${(user as any)?.last_name || ''}`.trim() || 'Attendee', phone: (user as any)?.phoneNumber || (user as any)?.phone || '' }]);
         setCouponForPayment(null);
         setWaitlistTokenForCheckout(t);
@@ -374,7 +374,7 @@ function UserEventsPageInner() {
       setCouponForPayment(null);
     }
     setShowEventCheckoutModal(true);
-    setEventForPayment({ ...event, price: event.ticketPrice ?? 0 } as Event & {
+    setEventForPayment({ ...event, price: getEventLowestTicketPrice(event) } as Event & {
       price: number;
     });
     setAttendeesForPayment(payload.attendees);
@@ -440,16 +440,6 @@ function UserEventsPageInner() {
       return event.venues.map(v => v.name).join(", ");
     }
     return event.venue || "—";
-  };
-
-  const getMatrixPriceDisplay = (event: Event): string | null => {
-    if (!event.venues?.length) return null;
-    const allPrices = event.venues.flatMap(v => v.tiers.map(t => t.price));
-    if (!allPrices.length) return null;
-    const min = Math.min(...allPrices);
-    const max = Math.max(...allPrices);
-    const sym = currencySymbols[event.currency ?? "INR"] ?? (event.currency + " ");
-    return min === max ? `${sym}${min.toLocaleString()}` : `${sym}${min.toLocaleString()} – ${sym}${max.toLocaleString()}`;
   };
 
   const isEventUpcoming = (event: Event) => {
@@ -663,8 +653,8 @@ function UserEventsPageInner() {
                                 _id: w.eventId,
                                 name: w.eventTitle,
                                 title: w.eventTitle,
-                                ticketPrice: (eventData as any).ticketPrice ?? 0,
-                                price: (eventData as any).ticketPrice ?? 0,
+                                ticketPrice: getEventLowestTicketPrice(eventData as Event),
+                                price: getEventLowestTicketPrice(eventData as Event),
                                 currency: (eventData as any).currency,
                               } as any);
                               setAttendeesForPayment([{ name: (user as any)?.name || `${(user as any)?.first_name || ''} ${(user as any)?.last_name || ''}`.trim() || "Attendee", phone: (user as any)?.phoneNumber || (user as any)?.phone || "" }]);
@@ -871,20 +861,21 @@ function UserEventsPageInner() {
                               </div>
                             );
                           })()}
-                          {event.venues?.length ? (
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium text-primary">
-                                {getMatrixPriceDisplay(event)}
-                              </span>
-                              <Badge variant="outline" className="text-xs">Multi-venue</Badge>
-                            </div>
-                          ) : event.ticketPrice ? (
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium text-primary">
-                                Price: {formatCurrency(event.ticketPrice, (event as any).currency)}
-                              </span>
-                            </div>
-                          ) : null}
+                          {isEventPaid(event) && (() => {
+                            const priceLabel = formatEventPriceDisplay(event, {
+                              fromPrefix: hasVenueTierMatrix(event),
+                            })
+                            return priceLabel ? (
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium text-primary">
+                                  Price: {priceLabel}
+                                </span>
+                                {hasVenueTierMatrix(event) && (
+                                  <Badge variant="outline" className="text-xs">Multi-venue</Badge>
+                                )}
+                              </div>
+                            ) : null
+                          })()}
                           <JointScreeningDisplay jointScreening={event.jointScreening} variant="badge" />
                           <WaitlistDisplay waitlist={event.waitlist} variant="badge" />
                           <EventScheduleMeta
@@ -962,7 +953,7 @@ function UserEventsPageInner() {
                                       <div className="flex gap-2">
                                         <Button
                                           onClick={() => {
-                                            setEventForPayment({ ...event, price: event.ticketPrice ?? 0 } as Event & { price: number });
+                                            setEventForPayment({ ...event, price: getEventLowestTicketPrice(event) } as Event & { price: number });
                                             setAttendeesForPayment([{ name: (user as any)?.name || `${(user as any)?.first_name || ''} ${(user as any)?.last_name || ''}`.trim() || "Attendee", phone: (user as any)?.phoneNumber || (user as any)?.phone || "" }]);
                                             setCouponForPayment(null);
                                             setWaitlistTokenForCheckout(waitlistEntry.purchaseToken || null);
@@ -1145,7 +1136,7 @@ function UserEventsPageInner() {
           setRegistrationEvent(null);
         }}
         onRegister={handlePerformRegistration}
-        ticketPrice={registrationEvent?.ticketPrice || 0}
+        ticketPrice={registrationEvent ? getEventLowestTicketPrice(registrationEvent) : 0}
         event={registrationEvent}
       />
       <EventCheckoutModal

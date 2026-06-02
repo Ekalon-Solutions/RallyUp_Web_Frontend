@@ -65,6 +65,17 @@ function isPaidEvent(
   return Number(form.ticketPrice) > 0
 }
 
+function getLowestTicketPrice(
+  form: { multiTicketEnabled: boolean; ticketPrice: string },
+  venues: VenueDraft[]
+): number {
+  if (form.multiTicketEnabled) {
+    const prices = venues.flatMap((v) => v.tiers.map((t) => t.price)).filter((p) => p > 0)
+    return prices.length > 0 ? Math.min(...prices) : 0
+  }
+  return Number(form.ticketPrice) || 0
+}
+
 function isRefundCutoffValid(refundCutoffHours: string, isRefundAllowed: boolean, isFreeEvent: boolean): boolean {
   if (isFreeEvent || !isRefundAllowed) return true
   if (refundCutoffHours.trim() === "") return false
@@ -288,7 +299,7 @@ function CreateEventForm() {
         const ebVal = Number(form.earlyBirdValue)
         if (!form.earlyBirdValue || ebVal <= 0) { toast.error("Early bird discount value must be greater than 0"); return false }
         if (form.earlyBirdType === "percentage" && ebVal > 100) { toast.error("Percentage discount cannot exceed 100%"); return false }
-        if (form.earlyBirdType === "fixed" && ebVal > (Number(form.ticketPrice) || 0)) { toast.error("Fixed discount cannot exceed the ticket price"); return false }
+        if (form.earlyBirdType === "fixed" && ebVal > getLowestTicketPrice(form, venues)) { toast.error("Fixed discount cannot exceed the ticket price"); return false }
         if (!form.earlyBirdStartTime) { toast.error("Early bird start time is required"); return false }
         if (!form.earlyBirdEndTime) { toast.error("Early bird end time is required"); return false }
         const ebStart = new Date(form.earlyBirdStartTime)
@@ -456,7 +467,9 @@ function CreateEventForm() {
         venue: form.venue.trim() || (venues[0]?.name ?? "Multiple Venues"),
         description: form.description.trim(),
         maxAttendees: form.maxAttendees ? Number(form.maxAttendees) : undefined,
-        ticketPrice: form.multiTicketEnabled ? 0 : Number(form.ticketPrice) || 0,
+        ticketPrice: form.multiTicketEnabled
+          ? getLowestTicketPrice(form, venues)
+          : Number(form.ticketPrice) || 0,
         currency: form.currency,
         requiresTicket: form.requiresTicket,
         memberOnly: form.memberOnly,

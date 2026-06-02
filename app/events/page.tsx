@@ -16,6 +16,11 @@ import { formatLocalDate } from "@/lib/timezone"
 import { JointScreeningDisplay } from "@/components/events/joint-screening-display"
 import { EventScheduleMeta } from "@/components/events/event-schedule-meta"
 import { WaitlistDisplay } from "@/components/events/waitlist-display"
+import {
+  formatEventPriceDisplay,
+  hasVenueTierMatrix,
+  isEventPaid,
+} from "@/lib/event-display-price"
 
 export default function PublicEventsPage() {
   const { user } = useAuth()
@@ -184,26 +189,11 @@ export default function PublicEventsPage() {
     }
   }
 
-  const currencySymbols: Record<string, string> = {
-    INR: "₹", USD: "$", EUR: "€", GBP: "£", AUD: "A$", CAD: "CA$",
-    JPY: "¥", BRL: "R$", MXN: "$", ZAR: "R",
-  }
-
   const getVenueDisplay = (event: Event) => {
-    if ((event as any).venues && (event as any).venues.length > 0) {
-      return (event as any).venues.map((v: any) => v.name).join(", ")
+    if (event.venues && event.venues.length > 0) {
+      return event.venues.map((v) => v.name).join(", ")
     }
     return event.venue || "—"
-  }
-
-  const getMatrixPriceDisplay = (event: Event): string | null => {
-    if (!(event as any).venues?.length) return null
-    const allPrices = (event as any).venues.flatMap((v: any) => v.tiers.map((t: any) => t.price))
-    if (!allPrices.length) return null
-    const min = Math.min(...allPrices)
-    const max = Math.max(...allPrices)
-    const sym = currencySymbols[(event as any).currency ?? "INR"] ?? ((event as any).currency + " ")
-    return min === max ? `${sym}${min.toLocaleString()}` : `${sym}${min.toLocaleString()} – ${sym}${max.toLocaleString()}`
   }
 
   const getCapacity = (event: Event): { count: number; max: number | null } => {
@@ -328,7 +318,7 @@ export default function PublicEventsPage() {
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                   {events.map((event) => {
                     const isRegistered = isUserRegistered(event._id)
-                    const hasVenues = (event as any).venues && (event as any).venues.length > 0
+                    const hasVenues = hasVenueTierMatrix(event)
                     const { count: capacityCount, max: capacityMax } = getCapacity(event)
                     const isEventFull = capacityMax !== null ? capacityCount >= capacityMax : false
                     const canRegister = event.isActive && !isEventFull && !isRegistered
@@ -381,20 +371,20 @@ export default function PublicEventsPage() {
                               </span>
                             </div>
                             
-                            {hasVenues ? (
-                              <div className="flex items-center gap-2">
-                                <Ticket className="w-4 h-4 text-muted-foreground" />
-                                <span className="text-sm font-medium text-primary">
-                                  {getMatrixPriceDisplay(event)}
-                                </span>
-                                <Badge variant="outline" className="text-xs">Multi-venue</Badge>
-                              </div>
-                            ) : event.ticketPrice > 0 ? (
-                              <div className="flex items-center gap-2">
-                                <Ticket className="w-4 h-4 text-muted-foreground" />
-                                <span>₹{event.ticketPrice}</span>
-                              </div>
-                            ) : null}
+                            {isEventPaid(event) && (() => {
+                              const priceLabel = formatEventPriceDisplay(event, { fromPrefix: hasVenues })
+                              return priceLabel ? (
+                                <div className="flex items-center gap-2">
+                                  <Ticket className="w-4 h-4 text-muted-foreground" />
+                                  <span className="text-sm font-medium text-primary">
+                                    {priceLabel}
+                                  </span>
+                                  {hasVenues && (
+                                    <Badge variant="outline" className="text-xs">Multi-venue</Badge>
+                                  )}
+                                </div>
+                              ) : null
+                            })()}
                             
                             {event.memberOnly && (
                               <div className="flex items-center gap-2">

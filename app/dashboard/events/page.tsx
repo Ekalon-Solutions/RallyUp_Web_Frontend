@@ -20,6 +20,7 @@ import { useRouter } from "next/navigation"
 import { JointScreeningDisplay } from "@/components/events/joint-screening-display"
 import { EventScheduleMeta } from "@/components/events/event-schedule-meta"
 import { WaitlistDisplay } from "@/components/events/waitlist-display"
+import { formatEventPriceDisplay, isEventPaid } from "@/lib/event-display-price"
 
 export default function EventsPage() {
   const router = useRouter()
@@ -292,6 +293,12 @@ export default function EventsPage() {
                               <div className="text-sm text-muted-foreground line-clamp-2 break-words">
                                 {event.description}
                               </div>
+                              {isEventPaid(event) && (() => {
+                                const priceLabel = formatEventPriceDisplay(event, { fromPrefix: Boolean(event.venues?.length) })
+                                return priceLabel ? (
+                                  <p className="text-sm font-medium text-primary mt-1">{priceLabel}</p>
+                                ) : null
+                              })()}
                               {event.venues && event.venues.length > 0 && (
                                 <Badge variant="outline" className="mt-1 text-xs">Multi-venue</Badge>
                               )}
@@ -347,9 +354,9 @@ export default function EventsPage() {
                           </TableCell>
                           <TableCell>
                             <div className="flex flex-col gap-1">
-                              <Badge variant={event.isActive ? "default" : "secondary"}>
-                                {event.isActive ? "Active" : "Inactive"}
-                              </Badge>
+                              {!event.isActive && (
+                                <Badge variant="secondary">Inactive</Badge>
+                              )}
                               {(() => {
                                 const now = new Date()
                                 const start = new Date(event.startTime)
