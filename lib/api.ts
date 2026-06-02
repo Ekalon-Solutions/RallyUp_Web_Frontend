@@ -1014,6 +1014,38 @@ class ApiClient {
       body: JSON.stringify(data),
     });
   }
+  
+  async sendGuestPhoneVerificationOTP(data: {
+    phoneNumber: string;
+    countryCode: string;
+  }): Promise<ApiResponse<{ sessionInfo?: string; deliveryChannel?: string }>> {
+    return this.request('/otp/verify-phone/send', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async verifyGuestPhoneVerificationOTP(data: {
+    phoneNumber: string;
+    countryCode: string;
+    otp: string;
+    sessionInfo: string;
+  }): Promise<ApiResponse<{ verified: boolean; channel?: string }>> {
+    return this.request('/otp/verify-phone/verify', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async resendGuestPhoneVerificationOTP(data: {
+    phoneNumber: string;
+    countryCode: string;
+  }): Promise<ApiResponse<{ sessionInfo?: string; deliveryChannel?: string }>> {
+    return this.request('/otp/verify-phone/resend', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
 
   async userProfile(): Promise<ApiResponse<User>> {
     return this.request('/users/profile');

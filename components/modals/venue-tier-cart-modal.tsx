@@ -20,6 +20,7 @@ import { RefundPolicyCheckoutLine } from "@/components/member/refund-policy-chec
 import { RefundPolicyModal } from "@/components/modals/refund-policy-modal"
 import { useCheckoutRefundPolicy } from "@/hooks/useCheckoutRefundPolicy"
 import { getJointScreeningClubNames } from "@/lib/joint-screening-clubs"
+import { canShowPointsRedemption, validatePointsRedemptionInput } from "@/lib/points-redemption"
 
 declare global {
   interface Window { Razorpay: any }
@@ -169,6 +170,8 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
 
   const subtotal = cartItems.reduce((sum, i) => sum + i.price * i.quantity, 0)
   const afterCoupon = Math.max(subtotal - couponDiscount, 0)
+  const payableBeforePoints = afterCoupon
+  const showPointsRedemption = canShowPointsRedemption(availablePoints, payableBeforePoints)
   const netAmount = Math.max(afterCoupon - (reservedDiscount || 0), 0)
   const feeBreakdown = netAmount > 0 ? calculateTransactionFees(netAmount) : null
   const amountToCharge = feeBreakdown ? feeBreakdown.finalAmount : netAmount
@@ -219,11 +222,12 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
   }
 
   const reservePoints = async () => {
-    if (!redeemPoints || Number(redeemPoints) <= 0) { toast.error("Enter points to redeem"); return }
-    if (!event.clubId) { toast.error("Club info missing"); return }
-    if (availablePoints !== null && Number(redeemPoints) > availablePoints) {
-      toast.error("Not enough points"); return
+    const validationError = validatePointsRedemptionInput(redeemPoints, availablePoints, payableBeforePoints)
+    if (validationError) {
+      toast.error(validationError)
+      return
     }
+    if (!event.clubId) { toast.error("Club info missing"); return }
     setReserving(true)
     try {
       const res = await apiClient.createReservation(Number(redeemPoints), event.clubId, afterCoupon)
@@ -700,7 +704,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
             </Card>
           )}
 
-          {user && cartItems.length > 0 && (
+          {user && cartItems.length > 0 && showPointsRedemption && (
             <div className="space-y-2">
               <label className="text-sm font-medium">
                 Redeem Points{availablePoints !== null ? ` (Available: ${availablePoints})` : ""}
@@ -708,7 +712,8 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
               <div className="flex flex-col sm:flex-row gap-2">
                 <input
                   type="number"
-                  min={0}
+                  min={1}
+                  max={availablePoints ?? undefined}
                   value={redeemPoints}
                   onChange={(e) => setRedeemPoints(e.target.value === "" ? "" : Number(e.target.value))}
                   className="flex-1 h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
@@ -719,7 +724,12 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
                   {reservationToken ? (
                     <Button disabled size="sm" variant="outline" className="flex-1 sm:flex-none border-green-500 text-green-600">Applied</Button>
                   ) : (
-                    <Button onClick={reservePoints} disabled={reserving || !redeemPoints || Number(redeemPoints) <= 0} size="sm" className="flex-1 sm:flex-none">
+                    <Button
+                      onClick={reservePoints}
+                      disabled={reserving || !redeemPoints || Number(redeemPoints) <= 0}
+                      size="sm"
+                      className="flex-1 sm:flex-none"
+                    >
                       {reserving ? <><Loader2 className="w-3 h-3 animate-spin mr-1" />Reserving...</> : "Reserve"}
                     </Button>
                   )}

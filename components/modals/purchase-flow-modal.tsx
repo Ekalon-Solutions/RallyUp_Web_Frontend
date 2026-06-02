@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2, Phone, CheckCircle2, Info } from "lucide-react"
+import { Loader2, Phone, CheckCircle2, Info, MessageCircle } from "lucide-react"
 import { apiClient } from "@/lib/api"
 import { toast } from "sonner"
 
@@ -136,6 +136,15 @@ export function PurchaseFlowModal({
   } | null>(null)
   const [allowManualEntry, setAllowManualEntry] = useState(false)
   const autoValidatedRef = useRef(false)
+  const otpAutoSendRef = useRef(false)
+
+  const [phoneVerified, setPhoneVerified] = useState(false)
+  const [otp, setOtp] = useState("")
+  const [otpSent, setOtpSent] = useState(false)
+  const [otpSessionInfo, setOtpSessionInfo] = useState<string | null>(null)
+  const [otpSending, setOtpSending] = useState(false)
+  const [otpVerifying, setOtpVerifying] = useState(false)
+  const [resendCountdown, setResendCountdown] = useState(0)
 
   const usePrefilledPhone = Boolean(initialMobileNumber?.trim()) && !allowManualEntry
   const returnUrl =
@@ -144,6 +153,21 @@ export function PurchaseFlowModal({
     clubName && clubName.trim()
       ? `/clubs?search=${encodeURIComponent(clubName.trim())}`
       : "/clubs"
+
+  const resetOtpState = () => {
+    otpAutoSendRef.current = false
+    setPhoneVerified(false)
+    setOtp("")
+    setOtpSent(false)
+    setOtpSessionInfo(null)
+    setOtpSending(false)
+    setOtpVerifying(false)
+    setResendCountdown(0)
+  }
+
+  const startResendCountdown = () => {
+    setResendCountdown(30)
+  }
 
   const validatePhone = useCallback(
     async (digits: string, code: string) => {
@@ -181,10 +205,121 @@ export function PurchaseFlowModal({
     [clubId]
   )
 
+  const sendPhoneVerificationOtp = useCallback(async () => {
+    const digits = mobileNumber.replace(/\D/g, "")
+    if (!digits || digits.length < 6) {
+      toast.error("Please enter a valid mobile number")
+      return false
+    }
+
+    setOtpSending(true)
+    try {
+      const res = await apiClient.sendGuestPhoneVerificationOTP({
+        phoneNumber: digits,
+        countryCode: countryCode.trim() || "+91",
+      })
+
+      if (res.success && res.data?.sessionInfo) {
+        setOtpSessionInfo(res.data.sessionInfo)
+        setOtpSent(true)
+        startResendCountdown()
+        toast.success(`Verification code sent via WhatsApp to ${formatPhoneForDisplay(countryCode, digits)}`)
+        return true
+      }
+
+      toast.error(res.message || res.error || "Failed to send WhatsApp verification code")
+      return false
+    } catch (error) {
+      console.error("Send phone verification OTP error:", error)
+      toast.error("Failed to send verification code. Please try again.")
+      return false
+    } finally {
+      setOtpSending(false)
+    }
+  }, [mobileNumber, countryCode])
+
+  const handleVerifyPhoneOtp = async () => {
+    if (!otp || otp.length < 6) {
+      toast.error("Please enter the 6-digit code")
+      return
+    }
+
+    if (!otpSessionInfo) {
+      toast.error("Please request a verification code first")
+      return
+    }
+
+    const digits = mobileNumber.replace(/\D/g, "")
+    setOtpVerifying(true)
+    try {
+      const res = await apiClient.verifyGuestPhoneVerificationOTP({
+        phoneNumber: digits,
+        countryCode: countryCode.trim() || "+91",
+        otp,
+        sessionInfo: otpSessionInfo,
+      })
+
+      if (res.success && res.data?.verified) {
+        setPhoneVerified(true)
+        toast.success("Phone number verified")
+      } else {
+        toast.error(res.message || res.error || "Invalid or expired code")
+      }
+    } catch (error) {
+      console.error("Verify phone OTP error:", error)
+      toast.error("Failed to verify code. Please try again.")
+    } finally {
+      setOtpVerifying(false)
+    }
+  }
+
+  const handleResendPhoneOtp = async () => {
+    if (resendCountdown > 0) return
+
+    const digits = mobileNumber.replace(/\D/g, "")
+    setOtpSending(true)
+    try {
+      const res = await apiClient.resendGuestPhoneVerificationOTP({
+        phoneNumber: digits,
+        countryCode: countryCode.trim() || "+91",
+      })
+
+      if (res.success && res.data?.sessionInfo) {
+        setOtpSessionInfo(res.data.sessionInfo)
+        setOtp("")
+        startResendCountdown()
+        toast.success("Verification code resent via WhatsApp")
+      } else {
+        toast.error(res.message || res.error || "Failed to resend code")
+      }
+    } catch (error) {
+      console.error("Resend phone OTP error:", error)
+      toast.error("Failed to resend code. Please try again.")
+    } finally {
+      setOtpSending(false)
+    }
+  }
+
+  const handleNotAMember = () => {
+    const digits = mobileNumber.replace(/\D/g, "")
+    if (!digits || digits.length < 6 || digits.length > 15) {
+      toast.error("Please enter your mobile number first")
+      return
+    }
+    setValidationResult({ isMember: false })
+  }
+
   const handleValidate = async () => {
     const digits = mobileNumber.replace(/\D/g, "")
     await validatePhone(digits, countryCode)
   }
+
+  useEffect(() => {
+    if (resendCountdown > 0) {
+      const timer = setTimeout(() => setResendCountdown(resendCountdown - 1), 1000)
+      return () => clearTimeout(timer)
+    }
+  }, [resendCountdown])
 
   useEffect(() => {
     if (!isOpen) {
@@ -194,6 +329,7 @@ export function PurchaseFlowModal({
       setCountryCode("+91")
       setValidationResult(null)
       setLoading(false)
+      resetOtpState()
       return
     }
 
@@ -210,6 +346,21 @@ export function PurchaseFlowModal({
       if (!ok) setAllowManualEntry(true)
     })
   }, [isOpen, initialMobileNumber, initialCountryCode, validatePhone])
+
+  useEffect(() => {
+    if (
+      !validationResult ||
+      validationResult.isMember ||
+      phoneVerified ||
+      otpSent ||
+      otpAutoSendRef.current
+    ) {
+      return
+    }
+
+    otpAutoSendRef.current = true
+    void sendPhoneVerificationOtp()
+  }, [validationResult, phoneVerified, otpSent, sendPhoneVerificationOtp])
 
   const handleLogin = () => {
     onClose()
@@ -240,6 +391,7 @@ export function PurchaseFlowModal({
     setMobileNumber("")
     setCountryCode("+91")
     setValidationResult(null)
+    resetOtpState()
   }
 
   const handleClose = () => {
@@ -329,7 +481,7 @@ export function PurchaseFlowModal({
 
                 <Button
                   variant="secondary"
-                  onClick={() => setValidationResult({ isMember: false })}
+                  onClick={handleNotAMember}
                   disabled={loading}
                   className="flex-1 border border-input"
                 >
@@ -362,6 +514,101 @@ export function PurchaseFlowModal({
                 Continue as Guest
               </Button>
             </div>
+          </div>
+        ) : !phoneVerified ? (
+          <div className="space-y-4 py-4">
+            {checkedPhoneLabel && (
+              <p className="text-xs text-muted-foreground text-center">
+                Verifying: {checkedPhoneLabel}
+              </p>
+            )}
+            <Alert className="border-blue-200 bg-blue-50">
+              <MessageCircle className="h-4 w-4 text-blue-600" />
+              <AlertDescription className="text-blue-800">
+                <strong>Verify your mobile number</strong>
+                <br />
+                We&apos;ll send a one-time code via WhatsApp to confirm this number is valid.
+              </AlertDescription>
+            </Alert>
+
+            {otpSending && !otpSent ? (
+              <div className="flex flex-col items-center justify-center gap-3 py-6">
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                <p className="text-sm text-muted-foreground">Sending WhatsApp code…</p>
+              </div>
+            ) : (
+              <>
+                {!otpSent ? (
+                  <Button
+                    onClick={() => void sendPhoneVerificationOtp()}
+                    disabled={otpSending || !mobileNumber.trim()}
+                    className="w-full"
+                  >
+                    {otpSending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Sending…
+                      </>
+                    ) : (
+                      "Send code via WhatsApp"
+                    )}
+                  </Button>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="phoneVerificationOtp">WhatsApp verification code</Label>
+                      <Input
+                        id="phoneVerificationOtp"
+                        type="text"
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        placeholder="Enter 6-digit code"
+                        value={otp}
+                        maxLength={6}
+                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                      />
+                    </div>
+
+                    <Button
+                      onClick={() => void handleVerifyPhoneOtp()}
+                      disabled={otpVerifying || otp.length < 6}
+                      className="w-full"
+                    >
+                      {otpVerifying ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Verifying…
+                        </>
+                      ) : (
+                        "Verify code"
+                      )}
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      onClick={() => void handleResendPhoneOtp()}
+                      disabled={otpSending || resendCountdown > 0}
+                      className="w-full"
+                    >
+                      {otpSending ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Resending…
+                        </>
+                      ) : resendCountdown > 0 ? (
+                        `Resend via WhatsApp (${resendCountdown}s)`
+                      ) : (
+                        "Resend via WhatsApp"
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
+
+            <Button variant="ghost" onClick={handleReset} className="w-full">
+              Use a different number
+            </Button>
           </div>
         ) : (
           <div className="space-y-4 py-4">

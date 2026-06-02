@@ -52,7 +52,7 @@ export default function SystemOwnerLoginPage() {
                 </div>
                 <CardTitle className="text-2xl font-bold text-white">System Owner Login</CardTitle>
                 <CardDescription className="text-slate-300">
-                  Sign in with email (SendGrid) or phone (WhatsApp / SMS)
+                  Sign in with email or phone (WhatsApp)
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">

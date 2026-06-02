@@ -21,6 +21,7 @@ import { RefundPolicyCheckoutLine } from "@/components/member/refund-policy-chec
 import { RefundPolicyModal } from "@/components/modals/refund-policy-modal"
 import { useCheckoutRefundPolicy } from "@/hooks/useCheckoutRefundPolicy"
 import { getJointScreeningClubNames } from "@/lib/joint-screening-clubs"
+import { canShowPointsRedemption, validatePointsRedemptionInput } from "@/lib/points-redemption"
 import { useRouter } from "next/navigation"
 
 declare global {
@@ -94,25 +95,19 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
   const [showClubAlert, setShowClubAlert] = useState(false)
 
     const reservePointsNow = async () => {
-    if (!redeemPoints || Number(redeemPoints) <= 0) {
-      toast.error('Enter points to redeem')
+    const { orderTotalBeforeCoupon } = getOrderPricing()
+    const orderTotalForReservation = Math.max(orderTotalBeforeCoupon - couponDiscount, 0)
+    const validationError = validatePointsRedemptionInput(redeemPoints, availablePoints, orderTotalForReservation)
+    if (validationError) {
+      toast.error(validationError)
       return
     }
     if (!eventData?.clubId) {
       toast.error('Club information is missing for redemption')
       return
     }
-    if (availablePoints !== null && Number(redeemPoints) > availablePoints) {
-      toast.error('You do not have enough points')
-      setReserving(false)
-      return
-    }
     setReserving(true)
     try {
-      // pass order total so backend can cap reserved points to order value
-      const { orderTotalBeforeCoupon } = getOrderPricing()
-      const finalPrice = Math.max(orderTotalBeforeCoupon - couponDiscount, 0)
-      const orderTotalForReservation = finalPrice
       const redeemPointsNum = Number(redeemPoints) || 0
       const res = await apiClient.createReservation(redeemPointsNum, eventData.clubId, orderTotalForReservation)
         if (res && res.success) {
@@ -668,6 +663,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
   const priceBeforeDiscount = event?.ticketPrice ?? event?.price ?? 0
   const { totalBasePrice, earlyBirdDiscountTotal, memberDiscountPerTicket, groupDiscountPerTicket, memberDiscountTotal, groupDiscountTotal, orderTotalBeforeCoupon } = getOrderPricing()
   const finalPrice = Math.max(orderTotalBeforeCoupon - couponDiscount, 0);
+  const showPointsRedemption = canShowPointsRedemption(availablePoints, finalPrice)
   const netSubtotal = Math.max(finalPrice - (reservedDiscount || 0), 0);
   // Fees are calculated on the final net amount (after all discounts)
   const feeBreakdown = netSubtotal > 0 ? calculateTransactionFees(netSubtotal) : null;
@@ -856,13 +852,13 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
                   </>
                 )}
                 
-                  {user && (
+                  {user && showPointsRedemption && (
                   <div className="space-y-2">
                   <label className="text-sm font-medium">Redeem Points {availablePoints !== null && ` (Available: ${availablePoints} pts)`}</label>
                   <div className="flex flex-col sm:flex-row gap-2">
                     <input
                       type="number"
-                      min={0}
+                      min={1}
                       max={availablePoints || undefined}
                       value={redeemPoints}
                       onChange={(e) => setRedeemPoints(e.target.value === "" ? "" : Number(e.target.value))}
