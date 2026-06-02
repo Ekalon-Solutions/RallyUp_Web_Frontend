@@ -19,7 +19,6 @@ function getVenueTiers(venue: { tiers?: Array<{ price?: number; allocation?: num
   return Array.isArray(venue?.tiers) ? venue.tiers : []
 }
 
-/** Ensure every venue has a tiers array — prevents runtime .length crashes on partial API payloads. */
 export function normalizeEventVenues<T extends Pick<Event, "venues">>(event: T): T {
   if (!event?.venues || !Array.isArray(event.venues)) return event
   return {
