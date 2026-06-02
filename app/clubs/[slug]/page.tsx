@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { apiClient, News, Event, Chant, Album } from "@/lib/api"
-import { formatDisplayDate } from "@/lib/utils"
+import { formatDisplayDate, slugify } from "@/lib/utils"
 import { getNewsImageUrl } from "@/lib/config"
 import { EventCheckoutModal } from "@/components/modals/event-checkout-modal"
 import { RefundPolicyBadge } from "@/components/refund-policy-badge"
@@ -171,12 +171,6 @@ export default function PublicClubPage() {
         (v: any) => Array.isArray(v?.tiers) && v.tiers.length > 0
       )
     )
-
-  const handleEventClick = (event: Event) => {
-    setEventForRegistration(event)
-    setPurchaseFlowReason("event")
-    setShowPurchaseFlowModal(true)
-  }
 
   useEffect(() => {
     const resume = searchParams.get("resumePurchase")
@@ -766,15 +760,12 @@ export default function PublicClubPage() {
                                 <Card key={event._id} className="hover:shadow-lg transition-all border-2">
                                   <CardHeader>
                                     <div className="flex items-start justify-between mb-2">
-                                      {event.isActive !== undefined && (
-                                        <Badge
-                                          variant={event.isActive ? 'default' : 'secondary'}
-                                          className="text-xs"
-                                        >
-                                          {event.isActive ? 'Active' : 'Inactive'}
+                                      {event.isActive === false && (
+                                        <Badge variant="secondary" className="text-xs">
+                                          Inactive
                                         </Badge>
                                       )}
-                                      <div className="flex flex-wrap items-center gap-1.5 justify-end">
+                                      <div className="flex flex-wrap items-center gap-1.5 justify-end ml-auto">
                                         {event.ticketPrice !== undefined && event.ticketPrice > 0 && (
                                           <Badge variant="outline" className="text-xs font-bold">
                                             ₹{event.ticketPrice}
@@ -846,7 +837,10 @@ export default function PublicClubPage() {
                                           style={isEventFull ? undefined : { backgroundColor: primaryColor, color: "white" }}
                                           variant={isEventFull ? "secondary" : "default"}
                                           disabled={isEventFull}
-                                          onClick={() => handleEventClick(event)}
+                                          onClick={() => {
+                                            if (isEventFull) return
+                                            router.push(`/clubs/${slug}/events/${slugify(event.title)}`)
+                                          }}
                                         >
                                           {label}
                                         </Button>
@@ -1243,6 +1237,36 @@ export default function PublicClubPage() {
             router.push(`/login?next=${encodeURIComponent(returnUrl)}`)
           }}
           onRegister={(registerNextUrl) => {
+            if (purchaseFlowReason === "event" && eventForRegistration) {
+              setStoredPurchaseIntent({
+                type: "event",
+                clubId: club._id,
+                slug,
+                eventId: eventForRegistration._id,
+                event: eventForRegistration,
+                attendees: [],
+                returnPath: registerNextUrl,
+              })
+            } else if (purchaseFlowReason === "merchandise" && merchandiseForQuickBuy) {
+              const item = merchandiseForQuickBuy
+              setStoredPurchaseIntent({
+                type: "merchandise",
+                clubId: club._id,
+                slug,
+                item: {
+                  _id: item._id,
+                  name: item.name,
+                  price: item.price,
+                  currency: item.currency || "INR",
+                  quantity: 1,
+                  featuredImage: item.featuredImage,
+                  stockQuantity: item.stockQuantity,
+                  tags: item.tags,
+                  club: item.club || { _id: club._id, name: club.name },
+                },
+                returnPath: registerNextUrl,
+              })
+            }
             router.push(registerNextUrl)
           }}
         />
