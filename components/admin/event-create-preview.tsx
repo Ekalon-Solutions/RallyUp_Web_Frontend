@@ -7,7 +7,7 @@ import { NonRefundableBadge } from "@/components/member/non-refundable-badge"
 import type { VenueDraft } from "@/components/admin/venue-tier-matrix-builder"
 import { formatDisplayDate } from "@/lib/utils"
 import { cn } from "@/lib/utils"
-import { Calendar, Clock, Eye, MapPin, Ticket, Users, CalendarClock, Award } from "lucide-react"
+import { Calendar, Clock, MapPin, Ticket, Users, CalendarClock, Award } from "lucide-react"
 import { JointScreeningDisplay, isJointScreeningEvent } from "@/components/events/joint-screening-display"
 import { WaitlistDisplay } from "@/components/events/waitlist-display"
 import { formatBookingWindow } from "@/components/events/event-schedule-meta"
@@ -51,6 +51,7 @@ type Props = {
   attendancePoints?: string
   waitlistEnabled?: boolean
   waitlistPurchaseWindowHours?: string
+  wizardStep?: number
   className?: string
 }
 
@@ -99,6 +100,7 @@ export function EventCreatePreview({
   attendancePoints = "0",
   waitlistEnabled = false,
   waitlistPurchaseWindowHours = "12",
+  wizardStep,
   className,
 }: Props) {
   const sym = CURRENCY_SYMBOLS[currency] ?? `${currency} `
@@ -134,6 +136,11 @@ export function EventCreatePreview({
   const lowestPrice = ticketRows.length
     ? Math.min(...ticketRows.map((r) => r.price))
     : Number(ticketPrice) || 0
+
+  const hasVenueData = multiTicketEnabled
+    ? venues.some((v) => v.name.trim())
+    : Boolean(venue.trim())
+  const showVenue = wizardStep === undefined || wizardStep > 0 || hasVenueData
 
   return (
     <Card className={cn("border-2 shadow-sm overflow-hidden", className)}>
@@ -198,16 +205,18 @@ export function EventCreatePreview({
             value={formatTimeRange(startTime, endTime)}
             primaryColor={primaryColor}
           />
-          <PreviewRow
-            icon={MapPin}
-            label={multiTicketEnabled && venues.length > 1 ? "Venues" : "Venue"}
-            value={
-              multiTicketEnabled
-                ? venues.map((v) => v.name.trim() || "-").join(", ") || "—"
-                : venue.trim() || "—"
-            }
-            primaryColor={primaryColor}
-          />
+          {showVenue && (
+            <PreviewRow
+              icon={MapPin}
+              label={multiTicketEnabled && venues.length > 1 ? "Venues" : "Venue"}
+              value={
+                multiTicketEnabled
+                  ? venues.map((v) => v.name.trim() || "-").join(", ") || "—"
+                  : venue.trim() || "—"
+              }
+              primaryColor={primaryColor}
+            />
+          )}
           {totalSeats > 0 && (
             <PreviewRow
               icon={Users}

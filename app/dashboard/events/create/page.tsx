@@ -1204,6 +1204,7 @@ function CreateEventForm() {
               attendancePoints={form.attendancePoints}
               waitlistEnabled={form.waitlistEnabled}
               waitlistPurchaseWindowHours={form.waitlistPurchaseWindowHours}
+              wizardStep={wizardStep}
             />
           </aside>
         </div>
