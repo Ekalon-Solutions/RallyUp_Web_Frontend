@@ -874,11 +874,9 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                 </Card>
               )}
 
-              {/* Order Total */}
               <Card>
                 <CardContent className="pt-6">
                   <div className="space-y-3">
-                    {/* Redeem Points */}
                     {user && <div className="mb-4">
                       <Label>Redeem Points {availablePoints !== null && ` (Available: ${availablePoints} pts)`}</Label>
                       <div className="flex gap-2 mt-2">

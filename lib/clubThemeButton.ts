@@ -9,7 +9,6 @@ export function getClubPrimaryColor(settings: unknown): string {
   return designSettings?.primaryColor || DEFAULT_CLUB_PRIMARY
 }
 
-/** Shared classes for club-branded action buttons (Add Venue, Add Tier, etc.). */
 export function clubActionButtonClassName() {
   return "border-transparent text-white hover:opacity-90"
 }

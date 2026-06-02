@@ -182,7 +182,6 @@ export function VolunteerOptInWidget({ currentUser, clubId, onProfileUpdate }: V
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Toggle Switch */}
           <div className="flex items-center justify-between p-4 bg-white rounded-lg border">
             <div className="flex items-center space-x-3">
               {isVolunteer ? (
@@ -207,7 +206,6 @@ export function VolunteerOptInWidget({ currentUser, clubId, onProfileUpdate }: V
             />
           </div>
 
-          {/* Profile Info */}
           {isVolunteer && volunteerProfile && (
             <div className="space-y-3 pt-2">
               {volunteerProfile.skills && volunteerProfile.skills.length > 0 && (
@@ -265,7 +263,6 @@ export function VolunteerOptInWidget({ currentUser, clubId, onProfileUpdate }: V
         </CardContent>
       </Card>
 
-      {/* Signup/Edit Modal */}
       <VolunteerSignUpModal
         open={showModal}
         onClose={() => setShowModal(false)}

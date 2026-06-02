@@ -180,9 +180,7 @@ export function ProductViewModal({ isOpen, onClose, product, onBuyNow }: Product
         </DialogHeader>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Product Images */}
           <div className="space-y-4">
-            {/* Main Image */}
             <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-100">
               {currentImage ? (
                 <img
@@ -196,7 +194,6 @@ export function ProductViewModal({ isOpen, onClose, product, onBuyNow }: Product
                 </div>
               )}
 
-              {/* Image Navigation */}
               {product.images.length > 1 && (
                 <>
                   <Button
@@ -218,7 +215,6 @@ export function ProductViewModal({ isOpen, onClose, product, onBuyNow }: Product
                 </>
               )}
 
-              {/* Featured Badge */}
               {product.isFeatured && (
                 <Badge className="absolute top-2 left-2 bg-yellow-500 text-white">
                   <Star className="w-3 h-3 mr-1" />
@@ -226,7 +222,6 @@ export function ProductViewModal({ isOpen, onClose, product, onBuyNow }: Product
                 </Badge>
               )}
 
-              {/* Stock Status */}
               <Badge className={`absolute top-2 right-2 ${stockStatus.bgColor} ${stockStatus.color}`}>
                 {stockStatus.label}
               </Badge>

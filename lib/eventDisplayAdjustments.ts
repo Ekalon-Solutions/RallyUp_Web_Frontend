@@ -1,6 +1,5 @@
 import type { Event } from '@/lib/api';
 
-/** Frontend-only: reduce displayed SMAAASH occupancy (backend count unchanged). */
 export const SMAAASH_DISPLAY_ATTENDEE_OFFSET = 60;
 
 export function isSmaaashEvent(event: { title?: string } | null | undefined): boolean {

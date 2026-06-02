@@ -10,7 +10,6 @@ interface ClubSettings {
     sections?: Record<string, any>
     [key: string]: any
   }
-  /** Member dashboard section visibility (user view). Used for sidebar/nav visibility. */
   memberSectionVisibility?: {
     sections?: Record<string, any>
     [key: string]: any
@@ -33,7 +32,6 @@ export function useClubSettings(clubId?: string) {
       return
     }
 
-    // Clear previous club's settings immediately so we never show wrong club's data after switch
     setSettings(null)
     setLoading(true)
 
@@ -104,7 +102,6 @@ export function useClubSettings(clubId?: string) {
     }
   }, [clubId])
 
-  /** Uses memberSectionVisibility (dashboard) for visibility; falls back to websiteSetup.sections for backward compatibility. */
   const isSectionVisible = (section: WebsiteSectionKey) => {
     const value =
       settings?.memberSectionVisibility?.sections?.[section] ??

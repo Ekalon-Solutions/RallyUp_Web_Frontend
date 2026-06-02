@@ -34,15 +34,10 @@ interface PaymentSimulationModalProps {
   tax?: number
   currency: string
   paymentMethod: string
-  /** Platform fee (4.5% + GST) for display */
   platformFeeTotal?: number
-  /** Payment gateway fee (2.5% + GST) for display */
   razorpayFeeTotal?: number
-  /** Coupon discount amount (show as "Discount (Coupon): -₹X") */
   couponDiscount?: number
-  /** Coupon code for display (e.g. "SUMMER2026") */
   couponCode?: string
-  /** Points discount amount (show as "- Points discount: -₹X") */
   pointsDiscount?: number
   dialogTitle?: string
   dialogDescription?: string

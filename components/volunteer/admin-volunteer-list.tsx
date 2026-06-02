@@ -261,7 +261,6 @@ export default function AdminVolunteerList({ clubId, currentUser }: AdminVolunte
           </Card>
         </div>
 
-        {/* Main Content */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -278,7 +277,6 @@ export default function AdminVolunteerList({ clubId, currentUser }: AdminVolunte
               </Button>
             </div>
 
-            {/* Filters */}
             <div className="flex flex-col sm:flex-row gap-3 mt-4">
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
@@ -431,7 +429,6 @@ export default function AdminVolunteerList({ clubId, currentUser }: AdminVolunte
         </Card>
       </div>
 
-      {/* Volunteer Details Modal */}
       <Dialog open={showDetailsModal} onOpenChange={setShowDetailsModal}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
@@ -454,13 +451,11 @@ export default function AdminVolunteerList({ clubId, currentUser }: AdminVolunte
 
           {selectedVolunteer && (
             <div className="space-y-6 py-4">
-              {/* Status */}
               <div>
                 <h4 className="text-sm font-semibold mb-2">Status</h4>
                 {getStatusBadge(selectedVolunteer)}
               </div>
 
-              {/* Contact Information */}
               <div>
                 <h4 className="text-sm font-semibold mb-2">Contact Information</h4>
                 <div className="space-y-2">
@@ -479,7 +474,6 @@ export default function AdminVolunteerList({ clubId, currentUser }: AdminVolunte
                 </div>
               </div>
 
-              {/* Skills */}
               {selectedVolunteer.skills && selectedVolunteer.skills.length > 0 && (
                 <div>
                   <h4 className="text-sm font-semibold mb-2">Skills</h4>
@@ -493,7 +487,6 @@ export default function AdminVolunteerList({ clubId, currentUser }: AdminVolunte
                 </div>
               )}
 
-              {/* Interests */}
               {selectedVolunteer.interests && selectedVolunteer.interests.length > 0 && (
                 <div>
                   <h4 className="text-sm font-semibold mb-2">Interests</h4>
@@ -507,7 +500,6 @@ export default function AdminVolunteerList({ clubId, currentUser }: AdminVolunte
                 </div>
               )}
 
-              {/* Availability */}
               <div>
                 <h4 className="text-sm font-semibold mb-2">Availability</h4>
                 <div className="grid grid-cols-2 gap-2">
@@ -535,7 +527,6 @@ export default function AdminVolunteerList({ clubId, currentUser }: AdminVolunte
                 </div>
               </div>
 
-              {/* Experience */}
               {selectedVolunteer.experience && (
                 <div>
                   <h4 className="text-sm font-semibold mb-2">Experience</h4>
@@ -552,7 +543,6 @@ export default function AdminVolunteerList({ clubId, currentUser }: AdminVolunte
                 </div>
               )}
 
-              {/* Notes */}
               {selectedVolunteer.notes && (
                 <div>
                   <h4 className="text-sm font-semibold mb-2">Notes</h4>
@@ -562,7 +552,6 @@ export default function AdminVolunteerList({ clubId, currentUser }: AdminVolunte
                 </div>
               )}
 
-              {/* Joined Date */}
               <div>
                 <h4 className="text-sm font-semibold mb-2">Joined</h4>
                 <div className="flex items-center text-sm text-foreground">

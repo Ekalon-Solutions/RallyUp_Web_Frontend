@@ -1,6 +1,7 @@
 import { getApiUrl } from './config';
 import { triggerBlobDownload } from './utils';
 import { patchEventResponseData } from './eventDisplayAdjustments';
+import { CLUB_FEATURE_DISABLED_EVENT, type ClubFeatureKey } from './clubFeatures';
 
 const API_BASE_URL = getApiUrl('');
 
@@ -749,6 +750,21 @@ class ApiClient {
           ...(data.details && { details: data.details })
         };
 
+        if (
+          typeof window !== 'undefined' &&
+          data?.code === 'FEATURE_DISABLED_BY_SYSTEM' &&
+          data?.feature
+        ) {
+          window.dispatchEvent(
+            new CustomEvent(CLUB_FEATURE_DISABLED_EVENT, {
+              detail: {
+                feature: data.feature as ClubFeatureKey,
+                message: data.message || errorMessage,
+              },
+            })
+          );
+        }
+
         return {
           success: false,
           error: errorMessage,
@@ -948,7 +964,6 @@ class ApiClient {
     });
   }
 
-  /** Send OTP: for email sends magic link via SendGrid; for phone uses Firebase. */
   async sendOtp(data: {
     email?: string;
     phoneNumber?: string;
@@ -963,7 +978,6 @@ class ApiClient {
     });
   }
 
-  /** Verify email OTP (6-digit code sent via SendGrid). Returns token and user data. */
   async verifyEmailOTP(params: { email: string; otp: string; role: 'user' | 'admin' | 'system_owner' }): Promise<ApiResponse<{ token: string } & (User | Admin | SystemOwner)>> {
     return this.request('/otp/verify-email-otp', {
       method: 'POST',
@@ -971,7 +985,6 @@ class ApiClient {
     });
   }
 
-  /** Verify OTP (for phone numbers - supports both WhatsApp and SMS). */
   async verifyOTP(params: { 
     phoneNumber?: string; 
     countryCode?: string; 
@@ -986,7 +999,6 @@ class ApiClient {
     });
   }
 
-  /** Resend OTP */
   async resendOTP(data: {
     email?: string;
     phoneNumber?: string;
@@ -1338,7 +1350,6 @@ class ApiClient {
     return { ...res, data: Array.isArray(list) ? list : [] };
   }
 
-  /** Resend event ticket QR via AiSensy WhatsApp (one message per ticket; all to primary phone). */
   async resendEventTicketWhatsApp(registrationId: string): Promise<
     ApiResponse<{
       message: string;
@@ -1378,7 +1389,6 @@ class ApiClient {
     };
   }
 
-  /** @deprecated Use resendEventTicketWhatsApp */
   async resendEventTicketEmail(registrationId: string, overrideEmail?: string): Promise<ApiResponse<{ message: string }>> {
     return this.resendEventTicketWhatsApp(registrationId);
   }
@@ -3021,6 +3031,80 @@ class ApiClient {
     return this.request('/system-owner/profile');
   }
 
+  async getClubFeatureMatrix(search?: string): Promise<ApiResponse<{
+    featureKeys: string[];
+    labels: Record<string, string>;
+    tooltips: Record<string, string>;
+    clubs: Array<{
+      clubId: string;
+      name: string;
+      slug: string;
+      status: string;
+      billing_tier: string;
+      billing_status: string;
+      flags: Array<{ key: string; enabled: boolean; state: string; label: string }>;
+      estimated_monthly_usd: number;
+    }>;
+  }>> {
+    const q = search ? `?search=${encodeURIComponent(search)}` : '';
+    return this.request(`/club-features/matrix${q}`);
+  }
+
+  async patchClubFeatures(
+    clubId: string,
+    body: {
+      updates?: Record<string, { enabled: boolean; state?: string }>;
+      billing_tier?: string;
+      billing_status?: string;
+      feature_constraints?: Record<string, number>;
+      reasonCode?: string;
+    }
+  ): Promise<ApiResponse<unknown>> {
+    return this.request(`/club-features/club/${clubId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    });
+  }
+
+  async bulkApplyClubBillingTier(
+    clubIds: string[],
+    tier: string,
+    reasonCode?: string
+  ): Promise<ApiResponse<{ updated: number; tier: string }>> {
+    return this.request('/club-features/bulk-tier', {
+      method: 'POST',
+      body: JSON.stringify({ clubIds, tier, reasonCode }),
+    });
+  }
+
+  async getClubFeatureAuditLog(params?: {
+    clubId?: string;
+    actorId?: string;
+    limit?: number;
+  }): Promise<ApiResponse<unknown[]>> {
+    const sp = new URLSearchParams();
+    if (params?.clubId) sp.set('clubId', params.clubId);
+    if (params?.actorId) sp.set('actorId', params.actorId);
+    if (params?.limit) sp.set('limit', String(params.limit));
+    const q = sp.toString() ? `?${sp}` : '';
+    return this.request(`/club-features/audit${q}`);
+  }
+
+  async getMyClubFeatures(clubId: string): Promise<ApiResponse<import('./clubFeatures').ResolvedClubFeatures>> {
+    return this.request(`/club-features/my-club?clubId=${encodeURIComponent(clubId)}`);
+  }
+
+  async submitFeatureUpgradeInquiry(body: {
+    clubId: string;
+    featureKey: string;
+    message?: string;
+  }): Promise<ApiResponse<{ message: string }>> {
+    return this.request('/club-features/upgrade-inquiry', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  }
+
   async getUserClub(): Promise<ApiResponse<{
     club: Club;
     membershipPlan?: string;
@@ -3853,10 +3937,6 @@ class ApiClient {
     return this.get(`/merchandise/public/settings/${clubId}`);
   }
 
-  /**
-   * Shiprocket shipping rate calculation.
-   * Returns courier serviceability/rates for given pickup, delivery, weight and declared value.
-   */
   async getShiprocketShippingRate(params: {
     pickupPostcode: number;
     deliveryPostcode: number;

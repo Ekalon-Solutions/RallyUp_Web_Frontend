@@ -36,14 +36,12 @@ export default function EventDetailsModal({ event, isOpen, onClose }: EventDetai
       setRegistration(null)
       return
     }
-    // Find a registration entry on the event for the current user
     const regs = (event.registrations || []) as any[]
     const myRegEntry = regs.find(r => r && String(r.userId) === String(user?._id) && r.registrationId)
     if (myRegEntry && myRegEntry.registrationId) {
       apiClient.getRegistrationById(String(myRegEntry.registrationId)).then(res => {
         if (res && res.success && res.data && res.data.registration) setRegistration(res.data.registration)
       }).catch(() => {
-        // ignore failures; leave registration null
       })
     } else {
       setRegistration(null)
@@ -57,7 +55,6 @@ export default function EventDetailsModal({ event, isOpen, onClose }: EventDetai
     return formatLocalDate(dateString, 'long')
   }
 
-  // Determine whether the current user already has attendance marked.
   const attendeesFromEvent = (event as any).attendees as string[] | undefined
   const registrationIds = event.registrations?.map(r => (r as any).userId) ?? []
   const attendeesList = Array.isArray(attendeesFromEvent) ? attendeesFromEvent : registrationIds
@@ -71,10 +68,6 @@ export default function EventDetailsModal({ event, isOpen, onClose }: EventDetai
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Featured image if present - use uploads/events path if available */}
-          {/** Some events may include images under featuredImage or similar; using event._id as fallback is avoided */}
-          {/** If future fields exist, they can be added here */}
-
           <Card>
             <CardContent>
               <div className="space-y-3">
@@ -106,7 +99,6 @@ export default function EventDetailsModal({ event, isOpen, onClose }: EventDetai
             </CardContent>
           </Card>
 
-          {/* Attendance status + QR Code combined in one section */}
           <Card>
             <CardContent>
               <div className="my-3">

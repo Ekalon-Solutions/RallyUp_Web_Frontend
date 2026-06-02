@@ -67,7 +67,6 @@ export function VolunteerDetailsModal({ volunteer, isOpen, onClose }: VolunteerD
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Basic Information */}
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-3">
               <h3 className="text-lg font-semibold">Personal Information</h3>
@@ -109,7 +108,6 @@ export function VolunteerDetailsModal({ volunteer, isOpen, onClose }: VolunteerD
 
           <Separator />
 
-          {/* Skills & Interests */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Skills & Interests</h3>
             <div className="grid gap-4 md:grid-cols-2">
@@ -146,7 +144,6 @@ export function VolunteerDetailsModal({ volunteer, isOpen, onClose }: VolunteerD
 
           <Separator />
 
-          {/* Experience */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Experience</h3>
             <div className="grid gap-4 md:grid-cols-2">
@@ -177,7 +174,6 @@ export function VolunteerDetailsModal({ volunteer, isOpen, onClose }: VolunteerD
 
           <Separator />
 
-          {/* Availability */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold">Availability</h3>
             <div className="grid gap-4 md:grid-cols-2">
@@ -230,7 +226,6 @@ export function VolunteerDetailsModal({ volunteer, isOpen, onClose }: VolunteerD
             )}
           </div>
 
-          {/* Emergency Contact */}
           {volunteer.emergencyContact && (
             <>
               <Separator />
@@ -252,7 +247,6 @@ export function VolunteerDetailsModal({ volunteer, isOpen, onClose }: VolunteerD
             </>
           )}
 
-          {/* Certifications */}
           {volunteer.certifications && volunteer.certifications.length > 0 && (
             <>
               <Separator />
@@ -283,7 +277,6 @@ export function VolunteerDetailsModal({ volunteer, isOpen, onClose }: VolunteerD
             </>
           )}
 
-          {/* Notes */}
           {volunteer.notes && (
             <>
               <Separator />

@@ -269,26 +269,32 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
     if (!user) { toast.error("Please log in to purchase tickets"); return }
     if (!scriptLoaded) { toast.error("Payment system still loading — please wait"); return }
 
-    // Validate joint screening club affiliation
     if (isJointEvent && !attributedClub) {
       setShowClubAlert(true)
       return
     }
 
-    // Validate attendee details
     for (let i = 0; i < attendeeSlots.length; i++) {
       const s = attendeeSlots[i]
       if (!s.name.trim()) {
         toast.error(`Enter name for Ticket ${i + 1} (${s.venueName} – ${s.tierName})`)
         return
       }
-      if (!s.phone.trim()) {
+      const phoneDigits = s.phone.replace(/\D/g, "")
+      if (!phoneDigits) {
         toast.error(`Enter phone for Ticket ${i + 1} (${s.venueName} – ${s.tierName})`)
+        return
+      }
+      if (phoneDigits.length !== 10) {
+        toast.error(`Enter a valid 10-digit phone for Ticket ${i + 1}`)
         return
       }
     }
 
-    const bookingAttendees = attendeeSlots.map(s => ({ name: s.name.trim(), phone: s.phone.trim() }))
+    const bookingAttendees = attendeeSlots.map((s) => ({
+      name: s.name.trim(),
+      phone: s.phone.replace(/\D/g, "").slice(-10),
+    }))
 
     setLoading(true)
     try {
@@ -324,7 +330,6 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
 
       const apiItems = cartItems.map(({ venueId, tierId, quantity }) => ({ venueId, tierId, quantity }))
 
-      // Free checkout
       if (amountToCharge <= 0) {
         if (reservationToken) {
           await apiClient.confirmReservation(reservationToken).catch(() => {})
@@ -496,7 +501,6 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto space-y-4 py-2 px-1">
-          {/* Club affiliation — shown first so remaining counts are correct */}
           {isJointEvent && (
             <Card className={!attributedClub ? "border-destructive/60" : undefined}>
               <CardHeader className="pb-2">
@@ -516,7 +520,6 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
                   value={attributedClub}
                   onValueChange={(v) => {
                     setAttributedClub(v)
-                    // Reset cart so club-specific remaining counts apply cleanly
                     setCart({})
                   }}
                 >
@@ -536,7 +539,6 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
             </Card>
           )}
 
-          {/* Venue × Tier quantity selector */}
           {venues.map((venue) => {
             const available = venue.tiers.some((t) => t.allocation - t.sold > 0)
             return (
@@ -600,7 +602,6 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
             )
           })}
 
-          {/* Attendee details — one row per ticket slot */}
           {attendeeSlots.length > 0 && (
             <Card>
               <CardHeader className="pb-2">
@@ -646,7 +647,6 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
             </Card>
           )}
 
-          {/* Order summary */}
           {cartItems.length > 0 && (
             <Card>
               <CardHeader className="pb-2">
@@ -698,7 +698,6 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
             </Card>
           )}
 
-          {/* Loyalty points */}
           {user && cartItems.length > 0 && (
             <div className="space-y-2">
               <label className="text-sm font-medium">

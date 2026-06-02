@@ -271,6 +271,19 @@ function CreateEventForm() {
     if (step === 2) {
       if (!form.bookingStartTime) { toast.error("Booking start time is required"); return false }
       if (!form.bookingEndTime) { toast.error("Booking end time is required"); return false }
+      const bookingStart = new Date(form.bookingStartTime)
+      const bookingEnd = new Date(form.bookingEndTime)
+      if (bookingEnd <= bookingStart) {
+        toast.error("Booking close time must be after booking open time")
+        return false
+      }
+      if (form.startTime) {
+        const eventStart = new Date(form.startTime)
+        if (bookingEnd > eventStart) {
+          toast.error("Booking must close before or at event start time")
+          return false
+        }
+      }
       if (form.earlyBirdEnabled) {
         const ebVal = Number(form.earlyBirdValue)
         if (!form.earlyBirdValue || ebVal <= 0) { toast.error("Early bird discount value must be greater than 0"); return false }

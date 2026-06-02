@@ -199,7 +199,6 @@ export default function UserEventRegistrationModal({ eventId, isOpen, onClose, o
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto min-h-0 space-y-4 pr-1">
-          {/* Early Bird Discount Banner */}
           {earlyBirdDiscountAmount > 0 && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-3">
               <div className="flex items-center gap-2">
@@ -217,7 +216,6 @@ export default function UserEventRegistrationModal({ eventId, isOpen, onClose, o
             </div>
           )}
 
-          {/* Member Discount Banner */}
           {totalMemberDiscountAmount > 0 && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
               <div className="flex items-center gap-2">

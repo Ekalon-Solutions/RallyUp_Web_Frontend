@@ -335,7 +335,6 @@ export default function PromotionalContentModal({ isOpen, onClose, onContentCrea
 
           <TabsContent value="create" className="space-y-6">
             <div className="grid gap-6 md:grid-cols-2">
-              {/* Basic Information */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -416,7 +415,6 @@ export default function PromotionalContentModal({ isOpen, onClose, onContentCrea
                 </CardContent>
               </Card>
 
-              {/* Content & Scheduling */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">

@@ -44,7 +44,6 @@ export function EventRegistrationModal({
   const [errors, setErrors] = useState<Record<number, { name?: string; phone?: string }>>({})
   const [remainingSeats, setRemainingSeats] = useState<number | null>(null)
 
-  // Reset form and fetch fresh capacity when modal opens
   useEffect(() => {
     if (isOpen && !isRegistered) {
       setNotes("")
@@ -77,7 +76,6 @@ export function EventRegistrationModal({
     attendees.forEach((attendee, index) => {
       const attendeeErrors: { name?: string; phone?: string } = {}
 
-      // Validate name
       if (!attendee.name.trim()) {
         attendeeErrors.name = "Name is required"
         hasError = true
@@ -86,12 +84,10 @@ export function EventRegistrationModal({
         hasError = true
       }
 
-      // Validate phone
       if (!attendee.phone.trim()) {
         attendeeErrors.phone = "Phone is required"
         hasError = true
       } else {
-        // Remove all non-digit characters for validation
         const phoneDigits = attendee.phone.replace(/[^0-9]/g, '')
         if (phoneDigits.length < 9 || phoneDigits.length > 15) {
           attendeeErrors.phone = "Phone must be 9-15 digits"
@@ -104,7 +100,6 @@ export function EventRegistrationModal({
       }
     })
 
-    // Check for duplicate phone numbers
     const phone_numbers = attendees.map(a => a.phone.replace(/[^0-9]/g, ''))
     const uniquePhones = new Set(phone_numbers)
     if (phone_numbers.length !== uniquePhones.size) {
@@ -119,7 +114,6 @@ export function EventRegistrationModal({
   const handleRegister = async () => {
     if (!event) return
 
-    // Validate attendees before submission
     if (!validateAttendees()) {
       toast.error("Please fix the errors in the form")
       return
@@ -167,7 +161,6 @@ export function EventRegistrationModal({
         toast.error(response.error || "Failed to cancel registration")
       }
     } catch (error) {
-      // console.error("Error cancelling registration:", error)
       toast.error("An error occurred while cancelling registration")
     } finally {
       setLoading(false)
@@ -192,7 +185,6 @@ export function EventRegistrationModal({
       const newAttendees = attendees.filter((_, i) => i !== index)
       setAttendees(newAttendees)
       
-      // Remove errors for this index
       const newErrors = { ...errors }
       delete newErrors[index]
       setErrors(newErrors)
@@ -206,7 +198,6 @@ export function EventRegistrationModal({
     newAttendees[index][field] = value
     setAttendees(newAttendees)
 
-    // Clear error for this field
     if (errors[index]?.[field]) {
       const newErrors = { ...errors }
       if (newErrors[index]) {
@@ -378,7 +369,6 @@ export function EventRegistrationModal({
             </CardContent>
           </Card>
 
-          {/* Registration Status Warning */}
           {isEventFull && (
             <Card className="border-orange-200 bg-orange-50">
               <CardContent className="pt-6">
@@ -407,10 +397,8 @@ export function EventRegistrationModal({
             </Card>
           )}
 
-          {/* Registration Form */}
           {!isRegistered && canRegister && (
             <>
-              {/* Error Summary */}
               {hasErrors && (
                 <Card className="border-red-200 bg-red-50">
                   <CardContent className="pt-6">
@@ -535,7 +523,6 @@ export function EventRegistrationModal({
             </>
           )}
 
-          {/* Cancel Confirmation */}
           {showCancelConfirm && (
             <Card className="border-red-200 bg-red-50">
               <CardContent className="pt-6">

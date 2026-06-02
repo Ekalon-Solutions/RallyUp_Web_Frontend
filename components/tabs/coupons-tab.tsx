@@ -212,7 +212,6 @@ export function CouponsTab({ clubId }: CouponsTabProps) {
 
   return (
     <div className="space-y-6">
-      {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -259,7 +258,6 @@ export function CouponsTab({ clubId }: CouponsTabProps) {
         </Card>
       </div>
 
-      {/* Main Content */}
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -274,7 +272,6 @@ export function CouponsTab({ clubId }: CouponsTabProps) {
           </div>
         </CardHeader>
         <CardContent>
-          {/* Filters */}
           <div className="flex flex-col sm:flex-row gap-4 mb-6">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
@@ -313,7 +310,6 @@ export function CouponsTab({ clubId }: CouponsTabProps) {
             </Select>
           </div>
 
-          {/* Table */}
           {loading ? (
             <div className="text-center py-8">
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -467,7 +463,6 @@ export function CouponsTab({ clubId }: CouponsTabProps) {
         </CardContent>
       </Card>
 
-      {/* Create/Edit Modal */}
       <CreateCouponModal
         isOpen={isCreateModalOpen}
         onClose={() => {
@@ -483,7 +478,6 @@ export function CouponsTab({ clubId }: CouponsTabProps) {
         clubId={clubId}
       />
 
-      {/* Delete Confirmation Dialog */}
       <Dialog open={!!deletingCoupon} onOpenChange={() => setDeletingCoupon(null)}>
         <DialogContent>
           <DialogHeader>
@@ -508,7 +502,6 @@ export function CouponsTab({ clubId }: CouponsTabProps) {
         </DialogContent>
       </Dialog>
 
-      {/* Stats Modal */}
       <Dialog open={!!viewingStats} onOpenChange={() => setViewingStats(null)}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -522,7 +515,6 @@ export function CouponsTab({ clubId }: CouponsTabProps) {
           </DialogHeader>
           {viewingStats && (
             <div className="space-y-6">
-              {/* Stats Grid */}
               <div className="grid gap-4 md:grid-cols-3">
                 <Card>
                   <CardHeader className="pb-2">
@@ -569,7 +561,6 @@ export function CouponsTab({ clubId }: CouponsTabProps) {
                 </Card>
               </div>
 
-              {/* Recent Usage */}
               {viewingStats.stats.recentUsage.length > 0 && (
                 <div>
                   <h4 className="font-semibold mb-3">Recent Usage</h4>

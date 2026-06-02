@@ -255,7 +255,6 @@ export default function StaffManagementModal({ isOpen, onClose, club }: StaffMan
           </DialogDescription>
         </DialogHeader>
 
-        {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <Card>
             <CardHeader className="pb-2">
@@ -291,7 +290,6 @@ export default function StaffManagementModal({ isOpen, onClose, club }: StaffMan
           </Card>
         </div>
 
-        {/* Create/Edit Form */}
         {(showCreateForm || editingStaff) && (
           <Card className="mb-6">
             <CardHeader>
@@ -378,7 +376,6 @@ export default function StaffManagementModal({ isOpen, onClose, club }: StaffMan
           </Card>
         )}
 
-        {/* Staff List */}
         <div className="space-y-4">
           <div className="flex justify-between items-center">
             <h3 className="text-lg font-semibold">Staff Members</h3>

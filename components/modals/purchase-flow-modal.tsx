@@ -18,7 +18,6 @@ import { toast } from "sonner"
 
 const PURCHASE_INTENT_KEY = "rallyup_purchase_intent"
 
-/** CartItem-shaped object for storing merchandise quick-buy in intent */
 export interface PurchaseIntentMerchandiseItem {
   _id: string
   name: string
@@ -68,7 +67,6 @@ export function setStoredPurchaseIntent(intent: PurchaseIntent | null): void {
     if (intent) localStorage.setItem(PURCHASE_INTENT_KEY, JSON.stringify(intent))
     else localStorage.removeItem(PURCHASE_INTENT_KEY)
   } catch {
-    // ignore
   }
 }
 
@@ -81,13 +79,9 @@ interface PurchaseFlowModalProps {
   onClose: () => void
   clubId: string
   clubName?: string
-  /** Called when user chooses Continue (skip login/register); proceed to payment. */
   onContinueToPayment: () => void
-  /** Called when user chooses Login; caller should redirect. Optional if using built-in redirect. */
   onLogin?: (returnUrl: string) => void
-  /** Called when user chooses Register; caller should redirect. Optional if using built-in redirect. */
   onRegister?: (returnUrl: string) => void
-  /** Base path for return URL after login/register (e.g. /clubs/my-club). Query params like resumePurchase=1 will be appended. */
   returnPath: string
 }
 

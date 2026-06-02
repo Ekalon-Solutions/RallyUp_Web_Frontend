@@ -58,7 +58,6 @@ interface CreateMerchandiseModalProps {
   onClose: () => void
   onSuccess: () => void
   editMerchandise?: Merchandise | null
-  /** Selected club ID for new merchandise (so it appears in the current list) */
   clubId?: string | null
 }
 

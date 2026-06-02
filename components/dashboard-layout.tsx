@@ -38,6 +38,8 @@ import {
   Trophy,
   Images,
   UserPlus,
+  Lock,
+  Grid3X3,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -55,6 +57,9 @@ import { BASE_STORAGE_GB } from "@/lib/storageConstants"
 import type { WebsiteSectionKey } from "@/lib/websiteSections"
 import { EkalonAttribution } from "@/components/ekalon-attribution"
 import { usePrimaryClubOwner } from "@/hooks/usePrimaryClubOwner"
+import { useClubFeatures } from "@/hooks/useClubFeatures"
+import { ADMIN_NAV_FEATURE_MAP, CLUB_FEATURE_DISABLED_EVENT, type ClubFeatureKey } from "@/lib/clubFeatures"
+import { UpgradeFeatureModal } from "@/components/modals/upgrade-feature-modal"
 
 const USER_PATH_TO_SECTION: Record<string, WebsiteSectionKey> = {
   "/dashboard/user/news": "news",
@@ -97,6 +102,7 @@ const adminNavigation = [
 
 const systemOwnerNavigation = [
   { name: "Club Management", href: "/dashboard/club-management", icon: Building },
+  { name: "Service Matrix", href: "/dashboard/feature-matrix", icon: Grid3X3 },
   // { name: "Browse Clubs", href: "/dashboard/user/clubs", icon: Building2 },
   { name: "Onboarding & Promotions", href: "/dashboard/onboarding", icon: GraduationCap },
   { name: "Sports", href: "/dashboard/sports", icon: Trophy },
@@ -164,6 +170,8 @@ interface DashboardSidebarProps {
   onClubSwitch: (clubId: string) => void
   user: any
   onLogout: () => void
+  isNavLocked?: (href: string) => boolean
+  onLockedNavClick?: (href: string) => void
 }
 
 function DashboardSidebar({
@@ -177,6 +185,8 @@ function DashboardSidebar({
   onClubSwitch,
   user,
   onLogout,
+  isNavLocked,
+  onLockedNavClick,
 }: DashboardSidebarProps) {
   return (
     <div className={cn("flex flex-col h-full bg-card", mobile ? "w-full" : "w-72")}>
@@ -197,28 +207,59 @@ function DashboardSidebar({
       </Link>
 
       <nav className="flex-1 p-6 space-y-1.5 overflow-y-auto custom-scrollbar">
-        {navigation.map((item) => (
-          <Link
-            key={item.name}
-            href={item.href}
-            className={cn(
-              "flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-bold transition-all duration-200 group relative",
-              pathname === item.href
+        {navigation.map((item) => {
+          const locked = isNavLocked?.(item.href) ?? false
+          const rowClass = cn(
+            "flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-bold transition-all duration-200 group relative w-full text-left",
+            locked
+              ? "opacity-50 cursor-not-allowed text-muted-foreground"
+              : pathname === item.href
                 ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-[1.02]"
                 : "text-muted-foreground hover:text-foreground hover:bg-muted/80 hover:translate-x-1",
-            )}
-            onClick={() => mobile && onCloseMobile?.()}
-          >
-            <item.icon className={cn(
-              "w-5 h-5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110",
-              pathname === item.href ? "text-primary-foreground" : "text-muted-foreground group-hover:text-primary"
-            )} />
-            <span className="truncate">{item.name}</span>
-            {pathname === item.href && (
-              <div className="absolute left-0 w-1 h-6 bg-primary-foreground rounded-r-full my-auto inset-y-0" />
-            )}
-          </Link>
-        ))}
+          )
+          const inner = (
+            <>
+              <item.icon className={cn(
+                "w-5 h-5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110",
+                locked
+                  ? "text-muted-foreground"
+                  : pathname === item.href
+                    ? "text-primary-foreground"
+                    : "text-muted-foreground group-hover:text-primary"
+              )} />
+              <span className="truncate flex-1">{item.name}</span>
+              {locked && <Lock className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />}
+              {!locked && pathname === item.href && (
+                <div className="absolute left-0 w-1 h-6 bg-primary-foreground rounded-r-full my-auto inset-y-0" />
+              )}
+            </>
+          )
+          if (locked) {
+            return (
+              <button
+                key={item.name}
+                type="button"
+                className={rowClass}
+                onClick={() => {
+                  onLockedNavClick?.(item.href)
+                  mobile && onCloseMobile?.()
+                }}
+              >
+                {inner}
+              </button>
+            )
+          }
+          return (
+            <Link
+              key={item.name}
+              href={item.href}
+              className={rowClass}
+              onClick={() => mobile && onCloseMobile?.()}
+            >
+              {inner}
+            </Link>
+          )
+        })}
       </nav>
 
       <div className="p-6 border-t bg-muted/20">
@@ -440,6 +481,54 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   }, [isRegularUser, clubId, settingsLoading, pathname, settings])
 
   const isAdminRole = user?.role === 'admin' || user?.role === 'super_admin'
+  const { config: clubFeatures, loading: clubFeaturesLoading, isEnabled: isClubFeatureEnabled } = useClubFeatures(
+    isAdminRole ? clubId ?? null : null
+  )
+  const [upgradeModal, setUpgradeModal] = useState<{
+    open: boolean
+    featureKey: ClubFeatureKey
+    label: string
+  } | null>(null)
+
+  const isNavLocked = (href: string) => {
+    if (!isAdminRole || !clubFeatures) return false
+    const key = ADMIN_NAV_FEATURE_MAP[href]
+    if (!key) return false
+    return !isClubFeatureEnabled(key)
+  }
+
+  const onLockedNavClick = (href: string) => {
+    const key = ADMIN_NAV_FEATURE_MAP[href]
+    if (!key || !clubId) return
+    const label =
+      clubFeatures?.flags.find((f) => f.key === key)?.label || key
+    setUpgradeModal({ open: true, featureKey: key, label })
+  }
+
+  useEffect(() => {
+    if (!isAdminRole || !clubId || clubFeaturesLoading || !pathname) return
+    const featureKey = ADMIN_NAV_FEATURE_MAP[pathname]
+    if (!featureKey || isClubFeatureEnabled(featureKey)) return
+    const label = clubFeatures?.flags.find((f) => f.key === featureKey)?.label || featureKey
+    setUpgradeModal({ open: true, featureKey, label })
+    if (pathname !== '/dashboard') {
+      router.replace('/dashboard')
+    }
+  }, [isAdminRole, clubId, clubFeaturesLoading, pathname, isClubFeatureEnabled, clubFeatures, router])
+
+  useEffect(() => {
+    if (!isAdminRole) return
+    const onFeatureDisabled = (event: Event) => {
+      const detail = (event as CustomEvent<{ feature?: ClubFeatureKey; message?: string }>).detail
+      const featureKey = detail?.feature
+      if (!featureKey) return
+      const label =
+        clubFeatures?.flags.find((f) => f.key === featureKey)?.label || featureKey
+      setUpgradeModal({ open: true, featureKey, label })
+    }
+    window.addEventListener(CLUB_FEATURE_DISABLED_EVENT, onFeatureDisabled)
+    return () => window.removeEventListener(CLUB_FEATURE_DISABLED_EVENT, onFeatureDisabled)
+  }, [isAdminRole, clubFeatures])
 
   useEffect(() => {
     if (!isAdminRole) return
@@ -539,6 +628,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           onClubSwitch={(id) => { setActiveClubId(id); router.refresh() }}
           user={user}
           onLogout={logout}
+          isNavLocked={isNavLocked}
+          onLockedNavClick={onLockedNavClick}
         />
       </div>
 
@@ -555,6 +646,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             onClubSwitch={(id) => { setActiveClubId(id); router.refresh(); setSidebarOpen(false) }}
             user={user}
             onLogout={logout}
+            isNavLocked={isNavLocked}
+            onLockedNavClick={onLockedNavClick}
           />
         </SheetContent>
       </Sheet>
@@ -619,6 +712,15 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           overageGb={storageAlertStatus.overageGb}
           usedGb={storageAlertStatus.usedGb}
           baseAllocationGb={BASE_STORAGE_GB}
+        />
+      )}
+      {upgradeModal && clubId && (
+        <UpgradeFeatureModal
+          open={upgradeModal.open}
+          onOpenChange={(open) => setUpgradeModal((m) => (m ? { ...m, open } : null))}
+          clubId={clubId}
+          featureKey={upgradeModal.featureKey}
+          featureLabel={upgradeModal.label}
         />
       )}
     </div>
