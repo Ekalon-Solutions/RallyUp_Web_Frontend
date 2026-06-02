@@ -481,14 +481,14 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   }, [isRegularUser, clubId, settingsLoading, pathname, settings])
 
   const isAdminRole = user?.role === 'admin' || user?.role === 'super_admin'
-  const { config: clubFeatures, loading: clubFeaturesLoading, isEnabled: isClubFeatureEnabled } = useClubFeatures(
-    isAdminRole ? clubId ?? null : null
-  )
   const [upgradeModal, setUpgradeModal] = useState<{
     open: boolean
     featureKey: ClubFeatureKey
     label: string
   } | null>(null)
+  const { config: clubFeatures, loading: clubFeaturesLoading, isEnabled: isClubFeatureEnabled } = useClubFeatures(
+    isAdminRole ? clubId ?? null : null
+  )
 
   const isNavLocked = (href: string) => {
     if (!isAdminRole || !clubFeatures) return false

@@ -20,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { ArrowLeft, Save, Loader2, Plus, X, ChevronRight, ChevronLeft, Check } from "lucide-react"
+import { ArrowLeft, Loader2, Plus, X, ChevronRight, ChevronLeft, Check } from "lucide-react"
 import Link from "next/link"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api"
@@ -1167,7 +1167,6 @@ function CreateEventForm() {
                     </>
                   ) : (
                     <>
-                      <Save className="w-4 h-4 mr-2" />
                       {isEditMode ? "Save Changes" : "Publish Event"}
                     </>
                   )}

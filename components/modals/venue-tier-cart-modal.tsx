@@ -148,9 +148,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
     }
   }, [isOpen, user, event])
 
-  if (!event?.venues?.length) return null
-
-  const venues = event.venues
+  const venues = event?.venues ?? []
 
   const cartItems: Array<VenueTierCartItem & { venueName: string; tierName: string; price: number }> = []
   for (const venue of venues) {
@@ -168,6 +166,17 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
       }
     }
   }
+
+  const subtotal = cartItems.reduce((sum, i) => sum + i.price * i.quantity, 0)
+  const afterCoupon = Math.max(subtotal - couponDiscount, 0)
+  const netAmount = Math.max(afterCoupon - (reservedDiscount || 0), 0)
+  const feeBreakdown = netAmount > 0 ? calculateTransactionFees(netAmount) : null
+  const amountToCharge = feeBreakdown ? feeBreakdown.finalAmount : netAmount
+  const checkoutEventId = event?._id ? String(event._id) : undefined
+  const isPaidCheckout = amountToCharge > 0
+  const refundPolicy = useCheckoutRefundPolicy(checkoutEventId, isOpen, isPaidCheckout)
+
+  if (!event || !venues.length) return null
 
   const getClubRemaining = (tier: { allocation: number; sold: number; clubAllocations?: Array<{ clubName: string; allocation: number; sold: number }> }) => {
     if (attributedClub && tier.clubAllocations?.length) {
@@ -207,15 +216,6 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
       return copy
     })
   }
-
-  const subtotal = cartItems.reduce((sum, i) => sum + i.price * i.quantity, 0)
-  const afterCoupon = Math.max(subtotal - couponDiscount, 0)
-  const netAmount = Math.max(afterCoupon - (reservedDiscount || 0), 0)
-  const feeBreakdown = netAmount > 0 ? calculateTransactionFees(netAmount) : null
-  const amountToCharge = feeBreakdown ? feeBreakdown.finalAmount : netAmount
-  const checkoutEventId = event?._id ? String(event._id) : undefined
-  const isPaidCheckout = amountToCharge > 0
-  const refundPolicy = useCheckoutRefundPolicy(checkoutEventId, isOpen, isPaidCheckout)
 
   const reservePoints = async () => {
     if (!redeemPoints || Number(redeemPoints) <= 0) { toast.error("Enter points to redeem"); return }

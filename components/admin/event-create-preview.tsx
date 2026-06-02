@@ -203,7 +203,7 @@ export function EventCreatePreview({
             label={multiTicketEnabled && venues.length > 1 ? "Venues" : "Venue"}
             value={
               multiTicketEnabled
-                ? venues.map((v) => v.name.trim() || "Unnamed venue").join(", ") || "—"
+                ? venues.map((v) => v.name.trim() || "-").join(", ") || "—"
                 : venue.trim() || "—"
             }
             primaryColor={primaryColor}
