@@ -21,6 +21,8 @@ interface MembershipPlan {
   duration?: number
   planStartDate?: string
   planEndDate?: string
+  bookingStartDate?: string
+  bookingEndDate?: string
   features: {
     maxEvents: number
     maxNews: number
@@ -41,14 +43,26 @@ interface MembershipRenewalProps {
   onRenewal: (planId: string, reservationToken?: string | null, redeemedPoints?: number) => Promise<void>
 }
 
+function getPlanSalesState(plan: MembershipPlan) {
+  const now = Date.now()
+  const startMs = plan.bookingStartDate ? new Date(plan.bookingStartDate).getTime() : null
+  const endMs = plan.bookingEndDate ? new Date(plan.bookingEndDate).getTime() : null
+  const notStarted = Boolean(startMs && now < startMs)
+  const closed = Boolean(endMs && now > endMs)
+  return { isOpen: !notStarted && !closed, closed, notStarted }
+}
+
 export function MembershipRenewal({ user, membershipPlans, onRenewal }: MembershipRenewalProps) {
   const [selectedPlan, setSelectedPlan] = useState<string>("")
   const [isRenewing, setIsRenewing] = useState(false)
   const [showRenewalDialog, setShowRenewalDialog] = useState(false)
+  const [showContactAdminDialog, setShowContactAdminDialog] = useState(false)
   const [availablePoints, setAvailablePoints] = useState<number | null>(null)
   const [redeemPoints, setRedeemPoints] = useState<number>(0)
   const [reservationToken, setReservationToken] = useState<string | null>(null)
   const [reserving, setReserving] = useState(false)
+
+  const openPlans = membershipPlans.filter(p => p.isActive && getPlanSalesState(p).isOpen)
 
   const formatPrice = (price: number, currency: string) => {
     return new Intl.NumberFormat('en-US', {
@@ -155,9 +169,34 @@ export function MembershipRenewal({ user, membershipPlans, onRenewal }: Membersh
           </div>
         )}
 
+        {openPlans.length === 0 ? (
+          <>
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => setShowContactAdminDialog(true)}
+            >
+              <AlertTriangle className="w-4 h-4 mr-2" />
+              Contact Club Admin
+            </Button>
+            <Dialog open={showContactAdminDialog} onOpenChange={setShowContactAdminDialog}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Membership Closed</DialogTitle>
+                  <DialogDescription>
+                    The enrollment window for all membership plans has ended. Please contact your Club Admin to renew or change your membership.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="flex justify-end pt-2">
+                  <Button variant="outline" onClick={() => setShowContactAdminDialog(false)}>Close</Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </>
+        ) : (
         <Dialog open={showRenewalDialog} onOpenChange={setShowRenewalDialog}>
           <DialogTrigger asChild>
-            <Button 
+            <Button
               variant={isExpired ? "destructive" : "default"}
               className="w-full"
             >
@@ -172,7 +211,7 @@ export function MembershipRenewal({ user, membershipPlans, onRenewal }: Membersh
                 Select a new membership plan to continue accessing club features.
               </DialogDescription>
             </DialogHeader>
-            
+
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label>Select Membership Plan</Label>
@@ -181,7 +220,7 @@ export function MembershipRenewal({ user, membershipPlans, onRenewal }: Membersh
                     <SelectValue placeholder="Choose a plan" />
                   </SelectTrigger>
                   <SelectContent>
-                    {membershipPlans.filter(plan => plan.isActive).map((plan) => (
+                    {openPlans.map((plan) => (
                       <SelectItem key={plan._id} value={plan._id}>
                         <div className="flex items-center justify-between w-full">
                           <span>{plan.name}</span>
@@ -278,6 +317,7 @@ export function MembershipRenewal({ user, membershipPlans, onRenewal }: Membersh
             </div>
           </DialogContent>
         </Dialog>
+        )}
       </CardContent>
     </Card>
   )

@@ -956,6 +956,36 @@ export default function MembershipPlansPage() {
                       </div>
                     </div>
 
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-bookingStartDate">Booking Start Date</Label>
+                        <Input
+                          id="edit-bookingStartDate"
+                          type="date"
+                          value={formData.bookingStartDate}
+                          onChange={(e) => setFormData({ ...formData, bookingStartDate: e.target.value })}
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          Before this date, the plan cannot be purchased. Leave blank for no start restriction.
+                        </p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="edit-bookingEndDate">
+                          Booking End Date <span className="text-destructive">*</span>
+                        </Label>
+                        <Input
+                          id="edit-bookingEndDate"
+                          type="date"
+                          value={formData.bookingEndDate}
+                          onChange={(e) => setFormData({ ...formData, bookingEndDate: e.target.value })}
+                          required
+                        />
+                        <p className="text-xs text-muted-foreground">
+                          After this date, the plan shows as &quot;Membership Closed&quot; and cannot be purchased.
+                        </p>
+                      </div>
+                    </div>
+
                     <div className="border-t pt-4">
                       <h3 className="font-semibold mb-4 text-foreground">Plan Features</h3>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1182,11 +1212,42 @@ export default function MembershipPlansPage() {
                     )}
                   </div>
 
+                  {(plan.bookingStartDate || plan.bookingEndDate) && (() => {
+                    const now = Date.now()
+                    const startMs = plan.bookingStartDate ? new Date(plan.bookingStartDate).getTime() : null
+                    const endMs = plan.bookingEndDate ? new Date(plan.bookingEndDate).getTime() : null
+                    const notStarted = Boolean(startMs && now < startMs)
+                    const closed = Boolean(endMs && now > endMs)
+                    const isOpen = !notStarted && !closed
+                    return (
+                      <div className="border-t pt-3 space-y-1.5 text-xs text-muted-foreground">
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium text-foreground">Booking Window</span>
+                          <Badge variant={isOpen ? "default" : "secondary"} className="text-xs">
+                            {closed ? "Closed" : notStarted ? "Not Started" : "Open"}
+                          </Badge>
+                        </div>
+                        {plan.bookingStartDate && (
+                          <div className="flex justify-between">
+                            <span>Opens</span>
+                            <span>{new Date(plan.bookingStartDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</span>
+                          </div>
+                        )}
+                        {plan.bookingEndDate && (
+                          <div className="flex justify-between">
+                            <span>Closes</span>
+                            <span className={closed ? "text-destructive font-medium" : ""}>{new Date(plan.bookingEndDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</span>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })()}
+
                   <div className="flex flex-col gap-2">
                     <div className="flex flex-col sm:flex-row gap-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
+                      <Button
+                        variant="outline"
+                        size="sm"
                         className="flex-1"
                         onClick={() => handleEditPlan(plan)}
                       >
