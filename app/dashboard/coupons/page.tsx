@@ -4,9 +4,28 @@ import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
 import { CouponsTab } from "@/components/tabs/coupons-tab"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
+import { useClubFeatures } from "@/hooks/useClubFeatures"
+import { isFeatureEnabled } from "@/lib/clubFeatures"
+import { LockedFeaturePage } from "@/components/feature-gate"
 
 export default function AdminCouponsPage() {
   const clubId = useRequiredClubId()
+  const { config: clubFeatureConfig } = useClubFeatures(clubId ?? null)
+
+  if (!isFeatureEnabled(clubFeatureConfig, 'coupons')) {
+    return (
+      <ProtectedRoute requireAdmin={true}>
+        <DashboardLayout>
+          <LockedFeaturePage
+            featureKey="coupons"
+            featureLabel="Coupons"
+            clubId={clubId ?? ""}
+            currentTier={clubFeatureConfig?.billing_tier}
+          />
+        </DashboardLayout>
+      </ProtectedRoute>
+    )
+  }
 
   return (
     <ProtectedRoute requireAdmin={true}>

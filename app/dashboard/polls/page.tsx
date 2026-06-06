@@ -34,10 +34,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { useClubFeatures } from "@/hooks/useClubFeatures"
+import { isFeatureEnabled } from "@/lib/clubFeatures"
+import { LockedFeaturePage, FeatureUnavailableOverlay } from "@/components/feature-gate"
 
 export default function PollsManagementPage() {
   const { user } = useAuth()
   const clubId = useRequiredClubId()
+  const { config: clubFeatureConfig } = useClubFeatures(clubId ?? null)
   const [polls, setPolls] = useState<Poll[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -214,9 +218,27 @@ export default function PollsManagementPage() {
     )
   }
 
+  if (!isFeatureEnabled(clubFeatureConfig, 'polls')) {
+    return (
+      <ProtectedRoute>
+        <DashboardLayout>
+          <LockedFeaturePage
+            featureKey="polls"
+            featureLabel="Polls"
+            clubId={clubId ?? ""}
+            currentTier={clubFeatureConfig?.billing_tier}
+          />
+        </DashboardLayout>
+      </ProtectedRoute>
+    )
+  }
+
   return (
     <ProtectedRoute>
       <DashboardLayout>
+        {clubId && (
+          <FeatureUnavailableOverlay featureKey="polls" featureLabel="Polls" clubId={clubId} />
+        )}
         <div className="container mx-auto p-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <div>

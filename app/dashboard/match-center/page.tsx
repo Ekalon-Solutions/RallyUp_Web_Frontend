@@ -7,6 +7,10 @@ import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Calendar, MapPin, Users, Bus, Clock, Trophy } from "lucide-react"
+import { useRequiredClubId } from "@/hooks/useRequiredClubId"
+import { useClubFeatures } from "@/hooks/useClubFeatures"
+import { isFeatureEnabled } from "@/lib/clubFeatures"
+import { LockedFeaturePage } from "@/components/feature-gate"
 
 const upcomingFixtures = [
   {
@@ -75,6 +79,22 @@ const matchStats = [
 ]
 
 export default function MatchCenterPage() {
+  const clubId = useRequiredClubId()
+  const { config: clubFeatureConfig } = useClubFeatures(clubId ?? null)
+
+  if (!isFeatureEnabled(clubFeatureConfig, 'predictions')) {
+    return (
+      <DashboardLayout>
+        <LockedFeaturePage
+          featureKey="predictions"
+          featureLabel="Match Centre & Predictions"
+          clubId={clubId ?? ""}
+          currentTier={clubFeatureConfig?.billing_tier}
+        />
+      </DashboardLayout>
+    )
+  }
+
   return (
     <DashboardLayout>
       <div className="space-y-6">

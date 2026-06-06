@@ -52,7 +52,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children, token 
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
-      transports: ['websocket', 'polling'],
+      transports: ['polling', 'websocket'],
     });
 
     socketInstance.on('connect', () => {

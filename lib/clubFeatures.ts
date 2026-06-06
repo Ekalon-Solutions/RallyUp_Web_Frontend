@@ -38,6 +38,7 @@ export type ResolvedClubFeatures = {
   billing_trial_ends_at?: string;
   feature_constraints: Record<string, number>;
   flags: ResolvedFeatureFlag[];
+  experimental_flags: Record<string, { enabled: boolean; state: string }>;
   estimated_monthly_usd: number;
   synced_at: string;
 };
@@ -90,6 +91,7 @@ export function normalizeResolvedClubFeatures(
     billing_trial_ends_at: raw.billing_trial_ends_at,
     feature_constraints: raw.feature_constraints ?? {},
     flags: Array.isArray(raw.flags) ? raw.flags : [],
+    experimental_flags: raw.experimental_flags ?? {},
     estimated_monthly_usd: raw.estimated_monthly_usd ?? 0,
     synced_at: raw.synced_at ?? new Date().toISOString(),
   };
@@ -101,7 +103,8 @@ export function isFeatureEnabled(
 ): boolean {
   if (!config) return true;
   const flag = clubFeatureFlags(config).find((f) => f.key === key);
-  return flag?.enabled ?? true;
+  // Null-safe: a flag absent from a loaded config is treated as disabled.
+  return flag?.enabled ?? false;
 }
 
 export const CLUB_FEATURE_DISABLED_EVENT = 'rallyup:club-feature-disabled';
@@ -112,4 +115,153 @@ export function featureState(
 ): ClubFeatureState {
   if (!config) return 'active';
   return clubFeatureFlags(config).find((f) => f.key === key)?.state ?? 'inactive';
+}
+
+/**
+ * Returns the numeric constraint limit for a feature, or null when the
+ * constraint is not set (meaning unlimited / no cap enforced).
+ */
+export function getFeatureConstraint(
+  config: ResolvedClubFeatures | null | undefined,
+  constraintKey: string
+): number | null {
+  if (!config) return null;
+  const val = config.feature_constraints[constraintKey];
+  return typeof val === 'number' ? val : null;
+}
+
+export const FEATURE_DEPENDENCIES: Partial<Record<ClubFeatureKey, ClubFeatureKey[]>> = {
+  events: ['merchandise'],
+};
+
+/** Returns whether an experimental flag is enabled (defaults to false). */
+export function isExperimentalFlagEnabled(
+  config: ResolvedClubFeatures | null | undefined,
+  key: string
+): boolean {
+  return config?.experimental_flags?.[key]?.enabled ?? false;
+}
+
+export const FEATURE_DESCRIPTIONS: Record<ClubFeatureKey, string> = {
+  events: 'Create and manage events, sell tickets, and track attendance.',
+  merchandise: 'Run a branded merch store with orders, inventory, and shipping.',
+  news: 'Publish news articles and updates directly to your members.',
+  gallery: 'Create and share photo and video albums for your club community.',
+  polls: 'Run polls and surveys to gather member opinions instantly.',
+  chants: 'Share and manage club chants, anthems, and crowd songs.',
+  external_ticketing: 'Sell tickets to external fixtures and partner events.',
+  volunteer: 'Recruit, manage, and schedule club volunteers efficiently.',
+  leaderboard: 'Reward top members and fans with a live points leaderboard.',
+  coupons: 'Create discount codes for events and merchandise purchases.',
+  refunds: 'Process and manage refund requests from members smoothly.',
+  membership: 'Sell tiered membership plans and issue branded digital cards.',
+  website: "Build and customise your club's fully branded public website.",
+  reporting: 'Export data, run reports, and access advanced analytics.',
+  wa_marketing: 'Send targeted WhatsApp broadcast campaigns to your members.',
+  ads: "Run in-app ad campaigns targeted to your club's audience.",
+  predictions: 'Let members predict match scores and compete for points.',
+  onboarding: 'Guide new members through a branded onboarding experience.',
+};
+
+export const FEATURE_UNLOCK_TIER: Record<ClubFeatureKey, string> = {
+  events: 'Free',
+  news: 'Free',
+  membership: 'Free',
+  website: 'Free',
+  refunds: 'Free',
+  gallery: 'Starter',
+  polls: 'Starter',
+  merchandise: 'Pro',
+  chants: 'Pro',
+  external_ticketing: 'Pro',
+  volunteer: 'Pro',
+  leaderboard: 'Pro',
+  coupons: 'Pro',
+  reporting: 'Pro',
+  onboarding: 'Pro',
+  wa_marketing: 'Enterprise',
+  ads: 'Enterprise',
+  predictions: 'Enterprise',
+};
+
+/** Maps a feature to the constraint key that caps its usage (if any). */
+export const FEATURE_CONSTRAINT_KEY: Partial<Record<ClubFeatureKey, string>> = {
+  merchandise: 'max_merch_items',
+  gallery: 'max_gallery_albums',
+  leaderboard: 'max_leaderboard_entries',
+  coupons: 'max_coupons',
+  volunteer: 'max_volunteers',
+  news: 'max_news_posts',
+  wa_marketing: 'max_wa_messages',
+};
+
+export const FEATURE_LABELS: Record<ClubFeatureKey, string> = {
+  events:             'Events & Tickets',
+  merchandise:        'Merchandise Store',
+  news:               'News & Updates',
+  gallery:            'Gallery',
+  polls:              'Polls',
+  chants:             'Club Chants',
+  external_ticketing: 'External Ticketing',
+  volunteer:          'Volunteer',
+  leaderboard:        'Leaderboard',
+  coupons:            'Coupons',
+  refunds:            'Refunds',
+  membership:         'Membership',
+  website:            'Group Website',
+  reporting:          'Reporting',
+  wa_marketing:       'WhatsApp Marketing',
+  ads:                'Ad Engine',
+  predictions:        'Guess the Score',
+  onboarding:         'Onboarding & Promotions',
+};
+
+/** Base monthly USD price per billing tier. */
+export const TIER_MONTHLY_ESTIMATE_USD: Record<string, number> = {
+  free:       0,
+  starter:   49,
+  pro:       149,
+  enterprise: 399,
+};
+
+/**
+ * Monthly USD price for features that can be purchased as individual add-ons
+ * on top of any base tier. Matches backend billingConstants.ADDON_PRICING.
+ */
+export const ADDON_PRICING: Partial<Record<ClubFeatureKey, number>> = {
+  wa_marketing:       49,
+  ads:                29,
+  predictions:        19,
+  reporting:          19,
+  external_ticketing: 29,
+  leaderboard:        15,
+  volunteer:          15,
+  coupons:             9,
+};
+
+/** Mirrored from backend BILLING_TIER_PRESETS — keys included per tier. */
+export const BILLING_TIER_PRESET_KEYS: Record<string, Set<ClubFeatureKey>> = {
+  free:       new Set(['events', 'news', 'membership', 'website', 'refunds']),
+  starter:    new Set(['events', 'news', 'gallery', 'membership', 'website', 'refunds', 'polls']),
+  pro:        new Set(['events', 'merchandise', 'news', 'gallery', 'polls', 'chants', 'external_ticketing', 'volunteer', 'leaderboard', 'coupons', 'refunds', 'membership', 'website', 'reporting', 'onboarding']),
+  enterprise: new Set(CLUB_FEATURE_KEYS),
+};
+
+/**
+ * Compute the estimated monthly bill for a club given its current tier and
+ * the effective set of enabled feature keys (including pending toggles).
+ */
+export function estimateMonthlyBill(
+  billingTier: string,
+  enabledKeys: ClubFeatureKey[]
+): number {
+  const base = TIER_MONTHLY_ESTIMATE_USD[billingTier] ?? 0;
+  const tierEnabled = BILLING_TIER_PRESET_KEYS[billingTier] ?? new Set<ClubFeatureKey>();
+  let addons = 0;
+  for (const key of enabledKeys) {
+    if (!tierEnabled.has(key) && ADDON_PRICING[key]) {
+      addons += ADDON_PRICING[key]!;
+    }
+  }
+  return base + addons;
 }

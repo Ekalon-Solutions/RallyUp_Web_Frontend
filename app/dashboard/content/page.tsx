@@ -16,6 +16,9 @@ import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
 import { getNewsImageUrl } from "@/lib/config"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
+import { useClubFeatures } from "@/hooks/useClubFeatures"
+import { isFeatureEnabled, getFeatureConstraint } from "@/lib/clubFeatures"
+import { LockedFeaturePage, FeatureUnavailableOverlay, UsageMeter } from "@/components/feature-gate"
 import { 
   Newspaper, 
   Search, 
@@ -37,6 +40,7 @@ import {
 export default function ContentManagementPage() {
   const { user } = useAuth()
   const clubId = useRequiredClubId()
+  const { config: clubFeatureConfig } = useClubFeatures(clubId ?? null)
   const [news, setNews] = useState<News[]>([])
   const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
@@ -226,6 +230,21 @@ export default function ContentManagementPage() {
   const categories = ['general', 'event', 'announcement', 'update', 'achievement']
   const priorities = ['low', 'medium', 'high']
 
+  if (!isFeatureEnabled(clubFeatureConfig, 'news')) {
+    return (
+      <ProtectedRoute>
+        <DashboardLayout>
+          <LockedFeaturePage
+            featureKey="news"
+            featureLabel="News & Content"
+            clubId={clubId ?? ""}
+            currentTier={clubFeatureConfig?.billing_tier}
+          />
+        </DashboardLayout>
+      </ProtectedRoute>
+    )
+  }
+
   if (user?.role !== 'admin' && user?.role !== 'super_admin') {
     return (
       <ProtectedRoute>
@@ -241,14 +260,21 @@ export default function ContentManagementPage() {
     )
   }
 
+  const maxNewsPosts = getFeatureConstraint(clubFeatureConfig, 'max_news_posts')
+  const totalNewsPosts = stats?.stats?.total ?? news.length
+
   return (
     <ProtectedRoute>
       <DashboardLayout>
-        <div className="space-y-6">
+        <div className="relative space-y-6">
+          {clubId && (
+            <FeatureUnavailableOverlay featureKey="news" featureLabel="News & Content" clubId={clubId} />
+          )}
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold">News & Updates</h1>
               <p className="text-muted-foreground">Manage all news articles and content for your club</p>
+              {maxNewsPosts !== null && <UsageMeter current={totalNewsPosts} max={maxNewsPosts} label="News posts" className="mt-2 max-w-xs" />}
             </div>
             <div className="flex gap-2">
               <Button onClick={handleCreateNews}>

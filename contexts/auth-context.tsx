@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { apiClient, User, Admin, SystemOwner } from '../lib/api';
 import { buildAccessibleClubs, reconcileActiveClubId } from '../lib/clubContext';
+import { clearFeatureCache, clearAllFeatureCaches } from '../lib/featureCacheStore';
 
 interface AuthContextType {
   user: User | Admin | SystemOwner | null;
@@ -285,6 +286,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         setUser(userData);
+        // State reconciliation: bust the feature cache so the next render
+        // fetches fresh flags aligned with the current system configuration.
+        clearAllFeatureCaches();
         const hydrated = await hydrateUserProfile({
           isAdmin,
           isSystemOwner,
@@ -363,6 +367,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem('activeClubId');
     localStorage.removeItem('hasSeenDashboardLogo');
     localStorage.removeItem('hasSeenUserDashboardLogo');
+    // Clear all signed feature caches so no stale data persists across sessions
+    clearAllFeatureCaches();
     setUser(null);
     setActiveClubIdState(null);
     window.location.href = '/';

@@ -15,6 +15,9 @@ import { apiClient } from '@/lib/api'
 import { toast } from 'sonner'
 import { useRequiredClubId } from '@/hooks/useRequiredClubId'
 import RedemptionSettingsTab from '@/components/admin/settings/redemption-settings-tab'
+import { useClubFeatures } from '@/hooks/useClubFeatures'
+import { isFeatureEnabled, getFeatureConstraint } from '@/lib/clubFeatures'
+import { LockedFeaturePage, FeatureUnavailableOverlay, UsageMeter } from '@/components/feature-gate'
 
 interface LeaderboardEntry {
   userId: string
@@ -29,6 +32,7 @@ interface LeaderboardEntry {
 
 export default function AdminLeaderboardPage() {
   const clubId = useRequiredClubId()
+  const { config: clubFeatureConfig } = useClubFeatures(clubId ?? null)
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([])
   const [loading, setLoading] = useState(true)
   const [editedPoints, setEditedPoints] = useState<Record<string, string>>({})
@@ -146,16 +150,37 @@ export default function AdminLeaderboardPage() {
     )
   }
 
+  if (!isFeatureEnabled(clubFeatureConfig, 'leaderboard')) {
+    return (
+      <ProtectedRoute requireAdmin>
+        <DashboardLayout>
+          <LockedFeaturePage
+            featureKey="leaderboard"
+            featureLabel="Leaderboard"
+            clubId={clubId ?? ""}
+            currentTier={clubFeatureConfig?.billing_tier}
+          />
+        </DashboardLayout>
+      </ProtectedRoute>
+    )
+  }
+
+  const maxEntries = getFeatureConstraint(clubFeatureConfig, 'max_leaderboard_entries')
+
   return (
     <ProtectedRoute requireAdmin>
       <DashboardLayout>
-        <div className="p-6 space-y-6">
+        <div className="relative p-6 space-y-6">
+          {clubId && (
+            <FeatureUnavailableOverlay featureKey="leaderboard" featureLabel="Leaderboard" clubId={clubId} />
+          )}
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
               <h1 className="text-3xl font-bold">Leaderboard Management</h1>
               <p className="text-muted-foreground mt-1 max-w-2xl">
                 Review member rankings and adjust points awarded for event attendance. Updates are applied immediately.
               </p>
+              {maxEntries !== null && <UsageMeter current={leaderboard.length} max={maxEntries} label="Leaderboard entries" className="mt-2 max-w-xs" />}
             </div>
             <div className="flex items-center gap-2">
               <Button variant="outline" onClick={() => setShowSettings(true)}>

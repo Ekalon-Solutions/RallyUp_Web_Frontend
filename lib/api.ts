@@ -135,6 +135,24 @@ export interface SystemOwner {
   updatedAt?: string;
 }
 
+export interface TriggerMapChannelEntry {
+  channel: 'email' | 'in_app';
+  isCustomized: boolean;
+  suppressionEnabled: boolean;
+  priority: number;
+  delayAfterEventEndHours: number | null;
+  featureFlagKey: string | null;
+  templateId: string | null;
+}
+
+export interface TriggerMapEntry {
+  eventKey: string;
+  triggerType: string;
+  triggerLabel: string;
+  journeyStage: string;
+  channels: TriggerMapChannelEntry[];
+}
+
 export interface NotificationCTA {
   label: string;
   url: string;
@@ -1671,6 +1689,35 @@ class ApiClient {
     });
   }
 
+  async patchEventRefundPolicy(eventId: string, data: {
+    isRefundAllowed?: boolean;
+    refundCutoffHours?: number;
+    reason?: string;
+    acknowledgeLivePolicyImpact?: boolean;
+  }): Promise<ApiResponse<{ message: string; event: Event; policyChangeTimestamp?: string; liveEventImpact?: boolean }>> {
+    return this.request(`/events/${eventId}/refund-policy`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async getEventRefundPolicyHistory(eventId: string, limit = 20): Promise<ApiResponse<{
+    eventId: string;
+    refundPolicy: { is_refund_allowed: boolean; refundCutoffHours: number };
+    history: Array<{
+      id: string;
+      adminUid: string;
+      previousIsRefundAllowed: boolean;
+      newIsRefundAllowed: boolean;
+      previousRefundCutoffHours: number;
+      newRefundCutoffHours: number;
+      reason: string | null;
+      createdAt: string;
+    }>;
+  }>> {
+    return this.request(`/events/${eventId}/refund-policy/history?limit=${limit}`);
+  }
+
   async toggleEventStatus(id: string, isActive: boolean): Promise<ApiResponse<{ message: string; event: Event }>> {
     return this.request(`/events/${id}/toggle-status`, {
       method: 'PATCH',
@@ -3077,6 +3124,9 @@ class ApiClient {
       billing_status: string;
       flags: Array<{ key: string; enabled: boolean; state: string; label: string }>;
       estimated_monthly_usd: number;
+      feature_constraints: Record<string, number>;
+      features_schema_version: number;
+      experimental_flags: Record<string, { enabled: boolean; state: string }>;
     }>;
   }>> {
     const q = search ? `?search=${encodeURIComponent(search)}` : '';
@@ -3087,6 +3137,8 @@ class ApiClient {
     clubId: string,
     body: {
       updates?: Record<string, { enabled: boolean; state?: string }>;
+      /** Atomic updates to experimental_flags — key may be a new flag not yet in the document */
+      experimental_updates?: Record<string, { enabled: boolean; state?: string }>;
       billing_tier?: string;
       billing_status?: string;
       feature_constraints?: Record<string, number>;
@@ -3113,14 +3165,79 @@ class ApiClient {
   async getClubFeatureAuditLog(params?: {
     clubId?: string;
     actorId?: string;
+    search?: string;
+    featureKey?: string;
+    reasonCode?: string;
+    startDate?: string;
+    endDate?: string;
+    page?: number;
     limit?: number;
-  }): Promise<ApiResponse<unknown[]>> {
+  }): Promise<ApiResponse<any>> {
     const sp = new URLSearchParams();
-    if (params?.clubId) sp.set('clubId', params.clubId);
-    if (params?.actorId) sp.set('actorId', params.actorId);
-    if (params?.limit) sp.set('limit', String(params.limit));
+    if (params?.clubId)      sp.set('clubId',      params.clubId);
+    if (params?.actorId)     sp.set('actorId',     params.actorId);
+    if (params?.search)      sp.set('search',      params.search);
+    if (params?.featureKey)  sp.set('featureKey',  params.featureKey);
+    if (params?.reasonCode)  sp.set('reasonCode',  params.reasonCode);
+    if (params?.startDate)   sp.set('startDate',   params.startDate);
+    if (params?.endDate)     sp.set('endDate',     params.endDate);
+    if (params?.page)        sp.set('page',        String(params.page));
+    if (params?.limit)       sp.set('limit',       String(params.limit));
     const q = sp.toString() ? `?${sp}` : '';
-    return this.request(`/club-features/audit${q}`);
+    const res = await this.request(`/club-features/audit${q}`);
+    if (res.success && (res as any).data) return res;
+    return res;
+  }
+
+  async getAdminActionsAuditLog(params?: {
+    clubId?: string;
+    actorId?: string;
+    action?: string;
+    riskLevel?: string;
+    search?: string;
+    startDate?: string;
+    endDate?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<ApiResponse<any>> {
+    const sp = new URLSearchParams();
+    if (params?.clubId)     sp.set('clubId',     params.clubId);
+    if (params?.actorId)    sp.set('actorId',    params.actorId);
+    if (params?.action)     sp.set('action',     params.action);
+    if (params?.riskLevel)  sp.set('riskLevel',  params.riskLevel);
+    if (params?.search)     sp.set('search',     params.search);
+    if (params?.startDate)  sp.set('startDate',  params.startDate);
+    if (params?.endDate)    sp.set('endDate',    params.endDate);
+    if (params?.page)       sp.set('page',       String(params.page));
+    if (params?.limit)      sp.set('limit',      String(params.limit));
+    const q = sp.toString() ? `?${sp}` : '';
+    return this.request(`/club-features/audit/admin-actions${q}`);
+  }
+
+  async fetchAuditReportHtml(params?: {
+    clubId?: string;
+    search?: string;
+    featureKey?: string;
+    startDate?: string;
+    endDate?: string;
+  }): Promise<string | null> {
+    const sp = new URLSearchParams();
+    if (params?.clubId)     sp.set('clubId',     params.clubId);
+    if (params?.search)     sp.set('search',     params.search);
+    if (params?.featureKey) sp.set('featureKey', params.featureKey);
+    if (params?.startDate)  sp.set('startDate',  params.startDate);
+    if (params?.endDate)    sp.set('endDate',    params.endDate);
+    const q = sp.toString() ? `?${sp}` : '';
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    try {
+      const response = await fetch(`${API_BASE_URL}/club-features/audit/report.html${q}`, { headers });
+      if (!response.ok) return null;
+      return await response.text();
+    } catch {
+      return null;
+    }
   }
 
   async getMyClubFeatures(clubId: string): Promise<ApiResponse<import('./clubFeatures').ResolvedClubFeatures>> {
@@ -3136,6 +3253,30 @@ class ApiClient {
       method: 'POST',
       body: JSON.stringify(body),
     });
+  }
+
+  // ── FCM device token registration ──────────────────────────────────────────
+
+  async registerAdminFcmToken(token: string): Promise<ApiResponse<void>> {
+    return this.request('/admin/fcm-token', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    });
+  }
+
+  async unregisterAdminFcmToken(): Promise<ApiResponse<void>> {
+    return this.request('/admin/fcm-token', { method: 'DELETE' });
+  }
+
+  async registerUserFcmToken(token: string): Promise<ApiResponse<void>> {
+    return this.request('/users/fcm-token', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    });
+  }
+
+  async unregisterUserFcmToken(): Promise<ApiResponse<void>> {
+    return this.request('/users/fcm-token', { method: 'DELETE' });
   }
 
   async getUserClub(): Promise<ApiResponse<{
@@ -4613,6 +4754,93 @@ class ApiClient {
     if (res.success && res.data) {
       return { ...res, data: (res.data as any).data ?? res.data };
     }
+    return res;
+  }
+
+  async getNotificationTriggerMap(clubId: string): Promise<ApiResponse<TriggerMapEntry[]>> {
+    const res = await this.get(`/clubs/${clubId}/notification-templates/trigger-map`);
+    if (res.success && res.data) {
+      return { ...res, data: (res.data as any).data ?? res.data };
+    }
+    return res;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Billing — invoice preview, invoices, auditor alerts
+  // ---------------------------------------------------------------------------
+
+  async getBillingInvoicePreview(clubId: string): Promise<ApiResponse<any>> {
+    const res = await this.get(`/billing/invoice-preview/${clubId}`);
+    if (res.success && res.data) return { ...res, data: (res.data as any).data ?? res.data };
+    return res;
+  }
+
+  async getClubInvoices(clubId: string, params?: { status?: string; limit?: number }): Promise<ApiResponse<any[]>> {
+    const qs = new URLSearchParams();
+    if (params?.status) qs.set('status', params.status);
+    if (params?.limit) qs.set('limit', String(params.limit));
+    const query = qs.toString() ? `?${qs}` : '';
+    const res = await this.get(`/billing/invoices/${clubId}${query}`);
+    if (res.success && res.data) return { ...res, data: (res.data as any).data ?? res.data };
+    return res;
+  }
+
+  async getBillingAlerts(params?: {
+    clubId?: string;
+    alert_type?: string;
+    severity?: string;
+    resolved?: boolean;
+    limit?: number;
+  }): Promise<ApiResponse<any[]>> {
+    const qs = new URLSearchParams();
+    if (params?.clubId)     qs.set('clubId',     params.clubId);
+    if (params?.alert_type) qs.set('alert_type', params.alert_type);
+    if (params?.severity)   qs.set('severity',   params.severity);
+    if (params?.resolved !== undefined) qs.set('resolved', String(params.resolved));
+    if (params?.limit)      qs.set('limit',      String(params.limit));
+    const query = qs.toString() ? `?${qs}` : '';
+    const res = await this.get(`/billing/alerts${query}`);
+    if (res.success && res.data) return { ...res, data: (res.data as any).data ?? res.data };
+    return res;
+  }
+
+  async getBillingAlertCount(): Promise<ApiResponse<{ count: number }>> {
+    const res = await this.get('/billing/alerts/count');
+    if (res.success && res.data) return { ...res, data: (res.data as any).data ?? res.data };
+    return res;
+  }
+
+  async resolveBillingAlert(alertId: string): Promise<ApiResponse<any>> {
+    const res = await this.post(`/billing/alerts/${alertId}/resolve`, {});
+    if (res.success && res.data) return { ...res, data: (res.data as any).data ?? res.data };
+    return res;
+  }
+
+  async getBillingSettings(): Promise<ApiResponse<{
+    tier_prices:                  Record<string, number>;
+    tier_presets:                 Record<string, Record<string, boolean>>;
+    tier_constraints:             Record<string, Record<string, number>>;
+    addon_pricing:                Record<string, number>;
+    trial_period_days:            number;
+    delinquent_auto_toggle_hours: number;
+    updated_at?:                  string;
+    updated_by?:                  string;
+  }>> {
+    const res = await this.get('/billing/settings');
+    if (res.success && res.data) return { ...res, data: (res.data as any).data ?? res.data };
+    return res;
+  }
+
+  async updateBillingSettings(payload: {
+    tier_prices?:                  Record<string, number>;
+    tier_presets?:                 Record<string, Record<string, boolean>>;
+    tier_constraints?:             Record<string, Record<string, number>>;
+    addon_pricing?:                Record<string, number>;
+    trial_period_days?:            number;
+    delinquent_auto_toggle_hours?: number;
+  }): Promise<ApiResponse<any>> {
+    const res = await this.patch('/billing/settings', payload);
+    if (res.success && res.data) return { ...res, data: (res.data as any).data ?? res.data };
     return res;
   }
 }

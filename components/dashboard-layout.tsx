@@ -40,6 +40,7 @@ import {
   UserPlus,
   Lock,
   Grid3X3,
+  Receipt,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -59,7 +60,12 @@ import { EkalonAttribution } from "@/components/ekalon-attribution"
 import { usePrimaryClubOwner } from "@/hooks/usePrimaryClubOwner"
 import { useClubFeatures } from "@/hooks/useClubFeatures"
 import { ADMIN_NAV_FEATURE_MAP, CLUB_FEATURE_DISABLED_EVENT, clubFeatureFlags, type ClubFeatureKey } from "@/lib/clubFeatures"
+import { clearFeatureCache } from "@/lib/featureCacheStore"
 import { UpgradeFeatureModal } from "@/components/modals/upgrade-feature-modal"
+import { LockedFeaturePage } from "@/components/feature-gate/locked-feature-page"
+import { ClubFeaturesProvider } from "@/contexts/club-features-context"
+import { useFcmRegistration } from "@/hooks/useFcmRegistration"
+import { ChevronDown, ChevronRight } from "lucide-react"
 
 const USER_PATH_TO_SECTION: Record<string, WebsiteSectionKey> = {
   "/dashboard/user/news": "news",
@@ -103,6 +109,8 @@ const adminNavigation = [
 const systemOwnerNavigation = [
   { name: "Club Management", href: "/dashboard/club-management", icon: Building },
   { name: "Service Matrix", href: "/dashboard/feature-matrix", icon: Grid3X3 },
+  { name: "Audit Logs", href: "/dashboard/admin-audit", icon: Shield },
+  { name: "Billing Auditor", href: "/dashboard/billing-auditor", icon: Receipt },
   // { name: "Browse Clubs", href: "/dashboard/user/clubs", icon: Building2 },
   { name: "Onboarding & Promotions", href: "/dashboard/onboarding", icon: GraduationCap },
   { name: "Sports", href: "/dashboard/sports", icon: Trophy },
@@ -162,6 +170,7 @@ interface DashboardLayoutProps {
 interface DashboardSidebarProps {
   mobile?: boolean
   navigation: { name: string; href: string; icon: React.ElementType }[]
+  addOnNavigation: { name: string; href: string; icon: React.ElementType }[]
   pathname: string
   onCloseMobile?: () => void
   sidebarClubs: { _id: string; name: string; logo?: string }[]
@@ -170,13 +179,13 @@ interface DashboardSidebarProps {
   onClubSwitch: (clubId: string) => void
   user: any
   onLogout: () => void
-  isNavLocked?: (href: string) => boolean
   onLockedNavClick?: (href: string) => void
 }
 
 function DashboardSidebar({
   mobile = false,
   navigation,
+  addOnNavigation,
   pathname,
   onCloseMobile,
   sidebarClubs,
@@ -185,9 +194,18 @@ function DashboardSidebar({
   onClubSwitch,
   user,
   onLogout,
-  isNavLocked,
   onLockedNavClick,
 }: DashboardSidebarProps) {
+  const [addOnsOpen, setAddOnsOpen] = useState(false)
+
+  const activeRowClass = (href: string) =>
+    cn(
+      "flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-bold transition-all duration-200 group relative w-full text-left",
+      pathname === href
+        ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-[1.02]"
+        : "text-muted-foreground hover:text-foreground hover:bg-muted/80 hover:translate-x-1",
+    )
+
   return (
     <div className={cn("flex flex-col h-full bg-card", mobile ? "w-full" : "w-72")}>
       <Link href="/" className="flex items-center gap-2 h-16 p-2 border-b hover:opacity-90 transition-opacity">
@@ -207,59 +225,69 @@ function DashboardSidebar({
       </Link>
 
       <nav className="flex-1 p-6 space-y-1.5 overflow-y-auto custom-scrollbar">
-        {navigation.map((item) => {
-          const locked = isNavLocked?.(item.href) ?? false
-          const rowClass = cn(
-            "flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-bold transition-all duration-200 group relative w-full text-left",
-            locked
-              ? "opacity-50 cursor-not-allowed text-muted-foreground"
-              : pathname === item.href
-                ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-[1.02]"
-                : "text-muted-foreground hover:text-foreground hover:bg-muted/80 hover:translate-x-1",
-          )
-          const inner = (
-            <>
-              <item.icon className={cn(
-                "w-5 h-5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110",
-                locked
-                  ? "text-muted-foreground"
-                  : pathname === item.href
-                    ? "text-primary-foreground"
-                    : "text-muted-foreground group-hover:text-primary"
-              )} />
-              <span className="truncate flex-1">{item.name}</span>
-              {locked && <Lock className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />}
-              {!locked && pathname === item.href && (
-                <div className="absolute left-0 w-1 h-6 bg-primary-foreground rounded-r-full my-auto inset-y-0" />
-              )}
-            </>
-          )
-          if (locked) {
-            return (
-              <button
-                key={item.name}
-                type="button"
-                className={rowClass}
-                onClick={() => {
-                  onLockedNavClick?.(item.href)
-                  mobile && onCloseMobile?.()
-                }}
-              >
-                {inner}
-              </button>
-            )
-          }
-          return (
-            <Link
-              key={item.name}
-              href={item.href}
-              className={rowClass}
-              onClick={() => mobile && onCloseMobile?.()}
+        {/* ── Active / enabled nav items ─────────────────────── */}
+        {navigation.map((item) => (
+          <Link
+            key={item.name}
+            href={item.href}
+            className={activeRowClass(item.href)}
+            onClick={() => mobile && onCloseMobile?.()}
+          >
+            <item.icon className={cn(
+              "w-5 h-5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110",
+              pathname === item.href
+                ? "text-primary-foreground"
+                : "text-muted-foreground group-hover:text-primary"
+            )} />
+            <span className="truncate flex-1">{item.name}</span>
+            {pathname === item.href && (
+              <div className="absolute left-0 w-1 h-6 bg-primary-foreground rounded-r-full my-auto inset-y-0" />
+            )}
+          </Link>
+        ))}
+
+        {/* ── Available Add-ons ──────────────────────────────── */}
+        {addOnNavigation.length > 0 && (
+          <div className="mt-3 pt-3 border-t border-dashed">
+            <button
+              type="button"
+              onClick={() => setAddOnsOpen((v) => !v)}
+              className="flex items-center justify-between w-full px-2 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider text-muted-foreground/70 hover:text-muted-foreground transition-colors"
             >
-              {inner}
-            </Link>
-          )
-        })}
+              <span className="flex items-center gap-1.5">
+                <Lock className="w-3 h-3 text-amber-500" />
+                Available Add-ons
+                <span className="tabular-nums bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 rounded-full px-1.5 py-0.5 text-[10px] font-black">
+                  {addOnNavigation.length}
+                </span>
+              </span>
+              {addOnsOpen
+                ? <ChevronDown className="w-3 h-3" />
+                : <ChevronRight className="w-3 h-3" />
+              }
+            </button>
+
+            {addOnsOpen && (
+              <div className="mt-1.5 space-y-1">
+                {addOnNavigation.map((item) => (
+                  <button
+                    key={item.name}
+                    type="button"
+                    className="flex items-center gap-3.5 px-4 py-2.5 rounded-xl text-sm font-bold w-full text-left text-muted-foreground/60 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-all duration-200 group"
+                    onClick={() => {
+                      onLockedNavClick?.(item.href)
+                      mobile && onCloseMobile?.()
+                    }}
+                  >
+                    <item.icon className="w-4 h-4 flex-shrink-0 text-muted-foreground/40 group-hover:text-amber-500 transition-colors" />
+                    <span className="truncate flex-1 text-xs">{item.name}</span>
+                    <Lock className="w-3 h-3 text-amber-500/70 flex-shrink-0" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
       </nav>
 
       <div className="p-6 border-t bg-muted/20">
@@ -481,6 +509,10 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   }, [isRegularUser, clubId, settingsLoading, pathname, settings])
 
   const isAdminRole = user?.role === 'admin' || user?.role === 'super_admin'
+  const isAuthenticated = Boolean(user)
+
+  // Register FCM device token for CONFIG_SYNC push notifications
+  useFcmRegistration({ isAdmin: isAdminRole, isAuthenticated })
   const [upgradeModal, setUpgradeModal] = useState<{
     open: boolean
     featureKey: ClubFeatureKey
@@ -505,16 +537,28 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     setUpgradeModal({ open: true, featureKey: key, label })
   }
 
+  // SERVICE WORKER: listen for CONFIG_SYNC messages from the background push handler.
+  // When received, bust the local cache so the next useClubFeatures fetch gets fresh data.
   useEffect(() => {
-    if (!isAdminRole || !clubId || clubFeaturesLoading || !pathname) return
-    const featureKey = ADMIN_NAV_FEATURE_MAP[pathname]
-    if (!featureKey || isClubFeatureEnabled(featureKey)) return
-    const label = clubFeatureFlags(clubFeatures).find((f) => f.key === featureKey)?.label || featureKey
-    setUpgradeModal({ open: true, featureKey, label })
-    if (pathname !== '/dashboard') {
-      router.replace('/dashboard')
+    if (!isAdminRole || typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return
+    const onSwMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'CONFIG_SYNC' && event.data.clubId && clubId) {
+        if (String(event.data.clubId) === String(clubId)) {
+          void clearFeatureCache(clubId)
+        }
+      }
     }
-  }, [isAdminRole, clubId, clubFeaturesLoading, pathname, isClubFeatureEnabled, clubFeatures, router])
+    navigator.serviceWorker.addEventListener('message', onSwMessage)
+    return () => navigator.serviceWorker.removeEventListener('message', onSwMessage)
+  }, [isAdminRole, clubId])
+
+  // Locked page feature key — replaces children with LockedFeaturePage (no redirect)
+  const currentPageFeatureKey: ClubFeatureKey | null = (() => {
+    if (!isAdminRole || !clubId || clubFeaturesLoading || !pathname) return null
+    const key = ADMIN_NAV_FEATURE_MAP[pathname] ?? null
+    if (!key) return null
+    return !isClubFeatureEnabled(key) ? key : null
+  })()
 
   useEffect(() => {
     if (!isAdminRole) return
@@ -616,11 +660,20 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     return nav
   }
 
+  const allNav = getNavigation()
+  const activeNav = isAdminRole ? allNav.filter((item) => !isNavLocked(item.href)) : allNav
+  const addOnNav = isAdminRole ? allNav.filter((item) => isNavLocked(item.href)) : []
+
+  const lockedPageLabel = currentPageFeatureKey
+    ? (clubFeatureFlags(clubFeatures).find((f) => f.key === currentPageFeatureKey)?.label ?? currentPageFeatureKey)
+    : null
+
   return (
     <div className="flex h-screen bg-background overflow-hidden">
       <div className="hidden lg:flex lg:flex-col lg:w-72 lg:border-r bg-muted/5">
         <DashboardSidebar
-          navigation={getNavigation()}
+          navigation={activeNav}
+          addOnNavigation={addOnNav}
           pathname={pathname}
           sidebarClubs={sidebarClubs}
           activeClubId={activeClubId ?? undefined}
@@ -628,7 +681,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           onClubSwitch={(id) => { setActiveClubId(id); router.refresh() }}
           user={user}
           onLogout={logout}
-          isNavLocked={isNavLocked}
           onLockedNavClick={onLockedNavClick}
         />
       </div>
@@ -637,7 +689,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         <SheetContent side="left" className="p-0 w-72">
           <DashboardSidebar
             mobile
-            navigation={getNavigation()}
+            navigation={activeNav}
+            addOnNavigation={addOnNav}
             pathname={pathname}
             onCloseMobile={() => setSidebarOpen(false)}
             sidebarClubs={sidebarClubs}
@@ -646,7 +699,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             onClubSwitch={(id) => { setActiveClubId(id); router.refresh(); setSidebarOpen(false) }}
             user={user}
             onLogout={logout}
-            isNavLocked={isNavLocked}
             onLockedNavClick={onLockedNavClick}
           />
         </SheetContent>
@@ -659,7 +711,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               <Menu className="w-6 h-6" />
               <span className="sr-only">Open sidebar</span>
             </Button>
-            
+
             <Link href="/" className="flex items-center gap-2 lg:hidden hover:opacity-90 transition-opacity">
               <div className="relative w-8 h-8 overflow-hidden rounded-lg bg-white shadow-sm border">
                 <Image
@@ -673,7 +725,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
               <span className="font-bold text-lg tracking-tight">Wingman Pro</span>
             </Link>
           </div>
-          
+
           <div className="flex items-center gap-3">
             <div className="hidden sm:flex items-center gap-2 mr-2 px-3 py-1.5 rounded-full bg-muted/50 border text-xs font-bold text-muted-foreground uppercase tracking-wider">
               {user?.role?.replace('_', ' ') || 'Member'}
@@ -688,21 +740,35 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         </header>
 
         <main className="flex-1 overflow-auto bg-muted/5">
-          <div className="container mx-auto p-6 md:p-8 lg:p-10 max-w-[1600px]">
-            {isAdminRole && storageAlertStatus?.alertLevel && !storageBannerDismissed && (
-              <StorageAlertBanner
-                usagePercent={storageAlertStatus.usagePercent}
-                usedGb={storageAlertStatus.usedGb}
-                totalGb={storageAlertStatus.totalGb}
-                alertLevel={storageAlertStatus.alertLevel}
-                onDismiss={storageAlertStatus.alertLevel !== 'exceeded' ? () => setStorageBannerDismissed(true) : undefined}
-              />
-            )}
-            {children}
-          </div>
-          <div className="mt-10 pt-6 border-t flex justify-center">
-            <EkalonAttribution className="text-center" />
-          </div>
+          {/* ClubFeaturesProvider gives all children a single shared config
+              so the entire UI updates atomically on CONFIG_SYNC */}
+          <ClubFeaturesProvider clubId={isAdminRole ? clubId : undefined}>
+            <div className="container mx-auto p-6 md:p-8 lg:p-10 max-w-[1600px]">
+              {isAdminRole && storageAlertStatus?.alertLevel && !storageBannerDismissed && (
+                <StorageAlertBanner
+                  usagePercent={storageAlertStatus.usagePercent}
+                  usedGb={storageAlertStatus.usedGb}
+                  totalGb={storageAlertStatus.totalGb}
+                  alertLevel={storageAlertStatus.alertLevel}
+                  onDismiss={storageAlertStatus.alertLevel !== 'exceeded' ? () => setStorageBannerDismissed(true) : undefined}
+                />
+              )}
+              {/* Replace page content with locked state instead of redirecting */}
+              {currentPageFeatureKey && clubId && lockedPageLabel ? (
+                <LockedFeaturePage
+                  featureKey={currentPageFeatureKey}
+                  featureLabel={lockedPageLabel}
+                  clubId={clubId}
+                  currentTier={clubFeatures?.billing_tier ?? undefined}
+                />
+              ) : (
+                children
+              )}
+            </div>
+            <div className="mt-10 pt-6 border-t flex justify-center">
+              <EkalonAttribution className="text-center" />
+            </div>
+          </ClubFeaturesProvider>
         </main>
       </div>
       {isAdminRole && storageAlertStatus && (

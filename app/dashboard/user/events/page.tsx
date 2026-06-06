@@ -23,6 +23,7 @@ import { ProtectedRoute } from "@/components/protected-route";
 import { apiClient, Event } from "@/lib/api";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/auth-context";
+import { useSocket } from "@/contexts/socket-context";
 import { formatLocalDate } from "@/lib/timezone";
 import { User as UserInterface } from "@/lib/api";
 import { useSearchParams } from "next/navigation";
@@ -150,6 +151,7 @@ function AttendanceMarker({
 
 function UserEventsPageInner() {
   const { user } = useAuth() as { user: UserInterface };
+  const { socket } = useSocket();
   const clubId = useRequiredClubId();
   const searchParams = useSearchParams();
   const [events, setEvents] = useState<Event[]>([]);
@@ -203,6 +205,21 @@ function UserEventsPageInner() {
       if (res.success && res.data) setWaitlistStatus(res.data);
     });
   }, [user]);
+
+  useEffect(() => {
+    if (!socket) return;
+    const handler = (payload: { eventId: string; is_refund_allowed: boolean }) => {
+      setEvents((prev) =>
+        prev.map((e) =>
+          String(e._id) === String(payload.eventId)
+            ? { ...e, is_refund_allowed: payload.is_refund_allowed, isRefundAllowed: payload.is_refund_allowed }
+            : e
+        )
+      );
+    };
+    socket.on("event:refund-policy-updated", handler);
+    return () => { socket.off("event:refund-policy-updated", handler); };
+  }, [socket]);
 
   useEffect(() => {
     const eventId = searchParams.get("eventId");

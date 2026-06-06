@@ -14,6 +14,9 @@ import { formatDisplayDate } from "@/lib/utils"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
+import { useClubFeatures } from "@/hooks/useClubFeatures"
+import { getFeatureConstraint } from "@/lib/clubFeatures"
+import { UsageMeter, FeatureUnavailableOverlay } from "@/components/feature-gate"
 import { 
   ShoppingBag, 
   Search, 
@@ -100,6 +103,8 @@ interface MerchandiseSettings {
 export default function MerchandiseManagementPage() {
   const { user, isAdmin } = useAuth()
   const clubId = useRequiredClubId()
+  const { config: clubFeatureConfig } = useClubFeatures(clubId ?? null)
+  const maxMerchItems = getFeatureConstraint(clubFeatureConfig, 'max_merch_items')
   const [merchandise, setMerchandise] = useState<Merchandise[]>([])
   const [stats, setStats] = useState<MerchandiseStats | null>(null)
   const [settings, setSettings] = useState<MerchandiseSettings>({
@@ -309,7 +314,16 @@ export default function MerchandiseManagementPage() {
   return (
     <ProtectedRoute requireAdmin={true}>
       <DashboardLayout>
-        <div className="space-y-6">
+        <div className="relative space-y-6">
+          {/* Mid-session feature disabled overlay */}
+          {clubId && (
+            <FeatureUnavailableOverlay
+              featureKey="merchandise"
+              featureLabel="Merchandise"
+              clubId={clubId}
+            />
+          )}
+
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold">Merchandise Management</h1>
@@ -452,6 +466,19 @@ export default function MerchandiseManagementPage() {
             editMerchandise={editingMerchandise}
             clubId={clubId}
           />
+
+          {/* Usage meter — shown when the club has a max_merch_items constraint */}
+          {stats && maxMerchItems !== null && (
+            <Card className="border-amber-200 bg-amber-50/40 dark:bg-amber-950/10">
+              <CardContent className="pt-4 pb-4">
+                <UsageMeter
+                  current={stats.totalMerchandise}
+                  max={maxMerchItems}
+                  label="Merch items used"
+                />
+              </CardContent>
+            </Card>
+          )}
 
           {/* Stats Cards */}
           {stats && (

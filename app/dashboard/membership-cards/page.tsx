@@ -34,6 +34,9 @@ import { getBaseUrl, getApiUrl } from "@/lib/config"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
 import { useAuth } from "@/contexts/auth-context"
+import { useClubFeatures } from "@/hooks/useClubFeatures"
+import { isFeatureEnabled } from "@/lib/clubFeatures"
+import { LockedFeaturePage } from "@/components/feature-gate"
 
 
 function MembershipCardsPage() {
@@ -72,6 +75,7 @@ function MembershipCardsPage() {
   ];
 
   const { activeClubId } = useAuth()
+  const { config: clubFeatureConfig } = useClubFeatures(activeClubId ?? null)
   const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState<string>(() => {
     return searchParams.get("planId") ? "create" : "preview"
@@ -776,6 +780,21 @@ function MembershipCardsPage() {
       }
     })
   }, [])
+
+  if (!isFeatureEnabled(clubFeatureConfig, 'membership')) {
+    return (
+      <ProtectedRoute requireAdmin>
+        <DashboardLayout>
+          <LockedFeaturePage
+            featureKey="membership"
+            featureLabel="Membership Cards"
+            clubId={activeClubId ?? ""}
+            currentTier={clubFeatureConfig?.billing_tier}
+          />
+        </DashboardLayout>
+      </ProtectedRoute>
+    )
+  }
 
   if (loading) {
     return (

@@ -37,6 +37,7 @@ export function NotificationTemplateEditor({
 }: Props) {
   const bodyRef = useRef<HTMLTextAreaElement>(null);
   const subjectRef = useRef<HTMLInputElement>(null);
+  const highlightRef = useRef<HTMLDivElement>(null);
   const [activeField, setActiveField] = useState<"subject" | "body">("body");
 
   const limits = CHANNEL_CHAR_LIMITS[channel];
@@ -177,8 +178,9 @@ export function NotificationTemplateEditor({
 
         <div className="relative">
           <div
+            ref={highlightRef}
             aria-hidden
-            className="pointer-events-none absolute inset-0 overflow-hidden whitespace-pre-wrap break-words rounded-md border border-transparent px-3 py-2 text-sm leading-5"
+            className="pointer-events-none absolute inset-0 overflow-hidden whitespace-pre-wrap break-words rounded-md border border-transparent px-3 py-2 font-mono text-sm leading-5 z-0"
           >
             {bodySegments.map((seg, idx) => (
               <span key={idx} className={seg.className}>
@@ -191,9 +193,14 @@ export function NotificationTemplateEditor({
             ref={bodyRef}
             value={body}
             rows={12}
-            className="relative bg-transparent font-mono text-sm leading-5"
+            className="relative z-10 max-h-[280px] resize-none overflow-y-auto bg-transparent font-mono text-sm leading-5 text-transparent caret-foreground"
             onFocus={() => setActiveField("body")}
             onChange={(e) => onBodyChange(sanitizePlainText(e.target.value))}
+            onScroll={() => {
+              if (highlightRef.current && bodyRef.current) {
+                highlightRef.current.scrollTop = bodyRef.current.scrollTop;
+              }
+            }}
             onDrop={handleDrop}
             onDragOver={(e) => e.preventDefault()}
           />

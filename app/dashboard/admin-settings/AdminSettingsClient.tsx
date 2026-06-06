@@ -7,7 +7,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Settings, Globe, Palette, Bell, BookOpen, MapPin } from "lucide-react"
 import { WebsiteSetupTab } from "@/components/admin/settings/website-setup-tab"
 import { DesignSettingsTab } from "@/components/admin/settings/design-settings-tab"
-import { AppSettingsTab } from "@/components/admin/settings/app-settings-tab"
 import { NotificationTemplatesPanel } from "@/components/admin/notification-templates/notification-templates-panel"
 import { HelpSectionTab } from "@/components/admin/settings/help-section-tab"
 import { GetStartedTab } from "@/components/admin/settings/get-started-tab"
@@ -96,18 +95,7 @@ export default function AdminSettingsClient() {
             </TabsContent>
 
             <TabsContent value="app" className="space-y-4">
-              <Tabs defaultValue="templates" className="space-y-4">
-                <TabsList>
-                  <TabsTrigger value="templates">Message Templates</TabsTrigger>
-                  <TabsTrigger value="preferences">Notification Preferences</TabsTrigger>
-                </TabsList>
-                <TabsContent value="templates">
-                  <NotificationTemplatesPanel key={clubId ?? "no-club"} />
-                </TabsContent>
-                <TabsContent value="preferences">
-                  <AppSettingsTab key={`prefs-${clubId ?? "no-club"}`} />
-                </TabsContent>
-              </Tabs>
+              <NotificationTemplatesPanel key={clubId ?? "no-club"} />
             </TabsContent>
 
             <TabsContent value="address" className="space-y-4">

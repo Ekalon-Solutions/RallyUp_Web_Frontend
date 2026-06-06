@@ -24,6 +24,9 @@ import { apiClient } from "@/lib/api"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
 import { useAuth } from "@/contexts/auth-context"
+import { useClubFeatures } from "@/hooks/useClubFeatures"
+import { isFeatureEnabled } from "@/lib/clubFeatures"
+import { LockedFeaturePage } from "@/components/feature-gate"
 
 interface MembershipPlan {
   _id: string
@@ -53,6 +56,7 @@ interface MembershipPlan {
 
 export default function MembershipPlansPage() {
   const { user, activeClubId } = useAuth()
+  const { config: clubFeatureConfig } = useClubFeatures(activeClubId ?? null)
   const [plans, setPlans] = useState<MembershipPlan[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [clubs, setClubs] = useState<Array<{ _id: string; name: string }>>([])
@@ -600,6 +604,21 @@ export default function MembershipPlansPage() {
     } finally {
       setIsUpdating(false)
     }
+  }
+
+  if (!isFeatureEnabled(clubFeatureConfig, 'membership')) {
+    return (
+      <ProtectedRoute>
+        <DashboardLayout>
+          <LockedFeaturePage
+            featureKey="membership"
+            featureLabel="Membership Plans"
+            clubId={activeClubId ?? ""}
+            currentTier={clubFeatureConfig?.billing_tier}
+          />
+        </DashboardLayout>
+      </ProtectedRoute>
+    )
   }
 
   if (isLoading) {

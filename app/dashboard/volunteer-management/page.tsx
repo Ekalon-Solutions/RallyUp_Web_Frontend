@@ -25,6 +25,9 @@ import { VolunteerDetailsModal } from '@/components/modals/volunteer-details-mod
 import { AssignVolunteerModal } from '@/components/modals/assign-volunteer-modal';
 import { UnassignVolunteerModal } from '@/components/modals/unassign-volunteer-modal';
 import { useRequiredClubId } from '@/hooks/useRequiredClubId';
+import { useClubFeatures } from '@/hooks/useClubFeatures';
+import { isFeatureEnabled, getFeatureConstraint } from '@/lib/clubFeatures';
+import { LockedFeaturePage, FeatureUnavailableOverlay, UsageMeter } from '@/components/feature-gate';
 
 interface OpportunityFormProps {
   onSubmit: (opportunity: any) => void;
@@ -248,6 +251,7 @@ export default function VolunteerManagementPage() {
   const { toast } = useToast();
 
   const clubId = useRequiredClubId();
+  const { config: clubFeatureConfig } = useClubFeatures(clubId ?? null);
 
   React.useEffect(() => {
     if (clubId) {
@@ -475,9 +479,30 @@ export default function VolunteerManagementPage() {
     return `${volunteer.user.countryCode || ''} ${volunteer.user.phoneNumber || ''}`.trim() || 'No contact info';
   };
 
+  if (!isFeatureEnabled(clubFeatureConfig, 'volunteer')) {
+    return (
+      <DashboardLayout>
+        <LockedFeaturePage
+          featureKey="volunteer"
+          featureLabel="Volunteer Management"
+          clubId={clubId ?? ""}
+          currentTier={clubFeatureConfig?.billing_tier}
+        />
+      </DashboardLayout>
+    )
+  }
+
+  const maxVolunteers = getFeatureConstraint(clubFeatureConfig, 'max_volunteers')
+
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="relative space-y-6">
+        {clubId && (
+          <FeatureUnavailableOverlay featureKey="volunteer" featureLabel="Volunteer Management" clubId={clubId} />
+        )}
+        {maxVolunteers !== null && (
+          <UsageMeter current={volunteers.length} max={maxVolunteers} label="Volunteers registered" className="max-w-xs" />
+        )}
         <div className="mb-6 flex gap-4">
           <Input
             placeholder="Search..."

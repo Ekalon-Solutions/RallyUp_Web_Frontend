@@ -34,6 +34,9 @@ import {
 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { useRequiredClubId } from '@/hooks/useRequiredClubId';
+import { useClubFeatures } from '@/hooks/useClubFeatures';
+import { isFeatureEnabled } from '@/lib/clubFeatures';
+import { LockedFeaturePage, FeatureUnavailableOverlay } from '@/components/feature-gate';
 
 interface ChantFormData {
   title: string;
@@ -73,6 +76,7 @@ export default function ChantsManagementPage() {
   });
 
   const clubId = useRequiredClubId();
+  const { config: clubFeatureConfig } = useClubFeatures(clubId ?? null);
 
   useEffect(() => {
     if (clubId) {
@@ -391,10 +395,28 @@ export default function ChantsManagementPage() {
     );
   }
 
+  if (!isFeatureEnabled(clubFeatureConfig, 'chants')) {
+    return (
+      <ProtectedRoute>
+        <DashboardLayout>
+          <LockedFeaturePage
+            featureKey="chants"
+            featureLabel="Chants"
+            clubId={clubId ?? ""}
+            currentTier={clubFeatureConfig?.billing_tier}
+          />
+        </DashboardLayout>
+      </ProtectedRoute>
+    )
+  }
+
   return (
     <ProtectedRoute>
       <DashboardLayout>
-        <div className="space-y-6">
+        <div className="relative space-y-6">
+          {clubId && (
+            <FeatureUnavailableOverlay featureKey="chants" featureLabel="Chants" clubId={clubId} />
+          )}
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold">Club Chants</h1>

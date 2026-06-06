@@ -17,6 +17,9 @@ import { formatLocalDate, toDatetimeLocalString } from '@/lib/timezone'
 import { CheckCircle, XCircle, Clock, Pause, UserX, Download, Filter, RefreshCw } from 'lucide-react'
 import { ProtectedRoute } from '@/components/protected-route'
 import { useRequiredClubId } from '@/hooks/useRequiredClubId'
+import { useClubFeatures } from '@/hooks/useClubFeatures'
+import { isFeatureEnabled } from '@/lib/clubFeatures'
+import { LockedFeaturePage, FeatureUnavailableOverlay, LockedInline } from '@/components/feature-gate'
 
 const STATUS_OPTIONS = [
   { value: 'all', label: 'All Statuses' },
@@ -63,6 +66,7 @@ const STATUS_COLORS: Record<string, { bg: string; text: string; icon: React.Reac
 
 export default function ExternalTicketingPage() {
   const clubId = useRequiredClubId()
+  const { config: clubFeatureConfig } = useClubFeatures(clubId ?? null)
   const [requests, setRequests] = useState<ExternalTicketRequest[]>([])
   const [fixtures, setFixtures] = useState<ExternalTicketFixture[]>([])
   const [events, setEvents] = useState<Event[]>([])
@@ -384,23 +388,50 @@ export default function ExternalTicketingPage() {
     )
   }
 
+  if (!isFeatureEnabled(clubFeatureConfig, 'external_ticketing')) {
+    return (
+      <ProtectedRoute requireAdmin={true}>
+        <DashboardLayout>
+          <LockedFeaturePage
+            featureKey="external_ticketing"
+            featureLabel="External Ticketing"
+            clubId={clubId ?? ""}
+            currentTier={clubFeatureConfig?.billing_tier}
+          />
+        </DashboardLayout>
+      </ProtectedRoute>
+    )
+  }
+
   return (
     <ProtectedRoute requireAdmin={true}>
       <DashboardLayout>
-        <div className="space-y-6">
+        <div className="relative space-y-6">
+          {clubId && (
+            <FeatureUnavailableOverlay featureKey="external_ticketing" featureLabel="External Ticketing" clubId={clubId} />
+          )}
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold">External Ticket Requests</h1>
             </div>
             <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={exportRequestsCsv} disabled={exporting}>
-                <Download className="w-4 h-4 mr-2" />
-                {exporting ? 'Exporting…' : 'Export CSV'}
-              </Button>
-              <Button variant="default" onClick={exportRequests} disabled={exporting}>
-                <Download className="w-4 h-4 mr-2" />
-                {exporting ? 'Exporting…' : 'Export XLSX'}
-              </Button>
+              {isFeatureEnabled(clubFeatureConfig, 'reporting') ? (
+                <>
+                  <Button variant="outline" onClick={exportRequestsCsv} disabled={exporting}>
+                    <Download className="w-4 h-4 mr-2" />
+                    {exporting ? 'Exporting…' : 'Export CSV'}
+                  </Button>
+                  <Button variant="default" onClick={exportRequests} disabled={exporting}>
+                    <Download className="w-4 h-4 mr-2" />
+                    {exporting ? 'Exporting…' : 'Export XLSX'}
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <LockedInline label="Export CSV" reason="Upgrade to the Reporting add-on to export data. Contact RallyUp to unlock." />
+                  <LockedInline label="Export XLSX" reason="Upgrade to the Reporting add-on to export data. Contact RallyUp to unlock." />
+                </>
+              )}
             </div>
           </div>
 

@@ -22,6 +22,9 @@ import { formatDisplayDate } from "@/lib/utils"
 import { toast } from "sonner"
 import UserOnboardingProgressAdmin from "@/components/admin/user-onboarding-progress-admin"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
+import { useClubFeatures } from "@/hooks/useClubFeatures"
+import { isFeatureEnabled } from "@/lib/clubFeatures"
+import { LockedFeaturePage, FeatureUnavailableOverlay } from "@/components/feature-gate"
 
 interface OnboardingFlow {
   _id: string
@@ -42,6 +45,7 @@ interface OnboardingFlow {
 
 export default function OnboardingDashboard() {
   const clubId = useRequiredClubId()
+  const { config: clubFeatureConfig } = useClubFeatures(clubId ?? null)
   const [showOnboardingModal, setShowOnboardingModal] = useState(false)
   const [flows, setFlows] = useState<OnboardingFlow[]>([])
   const [loading, setLoading] = useState(false)
@@ -226,10 +230,28 @@ export default function OnboardingDashboard() {
     }
   }
 
+  if (!isFeatureEnabled(clubFeatureConfig, 'onboarding')) {
+    return (
+      <ProtectedRoute>
+        <DashboardLayout>
+          <LockedFeaturePage
+            featureKey="onboarding"
+            featureLabel="Onboarding"
+            clubId={clubId ?? ""}
+            currentTier={clubFeatureConfig?.billing_tier}
+          />
+        </DashboardLayout>
+      </ProtectedRoute>
+    )
+  }
+
   return (
     <ProtectedRoute>
       <DashboardLayout>
-        <div className="space-y-6">
+        <div className="relative space-y-6">
+          {clubId && (
+            <FeatureUnavailableOverlay featureKey="onboarding" featureLabel="Onboarding" clubId={clubId} />
+          )}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold">Onboarding & Engagement</h1>

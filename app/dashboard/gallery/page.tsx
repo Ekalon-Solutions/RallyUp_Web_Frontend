@@ -29,6 +29,9 @@ import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { toast } from "sonner"
 import { FolderPlus, HardDrive, Image as ImageIcon, Upload, ShoppingCart, RefreshCw, Trash2, Play, X, Megaphone } from "lucide-react"
 import { PaymentSimulationModal } from "@/components/modals/payment-simulation-modal"
+import { useClubFeatures } from "@/hooks/useClubFeatures"
+import { isFeatureEnabled, getFeatureConstraint } from "@/lib/clubFeatures"
+import { LockedFeaturePage, FeatureUnavailableOverlay, UsageMeter } from "@/components/feature-gate"
 
 declare global {
   interface Window { Razorpay: any }
@@ -256,6 +259,7 @@ async function uploadAlbumFiles(
 
 export default function GalleryManagementPage() {
   const clubId = useRequiredClubId()
+  const { config: clubFeatureConfig } = useClubFeatures(clubId ?? null)
 
   const [albums, setAlbums] = useState<Album[]>([])
   const [storage, setStorage] = useState<GalleryStorageSummary | null>(null)
@@ -738,13 +742,34 @@ export default function GalleryManagementPage() {
 
   const selectedPrice = STORAGE_PRICING[selectedStorageGb][selectedBillingCycle]
 
+  if (!isFeatureEnabled(clubFeatureConfig, 'gallery')) {
+    return (
+      <ProtectedRoute requireAdmin={true}>
+        <DashboardLayout>
+          <LockedFeaturePage
+            featureKey="gallery"
+            featureLabel="Gallery"
+            clubId={clubId ?? ""}
+            currentTier={clubFeatureConfig?.billing_tier}
+          />
+        </DashboardLayout>
+      </ProtectedRoute>
+    )
+  }
+
+  const maxAlbums = getFeatureConstraint(clubFeatureConfig, 'max_gallery_albums')
+
   return (
     <ProtectedRoute requireAdmin={true}>
       <DashboardLayout>
-        <div className="space-y-6">
+        <div className="relative space-y-6">
+          {clubId && (
+            <FeatureUnavailableOverlay featureKey="gallery" featureLabel="Gallery" clubId={clubId} />
+          )}
           <div>
             <h1 className="text-3xl font-bold">Gallery Management</h1>
             <p className="text-muted-foreground">Create albums, upload media, manage cover image and storage</p>
+            {maxAlbums !== null && <UsageMeter current={albums.length} max={maxAlbums} label="Albums used" className="mt-2 max-w-xs" />}
           </div>
 
           {loading ? (

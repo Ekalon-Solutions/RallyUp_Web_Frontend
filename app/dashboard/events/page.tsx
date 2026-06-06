@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calendar, Search, MoreHorizontal, Edit, Trash2, MapPin, Clock, Users, Plus, Filter, Ban, CheckCircle, Radio, ScanLine } from "lucide-react"
+import { Calendar, Search, MoreHorizontal, Edit, Trash2, MapPin, Clock, Users, Plus, Filter, Ban, CheckCircle, Radio, ScanLine, ShieldCheck, ShieldOff } from "lucide-react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
 import { EventRegistrationModal } from "@/components/modals/event-registration-modal"
@@ -21,11 +21,16 @@ import { JointScreeningDisplay } from "@/components/events/joint-screening-displ
 import { EventScheduleMeta } from "@/components/events/event-schedule-meta"
 import { WaitlistDisplay } from "@/components/events/waitlist-display"
 import { formatEventPriceDisplay, isEventPaid } from "@/lib/event-display-price"
+import { RefundPolicyToggle } from "@/components/admin/refund-policy-toggle"
+import { useClubFeatures } from "@/hooks/useClubFeatures"
+import { isFeatureEnabled } from "@/lib/clubFeatures"
+import { LockedFeaturePage, FeatureUnavailableOverlay } from "@/components/feature-gate"
 
 export default function EventsPage() {
   const router = useRouter()
   const { isAdmin, user } = useAuth()
   const clubId = useRequiredClubId()
+  const { config: clubFeatureConfig } = useClubFeatures(clubId ?? null)
   const [events, setEvents] = useState<Event[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
@@ -36,6 +41,8 @@ export default function EventsPage() {
   const [registrationModalOpen, setRegistrationModalOpen] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
   const [userRegistrations, setUserRegistrations] = useState<Map<string, any>>(new Map())
+  const [refundPolicyEvent, setRefundPolicyEvent] = useState<Event | null>(null)
+  const [refundPolicyModalOpen, setRefundPolicyModalOpen] = useState(false)
 
   useEffect(() => {
     fetchEvents()
@@ -155,10 +162,28 @@ export default function EventsPage() {
     return event.venue || "—"
   }
 
+  if (!isFeatureEnabled(clubFeatureConfig, 'events')) {
+    return (
+      <ProtectedRoute requireAdmin={true}>
+        <DashboardLayout>
+          <LockedFeaturePage
+            featureKey="events"
+            featureLabel="Events"
+            clubId={clubId ?? ""}
+            currentTier={clubFeatureConfig?.billing_tier}
+          />
+        </DashboardLayout>
+      </ProtectedRoute>
+    )
+  }
+
   return (
     <ProtectedRoute requireAdmin={true}>
       <DashboardLayout>
-        <div className="space-y-6">
+        <div className="relative space-y-6">
+          {clubId && (
+            <FeatureUnavailableOverlay featureKey="events" featureLabel="Events" clubId={clubId} />
+          )}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold">Events Management</h1>
@@ -175,6 +200,19 @@ export default function EventsPage() {
               </Button>
             </div>
           </div>
+
+          {refundPolicyEvent && (
+            <RefundPolicyToggle
+              event={refundPolicyEvent}
+              open={refundPolicyModalOpen}
+              onClose={() => { setRefundPolicyModalOpen(false); setRefundPolicyEvent(null) }}
+              onSuccess={(updated) => {
+                setEvents(prev => prev.map(e => e._id === updated._id ? updated : e))
+                setRefundPolicyModalOpen(false)
+                setRefundPolicyEvent(null)
+              }}
+            />
+          )}
 
           {/* Event Registration Modal (member-facing) */}
           <EventRegistrationModal
@@ -368,6 +406,15 @@ export default function EventsPage() {
                                   </span>
                                 ) : null
                               })()}
+                              {(() => {
+                                const refundable = event.isRefundAllowed !== false && event.is_refund_allowed !== false
+                                return (
+                                  <span className={`inline-flex items-center gap-1 text-xs font-medium ${refundable ? 'text-blue-600' : 'text-muted-foreground'}`}>
+                                    {refundable ? <ShieldCheck className="w-3 h-3" /> : <ShieldOff className="w-3 h-3" />}
+                                    {refundable ? 'Refundable' : 'No Refunds'}
+                                  </span>
+                                )
+                              })()}
                             </div>
                           </TableCell>
                           <TableCell className="text-right">
@@ -409,6 +456,19 @@ export default function EventsPage() {
                                         <>
                                           <CheckCircle className="w-4 h-4 mr-2" />
                                           Activate
+                                        </>
+                                      )}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => { setRefundPolicyEvent(event); setRefundPolicyModalOpen(true) }}>
+                                      {event.isRefundAllowed !== false && event.is_refund_allowed !== false ? (
+                                        <>
+                                          <ShieldOff className="w-4 h-4 mr-2" />
+                                          Disable Refunds
+                                        </>
+                                      ) : (
+                                        <>
+                                          <ShieldCheck className="w-4 h-4 mr-2" />
+                                          Enable Refunds
                                         </>
                                       )}
                                     </DropdownMenuItem>

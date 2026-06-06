@@ -21,10 +21,14 @@ import {
 } from "@/lib/websiteSections"
 import { toast } from "sonner"
 import { Loader2, ExternalLink, Image as ImageIcon } from "lucide-react"
+import { useClubFeatures } from "@/hooks/useClubFeatures"
+import { isFeatureEnabled } from "@/lib/clubFeatures"
+import { LockedFeaturePage, FeatureUnavailableOverlay } from "@/components/feature-gate"
 
 export default function WebsitePage() {
   const { user } = useAuth()
   const clubId = useRequiredClubId()
+  const { config: clubFeatureConfig } = useClubFeatures(clubId ?? null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [publishing, setPublishing] = useState(false)
@@ -249,9 +253,25 @@ export default function WebsitePage() {
     )
   }
 
+  if (!isFeatureEnabled(clubFeatureConfig, 'website')) {
+    return (
+      <DashboardLayout>
+        <LockedFeaturePage
+          featureKey="website"
+          featureLabel="Website Builder"
+          clubId={clubId ?? ""}
+          currentTier={clubFeatureConfig?.billing_tier}
+        />
+      </DashboardLayout>
+    )
+  }
+
   return (
     <DashboardLayout>
-      <div className="max-w-6xl mx-auto space-y-10 py-8 px-4 md:px-0">
+      <div className="relative max-w-6xl mx-auto space-y-10 py-8 px-4 md:px-0">
+        {clubId && (
+          <FeatureUnavailableOverlay featureKey="website" featureLabel="Website Builder" clubId={clubId} />
+        )}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b">
           <div className="space-y-2">
             <h1 className="text-4xl font-extrabold tracking-tight">Club Website</h1>

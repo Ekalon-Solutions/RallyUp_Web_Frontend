@@ -35,6 +35,9 @@ import {
 } from 'lucide-react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useClubFeatures } from '@/hooks/useClubFeatures'
+import { isFeatureEnabled } from '@/lib/clubFeatures'
+import { LockedFeaturePage, FeatureUnavailableOverlay, LockedInline } from '@/components/feature-gate'
 
 interface OrderItem {
   productId: string
@@ -118,6 +121,7 @@ const paymentStatusConfig = {
 export default function OrdersPage() {
   const { user } = useAuth()
   const clubId = useRequiredClubId()
+  const { config: clubFeatureConfig } = useClubFeatures(clubId ?? null)
   const { toast } = useToast()
   const [orders, setOrders] = useState<Order[]>([])
   const [stats, setStats] = useState<OrderStats | null>(null)
@@ -783,9 +787,25 @@ export default function OrdersPage() {
     )
   }
 
+  if (!isFeatureEnabled(clubFeatureConfig, 'merchandise')) {
+    return (
+      <DashboardLayout>
+        <LockedFeaturePage
+          featureKey="merchandise"
+          featureLabel="Orders"
+          clubId={clubId ?? ""}
+          currentTier={clubFeatureConfig?.billing_tier}
+        />
+      </DashboardLayout>
+    )
+  }
+
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="relative space-y-6">
+        {clubId && (
+          <FeatureUnavailableOverlay featureKey="merchandise" featureLabel="Merchandise Store" clubId={clubId} />
+        )}
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
@@ -793,10 +813,14 @@ export default function OrdersPage() {
             <p className="text-muted-foreground text-sm sm:text-base">Manage customer orders and fulfillment</p>
           </div>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-            <Button variant="secondary" onClick={handleDownloadReport} className="w-full sm:w-auto">
-              <Download className="w-4 h-4 mr-2" />
-              Download Report
-            </Button>
+            {isFeatureEnabled(clubFeatureConfig, 'reporting') ? (
+              <Button variant="secondary" onClick={handleDownloadReport} className="w-full sm:w-auto">
+                <Download className="w-4 h-4 mr-2" />
+                Download Report
+              </Button>
+            ) : (
+              <LockedInline label="Download Report" reason="Upgrade to the Reporting add-on to export order data. Contact RallyUp to unlock." />
+            )}
             <Button onClick={refreshOrders} disabled={refreshing} className="w-full sm:w-auto">
               <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
               Refresh

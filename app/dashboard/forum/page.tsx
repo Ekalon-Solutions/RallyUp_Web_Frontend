@@ -29,6 +29,10 @@ import {
   AlertTriangle,
 } from "lucide-react"
 import { CreateTopicModal } from "@/components/modals/create-topic-modal"
+import { useRequiredClubId } from "@/hooks/useRequiredClubId"
+import { useClubFeatures } from "@/hooks/useClubFeatures"
+import { isFeatureEnabled } from "@/lib/clubFeatures"
+import { LockedFeaturePage } from "@/components/feature-gate"
 
 const forumStats = [
   { title: "Total Topics", value: "1,247", icon: MessageSquare, color: "text-blue-600" },
@@ -121,8 +125,23 @@ const sampleModerators = [
 ]
 
 export default function ForumPage() {
+  const clubId = useRequiredClubId()
+  const { config: clubFeatureConfig } = useClubFeatures(clubId ?? null)
   const [activeTab, setActiveTab] = useState("overview")
   const [searchQuery, setSearchQuery] = useState("")
+
+  if (!isFeatureEnabled(clubFeatureConfig, 'chants')) {
+    return (
+      <DashboardLayout>
+        <LockedFeaturePage
+          featureKey="chants"
+          featureLabel="Forum & Chants"
+          clubId={clubId ?? ""}
+          currentTier={clubFeatureConfig?.billing_tier}
+        />
+      </DashboardLayout>
+    )
+  }
 
   return (
     <DashboardLayout>
