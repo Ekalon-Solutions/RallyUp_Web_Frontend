@@ -359,7 +359,7 @@ export default function AboutPage(): React.JSX.Element {
             {/* CTA Section */}
             <div className="w-full">
                 <FadeIn>
-                    <div className="relative overflow-hidden bg-[linear-gradient(to_right,#DCD4E2_50%,#8598C7_100%)]">
+                    <div className="relative overflow-hidden bg-[linear-gradient(to_right,#FFFFFF_50%,#1761CA_100%)]">
                         <svg
                             className="hidden md:block absolute inset-0 w-full h-full"
                             viewBox="0 0 1440 500"
@@ -435,7 +435,7 @@ export default function AboutPage(): React.JSX.Element {
                                 </a>
                                 <a
                                   href="/affiliations"
-                                  className="inline-flex h-12 items-center justify-center rounded-xl bg-[#65679B] px-6 text-sm font-bold uppercase tracking-[0.15em] text-white shadow-xl transition-all hover:-translate-y-1 hover:bg-[#7C7FDF] hover:shadow-[0_8px_20px_#6668A1D9] w-full sm:w-[280px] whitespace-nowrap"
+                                  className="inline-flex h-12 items-center justify-center rounded-xl bg-secondary px-6 text-sm font-bold uppercase tracking-[0.15em] text-white shadow-xl transition-all hover:-translate-y-1 hover:bg-secondary/30 hover:shadow-[0_8px_20px_#6668A1D9] w-full sm:w-[280px] whitespace-nowrap"
                                 >
                                   Explore Affiliations
                                 </a>

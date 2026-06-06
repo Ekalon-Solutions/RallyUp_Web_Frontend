@@ -506,7 +506,7 @@ export default function AffiliationsPage(): React.JSX.Element {
       {/* CTA Section */}
       <div className="w-full">
         <FadeIn>
-          <div className="relative overflow-hidden bg-[linear-gradient(to_right,#DCD4E2_50%,#8598C7_100%)]">
+          <div className="relative overflow-hidden bg-[linear-gradient(to_right,#FFFFFF_50%,#1761CA_100%)]">
           {/* Exact geometric line pattern */}
           <svg
               className="hidden md:block absolute inset-0 w-full h-full"
