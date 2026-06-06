@@ -7,7 +7,7 @@ type EkalonAttributionProps = {
 
 export function EkalonAttribution({ className = "" }: EkalonAttributionProps) {
   return (
-    <p className={`text-xs text-muted-foreground ${className}`.trim()}>
+    <p className={`text-xs text-[#0D0D0D] ${className}`.trim()}>
       Designed and Developed by{" "}
       <Link
         href={EKALON_URL}

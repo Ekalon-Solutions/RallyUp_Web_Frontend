@@ -4766,6 +4766,67 @@ class ApiClient {
   }
 
   // ---------------------------------------------------------------------------
+  // Feature Limit Requests — view limits, submit requests
+  // ---------------------------------------------------------------------------
+
+  async getClubTierLimits(clubId: string): Promise<ApiResponse<any>> {
+    const res = await this.get(`/feature-limit-requests/club/${clubId}/limits`);
+    if (res.success && res.data) return { ...res, data: (res.data as any).data ?? res.data };
+    return res;
+  }
+
+  async getLimitRequests(clubId: string, status?: string): Promise<ApiResponse<any[]>> {
+    const qs = new URLSearchParams();
+    if (status) qs.set('status', status);
+    const query = qs.toString() ? `?${qs}` : '';
+    const res = await this.get(`/feature-limit-requests/club/${clubId}${query}`);
+    if (res.success && res.data) return { ...res, data: (res.data as any).data ?? res.data };
+    return res;
+  }
+
+  async requestLimitIncrease(clubId: string, payload: {
+    featureKey: string;
+    requestedLimit: number;
+    justification: string;
+  }): Promise<ApiResponse<any>> {
+    const res = await this.post(`/feature-limit-requests/club/${clubId}/request`, payload);
+    if (res.success && res.data) return { ...res, data: (res.data as any).data ?? res.data };
+    return res;
+  }
+
+  async getAllLimitRequests(status?: string): Promise<ApiResponse<any[]>> {
+    const qs = new URLSearchParams();
+    if (status) qs.set('status', status);
+    const query = qs.toString() ? `?${qs}` : '';
+    const res = await this.get(`/feature-limit-requests/all${query}`);
+    if (res.success && res.data) return { ...res, data: (res.data as any).data ?? res.data };
+    return res;
+  }
+
+  async getPendingLimitRequests(): Promise<ApiResponse<{ pendingCount: number; requests: any[] }>> {
+    const res = await this.get('/feature-limit-requests/pending/list');
+    if (res.success && res.data) return { ...res, data: (res.data as any).data ?? res.data };
+    return res;
+  }
+
+  async approveLimitRequest(requestId: string, payload: {
+    reviewNotes?: string;
+    newLimit?: number;
+  }): Promise<ApiResponse<any>> {
+    const res = await this.patch(`/feature-limit-requests/${requestId}/approve`, payload);
+    if (res.success && res.data) return { ...res, data: (res.data as any).data ?? res.data };
+    return res;
+  }
+
+  async rejectLimitRequest(requestId: string, payload: {
+    reviewNotes?: string;
+  }): Promise<ApiResponse<any>> {
+    const res = await this.patch(`/feature-limit-requests/${requestId}/reject`, payload);
+    if (res.success && res.data) return { ...res, data: (res.data as any).data ?? res.data };
+    return res;
+  }
+
+  // ---------------------------------------------------------------------------
   // Billing — invoice preview, invoices, auditor alerts
   // ---------------------------------------------------------------------------
 
@@ -4840,6 +4901,58 @@ class ApiClient {
     delinquent_auto_toggle_hours?: number;
   }): Promise<ApiResponse<any>> {
     const res = await this.patch('/billing/settings', payload);
+    if (res.success && res.data) return { ...res, data: (res.data as any).data ?? res.data };
+    return res;
+  }
+
+  // ──────────────────────────────────────────────────────────────────────────────
+  // Feature Selector APIs
+  // ──────────────────────────────────────────────────────────────────────────────
+
+  async getAvailableBillingTiers(): Promise<ApiResponse<any[]>> {
+    const res = await this.get('/feature-selector/tiers');
+    if (res.success && res.data) return { ...res, data: (res.data as any).data ?? res.data };
+    return res;
+  }
+
+  async getAvailableAddOns(): Promise<ApiResponse<any[]>> {
+    const res = await this.get('/feature-selector/addons');
+    if (res.success && res.data) return { ...res, data: (res.data as any).data ?? res.data };
+    return res;
+  }
+
+  async getClubFeaturesForSelector(clubId: string): Promise<ApiResponse<any>> {
+    const res = await this.get(`/feature-selector/clubs/${clubId}/features`);
+    if (res.success && res.data) return { ...res, data: (res.data as any).data ?? res.data };
+    return res;
+  }
+
+  async selectBillingTier(clubId: string, tier: string): Promise<ApiResponse<any>> {
+    const res = await this.post(`/feature-selector/clubs/${clubId}/tier`, { tier });
+    if (res.success && res.data) return { ...res, data: (res.data as any).data ?? res.data };
+    return res;
+  }
+
+  async enableFeatureAddOn(clubId: string, feature_key: string, start_trial: boolean = false): Promise<ApiResponse<any>> {
+    const res = await this.post(`/feature-selector/clubs/${clubId}/addon/enable`, { feature_key, start_trial });
+    if (res.success && res.data) return { ...res, data: (res.data as any).data ?? res.data };
+    return res;
+  }
+
+  async disableFeatureAddOn(clubId: string, feature_key: string): Promise<ApiResponse<any>> {
+    const res = await this.post(`/feature-selector/clubs/${clubId}/addon/disable`, { feature_key });
+    if (res.success && res.data) return { ...res, data: (res.data as any).data ?? res.data };
+    return res;
+  }
+
+  async getEstimatedMonthlyBill(clubId: string): Promise<ApiResponse<any>> {
+    const res = await this.get(`/feature-selector/clubs/${clubId}/bill`);
+    if (res.success && res.data) return { ...res, data: (res.data as any).data ?? res.data };
+    return res;
+  }
+
+  async syncFeaturesToTier(clubId: string, tier: string): Promise<ApiResponse<any>> {
+    const res = await this.post(`/feature-selector/clubs/${clubId}/sync-tier`, { tier });
     if (res.success && res.data) return { ...res, data: (res.data as any).data ?? res.data };
     return res;
   }

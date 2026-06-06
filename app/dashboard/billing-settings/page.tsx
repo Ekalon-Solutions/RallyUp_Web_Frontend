@@ -28,6 +28,7 @@ import {
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/contexts/auth-context"
+import { CONSTRAINT_KEYS, CONSTRAINT_LABELS } from "@/lib/billingConstraints"
 
 // ── Static reference data ─────────────────────────────────────────────────────
 
@@ -90,24 +91,6 @@ const SERVICE_IDS: Record<string, string> = {
   ads:                "SVC-ADS-001",
   predictions:        "SVC-PREDIC-001",
   onboarding:         "SVC-ONBOARD-001",
-}
-
-const CONSTRAINT_KEYS = [
-  "max_merch_items", "max_wa_messages", "max_event_images",
-  "max_gallery_albums", "max_poll_options", "max_news_posts",
-  "max_leaderboard_entries", "max_coupons", "max_volunteers",
-] as const
-
-const CONSTRAINT_LABELS: Record<string, string> = {
-  max_merch_items:         "Max Merch Items",
-  max_wa_messages:         "Max WA Messages / Month",
-  max_event_images:        "Max Event Images",
-  max_gallery_albums:      "Max Gallery Albums",
-  max_poll_options:        "Max Poll Options",
-  max_news_posts:          "Max News Posts",
-  max_leaderboard_entries: "Max Leaderboard Entries",
-  max_coupons:             "Max Active Coupons",
-  max_volunteers:          "Max Volunteers",
 }
 
 // Hardcoded default values for the Reset button

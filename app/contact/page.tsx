@@ -23,18 +23,17 @@ export default function ContactPage() {
           {/* Left */}
           <div className="flex flex-col gap-8">
             <div>
-              <h2 className="text-4xl lg:text-5xl font-bold font-black flex flex-wrap gap-x-2 gap-y-1 leading-[1.1] mb-4">
-                <span className="text-[#1E1E2C]">Ready to</span>
-                <span className="text-primary">Upgrade Your Club?</span>
+              <h2 className="text-4xl lg:text-5xl font-bold font-black flex flex-wrap gap-x-2 gap-y-1 mb-4">
+                <span className="text-[#1E1E2C]">Ready to <span className="text-secondary">Upgrade Your Club?</span></span>
               </h2>
-              <p className="text-[#595A8D] text-lg leading-relaxed max-w-md">
+              <p className="text-[#0D0D0D] text-lg leading-relaxed max-w-md">
                 Book a consultation or join the wait-list. Takes two minutes.
               </p>
             </div>
 
-            <div className="mt-auto border-t border-border/30 pt-8">
-              <p className="text-secondary font-semibold text-base mb-1">Need urgent help?</p>
-              <p className="text-[#888] text-sm">Contact your Sales POC directly for fastest resolution.</p>
+            <div className="mt-auto border-t border-secondary-purple pt-8">
+              <p className="text-primary font-semibold text-base mb-1">Need urgent help?</p>
+              <p className="text-[#0D0D0D] text-sm">Contact your Sales POC directly for fastest resolution.</p>
             </div>
           </div>
 

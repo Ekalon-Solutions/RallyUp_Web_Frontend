@@ -31,10 +31,10 @@ export function ContactForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5 bg-[#EEEAF1] p-6 lg:p-8 rounded-2xl shadow-[0px_4px_24px_#00000040]">
+    <form onSubmit={handleSubmit} className="space-y-5 bg-[#D9D9D9] p-6 lg:p-8 rounded-2xl shadow-[0px_4px_24px_#00000040]">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-1.5">
-          <label className="text-secondary text-xs font-semibold">Full Name</label>
+          <label className="text-[#0D0D0D] text-xs font-semibold">Full Name</label>
           <div className="relative">
             <Image 
               src="/profileicon.svg" 
@@ -53,7 +53,7 @@ export function ContactForm() {
           </div>
         </div>
         <div className="space-y-1.5">
-          <label className="text-secondary text-xs font-semibold">Email</label>
+          <label className="text-[#0D0D0D] text-xs font-semibold">Email</label>
           <div className="relative">
             <Image 
               src="/emailIcon.svg" 
@@ -74,7 +74,7 @@ export function ContactForm() {
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-secondary text-xs font-semibold">Topic</label>
+        <label className="text-[#0D0D0D] text-xs font-semibold">Topic</label>
         <select
           value={form.topic}
           onChange={(e) => setForm((f) => ({ ...f, topic: e.target.value }))}
@@ -88,7 +88,7 @@ export function ContactForm() {
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-secondary text-xs font-semibold">Message</label>
+        <label className="text-[#0D0D0D] text-xs font-semibold">Message</label>
         <textarea
           placeholder="Tell us what you need..."
           value={form.message}
@@ -101,14 +101,14 @@ export function ContactForm() {
       <div className="flex flex-col gap-3 pt-2">
         <Button
           type="submit"
-          className="bg-[#A291B1] hover:bg-[#C5B0D8] shadow-[0px_8px_16px_#DFDFFFB0] text-white h-12 rounded-[6px] font-bold text-xs hover:text-sm uppercase tracking-wider w-full transition-all duration-300"
+          className="bg-secondary hover:bg-[#C5B0D8] shadow-[0px_8px_16px_#DFDFFFB0] text-white h-12 rounded-[6px] font-bold text-xs hover:text-sm uppercase tracking-wider w-full transition-all duration-300"
         >
           Submit
         </Button>
         <Link href="/clubs" className="w-full">
           <Button
             type="button"
-            className="bg-[#6668A1] hover:bg-[#9497E3] shadow-[0px_8px_16px_#6668A17D] text-white h-12 rounded-[6px] font-bold text-xs hover:text-sm uppercase tracking-wider w-full transition-all duration-300 flex items-center justify-center gap-2"
+            className="bg-primary hover:bg-[#9497E3] shadow-[0px_8px_16px_#6668A17D] text-white h-12 rounded-[6px] font-bold text-xs hover:text-sm uppercase tracking-wider w-full transition-all duration-300 flex items-center justify-center gap-2"
           >
             Join Waiting List
             <span>→</span>

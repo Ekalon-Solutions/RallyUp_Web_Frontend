@@ -76,7 +76,7 @@ export default function AboutPage(): React.JSX.Element {
                         </div>
 
                         {/* Card 2 */}
-                        <div className="bg-[#D4D5FB] hover:bg-[#B8BAFF] rounded-xl p-6 md:p-8 relative overflow-hidden flex flex-col justify-start shadow-[0px_4px_24px_#00000040] transition-shadow">
+                        <div className="bg-[#BED6F8] hover:bg-[#B8BAFF] rounded-xl p-6 md:p-8 relative overflow-hidden flex flex-col justify-start shadow-[0px_4px_24px_#00000040] transition-shadow">
                             <span className="absolute top-4 right-6 text-[7rem]  text-[#E3DCE8] leading-none pointer-events-none select-none font-sans">W</span>
                             <div className="w-14 h-14 rounded-xl bg-[#7D7FBC] flex items-center justify-center mb-6 relative z-10 p-2 shadow-md">
                                 <Image

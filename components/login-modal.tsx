@@ -469,7 +469,7 @@ export function LoginModal({ open, onOpenChange, onSuccess }: LoginModalProps) {
             </div>
           )}
 
-          <Link href={`/login?tab=${tab}-register`} onClick={() => onOpenChange(false)}>
+          {/* <Link href={`/login?tab=${tab}-register`} onClick={() => onOpenChange(false)}>
             <Button
               variant="outline"
               className="border-secondary border w-full h-12 mt-1 rounded-xl bg-secondary text-white hover:bg-[#4f4f8a] hover:text-white font-bold text-sm gap-2"
@@ -477,7 +477,7 @@ export function LoginModal({ open, onOpenChange, onSuccess }: LoginModalProps) {
               Create Account
               <UserPlus className="w-4 h-4" />
             </Button>
-          </Link>
+          </Link> */}
         </div>
       </DialogContent>
     </Dialog>

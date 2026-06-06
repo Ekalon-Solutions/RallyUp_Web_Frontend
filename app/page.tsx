@@ -322,7 +322,11 @@ function FeaturesShowcase() {
 
   return (
     <section
-      className="bg-white md:bg-secondary-purple py-16 md:py-20 lg:py-24"
+      className="
+        bg-[linear-gradient(180deg,#FFFFFF_0%,#FFFFFF_35%,#1761CA_50%,#FFFFFF_65%,#FFFFFF_100%)]
+        md:bg-white
+        py-16 md:py-20 lg:py-24
+      "
       id="features"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
@@ -352,16 +356,29 @@ function FeaturesShowcase() {
                       key={tab.id}
                       onClick={() => setActiveIdx(i)}
                       className={`flex items-center gap-2 px-3.5 py-1.5 rounded-[10px] text-[13px] font-medium whitespace-nowrap transition-all flex-shrink-0 border snap-start ${isActive
-                        ? "bg-[#DDE0FF] text-[#5C608A] border-transparent shadow-sm"
+                        ? "bg-[#1761CA] text-[#5C608A] border-transparent shadow-sm"
                         : "bg-transparent text-[#61628E] border-[#8C8DAB] hover:bg-gray-50"
                         }`}
                     >
                       {tab.imageIcon ? (
                         <div className="relative w-[15px] h-[15px] flex-shrink-0">
-                          <Image src={tab.imageIcon} alt={tab.label} fill className="object-contain" />
+                          <Image
+                            src={tab.imageIcon}
+                            alt={tab.label}
+                            fill
+                            className={`object-contain ${
+                              isActive
+                                ? "brightness-0 invert "
+                                : ""
+                            }`}
+                        />
                         </div>
                       ) : (
-                        <Icon className="w-[15px] h-[15px]" />
+                        <Icon
+                          className={`w-[15px] h-[15px] ${
+                            isActive ? "text-primary" : ""
+                          }`}
+                        />
                       )}
                       {tab.label}
                     </button>
@@ -375,10 +392,10 @@ function FeaturesShowcase() {
           </div>
 
           {/* Content card */}
-          <div className="relative bg-gradient-to-b from-[#BCBEDD] to-[#5B5D98] rounded-[28px] p-6 shadow-md mt-6 mx-1 min-h-[432px]">
+          <div className="relative bg-gradient-to-b from-[#E8F2FF] to-[#1761CA] rounded-[28px] p-6 shadow-md mt-6 mx-1 min-h-[432px]">
             {/* Red dot */}
             <div className="absolute top-6 right-6 z-10">
-              <div className="w-2.5 h-2.5 bg-primary rounded-full ring-[4px] ring-primary/20" />
+              <div className="w-2.5 h-2.5 bg-[#07B065] rounded-full ring-[4px] ring-[#07B065]/20" />
             </div>
 
             <div>
@@ -386,11 +403,11 @@ function FeaturesShowcase() {
               <div className="space-y-1.5 pr-8 mt-2">
                 <p className="text-primary font-bold text-[22px] leading-tight tracking-tight">{active.headline[0].replace('.', ',')}</p>
                 <p className="text-[#1A1A24] font-black text-[24px] leading-tight tracking-tight">{active.headline[1].toLowerCase()}</p>
-                <p className="text-white text-[15px] pt-1 leading-snug pr-4">{active.sub}</p>
+                <p className="text-[#0D0D0D] text-[15px] pt-1 leading-snug pr-4">{active.sub}</p>
               </div>
 
               {/* Divider */}
-              <div className="w-full h-px bg-[#7D7F9B]/40 my-6" />
+              <div className="w-full h-px bg-[#0D0D0D]/40 my-6" />
 
               {/* Inner Cards */}
               <div className="space-y-3.5">
@@ -398,12 +415,12 @@ function FeaturesShowcase() {
                   const CardIcon = card.Icon
                   return (
                     <div key={i} className="bg-[#E5E4FA] rounded-[20px] border border-[#A5A6C4] flex items-center gap-4 p-4 shadow-sm">
-                      <div className={`${card.accent} w-[52px] h-[52px] rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm`}>
+                      <div className={`bg-primary w-[52px] h-[52px] rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm`}>
                         <CardIcon className="w-5 h-5 text-white" />
                       </div>
                       <div className="flex-1 flex flex-col pt-0.5">
-                        <p className="font-bold text-[#595A8D] text-[15px] mb-[2px] leading-snug">{card.title}</p>
-                        <p className="text-[#8487A4] text-[13px] leading-snug line-clamp-2 pr-1">{card.desc}</p>
+                        <p className="font-semibold text-[#0D0D0D] text-[15px] mb-[2px] leading-snug">{card.title}</p>
+                        <p className="text-[#0D0D0D] text-[13px] leading-snug line-clamp-2 pr-1">{card.desc}</p>
                       </div>
                     </div>
                   )
@@ -449,19 +466,30 @@ function FeaturesShowcase() {
                       key={tab.id}
                       onClick={() => setActiveIdx(i)}
                       className={`group flex items-center justify-between w-full px-5 h-12 rounded-[14px] transition-all duration-200 flex-shrink-0 ${isActive
-                        ? "bg-secondary text-black"
+                        ? "bg-[#1761CA] text-white"
                         : "text-[#666] hover:text-black"
                         }`}
                     >
                       <div className="flex items-center gap-3.5">
                         {tab.imageIcon ? (
                           <div className="relative w-[18px] h-[18px] flex-shrink-0">
-                            <Image src={tab.imageIcon} alt={tab.label} fill className="object-contain" />
+                            <Image
+                              src={tab.imageIcon}
+                              alt={tab.label}
+                              fill
+                              className={`object-contain ${
+                                isActive ? "brightness-0 invert" : ""
+                              }`}
+                            />
                           </div>
                         ) : (
-                          <Icon className={`w-[18px] h-[18px] flex-shrink-0 ${isActive ? "text-black" : "text-[#888] group-hover:text-black"}`} />
+                          <Icon
+                            className={`w-[18px] h-[18px] flex-shrink-0 ${
+                              isActive ? "text-white" : "text-[#888] group-hover:text-black"
+                            }`}
+                          />
                         )}
-                        <span className="text-md  text-black md:text-lg">{tab.label}</span>
+                        <span className="text-md md:text-lg">{tab.label}</span>
                       </div>
                       {isActive && <ArrowRight className="w-4 h-4 text-black" />}
                     </button>
@@ -506,12 +534,12 @@ function FeaturesShowcase() {
                     const CardIcon = card.Icon
                     return (
                       <div key={i} className="flex gap-4">
-                        <div className={`${card.accent} w-[60px] h-[60px] rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm`}>
+                        <div className={`bg-primary w-[60px] h-[60px] rounded-lg flex items-center justify-center flex-shrink-0 shadow-sm`}>
                           <CardIcon className="w-6 h-6 text-white" />
                         </div>
                         <div className="flex flex-col pt-1">
-                          <p className="font-bold text-[#6D71AA] text-[15px] mb-1.5">{card.title}</p>
-                          <p className="text-[#888] text-[13px] leading-relaxed max-w-[220px]">{card.desc}</p>
+                          <p className="font-bold text-[#0D0D0D] text-[15px] mb-1.5">{card.title}</p>
+                          <p className="text-[#0D0D0D] text-[13px] leading-relaxed max-w-[220px]">{card.desc}</p>
                         </div>
                       </div>
                     )
@@ -574,18 +602,17 @@ function ContactCTA() {
           {/* Left */}
           <div className="flex flex-col gap-8">
             <div>
-              <h2 className="text-4xl lg:text-5xl font-bold font-black flex flex-wrap gap-x-2 gap-y-1 leading-[1.1] mb-4">
-                <span className="text-[#1E1E2C]">Ready to</span>
-                <span className="text-primary">Upgrade Your Club?</span>
+              <h2 className="text-4xl lg:text-5xl font-bold font-black flex flex-wrap gap-x-2 gap-y-1 mb-4">
+                <span className="text-[#1E1E2C]">Ready to <span className="text-secondary">Upgrade Your Club?</span></span>
               </h2>
-              <p className="text-[#595A8D] text-lg leading-relaxed max-w-md">
+              <p className="text-[#0D0D0D] text-lg leading-relaxed max-w-md">
                 Book a consultation or join the wait-list. Takes two minutes.
               </p>
             </div>
 
-            <div className="mt-auto border-t border-border/30 pt-8">
-              <p className="text-secondary font-semibold text-base mb-1">Need urgent help?</p>
-              <p className="text-[#888] text-sm">Contact your Sales POC directly for fastest resolution.</p>
+            <div className="mt-auto border-t border-secondary-purple pt-8">
+              <p className="text-primary font-semibold text-base mb-1">Need urgent help?</p>
+              <p className="text-[#0D0D0D] text-sm">Contact your Sales POC directly for fastest resolution.</p>
             </div>
           </div>
 
@@ -633,8 +660,7 @@ function FAQ() {
       id="faqs"
     >
       {/* Background */}
-      <div className="absolute inset-0 bg-secondary-purple/40 -z-20" />
-
+    <div className="absolute inset-0 bg-gradient-to-r from-white to-[#1761CA] -z-20" />
       {/* SVG Background Lines */}
       <svg
         className="hidden md:block absolute inset-0 w-full h-full -z-10 pointer-events-none"
@@ -648,7 +674,7 @@ function FAQ() {
           y1="500"
           x2="380"
           y2="0"
-          stroke="#C9C1CF"
+          stroke="#DCD4E2"
           strokeWidth="0.8"
         />
         <line
@@ -656,7 +682,7 @@ function FAQ() {
           y1="0"
           x2="770"
           y2="500"
-          stroke="#C9C1CF"
+          stroke="#DCD4E2"
           strokeWidth="0.8"
         />
 
@@ -666,7 +692,7 @@ function FAQ() {
           y1="500"
           x2="905"
           y2="0"
-          stroke="#A291B178"
+          stroke="#D8BFED"
           strokeWidth="0.8"
         />
         <line
@@ -674,7 +700,7 @@ function FAQ() {
           y1="0"
           x2="1245"
           y2="500"
-          stroke="#F1441A1F"
+          stroke="#D8BFED"
           strokeWidth="0.8"
         />
 
@@ -684,13 +710,13 @@ function FAQ() {
           y1="0"
           x2="1215"
           y2="500"
-          stroke="#8598C7AB"
+          stroke="#F1441A47"
           strokeWidth="0.8"
         />
       </svg>
 
       {/* Decorative Vector */}
-      <div className="absolute -bottom-32 -left-10 w-[45vw] h-[45vw] max-w-[22rem] max-h-[22rem] opacity-60 pointer-events-none select-none -z-10">
+      <div className="absolute -bottom-40 -left-16 w-[80vw] h-[80vw] max-w-[35rem] max-h-[35rem] opacity-60 pointer-events-none select-none -z-10">
         <Image
           src="/Vector.svg"
           alt=""
@@ -703,11 +729,7 @@ function FAQ() {
       <div className="relative z-10 mx-auto max-w-8xl px-6 sm:px-8 lg:px-12 xl:px-16">
         <h2 className="flex flex-col items-start gap-2 md:items-center text-4xl lg:text-5xl font-bold text-center mb-12">
           <span className="text-background">
-            Frequently Asked
-          </span>
-
-          <span className="text-primary">
-            Questions
+            Frequently Asked <span className="text-primary">Questions</span>
           </span>
         </h2>
 
@@ -717,8 +739,8 @@ function FAQ() {
               key={i}
               className={`border rounded-[20px] overflow-hidden transition-all duration-300 ${
                 open === i
-                  ? "bg-secondary/30 border-primary"
-                  : "bg-[#DCD4E2] border-[#6668A1]"
+                  ? "bg-white border-primary"
+                  : "bg-white border-[#6668A1]"
               }`}
             >
               <button
@@ -732,7 +754,7 @@ function FAQ() {
                     {faq.q}
                   </span>
                 ) : (
-                  <span className="text-secondary font-medium text-sm">
+                  <span className="text-[#0D0D0D] font-medium text-sm">
                     {faq.q}
                   </span>
                 )}
@@ -746,7 +768,7 @@ function FAQ() {
 
               {open === i && (
                 <div className="px-5 pb-5">
-                  <p className="text-secondary text-sm leading-relaxed">
+                  <p className="text-[#0D0D0D] text-sm leading-relaxed">
                     {faq.a}
                   </p>
                 </div>

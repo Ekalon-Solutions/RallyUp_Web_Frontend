@@ -39,6 +39,7 @@ import {
   FEATURE_CONSTRAINT_KEY,
 } from "@/lib/clubFeatures"
 import type { ClubFeatureKey } from "@/lib/clubFeatures"
+import { CONSTRAINT_LABELS } from "@/lib/billingConstraints"
 import { apiClient } from "@/lib/api"
 import type { MatrixClub } from "./matrix-table"
 import { DependencyWarningDialog } from "./dependency-warning-dialog"
@@ -82,16 +83,6 @@ const FEATURE_GROUPS: {
     keys: ["wa_marketing", "ads", "predictions"],
   },
 ]
-
-const CONSTRAINT_LABELS: Record<string, string> = {
-  max_merch_items:         "Max merch items",
-  max_gallery_albums:      "Max albums",
-  max_leaderboard_entries: "Max leaderboard entries",
-  max_coupons:             "Max coupons",
-  max_volunteers:          "Max volunteers",
-  max_news_posts:          "Max news posts",
-  max_wa_messages:         "Max WA messages / mo",
-}
 
 const TIER_SELECT_COLOR: Record<string, string> = {
   free:       "text-slate-600",

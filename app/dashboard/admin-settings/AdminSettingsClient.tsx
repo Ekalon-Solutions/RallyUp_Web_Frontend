@@ -4,13 +4,14 @@ import { useEffect, useState } from "react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Settings, Globe, Palette, Bell, BookOpen, MapPin } from "lucide-react"
+import { Settings, Globe, Palette, Bell, BookOpen, MapPin, Zap, CircleHelp } from "lucide-react"
 import { WebsiteSetupTab } from "@/components/admin/settings/website-setup-tab"
 import { DesignSettingsTab } from "@/components/admin/settings/design-settings-tab"
 import { NotificationTemplatesPanel } from "@/components/admin/notification-templates/notification-templates-panel"
 import { HelpSectionTab } from "@/components/admin/settings/help-section-tab"
 import { GetStartedTab } from "@/components/admin/settings/get-started-tab"
 import { ClubAddressTab } from "@/components/admin/settings/club-address-tab"
+import { FeatureLimitsTab } from "@/components/admin/settings/feature-limits-tab"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 
@@ -27,7 +28,7 @@ export default function AdminSettingsClient() {
     if (raw === "app-settings") return "app"
     if (raw === "get-started") return "guide"
 
-    const allowedTabs = new Set(["website", "design", "app", "address", "redemption", "help", "guide"])
+    const allowedTabs = new Set(["website", "design", "app", "address", "limits", "help", "guide"])
     return allowedTabs.has(raw) ? raw : null
   }
 
@@ -63,7 +64,7 @@ export default function AdminSettingsClient() {
             }}
             className="space-y-4"
           >
-            <TabsList className="flex overflow-auto justify-start sm:justify-between w-full grid-cols-5">
+            <TabsList className="flex overflow-auto justify-start sm:justify-between w-full">
               <TabsTrigger value="website" className="flex items-center gap-2">
                 <Globe className="h-4 w-4" />
                 Website
@@ -79,6 +80,14 @@ export default function AdminSettingsClient() {
               <TabsTrigger value="address" className="flex items-center gap-2">
                 <MapPin className="h-4 w-4" />
                 Club Address
+              </TabsTrigger>
+              <TabsTrigger value="limits" className="flex items-center gap-2">
+                <Zap className="h-4 w-4" />
+                Feature Limits
+              </TabsTrigger>
+              <TabsTrigger value="help" className="flex items-center gap-2">
+                <CircleHelp className="h-4 w-4" />
+                Help
               </TabsTrigger>
               <TabsTrigger value="guide" className="flex items-center gap-2">
                 <BookOpen className="h-4 w-4" />
@@ -100,6 +109,10 @@ export default function AdminSettingsClient() {
 
             <TabsContent value="address" className="space-y-4">
               <ClubAddressTab key={clubId ?? "no-club"} />
+            </TabsContent>
+
+            <TabsContent value="limits" className="space-y-4">
+              <FeatureLimitsTab key={clubId ?? "no-club"} />
             </TabsContent>
 
             <TabsContent value="help" className="space-y-4">
