@@ -15,6 +15,7 @@ interface AuthContextType {
   activeClubId: string | null;
   setActiveClubId: (clubId: string | null) => void;
   login: (email: string, phoneNumber: string, countryCode: string, isAdmin?: boolean, isSystemOwner?: boolean) => Promise<{ success: boolean; error?: string }>;
+  switchRole: (accountType: 'user' | 'admin' | 'system_owner', accountId: string) => Promise<{ success: boolean; error?: string }>;
   register: (userData: any, isAdmin?: boolean, isSystemOwner?: boolean) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   updateProfile: (data: any) => Promise<{ success: boolean; error?: string }>;
@@ -313,6 +314,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const switchRole = async (accountType: 'user' | 'admin' | 'system_owner', accountId: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const response = await apiClient.switchAccountRole({ accountType, accountId });
+
+      if (response.success && response.data) {
+        const { token, accountType: switchedType, ...accountData } = response.data as any;
+        localStorage.setItem('token', token);
+
+        const isAdmin = switchedType === 'admin';
+        const isSystemOwner = switchedType === 'system_owner';
+
+        if (isSystemOwner) {
+          localStorage.setItem('userType', 'system_owner');
+        } else if (isAdmin) {
+          localStorage.setItem('userType', accountData.role);
+        } else {
+          localStorage.setItem('userType', 'member');
+        }
+
+        setUser(accountData);
+        clearAllFeatureCaches();
+        const hydrated = await hydrateUserProfile({
+          isAdmin,
+          isSystemOwner,
+          fallbackUserData: accountData
+        });
+        setUser(hydrated);
+        return { success: true };
+      }
+
+      return { success: false, error: response.error || response.message || 'Unable to switch role' };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred. Please try again.';
+      return { success: false, error: errorMessage };
+    }
+  };
+
   const register = async (userData: any, isAdmin = false, isSystemOwner = false): Promise<{ success: boolean; error?: string }> => {
     try {
       let response;
@@ -427,6 +465,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     activeClubId,
     setActiveClubId,
     login,
+    switchRole,
     register,
     logout,
     updateProfile,

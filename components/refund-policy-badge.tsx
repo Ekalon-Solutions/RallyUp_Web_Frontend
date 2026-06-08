@@ -14,6 +14,7 @@ import {
 
 type RefundPolicyBadgeProps = {
   eventId: string
+  isFreeEvent?: boolean
   className?: string
   policy?: EventRefundPolicyData | null
   source?: "badge" | "checkout" | "event_detail" | "other"
@@ -23,6 +24,7 @@ type RefundPolicyBadgeProps = {
 
 export function RefundPolicyBadge({
   eventId,
+  isFreeEvent = false,
   className,
   policy: policyProp,
   source = "badge",
@@ -62,6 +64,8 @@ export function RefundPolicyBadge({
   }, [eventId, policyProp, onPolicyLoaded])
 
   const openModal = useCallback(() => setModalOpen(true), [])
+
+  if (isFreeEvent) return null
 
   if (loading) {
     return (

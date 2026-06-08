@@ -774,7 +774,7 @@ export default function PublicClubPage() {
                                             </Badge>
                                           ) : null
                                         })()}
-                                        {isEventPaid(event) && event._id && (
+                                        {event._id && (
                                           <RefundPolicyBadge eventId={event._id} className="text-[10px]" source="event_detail" />
                                         )}
                                         <JointScreeningDisplay jointScreening={event.jointScreening} variant="badge" />

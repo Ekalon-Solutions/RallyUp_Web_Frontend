@@ -41,6 +41,7 @@ import {
   Lock,
   Grid3X3,
   Receipt,
+  Repeat,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -180,6 +181,8 @@ interface DashboardSidebarProps {
   user: any
   onLogout: () => void
   onLockedNavClick?: (href: string) => void
+  availableRoles: { accountType: 'user' | 'admin' | 'system_owner'; accountId: string; role: string; name: string }[]
+  onRoleSwitch: (accountType: 'user' | 'admin' | 'system_owner', accountId: string) => void
 }
 
 function DashboardSidebar({
@@ -195,6 +198,8 @@ function DashboardSidebar({
   user,
   onLogout,
   onLockedNavClick,
+  availableRoles,
+  onRoleSwitch,
 }: DashboardSidebarProps) {
   const [addOnsOpen, setAddOnsOpen] = useState(false)
 
@@ -379,6 +384,37 @@ function DashboardSidebar({
               </div>
             )
           })()}
+          {availableRoles.length > 0 && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <div
+                  className="px-3 py-2 rounded-xl bg-primary/5 border border-primary/10 cursor-pointer hover:bg-primary/10 transition-colors flex items-center justify-between gap-2"
+                  title="Switch role"
+                >
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Logged in as</p>
+                    <p className="text-sm font-bold text-foreground truncate">{user?.role?.replace('_', ' ') || 'Member'}</p>
+                  </div>
+                  <Repeat className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                </div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" side="right" className="w-[var(--radix-dropdown-menu-trigger-width)] min-w-56 p-2 rounded-xl border-2 shadow-xl">
+                {availableRoles.map((account) => (
+                  <DropdownMenuItem
+                    key={`${account.accountType}-${account.accountId}`}
+                    onClick={() => onRoleSwitch(account.accountType, account.accountId)}
+                    className="rounded-lg gap-2 cursor-pointer"
+                  >
+                    <Repeat className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-bold truncate">{account.role.replace('_', ' ')}</p>
+                      <p className="text-xs text-muted-foreground truncate">{account.name}</p>
+                    </div>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" className="w-full h-14 px-4 justify-start bg-card border-2 hover:bg-muted/50 transition-all rounded-2xl group shadow-sm">
@@ -455,8 +491,31 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const pathname = usePathname()
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const { user, logout, isAdmin, activeClubId, setActiveClubId } = useAuth()
+  const { user, logout, isAdmin, activeClubId, setActiveClubId, switchRole } = useAuth()
   const { isPrimaryOwner } = usePrimaryClubOwner()
+
+  const [availableRoles, setAvailableRoles] = useState<{ accountType: 'user' | 'admin' | 'system_owner'; accountId: string; role: string; name: string }[]>([])
+
+  useEffect(() => {
+    if (!user) {
+      setAvailableRoles([])
+      return
+    }
+    let cancelled = false
+    apiClient.getAvailableRoles().then((res) => {
+      if (!cancelled && res.success && res.data) {
+        setAvailableRoles(res.data.accounts)
+      }
+    })
+    return () => { cancelled = true }
+  }, [user])
+
+  const handleRoleSwitch = async (accountType: 'user' | 'admin' | 'system_owner', accountId: string) => {
+    const result = await switchRole(accountType, accountId)
+    if (result.success) {
+      router.refresh()
+    }
+  }
 
   // Prevent body scroll so only the inner <main> scrolls (avoids double scrollbar)
   useEffect(() => {
@@ -682,6 +741,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           user={user}
           onLogout={logout}
           onLockedNavClick={onLockedNavClick}
+          availableRoles={availableRoles}
+          onRoleSwitch={handleRoleSwitch}
         />
       </div>
 
@@ -700,6 +761,8 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             user={user}
             onLogout={logout}
             onLockedNavClick={onLockedNavClick}
+            availableRoles={availableRoles}
+            onRoleSwitch={(accountType, accountId) => { handleRoleSwitch(accountType, accountId); setSidebarOpen(false) }}
           />
         </SheetContent>
       </Sheet>

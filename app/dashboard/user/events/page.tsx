@@ -39,11 +39,11 @@ import {
   User,
 } from "lucide-react";
 import EventDetailsModal from "@/components/modals/event-details-modal";
-import UserEventRegistrationModal from "@/components/modals/user-event-registration-modal";
 import { EventCheckoutModal } from "@/components/modals/event-checkout-modal";
 import { RefundConfirmationModal } from "@/components/modals/refund-confirmation-modal";
 import { MemberTicketRefundAction } from "@/components/member/member-ticket-refund-action";
 import { RefundPolicyBadge } from "@/components/refund-policy-badge";
+import { isEventNonRefundable } from "@/lib/refund-policy";
 import { JointScreeningDisplay } from "@/components/events/joint-screening-display";
 import { EventScheduleMeta } from "@/components/events/event-schedule-meta";
 import { WaitlistDisplay } from "@/components/events/waitlist-display";
@@ -52,6 +52,7 @@ import {
   formatEventPriceDisplay,
   getEventCapacity,
   getEventLowestTicketPrice,
+  getEventVenueDisplay,
   hasVenueTierMatrix,
   isEventPaid,
 } from "@/lib/event-display-price";
@@ -161,11 +162,6 @@ function UserEventsPageInner() {
   const [selectedEventForDetails, setSelectedEventForDetails] =
     useState<Event | null>(null);
   const [showEventDetailsModal, setShowEventDetailsModal] = useState(false);
-  const [registrationEventId, setRegistrationEventId] = useState<string | null>(
-    null
-  );
-  const [registrationEvent, setRegistrationEvent] = useState<Event | null>(null);
-  const [showRegistrationModal, setShowRegistrationModal] = useState(false);
   const [cancellingEventId, setCancellingEventId] = useState<string | null>(
     null
   );
@@ -311,15 +307,8 @@ function UserEventsPageInner() {
     const event = events.find(e => e._id === eventId);
     if (!event) return;
 
-    if (hasVenueTierMatrix(event)) {
-      setVenueTierEvent(event);
-      setShowVenueTierCartModal(true);
-      return;
-    }
-
-    setRegistrationEventId(eventId);
-    setRegistrationEvent(event);
-    setShowRegistrationModal(true);
+    setVenueTierEvent(event);
+    setShowVenueTierCartModal(true);
   };
 
   const handleJoinWaitlist = async (eventId: string) => {
@@ -367,37 +356,6 @@ function UserEventsPageInner() {
     return waitlistStatus.find((w) => String(w.eventId) === String(eventId));
   };
 
-  const handlePerformRegistration = async (payload: {
-    eventId: string;
-    attendees: any[];
-    couponCode?: string;
-  }) => {
-    if (!payload || !payload.eventId) return;
-
-    const event = events.find((e) => e._id === payload.eventId);
-    if (!event) {
-      toast.error("Event not found. Please refresh and try again.");
-      return;
-    }
-
-    if (hasVenueTierMatrix(event)) {
-      setVenueTierEvent(event);
-      setShowVenueTierCartModal(true);
-      return;
-    }
-
-    if (payload.couponCode) {
-      setCouponForPayment({ code: payload.couponCode, discount: 0 });
-    } else {
-      setCouponForPayment(null);
-    }
-    setShowEventCheckoutModal(true);
-    setEventForPayment({ ...event, price: getEventLowestTicketPrice(event) } as Event & {
-      price: number;
-    });
-    setAttendeesForPayment(payload.attendees);
-  };
-
   const formatDate = (dateString: string) => {
     return formatLocalDate(dateString, 'date-short');
   };
@@ -441,13 +399,6 @@ function UserEventsPageInner() {
   const isEventFull = (event: Event) => {
     const { count, max } = getCapacity(event);
     return max !== null ? count >= max : false;
-  };
-
-  const getVenueDisplay = (event: Event) => {
-    if (event.venues && event.venues.length > 0) {
-      return event.venues.map(v => v.name).join(", ");
-    }
-    return event.venue || "—";
   };
 
   const isEventUpcoming = (event: Event) => {
@@ -510,7 +461,7 @@ function UserEventsPageInner() {
         toast.info("This event was cancelled by the club. Automatic refund processing applies.");
         return;
       }
-      if (policy && policy.is_refund_allowed === false) {
+      if (policy && isEventNonRefundable(policy)) {
         toast.error("Policy restriction", {
           description: "This ticket is non-refundable and cannot be cancelled for a refund.",
         });
@@ -749,7 +700,7 @@ function UserEventsPageInner() {
                           </div>
                           <div className="flex items-center gap-2">
                             <MapPin className="w-4 h-4 text-muted-foreground" />
-                            <span className="truncate">{getVenueDisplay(event)}</span>
+                            <span className="truncate">{getEventVenueDisplay(event)}</span>
                           </div>
                         </div>
                         <div className="pt-2">
@@ -856,7 +807,7 @@ function UserEventsPageInner() {
                           )}
                           <div className="flex items-center gap-2">
                             <MapPin className="w-4 h-4 text-muted-foreground" />
-                            <span className="truncate">{getVenueDisplay(event)}</span>
+                            <span className="truncate">{getEventVenueDisplay(event)}</span>
                           </div>
                           {(() => {
                             const { count, max } = getCapacity(event);
@@ -1074,7 +1025,7 @@ function UserEventsPageInner() {
                           </div>
                           <div className="flex items-center gap-2">
                             <MapPin className="w-4 h-4 text-muted-foreground" />
-                            <span className="truncate">{getVenueDisplay(event)}</span>
+                            <span className="truncate">{getEventVenueDisplay(event)}</span>
                           </div>
                           {(() => {
                             const { count, max } = getCapacity(event);
@@ -1134,18 +1085,6 @@ function UserEventsPageInner() {
           setShowEventDetailsModal(false);
           setSelectedEventForDetails(null);
         }}
-      />
-      <UserEventRegistrationModal
-        eventId={registrationEventId}
-        isOpen={showRegistrationModal}
-        onClose={() => {
-          setShowRegistrationModal(false);
-          setRegistrationEventId(null);
-          setRegistrationEvent(null);
-        }}
-        onRegister={handlePerformRegistration}
-        ticketPrice={registrationEvent ? getEventLowestTicketPrice(registrationEvent) : 0}
-        event={registrationEvent}
       />
       <EventCheckoutModal
         isOpen={showEventCheckoutModal}

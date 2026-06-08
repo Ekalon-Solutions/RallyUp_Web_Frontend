@@ -20,7 +20,7 @@ import { useRouter } from "next/navigation"
 import { JointScreeningDisplay } from "@/components/events/joint-screening-display"
 import { EventScheduleMeta } from "@/components/events/event-schedule-meta"
 import { WaitlistDisplay } from "@/components/events/waitlist-display"
-import { formatEventPriceDisplay, isEventPaid } from "@/lib/event-display-price"
+import { formatEventPriceDisplay, isEventPaid, getEventVenueDisplay, hasVenueTierMatrix } from "@/lib/event-display-price"
 import { RefundPolicyToggle } from "@/components/admin/refund-policy-toggle"
 import { useClubFeatures } from "@/hooks/useClubFeatures"
 import { isFeatureEnabled } from "@/lib/clubFeatures"
@@ -154,13 +154,6 @@ export default function EventsPage() {
   }
 
   const isUserRegistered = (eventId: string) => userRegistrations.has(eventId)
-
-  const getVenueDisplay = (event: Event) => {
-    if (event.venues && event.venues.length > 0) {
-      return event.venues.map(v => v.name).join(", ")
-    }
-    return event.venue || "—"
-  }
 
   if (!isFeatureEnabled(clubFeatureConfig, 'events')) {
     return (
@@ -332,12 +325,12 @@ export default function EventsPage() {
                                 {event.description}
                               </div>
                               {isEventPaid(event) && (() => {
-                                const priceLabel = formatEventPriceDisplay(event, { fromPrefix: Boolean(event.venues?.length) })
+                                const priceLabel = formatEventPriceDisplay(event, { fromPrefix: hasVenueTierMatrix(event) })
                                 return priceLabel ? (
                                   <p className="text-sm font-medium text-primary mt-1">{priceLabel}</p>
                                 ) : null
                               })()}
-                              {event.venues && event.venues.length > 0 && (
+                              {hasVenueTierMatrix(event) && (
                                 <Badge variant="outline" className="mt-1 text-xs">Multi-venue</Badge>
                               )}
                               <JointScreeningDisplay
@@ -375,7 +368,7 @@ export default function EventsPage() {
                           <TableCell>
                             <div className="flex items-start gap-1 min-w-[150px]">
                               <MapPin className="w-3 h-3 flex-shrink-0 mt-0.5" />
-                              <span className="text-sm break-words">{getVenueDisplay(event)}</span>
+                              <span className="text-sm break-words">{getEventVenueDisplay(event)}</span>
                             </div>
                           </TableCell>
                           <TableCell>

@@ -12,6 +12,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import { NonRefundableBadge } from "@/components/member/non-refundable-badge"
+import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { hapticSelection } from "@/lib/haptic"
 
@@ -147,9 +148,9 @@ export function EventRefundToggleSection({
               {!isRefundAllowed ? (
                 <NonRefundableBadge />
               ) : (
-                <span className="text-sm text-muted-foreground italic">
-                  No badge — refund option shown in member app
-                </span>
+                <Badge variant="secondary" className="text-[10px] bg-emerald-100 text-emerald-700 border-emerald-200">
+                  Refundable
+                </Badge>
               )}
             </div>
           </div>

@@ -19,6 +19,7 @@ import { WaitlistDisplay } from "@/components/events/waitlist-display"
 import {
   formatEventPriceDisplay,
   getEventCapacity,
+  getEventVenueDisplay,
   hasVenueTierMatrix,
   isEventPaid,
 } from "@/lib/event-display-price"
@@ -103,7 +104,7 @@ export default function PublicEventsPage() {
       return
     }
 
-    if ((event as any).venues && (event as any).venues.length > 0) {
+    if (hasVenueTierMatrix(event)) {
       setVenueTierEvent(event)
       setShowVenueTierCartModal(true)
       return
@@ -188,13 +189,6 @@ export default function PublicEventsPage() {
       case 'others': return 'bg-slate-100 text-slate-800'
       default: return 'bg-gray-100 text-gray-800'
     }
-  }
-
-  const getVenueDisplay = (event: Event) => {
-    if (event.venues && event.venues.length > 0) {
-      return event.venues.map((v) => v.name).join(", ")
-    }
-    return event.venue || "—"
   }
 
   const getCapacity = (event: Event): { count: number; max: number | null } => {
@@ -350,7 +344,7 @@ export default function PublicEventsPage() {
                             
                             <div className="flex items-center gap-2">
                               <MapPin className="w-4 h-4 text-muted-foreground" />
-                              <span className="line-clamp-1">{getVenueDisplay(event)}</span>
+                              <span className="line-clamp-1">{getEventVenueDisplay(event)}</span>
                             </div>
                             
                             <div className="flex items-center gap-2">

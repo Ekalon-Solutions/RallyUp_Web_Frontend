@@ -647,6 +647,16 @@ function CreateEventForm() {
 
         <form
           onSubmit={handleSubmit}
+          onKeyDown={(e) => {
+            if (
+              e.key === "Enter" &&
+              wizardStep < WIZARD_STEPS.length - 1 &&
+              (e.target as HTMLElement).tagName !== "TEXTAREA"
+            ) {
+              e.preventDefault()
+              goNext()
+            }
+          }}
           className="space-y-6 dark:[color-scheme:dark] [&_input]:border-border [&_input]:bg-background [&_input]:text-foreground [&_textarea]:border-border [&_textarea]:bg-background [&_textarea]:text-foreground [&_[role=combobox]]:border-border [&_[role=combobox]]:bg-background [&_[role=combobox]]:text-foreground"
         >
           {wizardStep === 0 && (
@@ -1155,6 +1165,7 @@ function CreateEventForm() {
             <div className="flex gap-2">
               {wizardStep < WIZARD_STEPS.length - 1 ? (
                 <Button
+                  key="nav-next"
                   type="button"
                   variant="ghost"
                   className={clubBtnClass}
@@ -1166,6 +1177,7 @@ function CreateEventForm() {
                 </Button>
               ) : (
                 <Button
+                  key="nav-submit"
                   type="submit"
                   variant="ghost"
                   disabled={loading || !canPublish}

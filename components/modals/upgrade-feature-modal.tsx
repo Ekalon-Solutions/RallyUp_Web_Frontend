@@ -37,7 +37,7 @@ const TIER_COLORS: Record<string, string> = {
 }
 
 function buildPrefilledMessage(featureLabel: string, userName?: string): string {
-  return `Hi Nabil,
+  return `Hi Wingman Support,
 
 I'm interested in enabling the ${featureLabel} module for our club. Could you let us know how to get this set up?
 
@@ -140,7 +140,7 @@ export function UpgradeFeatureModal({
           {/* Message */}
           <div className="space-y-2">
             <label className="text-sm font-semibold text-foreground">
-              Message to RallyUp support
+              Message to Wingman support
             </label>
             <Textarea
               rows={5}
@@ -151,7 +151,7 @@ export function UpgradeFeatureModal({
             />
             <p className="text-xs text-muted-foreground flex items-center gap-1">
               <Send className="w-3 h-3" />
-              Your request is forwarded to Nabil at RallyUp. No automatic charges are made.
+              Your request is forwarded to Wingman Support at RallyUp. No automatic charges are made.
             </p>
           </div>
 

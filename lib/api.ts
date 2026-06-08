@@ -983,6 +983,27 @@ class ApiClient {
     });
   }
 
+  async getAvailableRoles(): Promise<ApiResponse<{
+    accounts: Array<{
+      accountType: 'user' | 'admin' | 'system_owner';
+      accountId: string;
+      role: string;
+      name: string;
+    }>;
+  }>> {
+    return this.request('/role-switch/available');
+  }
+
+  async switchAccountRole(data: {
+    accountType: 'user' | 'admin' | 'system_owner';
+    accountId: string;
+  }): Promise<ApiResponse<{ token: string; accountType: 'user' | 'admin' | 'system_owner' } & Record<string, any>>> {
+    return this.request('/role-switch/switch', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
   async sendOtp(data: {
     email?: string;
     phoneNumber?: string;
@@ -1473,6 +1494,16 @@ class ApiClient {
     return this.request(`/events/public/${eventId}/check-registration`);
   }
 
+  async checkEventRegistrationByPhone(eventId: string, phone: string, countryCode = '+91'): Promise<ApiResponse<{
+    data?: { alreadyBooked: boolean; isMember: boolean; memberName?: string };
+    alreadyBooked?: boolean;
+    isMember?: boolean;
+    memberName?: string;
+  }>> {
+    const query = new URLSearchParams({ phone, countryCode }).toString();
+    return this.request(`/events/public/${eventId}/check-registration-by-phone?${query}`);
+  }
+
   async getEventById(id: string): Promise<ApiResponse<Event>> {
     return this.request(`/events/${id}`);
   }
@@ -1856,6 +1887,7 @@ class ApiClient {
     earlyBirdDiscountAmt?: number;
     pointsDiscount?: number;
     attributed_club?: string;
+    waitlistToken?: string;
   }): Promise<ApiResponse<{ message: string; event: Event }>> {
     return this.request(`/events/${eventId}/book-matrix`, {
       method: 'POST',
@@ -4448,7 +4480,9 @@ class ApiClient {
     rules: Array<{ daysBefore: number; refundPercentage: number }>;
     platformTermsUrl: string;
   }>> {
-    return this.request(`/refunds/policy/event/${encodeURIComponent(eventId)}`);
+    const res = await this.request(`/refunds/policy/event/${encodeURIComponent(eventId)}`);
+    if (res.success && res.data) return { ...res, data: (res.data as any).data ?? res.data };
+    return res;
   }
 
   async trackRefundPolicyModalOpen(data: {

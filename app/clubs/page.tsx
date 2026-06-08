@@ -151,7 +151,7 @@ function ClubsPageContent() {
     paymentMethod: string
   } | null>(null)
   const [pendingRegistrationData, setPendingRegistrationData] = useState<typeof registrationData | null>(null)
-  const [userMemberships, setUserMemberships] = useState<string[]>([])
+  const [userMemberships, setUserMemberships] = useState<Record<string, string>>({})
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -295,15 +295,33 @@ function ClubsPageContent() {
 
       if (response.ok) {
         const data = await response.json()
-        const clubIds = data.user?.memberships?.map((m: any) => m.club_id?._id || m.club_id) || []
-        setUserMemberships(clubIds)
+        const membershipMap: Record<string, string> = {}
+        for (const m of data.user?.memberships || []) {
+          const clubId = m.club_id?._id || m.club_id
+          if (clubId && m.start_date) {
+            const existing = membershipMap[clubId]
+            if (!existing || new Date(m.start_date).getTime() > new Date(existing).getTime()) {
+              membershipMap[clubId] = m.start_date
+            }
+          }
+        }
+        setUserMemberships(membershipMap)
       }
     } catch (error) {
     }
   }
 
   const isClubJoined = (clubId: string) => {
-    return userMemberships.includes(clubId)
+    return Object.prototype.hasOwnProperty.call(userMemberships, clubId)
+  }
+
+  const getLastPurchaseDate = (clubId: string): string | undefined => {
+    return userMemberships[clubId]
+  }
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return ""
+    return new Date(dateString).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
   }
 
   const filterClubs = () => {
@@ -817,6 +835,12 @@ function ClubsPageContent() {
                                 {formatPrice(plan.price, plan.currency)}
                               </span>
                             </div>
+                            {isJoined && getLastPurchaseDate(club._id) && (
+                              <div className="mb-3 flex items-center gap-2 text-xs font-bold text-primary">
+                                <Calendar className="w-3.5 h-3.5" />
+                                <span>Last membership purchase: {formatDate(getLastPurchaseDate(club._id))}</span>
+                              </div>
+                            )}
                             {isLimitReached && !isJoined && club.memberInfo && (
                               <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-2 dark:border-amber-800 dark:bg-amber-950/40">
                                 <p className="text-xs font-bold text-amber-900 dark:text-amber-100">
@@ -946,6 +970,12 @@ function ClubsPageContent() {
                         const isDisabled = isJoined || isLimitReached || !salesState.isOpen
                         return (
                           <>
+                            {isJoined && getLastPurchaseDate(club._id) && (
+                              <div className="mb-2 flex items-center justify-center gap-2 text-xs font-bold text-primary">
+                                <Calendar className="w-3.5 h-3.5" />
+                                <span>Last membership purchase: {formatDate(getLastPurchaseDate(club._id))}</span>
+                              </div>
+                            )}
                             {isLimitReached && !isJoined && club.memberInfo && (
                               <div className="mb-2 p-2 bg-primary rounded-lg">
                                 <p className="text-xs font-bold text-primary text-center">
@@ -1089,6 +1119,15 @@ function ClubsPageContent() {
                           </CardHeader>
                           <CardContent className="space-y-4">
                             <p className="text-muted-foreground">{plan.description}</p>
+
+                            {isJoined && getLastPurchaseDate(selectedClub._id) && (
+                              <div className="flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/10 p-3">
+                                <Calendar className="w-4 h-4 text-primary shrink-0" />
+                                <p className="text-sm font-bold text-primary">
+                                  Last membership purchase: {formatDate(getLastPurchaseDate(selectedClub._id))}
+                                </p>
+                              </div>
+                            )}
 
                             {isLimitReached && !isJoined && selectedClub.memberInfo && (
                               <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 dark:border-amber-800 dark:bg-amber-950/40">
@@ -1296,7 +1335,7 @@ function ClubsPageContent() {
               <div className="bg-primary rounded-lg p-2">
                 <Users className="w-5 h-5 text-white" />
               </div>
-              {selectedPlan?.price ? "Register & Pay — Join" + selectedClub?.name : "Register & Join —" + selectedClub?.name}
+              {selectedPlan?.price ? `Register & Pay — Join ${selectedClub?.name}` : `Register & Join — ${selectedClub?.name}`}
             </DialogTitle>
             <DialogDescription className="space-y-1">
               {selectedPlan?.price ? (
@@ -1388,7 +1427,7 @@ function ClubsPageContent() {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 gap-2">
+                <div className="sm:col-span-2 grid grid-cols-[7rem_1fr] gap-3">
                   <div className="space-y-2">
                     <Label htmlFor="countryCode">Country Code</Label>
                     <Input
@@ -1514,10 +1553,7 @@ function ClubsPageContent() {
                           <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
                         </TooltipTrigger>
                         <TooltipContent className="max-w-xs">
-                          Enter the registered mobile number of an active {selectedClub?.name} member who referred you.
-                          {selectedPlan.referralReward?.enabled && selectedPlan.referralReward.points > 0
-                            ? ` They will earn ${selectedPlan.referralReward.points} loyalty points when you join.`
-                            : ""}
+                          Enter the registered mobile number of the member who referred you to earn them points!
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
@@ -1548,7 +1584,7 @@ function ClubsPageContent() {
                   </div>
                   {referralStatus === "found" && referralName && (
                     <p className="text-xs font-medium text-green-600">
-                      Referral confirmed — {referralName} will earn referral points when you join.
+                      {referralName}
                     </p>
                   )}
                   {referralStatus === "found" && !referralName && (
@@ -1558,7 +1594,7 @@ function ClubsPageContent() {
                   )}
                   {referralStatus === "not-found" && (
                     <p className="text-xs text-amber-600">
-                      No member found with this number. Check the number so your referrer gets credit.
+                      Member not found. Please check the number to ensure your friend gets their points.
                     </p>
                   )}
                   {referralStatus === "not-member" && (

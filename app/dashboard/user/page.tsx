@@ -15,8 +15,7 @@ import { useAuth } from "@/contexts/auth-context"
 import { formatLocalDate } from "@/lib/timezone"
 import { Calendar, MapPin, Clock, Users, Newspaper, Tag, User as UserIcon, Eye, CreditCard, Crown, Star, Shield, Infinity as InfinityIcon, Trash } from "lucide-react"
 import EventDetailsModal from '@/components/modals/event-details-modal'
-import UserEventRegistrationModal from "@/components/modals/user-event-registration-modal"
-import { EventCheckoutModal } from "@/components/modals/event-checkout-modal"
+import { VenueTierCartModal } from "@/components/modals/venue-tier-cart-modal"
 import { RefundConfirmationModal } from "@/components/modals/refund-confirmation-modal"
 import { MemberTicketRefundAction } from "@/components/member/member-ticket-refund-action"
 
@@ -210,32 +209,14 @@ export default function UserDashboardPage() {
   const [selectedEventForDetails, setSelectedEventForDetails] = useState<Event | null>(null)
   const [showEventDetailsModal, setShowEventDetailsModal] = useState(false)
   const [userRegistrations, setUserRegistrations] = useState<Map<string, any>>(new Map())
-  const [registrationEventId, setRegistrationEventId] = useState<string | null>(null)
-  const [registrationEvent, setRegistrationEvent] = useState<Event | null>(null)
-  const [showRegistrationModal, setShowRegistrationModal] = useState(false)
+  const [showVenueTierCartModal, setShowVenueTierCartModal] = useState(false)
+  const [venueTierEvent, setVenueTierEvent] = useState<Event | null>(null)
   const [cancellingEventId, setCancellingEventId] = useState<string | null>(null)
   const [refundCancelEventId, setRefundCancelEventId] = useState<string | null>(null)
   const [refundEstimate, setRefundEstimate] = useState<any | null>(null)
   const [refundModalLoading, setRefundModalLoading] = useState(false)
   const [refundModalError, setRefundModalError] = useState<string | null>(null)
-  const [showEventCheckoutModal, setShowEventCheckoutModal] = useState(false)
-  const [eventForPayment, setEventForPayment] = useState<Event | null>(null)
-  const [attendeesForPayment, setAttendeesForPayment] = useState<any[]>([])
-  const [couponCodeForPayment, setCouponCodeForPayment] = useState<string | undefined>(undefined)
   const [showLogo, setShowLogo] = useState(false)
-
-  const paymentEvent = eventForPayment
-    ? {
-        _id: eventForPayment._id,
-        name: eventForPayment.title,
-        price: eventForPayment.ticketPrice ?? 0,
-        ticketPrice: eventForPayment.ticketPrice,
-        earlyBirdDiscount: (eventForPayment as any).earlyBirdDiscount,
-        memberDiscount: (eventForPayment as any).memberDiscount,
-        groupDiscount: (eventForPayment as any).groupDiscount,
-        currency: (eventForPayment as any)?.currency,
-      }
-    : undefined
 
   const activeMembership = useMemo(() => {
     if (!user || user.role === "system_owner") return null
@@ -386,57 +367,8 @@ export default function UserDashboardPage() {
       toast.error("Please log in to register for events")
       return
     }
-    setRegistrationEventId(event._id)
-    setRegistrationEvent(event)
-    setShowRegistrationModal(true)
-  }
-
-  const handlePerformRegistration = async (payload: {
-    eventId: string;
-    attendees: any[];
-    couponCode?: string;
-  }) => {
-    if (!payload || !payload.eventId) return
-    const event = events.find((e) => e._id === payload.eventId);
-    if (event?.ticketPrice) {
-      setShowEventCheckoutModal(true);
-      setEventForPayment({ ...event, price: event.ticketPrice } as Event & {
-        price: number;
-      });
-      setAttendeesForPayment(
-        payload.attendees
-      );
-      setCouponCodeForPayment(payload.couponCode);
-      return;
-    }
-    try {
-      const registrationPromise = (async () => {
-        const res = await apiClient.registerForEvent(
-          payload.eventId,
-          undefined,
-          payload.attendees,
-          payload.couponCode
-        )
-        if (!res || !res.success) throw res ?? new Error("Registration failed")
-        return res
-      })()
-
-      toast.promise(registrationPromise, {
-        loading: "Registering...",
-        success: (res: any) => {
-          fetchData()
-          setShowRegistrationModal(false)
-          setRegistrationEventId(null)
-          return res?.data?.message || "Registered successfully"
-        },
-        error: (err: any) => {
-          const msg = err?.error || err?.message || err?.data?.message || "Registration failed"
-          return msg
-        },
-      })
-    } catch (error) {
-      toast.error("Failed to register for event")
-    }
+    setVenueTierEvent(event)
+    setShowVenueTierCartModal(true)
   }
 
   const handleCancelRegistration = async (eventId: string) => {
@@ -819,18 +751,6 @@ export default function UserDashboardPage() {
     if (lowerPlan.includes('advanced') || lowerPlan.includes('pro')) return <Star className="w-4 h-4" />
     return <Calendar className="w-4 h-4" />
   }
-
-  const handleEventPayment = (event: Event, attendees: any[]) => {
-    setEventForPayment(event);
-    setAttendeesForPayment(attendees);
-    setShowEventCheckoutModal(true);
-  };
-
-  const handleEventCheckoutSuccess = () => {
-    setShowEventCheckoutModal(false);
-    fetchData();
-    toast.success("Payment successful!");
-  };
 
   return (
     <ProtectedRoute>
@@ -1344,28 +1264,17 @@ export default function UserDashboardPage() {
           isOpen={showEventDetailsModal}
           onClose={() => { setShowEventDetailsModal(false); setSelectedEventForDetails(null) }}
         />
-        <UserEventRegistrationModal
-          eventId={registrationEventId}
-          isOpen={showRegistrationModal}
-          onClose={() => {
-            setShowRegistrationModal(false)
-            setRegistrationEventId(null)
-            setRegistrationEvent(null)
+        <VenueTierCartModal
+          isOpen={showVenueTierCartModal}
+          onClose={() => { setShowVenueTierCartModal(false); setVenueTierEvent(null) }}
+          event={venueTierEvent}
+          onSuccess={() => {
+            setShowVenueTierCartModal(false)
+            setVenueTierEvent(null)
+            fetchData()
           }}
-          onRegister={handlePerformRegistration}
-          ticketPrice={registrationEvent?.ticketPrice || 0}
-          event={registrationEvent}
-        />
-        <EventCheckoutModal
-          isOpen={showEventCheckoutModal}
-          onClose={() => setShowEventCheckoutModal(false)}
-          event={paymentEvent}
-          attendees={attendeesForPayment}
-          couponCode={couponCodeForPayment}
-          onSuccess={handleEventCheckoutSuccess}
           onFailure={() => {
-            setShowEventCheckoutModal(false);
-            toast.error("Payment failed. Please try again.");
+            setShowVenueTierCartModal(false)
           }}
         />
         {refundCancelEventId && refundEstimate && (

@@ -22,7 +22,7 @@ interface FeatureUnavailableOverlayProps {
 /**
  * Renders an absolute overlay over its nearest `relative` ancestor when the
  * given feature is disabled — either from the initial load or from a live
- * Socket.io config-sync event (i.e., Nabil toggling it off mid-session).
+ * Socket.io config-sync event (i.e., Wingman Support toggling it off mid-session).
  *
  * Place this inside a `relative` wrapper that covers the editable region.
  * The overlay blocks all pointer events below it.

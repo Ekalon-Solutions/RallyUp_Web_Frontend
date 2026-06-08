@@ -8,10 +8,7 @@ import { Separator } from "@/components/ui/separator"
 import { Card, CardContent } from "@/components/ui/card"
 import { apiClient, Event } from "@/lib/api"
 import { formatDisplayDate, slugify } from "@/lib/utils"
-import UserEventRegistrationModal from "@/components/modals/user-event-registration-modal"
-import { EventCheckoutModal } from "@/components/modals/event-checkout-modal"
 import {
-  PurchaseFlowModal,
   setStoredPurchaseIntent,
   getStoredPurchaseIntent,
   clearStoredPurchaseIntent,
@@ -31,7 +28,6 @@ import {
   formatEventPriceDisplay,
   formatTierPrice,
   getEventCapacity,
-  getEventLowestTicketPrice,
   getEventTicketRows,
   getEventVenueDisplay,
   hasVenueTierMatrix,
@@ -73,12 +69,7 @@ export default function EventDetailPage() {
   const [settings, setSettings] = useState<ClubSettings | null>(null)
   const [event, setEvent] = useState<Event | null>(null)
 
-  const [showEventRegistrationModal, setShowEventRegistrationModal] = useState(false)
-  const [showPurchaseFlowModal, setShowPurchaseFlowModal] = useState(false)
-  const [showEventCheckoutModal, setShowEventCheckoutModal] = useState(false)
   const [showVenueTierCartModal, setShowVenueTierCartModal] = useState(false)
-  const [eventCheckoutAsGuest, setEventCheckoutAsGuest] = useState(false)
-  const [attendeesForPayment, setAttendeesForPayment] = useState<any[]>([])
 
   useEffect(() => {
     loadData()
@@ -91,15 +82,8 @@ export default function EventDetailPage() {
     const intent = getStoredPurchaseIntent()
     if (!intent || intent.type !== "event" || intent.clubId !== club._id || intent.eventId !== event._id) return
 
-    const storedAttendees = intent.attendees || []
-
     const finish = () => {
-      setAttendeesForPayment(storedAttendees)
-      if (hasVenueTierMatrix(event)) {
-        setShowVenueTierCartModal(true)
-      } else {
-        setShowEventCheckoutModal(true)
-      }
+      setShowVenueTierCartModal(true)
       clearStoredPurchaseIntent()
       const url = new URL(window.location.href)
       url.searchParams.delete("resumePurchase")
@@ -172,12 +156,7 @@ export default function EventDetailPage() {
       }
     } catch {}
 
-    if (hasVenueTierMatrix(event)) {
-      setShowVenueTierCartModal(true)
-      return
-    }
-
-    setShowEventRegistrationModal(true)
+    setShowVenueTierCartModal(true)
   }
 
   const primaryColor = settings?.designSettings?.primaryColor || "#3b82f6"
@@ -216,7 +195,6 @@ export default function EventDetailPage() {
     fromPrefix: multiVenue,
     includeFees: true,
   })
-  const checkoutTicketPrice = getEventLowestTicketPrice(event)
   const returnPath = `/clubs/${slug}/events/${eventSlug}`
 
   return (
@@ -441,25 +419,29 @@ export default function EventDetailPage() {
                     </div>
                   )}
 
-                  {isPaid && (
-                    <div className="flex items-start gap-3.5 sm:gap-4">
-                      <div
-                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
-                        style={{ backgroundColor: `${primaryColor}18`, color: primaryColor }}
-                      >
-                        <Ticket className="h-5 w-5" />
-                      </div>
-                      <div className="min-w-0 pt-0.5">
-                        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Ticket Price</p>
-                        <p className="text-2xl font-black mt-1 leading-none" style={{ color: primaryColor }}>
-                          {displayPrice}
-                        </p>
+                  <div className="flex items-start gap-3.5 sm:gap-4">
+                    <div
+                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
+                      style={{ backgroundColor: `${primaryColor}18`, color: primaryColor }}
+                    >
+                      <Ticket className="h-5 w-5" />
+                    </div>
+                    <div className="min-w-0 pt-0.5">
+                      {isPaid && (
+                        <>
+                          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Ticket Price</p>
+                          <p className="text-2xl font-black mt-1 leading-none" style={{ color: primaryColor }}>
+                            {displayPrice}
+                          </p>
+                        </>
+                      )}
+                      {isPaid && (
                         <div className="mt-2">
                           <RefundPolicyBadge eventId={event._id} source="event_detail" />
                         </div>
-                      </div>
+                      )}
                     </div>
-                  )}
+                  </div>
                 </div>
 
                 <Separator className="my-1" />
@@ -480,61 +462,6 @@ export default function EventDetailPage() {
       </main>
 
       {/* Modals — mount only when open to avoid render crashes from partial event payloads */}
-      {showEventRegistrationModal && (
-      <UserEventRegistrationModal
-        eventId={event._id}
-        isOpen={showEventRegistrationModal}
-        onClose={() => setShowEventRegistrationModal(false)}
-        ticketPrice={checkoutTicketPrice}
-        event={event}
-        onRegister={(payload) => {
-          setAttendeesForPayment(payload.attendees || [])
-          setShowEventRegistrationModal(false)
-          setShowPurchaseFlowModal(true)
-        }}
-      />
-      )}
-
-      {club._id && showPurchaseFlowModal && (
-        <PurchaseFlowModal
-          isOpen={showPurchaseFlowModal}
-          onClose={() => setShowPurchaseFlowModal(false)}
-          clubId={club._id}
-          clubName={club.name}
-          returnPath={returnPath}
-          initialMobileNumber={attendeesForPayment[0]?.phone}
-          onContinueToPayment={() => {
-            setShowPurchaseFlowModal(false)
-            setEventCheckoutAsGuest(true)
-            setShowEventCheckoutModal(true)
-          }}
-          onLogin={(returnUrl) => {
-            setStoredPurchaseIntent({
-              type: "event",
-              clubId: club._id,
-              slug,
-              eventId: event._id,
-              event,
-              attendees: attendeesForPayment,
-              returnPath: returnUrl,
-            })
-            router.push(`/login?next=${encodeURIComponent(returnUrl)}`)
-          }}
-          onRegister={(registerNextUrl) => {
-            setStoredPurchaseIntent({
-              type: "event",
-              clubId: club._id,
-              slug,
-              eventId: event._id,
-              event,
-              attendees: attendeesForPayment,
-              returnPath: registerNextUrl,
-            })
-            router.push(registerNextUrl)
-          }}
-        />
-      )}
-
       {showVenueTierCartModal && (
       <VenueTierCartModal
         isOpen={showVenueTierCartModal}
@@ -545,33 +472,36 @@ export default function EventDetailPage() {
           loadData()
         }}
         onFailure={() => {}}
-      />
-      )}
-
-      {showEventCheckoutModal && (
-      <EventCheckoutModal
-        isOpen={showEventCheckoutModal}
-        onClose={() => {
-          setShowEventCheckoutModal(false)
-          setEventCheckoutAsGuest(false)
-          setAttendeesForPayment([])
+        onLogin={(guest) => {
+          if (!club._id) return
+          setShowVenueTierCartModal(false)
+          const loginReturnUrl = returnPath + (returnPath.includes("?") ? "&" : "?") + "resumePurchase=1"
+          setStoredPurchaseIntent({
+            type: "event",
+            clubId: club._id,
+            slug,
+            eventId: event._id,
+            event,
+            attendees: [{ name: guest.name, phone: `${guest.countryCode}${guest.phone}` }],
+            returnPath: loginReturnUrl,
+          })
+          router.push(`/login?next=${encodeURIComponent(loginReturnUrl)}`)
         }}
-        skipMemberValidation={eventCheckoutAsGuest}
-        event={{
-          _id: event._id,
-          name: event.title,
-          price: checkoutTicketPrice,
-          ticketPrice: checkoutTicketPrice,
-          earlyBirdDiscount: (event as any).earlyBirdDiscount,
-          memberDiscount: (event as any).memberDiscount,
-          groupDiscount: (event as any).groupDiscount,
-          currency: (event as any).currency || "INR",
+        onSignup={(guest) => {
+          if (!club._id) return
+          setShowVenueTierCartModal(false)
+          const signupReturnUrl = returnPath + (returnPath.includes("?") ? "&" : "?") + "resumePurchase=1"
+          setStoredPurchaseIntent({
+            type: "event",
+            clubId: club._id,
+            slug,
+            eventId: event._id,
+            event,
+            attendees: [{ name: guest.name, phone: `${guest.countryCode}${guest.phone}` }],
+            returnPath: signupReturnUrl,
+          })
+          router.push(`/login?tab=user-register&next=${encodeURIComponent(signupReturnUrl)}`)
         }}
-        attendees={attendeesForPayment}
-        onSuccess={() => {
-          loadData()
-        }}
-        onFailure={() => {}}
       />
       )}
     </div>
