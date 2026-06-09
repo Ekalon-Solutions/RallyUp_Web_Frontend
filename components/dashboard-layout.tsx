@@ -513,7 +513,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const handleRoleSwitch = async (accountType: 'user' | 'admin' | 'system_owner', accountId: string) => {
     const result = await switchRole(accountType, accountId)
     if (result.success) {
-      router.refresh()
+      router.push('/dashboard')
     }
   }
 

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
 import { DashboardLayout } from '@/components/dashboard-layout'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -64,6 +65,27 @@ export default function RefundsPage() {
   const { user } = useAuth()
   const { toast } = useToast()
   const clubId = useRequiredClubId()
+  const router = useRouter()
+  const searchParams = useSearchParams()
+
+  const urlTab = searchParams.get('tab')
+  const urlEventId = searchParams.get('eventId') ?? undefined
+  const urlEventTitle = searchParams.get('eventTitle') ?? undefined
+  const validTabs = new Set(['requests', 'event-log', 'rules'])
+  const [activeTab, setActiveTab] = useState(
+    urlTab && validTabs.has(urlTab) ? urlTab : 'requests'
+  )
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab)
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('tab', tab)
+    if (tab !== 'event-log') {
+      params.delete('eventId')
+      params.delete('eventTitle')
+    }
+    router.replace(`/dashboard/admin/refunds?${params.toString()}`)
+  }
   const [refunds, setRefunds] = useState<RefundRequest[]>([])
   const [loading, setLoading] = useState(true)
   const [page, setPage] = useState(1)
@@ -399,14 +421,14 @@ export default function RefundsPage() {
           <p className="text-muted-foreground">Manage and process refund requests</p>
         </div>
 
-        <Tabs defaultValue="requests">
+        <Tabs value={activeTab} onValueChange={handleTabChange}>
           <TabsList>
             <TabsTrigger value="requests">Refund Requests</TabsTrigger>
             <TabsTrigger value="event-log">Event Refund Report</TabsTrigger>
             <TabsTrigger value="rules">Refund Rules</TabsTrigger>
           </TabsList>
           <TabsContent value="event-log" className="mt-4">
-            <EventRefundLogPanel />
+            <EventRefundLogPanel eventId={urlEventId} eventTitle={urlEventTitle} />
           </TabsContent>
           <TabsContent value="rules" className="mt-4 space-y-4">
             <Card>

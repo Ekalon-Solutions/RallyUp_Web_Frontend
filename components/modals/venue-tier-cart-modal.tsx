@@ -596,8 +596,12 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
       }
       const payload = (res.data as any)?.data ?? res.data
       if (payload?.alreadyBooked) {
-        setIdentifyError('You are already registered for this event with this number.')
-        return
+        const regStatus = (payload?.registrationStatus || payload?.status || payload?.registration?.status || '').toLowerCase()
+        const isCancelled = ['cancelled', 'canceled', 'refunded'].includes(regStatus)
+        if (!isCancelled) {
+          setIdentifyError('You are already registered for this event with this number.')
+          return
+        }
       }
 
       setPrimaryCountryCode(countryCode)
@@ -2175,42 +2179,57 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
                 </Card>
               )}
 
-              {user && hasSelection && showPointsRedemption && (
+              {user && hasSelection && payableBeforePoints > 0 && (
                 <div className="space-y-2">
                   <label className="text-sm font-medium">
-                    Redeem Points{availablePoints !== null ? ` (Available: ${availablePoints})` : ""}
+                    Redeem Points
+                    {availablePoints === null
+                      ? <span className="ml-1 text-xs text-muted-foreground">(Loading…)</span>
+                      : <span className="ml-1 text-xs text-muted-foreground">(Available: {availablePoints})</span>
+                    }
                   </label>
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <input
-                      type="number"
-                      min={1}
-                      max={availablePoints ?? undefined}
-                      value={redeemPoints}
-                      onChange={(e) => setRedeemPoints(e.target.value === "" ? "" : Number(e.target.value))}
-                      className="flex-1 h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
-                      placeholder="Points"
-                      disabled={!!reservationToken || reserving}
-                    />
-                    <div className="flex gap-2">
-                      {reservationToken ? (
-                        <Button disabled size="sm" variant="outline" className="flex-1 sm:flex-none border-green-500 text-green-600">Applied</Button>
-                      ) : (
-                        <Button
-                          onClick={reservePoints}
-                          disabled={reserving || !redeemPoints || Number(redeemPoints) <= 0}
-                          size="sm"
-                          className="flex-1 sm:flex-none"
-                        >
-                          {reserving ? <><Loader2 className="w-3 h-3 animate-spin mr-1" />Reserving...</> : "Reserve"}
-                        </Button>
-                      )}
-                      {(redeemPoints !== "" || reservationToken) && (
-                        <Button variant="ghost" onClick={clearReservation} disabled={reserving} size="sm">Clear</Button>
-                      )}
+                  {availablePoints === null ? (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      Fetching your points balance…
                     </div>
-                  </div>
-                  {reservationToken && (
-                    <p className="text-sm text-green-600">Reserved: {fmt(reservedDiscount, currency)}</p>
+                  ) : availablePoints === 0 ? (
+                    <p className="text-sm text-muted-foreground">You have no points available to redeem.</p>
+                  ) : (
+                    <>
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <input
+                          type="number"
+                          min={1}
+                          max={availablePoints}
+                          value={redeemPoints}
+                          onChange={(e) => setRedeemPoints(e.target.value === "" ? "" : Number(e.target.value))}
+                          className="flex-1 h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
+                          placeholder="Points"
+                          disabled={!!reservationToken || reserving}
+                        />
+                        <div className="flex gap-2">
+                          {reservationToken ? (
+                            <Button disabled size="sm" variant="outline" className="flex-1 sm:flex-none border-green-500 text-green-600">Applied</Button>
+                          ) : (
+                            <Button
+                              onClick={reservePoints}
+                              disabled={reserving || !redeemPoints || Number(redeemPoints) <= 0}
+                              size="sm"
+                              className="flex-1 sm:flex-none"
+                            >
+                              {reserving ? <><Loader2 className="w-3 h-3 animate-spin mr-1" />Reserving...</> : "Reserve"}
+                            </Button>
+                          )}
+                          {(redeemPoints !== "" || reservationToken) && (
+                            <Button variant="ghost" onClick={clearReservation} disabled={reserving} size="sm">Clear</Button>
+                          )}
+                        </div>
+                      </div>
+                      {reservationToken && (
+                        <p className="text-sm text-green-600">Reserved: {fmt(reservedDiscount, currency)}</p>
+                      )}
+                    </>
                   )}
                 </div>
               )}

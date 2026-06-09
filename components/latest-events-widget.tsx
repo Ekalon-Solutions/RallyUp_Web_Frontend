@@ -16,6 +16,7 @@ import { useAuth } from "@/contexts/auth-context"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import Link from "next/link"
 import { formatLocalDate } from "@/lib/timezone"
+import { getEventVenueDisplay, getEventCapacity, hasVenueTierMatrix } from "@/lib/event-display-price"
 
 interface LatestEventsWidgetProps {
   limit?: number
@@ -152,13 +153,18 @@ export function LatestEventsWidget({ limit = 3, showManageButton = true }: Lates
                     </div>
                     <div className="flex items-center gap-2">
                       <MapPin className="w-3 h-3 shrink-0" />
-                      <span className="truncate">{event.venue}</span>
+                      <span className="truncate">{getEventVenueDisplay(event)}</span>
                     </div>
+                    {hasVenueTierMatrix(event) && (
+                      <Badge variant="outline" className="text-xs w-fit">Multi-venue</Badge>
+                    )}
                     <div className="flex items-center gap-2">
                       <Users className="w-3 h-3 shrink-0" />
                       <span className="truncate">
-                        {event.currentAttendees || 0}
-                        {event.maxAttendees ? `/${event.maxAttendees}` : ""}
+                        {(() => {
+                          const { count, max } = getEventCapacity(event)
+                          return max !== null ? `${count}/${max}` : `${count}`
+                        })()}
                       </span>
                     </div>
                   </div>

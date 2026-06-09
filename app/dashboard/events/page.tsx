@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calendar, Search, MoreHorizontal, Edit, Trash2, MapPin, Clock, Users, Plus, Filter, Ban, CheckCircle, Radio, ScanLine, ShieldCheck, ShieldOff } from "lucide-react"
+import { Calendar, Search, MoreHorizontal, Edit, Trash2, MapPin, Clock, Users, Plus, Filter, Ban, CheckCircle, Radio, ScanLine, ShieldCheck, ShieldOff, BarChart3 } from "lucide-react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
 import { EventRegistrationModal } from "@/components/modals/event-registration-modal"
@@ -68,7 +68,7 @@ export default function EventsPage() {
           filteredEvents = filteredEvents.filter(event =>
             event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
             event.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            event.venue.toLowerCase().includes(searchTerm.toLowerCase())
+            getEventVenueDisplay(event).toLowerCase().includes(searchTerm.toLowerCase())
           )
         }
 
@@ -464,6 +464,16 @@ export default function EventsPage() {
                                           Enable Refunds
                                         </>
                                       )}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      onClick={() =>
+                                        router.push(
+                                          `/dashboard/admin/refunds?tab=event-log&eventId=${event._id}&eventTitle=${encodeURIComponent(event.title)}`
+                                        )
+                                      }
+                                    >
+                                      <BarChart3 className="w-4 h-4 mr-2" />
+                                      Refund Report
                                     </DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => handleDeleteEvent(event._id)}>
                                       <Trash2 className="w-4 h-4 mr-2" />

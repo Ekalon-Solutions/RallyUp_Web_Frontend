@@ -1,9 +1,8 @@
 "use client"
 
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Loader2 } from "lucide-react"
-import { apiClient } from "@/lib/api"
 import { RefundPolicyModal } from "@/components/modals/refund-policy-modal"
 import { NonRefundableBadge } from "@/components/member/non-refundable-badge"
 import {
@@ -11,6 +10,7 @@ import {
   showAutomaticRefundStatus,
   type EventRefundPolicyData,
 } from "@/lib/refund-policy"
+import { useEventRefundPolicy } from "@/hooks/useEventRefundPolicy"
 
 type RefundPolicyBadgeProps = {
   eventId: string
@@ -31,37 +31,12 @@ export function RefundPolicyBadge({
   isCheckoutFlow = false,
   onPolicyLoaded,
 }: RefundPolicyBadgeProps) {
-  const [policy, setPolicy] = useState<EventRefundPolicyData | null>(policyProp ?? null)
-  const [loading, setLoading] = useState(!policyProp)
+  const { policy: hookPolicy, loading } = useEventRefundPolicy(
+    policyProp ? undefined : eventId,
+    !isFreeEvent && !policyProp
+  )
+  const policy = policyProp ?? hookPolicy
   const [modalOpen, setModalOpen] = useState(false)
-
-  useEffect(() => {
-    if (policyProp) {
-      setPolicy(policyProp)
-      setLoading(false)
-    }
-  }, [policyProp])
-
-  useEffect(() => {
-    if (policyProp || !eventId) return
-    let cancelled = false
-    setLoading(true)
-    apiClient
-      .getEventRefundPolicy(eventId)
-      .then((res) => {
-        if (cancelled) return
-        const data = res.success && res.data ? res.data : null
-        setPolicy(data)
-        onPolicyLoaded?.(data)
-      })
-      .catch(() => onPolicyLoaded?.(null))
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [eventId, policyProp, onPolicyLoaded])
 
   const openModal = useCallback(() => setModalOpen(true), [])
 

@@ -1834,6 +1834,7 @@ class ApiClient {
 
   async getEventRefundLog(params: {
     clubId: string;
+    eventId?: string;
     policyFilter?: 'all' | 'refundable' | 'non_refundable';
     page?: number;
     limit?: number;
@@ -1850,6 +1851,7 @@ class ApiClient {
   }>> {
     const qs = new URLSearchParams();
     qs.set('clubId', params.clubId);
+    if (params.eventId) qs.set('eventId', params.eventId);
     if (params.policyFilter && params.policyFilter !== 'all') qs.set('policyFilter', params.policyFilter);
     if (params.page) qs.set('page', String(params.page));
     if (params.limit) qs.set('limit', String(params.limit));
@@ -1858,11 +1860,13 @@ class ApiClient {
 
   async downloadEventRefundLogCsv(params: {
     clubId: string;
+    eventId?: string;
     policyFilter?: 'all' | 'refundable' | 'non_refundable';
   }): Promise<{ success: boolean; error?: string }> {
     try {
       const qs = new URLSearchParams();
       qs.set('clubId', params.clubId);
+      if (params.eventId) qs.set('eventId', params.eventId);
       if (params.policyFilter && params.policyFilter !== 'all') qs.set('policyFilter', params.policyFilter);
       const result = await this.downloadFile(`/refunds/admin/event-refund-log/export?${qs.toString()}`);
       if (!result.success || !result.blob) {
@@ -4292,6 +4296,10 @@ class ApiClient {
 
   async updateClubAddress(clubId: string, address: { street?: string; city?: string; state?: string; country?: string; zipCode?: string }): Promise<ApiResponse<any>> {
     return this.put(`/club-settings/${clubId}/address`, address);
+  }
+
+  async updateClubRefundPolicy(clubId: string, data: { grandfatherPurchasedRefunds: boolean }): Promise<ApiResponse<{ grandfatherPurchasedRefunds: boolean }>> {
+    return this.put(`/club-settings/${clubId}/refund-policy`, data);
   }
 
   async getCoupons(clubId: string): Promise<ApiResponse<{ coupons: any[] }>> {

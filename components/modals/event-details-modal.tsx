@@ -13,6 +13,7 @@ import { apiClient } from '@/lib/api'
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion'
 import { formatLocalDate } from '@/lib/timezone'
 import { RefundButton } from '@/components/refund-button'
+import { getEventVenueDisplay, getEventCapacity, hasVenueTierMatrix } from '@/lib/event-display-price'
 
 interface EventDetailsModalProps {
   event: Event | null
@@ -77,22 +78,36 @@ export default function EventDetailsModal({ event, isOpen, onClose }: EventDetai
                   <div className="space-y-2">
                     <div className="flex items-center gap-2"><Calendar className="w-4 h-4 text-muted-foreground" /><span className="font-medium">Start: {formatDateTime(event.startTime)}</span></div>
                     <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-muted-foreground" /><span>End: {event.endTime ? formatDateTime(event.endTime) : 'N/A'}</span></div>
-                    <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-muted-foreground" /><span className="truncate">{event.venue || 'TBA'}</span></div>
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-muted-foreground" />
+                      <span className="truncate">{getEventVenueDisplay(event)}</span>
+                      {hasVenueTierMatrix(event) && <Badge variant="outline" className="text-xs ml-1">Multi-venue</Badge>}
+                    </div>
                   </div>
 
                   <div className="space-y-2">
-                    <div className="flex items-center gap-2"><Users className="w-4 h-4 text-muted-foreground" /><span>{event.currentAttendees}{event.maxAttendees ? `/${event.maxAttendees}` : ''} attendees</span></div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">Category</span>
-                      <Badge variant="secondary" className="ml-2">{event.category}</Badge>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {event.maxAttendees ? (
-                        <span className="text-xs text-muted-foreground">Capacity: {event.maxAttendees}</span>
-                      ) : (
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground"><InfinityIcon className="h-3 w-3" /><span>Unlimited capacity</span></div>
-                      )}
-                    </div>
+                    {(() => {
+                      const { count, max } = getEventCapacity(event)
+                      return (
+                        <>
+                          <div className="flex items-center gap-2">
+                            <Users className="w-4 h-4 text-muted-foreground" />
+                            <span>{count}{max !== null ? `/${max}` : ''} attendees</span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground">Category</span>
+                            <Badge variant="secondary" className="ml-2">{event.category}</Badge>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {max !== null ? (
+                              <span className="text-xs text-muted-foreground">Capacity: {max}</span>
+                            ) : (
+                              <div className="flex items-center gap-2 text-xs text-muted-foreground"><InfinityIcon className="h-3 w-3" /><span>Unlimited capacity</span></div>
+                            )}
+                          </div>
+                        </>
+                      )
+                    })()}
                   </div>
                 </div>
               </div>

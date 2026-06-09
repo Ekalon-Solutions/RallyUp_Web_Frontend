@@ -519,7 +519,7 @@ function UserEventsPageInner() {
       !searchTerm ||
       event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       event.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      event.venue.toLowerCase().includes(searchTerm.toLowerCase());
+      getEventVenueDisplay(event).toLowerCase().includes(searchTerm.toLowerCase());
 
     const categoryMatch =
       categoryFilter === "all" || event.category === categoryFilter;

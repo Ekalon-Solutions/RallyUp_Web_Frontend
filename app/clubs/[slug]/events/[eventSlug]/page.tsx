@@ -37,6 +37,7 @@ import {
 import { VenueTierCartModal } from "@/components/modals/venue-tier-cart-modal"
 import { RefundPolicyBadge } from "@/components/refund-policy-badge"
 import { JointScreeningDisplay } from "@/components/events/joint-screening-display"
+import { useSocket } from "@/contexts/socket-context"
 import { EventScheduleMeta } from "@/components/events/event-schedule-meta"
 import { WaitlistDisplay } from "@/components/events/waitlist-display"
 
@@ -71,9 +72,26 @@ export default function EventDetailPage() {
 
   const [showVenueTierCartModal, setShowVenueTierCartModal] = useState(false)
 
+  const { socket } = useSocket()
+
   useEffect(() => {
     loadData()
   }, [slug, eventSlug])
+
+  // Sync refund policy in real-time when admin changes it mid-event
+  useEffect(() => {
+    if (!socket || !event?._id) return
+    const handler = (payload: { eventId: string; is_refund_allowed: boolean }) => {
+      if (String(payload.eventId) !== String(event._id)) return
+      setEvent((prev) =>
+        prev
+          ? { ...prev, isRefundAllowed: payload.is_refund_allowed, is_refund_allowed: payload.is_refund_allowed }
+          : prev
+      )
+    }
+    socket.on("event:refund-policy-updated", handler)
+    return () => { socket.off("event:refund-policy-updated", handler) }
+  }, [socket, event?._id])
 
   // Resume purchase after login/register redirect
   useEffect(() => {
@@ -92,8 +110,10 @@ export default function EventDetailPage() {
 
     apiClient.checkEventRegistration(event._id).then((checkResult) => {
       if (checkResult.success && checkResult.data) {
-        const { isRegistered, isMember } = checkResult.data
-        if (isMember && isRegistered) {
+        const { isRegistered, isMember, registrationStatus, status, registration } = checkResult.data as any
+        const regStatus = registrationStatus || status || registration?.status || ''
+        const isCancelled = ['cancelled', 'canceled', 'refunded'].includes(regStatus.toLowerCase())
+        if (isMember && isRegistered && !isCancelled) {
           toast.error("You are already registered for this event")
           clearStoredPurchaseIntent()
           const url = new URL(window.location.href)
@@ -148,8 +168,10 @@ export default function EventDetailPage() {
     try {
       const checkResult = await apiClient.checkEventRegistration(event._id)
       if (checkResult.success && checkResult.data) {
-        const { isRegistered, isMember } = checkResult.data
-        if (isMember && isRegistered) {
+        const { isRegistered, isMember, registrationStatus, status, registration } = checkResult.data as any
+        const regStatus = registrationStatus || status || registration?.status || ''
+        const isCancelled = ['cancelled', 'canceled', 'refunded'].includes(regStatus.toLowerCase())
+        if (isMember && isRegistered && !isCancelled) {
           toast.error("You are already registered for this event")
           return
         }

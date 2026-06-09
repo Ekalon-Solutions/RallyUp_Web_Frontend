@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Loader2, Download, ChevronLeft, ChevronRight, Filter } from "lucide-react"
+import { Loader2, Download, ChevronLeft, ChevronRight, Filter, ShieldOff, AlertTriangle } from "lucide-react"
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
@@ -71,10 +71,17 @@ function formatDate(iso: string | null) {
   }
 }
 
-export function EventRefundLogPanel() {
+type Props = {
+  /** When set, the panel filters to a single event and shows its title in the header. */
+  eventId?: string
+  eventTitle?: string
+}
+
+export function EventRefundLogPanel({ eventId, eventTitle }: Props = {}) {
   const clubId = useRequiredClubId()
   const [loading, setLoading] = useState(true)
   const [exporting, setExporting] = useState(false)
+  const [accessDenied, setAccessDenied] = useState(false)
   const [policyFilter, setPolicyFilter] = useState<PolicyFilter>("all")
   const [page, setPage] = useState(1)
   const [data, setData] = useState<ReportData | null>(null)
@@ -82,9 +89,11 @@ export function EventRefundLogPanel() {
   const fetchLog = useCallback(async () => {
     if (!clubId) return
     setLoading(true)
+    setAccessDenied(false)
     try {
       const res = await apiClient.getEventRefundLog({
         clubId,
+        eventId,
         policyFilter,
         page,
         limit: 50,
@@ -92,8 +101,14 @@ export function EventRefundLogPanel() {
       if (res.success && res.data) {
         setData(res.data as ReportData)
       } else {
-        toast.error(res.error ?? "Failed to load event refund log")
-        setData(null)
+        const code = (res as any).code ?? (res as any).data?.code
+        if (code === "FINANCIAL_ADMIN_REQUIRED" || (res as any).status === 403) {
+          setAccessDenied(true)
+          setData(null)
+        } else {
+          toast.error(res.error ?? "Failed to load event refund log")
+          setData(null)
+        }
       }
     } catch {
       toast.error("Error loading event refund log")
@@ -101,7 +116,7 @@ export function EventRefundLogPanel() {
     } finally {
       setLoading(false)
     }
-  }, [clubId, policyFilter, page])
+  }, [clubId, eventId, policyFilter, page])
 
   useEffect(() => {
     fetchLog()
@@ -109,13 +124,13 @@ export function EventRefundLogPanel() {
 
   useEffect(() => {
     setPage(1)
-  }, [policyFilter])
+  }, [policyFilter, eventId])
 
   const handleExport = async () => {
     if (!clubId) return
     setExporting(true)
     try {
-      const res = await apiClient.downloadEventRefundLogCsv({ clubId, policyFilter })
+      const res = await apiClient.downloadEventRefundLogCsv({ clubId, eventId, policyFilter })
       if (!res.success) toast.error(res.error ?? "Export failed")
     } catch {
       toast.error("Export failed")
@@ -124,10 +139,45 @@ export function EventRefundLogPanel() {
     }
   }
 
+  if (accessDenied) {
+    return (
+      <Card className="border-destructive/40">
+        <CardContent className="py-12 flex flex-col items-center gap-4 text-center">
+          <div className="rounded-full bg-destructive/10 p-4">
+            <ShieldOff className="w-8 h-8 text-destructive" />
+          </div>
+          <div className="space-y-1 max-w-sm">
+            <p className="font-semibold text-destructive">Access Restricted</p>
+            <p className="text-sm text-muted-foreground">
+              The Event Refund Report is restricted to <strong>Financial Administrators</strong>. It
+              contains ticket-level revenue and refund metrics that must remain confidential from
+              venue staff and operational roles.
+            </p>
+            <p className="text-xs text-muted-foreground pt-1">
+              Contact your club owner to request access to the{" "}
+              <span className="font-medium">Refunds</span> or{" "}
+              <span className="font-medium">Reporting</span> module in your permission matrix.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
   const summary = data?.summary
 
   return (
     <div className="space-y-6">
+      {eventTitle && (
+        <div className="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/5 px-4 py-2.5 text-sm">
+          <AlertTriangle className="w-4 h-4 text-primary shrink-0" />
+          <span>
+            Showing refund data for event:{" "}
+            <span className="font-semibold">{eventTitle}</span>
+          </span>
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center gap-3 justify-between">
         <div className="flex items-center gap-2 flex-wrap">
           <Filter className="w-4 h-4 text-muted-foreground" />
@@ -174,7 +224,8 @@ export function EventRefundLogPanel() {
                 {formatCurrency(summary.totalSavings)}
               </p>
               <p className="text-xs text-muted-foreground mt-1">
-                {summary.blockedAttemptCount} blocked attempt{summary.blockedAttemptCount !== 1 ? "s" : ""}
+                {summary.blockedAttemptCount} blocked attempt
+                {summary.blockedAttemptCount !== 1 ? "s" : ""}
               </p>
             </CardContent>
           </Card>
@@ -191,8 +242,8 @@ export function EventRefundLogPanel() {
         <CardHeader>
           <CardTitle>Event refund log</CardTitle>
           <CardDescription>
-            Ticket-level refund status for revenue reconciliation. Each row links to an order ID and records policy at
-            time of purchase.
+            Ticket-level refund status for revenue reconciliation. Each row links to an Order ID and
+            records policy at time of purchase. <strong>Restricted to Financial Admins.</strong>
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -201,7 +252,9 @@ export function EventRefundLogPanel() {
               <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
             </div>
           ) : !data?.rows.length ? (
-            <p className="text-center text-muted-foreground py-12">No ticket records match this filter.</p>
+            <p className="text-center text-muted-foreground py-12">
+              No ticket records match this filter.
+            </p>
           ) : (
             <>
               <div className="overflow-x-auto">
@@ -221,12 +274,17 @@ export function EventRefundLogPanel() {
                   <TableBody>
                     {data.rows.map((row, i) => (
                       <TableRow key={`${row.orderId ?? row.registrationId ?? i}`}>
-                        <TableCell className="font-mono text-xs max-w-[120px] truncate" title={row.orderId ?? undefined}>
+                        <TableCell
+                          className="font-mono text-xs max-w-[120px] truncate"
+                          title={row.orderId ?? undefined}
+                        >
                           {row.orderId ?? "—"}
                         </TableCell>
                         <TableCell>
                           <p className="font-medium text-sm">{row.eventTitle}</p>
-                          <p className="text-xs text-muted-foreground">{formatDate(row.eventStartTime)}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {formatDate(row.eventStartTime)}
+                          </p>
                         </TableCell>
                         <TableCell>
                           <p className="text-sm">{row.userName}</p>
@@ -256,7 +314,15 @@ export function EventRefundLogPanel() {
                         <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
                           {formatDate(row.cancellationTimestamp)}
                         </TableCell>
-                        <TableCell className="text-sm">{row.manualOverride ? "Yes" : "No"}</TableCell>
+                        <TableCell className="text-sm">
+                          {row.manualOverride ? (
+                            <Badge variant="outline" className="text-amber-700 border-amber-400">
+                              Yes
+                            </Badge>
+                          ) : (
+                            "No"
+                          )}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -266,7 +332,8 @@ export function EventRefundLogPanel() {
               {data.pagination.totalPages > 1 && (
                 <div className="flex items-center justify-between mt-4 pt-4 border-t">
                   <p className="text-sm text-muted-foreground">
-                    Page {data.pagination.page} of {data.pagination.totalPages} ({data.pagination.totalItems} tickets)
+                    Page {data.pagination.page} of {data.pagination.totalPages} (
+                    {data.pagination.totalItems} tickets)
                   </p>
                   <div className="flex gap-2">
                     <Button
