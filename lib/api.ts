@@ -82,6 +82,7 @@ export interface Admin {
   adminTitle?: string;
   club?: Club;
   clubs?: Club[];
+  superAdminClubIds?: string[];
   isActive?: boolean;
   volunteering?: VolunteerProfile;
   notificationPreferences?: {
@@ -989,6 +990,7 @@ class ApiClient {
       accountId: string;
       role: string;
       name: string;
+      clubIds?: string[];
     }>;
   }>> {
     return this.request('/role-switch/available');
@@ -2587,6 +2589,20 @@ class ApiClient {
   async deleteClub(id: string): Promise<ApiResponse<{ message: string }>> {
     return this.request(`/clubs/${id}`, {
       method: 'DELETE',
+    });
+  }
+
+  async assignSuperAdmin(
+    clubId: string,
+    adminId: string
+  ): Promise<ApiResponse<{
+    message: string;
+    club: { _id: string; name: string };
+    admin: { _id: string; name: string; email: string; role: string };
+  }>> {
+    return this.request(`/clubs/${clubId}/assign-super-admin`, {
+      method: 'PATCH',
+      body: JSON.stringify({ adminId }),
     });
   }
 
@@ -4997,6 +5013,47 @@ class ApiClient {
     const res = await this.post(`/feature-selector/clubs/${clubId}/sync-tier`, { tier });
     if (res.success && res.data) return { ...res, data: (res.data as any).data ?? res.data };
     return res;
+  }
+
+  async pushOrderToShiprocket(orderId: string): Promise<ApiResponse<any>> {
+    return this.post(`/orders/admin/${orderId}/push-to-shiprocket`, {});
+  }
+
+  async getFulfillmentPickupLocations(): Promise<ApiResponse<any[]>> {
+    return this.get('/fulfillment/pickup-locations');
+  }
+
+  async getFulfillmentCouriers(orderId: string, params?: { pickupPin?: string; weight?: number; sort?: 'cost' | 'speed' }): Promise<ApiResponse<any[]>> {
+    const qs = new URLSearchParams();
+    if (params?.pickupPin) qs.set('pickupPin', params.pickupPin);
+    if (params?.weight) qs.set('weight', String(params.weight));
+    if (params?.sort) qs.set('sort', params.sort);
+    const q = qs.toString();
+    return this.get(`/fulfillment/${orderId}/couriers${q ? `?${q}` : ''}`);
+  }
+
+  async triggerReadyToShip(orderId: string, payload: { courierId: number; pickupDate: string; pickupLocationName?: string }): Promise<ApiResponse<any>> {
+    return this.post(`/fulfillment/${orderId}/ready-to-ship`, payload as any);
+  }
+
+  async cancelOrderShipment(orderId: string): Promise<ApiResponse<any>> {
+    return this.post(`/fulfillment/${orderId}/cancel-shipment`, {});
+  }
+
+  async getLogisticsHealth(): Promise<ApiResponse<{ status: string; reason: string | null }>> {
+    return this.get('/shiprocket/health');
+  }
+
+  async testShiprocketConnectivity(): Promise<ApiResponse<{ ok: boolean; latencyMs: number; message: string }>> {
+    return this.post('/shiprocket/test-connectivity', {});
+  }
+
+  async getShiprocketCouriers(refresh = false): Promise<ApiResponse<{ couriers: Array<{ id: number; name: string; etd?: string; rating?: number }> }>> {
+    return this.get(`/shiprocket/couriers${refresh ? '?refresh=true' : ''}`);
+  }
+
+  async getLogisticsTraces(page = 1, limit = 20): Promise<ApiResponse<{ traces: any[]; total: number; page: number; pages: number }>> {
+    return this.get(`/shiprocket/traces?page=${page}&limit=${limit}`);
   }
 }
 

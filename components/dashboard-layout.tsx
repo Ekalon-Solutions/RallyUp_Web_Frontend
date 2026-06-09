@@ -19,6 +19,7 @@ import {
   Globe,
   ExternalLink,
   Shield,
+  ShieldCheck,
   Newspaper,
   Shirt,
   LayoutDashboard,
@@ -42,6 +43,8 @@ import {
   Grid3X3,
   Receipt,
   Repeat,
+  Crown,
+  Truck,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -58,7 +61,6 @@ import { apiClient, type StorageAlertStatus } from "@/lib/api"
 import { BASE_STORAGE_GB } from "@/lib/storageConstants"
 import type { WebsiteSectionKey } from "@/lib/websiteSections"
 import { EkalonAttribution } from "@/components/ekalon-attribution"
-import { usePrimaryClubOwner } from "@/hooks/usePrimaryClubOwner"
 import { useClubFeatures } from "@/hooks/useClubFeatures"
 import { ADMIN_NAV_FEATURE_MAP, CLUB_FEATURE_DISABLED_EVENT, clubFeatureFlags, type ClubFeatureKey } from "@/lib/clubFeatures"
 import { clearFeatureCache } from "@/lib/featureCacheStore"
@@ -67,6 +69,41 @@ import { LockedFeaturePage } from "@/components/feature-gate/locked-feature-page
 import { ClubFeaturesProvider } from "@/contexts/club-features-context"
 import { useFcmRegistration } from "@/hooks/useFcmRegistration"
 import { ChevronDown, ChevronRight } from "lucide-react"
+
+const ROLE_LABELS: Record<string, string> = {
+  member: 'Member',
+  admin: 'Admin',
+  super_admin: 'Super Admin',
+  system_owner: 'System Owner',
+}
+
+const ROLE_ICONS: Record<string, React.ElementType> = {
+  member: User,
+  admin: Shield,
+  super_admin: ShieldCheck,
+  system_owner: Crown,
+}
+
+function formatRoleLabel(role: string): string {
+  if (!role) return 'Member'
+  return ROLE_LABELS[role] ?? role.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
+function getRoleIcon(role: string): React.ElementType {
+  return ROLE_ICONS[role] ?? User
+}
+
+// Derives the effective role for the currently active club.
+// An admin whose account-level role is 'super_admin' is only super_admin
+// for clubs listed in superAdminClubIds; for all other clubs they are 'admin'.
+function getEffectiveRole(user: any, clubId: string | null | undefined): string {
+  if (!user) return 'member'
+  if (user.role === 'system_owner') return 'system_owner'
+  if (user.role !== 'super_admin') return user.role || 'member'
+  if (!clubId) return 'super_admin'
+  const ids: string[] = user.superAdminClubIds ?? []
+  return ids.includes(clubId) ? 'super_admin' : 'admin'
+}
 
 const USER_PATH_TO_SECTION: Record<string, WebsiteSectionKey> = {
   "/dashboard/user/news": "news",
@@ -95,6 +132,7 @@ const adminNavigation = [
   { name: "Club Chants", href: "/dashboard/chants", icon: Music },
   { name: "Polls", href: "/dashboard/polls", icon: Vote },
   { name: "Order Management", href: "/dashboard/orders", icon: ShoppingCart },
+  { name: "Logistics", href: "/dashboard/logistics", icon: Truck },
   { name: "Leaderboard", href: "/dashboard/leaderboard", icon: ChartNoAxesColumn },
   { name: "Coupons", href: "/dashboard/coupons", icon: Tag },
   { name: "Group Website", href: "/dashboard/website", icon: Globe },
@@ -112,6 +150,7 @@ const systemOwnerNavigation = [
   { name: "Service Matrix", href: "/dashboard/feature-matrix", icon: Grid3X3 },
   { name: "Audit Logs", href: "/dashboard/admin-audit", icon: Shield },
   { name: "Billing Auditor", href: "/dashboard/billing-auditor", icon: Receipt },
+  { name: "Logistics", href: "/dashboard/logistics", icon: Truck },
   // { name: "Browse Clubs", href: "/dashboard/user/clubs", icon: Building2 },
   { name: "Onboarding & Promotions", href: "/dashboard/onboarding", icon: GraduationCap },
   { name: "Sports", href: "/dashboard/sports", icon: Trophy },
@@ -122,6 +161,7 @@ const systemOwnerNavigation = [
 const superAdminNavigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Members", href: "/dashboard/members", icon: Users },
+  { name: "Elevate Admin", href: "/dashboard/elevate-admin", icon: UserPlus },
   { name: "Events & Tickets", href: "/dashboard/events", icon: Ticket },
   { name: "Gallery", href: "/dashboard/gallery", icon: Images },
   { name: "News & Updates", href: "/dashboard/content", icon: Newspaper },
@@ -130,6 +170,7 @@ const superAdminNavigation = [
   { name: "Club Chants", href: "/dashboard/chants", icon: Music },
   { name: "Polls", href: "/dashboard/polls", icon: Vote },
   { name: "Order Management", href: "/dashboard/orders", icon: ShoppingCart },
+  { name: "Logistics", href: "/dashboard/logistics", icon: Truck },
   { name: "Leaderboard", href: "/dashboard/leaderboard", icon: ChartNoAxesColumn },
   { name: "Coupons", href: "/dashboard/coupons", icon: Tag },
   { name: "Group Website", href: "/dashboard/website", icon: Globe },
@@ -181,7 +222,7 @@ interface DashboardSidebarProps {
   user: any
   onLogout: () => void
   onLockedNavClick?: (href: string) => void
-  availableRoles: { accountType: 'user' | 'admin' | 'system_owner'; accountId: string; role: string; name: string }[]
+  availableRoles: { accountType: 'user' | 'admin' | 'system_owner'; accountId: string; role: string; name: string; clubIds?: string[] }[]
   onRoleSwitch: (accountType: 'user' | 'admin' | 'system_owner', accountId: string) => void
 }
 
@@ -391,27 +432,46 @@ function DashboardSidebar({
                   className="px-3 py-2 rounded-xl bg-primary/5 border border-primary/10 cursor-pointer hover:bg-primary/10 transition-colors flex items-center justify-between gap-2"
                   title="Switch role"
                 >
-                  <div className="min-w-0">
-                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1">Logged in as</p>
-                    <p className="text-sm font-bold text-foreground truncate">{user?.role?.replace('_', ' ') || 'Member'}</p>
+                  <div className="flex items-center gap-2 min-w-0">
+                    {(() => {
+                      const effectiveRole = getEffectiveRole(user, activeClubId)
+                      const CurrentIcon = getRoleIcon(effectiveRole)
+                      return <CurrentIcon className="w-4 h-4 text-primary flex-shrink-0" />
+                    })()}
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-0.5">Logged in as</p>
+                      <p className="text-sm font-bold text-foreground truncate">{formatRoleLabel(getEffectiveRole(user, activeClubId))}</p>
+                    </div>
                   </div>
                   <Repeat className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                 </div>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" side="right" className="w-[var(--radix-dropdown-menu-trigger-width)] min-w-56 p-2 rounded-xl border-2 shadow-xl">
-                {availableRoles.map((account) => (
-                  <DropdownMenuItem
-                    key={`${account.accountType}-${account.accountId}`}
-                    onClick={() => onRoleSwitch(account.accountType, account.accountId)}
-                    className="rounded-lg gap-2 cursor-pointer"
-                  >
-                    <Repeat className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                    <div className="min-w-0">
-                      <p className="text-sm font-bold truncate">{account.role.replace('_', ' ')}</p>
-                      <p className="text-xs text-muted-foreground truncate">{account.name}</p>
-                    </div>
-                  </DropdownMenuItem>
-                ))}
+                {availableRoles.map((account) => {
+                  const RoleIcon = getRoleIcon(account.role)
+                  const isAdmin = account.role === 'admin'
+                  const isSuperAdmin = account.role === 'super_admin'
+                  const iconColor = isSuperAdmin
+                    ? 'text-violet-500'
+                    : isAdmin
+                    ? 'text-blue-500'
+                    : account.accountType === 'system_owner'
+                    ? 'text-amber-500'
+                    : 'text-muted-foreground'
+                  return (
+                    <DropdownMenuItem
+                      key={`${account.accountType}-${account.accountId}`}
+                      onClick={() => onRoleSwitch(account.accountType, account.accountId)}
+                      className="rounded-lg gap-2 cursor-pointer"
+                    >
+                      <RoleIcon className={cn("w-4 h-4 flex-shrink-0", iconColor)} />
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold truncate">{formatRoleLabel(account.role)}</p>
+                        <p className="text-xs text-muted-foreground truncate">{account.name}</p>
+                      </div>
+                    </DropdownMenuItem>
+                  )
+                })}
               </DropdownMenuContent>
             </DropdownMenu>
           )}
@@ -428,7 +488,7 @@ function DashboardSidebar({
                   <div className="flex flex-col items-start min-w-0 flex-1">
                     <span className="text-sm font-bold truncate w-full">{user?.name || 'User Account'}</span>
                     <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-wide truncate w-full">
-                      {user?.role?.replace('_', ' ') || 'Member'}
+                      {formatRoleLabel(getEffectiveRole(user, activeClubId))}
                     </span>
                   </div>
                   <Settings className="w-4 h-4 text-muted-foreground group-hover:rotate-90 transition-transform flex-shrink-0" />
@@ -492,9 +552,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { user, logout, isAdmin, activeClubId, setActiveClubId, switchRole } = useAuth()
-  const { isPrimaryOwner } = usePrimaryClubOwner()
-
-  const [availableRoles, setAvailableRoles] = useState<{ accountType: 'user' | 'admin' | 'system_owner'; accountId: string; role: string; name: string }[]>([])
+  const [availableRoles, setAvailableRoles] = useState<{ accountType: 'user' | 'admin' | 'system_owner'; accountId: string; role: string; name: string; clubIds?: string[] }[]>([])
 
   useEffect(() => {
     if (!user) {
@@ -514,6 +572,24 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     const result = await switchRole(accountType, accountId)
     if (result.success) {
       router.push('/dashboard')
+    }
+  }
+
+  const handleClubSwitch = async (clubId: string) => {
+    // Check if a different linked account (admin or member) owns this club
+    const targetAccount = availableRoles.find(
+      (r) => (r.accountType === 'admin' || r.accountType === 'user') && r.clubIds?.includes(clubId)
+    )
+    if (targetAccount) {
+      const result = await switchRole(targetAccount.accountType, targetAccount.accountId)
+      if (result.success) {
+        setActiveClubId(clubId)
+        router.refresh()
+      }
+    } else {
+      // Current account already covers this club (or it's a system_owner)
+      setActiveClubId(clubId)
+      router.refresh()
     }
   }
 
@@ -647,20 +723,18 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
   const getNavigation = () => {
     if (!user) return userNavigation
-    
+
+    // Use per-club effective role so an admin promoted to super_admin only in
+    // specific clubs sees the correct nav for the currently active club.
+    const effectiveRole = getEffectiveRole(user, clubId)
+
     let nav = []
-    switch (user.role) {
+    switch (effectiveRole) {
       case 'system_owner':
         nav = systemOwnerNavigation
         break
       case 'super_admin':
-        nav = isPrimaryOwner
-          ? [
-              ...superAdminNavigation.slice(0, 2),
-              { name: "Elevate Admin", href: "/dashboard/elevate-admin", icon: UserPlus },
-              ...superAdminNavigation.slice(2),
-            ]
-          : superAdminNavigation
+        nav = superAdminNavigation
         break
       case 'admin':
         nav = adminNavigation
@@ -737,7 +811,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           sidebarClubs={sidebarClubs}
           activeClubId={activeClubId ?? undefined}
           settings={settings}
-          onClubSwitch={(id) => { setActiveClubId(id); router.refresh() }}
+          onClubSwitch={handleClubSwitch}
           user={user}
           onLogout={logout}
           onLockedNavClick={onLockedNavClick}
@@ -757,7 +831,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
             sidebarClubs={sidebarClubs}
             activeClubId={activeClubId ?? undefined}
             settings={settings}
-            onClubSwitch={(id) => { setActiveClubId(id); router.refresh(); setSidebarOpen(false) }}
+            onClubSwitch={(id) => { handleClubSwitch(id); setSidebarOpen(false) }}
             user={user}
             onLogout={logout}
             onLockedNavClick={onLockedNavClick}
@@ -791,7 +865,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
 
           <div className="flex items-center gap-3">
             <div className="hidden sm:flex items-center gap-2 mr-2 px-3 py-1.5 rounded-full bg-muted/50 border text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              {user?.role?.replace('_', ' ') || 'Member'}
+              {formatRoleLabel(getEffectiveRole(user, clubId))}
             </div>
             <NotificationCenterModal />
             <ThemeToggle />

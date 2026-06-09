@@ -25,19 +25,23 @@ import {
   Eye, 
   Package, 
   CheckCircle,
-  XCircle, 
+  XCircle,
   Clock,
   Calendar,
   MoreHorizontal,
   Edit,
   Download,
-  MessageCircle
+  MessageCircle,
+  Truck,
+  AlertTriangle,
+  Loader2,
 } from 'lucide-react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useClubFeatures } from '@/hooks/useClubFeatures'
 import { isFeatureEnabled } from '@/lib/clubFeatures'
 import { LockedFeaturePage, FeatureUnavailableOverlay, LockedInline } from '@/components/feature-gate'
+import { ReadyToShipModal } from '@/components/admin/ready-to-ship-modal'
 
 interface OrderItem {
   productId: string
@@ -78,7 +82,7 @@ interface Order {
   razorpayFeeGst?: number
   finalAmount?: number
   currency: string
-  status: 'pending' | 'cancelled' | 'completed'
+  status: 'pending' | 'cancelled' | 'completed' | 'ready_to_ship' | 'fulfillment_in_progress' | 'shipped'
   paymentMethod: 'card' | 'paypal' | 'bank_transfer'
   paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded'
   notes?: string
@@ -89,6 +93,20 @@ interface Order {
   cancelledReason?: string
   createdAt: string
   updatedAt: string
+  shiprocketStatus?: 'pending' | 'pushed' | 'failed'
+  shiprocketCustomOrderId?: string
+  shiprocketOrderId?: number
+  shiprocketShipmentId?: number
+  shiprocketPushedAt?: string
+  shiprocketError?: string
+  awbCode?: string
+  courierName?: string
+  courierId?: number
+  manifestId?: string
+  labelUrl?: string
+  pickupScheduledAt?: string
+  pickupToken?: string
+  fulfillmentError?: string
 }
 
 interface OrderStats {
@@ -99,10 +117,13 @@ interface OrderStats {
   cancelledOrders: number
 }
 
-const statusConfig = {
+const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
   pending: { label: 'Pending', color: 'bg-yellow-100 text-yellow-800', icon: Clock },
   cancelled: { label: 'Cancelled', color: 'bg-red-100 text-red-800', icon: XCircle },
   completed: { label: 'Completed', color: 'bg-green-100 text-green-800', icon: CheckCircle },
+  ready_to_ship: { label: 'Ready to Ship', color: 'bg-blue-100 text-blue-800', icon: Truck },
+  fulfillment_in_progress: { label: 'Fulfillment in Progress', color: 'bg-indigo-100 text-indigo-800', icon: Truck },
+  shipped: { label: 'Shipped', color: 'bg-green-100 text-green-800', icon: Truck },
 }
 
 const eventStatusConfig = {
@@ -162,6 +183,8 @@ export default function OrdersPage() {
   const [editingEmail, setEditingEmail] = useState(false)
   const [emailInput, setEmailInput] = useState('')
   const [sendingQrFromModal, setSendingQrFromModal] = useState(false)
+  const [pushingToShiprocket, setPushingToShiprocket] = useState(false)
+  const [showReadyToShipModal, setShowReadyToShipModal] = useState(false)
 
   useEffect(() => {
     if (user?.role === 'admin' || user?.role === 'super_admin') {
@@ -531,6 +554,34 @@ export default function OrdersPage() {
         description: "Failed to update order status",
         variant: "destructive",
       })
+    }
+  }
+
+  const handleManualPushToShiprocket = async (orderId: string) => {
+    setPushingToShiprocket(true)
+    try {
+      const response = await apiClient.pushOrderToShiprocket(orderId)
+      if (response.success) {
+        toast({
+          title: 'Pushed to Shiprocket',
+          description: response.message || 'Order exported to logistics successfully',
+        })
+        // Refresh the selected order so badge updates immediately
+        if (response.data) {
+          setSelectedOrder(response.data as Order)
+        }
+        await loadOrders()
+      } else {
+        toast({
+          title: 'Push Failed',
+          description: response.message || 'Failed to export order to Shiprocket',
+          variant: 'destructive',
+        })
+      }
+    } catch {
+      toast({ title: 'Error', description: 'Failed to push order to Shiprocket', variant: 'destructive' })
+    } finally {
+      setPushingToShiprocket(false)
     }
   }
 
@@ -1419,6 +1470,152 @@ export default function OrdersPage() {
                   </div>
                 </div>
 
+                {/* Logistics / Shiprocket status */}
+                <div className="border rounded-lg p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold flex items-center gap-2">
+                      <Truck className="h-4 w-4" />
+                      Logistics Export
+                    </h3>
+                    {selectedOrder.shiprocketStatus === 'pushed' && (
+                      <Badge className="bg-green-100 text-green-800 border-green-200 flex items-center gap-1">
+                        <CheckCircle className="h-3 w-3" />
+                        Exported to Logistics
+                      </Badge>
+                    )}
+                    {selectedOrder.shiprocketStatus === 'failed' && (
+                      <Badge className="bg-red-100 text-red-800 border-red-200 flex items-center gap-1">
+                        <AlertTriangle className="h-3 w-3" />
+                        Push Failed
+                      </Badge>
+                    )}
+                    {(!selectedOrder.shiprocketStatus || selectedOrder.shiprocketStatus === 'pending') && (
+                      <Badge className="bg-gray-100 text-gray-700 border-gray-200">
+                        Not Pushed
+                      </Badge>
+                    )}
+                  </div>
+
+                  {selectedOrder.shiprocketStatus === 'pushed' && (
+                    <div className="text-sm space-y-1">
+                      {selectedOrder.shiprocketCustomOrderId && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">SR Order ID:</span>
+                          <span className="font-mono">{selectedOrder.shiprocketCustomOrderId}</span>
+                        </div>
+                      )}
+                      {selectedOrder.shiprocketOrderId && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Shiprocket #:</span>
+                          <span className="font-mono">{selectedOrder.shiprocketOrderId}</span>
+                        </div>
+                      )}
+                      {selectedOrder.shiprocketShipmentId && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Shipment #:</span>
+                          <span className="font-mono">{selectedOrder.shiprocketShipmentId}</span>
+                        </div>
+                      )}
+                      {selectedOrder.shiprocketPushedAt && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Pushed at:</span>
+                          <span>{new Date(selectedOrder.shiprocketPushedAt).toLocaleString()}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {selectedOrder.shiprocketStatus === 'failed' && selectedOrder.shiprocketError && (
+                    <p className="text-sm text-red-600 bg-red-50 rounded p-2">
+                      {selectedOrder.shiprocketError}
+                    </p>
+                  )}
+
+                  {/* Fulfillment details after pickup is scheduled */}
+                  {(selectedOrder.awbCode || selectedOrder.courierName || selectedOrder.labelUrl) && (
+                    <div className="text-sm space-y-1 pt-1 border-t">
+                      {selectedOrder.courierName && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Courier:</span>
+                          <span className="font-medium">{selectedOrder.courierName}</span>
+                        </div>
+                      )}
+                      {selectedOrder.awbCode && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">AWB:</span>
+                          <span className="font-mono">{selectedOrder.awbCode}</span>
+                        </div>
+                      )}
+                      {selectedOrder.pickupScheduledAt && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Pickup:</span>
+                          <span>{new Date(selectedOrder.pickupScheduledAt).toLocaleString()}</span>
+                        </div>
+                      )}
+                      {selectedOrder.labelUrl && (
+                        <a
+                          href={selectedOrder.labelUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs text-primary underline mt-1"
+                        >
+                          Download Shipping Label
+                        </a>
+                      )}
+                    </div>
+                  )}
+
+                  {selectedOrder.fulfillmentError && (
+                    <p className="text-sm text-red-600 bg-red-50 rounded p-2">
+                      {selectedOrder.fulfillmentError}
+                    </p>
+                  )}
+
+                  <div className="flex flex-col gap-2">
+                    {selectedOrder.paymentStatus === 'paid' && (
+                      <Button
+                        variant={selectedOrder.shiprocketStatus === 'pushed' ? 'outline' : 'default'}
+                        size="sm"
+                        onClick={() => handleManualPushToShiprocket(selectedOrder._id)}
+                        disabled={pushingToShiprocket}
+                        className="w-full"
+                      >
+                        {pushingToShiprocket ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Pushing…
+                          </>
+                        ) : selectedOrder.shiprocketStatus === 'pushed' ? (
+                          <>
+                            <Truck className="h-4 w-4 mr-2" />
+                            Re-push to Shiprocket
+                          </>
+                        ) : (
+                          <>
+                            <Truck className="h-4 w-4 mr-2" />
+                            Push to Shiprocket
+                          </>
+                        )}
+                      </Button>
+                    )}
+
+                    {/* Ready to Ship — only when pushed and not yet in fulfillment */}
+                    {selectedOrder.shiprocketStatus === 'pushed' &&
+                      selectedOrder.paymentStatus === 'paid' &&
+                      selectedOrder.status !== 'fulfillment_in_progress' &&
+                      selectedOrder.status !== 'shipped' && (
+                        <Button
+                          size="sm"
+                          className="w-full"
+                          onClick={() => setShowReadyToShipModal(true)}
+                        >
+                          <Package className="h-4 w-4 mr-2" />
+                          Ready to Ship
+                        </Button>
+                      )}
+                  </div>
+                </div>
+
                 {/* Shipping Address */}
                 <div>
                   <h3 className="font-semibold mb-3">Shipping Address</h3>
@@ -1818,6 +2015,23 @@ export default function OrdersPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Ready to Ship Modal */}
+        {selectedOrder && (
+          <ReadyToShipModal
+            open={showReadyToShipModal}
+            onClose={() => setShowReadyToShipModal(false)}
+            orderId={selectedOrder._id}
+            orderNumber={selectedOrder.orderNumber}
+            shiprocketShipmentId={selectedOrder.shiprocketShipmentId}
+            deliveryPincode={selectedOrder.shippingAddress?.zipCode}
+            onSuccess={(updatedOrder) => {
+              setShowReadyToShipModal(false)
+              if (updatedOrder) setSelectedOrder((prev) => prev ? { ...prev, ...updatedOrder } : prev)
+              loadOrders()
+            }}
+          />
+        )}
 
         {/* Refund Confirmation Dialog */}
         <Dialog open={showRefundConfirmDialog} onOpenChange={(open) => {

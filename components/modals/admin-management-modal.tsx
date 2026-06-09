@@ -41,17 +41,18 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { 
-  UserPlus, 
-  Users, 
-  MoreHorizontal, 
-  Edit, 
-  Trash2, 
+import {
+  UserPlus,
+  Users,
+  MoreHorizontal,
+  Edit,
+  Trash2,
   Shield,
   Mail,
   Phone,
   Search,
-  UserCheck
+  UserCheck,
+  Crown,
 } from 'lucide-react'
 
 interface AdminManagementModalProps {
@@ -74,6 +75,8 @@ export function AdminManagementModal({ clubId, clubName, trigger }: AdminManagem
   const [loading, setLoading] = useState(false)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [showAssignDialog, setShowAssignDialog] = useState(false)
+  const [makeSuperAdminTarget, setMakeSuperAdminTarget] = useState<Admin | null>(null)
+  const [makingSuperAdmin, setMakingSuperAdmin] = useState(false)
   const [createForm, setCreateForm] = useState<CreateAdminForm>({
     name: '',
     email: '',
@@ -232,6 +235,25 @@ export function AdminManagementModal({ clubId, clubName, trigger }: AdminManagem
       toast.error('Failed to assign admin to club')
     } finally {
       setAssigning(false)
+    }
+  }
+
+  const handleMakeSuperAdmin = async () => {
+    if (!makeSuperAdminTarget) return
+    setMakingSuperAdmin(true)
+    try {
+      const response = await apiClient.assignSuperAdmin(clubId, makeSuperAdminTarget._id)
+      if (response.success) {
+        toast.success(`${makeSuperAdminTarget.name} is now the super admin of ${clubName}`)
+        setMakeSuperAdminTarget(null)
+        fetchAdmins()
+      } else {
+        toast.error(response.error || 'Failed to assign super admin')
+      }
+    } catch {
+      toast.error('Failed to assign super admin')
+    } finally {
+      setMakingSuperAdmin(false)
     }
   }
 
@@ -565,13 +587,20 @@ export function AdminManagementModal({ clubId, clubName, trigger }: AdminManagem
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-
+                            {admin.role !== 'super_admin' && (
+                              <DropdownMenuItem
+                                onClick={() => setMakeSuperAdminTarget(admin)}
+                              >
+                                <Crown className="mr-2 h-4 w-4" />
+                                Make Super Admin
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuItem>
                               <Edit className="mr-2 h-4 w-4" />
                               Edit Details
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem 
+                            <DropdownMenuItem
                               className="text-destructive"
                               onClick={() => handleDeleteAdmin(admin._id, admin.name)}
                             >
@@ -589,6 +618,39 @@ export function AdminManagementModal({ clubId, clubName, trigger }: AdminManagem
           </div>
         </div>
       </DialogContent>
+
+      {/* Make Super Admin confirmation dialog */}
+      <Dialog open={Boolean(makeSuperAdminTarget)} onOpenChange={(open) => !open && setMakeSuperAdminTarget(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Crown className="h-5 w-5 text-amber-500" />
+              Make Super Admin?
+            </DialogTitle>
+            <DialogDescription>
+              This will transfer primary ownership of <strong>{clubName}</strong> to this admin.
+            </DialogDescription>
+          </DialogHeader>
+          {makeSuperAdminTarget && (
+            <div className="rounded-lg border bg-muted/30 p-3 text-sm space-y-1">
+              <p><strong>Admin:</strong> {makeSuperAdminTarget.name}</p>
+              <p><strong>Email:</strong> {makeSuperAdminTarget.email}</p>
+              <p><strong>Current role:</strong> {makeSuperAdminTarget.role === 'super_admin' ? 'Super Admin' : 'Admin'}</p>
+            </div>
+          )}
+          <p className="text-sm text-muted-foreground">
+            The current super admin will be downgraded to Admin (unless they own other clubs). This action can be reversed by reassigning super admin again.
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMakeSuperAdminTarget(null)} disabled={makingSuperAdmin}>
+              Cancel
+            </Button>
+            <Button onClick={handleMakeSuperAdmin} disabled={makingSuperAdmin}>
+              {makingSuperAdmin ? 'Assigning…' : 'Confirm'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   )
 }
