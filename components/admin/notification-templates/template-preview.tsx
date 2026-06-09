@@ -271,6 +271,16 @@ export function NotificationTemplatePreview({
                     </React.Fragment>
                   ))}
                 </div>
+
+                {/* CTA button — always appended by emailService at send-time */}
+                <div className="mt-3 text-center">
+                  <span
+                    className="inline-block rounded-md bg-blue-600 px-3 py-1.5 text-[10px] font-semibold text-white"
+                    style={{ letterSpacing: "0.01em" }}
+                  >
+                    View in App →
+                  </span>
+                </div>
               </div>
 
               {/* Email footer — mirrors getLayout() in emailService.ts */}

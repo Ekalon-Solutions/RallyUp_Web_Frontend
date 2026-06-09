@@ -55,9 +55,8 @@ type ElevationMember = {
 const ROLE_ACCESS_DESCRIPTION: Record<string, string> = {
   sub_admin:
     "Full dashboard access except elevating other admins — manage members, events, news, and club settings.",
-  store_manager: "Manage merchandise, orders, inventory, and store-related club content.",
+  venue_partner: "Manage merchandise, orders, inventory, and store-related club content.",
   events_manager: "Create and manage events, ticketing, registrations, and attendance.",
-  content_manager: "Publish news, polls, chants, and gallery content for the club.",
 }
 
 export function ElevateMemberAdminPanel() {

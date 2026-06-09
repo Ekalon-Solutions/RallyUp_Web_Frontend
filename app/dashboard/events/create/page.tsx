@@ -36,7 +36,7 @@ import {
   validateJointScreeningPartners,
   validatePricingLogisticsStep,
 } from "@/lib/event-pricing-validation"
-import { EventRefundToggleSection } from "@/components/admin/event-refund-toggle-section"
+import { EventRefundToggleSection, RefundTier } from "@/components/admin/event-refund-toggle-section"
 import { EventRefundPolicyImpactDialog } from "@/components/admin/event-refund-policy-impact-dialog"
 import { EventCreatePreview } from "@/components/admin/event-create-preview"
 
@@ -163,6 +163,7 @@ function CreateEventForm() {
     refundCutoffHours: "24",
     refundPolicyChangeReason: "",
   })
+  const [refundTiers, setRefundTiers] = useState<RefundTier[]>([])
   const initialRefundAllowedRef = useRef<boolean | null>(null)
   const [wizardStep, setWizardStep] = useState(0)
   const [partnerClubNames, setPartnerClubNames] = useState<string[]>([])
@@ -395,6 +396,9 @@ function CreateEventForm() {
           refundPolicyChangeReason: "",
         })
         initialRefundAllowedRef.current = ev.isRefundAllowed !== false && ev.is_refund_allowed !== false
+        if (Array.isArray(ev.refundTiers) && ev.refundTiers.length > 0) {
+          setRefundTiers(ev.refundTiers.map((t: any) => ({ daysBefore: Number(t.daysBefore), refundPercentage: Number(t.refundPercentage) })))
+        }
         const completed = isEventCompletedClient(ev)
         const confirmedRegs = (ev.registrations || []).filter((r: { status?: string }) => r.status === "confirmed").length
         const liveWithHolders = ev.isActive !== false && !completed && confirmedRegs > 0
@@ -510,6 +514,7 @@ function CreateEventForm() {
           : undefined,
         isRefundAllowed: paidEvent ? form.isRefundAllowed : true,
         refund_cutoff_hours: cutoffHours,
+        refundTiers: paidEvent && form.isRefundAllowed && refundTiers.length > 0 ? refundTiers : undefined,
         ...(isEditMode && form.refundPolicyChangeReason.trim()
           ? { refund_policy_change_reason: form.refundPolicyChangeReason.trim() }
           : {}),
@@ -951,6 +956,8 @@ function CreateEventForm() {
                 onRefundAllowedChange={(v) => set("isRefundAllowed", v)}
                 refundCutoffHours={form.refundCutoffHours}
                 onRefundCutoffHoursChange={(v) => set("refundCutoffHours", v)}
+                refundTiers={refundTiers}
+                onRefundTiersChange={setRefundTiers}
                 isFreeEvent={!paidEvent}
                 isCompleted={eventEditMeta.completed}
                 isEditMode={isEditMode}

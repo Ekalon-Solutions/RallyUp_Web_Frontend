@@ -78,16 +78,7 @@ export const API_ENDPOINTS = {
     joinRequest: '/clubs/join-request',
     leave: '/clubs/leave',
   },
-  
-  staff: {
-    getAll: '/staff',
-    getByClub: (clubId: string) => `/staff/club/${clubId}`,
-    getStats: (clubId: string) => `/staff/club/${clubId}/stats`,
-    create: '/staff/create',
-    update: (clubId: string, staffId: string) => `/staff/club/${clubId}/${staffId}`,
-    delete: (clubId: string, staffId: string) => `/staff/club/${clubId}/${staffId}`,
-  },
-  
+
   volunteer: {
     opportunities: '/volunteer/opportunities',
     signups: '/volunteer/signups',

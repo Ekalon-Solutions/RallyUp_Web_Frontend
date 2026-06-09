@@ -16,6 +16,7 @@ import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
 import { useEffect, useState } from "react"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
+import { useAdminModulePermission } from "@/hooks/useAdminModulePermission"
 import { useRouter } from "next/navigation"
 import { JointScreeningDisplay } from "@/components/events/joint-screening-display"
 import { EventScheduleMeta } from "@/components/events/event-schedule-meta"
@@ -29,6 +30,7 @@ import { LockedFeaturePage, FeatureUnavailableOverlay } from "@/components/featu
 export default function EventsPage() {
   const router = useRouter()
   const { isAdmin, user } = useAuth()
+  const { canEdit: canEditEvents } = useAdminModulePermission('events')
   const clubId = useRequiredClubId()
   const { config: clubFeatureConfig } = useClubFeatures(clubId ?? null)
   const [events, setEvents] = useState<Event[]>([])
@@ -187,10 +189,12 @@ export default function EventsPage() {
                 <ScanLine className="w-4 h-4 mr-2" />
                 Scanner
               </Button>
+              {canEditEvents && (
               <Button onClick={() => router.push("/dashboard/events/create")} className="flex-1 sm:flex-none">
                 <Plus className="w-4 h-4 mr-2" />
                 Create Event
               </Button>
+              )}
             </div>
           </div>
 
@@ -431,10 +435,12 @@ export default function EventsPage() {
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
+                                    {canEditEvents && (
                                     <DropdownMenuItem onClick={() => router.push(`/dashboard/events/create?edit=${event._id}`)}>
                                       <Edit className="w-4 h-4 mr-2" />
                                       Edit
                                     </DropdownMenuItem>
+                                    )}
                                     <DropdownMenuItem onClick={() => router.push(`/dashboard/events/scanner?eventId=${event._id}`)}>
                                       <ScanLine className="w-4 h-4 mr-2" />
                                       Scan QR

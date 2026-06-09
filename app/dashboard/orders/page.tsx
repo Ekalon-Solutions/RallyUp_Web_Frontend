@@ -42,6 +42,7 @@ import { useClubFeatures } from '@/hooks/useClubFeatures'
 import { isFeatureEnabled } from '@/lib/clubFeatures'
 import { LockedFeaturePage, FeatureUnavailableOverlay, LockedInline } from '@/components/feature-gate'
 import { ReadyToShipModal } from '@/components/admin/ready-to-ship-modal'
+import { LogisticsTimeline } from '@/components/admin/logistics-timeline'
 
 interface OrderItem {
   productId: string
@@ -107,6 +108,20 @@ interface Order {
   pickupScheduledAt?: string
   pickupToken?: string
   fulfillmentError?: string
+  deliveryStatus?: 'in_transit' | 'out_for_delivery' | 'delivered' | 'rto_initiated' | 'rto_delivered' | 'damaged' | 'lost'
+  estimatedDeliveryDate?: string
+  actualDeliveryAt?: string
+  isRTO?: boolean
+  isDamaged?: boolean
+  isLost?: boolean
+  trackingEvents?: Array<{
+    timestamp: string
+    status: string
+    activity: string
+    location: string
+    srStatusCode?: string
+  }>
+  lastTrackingSync?: string
 }
 
 interface OrderStats {
@@ -124,6 +139,16 @@ const statusConfig: Record<string, { label: string; color: string; icon: any }> 
   ready_to_ship: { label: 'Ready to Ship', color: 'bg-blue-100 text-blue-800', icon: Truck },
   fulfillment_in_progress: { label: 'Fulfillment in Progress', color: 'bg-indigo-100 text-indigo-800', icon: Truck },
   shipped: { label: 'Shipped', color: 'bg-green-100 text-green-800', icon: Truck },
+}
+
+const deliveryStatusConfig: Record<string, { label: string; color: string; icon: any }> = {
+  in_transit: { label: 'In Transit', color: 'bg-blue-100 text-blue-800', icon: Truck },
+  out_for_delivery: { label: 'Out for Delivery', color: 'bg-orange-100 text-orange-800', icon: Truck },
+  delivered: { label: 'Delivered', color: 'bg-green-100 text-green-800', icon: CheckCircle },
+  rto_initiated: { label: 'RTO Initiated', color: 'bg-red-100 text-red-800', icon: AlertTriangle },
+  rto_delivered: { label: 'RTO Delivered', color: 'bg-red-100 text-red-800', icon: AlertTriangle },
+  damaged: { label: 'Damaged', color: 'bg-red-100 text-red-800', icon: AlertTriangle },
+  lost: { label: 'Lost', color: 'bg-red-100 text-red-800', icon: AlertTriangle },
 }
 
 const eventStatusConfig = {
@@ -1137,10 +1162,23 @@ export default function OrdersPage() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Badge className={statusConfig[order.status].color}>
-                              <StatusIcon className="w-3 h-3 mr-1" />
-                              {statusConfig[order.status].label}
-                            </Badge>
+                            <div className="flex flex-col gap-1">
+                              <Badge className={statusConfig[order.status].color}>
+                                <StatusIcon className="w-3 h-3 mr-1" />
+                                {statusConfig[order.status].label}
+                              </Badge>
+                              {order.deliveryStatus && deliveryStatusConfig[order.deliveryStatus] && (
+                                <Badge className={`text-xs ${deliveryStatusConfig[order.deliveryStatus].color}`}>
+                                  {deliveryStatusConfig[order.deliveryStatus].label}
+                                </Badge>
+                              )}
+                              {(order.isRTO || order.isDamaged || order.isLost) && (
+                                <Badge className="text-xs bg-red-600 text-white border-red-700">
+                                  <AlertTriangle className="w-2.5 h-2.5 mr-1" />
+                                  {order.isRTO ? 'RTO' : order.isDamaged ? 'Damaged' : 'Lost'}
+                                </Badge>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell>
                             <Badge className={paymentStatusConfig[order.paymentStatus].color}>
@@ -1214,7 +1252,7 @@ export default function OrdersPage() {
                                       Mark as Refunded
                                     </DropdownMenuItem>
                                   )}
-                                  {order.status !== 'cancelled' && order.status !== 'delivered' && (
+                                  {order.status !== 'cancelled' && order.status !== 'completed' && (
                                     <DropdownMenuItem
                                       onClick={() => handleCancelOrder(order._id)}
                                       className="text-red-600"
@@ -1552,6 +1590,30 @@ export default function OrdersPage() {
                           <span>{new Date(selectedOrder.pickupScheduledAt).toLocaleString()}</span>
                         </div>
                       )}
+                      {selectedOrder.estimatedDeliveryDate && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Est. Delivery:</span>
+                          <span className="font-medium">
+                            {new Date(selectedOrder.estimatedDeliveryDate).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </span>
+                        </div>
+                      )}
+                      {selectedOrder.actualDeliveryAt && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Delivered:</span>
+                          <span className="font-medium text-green-700">
+                            {new Date(selectedOrder.actualDeliveryAt).toLocaleString()}
+                          </span>
+                        </div>
+                      )}
+                      {selectedOrder.deliveryStatus && deliveryStatusConfig[selectedOrder.deliveryStatus] && (
+                        <div className="flex justify-between items-center">
+                          <span className="text-muted-foreground">Delivery Status:</span>
+                          <Badge className={`text-xs ${deliveryStatusConfig[selectedOrder.deliveryStatus].color}`}>
+                            {deliveryStatusConfig[selectedOrder.deliveryStatus].label}
+                          </Badge>
+                        </div>
+                      )}
                       {selectedOrder.labelUrl && (
                         <a
                           href={selectedOrder.labelUrl}
@@ -1569,6 +1631,16 @@ export default function OrdersPage() {
                     <p className="text-sm text-red-600 bg-red-50 rounded p-2">
                       {selectedOrder.fulfillmentError}
                     </p>
+                  )}
+
+                  {/* Logistics Timeline */}
+                  {selectedOrder.awbCode && (
+                    <div className="pt-2 border-t">
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                        Tracking Timeline
+                      </p>
+                      <LogisticsTimeline orderId={selectedOrder._id} />
+                    </div>
                   )}
 
                   <div className="flex flex-col gap-2">

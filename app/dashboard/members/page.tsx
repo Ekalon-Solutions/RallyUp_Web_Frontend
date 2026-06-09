@@ -6,6 +6,7 @@ import { apiClient, User } from '@/lib/api'
 import { toast } from 'sonner'
 import { triggerBlobDownload } from '@/lib/utils'
 import { useRequiredClubId } from '@/hooks/useRequiredClubId'
+import { useAdminModulePermission } from '@/hooks/useAdminModulePermission'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Label } from '@/components/ui/label'
@@ -92,6 +93,7 @@ interface Member {
 
 export default function MembersPage() {
   const { user, activeClubId } = useAuth()
+  const { canEdit: canEditMembers } = useAdminModulePermission('members')
   const _clubId = useRequiredClubId()
   const clubId = _clubId ?? activeClubId
   const [members, setMembers] = useState<Member[]>([])
@@ -671,13 +673,13 @@ export default function MembersPage() {
               <p className="text-muted-foreground text-sm sm:text-base">Manage and view all club members</p>
             </div>
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-              {(user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'system_owner') && (metadata?.total || 0) > 0 && (
+              {canEditMembers && (user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'system_owner') && (metadata?.total || 0) > 0 && (
                 <Button variant="destructive" onClick={openDeleteAllDialog} className="w-full sm:w-auto shadow-md hover:shadow-lg transition-shadow">
                   <Trash2 className="w-4 h-4 mr-2" />
                   Delete All Members ({metadata.total})
                 </Button>
               )}
-              {(user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'system_owner') && selectedMemberIds.size > 0 && (
+              {canEditMembers && (user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'system_owner') && selectedMemberIds.size > 0 && (
                 <>
                   <Button variant="outline" onClick={openBulkMigrateDialog} className="w-full sm:w-auto shadow-md hover:shadow-lg transition-shadow">
                     <ArrowRightLeft className="w-4 h-4 mr-2" />
@@ -693,7 +695,8 @@ export default function MembersPage() {
                 <Download className="w-4 h-4 mr-2" />
                 Export
               </Button>
-              <AddMemberModal 
+              {canEditMembers && (
+              <AddMemberModal
                 clubId={clubId}
                 trigger={
                   <Button className="w-full sm:w-auto">
@@ -708,8 +711,9 @@ export default function MembersPage() {
                   }
                 }}
               />
+              )}
               {/* Bulk import modal */}
-              <ImportMembersModal
+              {canEditMembers && (<ImportMembersModal
                 clubId={clubId}
                 trigger={
                   <Button className="w-full sm:w-auto">
@@ -724,6 +728,7 @@ export default function MembersPage() {
                   }
                 }}
               />
+              )}
             </div>
           </div>
 
@@ -962,9 +967,11 @@ export default function MembersPage() {
                           <Button variant="ghost" size="sm" onClick={() => openViewDialog(member)} className="flex-1 sm:flex-initial" title="View details">
                             <Eye className="w-4 h-4" />
                           </Button>
+                          {canEditMembers && (
                           <Button variant="ghost" size="sm" onClick={() => openEditDialog(member)} className="flex-1 sm:flex-initial">
                             <Edit className="w-4 h-4" />
                           </Button>
+                          )}
                           <Button
                             variant="ghost"
                             size="sm"
@@ -974,14 +981,16 @@ export default function MembersPage() {
                           >
                             <ArrowRightLeft className="w-4 h-4" />
                           </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
+                          {canEditMembers && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             className="text-destructive hover:text-destructive hover:bg-destructive/10 flex-1 sm:flex-initial"
                             onClick={() => openDeleteDialog(member)}
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
+                          )}
                           <Button
                             variant="ghost"
                             size="sm"
@@ -1393,10 +1402,12 @@ export default function MembersPage() {
                     <Button type="button" variant="outline" onClick={() => setIsViewDialogOpen(false)}>
                       Close
                     </Button>
+                    {canEditMembers && (
                     <Button type="button" onClick={() => { setIsViewDialogOpen(false); openEditDialog(selectedMember); }}>
                       <Edit className="w-4 h-4 mr-2" />
                       Edit Member
                     </Button>
+                    )}
                   </DialogFooter>
                 </div>
               )}

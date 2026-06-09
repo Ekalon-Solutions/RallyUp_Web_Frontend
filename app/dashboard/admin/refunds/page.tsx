@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
 import { DashboardLayout } from '@/components/dashboard-layout'
@@ -10,11 +10,12 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { RefundDetailsModal } from '@/components/modals/refund-details-modal'
 import { getApiUrl } from '@/lib/config'
-import { ChevronLeft, ChevronRight, Eye, CheckCircle, Plus, Trash2, BarChart3 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Eye, CheckCircle, BarChart3 } from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
@@ -54,14 +55,7 @@ interface RefundRequest {
   adminNotes?: string
 }
 
-interface RefundRule {
-  _id?: string
-  daysBefore: number
-  refundPercentage: number
-  applicableTo: 'event_ticket' | 'store_order'
-}
-
-export default function RefundsPage() {
+function RefundsPageInner() {
   const { user } = useAuth()
   const { toast } = useToast()
   const clubId = useRequiredClubId()
@@ -73,7 +67,7 @@ export default function RefundsPage() {
   const urlEventTitle = searchParams.get('eventTitle') ?? undefined
   const validTabs = new Set(['requests', 'event-log', 'rules'])
   const [activeTab, setActiveTab] = useState(
-    urlTab && validTabs.has(urlTab) ? urlTab : 'requests'
+    urlTab && validTabs.has(urlTab) && urlTab !== 'rules' ? urlTab : 'requests'
   )
 
   const handleTabChange = (tab: string) => {
@@ -93,11 +87,6 @@ export default function RefundsPage() {
   const [statusFilter, setStatusFilter] = useState('all')
   const [selectedRefund, setSelectedRefund] = useState<RefundRequest | null>(null)
   const [recalculated, setRecalculated] = useState<{ recalculatedRefund: number; percentage: number; differs: boolean } | null>(null)
-  const [rules, setRules] = useState<RefundRule[]>([])
-  const [rulesLoading, setRulesLoading] = useState(false)
-  const [rulesSaving, setRulesSaving] = useState(false)
-  const [rulesType, setRulesType] = useState<'event_ticket' | 'store_order'>('event_ticket')
-  const [newRule, setNewRule] = useState({ daysBefore: 7, refundPercentage: 50 })
   const [policyText, setPolicyText] = useState('')
   const [policyTextSaving, setPolicyTextSaving] = useState(false)
   const [grandfatherPurchasedRefunds, setGrandfatherPurchasedRefunds] = useState(true)
@@ -113,10 +102,6 @@ export default function RefundsPage() {
   useEffect(() => {
     fetchRefunds()
   }, [page, statusFilter, clubId])
-
-  useEffect(() => {
-    if (clubId) fetchRules()
-  }, [clubId, rulesType])
 
   useEffect(() => {
     if (!clubId) return
@@ -178,93 +163,6 @@ export default function RefundsPage() {
     fetchRecalc()
     return () => { cancelled = true }
   }, [selectedRefund?._id, selectedRefund?.status])
-
-  const fetchRules = async () => {
-    if (!clubId) return
-    try {
-      setRulesLoading(true)
-      const token = localStorage.getItem('token')
-      const res = await fetch(
-        getApiUrl(`/refunds/admin/rules?clubId=${clubId}&applicableTo=${rulesType}`),
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
-      const data = await res.json()
-      if (res.ok && data.success) setRules(data.data.rules || [])
-    } catch {
-      toast({ title: 'Error', description: 'Failed to fetch refund rules', variant: 'destructive' })
-    } finally {
-      setRulesLoading(false)
-    }
-  }
-
-  const validateRules = (): string | null => {
-    const daysSet = new Set<number>()
-    for (const r of rules) {
-      const db = Number(r.daysBefore)
-      if (daysSet.has(db)) return `Duplicate "days before" (${db}) not allowed`
-      daysSet.add(db)
-    }
-    const sorted = [...rules].sort((a, b) => Number(b.daysBefore) - Number(a.daysBefore))
-    for (let i = 1; i < sorted.length; i++) {
-      if (Number(sorted[i].refundPercentage) > Number(sorted[i - 1].refundPercentage)) {
-        return 'Refund % must not increase as days before decreases (e.g. 8 days: 50%, 4 days: 25%, 0 days: 10%)'
-      }
-    }
-    return null
-  }
-
-  const saveRules = async () => {
-    if (!clubId) return
-    if (rules.length > 5) {
-      sonnerToast.error('Maximum 5 rules allowed')
-      return
-    }
-    const err = validateRules()
-    if (err) {
-      sonnerToast.error(err)
-      return
-    }
-    try {
-      setRulesSaving(true)
-      const token = localStorage.getItem('token')
-      const payload = rules.map((r, i) => ({
-        daysBefore: Number(r.daysBefore),
-        refundPercentage: Number(r.refundPercentage),
-        applicableTo: rulesType,
-        order: i,
-      }))
-      const res = await fetch(getApiUrl('/refunds/admin/rules'), {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ clubId, rules: payload }),
-      })
-      const data = await res.json()
-      if (res.ok && data.success) {
-        sonnerToast.success('Refund rules saved successfully')
-        fetchRules()
-      } else {
-        sonnerToast.error(data.message || 'Failed to save rules')
-      }
-    } catch {
-      sonnerToast.error('Failed to save refund rules')
-    } finally {
-      setRulesSaving(false)
-    }
-  }
-
-  const addRule = () => {
-    if (rules.length >= 5) return
-    const db = Number(newRule.daysBefore)
-    if (rules.some((r) => Number(r.daysBefore) === db)) {
-      sonnerToast.error(`Duplicate "days before" (${db}) not allowed`)
-      return
-    }
-    setRules([...rules, { ...newRule, applicableTo: rulesType }])
-  }
-
-  const removeRule = (idx: number) => {
-    setRules(rules.filter((_, i) => i !== idx))
-  }
 
   const saveGrandfathering = async (enabled: boolean) => {
     if (!clubId) return
@@ -425,7 +323,7 @@ export default function RefundsPage() {
           <TabsList>
             <TabsTrigger value="requests">Refund Requests</TabsTrigger>
             <TabsTrigger value="event-log">Event Refund Report</TabsTrigger>
-            <TabsTrigger value="rules">Refund Rules</TabsTrigger>
+            <TabsTrigger value="rules">Policy Settings</TabsTrigger>
           </TabsList>
           <TabsContent value="event-log" className="mt-4">
             <EventRefundLogPanel eventId={urlEventId} eventTitle={urlEventTitle} />
@@ -524,79 +422,6 @@ export default function RefundsPage() {
                 <Button onClick={savePolicyText} disabled={policyTextSaving}>
                   {policyTextSaving ? 'Saving…' : 'Save policy text'}
                 </Button>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Refund Rules</CardTitle>
-                <CardDescription>
-                  Set T-minus days vs refund %. Max 5 rules. E.g. &quot;7 days before: 50%&quot;
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex gap-4">
-                  <div>
-                    <Label>Type</Label>
-                    <Select value={rulesType} onValueChange={(v: 'event_ticket' | 'store_order') => setRulesType(v)}>
-                      <SelectTrigger className="w-[180px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="event_ticket">Event Tickets</SelectItem>
-                        <SelectItem value="store_order">Store Orders</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                {rulesLoading ? (
-                  <div className="text-sm text-muted-foreground">Loading...</div>
-                ) : (
-                  <>
-                    <div className="space-y-2">
-                      {rules.map((r, i) => (
-                        <div key={i} className="flex items-center gap-4 p-3 border rounded-lg">
-                          <span className="text-sm font-medium">
-                            {rulesType === 'event_ticket' ? `${r.daysBefore} days before` : `Within ${r.daysBefore} days`}: {r.refundPercentage}%
-                          </span>
-                          <Button size="sm" variant="ghost" onClick={() => removeRule(i)}>
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                    {rules.length < 5 && (
-                      <div className="flex gap-2 items-end">
-                        <div>
-                          <Label>Days</Label>
-                          <Input
-                            type="number"
-                            min={0}
-                            value={newRule.daysBefore}
-                            onChange={(e) => setNewRule({ ...newRule, daysBefore: Number(e.target.value) || 0 })}
-                          />
-                        </div>
-                        <div>
-                          <Label>Refund %</Label>
-                          <Input
-                            type="number"
-                            min={0}
-                            max={100}
-                            value={newRule.refundPercentage}
-                            onChange={(e) => setNewRule({ ...newRule, refundPercentage: Number(e.target.value) || 0 })}
-                          />
-                        </div>
-                        <Button onClick={addRule} size="sm">
-                          <Plus className="w-4 h-4 mr-1" />
-                          Add
-                        </Button>
-                      </div>
-                    )}
-                    <Button onClick={saveRules} disabled={rulesSaving}>
-                      {rulesSaving ? 'Saving...' : 'Save Rules'}
-                    </Button>
-                  </>
-                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -760,5 +585,13 @@ export default function RefundsPage() {
         onMarkProcessed={handleMarkProcessed}
       />
     </DashboardLayout>
+  )
+}
+
+export default function RefundsPage() {
+  return (
+    <Suspense>
+      <RefundsPageInner />
+    </Suspense>
   )
 }

@@ -71,6 +71,17 @@ export interface User {
   updatedAt?: string;
 }
 
+export interface AdminClubContext {
+  clubId: string;
+  role: string;
+  adminTier: string;
+  permissionsMatrix?: Record<string, { view: boolean; edit: boolean }>;
+  permissions?: {
+    _matrix?: Record<string, { view: boolean; edit: boolean }>;
+    [key: string]: any;
+  };
+}
+
 export interface Admin {
   _id: string;
   name: string;
@@ -83,6 +94,7 @@ export interface Admin {
   club?: Club;
   clubs?: Club[];
   superAdminClubIds?: string[];
+  clubAdminContexts?: AdminClubContext[];
   isActive?: boolean;
   volunteering?: VolunteerProfile;
   notificationPreferences?: {
@@ -380,6 +392,7 @@ export interface Event {
   is_refund_allowed?: boolean;
   refundCutoffHours?: number;
   refund_cutoff_hours?: number;
+  refundTiers?: { daysBefore: number; refundPercentage: number }[];
   refundPolicyLastUpdated?: string;
   createdAt: string;
   updatedAt: string;
@@ -933,14 +946,14 @@ class ApiClient {
     return this.request('/admin/profile');
   }
 
-  async adminLogAttendance(data: { registrationId?: string | null; attendeeId?: string | null; }): Promise<ApiResponse<any>> {
+  async adminLogAttendance(data: { registrationId?: string | null; attendeeId?: string | null; clubId?: string; }): Promise<ApiResponse<any>> {
     return this.request('/events/admin/attendance', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
-  async getScanPreview(registrationId: string, attendeeId: string): Promise<ApiResponse<{
+  async getScanPreview(registrationId: string, attendeeId: string, clubId?: string): Promise<ApiResponse<{
     attendeeName: string;
     attendeePhone: string;
     attended: boolean;
@@ -954,6 +967,7 @@ class ApiClient {
     venueItems: Array<{ venueId: string; venueName: string; tierId: string; tierName: string; quantity: number; price: number }>;
   }>> {
     const params = new URLSearchParams({ registrationId, attendeeId });
+    if (clubId) params.set('clubId', clubId);
     const res = await this.request<any>(`/events/scan-preview?${params.toString()}`);
     if (!res.success) return res;
     return { success: true, data: res.data?.data ?? res.data };
@@ -1901,6 +1915,26 @@ class ApiClient {
     });
   }
 
+  async bookPublicVenueTierMatrix(eventId: string, data: {
+    guestEmail: string;
+    items: VenueTierCartItem[];
+    attendees?: Array<{ name: string; phone: string }>;
+    razorpayOrderId?: string;
+    paymentId?: string;
+    amountPaid?: number;
+    reservationToken?: string;
+    couponCode?: string;
+    couponDiscount?: number;
+    earlyBirdDiscountAmt?: number;
+    pointsDiscount?: number;
+    attributed_club?: string;
+  }): Promise<ApiResponse<{ message: string; event: Event }>> {
+    return this.request(`/events/public/${eventId}/book-matrix`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
   async createPendingVenueTierBooking(eventId: string, data: {
     items: VenueTierCartItem[];
     attendees?: Array<{ name: string; phone: string }>;
@@ -1914,6 +1948,26 @@ class ApiClient {
     attributed_club?: string;
   }): Promise<ApiResponse<{ registrationId: string }>> {
     return this.request(`/events/${eventId}/book-matrix/pending`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async createPendingPublicVenueTierBooking(eventId: string, data: {
+    guestEmail: string;
+    guestName?: string;
+    items: VenueTierCartItem[];
+    attendees?: Array<{ name: string; phone: string }>;
+    razorpayOrderId: string;
+    amountPaid: number;
+    reservationToken?: string;
+    couponCode?: string;
+    couponDiscount?: number;
+    earlyBirdDiscountAmt?: number;
+    pointsDiscount?: number;
+    attributed_club?: string;
+  }): Promise<ApiResponse<{ registrationId: string }>> {
+    return this.request(`/events/public/${eventId}/book-matrix/pending`, {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -2706,18 +2760,6 @@ class ApiClient {
     });
   }
 
-  async createAdmin(data: {
-    name: string;
-    email: string;
-    phoneNumber: string;
-    countryCode: string;
-  }): Promise<ApiResponse<{ message: string; admin: User }>> {
-    return this.request('/staff/admins', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  }
-
   async getMemberElevationContext(clubId: string): Promise<ApiResponse<{
     club: { _id: string; name: string };
     isPrimaryOwner: boolean;
@@ -3028,45 +3070,6 @@ class ApiClient {
     return this.request(
       `/member-elevation/${encodeURIComponent(clubId)}/activity-log${qs ? `?${qs}` : ''}`
     );
-  }
-
-  async getStaff(params?: {
-    role?: string;
-    page?: number;
-    limit?: number;
-  }): Promise<ApiResponse<{
-    staff: User[];
-    pagination: {
-      page: number;
-      limit: number;
-      total: number;
-      pages: number;
-    };
-  }>> {
-    const queryParams = new URLSearchParams();
-    if (params?.role) queryParams.append('role', params.role);
-    if (params?.page) queryParams.append('page', params.page.toString());
-    if (params?.limit) queryParams.append('limit', params.limit.toString());
-
-    const endpoint = `/staff${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-    return this.request(endpoint);
-  }
-
-  async updateStaff(id: string, data: any): Promise<ApiResponse<{ message: string; staffMember: User }>> {
-    return this.request(`/staff/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    });
-  }
-
-  async deleteStaff(id: string): Promise<ApiResponse<{ message: string }>> {
-    return this.request(`/staff/${id}`, {
-      method: 'DELETE',
-    });
-  }
-
-  async getStaffStats(): Promise<ApiResponse<any>> {
-    return this.request('/staff/stats');
   }
 
   async verifyPhoneNumber(data: {}): Promise<ApiResponse<any>> {
@@ -5054,6 +5057,20 @@ class ApiClient {
 
   async getLogisticsTraces(page = 1, limit = 20): Promise<ApiResponse<{ traces: any[]; total: number; page: number; pages: number }>> {
     return this.get(`/shiprocket/traces?page=${page}&limit=${limit}`);
+  }
+
+  async getOrderTimeline(orderId: string): Promise<ApiResponse<{
+    orderNumber: string;
+    deliveryStatus: string | null;
+    estimatedDeliveryDate: string | null;
+    actualDeliveryAt: string | null;
+    isRTO: boolean;
+    isDamaged: boolean;
+    isLost: boolean;
+    lastTrackingSync: string | null;
+    events: Array<{ timestamp: string; status: string; activity: string; location: string; srStatusCode?: string }>;
+  }>> {
+    return this.get(`/orders/admin/${orderId}/timeline`);
   }
 }
 

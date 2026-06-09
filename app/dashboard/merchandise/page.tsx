@@ -14,6 +14,7 @@ import { formatDisplayDate } from "@/lib/utils"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
+import { useAdminModulePermission } from "@/hooks/useAdminModulePermission"
 import { useClubFeatures } from "@/hooks/useClubFeatures"
 import { getFeatureConstraint } from "@/lib/clubFeatures"
 import { UsageMeter, FeatureUnavailableOverlay } from "@/components/feature-gate"
@@ -102,6 +103,7 @@ interface MerchandiseSettings {
 
 export default function MerchandiseManagementPage() {
   const { user, isAdmin } = useAuth()
+  const { canEdit: canEditMerchandise } = useAdminModulePermission('merchandise')
   const clubId = useRequiredClubId()
   const { config: clubFeatureConfig } = useClubFeatures(clubId ?? null)
   const maxMerchItems = getFeatureConstraint(clubFeatureConfig, 'max_merch_items')
@@ -334,10 +336,12 @@ export default function MerchandiseManagementPage() {
                 <Settings className="w-4 h-4 mr-2" />
                 Settings
               </Button>
+              {canEditMerchandise && (
               <Button onClick={() => setIsAddDialogOpen(true)} className="w-full sm:w-auto">
                 <Plus className="w-4 h-4 mr-2" />
                 Add Product
               </Button>
+              )}
             </div>
           </div>
 
@@ -682,6 +686,7 @@ export default function MerchandiseManagementPage() {
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
                                   <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                  {canEditMerchandise && (
                                   <DropdownMenuItem
                                     onClick={() => {
                                       setEditingMerchandise(item)
@@ -691,6 +696,7 @@ export default function MerchandiseManagementPage() {
                                     <Edit className="mr-2 h-4 w-4" />
                                     Edit
                                   </DropdownMenuItem>
+                                  )}
                                   <DropdownMenuItem
                                     onClick={() => handleToggleAvailability(item._id, item.isAvailable)}
                                   >

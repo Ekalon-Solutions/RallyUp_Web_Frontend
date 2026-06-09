@@ -63,6 +63,8 @@ import type { WebsiteSectionKey } from "@/lib/websiteSections"
 import { EkalonAttribution } from "@/components/ekalon-attribution"
 import { useClubFeatures } from "@/hooks/useClubFeatures"
 import { ADMIN_NAV_FEATURE_MAP, CLUB_FEATURE_DISABLED_EVENT, clubFeatureFlags, type ClubFeatureKey } from "@/lib/clubFeatures"
+import { NAV_HREF_TO_PERMISSION_MODULE } from "@/lib/permissionMatrix"
+import type { AdminClubContext } from "@/lib/api"
 import { clearFeatureCache } from "@/lib/featureCacheStore"
 import { UpgradeFeatureModal } from "@/components/modals/upgrade-feature-modal"
 import { LockedFeaturePage } from "@/components/feature-gate/locked-feature-page"
@@ -180,7 +182,6 @@ const superAdminNavigation = [
   { name: "Membership Cards", href: "/dashboard/membership-cards", icon: CreditCard },
   { name: "Admin Settings", href: "/dashboard/admin-settings", icon: Settings },
   { name: "Onboarding & Promotions", href: "/dashboard/onboarding", icon: GraduationCap },
-  { name: "Staff Management", href: "/dashboard/staff", icon: Shield },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ]
 
@@ -736,9 +737,26 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
       case 'super_admin':
         nav = superAdminNavigation
         break
-      case 'admin':
+      case 'admin': {
+        const contexts = (user as any).clubAdminContexts as AdminClubContext[] | undefined
+        if (contexts && contexts.length > 0) {
+          const ctx = contexts.find(
+            (c) => c?.clubId && String(c.clubId) === String(clubId)
+          )
+          if (ctx) {
+            const matrix: Record<string, { view: boolean; edit: boolean }> =
+              (ctx as any).permissionsMatrix || (ctx as any).permissions?._matrix || {}
+            nav = adminNavigation.filter((item) => {
+              const moduleId = NAV_HREF_TO_PERMISSION_MODULE[item.href]
+              if (!moduleId) return true
+              return Boolean(matrix[moduleId]?.view)
+            })
+            break
+          }
+        }
         nav = adminNavigation
         break
+      }
       default:
         nav = userNavigation
     }

@@ -34,6 +34,8 @@ import { Badge } from "@/components/ui/badge"
 import { Loader2, Grid3X3, Eye, Check, Lock, Shield } from "lucide-react"
 import { toast } from "sonner"
 import { AdminPermissionPreviewDialog } from "@/components/admin/admin-permission-preview-dialog"
+import { useClubFeatures } from "@/hooks/useClubFeatures"
+import { PERMISSION_MODULE_TO_FEATURE_KEY } from "@/lib/permissionMatrix"
 
 type MatrixAdmin = {
   adminId: string
@@ -53,6 +55,7 @@ function cellKey(adminId: string, moduleId: string, accessType: PermissionAccess
 
 export function AdminPermissionMatrix() {
   const { clubId, isPrimaryOwner, loading: ownerLoading } = usePrimaryClubOwner()
+  const { isEnabled: isClubFeatureEnabled } = useClubFeatures(clubId ?? null)
   const [loading, setLoading] = useState(true)
   const [modules, setModules] = useState<
     Array<{ id: string; label: string; category: string; navHref?: string }>
@@ -102,13 +105,21 @@ export function AdminPermissionMatrix() {
     [admins, selectedAdminId]
   )
 
+  const visibleModules = useMemo(() => {
+    return modules.filter((m) => {
+      const featureKey = PERMISSION_MODULE_TO_FEATURE_KEY[m.id]
+      if (featureKey === null || featureKey === undefined) return true
+      return isClubFeatureEnabled(featureKey as any)
+    })
+  }, [modules, isClubFeatureEnabled])
+
   const modulesByCategory = useMemo(() => {
     const map: Record<string, typeof modules> = {}
     for (const cat of PERMISSION_MATRIX_CATEGORIES) {
-      map[cat] = modules.filter((m) => m.category === cat)
+      map[cat] = visibleModules.filter((m) => m.category === cat)
     }
     return map
-  }, [modules])
+  }, [visibleModules])
 
   const patchCell = async (
     moduleId: string,

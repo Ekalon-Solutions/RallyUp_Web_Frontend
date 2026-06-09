@@ -1212,7 +1212,8 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         if (reservationToken) {
           await apiClient.confirmReservation(reservationToken).catch(() => {})
         }
-        const res = await apiClient.bookVenueTierMatrix(event._id, {
+        const res = await apiClient.bookPublicVenueTierMatrix(event._id, {
+          guestEmail: guestEmail.trim(),
           items: apiItems,
           attendees: bookingAttendees,
           reservationToken: reservationToken ?? undefined,
@@ -1221,8 +1222,6 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
           pointsDiscount: reservedDiscount || undefined,
           amountPaid: 0,
           attributed_club: attributedClub || undefined,
-          guestEmail: guestEmail.trim(),
-          waitlistToken: waitlistToken || undefined,
         })
         if (res.success) {
           toast.success("Tickets booked!")
@@ -1250,7 +1249,9 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
       if (!orderRes.ok) throw new Error("Failed to create payment order")
       const { razorpayOrderId, amount, currency: orderCurrency } = await orderRes.json()
 
-      await apiClient.createPendingVenueTierBooking(event._id, {
+      await apiClient.createPendingPublicVenueTierBooking(event._id, {
+        guestEmail: guestEmail.trim(),
+        guestName: bookingAttendees[0]?.name || 'Guest',
         items: apiItems,
         attendees: bookingAttendees,
         razorpayOrderId,
@@ -1287,7 +1288,8 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
               await apiClient.confirmReservation(reservationToken, orderId).catch(() => {})
             }
 
-            const res = await apiClient.bookVenueTierMatrix(event._id, {
+            const res = await apiClient.bookPublicVenueTierMatrix(event._id, {
+              guestEmail: guestEmail.trim(),
               items: apiItems,
               attendees: bookingAttendees,
               razorpayOrderId: orderId,
@@ -1298,7 +1300,6 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
               couponDiscount: couponDiscount || undefined,
               pointsDiscount: reservedDiscount || undefined,
               attributed_club: attributedClub || undefined,
-              guestEmail: guestEmail.trim(),
             })
             if (res.success) {
               toast.success("Payment successful! Tickets confirmed.")
@@ -1837,14 +1838,14 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
             </>
           ) : (
             <>
-              {showGuestWizard && otpVerified && (
+              {/* {showGuestWizard && otpVerified && (
                 <Alert className="border-green-200 bg-green-50">
                   <CheckCircle2 className="h-4 w-4 text-green-600" />
                   <AlertDescription className="text-green-800 text-sm">
                     WhatsApp number verified{guestMemberInfo?.memberName ? ` — welcome back, ${guestMemberInfo.memberName}` : ''}. Your details have been pre-filled below.
                   </AlertDescription>
                 </Alert>
-              )}
+              )} */}
 
               {isJointEvent && (
                 <Card className={!attributedClub ? "border-destructive/60" : undefined}>

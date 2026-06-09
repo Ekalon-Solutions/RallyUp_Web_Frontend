@@ -44,6 +44,7 @@ function AttendanceLandingPageInner() {
   const searchParams = useSearchParams()
   const registrationId = searchParams.get('registrationId')
   const attendeeId = searchParams.get('attendeeId')
+  const clubId = searchParams.get('clubId') ?? undefined
 
   const [state, setState] = useState<PageState>('loading')
   const [preview, setPreview] = useState<ScanPreview | null>(null)
@@ -59,7 +60,7 @@ function AttendanceLandingPageInner() {
       }
 
       try {
-        const res = await apiClient.getScanPreview(registrationId, attendeeId)
+        const res = await apiClient.getScanPreview(registrationId, attendeeId, clubId)
         if (!res.success) {
           setState('error')
           setErrorMessage(res.error || res.message || 'Failed to load ticket details')
@@ -79,7 +80,7 @@ function AttendanceLandingPageInner() {
     if (!registrationId || !attendeeId) return
     setState('marking')
     try {
-      const response = await apiClient.adminLogAttendance({ registrationId, attendeeId })
+      const response = await apiClient.adminLogAttendance({ registrationId, attendeeId, clubId })
       if (response.success) {
         if (typeof response.data?.pointsAwarded === 'number') {
           setPointsAwarded(response.data.pointsAwarded)

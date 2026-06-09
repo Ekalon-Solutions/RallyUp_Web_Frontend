@@ -92,6 +92,12 @@ interface Order {
   cancelledReason?: string
   createdAt: string
   updatedAt: string
+  deliveryStatus?: 'in_transit' | 'out_for_delivery' | 'delivered' | 'rto_initiated' | 'rto_delivered' | 'damaged' | 'lost'
+  estimatedDeliveryDate?: string
+  actualDeliveryAt?: string
+  isRTO?: boolean
+  isDamaged?: boolean
+  isLost?: boolean
 }
 
 interface AppliedCoupon {
@@ -650,6 +656,46 @@ export default function UserOrdersPage() {
                         <div className="mb-3 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg">
                           <p className="text-sm font-medium text-blue-900 dark:text-blue-100">Tracking Number</p>
                           <p className="font-mono text-blue-800 dark:text-blue-200">{order.trackingNumber}</p>
+                        </div>
+                      )}
+
+                      {(order.estimatedDeliveryDate || order.deliveryStatus) && (
+                        <div className="mb-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg space-y-1 text-sm">
+                          {order.deliveryStatus && (
+                            <div className="flex items-center justify-between">
+                              <span className="text-muted-foreground">Delivery Status</span>
+                              <span className={
+                                order.deliveryStatus === 'delivered' ? 'text-green-700 font-medium' :
+                                ['rto_initiated','rto_delivered','damaged','lost'].includes(order.deliveryStatus) ? 'text-red-600 font-medium' :
+                                order.deliveryStatus === 'out_for_delivery' ? 'text-orange-600 font-medium' :
+                                'text-blue-600 font-medium'
+                              }>
+                                {order.deliveryStatus === 'in_transit' ? 'In Transit' :
+                                 order.deliveryStatus === 'out_for_delivery' ? 'Out for Delivery' :
+                                 order.deliveryStatus === 'delivered' ? 'Delivered' :
+                                 order.deliveryStatus === 'rto_initiated' ? 'Return Initiated' :
+                                 order.deliveryStatus === 'rto_delivered' ? 'Returned' :
+                                 order.deliveryStatus === 'damaged' ? 'Damaged' :
+                                 order.deliveryStatus === 'lost' ? 'Lost' : order.deliveryStatus}
+                              </span>
+                            </div>
+                          )}
+                          {order.estimatedDeliveryDate && order.deliveryStatus !== 'delivered' && (
+                            <div className="flex items-center justify-between">
+                              <span className="text-muted-foreground">Estimated Delivery</span>
+                              <span className="font-medium">
+                                {new Date(order.estimatedDeliveryDate).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
+                              </span>
+                            </div>
+                          )}
+                          {order.actualDeliveryAt && (
+                            <div className="flex items-center justify-between">
+                              <span className="text-muted-foreground">Delivered On</span>
+                              <span className="font-medium text-green-700">
+                                {new Date(order.actualDeliveryAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
+                              </span>
+                            </div>
+                          )}
                         </div>
                       )}
 
