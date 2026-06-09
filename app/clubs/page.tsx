@@ -31,6 +31,7 @@ import {
   TrendingUp,
   Users2,
   CalendarDays,
+  CalendarClock,
   Newspaper,
   ExternalLink,
   Loader2,
@@ -802,7 +803,7 @@ function ClubsPageContent() {
                       Membership Plans
                     </h4>
                     <div className="space-y-3">
-                      {club.membershipPlans?.filter(plan => plan.isActive).slice(0, 2).map((plan) => {
+                      {club.membershipPlans?.filter(plan => plan.isActive && !getPlanSalesState(plan).closed).slice(0, 2).map((plan) => {
                         const isJoined = isClubJoined(club._id)
                         const isLimitReached = club.memberInfo?.isLimitReached || false
                         const salesState = getPlanSalesState(plan)
@@ -855,42 +856,57 @@ function ClubsPageContent() {
                                 </p>
                               </div>
                             )}
-                            <div className="flex items-center justify-between mt-4">
-                              <div className="flex items-center gap-2 text-xs font-bold text-muted-foreground">
-                                <Clock className="w-4 h-4" />
+                            <div className="space-y-1.5 mt-4">
+                              <div className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
+                                <Clock className="w-3.5 h-3.5 shrink-0" />
+                                <span className="text-muted-foreground/70">Member time:</span>
                                 <span>{formatPlanPeriod(plan)}</span>
                               </div>
-                              <Button
-                                size="sm"
-                                onClick={() => handleJoinClub(club, plan)}
-                                disabled={isDisabled}
-                                className={cn(
-                                  "h-9 px-4 font-bold text-xs rounded-xl transition-all shadow-md active:scale-95",
-                                  isJoined ? "bg-muted text-muted-foreground cursor-not-allowed" : isLimitReached ? "bg-secondary/30 text-secondary cursor-not-allowed" : "bg-primary text-white"
-                                )}
-                              >
-                                {isJoined ? (
-                                  <>
-                                    <CheckCircle className="w-4 h-4 mr-1" />
-                                    Already Joined
-                                  </>
-                                ) : isLimitReached ? (
-                                  "Club Full"
-                                ) : !salesState.isOpen ? (
-                                  salesState.closed ? "Membership Closed" : "Unavailable"
-                                ) : (
-                                  <>Join <ArrowRight className="w-3 h-3 ml-1.5" /></>
-                                )}
-                              </Button>
+                              {plan.bookingStartDate && (
+                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                  <CalendarClock className="w-3.5 h-3.5 shrink-0" />
+                                  <span className="text-muted-foreground/70">Book from:</span>
+                                  <span className="font-semibold">{formatDate(plan.bookingStartDate)}</span>
+                                </div>
+                              )}
+                              {plan.bookingEndDate && (
+                                <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                                  <CalendarClock className="w-3.5 h-3.5 shrink-0" />
+                                  <span className="text-muted-foreground/70">Book until:</span>
+                                  <span className="font-semibold">{formatDate(plan.bookingEndDate)}</span>
+                                </div>
+                              )}
                             </div>
+                            <Button
+                              size="sm"
+                              onClick={() => handleJoinClub(club, plan)}
+                              disabled={isDisabled}
+                              className={cn(
+                                "w-full mt-3 h-9 font-bold text-xs rounded-xl transition-all shadow-md active:scale-95",
+                                isJoined ? "bg-muted text-muted-foreground cursor-not-allowed" : isLimitReached ? "bg-secondary/30 text-secondary cursor-not-allowed" : "bg-primary text-white"
+                              )}
+                            >
+                              {isJoined ? (
+                                <>
+                                  <CheckCircle className="w-4 h-4 mr-1" />
+                                  Already Joined
+                                </>
+                              ) : isLimitReached ? (
+                                "Club Full"
+                              ) : !salesState.isOpen ? (
+                                salesState.closed ? "Membership Closed" : "Unavailable"
+                              ) : (
+                                <>Join <ArrowRight className="w-3 h-3 ml-1.5" /></>
+                              )}
+                            </Button>
                           </div>
                         )
                       })}
                     </div>
 
-                    {club.membershipPlans?.filter(plan => plan.isActive).length > 2 && (
+                    {club.membershipPlans?.filter(plan => plan.isActive && !getPlanSalesState(plan).closed).length > 2 && (
                       <Button variant="ghost" size="sm" className="w-full font-bold text-muted-foreground hover:text-primary hover:bg-primary rounded-xl" onClick={() => handleViewClubDetails(club)}>
-                        + {club.membershipPlans?.filter(plan => plan.isActive).length - 2} more plans
+                        + {club.membershipPlans?.filter(plan => plan.isActive && !getPlanSalesState(plan).closed).length - 2} more plans
                       </Button>
                     )}
                   </div>
@@ -962,10 +978,10 @@ function ClubsPageContent() {
                         View Details
                       </Button>
 
-                      {club.membershipPlans?.filter(plan => plan.isActive).length > 0 && (() => {
+                      {club.membershipPlans?.filter(plan => plan.isActive && !getPlanSalesState(plan).closed).length > 0 && (() => {
                         const isJoined = isClubJoined(club._id)
                         const isLimitReached = club.memberInfo?.isLimitReached || false
-                        const firstPlan = club.membershipPlans?.filter(plan => plan.isActive)[0]!
+                        const firstPlan = club.membershipPlans?.filter(plan => plan.isActive && !getPlanSalesState(plan).closed)[0]!
                         const salesState = getPlanSalesState(firstPlan)
                         const isDisabled = isJoined || isLimitReached || !salesState.isOpen
                         return (
@@ -1066,7 +1082,7 @@ function ClubsPageContent() {
 
                 <TabsContent value="plans" className="space-y-4">
                   <div className="grid gap-4 md:grid-cols-2">
-                    {selectedClub.membershipPlans?.filter(plan => plan.isActive).map((plan) => {
+                    {selectedClub.membershipPlans?.filter(plan => plan.isActive && !getPlanSalesState(plan).closed).map((plan) => {
                       const isJoined = isClubJoined(selectedClub._id)
                       const isLimitReached = selectedClub.memberInfo?.isLimitReached || false
                       const salesState = getPlanSalesState(plan)
@@ -1097,20 +1113,37 @@ function ClubsPageContent() {
                                   </Badge>
                                 )}
                               </CardTitle>
-                              <div className="text-right">
+                              <div className="text-right space-y-1">
                                 <div className="text-2xl font-bold text-primary">
                                   {formatPrice(plan.price, plan.currency)}
                                 </div>
                                 <div className="text-sm text-muted-foreground">
+                                  <span className="text-xs text-muted-foreground/70">Member time: </span>
                                   {formatPlanPeriod(plan)}
                                 </div>
-                                {(plan.planStartDate || plan.planEndDate) && (
-                                  <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground mt-2 justify-end">
+                                {/* {(plan.planStartDate || plan.planEndDate) && (
+                                  <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground justify-end">
                                     {plan.planStartDate && (
-                                      <span>Start: {new Date(plan.planStartDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</span>
+                                      <span>Starts: {formatDate(plan.planStartDate)}</span>
                                     )}
                                     {plan.planEndDate && (
-                                      <span>End: {new Date(plan.planEndDate).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</span>
+                                      <span>Ends: {formatDate(plan.planEndDate)}</span>
+                                    )}
+                                  </div>
+                                )} */}
+                                {(plan.bookingStartDate || plan.bookingEndDate) && (
+                                  <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground justify-end">
+                                    {plan.bookingStartDate && (
+                                      <span className="flex items-center gap-1">
+                                        <CalendarClock className="w-3 h-3 shrink-0" />
+                                        Book from: {formatDate(plan.bookingStartDate)}
+                                      </span>
+                                    )}
+                                    {plan.bookingEndDate && (
+                                      <span className="flex items-center gap-1">
+                                        <CalendarClock className="w-3 h-3 shrink-0" />
+                                        Book until: {formatDate(plan.bookingEndDate)}
+                                      </span>
                                     )}
                                   </div>
                                 )}
