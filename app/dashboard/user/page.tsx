@@ -18,6 +18,7 @@ import EventDetailsModal from '@/components/modals/event-details-modal'
 import { VenueTierCartModal } from "@/components/modals/venue-tier-cart-modal"
 import { RefundConfirmationModal } from "@/components/modals/refund-confirmation-modal"
 import { MemberTicketRefundAction } from "@/components/member/member-ticket-refund-action"
+import { RefundPolicyBadge } from "@/components/refund-policy-badge"
 
 function AttendanceMarker({ event, userId }: { event: Event; userId?: string }) {
   const [registration, setRegistration] = useState<any | null>(null)
@@ -643,13 +644,14 @@ export default function UserDashboardPage() {
                 {event.description}
               </CardDescription>
             </div>
-            <div className="ml-2 flex-shrink-0 space-y-1 text-right">
+            <div className="ml-2 flex-shrink-0 space-y-1 flex flex-col items-end">
               <Badge
                 variant="secondary"
                 className="capitalize"
               >
                 {event.category?.replace("-", " ")}
               </Badge>
+              <RefundPolicyBadge eventId={event._id} className="text-[10px]" source="event_detail" />
               {eventFull && (
                 <Badge variant="destructive" className="text-xs uppercase">
                   Full
@@ -936,10 +938,11 @@ export default function UserDashboardPage() {
                                           {event.description}
                                         </CardDescription>
                                       </div>
-                                      <div className="ml-2 flex-shrink-0 space-y-1">
+                                      <div className="ml-2 flex-shrink-0 space-y-1 flex flex-col items-end">
                                         <Badge variant="secondary" className="block capitalize">
                                           {event.category}
                                         </Badge>
+                                        <RefundPolicyBadge eventId={event._id} className="text-[10px]" source="event_detail" />
                                         <AttendanceMarker event={event} userId={user?._id} />
                                       </div>
                                     </div>
@@ -1026,12 +1029,15 @@ export default function UserDashboardPage() {
                                         {event.description}
                                       </CardDescription>
                                     </div>
-                                    <Badge
-                                      variant="secondary"
-                                      className="capitalize ml-2 flex-shrink-0"
-                                    >
-                                      {event.category?.replace("-", " ")}
-                                    </Badge>
+                                    <div className="ml-2 flex-shrink-0 space-y-1 flex flex-col items-end">
+                                      <Badge
+                                        variant="secondary"
+                                        className="capitalize"
+                                      >
+                                        {event.category?.replace("-", " ")}
+                                      </Badge>
+                                      <RefundPolicyBadge eventId={event._id} className="text-[10px]" source="event_detail" />
+                                    </div>
                                   </div>
                                 </CardHeader>
                                 <CardContent className="space-y-3">

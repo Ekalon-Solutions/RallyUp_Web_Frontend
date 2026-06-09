@@ -99,12 +99,12 @@ const normalizeCountryCode = (code: string) => {
 type GuestStep = 'identify' | 'member-found' | 'guest-or-signup' | 'otp' | 'attendees'
 
 export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailure, onLogin, onSignup, waitlistToken }: VenueTierCartModalProps) {
-  const { user } = useAuth()
+  const { user, checkAuth, login } = useAuth()
   const router = useRouter()
 
   const isLoggedIn = Boolean(user)
   const isSimpleEvent = event ? !hasVenueTierMatrix(event) : false
-  const showGuestWizard = isSimpleEvent && !isLoggedIn
+  const showGuestWizard = !isLoggedIn
 
   // Tier-matrix cart state
   const [cart, setCart] = useState<CartState>({})
@@ -132,6 +132,13 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
   const [otpSending, setOtpSending] = useState(false)
   const [otpVerifying, setOtpVerifying] = useState(false)
   const [resendCountdown, setResendCountdown] = useState(0)
+
+  // Inline member login OTP (member-found step)
+  const [memberLoginOtpSent, setMemberLoginOtpSent] = useState(false)
+  const [memberLoginOtp, setMemberLoginOtp] = useState('')
+  const [memberLoginOtpSending, setMemberLoginOtpSending] = useState(false)
+  const [memberLoginOtpVerifying, setMemberLoginOtpVerifying] = useState(false)
+  const [memberLoginSessionInfo, setMemberLoginSessionInfo] = useState<string | null>(null)
 
   const [loading, setLoading] = useState(false)
   const [razorpayOpen, setRazorpayOpen] = useState(false)
@@ -175,7 +182,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
       setRemainingSeats(null)
       setGuestEmail("")
       setGuestEmailError("")
-      setStep(isLoggedIn || !isSimpleEvent ? 'attendees' : 'identify')
+      setStep(isLoggedIn ? 'attendees' : 'identify')
       setPrimaryName('')
       setPrimaryPhone('')
       setPrimaryCountryCode('+91')
@@ -189,6 +196,11 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
       setOtpSending(false)
       setOtpVerifying(false)
       setResendCountdown(0)
+      setMemberLoginOtpSent(false)
+      setMemberLoginOtp('')
+      setMemberLoginOtpSending(false)
+      setMemberLoginOtpVerifying(false)
+      setMemberLoginSessionInfo(null)
       setLocalCouponCode("")
       setCouponApplied(false)
       setCouponDiscount(0)
@@ -470,6 +482,71 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
     finally { setValidatingCoupon(false) }
   }
 
+  // ---- Inline member login (member-found step) ----
+
+  const handleMemberLoginSendOtp = async () => {
+    const digits = digitsOnly(primaryPhone)
+    const countryCode = normalizeCountryCode(primaryCountryCode)
+    setMemberLoginOtpSending(true)
+    try {
+      const res = await apiClient.sendOtp({ phoneNumber: digits, countryCode, role: 'user' })
+      if (res.success) {
+        setMemberLoginSessionInfo(res.data?.sessionInfo ?? null)
+        setMemberLoginOtpSent(true)
+        setMemberLoginOtp('')
+        toast.success(`OTP sent to ${formatPhoneForDisplay(countryCode, digits)}`)
+      } else {
+        toast.error(res.message || res.error || 'Failed to send OTP')
+      }
+    } catch {
+      toast.error('Failed to send OTP. Please try again.')
+    } finally {
+      setMemberLoginOtpSending(false)
+    }
+  }
+
+  const handleMemberLoginVerifyOtp = async () => {
+    if (memberLoginOtp.length < 6) { toast.error('Please enter the 6-digit code'); return }
+    const digits = digitsOnly(primaryPhone)
+    const countryCode = normalizeCountryCode(primaryCountryCode)
+    setMemberLoginOtpVerifying(true)
+    try {
+      const res = await apiClient.verifyOTP({
+        phoneNumber: digits,
+        countryCode,
+        otp: memberLoginOtp,
+        role: 'user',
+        sessionInfo: memberLoginSessionInfo,
+      })
+      if (!res.success) {
+        toast.error(res.message || res.error || 'Invalid or expired code')
+        return
+      }
+      // Backend may return a token directly or just { verified: true }
+      if (res.data?.token) {
+        localStorage.setItem('token', res.data.token)
+        localStorage.setItem('userType', 'member')
+        await checkAuth()
+      } else if (res.data?.verified) {
+        // OTP verified but no token — complete login with phone
+        const loginResult = await login('', digits, countryCode)
+        if (!loginResult.success) {
+          toast.error(loginResult.error || 'Login failed after OTP verification')
+          return
+        }
+      } else {
+        toast.error(res.message || res.error || 'Invalid or expired code')
+        return
+      }
+      toast.success('Signed in successfully!')
+      setStep('attendees')
+    } catch {
+      toast.error('Failed to verify code. Please try again.')
+    } finally {
+      setMemberLoginOtpVerifying(false)
+    }
+  }
+
   // ---- Guest identification wizard handlers (simple events, logged-out only) ----
 
   const sendOtp = async (digits: string, countryCode: string) => {
@@ -497,10 +574,6 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
 
   const handleIdentifyContinue = async () => {
     if (!event?._id) return
-    if (!primaryName.trim()) {
-      toast.error('Please enter your name')
-      return
-    }
     const codeInput = primaryCountryCode.trim() || '+91'
     if (!phoneCodeRegex.test(codeInput)) {
       toast.error('Invalid country code')
@@ -528,15 +601,25 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
       }
 
       setPrimaryCountryCode(countryCode)
-      setGuestMemberInfo({ isMember: Boolean(payload?.isMember), memberName: payload?.memberName })
+
+      const isMember = Boolean(payload?.isMember) ||
+        payload?.role === 'member' ||
+        payload?.role === 'admin' ||
+        payload?.role === 'super_admin'
+      const memberName =
+        `${payload?.first_name ?? ''} ${payload?.last_name ?? ''}`.trim() ||
+        payload?.name ||
+        ''
+
+      setGuestMemberInfo({ isMember, memberName })
 
       setSimpleAttendees(prev => {
         const copy = prev.length ? [...prev] : [{ name: '', phone: '', phoneCode: '', open: true }]
-        copy[0] = { ...copy[0], name: primaryName.trim(), phone: digits, phoneCode: countryCode, open: true }
+        copy[0] = { ...copy[0], name: memberName || primaryName.trim(), phone: digits, phoneCode: countryCode, open: true }
         return copy
       })
 
-      setStep(payload?.isMember ? 'member-found' : 'guest-or-signup')
+      setStep(isMember ? 'member-found' : 'guest-or-signup')
     } catch (error) {
       console.error('Check event registration by phone error:', error)
       toast.error('Something went wrong. Please try again.')
@@ -1058,6 +1141,209 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
     }
   }
 
+  const handleGuestTierMatrixPayment = async () => {
+    if (!event) return
+    if (cartItems.length === 0) { toast.error("Select at least one ticket"); return }
+
+    for (let i = 0; i < attendeeSlots.length; i++) {
+      const s = attendeeSlots[i]
+      if (!s.name.trim()) {
+        toast.error(`Enter name for Ticket ${i + 1} (${s.venueName} – ${s.tierName})`)
+        return
+      }
+      const phoneDigits = s.phone.replace(/\D/g, "")
+      if (!phoneDigits) {
+        toast.error(`Enter phone for Ticket ${i + 1} (${s.venueName} – ${s.tierName})`)
+        return
+      }
+      if (phoneDigits.length < 6 || phoneDigits.length > 15) {
+        toast.error(`Enter a valid phone for Ticket ${i + 1}`)
+        return
+      }
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!guestEmail.trim()) { setGuestEmailError("Email is required"); return }
+    if (!emailRegex.test(guestEmail.trim())) { setGuestEmailError("Enter a valid email address"); return }
+    setGuestEmailError("")
+
+    const bookingAttendees = attendeeSlots.map((s) => ({
+      name: s.name.trim(),
+      phone: s.phone.replace(/\D/g, ""),
+    }))
+
+    setLoading(true)
+    try {
+      const fresh = await apiClient.getPublicEventById(event._id)
+      const freshEvent = fresh.success ? fresh.data : null
+      if (freshEvent?.venues?.length) {
+        for (const item of cartItems) {
+          const venue = freshEvent.venues.find((v) => v._id === item.venueId)
+          const tier = (Array.isArray(venue?.tiers) ? venue.tiers : []).find((t) => t._id === item.tierId)
+          if (!venue || !tier) {
+            toast.error("Ticket matrix changed. Please review your cart and try again.")
+            setLoading(false)
+            return
+          }
+          let available = Math.max(0, (tier.allocation ?? 0) - (tier.sold ?? 0))
+          if (attributedClub && tier.clubAllocations?.length) {
+            const ca = tier.clubAllocations.find((ca) => ca.clubName === attributedClub)
+            available = ca ? Math.max(0, (ca.allocation ?? 0) - (ca.sold ?? 0)) : 0
+          }
+          if (item.quantity > available) {
+            toast.error(
+              attributedClub && tier.clubAllocations?.length
+                ? `Only ${available} seats left for ${attributedClub} in ${venue.name} - ${tier.name}`
+                : `Only ${available} seats left in ${venue.name} - ${tier.name}`
+            )
+            setLoading(false)
+            return
+          }
+        }
+      }
+
+      const apiItems = cartItems.map(({ venueId, tierId, quantity }) => ({ venueId, tierId, quantity }))
+
+      if (amountToCharge <= 0) {
+        if (reservationToken) {
+          await apiClient.confirmReservation(reservationToken).catch(() => {})
+        }
+        const res = await apiClient.bookVenueTierMatrix(event._id, {
+          items: apiItems,
+          attendees: bookingAttendees,
+          reservationToken: reservationToken ?? undefined,
+          couponCode: localCouponCode || undefined,
+          couponDiscount: couponDiscount || undefined,
+          pointsDiscount: reservedDiscount || undefined,
+          amountPaid: 0,
+          attributed_club: attributedClub || undefined,
+          guestEmail: guestEmail.trim(),
+          waitlistToken: waitlistToken || undefined,
+        })
+        if (res.success) {
+          toast.success("Tickets booked!")
+          onSuccess()
+          onClose()
+          router.push("/purchase/success")
+        } else {
+          toast.error(res.error ?? "Booking failed")
+          onFailure()
+        }
+        setLoading(false)
+        return
+      }
+
+      const orderRes = await fetch("/api/razorpay/create-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: Math.round(amountToCharge),
+          currency: event.currency ?? "INR",
+          orderId: `EVT-MTX-${Date.now()}`,
+          orderNumber: `EVT-MTX-${Date.now()}`,
+        }),
+      })
+      if (!orderRes.ok) throw new Error("Failed to create payment order")
+      const { razorpayOrderId, amount, currency: orderCurrency } = await orderRes.json()
+
+      await apiClient.createPendingVenueTierBooking(event._id, {
+        items: apiItems,
+        attendees: bookingAttendees,
+        razorpayOrderId,
+        amountPaid: Math.round(amountToCharge),
+        reservationToken: reservationToken ?? undefined,
+        couponCode: localCouponCode || undefined,
+        couponDiscount: couponDiscount || undefined,
+        pointsDiscount: reservedDiscount || undefined,
+        attributed_club: attributedClub || undefined,
+      }).catch((err) => console.warn("[VenueTierCart] Guest pending booking failed:", err))
+
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        amount,
+        currency: orderCurrency,
+        name: "RallyUp",
+        description: `${cartItems.length} ticket type(s) for ${event.title}`,
+        order_id: razorpayOrderId,
+        handler: async (response: any) => {
+          const { razorpay_payment_id: paymentId, razorpay_order_id: orderId } = response
+          try {
+            await fetch("/api/razorpay/verify-payment", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                razorpay_order_id: orderId,
+                razorpay_payment_id: paymentId,
+                razorpay_signature: response.razorpay_signature,
+                orderId: `event_${event._id}_${Date.now()}`,
+              }),
+            }).catch(() => {})
+
+            if (reservationToken) {
+              await apiClient.confirmReservation(reservationToken, orderId).catch(() => {})
+            }
+
+            const res = await apiClient.bookVenueTierMatrix(event._id, {
+              items: apiItems,
+              attendees: bookingAttendees,
+              razorpayOrderId: orderId,
+              paymentId,
+              amountPaid: Math.round(amountToCharge),
+              reservationToken: reservationToken ?? undefined,
+              couponCode: localCouponCode || undefined,
+              couponDiscount: couponDiscount || undefined,
+              pointsDiscount: reservedDiscount || undefined,
+              attributed_club: attributedClub || undefined,
+              guestEmail: guestEmail.trim(),
+            })
+            if (res.success) {
+              toast.success("Payment successful! Tickets confirmed.")
+              setRazorpayOpen(false)
+              onSuccess()
+              onClose()
+              router.push("/purchase/success")
+            } else {
+              toast.error(`Payment received (ID: ${paymentId}) but booking failed — ${res.error ?? "contact support"}`)
+              setRazorpayOpen(false)
+            }
+          } catch {
+            toast.error(`Something went wrong after payment (ID: ${paymentId}). Contact support.`)
+            setRazorpayOpen(false)
+          } finally {
+            setLoading(false)
+          }
+        },
+        prefill: {
+          name: bookingAttendees[0]?.name ?? "",
+          email: guestEmail.trim(),
+          contact: bookingAttendees[0]?.phone ?? "",
+        },
+        theme: { color: "#3b82f6" },
+        modal: {
+          ondismiss: () => {
+            setRazorpayOpen(false)
+            setLoading(false)
+            toast.error("Payment cancelled")
+          },
+        },
+      }
+
+      const rzp = new window.Razorpay(options)
+      rzp.on("payment.failed", (r: any) => {
+        toast.error(r.error?.description ?? "Payment failed")
+        setRazorpayOpen(false)
+        setLoading(false)
+        onFailure()
+        router.push("/purchase/failure")
+      })
+      setRazorpayOpen(true)
+      rzp.open()
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to initiate payment")
+      setLoading(false)
+    }
+  }
+
   const handleTierMatrixPayment = async () => {
     if (cartItems.length === 0) { toast.error("Select at least one ticket"); return }
     if (!user) { toast.error("Please log in to purchase tickets"); return }
@@ -1255,8 +1541,12 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
 
   const onPrimaryAction = () => {
     if (showGuestWizard && step !== 'attendees') return
-    if (isSimpleEvent && !user) {
-      void handleGuestSimpleEventPayment()
+    if (!user) {
+      if (isSimpleEvent) {
+        void handleGuestSimpleEventPayment()
+      } else {
+        void handleGuestTierMatrixPayment()
+      }
     } else {
       void handlePayment()
     }
@@ -1325,15 +1615,6 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
                       <AlertDescription>{identifyError}</AlertDescription>
                     </Alert>
                   )}
-                  <div className="space-y-2">
-                    <Label htmlFor="vtcPrimaryName">Your name</Label>
-                    <Input
-                      id="vtcPrimaryName"
-                      placeholder="Full name"
-                      value={primaryName}
-                      onChange={(e) => { setPrimaryName(e.target.value); setIdentifyError(null) }}
-                    />
-                  </div>
                   <div className="grid grid-cols-[auto_1fr] gap-2 items-end">
                     <div className="space-y-2">
                       <Label htmlFor="vtcPrimaryCountryCode">Code</Label>
@@ -1362,7 +1643,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
                   </div>
                   <Button
                     onClick={() => void handleIdentifyContinue()}
-                    disabled={identifyChecking || !primaryName.trim() || !primaryPhone.trim()}
+                    disabled={identifyChecking || !primaryPhone.trim()}
                     className="w-full"
                   >
                     {identifyChecking ? (
@@ -1387,14 +1668,56 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
                     <AlertDescription className="text-green-800">
                       <strong>Existing member{guestMemberInfo?.memberName ? ` — ${guestMemberInfo.memberName}` : ''}</strong>
                       <br />
-                      Log in to unlock member pricing on this event, or continue as a guest.
+                      Verify your number to log in and unlock member pricing.
                     </AlertDescription>
                   </Alert>
-                  <div className="flex gap-2">
-                    <Button onClick={handleGuestLogin} className="flex-1">Login</Button>
-                    <Button variant="outline" onClick={() => void handleContinueAsGuest()} className="flex-1">Continue as Guest</Button>
-                  </div>
-                  <Button variant="ghost" onClick={() => setStep('identify')} className="w-full">
+
+                  {!memberLoginOtpSent ? (
+                    <div className="space-y-3">
+                      <Button
+                        onClick={() => void handleMemberLoginSendOtp()}
+                        disabled={memberLoginOtpSending}
+                        className="w-full"
+                      >
+                        {memberLoginOtpSending
+                          ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Sending OTP…</>
+                          : 'Send OTP to Login'}
+                      </Button>
+                      <Button variant="outline" onClick={() => void handleContinueAsGuest()} className="w-full">
+                        Continue as Guest
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="memberLoginOtp">Verification code</Label>
+                        <Input
+                          id="memberLoginOtp"
+                          type="text"
+                          inputMode="numeric"
+                          autoComplete="one-time-code"
+                          placeholder="Enter 6-digit code"
+                          value={memberLoginOtp}
+                          maxLength={6}
+                          onChange={(e) => setMemberLoginOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        />
+                      </div>
+                      <Button
+                        onClick={() => void handleMemberLoginVerifyOtp()}
+                        disabled={memberLoginOtpVerifying || memberLoginOtp.length < 6}
+                        className="w-full"
+                      >
+                        {memberLoginOtpVerifying
+                          ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Verifying…</>
+                          : 'Verify & Login'}
+                      </Button>
+                      <Button variant="outline" onClick={() => void handleContinueAsGuest()} className="w-full">
+                        Continue as Guest
+                      </Button>
+                    </div>
+                  )}
+
+                  <Button variant="ghost" onClick={() => { setStep('identify'); setMemberLoginOtpSent(false); setMemberLoginOtp('') }} className="w-full">
                     Use a different number
                   </Button>
                 </div>

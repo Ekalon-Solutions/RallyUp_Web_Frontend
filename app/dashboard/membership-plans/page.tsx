@@ -547,7 +547,7 @@ export default function MembershipPlansPage() {
         return
       }
 
-      const updatePayload: any = { ...formData }
+      const updatePayload: any = { ...formData, clubId: activeClubId }
       if (formData.planStartDate) updatePayload.planStartDate = formData.planStartDate
       if (formData.planEndDate) updatePayload.planEndDate = formData.planEndDate
       if (formData.bookingStartDate) updatePayload.bookingStartDate = formData.bookingStartDate
