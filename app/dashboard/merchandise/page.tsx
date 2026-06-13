@@ -34,7 +34,8 @@ import {
   AlertTriangle,
   Settings,
   Truck,
-  Percent
+  Percent,
+  Wallet
 } from "lucide-react"
 import {
   Table,
@@ -99,6 +100,7 @@ interface MerchandiseSettings {
   taxRate: number
   enableTax: boolean
   enableShipping: boolean
+  enableCOD: boolean
 }
 
 export default function MerchandiseManagementPage() {
@@ -114,7 +116,8 @@ export default function MerchandiseManagementPage() {
     freeShippingThreshold: 0,
     taxRate: 0,
     enableTax: false,
-    enableShipping: false
+    enableShipping: false,
+    enableCOD: false
   })
   const [settingsLoading, setSettingsLoading] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
@@ -438,6 +441,24 @@ export default function MerchandiseManagementPage() {
                         </p>
                       </div>
                     )}
+                  </div>
+
+                  {/* COD Settings */}
+                  <div className="space-y-4 md:col-span-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Wallet className="w-4 h-4 text-muted-foreground" />
+                        <Label htmlFor="enableCOD">Enable Cash on Delivery (COD)</Label>
+                      </div>
+                      <Switch
+                        id="enableCOD"
+                        checked={settings.enableCOD}
+                        onCheckedChange={(checked) => setSettings({ ...settings, enableCOD: checked })}
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      When enabled, COD will be offered at checkout only for pincodes where Shiprocket confirms COD service.
+                    </p>
                   </div>
                 </div>
 

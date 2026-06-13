@@ -9,10 +9,10 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
-import { 
-  CreditCard, 
-  MapPin, 
-  User, 
+import {
+  CreditCard,
+  MapPin,
+  User,
   DollarSign,
   Package,
   CheckCircle,
@@ -22,11 +22,17 @@ import {
   Building2,
   Smartphone,
   Tag,
-  X
+  X,
+  Truck,
+  Clock,
+  Zap,
+  ExternalLink,
+  AlertTriangle
 } from "lucide-react"
 import { useCart, CartItem } from "@/contexts/cart-context"
 import { useAuth } from "@/contexts/auth-context"
 import { apiClient } from "@/lib/api"
+import { cn } from "@/lib/utils"
 import { calculateTransactionFees, PLATFORM_FEE_PERCENT, RAZORPAY_FEE_PERCENT } from "@/lib/transactionFees"
 import { PaymentSimulationModal } from "./payment-simulation-modal"
 import { toast } from "sonner"
@@ -64,7 +70,23 @@ interface AppliedCoupon {
   finalPrice: number
 }
 
-const SHIPROCKET_PICKUP_FALLBACK = 700008
+interface ServiceabilityCourier {
+  courierId: number
+  courierName: string
+  rate: number
+  estimatedDays: { min: number; max: number } | null
+}
+
+interface ServiceabilityResult {
+  serviceable: boolean
+  codAvailable: boolean
+  estimatedDays: { min: number; max: number } | null
+  cheapest: ServiceabilityCourier | null
+  fastest: ServiceabilityCourier | null
+  fallback: boolean
+  message: string
+  enableCOD: boolean
+}
 
 export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems }: CheckoutModalProps) {
   const { user } = useAuth()
@@ -89,14 +111,16 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
   const [showMemberValidation, setShowMemberValidation] = useState(false)
   const [memberValidated, setMemberValidated] = useState(false)
   const [shiprocketLoading, setShiprocketLoading] = useState(false)
-  const [shiprocketShippingCost, setShiprocketShippingCost] = useState<number | null>(null)
   const [shiprocketMessage, setShiprocketMessage] = useState<string | null>(null)
+  const [serviceability, setServiceability] = useState<ServiceabilityResult | null>(null)
+  const [shippingMethod, setShippingMethod] = useState<'cheapest' | 'fastest'>('cheapest')
   const [merchandiseSettings, setMerchandiseSettings] = useState<{
     shippingCost: number
     freeShippingThreshold: number
     taxRate: number
     enableTax: boolean
     enableShipping: boolean
+    enableCOD?: boolean
     pickupPostcode?: number | null
   } | null>(null)
   const [orderForm, setOrderForm] = useState<OrderForm>({
@@ -199,11 +223,6 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
   const couponDiscount = appliedCoupon?.discount ?? 0
   const subtotalAfterCoupon = Math.max(0, totalPrice - couponDiscount)
 
-  const calculateTotalWeight = () => {
-    const totalQuantity = items.reduce((sum, item) => sum + (item.quantity || 0), 0)
-    return totalQuantity > 0 ? totalQuantity : 1
-  }
-
   const calculateShipping = () => {
     if (!merchandiseSettings?.enableShipping) return 0
     if (merchandiseSettings.freeShippingThreshold && subtotalAfterCoupon >= merchandiseSettings.freeShippingThreshold) {
@@ -217,8 +236,17 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
     return subtotalAfterCoupon * (merchandiseSettings.taxRate / 100)
   }
 
-  const shippingCost = shiprocketShippingCost != null ? shiprocketShippingCost : calculateShipping()
+  // If serviceable and the club passes shipping costs to the member, use the
+  // selected Shiprocket courier's rate; otherwise fall back to club-configured shipping.
+  const selectedCourier = serviceability && !serviceability.fallback
+    ? (shippingMethod === 'fastest' ? (serviceability.fastest ?? serviceability.cheapest) : (serviceability.cheapest ?? serviceability.fastest))
+    : null
+  const shiprocketCost = (merchandiseSettings?.enableShipping && serviceability?.serviceable && selectedCourier)
+    ? selectedCourier.rate
+    : null
+  const shippingCost = shiprocketCost != null ? shiprocketCost : calculateShipping()
   const taxAmount = calculateTax()
+  const codAvailable = !!(merchandiseSettings?.enableCOD && serviceability?.codAvailable)
 
   useEffect(() => {
     if (merchandiseSettings && isOpen) {
@@ -307,102 +335,87 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
     toast.info("Coupon removed")
   }
 
-  const fetchShiprocketShipping = useCallback(async (zipCode: string) => {
-    if (!zipCode?.trim()) return
+  const fetchServiceability = useCallback(async (zipCode: string) => {
+    const deliveryPincode = zipCode.trim()
+    if (!/^\d{6}$/.test(deliveryPincode)) return
 
-    const deliveryPostcode = Number(zipCode.trim())
-    if (!Number.isFinite(deliveryPostcode)) return
+    const clubId = typeof items[0]?.club === 'string' ? items[0].club : items[0]?.club?._id
+    if (!clubId) return
 
-    const pickupPostcode = merchandiseSettings?.pickupPostcode ?? SHIPROCKET_PICKUP_FALLBACK
+    const fallbackResult: ServiceabilityResult = {
+      serviceable: true,
+      codAvailable: false,
+      estimatedDays: { min: 5, max: 7 },
+      cheapest: null,
+      fastest: null,
+      fallback: true,
+      message: "Unable to verify delivery for this pincode right now — showing standard delivery estimate",
+      enableCOD: !!merchandiseSettings?.enableCOD,
+    }
 
     try {
       setShiprocketLoading(true)
       setShiprocketMessage(null)
 
-      const weight = calculateTotalWeight()
-      const declaredValue = subtotalAfterCoupon || totalPrice
-
-      const response = await apiClient.getShiprocketShippingRate({
-        pickupPostcode,
-        deliveryPostcode,
-        weight,
-        declaredValue,
+      const response = await apiClient.checkMerchandiseServiceability({
+        clubId,
+        deliveryPincode,
+        items: items.map(i => ({ productId: i._id, quantity: i.quantity })),
         cod: true,
       })
 
-      if (!response.success) {
-        const msg = response.message || 'Failed to calculate shipping via Shiprocket'
-        setShiprocketMessage(msg)
-        setShiprocketShippingCost(null)
+      if (!response.success || !response.data) {
+        setServiceability(fallbackResult)
+        setShiprocketMessage(fallbackResult.message)
         return
       }
 
-      const payload = (response as any).data?.data ?? (response as any).data
-      const innerData = payload?.data ?? payload
-      const companies = (innerData?.available_courier_companies ?? payload?.available_courier_companies) as Array<{ rate?: number; courier_company_id?: number; courier_name?: string; courier_disabled?: number }> | undefined
-      let cost = 0
-
-      if (Array.isArray(companies) && companies.length > 0) {
-        const enabled = companies.filter((c) => c.courier_disabled !== 1)
-        const candidates = enabled.length > 0 ? enabled : companies
-        const cheapest = candidates.reduce((min, c) => {
-          if (typeof c.rate !== 'number') return min
-          if (typeof min.rate !== 'number' || c.rate < min.rate) return c
-          return min
-        }, candidates[0])
-        if (typeof cheapest.rate === 'number') {
-          cost = cheapest.rate
-          setShiprocketMessage(null)
-        } else {
-          setShiprocketMessage('Shiprocket did not return a numeric rate; using 0')
-        }
-      } else {
-        setShiprocketMessage('No courier options returned from Shiprocket for this address')
-        setShiprocketShippingCost(null)
-        return
-      }
-
-      setShiprocketShippingCost(cost)
-    } catch (error: any) {
-      const msg = error?.message || 'Error while calculating shipping via Shiprocket'
-      setShiprocketMessage(msg)
-      setShiprocketShippingCost(null)
+      setServiceability(response.data)
+      setShiprocketMessage(response.data.fallback ? response.data.message : null)
+    } catch {
+      setServiceability(fallbackResult)
+      setShiprocketMessage(fallbackResult.message)
     } finally {
       setShiprocketLoading(false)
     }
-  }, [subtotalAfterCoupon, totalPrice, items, merchandiseSettings?.pickupPostcode])
+  }, [items, merchandiseSettings?.enableCOD])
 
-  const shiprocketDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const serviceabilityDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
     if (!isOpen || items.length === 0) return
 
     const zip = orderForm.zipCode?.trim()
-    if (!zip) {
-      setShiprocketShippingCost(null)
+    if (!zip || !/^\d{6}$/.test(zip)) {
+      setServiceability(null)
       setShiprocketMessage(null)
       return
     }
 
-    const deliveryPostcode = Number(zip)
-    if (!Number.isFinite(deliveryPostcode)) return
-
-    if (shiprocketDebounceRef.current) {
-      clearTimeout(shiprocketDebounceRef.current)
+    if (serviceabilityDebounceRef.current) {
+      clearTimeout(serviceabilityDebounceRef.current)
     }
 
     const delay = merchandiseSettings === null ? 1500 : 500
-    shiprocketDebounceRef.current = setTimeout(() => {
-      shiprocketDebounceRef.current = null
-      fetchShiprocketShipping(zip)
+    serviceabilityDebounceRef.current = setTimeout(() => {
+      serviceabilityDebounceRef.current = null
+      fetchServiceability(zip)
     }, delay)
 
     return () => {
-      if (shiprocketDebounceRef.current) {
-        clearTimeout(shiprocketDebounceRef.current)
-        shiprocketDebounceRef.current = null
+      if (serviceabilityDebounceRef.current) {
+        clearTimeout(serviceabilityDebounceRef.current)
+        serviceabilityDebounceRef.current = null
       }
     }
-  }, [isOpen, orderForm.zipCode, items.length, fetchShiprocketShipping, merchandiseSettings])
+  }, [isOpen, orderForm.zipCode, items.length, fetchServiceability, merchandiseSettings])
+
+  // If COD becomes unavailable for the entered pincode (or club doesn't offer it),
+  // fall back to online payment.
+  useEffect(() => {
+    if (orderForm.paymentMethod === 'cod' && !codAvailable) {
+      setOrderForm(prev => ({ ...prev, paymentMethod: 'all' }))
+    }
+  }, [codAvailable, orderForm.paymentMethod])
 
   useEffect(() => {
     if (isOpen && user) {
@@ -456,7 +469,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
           productId: item._id,
           quantity: item.quantity
         })),
-        paymentMethod: 'all',
+        paymentMethod: orderForm.paymentMethod,
         notes: orderForm.notes,
         ...(appliedCoupon?.code ? { couponCode: appliedCoupon.code } : {}),
         shippingCost,
@@ -484,13 +497,33 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
       }
 
       const response = await apiClient.post(user ? '/orders' : '/orders/public', orderData)
-      
+
         if (response.success && response.data) {
         const order = response.data.data
         setOrderShipping(order.shippingCost ?? null)
         setOrderTax(order.tax ?? null)
         setCreatedOrder(order)
-        setShowPaymentModal(true)
+
+        if (orderForm.paymentMethod === 'cod') {
+          // COD orders skip the (simulated) Razorpay flow entirely.
+          if (reservationToken) {
+            try {
+              await apiClient.confirmReservation(reservationToken, order._id)
+            } catch (e) {
+            }
+            setReservationToken(null)
+            setReservedDiscount(0)
+            setRedeemPoints(0)
+          }
+          toast.success('Order placed successfully! Pay with cash on delivery.')
+          if (!directCheckoutItems) {
+            clearCart()
+          }
+          onSuccess()
+          onClose()
+        } else {
+          setShowPaymentModal(true)
+        }
       } else {
         toast.error(response.message || 'Failed to place order. Please try again.')
       }
@@ -550,9 +583,9 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
     }
   }
 
-  const zipEntered = !!orderForm.zipCode?.trim()
-  const deliveryUnavailable = zipEntered && !shiprocketLoading && shiprocketShippingCost == null
-  const orderBlocked = zipEntered && (shiprocketLoading || shiprocketShippingCost == null)
+  const validPincode = /^\d{6}$/.test(orderForm.zipCode?.trim() || '')
+  const deliveryUnavailable = validPincode && !shiprocketLoading && serviceability !== null && !serviceability.serviceable
+  const orderBlocked = validPincode && shiprocketLoading
 
   const validateForm = () => {
     const required = ['firstName', 'lastName', 'email', 'phone', 'address', 'city', 'state', 'zipCode']
@@ -570,8 +603,13 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
       return false
     }
 
+    if (deliveryUnavailable) {
+      toast.error("Sorry, we don't deliver to this area yet")
+      return false
+    }
+
     if (orderBlocked) {
-      toast.error(deliveryUnavailable ? "Can't place order as order can't be delivered to this pincode" : "Please wait for shipping calculation")
+      toast.error("Please wait for the delivery check to complete")
       return false
     }
 
@@ -691,13 +729,23 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                   
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="zipCode">ZIP Code *</Label>
+                      <Label htmlFor="zipCode">ZIP / PIN Code *</Label>
                       <Input
                         id="zipCode"
                         value={orderForm.zipCode}
                         onChange={(e) => handleInputChange('zipCode', e.target.value)}
+                        maxLength={6}
                         required
                       />
+                      <a
+                        href={`https://www.google.com/search?q=${encodeURIComponent(`PIN code${orderForm.address ? ` for ${orderForm.address}` : ''}${orderForm.city ? `, ${orderForm.city}` : ''}${orderForm.state ? `, ${orderForm.state}` : ''} India`)}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-1 inline-flex items-center gap-1 text-xs text-sky-600 hover:text-sky-500 underline"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        Don&apos;t know your PIN code? Look it up
+                      </a>
                     </div>
                     <div>
                       <Label htmlFor="country">Country *</Label>
@@ -709,13 +757,164 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                       />
                     </div>
                   </div>
-                  {items.length > 0 && shiprocketMessage && (
+
+                  {/* Serviceability / delivery estimate */}
+                  {validPincode && (
+                    <div className="rounded-lg border p-3 text-sm space-y-1">
+                      {shiprocketLoading && (
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Checking delivery availability for this pincode...
+                        </div>
+                      )}
+                      {!shiprocketLoading && serviceability && (
+                        <>
+                          {serviceability.serviceable ? (
+                            <div className="flex items-center gap-2 text-green-700">
+                              <Truck className="w-4 h-4" />
+                              <span>We deliver to this area</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2 text-destructive">
+                              <AlertTriangle className="w-4 h-4" />
+                              <span>Sorry, we don&apos;t deliver to this area yet</span>
+                            </div>
+                          )}
+                          {serviceability.serviceable && serviceability.estimatedDays && (
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                              <Clock className="w-4 h-4" />
+                              <span>
+                                Estimated Delivery: {serviceability.estimatedDays.min}-{serviceability.estimatedDays.max} Days
+                              </span>
+                            </div>
+                          )}
+                          {serviceability.fallback && (
+                            <div className="flex items-center gap-2 text-amber-600 text-xs">
+                              <AlertTriangle className="w-3.5 h-3.5" />
+                              <span>{serviceability.message}</span>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  )}
+
+                  {items.length > 0 && shiprocketMessage && !validPincode && (
                     <p className="text-xs text-muted-foreground mt-2">
                       {shiprocketMessage}
                     </p>
                   )}
                 </CardContent>
               </Card>
+
+              {/* Shipping Method (Fastest / Cheapest) */}
+              {merchandiseSettings?.enableShipping && serviceability?.serviceable && !serviceability.fallback && (serviceability.cheapest || serviceability.fastest) && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Truck className="w-4 h-4" />
+                      Shipping Method
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {serviceability.cheapest && (
+                        <button
+                          type="button"
+                          onClick={() => setShippingMethod('cheapest')}
+                          className={cn(
+                            "border rounded-lg p-3 text-left transition-colors",
+                            shippingMethod === 'cheapest' || !serviceability.fastest
+                              ? "border-primary ring-1 ring-primary"
+                              : "border-gray-200 hover:border-gray-300"
+                          )}
+                        >
+                          <div className="flex items-center gap-2 text-sm font-medium">
+                            <DollarSign className="w-4 h-4" />
+                            Cheapest
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-0.5 truncate">{serviceability.cheapest.courierName}</p>
+                          <p className="text-sm mt-1">
+                            {formatCurrency(serviceability.cheapest.rate, currency)}
+                            {serviceability.cheapest.estimatedDays && (
+                              <span className="text-muted-foreground"> · {serviceability.cheapest.estimatedDays.min}-{serviceability.cheapest.estimatedDays.max} days</span>
+                            )}
+                          </p>
+                        </button>
+                      )}
+                      {serviceability.fastest && (
+                        <button
+                          type="button"
+                          onClick={() => setShippingMethod('fastest')}
+                          className={cn(
+                            "border rounded-lg p-3 text-left transition-colors",
+                            shippingMethod === 'fastest'
+                              ? "border-primary ring-1 ring-primary"
+                              : "border-gray-200 hover:border-gray-300"
+                          )}
+                        >
+                          <div className="flex items-center gap-2 text-sm font-medium">
+                            <Zap className="w-4 h-4" />
+                            Fastest
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-0.5 truncate">{serviceability.fastest.courierName}</p>
+                          <p className="text-sm mt-1">
+                            {formatCurrency(serviceability.fastest.rate, currency)}
+                            {serviceability.fastest.estimatedDays && (
+                              <span className="text-muted-foreground"> · {serviceability.fastest.estimatedDays.min}-{serviceability.fastest.estimatedDays.max} days</span>
+                            )}
+                          </p>
+                        </button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Payment Method */}
+              {codAvailable && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Wallet className="w-4 h-4" />
+                      Payment Method
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleInputChange('paymentMethod', 'all')}
+                        className={cn(
+                          "border rounded-lg p-3 text-left flex items-center gap-2 text-sm font-medium transition-colors",
+                          orderForm.paymentMethod !== 'cod'
+                            ? "border-primary ring-1 ring-primary"
+                            : "border-gray-200 hover:border-gray-300"
+                        )}
+                      >
+                        <CreditCard className="w-4 h-4" />
+                        Online Payment
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleInputChange('paymentMethod', 'cod')}
+                        className={cn(
+                          "border rounded-lg p-3 text-left flex items-center gap-2 text-sm font-medium transition-colors",
+                          orderForm.paymentMethod === 'cod'
+                            ? "border-primary ring-1 ring-primary"
+                            : "border-gray-200 hover:border-gray-300"
+                        )}
+                      >
+                        <Wallet className="w-4 h-4" />
+                        Cash on Delivery
+                      </button>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Cash on Delivery is available for your pincode.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
               {/* Order Notes */}
               <Card>
                 <CardHeader>
@@ -1032,7 +1231,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
 
               {deliveryUnavailable && (
                 <p className="text-sm text-destructive text-center">
-                  Can&apos;t place order as order can&apos;t be delivered to this pincode
+                  Sorry, we don&apos;t deliver to this area yet
                 </p>
               )}
               {/* Place Order Button */}
@@ -1040,7 +1239,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                 type="submit"
                 className="w-full"
                 size="lg"
-                disabled={loading || items.length === 0 || orderBlocked}
+                disabled={loading || items.length === 0 || orderBlocked || deliveryUnavailable}
               >
                 {loading ? (
                   <>
@@ -1050,7 +1249,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                 ) : (
                   <>
                     <CheckCircle className="w-4 h-4 mr-2" />
-                    Place Order
+                    {orderForm.paymentMethod === 'cod' ? 'Place Order (Pay on Delivery)' : 'Proceed to Payment'}
                   </>
                 )}
               </Button>

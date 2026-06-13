@@ -329,6 +329,73 @@ export interface VenueTierCartItem {
   quantity: number;
 }
 
+export interface LogisticsOrderRow {
+  _id: string;
+  orderNumber: string;
+  memberName: string;
+  memberEmail: string;
+  pincode: string;
+  city: string;
+  status: string;
+  paymentStatus: string;
+  deliveryStatus?: string;
+  courierName?: string;
+  awbCode?: string;
+  createdAt: string;
+  estimatedDeliveryDate?: string;
+  actualDeliveryAt?: string;
+  daysToDeliver: number | null;
+  onTime: boolean | null;
+  isRTO: boolean;
+  rtoReason?: string;
+  estimatedWeight?: number;
+  shiprocketChargedWeight?: number;
+  weightDiscrepancy: boolean;
+  shippingCost?: number;
+  shiprocketFreightCharge?: number;
+  rtoCharge?: number;
+}
+
+export interface LogisticsZoneRow {
+  pincode: string;
+  city: string;
+  orderCount: number;
+  avgDeliveryDays: number | null;
+}
+
+export interface LogisticsCourierRow {
+  courierName: string;
+  totalOrders: number;
+  deliveredCount: number;
+  onTimeCount: number;
+  onTimeRate: number | null;
+  rtoCount: number;
+  rtoRate: number;
+  avgDeliveryDays: number | null;
+}
+
+export interface LogisticsReportSummary {
+  month: string;
+  totalOrders: number;
+  avgDeliveryDays: number | null;
+  rtoCount: number;
+  rtoRate: number;
+  weightDiscrepancyCount: number;
+  totalShippingFeeCollected?: number;
+  totalShiprocketFreightCharged?: number;
+  totalRtoCharges?: number;
+  logisticsProfitLoss?: number;
+  shippingCostsRestricted: boolean;
+}
+
+export interface LogisticsReportResult {
+  summary: LogisticsReportSummary;
+  orders: LogisticsOrderRow[];
+  rtoAnalysis: LogisticsOrderRow[];
+  zonePerformance: LogisticsZoneRow[];
+  courierStats: LogisticsCourierRow[];
+}
+
 export interface Event {
   eventDate: string;
   eventTime: string;
@@ -2476,6 +2543,22 @@ class ApiClient {
     }
   }
 
+  async downloadLogisticsReport(params: Record<string, any>): Promise<{ success: boolean; error?: string }> {
+    try {
+      const result = await this.downloadFile('/orders/admin/logistics-report/export', { params });
+      if (!result.success) {
+        return { success: false, error: result.error };
+      }
+      const blob = result.blob as Blob;
+      const filename = result.filename || `logistics_report_${Date.now()}.xlsx`;
+      triggerBlobDownload(blob, filename);
+
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error?.message || 'Failed to download logistics report' };
+    }
+  }
+
   async downloadMyOrdersReport(params?: Record<string, any>): Promise<{ success: boolean; error?: string }> {
     try {
       const result = await this.downloadFile('/orders/my-orders/report', { params });
@@ -4090,6 +4173,7 @@ class ApiClient {
       taxRate: number;
       enableTax: boolean;
       enableShipping: boolean;
+      enableCOD: boolean;
     };
   }>> {
     return this.get('/merchandise/admin/settings', { params: clubId ? { clubId } : undefined });
@@ -4101,6 +4185,7 @@ class ApiClient {
     taxRate?: number;
     enableTax?: boolean;
     enableShipping?: boolean;
+    enableCOD?: boolean;
   }, clubId?: string): Promise<ApiResponse<{
     clubId: string;
     clubName: string;
@@ -4110,6 +4195,7 @@ class ApiClient {
       taxRate: number;
       enableTax: boolean;
       enableShipping: boolean;
+      enableCOD: boolean;
     };
   }>> {
     const result = await this.request<{
@@ -4121,6 +4207,7 @@ class ApiClient {
         taxRate: number;
         enableTax: boolean;
         enableShipping: boolean;
+        enableCOD: boolean;
       };
     }>('/merchandise/admin/settings', {
       method: 'PUT',
@@ -4161,6 +4248,7 @@ class ApiClient {
       taxRate: number;
       enableTax: boolean;
       enableShipping: boolean;
+      enableCOD: boolean;
     };
   }>> {
     return this.get(`/merchandise/public/settings/${clubId}`);
@@ -4182,6 +4270,31 @@ class ApiClient {
         declaredValue: params.declaredValue,
         cod: params.cod !== false,
       }),
+    });
+  }
+
+  async checkMerchandiseServiceability(payload: {
+    clubId: string;
+    deliveryPincode: string;
+    items: Array<{ productId: string; quantity: number }>;
+    cod?: boolean;
+  }): Promise<ApiResponse<{
+    serviceable: boolean;
+    codAvailable: boolean;
+    estimatedDays: { min: number; max: number } | null;
+    cheapest: { courierId: number; courierName: string; rate: number; estimatedDays: { min: number; max: number } | null } | null;
+    fastest: { courierId: number; courierName: string; rate: number; estimatedDays: { min: number; max: number } | null } | null;
+    fallback: boolean;
+    message: string;
+    enableCOD: boolean;
+    chargeableWeight: number;
+    actualWeight: number;
+    volumetricWeight: number;
+    pickupPostcode: number;
+  }>> {
+    return this.request('/merchandise/check-serviceability', {
+      method: 'POST',
+      body: JSON.stringify(payload),
     });
   }
 
@@ -5071,6 +5184,35 @@ class ApiClient {
     events: Array<{ timestamp: string; status: string; activity: string; location: string; srStatusCode?: string }>;
   }>> {
     return this.get(`/orders/admin/${orderId}/timeline`);
+  }
+
+  async getLogisticsReport(params: {
+    clubId: string;
+    deliveryStatus?: string;
+    courierName?: string;
+    month?: string;
+  }): Promise<ApiResponse<LogisticsReportResult>> {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== '') query.append(k, String(v));
+    });
+    return this.get(`/orders/admin/logistics-report?${query.toString()}`);
+  }
+
+  async updateOrderLogistics(orderId: string, data: {
+    shiprocketChargedWeight?: number;
+    shiprocketFreightCharge?: number;
+    rtoCharge?: number;
+  }): Promise<ApiResponse<any>> {
+    return this.patch(`/orders/admin/${orderId}/logistics`, data);
+  }
+
+  async confirmOrderReceipt(orderId: string): Promise<ApiResponse<any>> {
+    return this.post(`/orders/my-orders/${orderId}/confirm-receipt`, {});
+  }
+
+  async rateOrder(orderId: string, rating: number, feedback?: string): Promise<ApiResponse<any>> {
+    return this.post(`/orders/my-orders/${orderId}/rate`, { rating, feedback });
   }
 }
 

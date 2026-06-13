@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/contexts/auth-context'
+import { useSocket } from '@/contexts/socket-context'
 import { apiClient } from '@/lib/api'
 import { DashboardLayout } from '@/components/dashboard-layout'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -17,6 +19,7 @@ import { formatLocalDate } from '@/lib/timezone'
 import { RefundButton } from '@/components/refund-button'
 import { PaymentSimulationModal } from '@/components/modals/payment-simulation-modal'
 import { calculateTransactionFees, PLATFORM_FEE_PERCENT, RAZORPAY_FEE_PERCENT } from '@/lib/transactionFees'
+import { OrderTrackingProgress, TrackableOrder, TrackingEvent } from '@/components/order-tracking-progress'
 import {
   Search,
   RefreshCw,
@@ -31,7 +34,8 @@ import {
   X,
   Loader2,
   CreditCard,
-  Wallet
+  Wallet,
+  Bell
 } from 'lucide-react'
 import { useRequiredClubId } from '@/hooks/useRequiredClubId'
 
@@ -98,6 +102,16 @@ interface Order {
   isRTO?: boolean
   isDamaged?: boolean
   isLost?: boolean
+  awbCode?: string
+  courierName?: string
+  courierId?: string
+  shiprocketStatus?: 'pending' | 'pushed' | 'failed'
+  trackingEvents?: TrackingEvent[]
+  lastTrackingSync?: string
+  customerConfirmedDeliveryAt?: string
+  rating?: number
+  ratingFeedback?: string
+  ratedAt?: string
 }
 
 interface AppliedCoupon {
@@ -127,6 +141,7 @@ export default function UserOrdersPage() {
   const { user } = useAuth()
   const clubId = useRequiredClubId()
   const { toast } = useToast()
+  const { socket } = useSocket()
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
@@ -136,6 +151,11 @@ export default function UserOrdersPage() {
   const [totalPages, setTotalPages] = useState(1)
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [showOrderModal, setShowOrderModal] = useState(false)
+
+  // ── Shipping notification opt-in ────────────────────────────────────────────
+  const [shippingAlertsEnabled, setShippingAlertsEnabled] = useState<boolean | null>(null)
+  const [savingShippingAlerts, setSavingShippingAlerts] = useState(false)
+  // ────────────────────────────────────────────────────────────────────────────
 
   // ── Continue Payment state ──────────────────────────────────────────────────
   const [showContinuePayment, setShowContinuePayment] = useState(false)
@@ -160,6 +180,35 @@ export default function UserOrdersPage() {
   }, [user, clubId])
 
   useEffect(() => {
+    if (!user) return
+    apiClient.getUserProfile().then((res) => {
+      if (res.success && res.data) {
+        setShippingAlertsEnabled(res.data.notificationPreferences?.orders ?? true)
+      }
+    })
+  }, [user])
+
+  const handleToggleShippingAlerts = async (checked: boolean) => {
+    setSavingShippingAlerts(true)
+    try {
+      const res = await apiClient.updateUserProfile({ notificationPreferences: { orders: checked } })
+      if (res.success) {
+        setShippingAlertsEnabled(checked)
+        toast({
+          title: checked ? 'Shipping alerts enabled' : 'Shipping alerts disabled',
+          description: checked
+            ? "You'll be notified the moment your order ships or is out for delivery."
+            : "You won't receive shipping update notifications.",
+        })
+      } else {
+        toast({ title: 'Error', description: res.error || 'Failed to update preference', variant: 'destructive' })
+      }
+    } finally {
+      setSavingShippingAlerts(false)
+    }
+  }
+
+  useEffect(() => {
     if (user) {
       setCurrentPage(1)
       loadOrders()
@@ -171,6 +220,63 @@ export default function UserOrdersPage() {
       loadOrders()
     }
   }, [currentPage, clubId])
+
+  // Real-time tracking updates pushed by the backend as Shiprocket events arrive
+  useEffect(() => {
+    if (!socket) return
+
+    const handleTrackingUpdate = (data: any) => {
+      setOrders((prev) =>
+        prev.map((order) =>
+          order._id === data.orderId
+            ? {
+                ...order,
+                deliveryStatus: data.deliveryStatus ?? order.deliveryStatus,
+                estimatedDeliveryDate: data.estimatedDeliveryDate ?? order.estimatedDeliveryDate,
+                actualDeliveryAt: data.actualDeliveryAt ?? order.actualDeliveryAt,
+                awbCode: data.awbCode ?? order.awbCode,
+                courierName: data.courierName ?? order.courierName,
+                isRTO: data.isRTO ?? order.isRTO,
+                isDamaged: data.isDamaged ?? order.isDamaged,
+                isLost: data.isLost ?? order.isLost,
+                trackingEvents:
+                  data.lastEventActivity && data.lastEventTimestamp
+                    ? [
+                        ...(order.trackingEvents || []),
+                        {
+                          timestamp: data.lastEventTimestamp,
+                          status: data.deliveryStatus ?? '',
+                          activity: data.lastEventActivity,
+                          location: data.lastKnownLocation ?? '',
+                        },
+                      ]
+                    : order.trackingEvents,
+              }
+            : order
+        )
+      )
+    }
+
+    socket.on('order:tracking-update', handleTrackingUpdate)
+    return () => {
+      socket.off('order:tracking-update', handleTrackingUpdate)
+    }
+  }, [socket])
+
+  const handleOrderTrackingUpdate = (updated: TrackableOrder) => {
+    setOrders((prev) =>
+      prev.map((order) =>
+        order._id === updated._id
+          ? {
+              ...order,
+              customerConfirmedDeliveryAt: updated.customerConfirmedDeliveryAt ?? order.customerConfirmedDeliveryAt,
+              rating: updated.rating ?? order.rating,
+              ratingFeedback: updated.ratingFeedback ?? order.ratingFeedback,
+            }
+          : order
+      )
+    )
+  }
 
   const loadOrders = async () => {
     try {
@@ -580,6 +686,24 @@ export default function UserOrdersPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
+            {shippingAlertsEnabled !== null && (
+              <div className="mb-4 flex items-center justify-between gap-4 rounded-lg border bg-muted/40 p-3">
+                <div className="flex items-start gap-2">
+                  <Bell className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Shipping update alerts</p>
+                    <p className="text-xs text-muted-foreground">
+                      Get notified the moment your order ships, is out for delivery, or is delivered.
+                    </p>
+                  </div>
+                </div>
+                <Switch
+                  checked={shippingAlertsEnabled}
+                  disabled={savingShippingAlerts}
+                  onCheckedChange={handleToggleShippingAlerts}
+                />
+              </div>
+            )}
             {loading ? (
               <div className="flex items-center justify-center h-32">
                 <RefreshCw className="w-6 h-6 animate-spin" />
@@ -659,43 +783,9 @@ export default function UserOrdersPage() {
                         </div>
                       )}
 
-                      {(order.estimatedDeliveryDate || order.deliveryStatus) && (
-                        <div className="mb-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg space-y-1 text-sm">
-                          {order.deliveryStatus && (
-                            <div className="flex items-center justify-between">
-                              <span className="text-muted-foreground">Delivery Status</span>
-                              <span className={
-                                order.deliveryStatus === 'delivered' ? 'text-green-700 font-medium' :
-                                ['rto_initiated','rto_delivered','damaged','lost'].includes(order.deliveryStatus) ? 'text-red-600 font-medium' :
-                                order.deliveryStatus === 'out_for_delivery' ? 'text-orange-600 font-medium' :
-                                'text-blue-600 font-medium'
-                              }>
-                                {order.deliveryStatus === 'in_transit' ? 'In Transit' :
-                                 order.deliveryStatus === 'out_for_delivery' ? 'Out for Delivery' :
-                                 order.deliveryStatus === 'delivered' ? 'Delivered' :
-                                 order.deliveryStatus === 'rto_initiated' ? 'Return Initiated' :
-                                 order.deliveryStatus === 'rto_delivered' ? 'Returned' :
-                                 order.deliveryStatus === 'damaged' ? 'Damaged' :
-                                 order.deliveryStatus === 'lost' ? 'Lost' : order.deliveryStatus}
-                              </span>
-                            </div>
-                          )}
-                          {order.estimatedDeliveryDate && order.deliveryStatus !== 'delivered' && (
-                            <div className="flex items-center justify-between">
-                              <span className="text-muted-foreground">Estimated Delivery</span>
-                              <span className="font-medium">
-                                {new Date(order.estimatedDeliveryDate).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
-                              </span>
-                            </div>
-                          )}
-                          {order.actualDeliveryAt && (
-                            <div className="flex items-center justify-between">
-                              <span className="text-muted-foreground">Delivered On</span>
-                              <span className="font-medium text-green-700">
-                                {new Date(order.actualDeliveryAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
-                              </span>
-                            </div>
-                          )}
+                      {order.paymentStatus === 'paid' && order.status !== 'cancelled' && (
+                        <div className="mb-3">
+                          <OrderTrackingProgress order={order} onOrderUpdate={handleOrderTrackingUpdate} />
                         </div>
                       )}
 

@@ -37,6 +37,12 @@ interface Merchandise {
   featuredImage?: string
   stockQuantity: number
   weight?: number
+  dimensions?: {
+    length?: number
+    breadth?: number
+    height?: number
+  }
+  pickupLocation?: string
   isAvailable: boolean
   isFeatured: boolean
   tags: string[]
@@ -51,6 +57,14 @@ interface Merchandise {
   }
   createdAt: string
   updatedAt: string
+}
+
+interface PickupLocation {
+  id: number
+  pickup_location: string
+  name: string
+  city: string
+  pin_code: string
 }
 
 interface CreateMerchandiseModalProps {
@@ -80,6 +94,11 @@ export function CreateMerchandiseModal({
   const [category, setCategory] = useState<'apparel' | 'accessories' | 'collectibles' | 'digital' | 'other'>('other')
   const [stockQuantity, setStockQuantity] = useState("")
   const [weight, setWeight] = useState("")
+  const [length, setLength] = useState("")
+  const [breadth, setBreadth] = useState("")
+  const [height, setHeight] = useState("")
+  const [pickupLocation, setPickupLocation] = useState("")
+  const [pickupLocations, setPickupLocations] = useState<PickupLocation[]>([])
   const [isAvailable, setIsAvailable] = useState(true)
   const [isFeatured, setIsFeatured] = useState(false)
   const [tags, setTags] = useState<string[]>([])
@@ -94,6 +113,10 @@ export function CreateMerchandiseModal({
         setCategory(editMerchandise.category)
         setStockQuantity(editMerchandise.stockQuantity.toString())
         setWeight(editMerchandise.weight != null ? String(editMerchandise.weight) : "")
+        setLength(editMerchandise.dimensions?.length != null ? String(editMerchandise.dimensions.length) : "")
+        setBreadth(editMerchandise.dimensions?.breadth != null ? String(editMerchandise.dimensions.breadth) : "")
+        setHeight(editMerchandise.dimensions?.height != null ? String(editMerchandise.dimensions.height) : "")
+        setPickupLocation(editMerchandise.pickupLocation || "")
         setIsAvailable(editMerchandise.isAvailable)
         setIsFeatured(editMerchandise.isFeatured)
         setTags(editMerchandise.tags)
@@ -106,6 +129,10 @@ export function CreateMerchandiseModal({
         setCategory("other")
         setStockQuantity("")
         setWeight("")
+        setLength("")
+        setBreadth("")
+        setHeight("")
+        setPickupLocation("")
         setIsAvailable(true)
         setIsFeatured(false)
         setTags([])
@@ -113,6 +140,15 @@ export function CreateMerchandiseModal({
       }
     }
   }, [isOpen, editMerchandise])
+
+  useEffect(() => {
+    if (!isOpen) return
+    apiClient.getFulfillmentPickupLocations().then((res) => {
+      if (res.success && res.data) {
+        setPickupLocations(res.data as PickupLocation[])
+      }
+    })
+  }, [isOpen])
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
@@ -206,6 +242,18 @@ export function CreateMerchandiseModal({
       formData.append('stockQuantity', stockQuantity)
       if (weight.trim() !== "" && !isNaN(Number(weight)) && Number(weight) >= 0) {
         formData.append('weight', weight)
+      }
+      if (length.trim() !== "" && !isNaN(Number(length)) && Number(length) >= 0) {
+        formData.append('length', length)
+      }
+      if (breadth.trim() !== "" && !isNaN(Number(breadth)) && Number(breadth) >= 0) {
+        formData.append('breadth', breadth)
+      }
+      if (height.trim() !== "" && !isNaN(Number(height)) && Number(height) >= 0) {
+        formData.append('height', height)
+      }
+      if (pickupLocation) {
+        formData.append('pickupLocation', pickupLocation)
       }
       formData.append('isAvailable', isAvailable.toString())
       formData.append('isFeatured', isFeatured.toString())
@@ -421,16 +469,71 @@ export function CreateMerchandiseModal({
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="weight">Weight (g)</Label>
+                <Label htmlFor="weight">Weight (kg)</Label>
                 <Input
                   id="weight"
                   type="number"
                   min="0"
-                  step="1"
+                  step="0.01"
                   value={weight}
                   onChange={(e) => setWeight(e.target.value)}
-                  placeholder="e.g. 200"
+                  placeholder="e.g. 0.2"
                 />
+                <p className="text-xs text-muted-foreground">
+                  Used to calculate shipping cost and delivery estimates via Shiprocket
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Dimensions (cm)</Label>
+                <div className="grid grid-cols-3 gap-4">
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    value={length}
+                    onChange={(e) => setLength(e.target.value)}
+                    placeholder="Length"
+                  />
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    value={breadth}
+                    onChange={(e) => setBreadth(e.target.value)}
+                    placeholder="Breadth"
+                  />
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    value={height}
+                    onChange={(e) => setHeight(e.target.value)}
+                    placeholder="Height"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Used to calculate volumetric weight (L × B × H ÷ 5000)
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="pickupLocation">Pickup Location</Label>
+                <Select value={pickupLocation} onValueChange={setPickupLocation}>
+                  <SelectTrigger id="pickupLocation">
+                    <SelectValue placeholder="Default (Primary)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {pickupLocations.map((loc) => (
+                      <SelectItem key={loc.id} value={loc.pickup_location}>
+                        {loc.name || loc.pickup_location} — {loc.city} ({loc.pin_code})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Shiprocket pickup address used to ship this product
+                </p>
               </div>
             </CardContent>
           </Card>

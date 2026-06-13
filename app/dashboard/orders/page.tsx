@@ -890,6 +890,16 @@ export default function OrdersPage() {
           </div>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
             {isFeatureEnabled(clubFeatureConfig, 'reporting') ? (
+              <Link href="/dashboard/orders/logistics-report" className="w-full sm:w-auto">
+                <Button variant="secondary" className="w-full sm:w-auto">
+                  <Truck className="w-4 h-4 mr-2" />
+                  Logistics Report
+                </Button>
+              </Link>
+            ) : (
+              <LockedInline label="Logistics Report" reason="Upgrade to the Reporting add-on to access shipping and RTO analytics. Contact RallyUp to unlock." />
+            )}
+            {isFeatureEnabled(clubFeatureConfig, 'reporting') ? (
               <Button variant="secondary" onClick={handleDownloadReport} className="w-full sm:w-auto">
                 <Download className="w-4 h-4 mr-2" />
                 Download Report
