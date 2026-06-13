@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Card, CardContent } from "@/components/ui/card"
 import { apiClient, Event } from "@/lib/api"
+import { EventImage } from "@/components/events/event-image"
 import { formatDisplayDate, slugify } from "@/lib/utils"
 import {
   setStoredPurchaseIntent,
@@ -264,6 +265,17 @@ export default function EventDetailPage() {
         <div className="grid gap-8 sm:gap-10 lg:gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(280px,340px)] lg:items-start">
           {/* Main content */}
           <div className="min-w-0 space-y-6 sm:space-y-8 order-2 lg:order-1">
+            {/* Full-resolution (1080px) hero poster — lazy-loaded + cached */}
+            <EventImage
+              eventId={event._id}
+              imageVersion={event.imageVersion}
+              size="full"
+              priority
+              primaryColor={primaryColor}
+              alt={event.title}
+              aspectClassName="aspect-[16/9]"
+              className="rounded-2xl border shadow-sm"
+            />
             {/* Title & badges */}
             <header className="space-y-4 sm:space-y-5">
               <div className="flex flex-wrap items-center gap-2">

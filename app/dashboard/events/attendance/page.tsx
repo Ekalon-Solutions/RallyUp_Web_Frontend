@@ -192,14 +192,6 @@ function AttendanceLandingPageInner() {
                   <MapPin className="w-3.5 h-3.5" /> {preview!.eventVenue}
                 </p>
               )}
-              {(preview!.assignedVenueName || preview!.assignedTierName) && (
-                <div className="mt-2 p-2 rounded-md bg-blue-50 border border-blue-200">
-                  <p className="text-xs font-semibold text-blue-700 uppercase tracking-wide">Assigned Entry Zone</p>
-                  <p className="text-sm text-blue-900 font-medium mt-0.5">
-                    {preview!.assignedVenueName || 'Venue'}{preview!.assignedTierName ? ` - ${preview!.assignedTierName}` : ''}
-                  </p>
-                </div>
-              )}
               {preview!.attended && (
                 <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 border-yellow-200 mt-2 w-fit">
                   <AlertCircle className="w-3 h-3 mr-1" /> Already attended

@@ -7,6 +7,7 @@ import { triggerBlobDownload } from '@/lib/utils'
 import { calculateTransactionFees } from '@/lib/transactionFees'
 import { formatLocalDate } from '@/lib/timezone'
 import { DashboardLayout } from '@/components/dashboard-layout'
+import { ResendQrButton } from '@/components/resend-qr-button'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -203,7 +204,6 @@ export default function OrdersPage() {
   const [selectedRegistrationMeta, setSelectedRegistrationMeta] = useState<any | null>(null)
   const [showRegistrationModal, setShowRegistrationModal] = useState(false)
   const [registrationLoading, setRegistrationLoading] = useState(false)
-  const [resendingTicketId, setResendingTicketId] = useState<string | null>(null)
   const [cancellingTicketId, setCancellingTicketId] = useState<string | null>(null)
   const [editingEmail, setEditingEmail] = useState(false)
   const [emailInput, setEmailInput] = useState('')
@@ -663,65 +663,6 @@ export default function OrdersPage() {
         description: "Failed to update payment status",
         variant: "destructive",
       })
-    }
-  }
-
-  const handleResendTicketWhatsApp = async (reg: any) => {
-    const registrationId = reg.registrationId || reg._id
-    if (!registrationId) {
-      toast({
-        title: 'Cannot resend',
-        description: 'Registration ID is missing for this ticket.',
-        variant: 'destructive',
-      })
-      return
-    }
-    if (reg.status && reg.status !== 'confirmed') {
-      toast({
-        title: 'Cannot resend',
-        description: 'Tickets can only be resent for confirmed registrations.',
-        variant: 'destructive',
-      })
-      return
-    }
-    if (!reg.primaryPhone?.trim()) {
-      toast({
-        title: 'Cannot resend',
-        description: 'This registration has no primary phone number for WhatsApp delivery.',
-        variant: 'destructive',
-      })
-      return
-    }
-
-    try {
-      setResendingTicketId(String(registrationId))
-      const response = await apiClient.resendEventTicketWhatsApp(String(registrationId))
-      if (response.success) {
-        const sent = response.data?.whatsapp?.sentCount
-        const total = response.data?.whatsapp?.messageCount
-        toast({
-          title: sent && sent > 1 ? `${sent} WhatsApp tickets sent` : 'WhatsApp ticket sent',
-          description:
-            response.message ||
-            (sent && total
-              ? `${sent} message(s) (one QR per ticket) to ${reg.primaryPhone}`
-              : `Ticket QR sent via WhatsApp to ${reg.primaryPhone}`),
-        })
-      } else {
-        toast({
-          title: 'Failed to resend',
-          description: response.message || response.error || 'Could not send WhatsApp ticket',
-          variant: 'destructive',
-        })
-      }
-    } catch {
-      toast({
-        title: 'Failed to resend',
-        description: 'Could not send WhatsApp ticket. Please try again.',
-        variant: 'destructive',
-      })
-    } finally {
-      setResendingTicketId(null)
     }
   }
 
@@ -1282,11 +1223,12 @@ export default function OrdersPage() {
                       const regStatus = reg.status || 'confirmed'
                       const StatusIcon = regStatus === 'confirmed' ? CheckCircle : (regStatus === 'cancelled' ? XCircle : Clock)
                       const registrationId = String(reg.registrationId || reg._id || '')
-                      const canResendQr =
-                        regStatus === 'confirmed' &&
-                        Boolean(registrationId) &&
-                        Boolean(reg.primaryPhone?.trim())
-                      const isResendingQr = resendingTicketId === registrationId
+                      const eventEnded = (() => {
+                        const cutoffRaw = reg.eventEndTime || reg.eventStartTime
+                        if (!cutoffRaw) return false
+                        const cutoff = new Date(cutoffRaw)
+                        return !isNaN(cutoff.getTime()) && Date.now() > cutoff.getTime()
+                      })()
                       const isCancelling = cancellingTicketId === registrationId
                       const canCancel = regStatus === 'confirmed' && Boolean(registrationId)
                       return (
@@ -1346,30 +1288,16 @@ export default function OrdersPage() {
                                 <Eye className="h-4 w-4 mr-1" />
                                 View
                               </Button>
-                              <Button
+                              <ResendQrButton
+                                mode="admin"
+                                registrationId={registrationId}
+                                phone={reg.primaryPhone}
+                                eventEnded={eventEnded}
+                                disabled={regStatus !== 'confirmed' || !registrationId}
+                                disabledReason="Only confirmed registrations can be resent"
                                 variant="ghost"
-                                size="sm"
-                                className="h-8 px-2 text-muted-foreground hover:text-foreground"
-                                onClick={() => handleResendTicketWhatsApp(reg)}
-                                disabled={!canResendQr || (resendingTicketId !== null && !isResendingQr)}
-                                title={
-                                  canResendQr
-                                    ? `Send ticket QR via WhatsApp to ${reg.primaryPhone}`
-                                    : 'Primary phone required for WhatsApp ticket'
-                                }
-                              >
-                                {isResendingQr ? (
-                                  <>
-                                    <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
-                                    Sending...
-                                  </>
-                                ) : (
-                                  <>
-                                    <MessageCircle className="h-4 w-4 mr-1" />
-                                    Resend QR
-                                  </>
-                                )}
-                              </Button>
+                                className="h-8 px-2"
+                              />
                               {canCancel && (
                                 <Button
                                   variant="ghost"

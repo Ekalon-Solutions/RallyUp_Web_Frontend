@@ -10,6 +10,7 @@ import { Calendar, Search, MapPin, Clock, Users, Ticket, UserCheck, Bus, Filter 
 import { EventRegistrationModal } from "@/components/modals/event-registration-modal"
 import { VenueTierCartModal } from "@/components/modals/venue-tier-cart-modal"
 import { apiClient, Event } from "@/lib/api"
+import { EventImage } from "@/components/events/event-image"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
 import { formatLocalDate } from "@/lib/timezone"
@@ -310,6 +311,12 @@ export default function PublicEventsPage() {
 
                     return (
                       <Card key={event._id} className="overflow-hidden">
+                        <EventImage
+                          eventId={event._id}
+                          imageVersion={event.imageVersion}
+                          size="list"
+                          alt={event.title}
+                        />
                         <CardHeader className="pb-3">
                           <div className="flex items-start justify-between">
                             <Badge className={getCategoryColor(event.category)}>

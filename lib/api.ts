@@ -439,6 +439,14 @@ export interface Event {
   requiresTicket: boolean;
   memberOnly: boolean;
   feeHandlingType?: 'pass_to_buyer' | 'absorb';
+  /** Full-res hero URL (legacy / fallback). Prefer presigned variant URLs via getEventImageUrls. */
+  eventImage?: string;
+  /** Bumped whenever the hero image changes — used as the client image-cache key. */
+  imageVersion?: number;
+  eventImageVariants?: {
+    list400?: { url: string; key: string };
+    full1080?: { url: string; key: string };
+  };
   clubId?: string;
   awayDayEvent: boolean;
   isActive: boolean;
@@ -1591,6 +1599,20 @@ class ApiClient {
 
   async getPublicEventById(id: string): Promise<ApiResponse<Event>> {
     return this.request(`/events/public/${id}`);
+  }
+
+  /**
+   * Fetch short-lived presigned URLs for an event's hero-image variants
+   * (400px list / 1080px detail). The URLs act as a temporary CDN token — they
+   * expire, so external sites can't hotlink. Cache the result keyed on
+   * `imageVersion` for `expiresIn` seconds (see lib/eventImageCache.ts).
+   */
+  async getEventImageUrls(id: string): Promise<ApiResponse<{
+    imageVersion: number;
+    expiresIn: number;
+    urls: { list400: string | null; full1080: string | null } | null;
+  }>> {
+    return this.request(`/events/public/${id}/image-urls`);
   }
 
   async checkEventRegistration(eventId: string): Promise<ApiResponse<{

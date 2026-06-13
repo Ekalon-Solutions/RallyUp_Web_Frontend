@@ -13,6 +13,7 @@ import { apiClient } from '@/lib/api'
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion'
 import { formatLocalDate } from '@/lib/timezone'
 import { RefundButton } from '@/components/refund-button'
+import { ResendQrButton } from '@/components/resend-qr-button'
 import { getEventVenueDisplay, getEventCapacity, hasVenueTierMatrix } from '@/lib/event-display-price'
 
 interface EventDetailsModalProps {
@@ -31,6 +32,13 @@ export default function EventDetailsModal({ event, isOpen, onClose }: EventDetai
   )
   const isRegistered = Boolean(userRegistration)
   const isConfirmed = userRegistration && (userRegistration as any).status === 'confirmed'
+
+  const eventHasEnded = (() => {
+    const cutoffRaw = event?.endTime || event?.startTime
+    if (!cutoffRaw) return false
+    const cutoff = new Date(cutoffRaw)
+    return !isNaN(cutoff.getTime()) && Date.now() > cutoff.getTime()
+  })()
 
   useEffect(() => {
     if (!event) {
@@ -116,8 +124,20 @@ export default function EventDetailsModal({ event, isOpen, onClose }: EventDetai
 
           <Card>
             <CardContent>
-              <div className="my-3">
-                <h3 className="text-lg font-semibold mb-3">Event QR Code</h3>
+              <div className="my-3 flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <h3 className="text-lg font-semibold">Event QR Code</h3>
+                  <p className="text-xs text-muted-foreground">Lost or didn't get your pass? Resend it to WhatsApp.</p>
+                </div>
+                {registration?._id && isConfirmed && (
+                  <ResendQrButton
+                    mode="member"
+                    registrationId={String(registration._id)}
+                    phone={registration?.attendees?.[0]?.phone}
+                    eventEnded={eventHasEnded}
+                    variant="default"
+                  />
+                )}
               </div>
               <div className="flex flex-col items-center justify-center py-6 space-y-4">
                 {registration && Array.isArray(registration.attendees) && registration.attendees.length > 0 ? (
