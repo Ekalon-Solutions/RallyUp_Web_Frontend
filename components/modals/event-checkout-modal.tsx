@@ -14,7 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner"
 import { apiClient } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
-import { calculateTransactionFees, PLATFORM_FEE_PERCENT, RAZORPAY_FEE_PERCENT } from "@/lib/transactionFees"
+import { resolveCheckoutCharge, type FeeHandlingType } from "@/lib/transactionFees"
+import { PriceBreakdown } from "@/components/checkout/price-breakdown"
 import { MemberValidationModal } from "./member-validation-modal"
 import { RefundPolicyBadge } from "@/components/refund-policy-badge"
 import { RefundPolicyCheckoutLine } from "@/components/member/refund-policy-checkout-line"
@@ -59,6 +60,13 @@ interface EventCheckoutModalProps {
       minQuantity?: number
     }
     currency?: string
+    feeHandlingType?: FeeHandlingType
+    jointScreening?: {
+      enabled?: boolean
+      homeTeam?: string
+      awayTeam?: string
+      partnerClubNames?: string[]
+    }
   }
   attendees: Array<{ name: string; phone: string }>
   couponCode?: string
@@ -431,8 +439,8 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
       const paymentShipping = displayShipping
       const paymentTax = displayTax
       const paymentNet = Math.max(paymentSubtotal + paymentShipping + paymentTax - (reservedDiscount || 0), 0)
-      const paymentFeeBreakdown = paymentNet > 0 ? calculateTransactionFees(paymentNet) : null
-      const amountToCharge = paymentFeeBreakdown ? paymentFeeBreakdown.finalAmount : paymentNet
+      // When the club absorbs fees, the buyer is charged the base net only.
+      const { amountToCharge } = resolveCheckoutCharge(paymentNet, event?.feeHandlingType)
 
       const response = await fetch('/api/razorpay/create-order', {
         method: 'POST',
@@ -665,9 +673,9 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
   const finalPrice = Math.max(orderTotalBeforeCoupon - couponDiscount, 0);
   const showPointsRedemption = canShowPointsRedemption(availablePoints, finalPrice)
   const netSubtotal = Math.max(finalPrice - (reservedDiscount || 0), 0);
-  // Fees are calculated on the final net amount (after all discounts)
-  const feeBreakdown = netSubtotal > 0 ? calculateTransactionFees(netSubtotal) : null;
-  const amountToCharge = feeBreakdown ? feeBreakdown.finalAmount : netSubtotal;
+  // Fees are calculated on the final net amount (after all discounts). When the
+  // club absorbs fees, the buyer pays the base net and fees are not appended.
+  const { feeBreakdown, amountToCharge, feesAbsorbed } = resolveCheckoutCharge(netSubtotal, event?.feeHandlingType);
   const checkoutEventId = event?._id ? String(event._id) : undefined
   const isPaidCheckout = amountToCharge > 0
   const refundPolicy = useCheckoutRefundPolicy(checkoutEventId, isOpen, isPaidCheckout)
@@ -838,18 +846,18 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
                   </div>
                 )}
 
-                {feeBreakdown && feeBreakdown.totalFees > 0 && (
-                  <>
-                    <div className="flex justify-between items-center text-xs sm:text-sm text-muted-foreground">
-                      <span>Platform fee ({PLATFORM_FEE_PERCENT}% + GST):</span>
-                      <span>{formatCurrency(feeBreakdown.platformFee + feeBreakdown.platformFeeGst, event.currency)}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-xs sm:text-sm text-muted-foreground">
-                      <span>Payment gateway fee ({RAZORPAY_FEE_PERCENT}% + GST):</span>
-                      <span>{formatCurrency(feeBreakdown.razorpayFee + feeBreakdown.razorpayFeeGst, event.currency)}</span>
-                    </div>
-                    <Separator />
-                  </>
+                {netSubtotal > 0 && (
+                  <PriceBreakdown
+                    baseAmount={netSubtotal}
+                    pgFeeTotal={feeBreakdown ? feeBreakdown.razorpayFee + feeBreakdown.razorpayFeeGst : 0}
+                    platformFeeTotal={feeBreakdown ? feeBreakdown.platformFee + feeBreakdown.platformFeeGst : 0}
+                    total={amountToCharge}
+                    feeHandlingType={event?.feeHandlingType}
+                    formatCurrency={(a) => formatCurrency(a, event.currency)}
+                  />
+                )}
+                {feesAbsorbed && netSubtotal > 0 && (
+                  <p className="text-xs text-green-600">Platform &amp; gateway fees are covered by the organiser.</p>
                 )}
                 
                   {user && showPointsRedemption && (

@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -37,6 +38,7 @@ import { useAuth } from "@/contexts/auth-context"
 import { useClubFeatures } from "@/hooks/useClubFeatures"
 import { isFeatureEnabled } from "@/lib/clubFeatures"
 import { LockedFeaturePage } from "@/components/feature-gate"
+import { LOGO_SIZES, hasScalableLogo } from "@/lib/membershipCardLogo"
 
 
 function MembershipCardsPage() {
@@ -1216,22 +1218,45 @@ function MembershipCardsPage() {
                     </Select>
                   </div>
 
-                  <div>
-                    <Label htmlFor="logoSize">Logo Size</Label>
-                    <Select
-                      value={editingCard.card.customization?.logoSize || 'medium'}
-                      onValueChange={handleLogoSizeChange}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="small">Small</SelectItem>
-                        <SelectItem value="medium">Medium</SelectItem>
-                        <SelectItem value="large">Large</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  {(() => {
+                    // Edge case: with no custom logo and no club logo there is
+                    // nothing to scale, so disable the toggle rather than let the
+                    // admin scale the "missing image" placeholder.
+                    const logoAvailable = hasScalableLogo({
+                      customLogo: customLogoPreview || editingCard.card.customization?.customLogo,
+                      clubLogo: editingCard.club?.logo,
+                    })
+                    return (
+                      <div>
+                        <Label htmlFor="logoSize">Logo Size</Label>
+                        <ToggleGroup
+                          id="logoSize"
+                          type="single"
+                          variant="outline"
+                          value={editingCard.card.customization?.logoSize || 'medium'}
+                          onValueChange={(value) => { if (value) handleLogoSizeChange(value) }}
+                          disabled={!logoAvailable}
+                          className="mt-1 justify-start"
+                        >
+                          {LOGO_SIZES.map((size) => (
+                            <ToggleGroupItem
+                              key={size.value}
+                              value={size.value}
+                              aria-label={`${size.label} logo`}
+                              className="flex-1"
+                            >
+                              {size.label}
+                            </ToggleGroupItem>
+                          ))}
+                        </ToggleGroup>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {logoAvailable
+                            ? "Large increases the logo to 150% of the default size."
+                            : "Upload a custom logo (or set a club logo) to adjust logo size."}
+                        </p>
+                      </div>
+                    )
+                  })()}
 
                   <div className="flex items-center space-x-2">
                     <Switch

@@ -1100,6 +1100,7 @@ function UserEventsPageInner() {
               memberDiscount: (eventForPayment as any).memberDiscount,
               groupDiscount: (eventForPayment as any).groupDiscount,
               currency: (eventForPayment as any).currency,
+              feeHandlingType: (eventForPayment as any).feeHandlingType,
             }
             : undefined
         }

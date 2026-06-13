@@ -13,6 +13,7 @@ import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
 import {
   AlertDialog,
+  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -39,6 +40,9 @@ import {
 import { EventRefundToggleSection, RefundTier } from "@/components/admin/event-refund-toggle-section"
 import { EventRefundPolicyImpactDialog } from "@/components/admin/event-refund-policy-impact-dialog"
 import { EventCreatePreview } from "@/components/admin/event-create-preview"
+import { EventFeeManagementSection } from "@/components/admin/event-fee-management-section"
+import { useCanManageFees } from "@/hooks/useCanManageFees"
+import type { FeeHandlingType } from "@/lib/transactionFees"
 
 const WIZARD_STEPS = [
   { id: "details", label: "Event Details" },
@@ -165,14 +169,17 @@ function CreateEventForm() {
     isRefundAllowed: true,
     refundCutoffHours: "24",
     refundPolicyChangeReason: "",
+    feeHandlingType: "pass_to_buyer" as FeeHandlingType,
   })
+  const canManageFees = useCanManageFees()
+  const [feeReminder, setFeeReminder] = useState<FeeHandlingType | null>(null)
   const [refundTiers, setRefundTiers] = useState<RefundTier[]>([])
   const initialRefundAllowedRef = useRef<boolean | null>(null)
   const [wizardStep, setWizardStep] = useState(0)
   const [partnerClubNames, setPartnerClubNames] = useState<string[]>([])
   const [newPartnerClub, setNewPartnerClub] = useState("")
   const [partnerClubToRemove, setPartnerClubToRemove] = useState<string | null>(null)
-  const [eventEditMeta, setEventEditMeta] = useState({ liveWithHolders: false, completed: false })
+  const [eventEditMeta, setEventEditMeta] = useState({ liveWithHolders: false, completed: false, ticketsSold: false })
   const [showPolicyImpactDialog, setShowPolicyImpactDialog] = useState(false)
 
   const set = (field: string, value: string | boolean) =>
@@ -397,6 +404,7 @@ function CreateEventForm() {
           isRefundAllowed: ev.isRefundAllowed !== false && ev.is_refund_allowed !== false,
           refundCutoffHours: String(ev.refundCutoffHours ?? ev.refund_cutoff_hours ?? 24),
           refundPolicyChangeReason: "",
+          feeHandlingType: (ev.feeHandlingType ?? "pass_to_buyer") as FeeHandlingType,
         })
         if (!isDuplicateMode) {
           initialRefundAllowedRef.current = ev.isRefundAllowed !== false && ev.is_refund_allowed !== false
@@ -409,7 +417,11 @@ function CreateEventForm() {
           const completed = isEventCompletedClient(ev)
           const confirmedRegs = (ev.registrations || []).filter((r: { status?: string }) => r.status === "confirmed").length
           const liveWithHolders = ev.isActive !== false && !completed && confirmedRegs > 0
-          setEventEditMeta({ liveWithHolders, completed })
+          const venueTiersSold = (ev.venues || []).some((v) =>
+            (v.tiers || []).some((t) => ((t as { sold?: number }).sold ?? 0) > 0)
+          )
+          const ticketsSold = confirmedRegs > 0 || (ev.currentAttendees ?? 0) > 0 || venueTiersSold
+          setEventEditMeta({ liveWithHolders, completed, ticketsSold })
         }
         setPartnerClubNames(ev.jointScreening?.partnerClubNames ?? [])
         if (ev.venues?.length) {
@@ -521,6 +533,7 @@ function CreateEventForm() {
             }))
           : undefined,
         isRefundAllowed: paidEvent ? form.isRefundAllowed : true,
+        feeHandlingType: paidEvent ? form.feeHandlingType : undefined,
         refund_cutoff_hours: cutoffHours,
         refundTiers: paidEvent && form.isRefundAllowed && refundTiers.length > 0 ? refundTiers : undefined,
         ...(isEditMode && form.refundPolicyChangeReason.trim()
@@ -966,6 +979,20 @@ function CreateEventForm() {
 
               </div>
 
+              {paidEvent && (
+                <EventFeeManagementSection
+                  value={form.feeHandlingType}
+                  onChange={(v) => {
+                    set("feeHandlingType", v)
+                    setFeeReminder(v)
+                  }}
+                  ticketPrice={getLowestTicketPrice(form, venues)}
+                  currency={form.currency}
+                  canManage={canManageFees}
+                  locked={isEditMode && eventEditMeta.ticketsSold}
+                />
+              )}
+
               <EventRefundToggleSection
                 isRefundAllowed={form.isRefundAllowed}
                 onRefundAllowedChange={(v) => set("isRefundAllowed", v)}
@@ -1297,6 +1324,38 @@ function CreateEventForm() {
           loading={loading}
           onConfirm={() => performSubmit(true)}
         />
+
+        <AlertDialog
+          open={feeReminder !== null}
+          onOpenChange={(open) => !open && setFeeReminder(null)}
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Review your ticket price</AlertDialogTitle>
+              <AlertDialogDescription>
+                {feeReminder === "absorb" ? (
+                  <>
+                    Your club will now <span className="font-semibold">absorb</span> the
+                    Payment Gateway and Platform fees. Your net per ticket will be lower
+                    than the listed price — consider increasing the ticket price to protect
+                    your margin.
+                  </>
+                ) : (
+                  <>
+                    Fees will now be <span className="font-semibold">passed to the buyer</span>{" "}
+                    and added on top of the ticket price at checkout. Review the ticket
+                    price so the final amount stays reasonable for members.
+                  </>
+                )}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogAction onClick={() => setFeeReminder(null)}>
+                Got it
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </DashboardLayout>
   )

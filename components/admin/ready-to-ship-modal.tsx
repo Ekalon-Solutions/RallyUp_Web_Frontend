@@ -57,6 +57,7 @@ interface Props {
   orderNumber: string;
   shiprocketShipmentId?: number;
   deliveryPincode?: string;
+  clubId?: string | null;
   onSuccess: (updatedOrder: any) => void;
 }
 
@@ -67,6 +68,7 @@ export function ReadyToShipModal({
   orderNumber,
   shiprocketShipmentId,
   deliveryPincode,
+  clubId,
   onSuccess,
 }: Props) {
   const [couriers, setCouriers] = useState<Courier[]>([]);
@@ -93,7 +95,7 @@ export function ReadyToShipModal({
     setCourierBusyAlert(null);
     try {
       // Pickup pin / warehouse is resolved server-side from the order's club.
-      const res = await apiClient.getFulfillmentCouriers(orderId, { sort: sortBy });
+      const res = await apiClient.getFulfillmentCouriers(orderId, { sort: sortBy }, clubId ?? undefined);
       if (res.success) {
         const list = (res.data as Courier[]) ?? [];
         setCouriers(list);
@@ -106,7 +108,7 @@ export function ReadyToShipModal({
     } finally {
       setLoadingCouriers(false);
     }
-  }, [orderId, shiprocketShipmentId, sortBy, selectedCourierId]);
+  }, [orderId, shiprocketShipmentId, sortBy, selectedCourierId, clubId]);
 
   useEffect(() => {
     if (!open) return;
@@ -137,7 +139,7 @@ export function ReadyToShipModal({
       const res = await apiClient.triggerReadyToShip(orderId, {
         courierId: parseInt(selectedCourierId),
         pickupDate: pickupDateTime,
-      });
+      }, clubId ?? undefined);
 
       if (res.success) {
         const data = res as any;

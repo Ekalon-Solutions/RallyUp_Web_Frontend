@@ -1333,6 +1333,7 @@ export default function PublicClubPage() {
                 groupDiscount: (eventForRegistration as any).groupDiscount,
                 currency: (eventForRegistration as any).currency || "INR",
                 jointScreening: (eventForRegistration as any).jointScreening,
+                feeHandlingType: (eventForRegistration as any).feeHandlingType,
               }
             : undefined
         }

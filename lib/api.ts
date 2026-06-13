@@ -21,6 +21,31 @@ export interface ApiResponse<T = any> {
   status?: number;
 }
 
+export type ResendTicketCode =
+  | 'OK'
+  | 'INVALID_ID'
+  | 'NOT_FOUND'
+  | 'NOT_AUTHORIZED'
+  | 'NOT_CONFIRMED'
+  | 'EVENT_ENDED'
+  | 'RATE_LIMITED'
+  | 'NUMBER_MISSING'
+  | 'SEND_FAILED';
+
+export interface ResendTicketWhatsAppInfo {
+  messageCount?: number;
+  sentCount?: number;
+  failedCount?: number;
+  attendees?: Array<{ attendeeName: string; phone: string; ok: boolean; error?: string }>;
+}
+
+export type ResendTicketResult = ApiResponse<{
+  message: string;
+  code?: ResendTicketCode;
+  retryAfter?: number;
+  whatsapp?: ResendTicketWhatsAppInfo;
+}>;
+
 export interface User {
   _id: string;
   name: string;
@@ -413,6 +438,7 @@ export interface Event {
   ticketPrice: number;
   requiresTicket: boolean;
   memberOnly: boolean;
+  feeHandlingType?: 'pass_to_buyer' | 'absorb';
   clubId?: string;
   awayDayEvent: boolean;
   isActive: boolean;
@@ -1267,7 +1293,7 @@ class ApiClient {
     });
   }
 
-  async uploadProfilePicture(file: File): Promise<ApiResponse<{ url: string; filename: string }>> {
+  async uploadProfilePicture(file: File): Promise<ApiResponse<{ url: string; filename: string; width?: number; height?: number }>> {
     const formData = new FormData();
     formData.append('image', file);
     return this.request('/upload/profile-picture', {
@@ -1505,46 +1531,46 @@ class ApiClient {
     return { ...res, data: Array.isArray(list) ? list : [] };
   }
 
-  async resendEventTicketWhatsApp(registrationId: string): Promise<
-    ApiResponse<{
-      message: string;
-      whatsapp?: {
-        messageCount?: number;
-        sentCount?: number;
-        failedCount?: number;
-        attendees?: Array<{ attendeeName: string; phone: string; ok: boolean; error?: string }>;
-      };
-    }>
-  > {
-    const res = await this.request<{
-      success?: boolean;
-      message?: string;
-      whatsapp?: {
-        messageCount?: number;
-        sentCount?: number;
-        failedCount?: number;
-        attendees?: Array<{ attendeeName: string; phone: string; ok: boolean; error?: string }>;
-      };
-    }>(`/events/club/registrations/${encodeURIComponent(registrationId)}/resend-ticket`, {
-      method: 'POST',
-      body: JSON.stringify({}),
-    });
-    if (!res.success || res.data == null) return res as ApiResponse<{ message: string }>;
-    const body = res.data;
-    const message =
+  private _normalizeResendResult(res: ApiResponse<any>): ResendTicketResult {
+    const body: any = res.data || {};
+    const message: string =
       body.message ||
+      res.error ||
       (body.whatsapp?.sentCount
         ? `WhatsApp ticket sent (${body.whatsapp.sentCount} message${body.whatsapp.sentCount === 1 ? '' : 's'})`
-        : 'WhatsApp ticket sent');
+        : 'Could not resend ticket');
     return {
-      success: body.success !== false && (body.whatsapp?.sentCount ?? 0) > 0,
+      success: body.success === true,
       message,
-      data: { message, whatsapp: body.whatsapp },
       error: res.error,
+      data: {
+        message,
+        code: body.code as ResendTicketCode | undefined,
+        retryAfter: typeof body.retryAfter === 'number' ? body.retryAfter : undefined,
+        whatsapp: body.whatsapp,
+      },
     };
   }
 
-  async resendEventTicketEmail(registrationId: string, overrideEmail?: string): Promise<ApiResponse<{ message: string }>> {
+  /** Admin: resend a confirmed registration's QR ticket via WhatsApp. */
+  async resendEventTicketWhatsApp(registrationId: string): Promise<ResendTicketResult> {
+    const res = await this.request<any>(
+      `/events/club/registrations/${encodeURIComponent(registrationId)}/resend-ticket`,
+      { method: 'POST', body: JSON.stringify({}) }
+    );
+    return this._normalizeResendResult(res);
+  }
+
+  /** Member: resend the QR ticket for one's own confirmed registration via WhatsApp. */
+  async resendMyEventTicketWhatsApp(registrationId: string): Promise<ResendTicketResult> {
+    const res = await this.request<any>(
+      `/events/my/registrations/${encodeURIComponent(registrationId)}/resend-ticket`,
+      { method: 'POST', body: JSON.stringify({}) }
+    );
+    return this._normalizeResendResult(res);
+  }
+
+  async resendEventTicketEmail(registrationId: string): Promise<ResendTicketResult> {
     return this.resendEventTicketWhatsApp(registrationId);
   }
 
@@ -1726,6 +1752,7 @@ class ApiClient {
     currency?: string;
     requiresTicket: boolean;
     memberOnly: boolean;
+    feeHandlingType?: 'pass_to_buyer' | 'absorb';
     clubId?: string;
     awayDayEvent?: boolean;
     bookingStartTime?: string;
@@ -1760,6 +1787,7 @@ class ApiClient {
     currency?: string;
     requiresTicket?: boolean;
     memberOnly?: boolean;
+    feeHandlingType?: 'pass_to_buyer' | 'absorb';
     clubId?: string;
     awayDayEvent?: boolean;
     bookingStartTime?: string;
@@ -4130,24 +4158,26 @@ class ApiClient {
     return this.get('/merchandise/admin', { params });
   }
 
-  async getMerchandiseById(id: string): Promise<ApiResponse<any>> {
-    return this.get(`/merchandise/admin/${id}`);
+  async getMerchandiseById(id: string, clubId?: string): Promise<ApiResponse<any>> {
+    return this.get(`/merchandise/admin/${id}`, { params: clubId ? { clubId } : undefined });
   }
 
-  async createMerchandise(data: FormData): Promise<ApiResponse<{ message: string; data: any }>> {
-    return this.post('/merchandise/admin', data);
+  async createMerchandise(data: FormData, clubId?: string): Promise<ApiResponse<{ message: string; data: any }>> {
+    // clubId must travel in the query string: the global feature gate runs before
+    // multipart parsing, so it cannot read clubId from the FormData body.
+    return this.post(`/merchandise/admin${clubId ? `?clubId=${encodeURIComponent(clubId)}` : ''}`, data);
   }
 
-  async updateMerchandise(id: string, data: FormData): Promise<ApiResponse<{ message: string; data: any }>> {
-    return this.put(`/merchandise/admin/${id}`, data);
+  async updateMerchandise(id: string, data: FormData, clubId?: string): Promise<ApiResponse<{ message: string; data: any }>> {
+    return this.put(`/merchandise/admin/${id}${clubId ? `?clubId=${encodeURIComponent(clubId)}` : ''}`, data);
   }
 
-  async deleteMerchandise(id: string): Promise<ApiResponse<{ message: string }>> {
-    return this.delete(`/merchandise/admin/${id}`);
+  async deleteMerchandise(id: string, clubId?: string): Promise<ApiResponse<{ message: string }>> {
+    return this.delete(`/merchandise/admin/${id}${clubId ? `?clubId=${encodeURIComponent(clubId)}` : ''}`);
   }
 
-  async toggleMerchandiseAvailability(id: string): Promise<ApiResponse<{ message: string; data: any }>> {
-    return this.patch(`/merchandise/admin/${id}/toggle-availability`);
+  async toggleMerchandiseAvailability(id: string, clubId?: string): Promise<ApiResponse<{ message: string; data: any }>> {
+    return this.patch(`/merchandise/admin/${id}/toggle-availability${clubId ? `?clubId=${encodeURIComponent(clubId)}` : ''}`);
   }
 
   async getMerchandiseStats(params?: { clubId?: string }): Promise<ApiResponse<{
@@ -5135,41 +5165,42 @@ class ApiClient {
     return this.post(`/orders/admin/${orderId}/push-to-shiprocket`, {});
   }
 
-  async getFulfillmentPickupLocations(): Promise<ApiResponse<any[]>> {
-    return this.get('/fulfillment/pickup-locations');
+  async getFulfillmentPickupLocations(clubId?: string): Promise<ApiResponse<any[]>> {
+    return this.get('/fulfillment/pickup-locations', { params: clubId ? { clubId } : undefined });
   }
 
-  async getFulfillmentCouriers(orderId: string, params?: { pickupPin?: string; weight?: number; sort?: 'cost' | 'speed' }): Promise<ApiResponse<any[]>> {
+  async getFulfillmentCouriers(orderId: string, params?: { pickupPin?: string; weight?: number; sort?: 'cost' | 'speed' }, clubId?: string): Promise<ApiResponse<any[]>> {
     const qs = new URLSearchParams();
     if (params?.pickupPin) qs.set('pickupPin', params.pickupPin);
     if (params?.weight) qs.set('weight', String(params.weight));
     if (params?.sort) qs.set('sort', params.sort);
+    if (clubId) qs.set('clubId', clubId);
     const q = qs.toString();
     return this.get(`/fulfillment/${orderId}/couriers${q ? `?${q}` : ''}`);
   }
 
-  async triggerReadyToShip(orderId: string, payload: { courierId: number; pickupDate: string; pickupLocationName?: string }): Promise<ApiResponse<any>> {
-    return this.post(`/fulfillment/${orderId}/ready-to-ship`, payload as any);
+  async triggerReadyToShip(orderId: string, payload: { courierId: number; pickupDate: string; pickupLocationName?: string }, clubId?: string): Promise<ApiResponse<any>> {
+    return this.post(`/fulfillment/${orderId}/ready-to-ship${clubId ? `?clubId=${encodeURIComponent(clubId)}` : ''}`, payload as any);
   }
 
-  async cancelOrderShipment(orderId: string): Promise<ApiResponse<any>> {
-    return this.post(`/fulfillment/${orderId}/cancel-shipment`, {});
+  async cancelOrderShipment(orderId: string, clubId?: string): Promise<ApiResponse<any>> {
+    return this.post(`/fulfillment/${orderId}/cancel-shipment${clubId ? `?clubId=${encodeURIComponent(clubId)}` : ''}`, {});
   }
 
   async getLogisticsHealth(): Promise<ApiResponse<{ status: string; reason: string | null }>> {
-    return this.get('/shiprocket/health');
+    return this.get('/order-tracking/health');
   }
 
   async testShiprocketConnectivity(): Promise<ApiResponse<{ ok: boolean; latencyMs: number; message: string }>> {
-    return this.post('/shiprocket/test-connectivity', {});
+    return this.post('/order-tracking/test-connectivity', {});
   }
 
   async getShiprocketCouriers(refresh = false): Promise<ApiResponse<{ couriers: Array<{ id: number; name: string; etd?: string; rating?: number }> }>> {
-    return this.get(`/shiprocket/couriers${refresh ? '?refresh=true' : ''}`);
+    return this.get(`/order-tracking/couriers${refresh ? '?refresh=true' : ''}`);
   }
 
   async getLogisticsTraces(page = 1, limit = 20): Promise<ApiResponse<{ traces: any[]; total: number; page: number; pages: number }>> {
-    return this.get(`/shiprocket/traces?page=${page}&limit=${limit}`);
+    return this.get(`/order-tracking/traces?page=${page}&limit=${limit}`);
   }
 
   async getOrderTimeline(orderId: string): Promise<ApiResponse<{

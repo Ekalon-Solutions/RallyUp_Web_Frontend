@@ -18,7 +18,8 @@ import {
 import { toast } from "sonner"
 import { apiClient, Event, VenueTierCartItem } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
-import { calculateTransactionFees, PLATFORM_FEE_PERCENT, RAZORPAY_FEE_PERCENT } from "@/lib/transactionFees"
+import { resolveCheckoutCharge } from "@/lib/transactionFees"
+import { PriceBreakdown } from "@/components/checkout/price-breakdown"
 import { useRouter } from "next/navigation"
 import { RefundPolicyBadge } from "@/components/refund-policy-badge"
 import { RefundPolicyCheckoutLine } from "@/components/member/refund-policy-checkout-line"
@@ -369,8 +370,8 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
   const payableBeforePoints = afterCoupon
   const showPointsRedemption = canShowPointsRedemption(availablePoints, payableBeforePoints)
   const netAmount = Math.max(afterCoupon - (reservedDiscount || 0), 0)
-  const feeBreakdown = netAmount > 0 ? calculateTransactionFees(netAmount) : null
-  const amountToCharge = feeBreakdown ? feeBreakdown.finalAmount : netAmount
+  // When the club absorbs fees, the buyer pays the base net and fees are not appended.
+  const { feeBreakdown, amountToCharge, feesAbsorbed } = resolveCheckoutCharge(netAmount, event?.feeHandlingType)
   const checkoutEventId = event?._id ? String(event._id) : undefined
   const isPaidCheckout = amountToCharge > 0
   const refundPolicy = useCheckoutRefundPolicy(checkoutEventId, isOpen, isPaidCheckout)
@@ -2164,17 +2165,18 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
                       </div>
                     )}
 
-                    {feeBreakdown && feeBreakdown.totalFees > 0 && (
-                      <>
-                        <div className="flex justify-between text-xs text-muted-foreground">
-                          <span>Platform fee ({PLATFORM_FEE_PERCENT}% + GST)</span>
-                          <span>{fmt(feeBreakdown.platformFee + feeBreakdown.platformFeeGst, currency)}</span>
-                        </div>
-                        <div className="flex justify-between text-xs text-muted-foreground">
-                          <span>Payment gateway ({RAZORPAY_FEE_PERCENT}% + GST)</span>
-                          <span>{fmt(feeBreakdown.razorpayFee + feeBreakdown.razorpayFeeGst, currency)}</span>
-                        </div>
-                      </>
+                    {netAmount > 0 && (
+                      <PriceBreakdown
+                        baseAmount={netAmount}
+                        pgFeeTotal={feeBreakdown ? feeBreakdown.razorpayFee + feeBreakdown.razorpayFeeGst : 0}
+                        platformFeeTotal={feeBreakdown ? feeBreakdown.platformFee + feeBreakdown.platformFeeGst : 0}
+                        total={amountToCharge}
+                        feeHandlingType={event?.feeHandlingType}
+                        formatCurrency={(a) => fmt(a, currency)}
+                      />
+                    )}
+                    {feesAbsorbed && netAmount > 0 && (
+                      <p className="text-xs text-green-600">Platform &amp; gateway fees are covered by the organiser.</p>
                     )}
                   </CardContent>
                 </Card>

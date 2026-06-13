@@ -16,6 +16,52 @@ export interface TransactionFeesBreakdown {
   finalAmount: number
 }
 
+/**
+ * How a paid event's PG + Platform fees are handled.
+ * - `pass_to_buyer` (default): fees are appended to the ticket price at checkout.
+ * - `absorb`: the club pays the fees; the buyer is charged the base price only and
+ *   the fees are deducted from the club's settlement.
+ */
+export type FeeHandlingType = "pass_to_buyer" | "absorb"
+
+export const DEFAULT_FEE_HANDLING_TYPE: FeeHandlingType = "pass_to_buyer"
+
+export interface CheckoutChargeResult {
+  /** Full fee breakdown for the base amount (always computed for record-keeping). */
+  feeBreakdown: TransactionFeesBreakdown | null
+  /** What the buyer is actually charged. */
+  amountToCharge: number
+  /** True when the club is covering the fees (buyer charged base only). */
+  feesAbsorbed: boolean
+}
+
+/**
+ * Resolves the amount a buyer is charged for a given net (post-discount) base
+ * amount, honouring the event's fee-handling selection.
+ */
+export function resolveCheckoutCharge(
+  netAmount: number,
+  feeHandlingType: FeeHandlingType | undefined | null
+): CheckoutChargeResult {
+  const feeBreakdown = netAmount > 0 ? calculateTransactionFees(netAmount) : null
+  const feesAbsorbed = feeHandlingType === "absorb"
+  const amountToCharge = feesAbsorbed
+    ? netAmount
+    : feeBreakdown
+      ? feeBreakdown.finalAmount
+      : netAmount
+  return { feeBreakdown, amountToCharge, feesAbsorbed }
+}
+
+/**
+ * Estimated net the club keeps per ticket when fees are absorbed:
+ * gross − platform fee (incl. GST) − PG fee (incl. GST).
+ */
+export function estimateNetPerTicket(grossPrice: number): number {
+  const { totalFees, baseAmount } = calculateTransactionFees(grossPrice)
+  return roundMoney(Math.max(0, baseAmount - totalFees))
+}
+
 export function calculateTransactionFees(baseAmount: number): TransactionFeesBreakdown {
   const base = Math.max(0, baseAmount)
 

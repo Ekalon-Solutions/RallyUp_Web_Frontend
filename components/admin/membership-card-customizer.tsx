@@ -6,7 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Switch } from '@/components/ui/switch';
+import { LOGO_SIZES as LOGO_SIZE_OPTIONS, hasScalableLogo } from '@/lib/membershipCardLogo';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { apiClient } from '@/lib/api';
@@ -47,12 +49,6 @@ const FONT_FAMILIES = [
   { value: 'Lora', label: 'Lora' },
   { value: 'Roboto Slab', label: 'Roboto Slab' },
   { value: 'Bitter', label: 'Bitter' },
-];
-
-const LOGO_SIZES = [
-  { value: 'small', label: 'Small' },
-  { value: 'medium', label: 'Medium' },
-  { value: 'large', label: 'Large' }
 ];
 
 interface MembershipCardCustomizerProps {
@@ -518,18 +514,41 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
 
                   <div className="space-y-3">
                     <Label>Logo Size</Label>
-                    <Select value={logoSize} onValueChange={(value) => setLogoSize(value as 'small' | 'medium' | 'large')}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {LOGO_SIZES.map((size) => (
-                          <SelectItem key={size.value} value={size.value}>
-                            {size.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    {(() => {
+                      // Edge case: nothing to scale without a custom or club logo.
+                      const logoAvailable = hasScalableLogo({
+                        customLogo: customLogo,
+                        clubLogo: cardData?.club?.logo,
+                      })
+                      return (
+                        <>
+                          <ToggleGroup
+                            type="single"
+                            variant="outline"
+                            value={logoSize}
+                            onValueChange={(value) => { if (value) setLogoSize(value as 'small' | 'medium' | 'large') }}
+                            disabled={!logoAvailable}
+                            className="justify-start"
+                          >
+                            {LOGO_SIZE_OPTIONS.map((size) => (
+                              <ToggleGroupItem
+                                key={size.value}
+                                value={size.value}
+                                aria-label={`${size.label} logo`}
+                                className="flex-1"
+                              >
+                                {size.label}
+                              </ToggleGroupItem>
+                            ))}
+                          </ToggleGroup>
+                          <p className="text-xs text-muted-foreground">
+                            {logoAvailable
+                              ? "Large increases the logo to 150% of the default size."
+                              : "Upload a custom logo (or set a club logo) to adjust logo size."}
+                          </p>
+                        </>
+                      )
+                    })()}
                   </div>
 
                   <div className="flex items-center justify-between space-x-2 p-4 border rounded-lg">

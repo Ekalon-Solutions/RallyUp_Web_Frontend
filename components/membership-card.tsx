@@ -8,6 +8,7 @@ import { PublicMembershipCardDisplay, apiClient } from '@/lib/api';
 import { formatDisplayDate } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { getBaseUrl } from '@/lib/config';
+import { getLogoDimensionPx } from '@/lib/membershipCardLogo';
 
 const CARD_FONTS_URL =
   "https://fonts.googleapis.com/css2?family=Anton&family=Archivo+Black&family=Barlow:wght@400;500;600;700&family=Bebas+Neue&family=Bitter:wght@400;600;700&family=Exo+2:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Lato:wght@400;700&family=Lora:wght@400;600;700&family=Merriweather:wght@400;700&family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@400;600;700&family=Oswald:wght@400;500;600;700&family=Playfair+Display:wght@400;600;700&family=Poppins:wght@400;500;600;700&family=Roboto:wght@400;500;700&family=Roboto+Slab:wght@400;600;700&family=Teko:wght@400;500;600;700&family=Titillium+Web:wght@400;600;700&display=swap"
@@ -118,16 +119,8 @@ export function MembershipCard({
     return { fontFamily: `'${font}', sans-serif` };
   };
 
-  const getLogoSize = () => {
-    if (card.customization?.logoSize) {
-      switch (card.customization.logoSize) {
-        case 'small': return 'w-6 h-6';
-        case 'large': return 'w-10 h-10';
-        default: return 'w-8 h-8';
-      }
-    }
-    return 'w-8 h-8';
-  };
+  // Constraint-bound square dimension (px) derived from the persisted logo_scale_factor.
+  const logoDimensionPx = getLogoDimensionPx(card.customization?.logoSize);
 
   const getStatusClassName = (status: string) => {
     switch (status) {
@@ -210,8 +203,15 @@ export function MembershipCard({
           <div className="flex items-center gap-1.5 min-w-0">
             {((card.customization?.showLogo !== undefined ? card.customization.showLogo : showLogo) &&
               (card.customization?.customLogo || club.logo)) && (
-              <Avatar className={getLogoSize()}>
+              <Avatar
+                className="shrink-0"
+                style={{ width: logoDimensionPx, height: logoDimensionPx }}
+              >
                 <AvatarImage
+                  // object-contain keeps transparent PNGs whole (no cropping) and
+                  // lets the browser bilinear-resample, avoiding aliased/jagged edges.
+                  className="object-contain"
+                  style={{ imageRendering: 'auto' }}
                   src={(() => {
                     const logoUrl = card.customization?.customLogo || club.logo;
                     if (!logoUrl) return '';

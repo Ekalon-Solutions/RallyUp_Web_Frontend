@@ -143,12 +143,12 @@ export function CreateMerchandiseModal({
 
   useEffect(() => {
     if (!isOpen) return
-    apiClient.getFulfillmentPickupLocations().then((res) => {
+    apiClient.getFulfillmentPickupLocations(clubId ?? undefined).then((res) => {
       if (res.success && res.data) {
         setPickupLocations(res.data as PickupLocation[])
       }
     })
-  }, [isOpen])
+  }, [isOpen, clubId])
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
@@ -275,14 +275,14 @@ export function CreateMerchandiseModal({
 
       let response
       if (editMerchandise) {
-        response = await apiClient.put(`/merchandise/admin/${editMerchandise._id}`, formData)
+        response = await apiClient.updateMerchandise(editMerchandise._id, formData, clubId ?? undefined)
         if (!response.success) {
           toast.error(response.message || response.error || 'Failed to update merchandise')
           return
         }
         toast.success('Merchandise updated successfully')
       } else {
-        response = await apiClient.post('/merchandise/admin', formData)
+        response = await apiClient.createMerchandise(formData, clubId ?? undefined)
         if (!response.success) {
           toast.error(response.message || response.error || 'Failed to create merchandise')
           return

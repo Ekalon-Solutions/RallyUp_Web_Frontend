@@ -268,7 +268,7 @@ export default function MerchandiseManagementPage() {
     }
 
     try {
-      await apiClient.delete(`/merchandise/admin/${id}`)
+      await apiClient.deleteMerchandise(id, clubId ?? undefined)
       toast.success('Merchandise deleted successfully')
       fetchMerchandise()
       fetchStats()
@@ -280,7 +280,7 @@ export default function MerchandiseManagementPage() {
 
   const handleToggleAvailability = async (id: string, currentStatus: boolean) => {
     try {
-      await apiClient.patch(`/merchandise/admin/${id}/toggle-availability`)
+      await apiClient.toggleMerchandiseAvailability(id, clubId ?? undefined)
       toast.success(`Merchandise ${!currentStatus ? 'activated' : 'deactivated'} successfully`)
       fetchMerchandise()
       fetchStats()

@@ -13,6 +13,7 @@ import { useAuth } from "@/contexts/auth-context"
 import { toast } from "sonner"
 import { User, Shield, Save, CheckCircle, XCircle, Edit, Building2, MapPin, Loader2, Camera, Search, ArrowRight, Users, FileText, Calendar } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Skeleton } from "@/components/ui/skeleton"
 import { MembershipRenewal } from "@/components/membership-renewal"
 import { useRouter } from "next/navigation"
 import { VolunteerSignUpModal } from "@/components/volunteer/volunteer-signup-modal"
@@ -284,8 +285,8 @@ export default function UserProfilePage() {
       toast.error("Please choose a JPEG, PNG, GIF, or WebP image")
       return
     }
-    if (file.size > 25 * 1024 * 1024) {
-      toast.error("Image must be smaller than 25MB")
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Image must be smaller than 2MB")
       return
     }
     setUploadingPhoto(true)
@@ -423,12 +424,21 @@ export default function UserProfilePage() {
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center gap-4 mb-6">
-                    <Avatar className="h-24 w-24">
-                      <AvatarImage src={(user as { profilePicture?: string }).profilePicture} alt={user.name} />
-                      <AvatarFallback className="text-2xl bg-muted">
-                        {getInitials(user.name || "")}
-                      </AvatarFallback>
-                    </Avatar>
+                    {uploadingPhoto ? (
+                      // Skeleton loader while the Image Scaling Engine optimizes the
+                      // card photo in the background (square crop + WebP conversion).
+                      <div className="relative h-24 w-24 shrink-0">
+                        <Skeleton className="h-24 w-24 rounded-full" />
+                        <Loader2 className="absolute inset-0 m-auto h-6 w-6 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : (
+                      <Avatar className="h-24 w-24">
+                        <AvatarImage src={(user as { profilePicture?: string }).profilePicture} alt={user.name} />
+                        <AvatarFallback className="text-2xl bg-muted">
+                          {getInitials(user.name || "")}
+                        </AvatarFallback>
+                      </Avatar>
+                    )}
                     <div className="space-y-2">
                       <input
                         ref={fileInputRef}

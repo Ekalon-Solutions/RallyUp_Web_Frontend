@@ -2107,6 +2107,7 @@ export default function OrdersPage() {
             orderNumber={selectedOrder.orderNumber}
             shiprocketShipmentId={selectedOrder.shiprocketShipmentId}
             deliveryPincode={selectedOrder.shippingAddress?.zipCode}
+            clubId={clubId}
             onSuccess={(updatedOrder) => {
               setShowReadyToShipModal(false)
               if (updatedOrder) setSelectedOrder((prev) => prev ? { ...prev, ...updatedOrder } : prev)
