@@ -251,7 +251,7 @@ export function EventRefundLogPanel({ eventId, eventTitle }: Props = {}) {
             <div className="flex justify-center py-16">
               <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
             </div>
-          ) : !data?.rows.length ? (
+          ) : !data?.rows?.length ? (
             <p className="text-center text-muted-foreground py-12">
               No ticket records match this filter.
             </p>
@@ -329,7 +329,7 @@ export function EventRefundLogPanel({ eventId, eventTitle }: Props = {}) {
                 </Table>
               </div>
 
-              {data.pagination.totalPages > 1 && (
+              {data.pagination && data.pagination.totalPages > 1 && (
                 <div className="flex items-center justify-between mt-4 pt-4 border-t">
                   <p className="text-sm text-muted-foreground">
                     Page {data.pagination.page} of {data.pagination.totalPages} (

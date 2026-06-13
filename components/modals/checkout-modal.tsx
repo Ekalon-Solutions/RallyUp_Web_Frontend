@@ -370,8 +370,9 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
         return
       }
 
-      setServiceability(response.data)
-      setShiprocketMessage(response.data.fallback ? response.data.message : null)
+      setServiceability((response.data as any)?.data ?? response.data)
+      const shipData = (response.data as any)?.data ?? response.data
+      setShiprocketMessage(shipData.fallback ? shipData.message : null)
     } catch {
       setServiceability(fallbackResult)
       setShiprocketMessage(fallbackResult.message)

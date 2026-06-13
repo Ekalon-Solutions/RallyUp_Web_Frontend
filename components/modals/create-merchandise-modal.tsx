@@ -144,7 +144,7 @@ export function CreateMerchandiseModal({
   useEffect(() => {
     if (!isOpen) return
     apiClient.getFulfillmentPickupLocations(clubId ?? undefined).then((res) => {
-      if (res.success && res.data) {
+      if (res.success && Array.isArray(res.data)) {
         setPickupLocations(res.data as PickupLocation[])
       }
     })
@@ -524,7 +524,7 @@ export function CreateMerchandiseModal({
                     <SelectValue placeholder="Default (Primary)" />
                   </SelectTrigger>
                   <SelectContent>
-                    {pickupLocations.map((loc) => (
+                    {Array.isArray(pickupLocations) && pickupLocations.map((loc) => (
                       <SelectItem key={loc.id} value={loc.pickup_location}>
                         {loc.name || loc.pickup_location} — {loc.city} ({loc.pin_code})
                       </SelectItem>
