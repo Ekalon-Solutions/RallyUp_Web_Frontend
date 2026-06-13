@@ -125,12 +125,15 @@ function CreateEventForm() {
   const searchParams = useSearchParams()
   const editId = searchParams.get("edit")
   const isEditMode = Boolean(editId)
+  const duplicateId = searchParams.get("duplicate")
+  const isDuplicateMode = Boolean(duplicateId)
+  const sourceId = editId ?? duplicateId
 
   const { user } = useAuth()
   const selectedClubId = useSelectedClubId()
   const accessibleClubs = useAccessibleClubs()
   const [loading, setLoading] = useState(false)
-  const [fetchingEvent, setFetchingEvent] = useState(isEditMode)
+  const [fetchingEvent, setFetchingEvent] = useState(isEditMode || isDuplicateMode)
   const [venues, setVenues] = useState<VenueDraft[]>([])
 
   const [form, setForm] = useState({
@@ -353,11 +356,11 @@ function CreateEventForm() {
   }
 
   useEffect(() => {
-    if (!editId) return
+    if (!sourceId) return
     const fetchEvent = async () => {
       setFetchingEvent(true)
       try {
-        const res = await apiClient.getEventById(editId)
+        const res = await apiClient.getEventById(sourceId)
         if (!res.success || !res.data) {
           toast.error("Failed to load event")
           router.push("/dashboard/events")
@@ -365,7 +368,7 @@ function CreateEventForm() {
         }
         const ev = res.data
         setForm({
-          title: ev.title ?? "",
+          title: isDuplicateMode ? `Copy of ${ev.title ?? ""}`.trim() : (ev.title ?? ""),
           category: ev.category ?? "club-events",
           startTime: toDatetimeLocal(ev.startTime),
           endTime: toDatetimeLocal(ev.endTime),
@@ -395,14 +398,19 @@ function CreateEventForm() {
           refundCutoffHours: String(ev.refundCutoffHours ?? ev.refund_cutoff_hours ?? 24),
           refundPolicyChangeReason: "",
         })
-        initialRefundAllowedRef.current = ev.isRefundAllowed !== false && ev.is_refund_allowed !== false
+        if (!isDuplicateMode) {
+          initialRefundAllowedRef.current = ev.isRefundAllowed !== false && ev.is_refund_allowed !== false
+        }
         if (Array.isArray(ev.refundTiers) && ev.refundTiers.length > 0) {
           setRefundTiers(ev.refundTiers.map((t: any) => ({ daysBefore: Number(t.daysBefore), refundPercentage: Number(t.refundPercentage) })))
         }
-        const completed = isEventCompletedClient(ev)
-        const confirmedRegs = (ev.registrations || []).filter((r: { status?: string }) => r.status === "confirmed").length
-        const liveWithHolders = ev.isActive !== false && !completed && confirmedRegs > 0
-        setEventEditMeta({ liveWithHolders, completed })
+        // Live-policy guards only apply when editing the original event, not a fresh copy.
+        if (!isDuplicateMode) {
+          const completed = isEventCompletedClient(ev)
+          const confirmedRegs = (ev.registrations || []).filter((r: { status?: string }) => r.status === "confirmed").length
+          const liveWithHolders = ev.isActive !== false && !completed && confirmedRegs > 0
+          setEventEditMeta({ liveWithHolders, completed })
+        }
         setPartnerClubNames(ev.jointScreening?.partnerClubNames ?? [])
         if (ev.venues?.length) {
           setVenues(
@@ -430,7 +438,7 @@ function CreateEventForm() {
       }
     }
     fetchEvent()
-  }, [editId, router])
+  }, [sourceId, isDuplicateMode, router])
 
   const performSubmit = async (acknowledgeLivePolicyImpact = false) => {
     if (
@@ -592,8 +600,15 @@ function CreateEventForm() {
               <ArrowLeft className="w-4 h-4 mr-2" />
             </Button>
           </Link>
-          <h1 className="text-3xl font-bold">{isEditMode ? "Edit Event" : "Create Event"}</h1>
+          <h1 className="text-3xl font-bold">{isEditMode ? "Edit Event" : isDuplicateMode ? "Duplicate Event" : "Create Event"}</h1>
         </div>
+
+        {isDuplicateMode && (
+          <div className="rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+            <span className="font-semibold text-foreground">Duplicating an event.</span>{" "}
+            Review and edit the pre-filled details below — nothing is saved until you publish, which creates a brand-new event.
+          </div>
+        )}
 
         {!isEditMode && (
           <div

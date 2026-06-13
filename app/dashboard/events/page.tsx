@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calendar, Search, MoreHorizontal, Edit, Trash2, MapPin, Clock, Users, Plus, Filter, Ban, CheckCircle, Radio, ScanLine, ShieldCheck, ShieldOff, BarChart3 } from "lucide-react"
+import { Calendar, Search, MoreHorizontal, Edit, Copy, Trash2, MapPin, Clock, Users, Plus, Filter, Ban, CheckCircle, Radio, ScanLine, ShieldCheck, ShieldOff, BarChart3 } from "lucide-react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
 import { EventRegistrationModal } from "@/components/modals/event-registration-modal"
@@ -439,6 +439,12 @@ export default function EventsPage() {
                                     <DropdownMenuItem onClick={() => router.push(`/dashboard/events/create?edit=${event._id}`)}>
                                       <Edit className="w-4 h-4 mr-2" />
                                       Edit
+                                    </DropdownMenuItem>
+                                    )}
+                                    {canEditEvents && (
+                                    <DropdownMenuItem onClick={() => router.push(`/dashboard/events/create?duplicate=${event._id}`)}>
+                                      <Copy className="w-4 h-4 mr-2" />
+                                      Duplicate
                                     </DropdownMenuItem>
                                     )}
                                     <DropdownMenuItem onClick={() => router.push(`/dashboard/events/scanner?eventId=${event._id}`)}>

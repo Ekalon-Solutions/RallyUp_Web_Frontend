@@ -42,15 +42,12 @@ interface Courier {
   estimated_delivery_days?: number;
 }
 
-interface PickupLocation {
+interface ResolvedPickupLocation {
   id: number;
-  pickup_location: string;
   name: string;
-  address: string;
-  city: string;
-  state: string;
-  pin_code: string;
-  phone: string;
+  pinCode: string;
+  city?: string;
+  matchedBy: 'configured' | 'club_pincode' | 'default';
 }
 
 interface Props {
@@ -73,14 +70,12 @@ export function ReadyToShipModal({
   onSuccess,
 }: Props) {
   const [couriers, setCouriers] = useState<Courier[]>([]);
-  const [locations, setLocations] = useState<PickupLocation[]>([]);
+  const [pickupLocation, setPickupLocation] = useState<ResolvedPickupLocation | null>(null);
   const [loadingCouriers, setLoadingCouriers] = useState(false);
-  const [loadingLocations, setLoadingLocations] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const [sortBy, setSortBy] = useState<'cost' | 'speed'>('cost');
   const [selectedCourierId, setSelectedCourierId] = useState<string>('');
-  const [selectedLocationName, setSelectedLocationName] = useState<string>('');
   const [pickupDate, setPickupDate] = useState('');
   const [pickupTime, setPickupTime] = useState('10:00');
 
@@ -97,50 +92,35 @@ export function ReadyToShipModal({
     setLoadingCouriers(true);
     setCourierBusyAlert(null);
     try {
-      const res = await apiClient.getFulfillmentCouriers(orderId, {
-        pickupPin: locations[0]?.pin_code || '400001',
-        sort: sortBy,
-      });
-      if (res.success && res.data) {
-        setCouriers((res.data as Courier[]) ?? []);
-        if ((res.data as Courier[]).length > 0 && !selectedCourierId) {
-          setSelectedCourierId(String((res.data as Courier[])[0].courier_company_id));
+      // Pickup pin / warehouse is resolved server-side from the order's club.
+      const res = await apiClient.getFulfillmentCouriers(orderId, { sort: sortBy });
+      if (res.success) {
+        const list = (res.data as Courier[]) ?? [];
+        setCouriers(list);
+        const resolved = (res as any).pickupLocation as ResolvedPickupLocation | null;
+        if (resolved) setPickupLocation(resolved);
+        if (list.length > 0 && !selectedCourierId) {
+          setSelectedCourierId(String(list[0].courier_company_id));
         }
       }
     } finally {
       setLoadingCouriers(false);
     }
-  }, [orderId, shiprocketShipmentId, sortBy, locations, selectedCourierId]);
-
-  const loadLocations = useCallback(async () => {
-    setLoadingLocations(true);
-    try {
-      const res = await apiClient.getFulfillmentPickupLocations();
-      if (res.success && res.data) {
-        setLocations(res.data as PickupLocation[]);
-        if ((res.data as PickupLocation[]).length > 0) {
-          setSelectedLocationName((res.data as PickupLocation[])[0].pickup_location);
-        }
-      }
-    } finally {
-      setLoadingLocations(false);
-    }
-  }, []);
+  }, [orderId, shiprocketShipmentId, sortBy, selectedCourierId]);
 
   useEffect(() => {
     if (!open) return;
-    loadLocations();
     // Default pickup date to tomorrow
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     setPickupDate(tomorrow.toISOString().split('T')[0]);
     setSuccessData(null);
     setCourierBusyAlert(null);
-  }, [open, loadLocations]);
+  }, [open]);
 
   useEffect(() => {
-    if (open && locations.length > 0) loadCouriers();
-  }, [open, sortBy, locations, loadCouriers]);
+    if (open) loadCouriers();
+  }, [open, sortBy, loadCouriers]);
 
   const selectedCourier = couriers.find((c) => String(c.courier_company_id) === selectedCourierId);
 
@@ -157,7 +137,6 @@ export function ReadyToShipModal({
       const res = await apiClient.triggerReadyToShip(orderId, {
         courierId: parseInt(selectedCourierId),
         pickupDate: pickupDateTime,
-        pickupLocationName: selectedLocationName,
       });
 
       if (res.success) {
@@ -315,29 +294,26 @@ export function ReadyToShipModal({
               )}
             </div>
 
-            {/* Pickup location */}
+            {/* Pickup location — bound to the club warehouse at order-create time (read-only) */}
             <div className="space-y-1.5">
-              <Label>Pickup Location</Label>
-              {loadingLocations ? (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="h-3 w-3 animate-spin" /> Loading…
+              <Label>Pickup Location (Club Warehouse)</Label>
+              {pickupLocation ? (
+                <div className="rounded-lg border bg-muted/30 p-3 text-sm">
+                  <div className="flex items-center gap-2 font-medium">
+                    <Package className="h-3.5 w-3.5 text-muted-foreground" />
+                    {pickupLocation.name}
+                    {pickupLocation.matchedBy === 'default' && (
+                      <Badge variant="outline" className="text-[10px]">default</Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {pickupLocation.city ? `${pickupLocation.city} · ` : ''}PIN {pickupLocation.pinCode}
+                  </p>
                 </div>
               ) : (
-                <Select value={selectedLocationName} onValueChange={setSelectedLocationName}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select pickup location" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {locations.map((l) => (
-                      <SelectItem key={l.id} value={l.pickup_location}>
-                        {l.name || l.pickup_location} — {l.city}
-                      </SelectItem>
-                    ))}
-                    {locations.length === 0 && (
-                      <SelectItem value="Primary">Primary (default)</SelectItem>
-                    )}
-                  </SelectContent>
-                </Select>
+                <p className="text-sm text-muted-foreground">
+                  Resolving warehouse from club settings…
+                </p>
               )}
             </div>
 
