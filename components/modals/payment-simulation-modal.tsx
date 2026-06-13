@@ -418,7 +418,7 @@ export function PaymentSimulationModal({
               )}
               {razorpayFeeTotal !== undefined && razorpayFeeTotal > 0 && (
                 <div className="flex justify-between items-center text-sm text-muted-foreground">
-                  <span>Payment gateway fee (2.5% + GST):</span>
+                  <span>Payment gateway fee (2% + GST):</span>
                   <span>{formatCurrency(razorpayFeeTotal, currency)}</span>
                 </div>
               )}

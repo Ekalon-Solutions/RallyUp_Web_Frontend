@@ -138,7 +138,7 @@ export default function PPSAPage(): React.JSX.Element {
  </p>
  <ul className="list-disc pl-5 space-y-2">
  <li><strong>Platform Fee:</strong> 4.5% of the transaction value + GST.</li>
- <li><strong>Payment Gateway Fee:</strong> 2.5% of the transaction value + GST.</li>
+ <li><strong>Payment Gateway Fee:</strong> 2% of the transaction value + GST.</li>
  <li>Note: These fees are automatically deducted from the gross amount collected before settlement.</li>
  </ul>
 

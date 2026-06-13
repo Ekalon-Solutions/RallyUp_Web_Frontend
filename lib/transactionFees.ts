@@ -1,5 +1,5 @@
 export const PLATFORM_FEE_PERCENT = 4.5
-export const RAZORPAY_FEE_PERCENT = 2.5
+export const RAZORPAY_FEE_PERCENT = 2
 export const GST_PERCENT = 18
 
 function roundMoney(value: number): number {
