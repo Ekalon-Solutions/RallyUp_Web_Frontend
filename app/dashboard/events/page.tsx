@@ -11,6 +11,8 @@ import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
 import { EventRegistrationModal } from "@/components/modals/event-registration-modal"
 import { apiClient, Event } from "@/lib/api"
+import { EventImage } from "@/components/events/event-image"
+import { eventVariantUrl } from "@/lib/eventImageCache"
 import { formatDisplayDate } from "@/lib/utils"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
@@ -323,26 +325,37 @@ export default function EventsPage() {
                       events.map((event) => (
                         <TableRow key={event._id}>
                           <TableCell>
-                            <div className="min-w-[200px]">
-                              <div className="font-medium break-words">{event.title}</div>
-                              <div className="text-sm text-muted-foreground line-clamp-2 break-words">
-                                {event.description}
-                              </div>
-                              {isEventPaid(event) && (() => {
-                                const priceLabel = formatEventPriceDisplay(event, { fromPrefix: hasVenueTierMatrix(event) })
-                                return priceLabel ? (
-                                  <p className="text-sm font-medium text-primary mt-1">{priceLabel}</p>
-                                ) : null
-                              })()}
-                              {hasVenueTierMatrix(event) && (
-                                <Badge variant="outline" className="mt-1 text-xs">Multi-venue</Badge>
-                              )}
-                              <JointScreeningDisplay
-                                jointScreening={event.jointScreening}
-                                variant="badge"
-                                className="mt-1"
+                            <div className="flex items-start gap-3">
+                              <EventImage
+                                eventId={event._id}
+                                imageVersion={event.imageVersion}
+                                size="list"
+                                directUrl={eventVariantUrl(event, "list")}
+                                alt={event.title}
+                                aspectClassName="aspect-video"
+                                className="w-24 shrink-0 rounded-md border"
                               />
-                              <WaitlistDisplay waitlist={event.waitlist} variant="badge" className="mt-1" />
+                              <div className="min-w-[200px]">
+                                <div className="font-medium break-words">{event.title}</div>
+                                <div className="text-sm text-muted-foreground line-clamp-2 break-words">
+                                  {event.description}
+                                </div>
+                                {isEventPaid(event) && (() => {
+                                  const priceLabel = formatEventPriceDisplay(event, { fromPrefix: hasVenueTierMatrix(event) })
+                                  return priceLabel ? (
+                                    <p className="text-sm font-medium text-primary mt-1">{priceLabel}</p>
+                                  ) : null
+                                })()}
+                                {hasVenueTierMatrix(event) && (
+                                  <Badge variant="outline" className="mt-1 text-xs">Multi-venue</Badge>
+                                )}
+                                <JointScreeningDisplay
+                                  jointScreening={event.jointScreening}
+                                  variant="badge"
+                                  className="mt-1"
+                                />
+                                <WaitlistDisplay waitlist={event.waitlist} variant="badge" className="mt-1" />
+                              </div>
                             </div>
                           </TableCell>
                           <TableCell>

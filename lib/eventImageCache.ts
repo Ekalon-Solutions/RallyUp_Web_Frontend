@@ -95,6 +95,24 @@ export async function getEventImageUrl(
   return entry ? entry.urls[variant] : null;
 }
 
+/**
+ * Pick the embedded (public) variant URL from an event object for a given size,
+ * falling back across variants and the legacy `eventImage`. Returns null when the
+ * event has no image — callers then show the colored placeholder.
+ */
+export function eventVariantUrl(
+  event: {
+    eventImage?: string;
+    eventImageVariants?: { list400?: { url?: string }; full1080?: { url?: string } };
+  } | null | undefined,
+  size: 'list' | 'full'
+): string | null {
+  if (!event) return null;
+  const v = event.eventImageVariants;
+  if (size === 'list') return v?.list400?.url ?? v?.full1080?.url ?? event.eventImage ?? null;
+  return v?.full1080?.url ?? v?.list400?.url ?? event.eventImage ?? null;
+}
+
 /** Drop a single event's cached URLs (called on an `event:image-updated` push). */
 export function invalidateEventImage(eventId: string) {
   for (const k of cache.keys()) {

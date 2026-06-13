@@ -564,6 +564,14 @@ function AdminActionDetailSheet({ entry, open, onClose }: {
               </DetailSection>
             </>
           )}
+          {typeof entry.metadata?.reason === "string" && entry.metadata.reason.trim() !== "" && (
+            <>
+              <Separator />
+              <DetailSection icon={MessageSquare} label="Reason for Change">
+                <p className="text-sm leading-relaxed bg-muted/50 rounded-lg p-3 border">{entry.metadata.reason}</p>
+              </DetailSection>
+            </>
+          )}
           <Separator />
           <DetailSection icon={AlertTriangle} label="Risk Level">
             <Badge variant="outline" className={`text-[10px] ${risk.cls}`}>{risk.label}</Badge>

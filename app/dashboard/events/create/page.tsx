@@ -41,6 +41,7 @@ import { EventRefundToggleSection, RefundTier } from "@/components/admin/event-r
 import { EventRefundPolicyImpactDialog } from "@/components/admin/event-refund-policy-impact-dialog"
 import { EventCreatePreview } from "@/components/admin/event-create-preview"
 import { EventFeeManagementSection } from "@/components/admin/event-fee-management-section"
+import { EventImageUploader } from "@/components/events/event-image-uploader"
 import { useCanManageFees } from "@/hooks/useCanManageFees"
 import type { FeeHandlingType } from "@/lib/transactionFees"
 
@@ -118,7 +119,14 @@ const CURRENCIES = ["INR", "USD", "EUR", "GBP", "AUD", "CAD", "JPY", "BRL", "MXN
 function toDatetimeLocal(iso?: string): string {
   if (!iso) return ""
   try {
-    return new Date(iso).toISOString().slice(0, 16)
+    const date = new Date(iso)
+    if (Number.isNaN(date.getTime())) return ""
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, "0")
+    const day = String(date.getDate()).padStart(2, "0")
+    const hours = String(date.getHours()).padStart(2, "0")
+    const minutes = String(date.getMinutes()).padStart(2, "0")
+    return `${year}-${month}-${day}T${hours}:${minutes}`
   } catch {
     return ""
   }
@@ -139,6 +147,12 @@ function CreateEventForm() {
   const [loading, setLoading] = useState(false)
   const [fetchingEvent, setFetchingEvent] = useState(isEditMode || isDuplicateMode)
   const [venues, setVenues] = useState<VenueDraft[]>([])
+  // Event poster (hero images). Admin uploads a 400px (list) and a 1080px (detail)
+  // image; either can be left blank. Uploaded after the event is created/updated,
+  // since the upload endpoint needs an event id.
+  const [imageFile400, setImageFile400] = useState<File | null>(null)
+  const [imageFile1080, setImageFile1080] = useState<File | null>(null)
+  const [existingImageUrl, setExistingImageUrl] = useState<string | null>(null)
 
   const [form, setForm] = useState({
     title: "",
@@ -374,6 +388,8 @@ function CreateEventForm() {
           return
         }
         const ev = res.data
+        // Show the current poster as a preview when editing (a duplicate starts blank).
+        if (isEditMode) setExistingImageUrl(ev.eventImage ?? null)
         setForm({
           title: isDuplicateMode ? `Copy of ${ev.title ?? ""}`.trim() : (ev.title ?? ""),
           category: ev.category ?? "club-events",
@@ -542,6 +558,7 @@ function CreateEventForm() {
         ...(acknowledgeLivePolicyImpact ? { acknowledgeLivePolicyImpact: true } : {}),
       }
 
+      let targetEventId: string | null = null
       if (isEditMode && editId) {
         const res = await apiClient.updateEvent(editId, payload)
         if (!res.success) {
@@ -555,6 +572,7 @@ function CreateEventForm() {
           }
           return
         }
+        targetEventId = editId
         toast.success("Event updated successfully!")
       } else {
         const res = await apiClient.createEvent(payload)
@@ -562,8 +580,22 @@ function CreateEventForm() {
           toast.error((res as any).message ?? res.error ?? "Failed to create event")
           return
         }
+        targetEventId = res.data?.event?._id ?? null
         toast.success("Event created successfully!")
       }
+
+      // Upload the poster(s) now that the event exists. Best-effort: a failure here
+      // shouldn't lose the saved event, just warn the admin.
+      if ((imageFile400 || imageFile1080) && targetEventId) {
+        const imgRes = await apiClient.uploadEventImage(targetEventId, {
+          list400: imageFile400,
+          full1080: imageFile1080,
+        })
+        if (!imgRes.success) {
+          toast.error((imgRes as any).message ?? imgRes.error ?? "Event saved, but the poster failed to upload")
+        }
+      }
+
       router.push("/dashboard/events")
     } catch (err: any) {
       toast.error(err?.message ?? "Error saving event")
@@ -756,6 +788,42 @@ function CreateEventForm() {
                   rows={3}
                   required
                 />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className={sectionBorder}>
+            <CardHeader>
+              <CardTitle>Event Poster</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-xs text-muted-foreground">
+                Optional. Upload a 400px-wide image for the events feed and a 1080px-wide image for
+                the event detail page. If you upload only one, it's used for both. Saved after the event.
+              </p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-2">
+                  <Label>List image — 400px wide</Label>
+                  <EventImageUploader
+                    value={imageFile400}
+                    onChange={setImageFile400}
+                    existingImageUrl={existingImageUrl}
+                    title="Upload 400px list image"
+                    hint="Shown on the events feed — up to 10MB"
+                    disabled={loading}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Detail image — 1080px wide</Label>
+                  <EventImageUploader
+                    value={imageFile1080}
+                    onChange={setImageFile1080}
+                    existingImageUrl={existingImageUrl}
+                    title="Upload 1080px detail image"
+                    hint="Shown on the event detail page — up to 10MB"
+                    disabled={loading}
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>

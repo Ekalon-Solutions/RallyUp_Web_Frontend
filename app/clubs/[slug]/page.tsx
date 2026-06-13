@@ -19,6 +19,8 @@ import {
 } from "@/lib/event-display-price"
 import { EventCheckoutModal } from "@/components/modals/event-checkout-modal"
 import { RefundPolicyBadge } from "@/components/refund-policy-badge"
+import { EventImage } from "@/components/events/event-image"
+import { eventVariantUrl } from "@/lib/eventImageCache"
 import { JointScreeningDisplay } from "@/components/events/joint-screening-display"
 import { EventScheduleMeta } from "@/components/events/event-schedule-meta"
 import { WaitlistDisplay } from "@/components/events/waitlist-display"
@@ -757,7 +759,15 @@ export default function PublicClubPage() {
                           ) : events.filter((e: any) => !e?.memberOnly).length > 0 ? (
                             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                               {events.filter((e: any) => !e?.memberOnly).map((event) => (
-                                <Card key={event._id} className="hover:shadow-lg transition-all border-2">
+                                <Card key={event._id} className="hover:shadow-lg transition-all border-2 overflow-hidden">
+                                  <EventImage
+                                    eventId={event._id}
+                                    imageVersion={event.imageVersion}
+                                    size="list"
+                                    directUrl={eventVariantUrl(event, "list")}
+                                    primaryColor={primaryColor}
+                                    alt={event.title}
+                                  />
                                   <CardHeader>
                                     <div className="flex items-start justify-between mb-2">
                                       {event.isActive === false && (

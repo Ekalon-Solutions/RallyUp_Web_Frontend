@@ -1615,6 +1615,30 @@ class ApiClient {
     return this.request(`/events/public/${id}/image-urls`);
   }
 
+  /**
+   * Upload (or replace) an event's hero/poster images. Provide a `list400` (400px)
+   * and/or `full1080` (1080px) file; the backend re-encodes each to WebP, bumps
+   * `imageVersion`, and broadcasts `event:image-updated`. If only one is given it's
+   * used for both variants. Requires the event to already exist (admin only).
+   */
+  async uploadEventImage(
+    eventId: string,
+    files: { list400?: File | null; full1080?: File | null }
+  ): Promise<ApiResponse<{
+    message: string;
+    eventImage?: string;
+    imageVersion: number;
+    event: Event;
+  }>> {
+    const formData = new FormData();
+    if (files.list400) formData.append('image400', files.list400);
+    if (files.full1080) formData.append('image1080', files.full1080);
+    return this.request(`/events/${eventId}/image`, {
+      method: 'POST',
+      body: formData,
+    });
+  }
+
   async checkEventRegistration(eventId: string): Promise<ApiResponse<{
     isRegistered: boolean;
     registrationStatus?: string;

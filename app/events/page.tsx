@@ -11,6 +11,7 @@ import { EventRegistrationModal } from "@/components/modals/event-registration-m
 import { VenueTierCartModal } from "@/components/modals/venue-tier-cart-modal"
 import { apiClient, Event } from "@/lib/api"
 import { EventImage } from "@/components/events/event-image"
+import { eventVariantUrl } from "@/lib/eventImageCache"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
 import { formatLocalDate } from "@/lib/timezone"
@@ -315,6 +316,7 @@ export default function PublicEventsPage() {
                           eventId={event._id}
                           imageVersion={event.imageVersion}
                           size="list"
+                          directUrl={eventVariantUrl(event, "list")}
                           alt={event.title}
                         />
                         <CardHeader className="pb-3">

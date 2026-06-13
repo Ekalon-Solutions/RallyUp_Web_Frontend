@@ -17,6 +17,12 @@ interface EventImageProps {
   imageVersion?: number;
   /** `list` -> 400px feed variant, `full` -> 1080px detail variant. */
   size?: 'list' | 'full';
+  /**
+   * Embedded variant URL from the event object (e.g. eventImageVariants.list400.url).
+   * When provided it renders immediately — no presigned round-trip. Presigned
+   * fetch is used only as a fallback, or to refresh after a live image update.
+   */
+  directUrl?: string | null;
   /** Club primary colour for the blurred placeholder (defaults to brand blue). */
   primaryColor?: string;
   alt: string;
@@ -44,6 +50,7 @@ export function EventImage({
   eventId,
   imageVersion = 0,
   size = 'list',
+  directUrl,
   primaryColor,
   alt,
   className,
@@ -57,6 +64,8 @@ export function EventImage({
   const [failed, setFailed] = useState(false);
   // Bumped on socket invalidation to force a re-resolve.
   const [version, setVersion] = useState(imageVersion);
+  // After a live update the embedded directUrl is stale — fetch a fresh presigned one.
+  const [forceFetch, setForceFetch] = useState(false);
 
   const shouldLoad = priority || isInViewport;
   const color = primaryColor || DEFAULT_CLUB_PRIMARY;
@@ -75,6 +84,7 @@ export function EventImage({
       setLoaded(false);
       setFailed(false);
       setUrl(null);
+      setForceFetch(true); // ignore the now-stale directUrl, fetch fresh
       setVersion(payload.imageVersion ?? Date.now());
     };
     socket.on('event:image-updated', handler);
@@ -83,9 +93,15 @@ export function EventImage({
     };
   }, [socket, eventId]);
 
-  // Resolve the presigned variant URL once in view.
+  // Resolve the image URL once in view: prefer the embedded directUrl (instant),
+  // otherwise fetch a presigned URL.
   useEffect(() => {
     if (!shouldLoad) return;
+    if (directUrl && !forceFetch) {
+      setUrl(directUrl);
+      setFailed(false);
+      return;
+    }
     let cancelled = false;
     getEventImageUrl(eventId, version, VARIANT[size])
       .then((resolved) => {
@@ -99,7 +115,7 @@ export function EventImage({
     return () => {
       cancelled = true;
     };
-  }, [shouldLoad, eventId, version, size]);
+  }, [shouldLoad, eventId, version, size, directUrl, forceFetch]);
 
   const showImage = !!url && !failed;
 
