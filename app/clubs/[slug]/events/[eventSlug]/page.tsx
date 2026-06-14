@@ -91,6 +91,18 @@ interface Club {
   logo?: string
 }
 
+function isActivelyRegistered(data: {
+  isRegistered?: boolean
+  registrationStatus?: string
+  status?: string
+  registration?: { status?: string }
+}) {
+  const regStatus = (data.registrationStatus || data.status || data.registration?.status || '').toLowerCase()
+  if (!regStatus) return Boolean(data.isRegistered)
+  if (regStatus === 'pending' || ['cancelled', 'canceled', 'refunded'].includes(regStatus)) return false
+  return regStatus === 'confirmed' || Boolean(data.isRegistered)
+}
+
 export default function EventDetailPage() {
   const params = useParams()
   const router = useRouter()
@@ -143,10 +155,8 @@ export default function EventDetailPage() {
 
     apiClient.checkEventRegistration(event._id).then((checkResult) => {
       if (checkResult.success && checkResult.data) {
-        const { isRegistered, isMember, registrationStatus, status, registration } = checkResult.data as any
-        const regStatus = registrationStatus || status || registration?.status || ''
-        const isCancelled = ['cancelled', 'canceled', 'refunded'].includes(regStatus.toLowerCase())
-        if (isMember && isRegistered && !isCancelled) {
+        const { isMember, ...registrationCheck } = checkResult.data as any
+        if (isMember && isActivelyRegistered(registrationCheck)) {
           toast.error("You are already registered for this event")
           clearStoredPurchaseIntent()
           const url = new URL(window.location.href)
@@ -201,10 +211,8 @@ export default function EventDetailPage() {
     try {
       const checkResult = await apiClient.checkEventRegistration(event._id)
       if (checkResult.success && checkResult.data) {
-        const { isRegistered, isMember, registrationStatus, status, registration } = checkResult.data as any
-        const regStatus = registrationStatus || status || registration?.status || ''
-        const isCancelled = ['cancelled', 'canceled', 'refunded'].includes(regStatus.toLowerCase())
-        if (isMember && isRegistered && !isCancelled) {
+        const { isMember, ...registrationCheck } = checkResult.data as any
+        if (isMember && isActivelyRegistered(registrationCheck)) {
           toast.error("You are already registered for this event")
           return
         }
