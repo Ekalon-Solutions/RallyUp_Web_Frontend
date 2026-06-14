@@ -39,6 +39,7 @@ import { useClubFeatures } from "@/hooks/useClubFeatures"
 import { isFeatureEnabled } from "@/lib/clubFeatures"
 import { LockedFeaturePage } from "@/components/feature-gate"
 import { LOGO_SIZES, hasScalableLogo } from "@/lib/membershipCardLogo"
+import { MEMBERSHIP_CARD_PREVIEW_PROFILE_PICTURE } from "@/lib/membershipCardProfile"
 
 
 function MembershipCardsPage() {
@@ -85,6 +86,7 @@ function MembershipCardsPage() {
   const [customization, setCustomization] = useState<{
     cardStyle: 'default' | 'premium' | 'vintage' | 'modern' | 'elite' | 'emerald';
     showLogo: boolean;
+    showUserProfile: boolean;
     primaryColor: string;
     secondaryColor: string;
     fontFamily: string;
@@ -92,6 +94,7 @@ function MembershipCardsPage() {
   }>({
     cardStyle: 'default',
     showLogo: true,
+    showUserProfile: false,
     primaryColor: CARD_STYLE_COLORS['default'].primaryColor,
     secondaryColor: CARD_STYLE_COLORS['default'].secondaryColor,
     fontFamily: 'Inter',
@@ -121,6 +124,7 @@ function MembershipCardsPage() {
     fontFamily: value?.fontFamily ?? "Inter",
     logoSize: value?.logoSize ?? "medium",
     showLogo: value?.showLogo ?? true,
+    showUserProfile: value?.showUserProfile ?? false,
     ...(value?.customLogo ? { customLogo: value.customLogo } : {}),
   })
 
@@ -343,6 +347,7 @@ function MembershipCardsPage() {
           fontFamily: customization.fontFamily,
           logoSize: customization.logoSize,
           showLogo: customization.showLogo,
+          showUserProfile: customization.showUserProfile,
           customLogo: customLogoUrl
         }
       }
@@ -599,6 +604,7 @@ function MembershipCardsPage() {
         fontFamily: baseCustomization.fontFamily,
         logoSize: baseCustomization.logoSize,
         showLogo: baseCustomization.showLogo,
+        showUserProfile: baseCustomization.showUserProfile,
         ...(baseCustomization.customLogo !== undefined && { customLogo: baseCustomization.customLogo }),
         ...(customLogoUrl !== undefined && { customLogo: customLogoUrl }),
       }
@@ -783,6 +789,23 @@ function MembershipCardsPage() {
     })
   }, [])
 
+  const handleShowUserProfileChange = useCallback((checked: boolean) => {
+    setEditingCard(prev => {
+      if (!prev) return null
+      const base = normalizeCustomization(prev.card.customization)
+      return {
+        ...prev,
+        card: {
+          ...prev.card,
+          customization: { ...base, showUserProfile: checked }
+        }
+      }
+    })
+  }, [])
+
+  const getPreviewProfilePicture = (showUserProfile?: boolean) =>
+    showUserProfile ? MEMBERSHIP_CARD_PREVIEW_PROFILE_PICTURE : undefined
+
   if (!isFeatureEnabled(clubFeatureConfig, 'membership')) {
     return (
       <ProtectedRoute requireAdmin>
@@ -863,6 +886,7 @@ function MembershipCardsPage() {
                                 showLogo={editingCard.card.customization?.showLogo ?? true}
                                 userName="John Doe"
                                 membershipId={editingCard.card.membershipId ?? 'MEM-XXXX'}
+                                profilePicture={getPreviewProfilePicture(editingCard.card.customization?.showUserProfile)}
                               />
                             </div>
                           </div>
@@ -890,6 +914,7 @@ function MembershipCardsPage() {
                                     showLogo={card?.card?.customization?.showLogo ?? true}
                                     userName="John Doe"
                                     membershipId={card?.card?.membershipId ?? 'Membership ID'}
+                                    profilePicture={getPreviewProfilePicture(card?.card?.customization?.showUserProfile)}
                                   />
                                 </div>
                               </div>
@@ -976,7 +1001,8 @@ function MembershipCardsPage() {
                               secondaryColor: CARD_STYLE_COLORS[v as keyof typeof CARD_STYLE_COLORS].secondaryColor,
                               fontFamily: prev.fontFamily,
                               logoSize: prev.logoSize,
-                              showLogo: prev.showLogo
+                              showLogo: prev.showLogo,
+                              showUserProfile: prev.showUserProfile
                             }))}
                           >
                             <SelectTrigger id="createCardStyle">
@@ -1267,6 +1293,18 @@ function MembershipCardsPage() {
                     <Label htmlFor="showLogo">Show Club Logo</Label>
                   </div>
 
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="showUserProfile"
+                      checked={editingCard.card.customization?.showUserProfile ?? false}
+                      onCheckedChange={handleShowUserProfileChange}
+                    />
+                    <Label htmlFor="showUserProfile">Show Member Profile Picture</Label>
+                  </div>
+                  <p className="text-xs text-muted-foreground -mt-2">
+                    When enabled, members with an uploaded profile photo will see it on their card.
+                  </p>
+
                   {/* Custom Logo Upload */}
                   <div>
                     <Label htmlFor="customLogo">Custom Logo</Label>
@@ -1346,6 +1384,7 @@ function MembershipCardsPage() {
                         showLogo={editingCard.card.customization?.showLogo ?? true}
                         userName="John Doe"
                         membershipId={editingCard.card.membershipId ?? 'MEM-XXXX'}
+                        profilePicture={getPreviewProfilePicture(editingCard.card.customization?.showUserProfile)}
                       />
                     </div>
                   </div>

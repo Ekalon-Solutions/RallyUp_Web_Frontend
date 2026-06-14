@@ -275,6 +275,7 @@ export default function UserMembershipCardPage() {
                           cardStyle={displaySelectedCard.card.cardStyle}
                           showLogo={displaySelectedCard.card.customization?.showLogo ?? true}
                           userName={userName}
+                          profilePicture={(user as { profilePicture?: string })?.profilePicture}
                         />
                       </div>
                     </div>

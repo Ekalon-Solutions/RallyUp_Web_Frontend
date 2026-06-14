@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Switch } from '@/components/ui/switch';
 import { LOGO_SIZES as LOGO_SIZE_OPTIONS, hasScalableLogo } from '@/lib/membershipCardLogo';
+import { MEMBERSHIP_CARD_PREVIEW_PROFILE_PICTURE } from '@/lib/membershipCardProfile';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { apiClient } from '@/lib/api';
@@ -69,6 +70,7 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
   const [fontFamily, setFontFamily] = useState('Inter');
   const [logoSize, setLogoSize] = useState<'small' | 'medium' | 'large'>('medium');
   const [showLogo, setShowLogo] = useState(true);
+  const [showUserProfile, setShowUserProfile] = useState(false);
   const [customLogo, setCustomLogo] = useState<string | null>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
 
@@ -115,6 +117,7 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
               if (custom.fontFamily) setFontFamily(custom.fontFamily);
               if (custom.logoSize) setLogoSize(custom.logoSize);
               if (custom.showLogo !== undefined) setShowLogo(custom.showLogo);
+              if (custom.showUserProfile !== undefined) setShowUserProfile(custom.showUserProfile);
               if (custom.customLogo) {
                 const logoUrl = custom.customLogo.startsWith('http') ? custom.customLogo : `${getBaseUrl()}${custom.customLogo}`;
                 setCustomLogo(logoUrl);
@@ -141,7 +144,8 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
                   secondaryColor: secondaryColor,
                   fontFamily: fontFamily,
                   logoSize: logoSize,
-                  showLogo: true
+                  showLogo: true,
+                  showUserProfile: false
                 }
               },
               club: {
@@ -175,7 +179,8 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
                 secondaryColor: secondaryColor,
                 fontFamily: fontFamily,
                 logoSize: logoSize,
-                showLogo: true
+                showLogo: true,
+                showUserProfile: false
               }
             },
             club: {
@@ -209,7 +214,8 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
               secondaryColor: secondaryColor,
               fontFamily: fontFamily,
               logoSize: logoSize,
-              showLogo: true
+              showLogo: true,
+              showUserProfile: false
             }
           },
           club: {
@@ -323,6 +329,7 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
         fontFamily,
         logoSize,
         showLogo,
+        showUserProfile,
         customLogo: customLogo || undefined
       };
       const membershipPlanId = cardData.membershipPlan._id;
@@ -379,6 +386,7 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
         fontFamily,
         logoSize,
         showLogo,
+        showUserProfile,
         customLogo
       }
     }
@@ -564,6 +572,20 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
                       onCheckedChange={setShowLogo}
                     />
                   </div>
+
+                  <div className="flex items-center justify-between space-x-2 p-4 border rounded-lg">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="showUserProfile">Show Member Profile Picture</Label>
+                      <p className="text-sm text-muted-foreground">
+                        When enabled, members with an uploaded profile photo will see it on their card
+                      </p>
+                    </div>
+                    <Switch
+                      id="showUserProfile"
+                      checked={showUserProfile}
+                      onCheckedChange={setShowUserProfile}
+                    />
+                  </div>
                 </TabsContent>
 
                 <TabsContent value="logo" className="space-y-6">
@@ -636,6 +658,7 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
                       showLogo={showLogo}
                       userName="John Doe"
                       membershipId={previewData.card.membershipId}
+                      profilePicture={showUserProfile ? MEMBERSHIP_CARD_PREVIEW_PROFILE_PICTURE : undefined}
                     />
                   </div>
                 </div>
@@ -653,6 +676,7 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
                 setFontFamily('Inter');
                 setLogoSize('medium');
                 setShowLogo(true);
+                setShowUserProfile(false);
                 setCustomLogo(null);
               }}
             >

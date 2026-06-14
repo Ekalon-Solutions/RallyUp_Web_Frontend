@@ -9,6 +9,7 @@ import { formatDisplayDate } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { getBaseUrl } from '@/lib/config';
 import { getLogoDimensionPx } from '@/lib/membershipCardLogo';
+import { hasCustomProfilePicture, resolveProfilePictureUrl } from '@/lib/membershipCardProfile';
 
 const CARD_FONTS_URL =
   "https://fonts.googleapis.com/css2?family=Anton&family=Archivo+Black&family=Barlow:wght@400;500;600;700&family=Bebas+Neue&family=Bitter:wght@400;600;700&family=Exo+2:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Lato:wght@400;700&family=Lora:wght@400;600;700&family=Merriweather:wght@400;700&family=Montserrat:wght@400;500;600;700&family=Open+Sans:wght@400;600;700&family=Oswald:wght@400;500;600;700&family=Playfair+Display:wght@400;600;700&family=Poppins:wght@400;500;600;700&family=Roboto:wght@400;500;700&family=Roboto+Slab:wght@400;600;700&family=Teko:wght@400;500;600;700&family=Titillium+Web:wght@400;600;700&display=swap"
@@ -19,6 +20,7 @@ interface MembershipCardProps {
   showLogo?: boolean;
   userName?: string;
   membershipId?: string | null;
+  profilePicture?: string | null;
 }
 
 export function MembershipCard({ 
@@ -27,6 +29,7 @@ export function MembershipCard({
   showLogo = true,
   userName = 'Member Name',
   membershipId,
+  profilePicture,
 }: MembershipCardProps) {
   const { card, club, membershipPlan } = cardData;
   const effectiveCardStyle = card.cardStyle || cardStyle;
@@ -133,6 +136,9 @@ export function MembershipCard({
 
   const formatDate = (dateString: string) => formatDisplayDate(dateString);
 
+  const showUserProfilePicture =
+    card.customization?.showUserProfile === true && hasCustomProfilePicture(profilePicture);
+
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!cardRef.current) return;
     
@@ -235,6 +241,25 @@ export function MembershipCard({
             </div>
           </div>
         </div>
+
+        {/* User Profile Picture — only when admin enables it and member has uploaded a photo */}
+        {showUserProfilePicture && (
+          <div className="flex justify-center">
+            <Avatar className="h-14 w-14 border-2 border-white/30 shadow-md">
+              <AvatarImage
+                src={resolveProfilePictureUrl(profilePicture!)}
+                alt={userName || 'Member'}
+                className="object-cover"
+              />
+              <AvatarFallback
+                className={style.accent}
+                style={style.customColors ? { backgroundColor: style.customColors.primary } : {}}
+              >
+                {(userName || 'M').charAt(0).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+          </div>
+        )}
 
         {/* User Name */}
         <div className="text-center">

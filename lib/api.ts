@@ -645,6 +645,7 @@ export interface MembershipCard {
     fontFamily: string;
     logoSize: 'small' | 'medium' | 'large';
     showLogo: boolean;
+    showUserProfile: boolean;
     customLogo?: string;
   };
 }
@@ -695,6 +696,7 @@ export interface CreateMembershipCardRequest {
     fontFamily?: string;
     logoSize?: 'small' | 'medium' | 'large';
     showLogo?: boolean;
+    showUserProfile?: boolean;
     customLogo?: string;
   };
 }
@@ -720,6 +722,7 @@ export interface UpdateMembershipCardRequest {
     fontFamily?: string;
     logoSize?: 'small' | 'medium' | 'large';
     showLogo?: boolean;
+    showUserProfile?: boolean;
     customLogo?: string;
   };
 }
