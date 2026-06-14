@@ -56,8 +56,18 @@ interface LoginModalProps {
 }
 
 export function LoginModal({ open, onOpenChange, onSuccess }: LoginModalProps) {
-  const { login, isAuthenticated } = useAuth()
+  const { login, isAuthenticated, checkAuth } = useAuth()
   const router = useRouter()
+
+  const finishLogin = async () => {
+    onOpenChange(false)
+    if (onSuccess) {
+      await checkAuth()
+      onSuccess()
+    } else {
+      window.location.href = "/splash"
+    }
+  }
 
   const [tab, setTab] = useState<Tab>("user")
   const [email, setEmail] = useState("")
@@ -172,8 +182,7 @@ export function LoginModal({ open, onOpenChange, onSuccess }: LoginModalProps) {
           localStorage.setItem("token", (res.data as any).token)
           localStorage.setItem("userType", tab === "user" ? "member" : (res.data as any).role || "admin")
           toast.success("Signed in successfully!")
-          onOpenChange(false)
-          window.location.href = "/splash"
+          await finishLogin()
         } else {
           toast.error(res.message || res.error || "Invalid OTP")
         }
@@ -193,15 +202,13 @@ export function LoginModal({ open, onOpenChange, onSuccess }: LoginModalProps) {
             localStorage.setItem("token", res.data.token)
             localStorage.setItem("userType", tab === "user" ? "member" : res.data.role || "admin")
             toast.success("Signed in successfully!")
-            onOpenChange(false)
-            if (onSuccess) { onSuccess() } else { window.location.href = "/splash" }
+            await finishLogin()
           } else {
             // If no token, use existing login flow
             const backendResult = await login(email, phone, countryCode, tab === "admin")
             if (backendResult?.success) {
               toast.success("Signed in successfully!")
-              onOpenChange(false)
-              if (onSuccess) { onSuccess() } else { window.location.href = "/splash" }
+              await finishLogin()
             } else {
               toast.error(backendResult?.error || "Login failed")
             }

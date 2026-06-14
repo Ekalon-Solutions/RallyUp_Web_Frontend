@@ -1448,7 +1448,11 @@ export default function PublicClubPage() {
         onFailure={() => {}}
       />
 
-      <LoginModal open={loginOpen} onOpenChange={setLoginOpen} />
+      <LoginModal
+        open={loginOpen}
+        onOpenChange={setLoginOpen}
+        onSuccess={() => {}}
+      />
 
       {club?._id && (
         <JoinMembershipModal
