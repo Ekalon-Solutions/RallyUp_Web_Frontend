@@ -12,11 +12,11 @@ import { FadeIn } from "@/components/fade-in"
 import { ContactForm } from "@/components/contact-form"
 
 const LOGO_FRAMES = [
-  "/wingmanlogo/Property 1=Default (4).svg",
-  "/wingmanlogo/Property 1=Default (3).svg",
-  "/wingmanlogo/Property 1=Default (2).svg",
-  "/wingmanlogo/Property 1=Default (1).svg",
-  "/wingmanlogo/Property 1=Default.svg",
+  "/wingmanlogo/wingman-logo-frame-1.svg",
+  "/wingmanlogo/wingman-logo-frame-2.svg",
+  "/wingmanlogo/wingman-logo-frame-3.svg",
+  "/wingmanlogo/wingman-logo-frame-4.svg",
+  "/wingmanlogo/wingman-logo-frame-5.svg",
 ]
 
 function AnimatedLogo() {
