@@ -658,6 +658,15 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     isAdminRole ? clubId ?? null : null
   )
 
+  // Members also need the resolved feature flags so feature-gated nav items
+  // (e.g. Guess the Score / predictions) are hidden when disabled for the club.
+  // Uses the member-accessible endpoint; defaults to optimistically allowed while loading.
+  const isRegularUserRole = !user?.role || user.role === 'member'
+  const { isEnabled: isMemberFeatureEnabled } = useClubFeatures(
+    isRegularUserRole ? clubId ?? null : null,
+    { asMember: true }
+  )
+
   const isNavLocked = (href: string) => {
     if (!isAdminRole || !clubFeatures) return false
     const key = ADMIN_NAV_FEATURE_MAP[href]
@@ -801,7 +810,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           return canShowSection('volunteer')
         }
         if (item.name === 'Guess The Score') {
-          return canShowSection('guessTheScore')
+          // Require both the website-section toggle AND the predictions feature
+          // flag — otherwise the page 403s with FEATURE_DISABLED_BY_SYSTEM.
+          return canShowSection('guessTheScore') && isMemberFeatureEnabled('predictions')
         }
         return true
       })

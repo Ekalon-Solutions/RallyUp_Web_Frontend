@@ -3456,6 +3456,11 @@ class ApiClient {
     return this.request(`/club-features/my-club?clubId=${encodeURIComponent(clubId)}`);
   }
 
+  /** Member-accessible variant of getMyClubFeatures (auth, not adminAuth). */
+  async getMyClubFeaturesAsMember(clubId: string): Promise<ApiResponse<import('./clubFeatures').ResolvedClubFeatures>> {
+    return this.request(`/club-features/my-club/member?clubId=${encodeURIComponent(clubId)}`);
+  }
+
   async submitFeatureUpgradeInquiry(body: {
     clubId: string;
     featureKey: string;

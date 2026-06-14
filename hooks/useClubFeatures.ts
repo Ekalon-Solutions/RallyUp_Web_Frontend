@@ -19,7 +19,11 @@ const FEATURE_NAV_ROUTE: Partial<Record<ClubFeatureKey, string>> = Object.fromEn
     .map(([route, feature]) => [feature, route])
 ) as Partial<Record<ClubFeatureKey, string>>;
 
-export function useClubFeatures(clubId: string | null | undefined) {
+export function useClubFeatures(
+  clubId: string | null | undefined,
+  options?: { asMember?: boolean }
+) {
+  const asMember = options?.asMember ?? false;
   const [config, setConfig] = useState<ResolvedClubFeatures | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -42,7 +46,9 @@ export function useClubFeatures(clubId: string | null | undefined) {
     setLoadFailed(false);
 
     try {
-      const res = await apiClient.getMyClubFeatures(clubId);
+      const res = asMember
+        ? await apiClient.getMyClubFeaturesAsMember(clubId)
+        : await apiClient.getMyClubFeatures(clubId);
 
       if (res.success && res.data) {
         const normalized = normalizeResolvedClubFeatures(res.data);
@@ -60,7 +66,7 @@ export function useClubFeatures(clubId: string | null | undefined) {
     } finally {
       setLoading(false);
     }
-  }, [clubId, applyConfig]);
+  }, [clubId, asMember, applyConfig]);
 
   const loadFromCacheWithFallback = useCallback(async (id: string) => {
     const { config: cached, expired, tampered } = await readFeatureCache(id);
