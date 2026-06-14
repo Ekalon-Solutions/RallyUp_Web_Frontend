@@ -203,9 +203,26 @@ export function MembershipCard({
             filter: isHovered ? 'brightness(1.1)' : 'brightness(1)',
           }}
         >
-      <CardContent className="p-3 flex flex-col gap-1.5">
+      <CardContent className="relative p-3 flex flex-col gap-1.5">
+        {/* User Profile Picture — top-left corner when admin enables it and member has a photo */}
+        {showUserProfilePicture && (
+          <Avatar className="absolute top-2 left-2 h-10 w-10 border-2 border-white/30 shadow-md z-10">
+            <AvatarImage
+              src={resolveProfilePictureUrl(profilePicture!)}
+              alt={userName || 'Member'}
+              className="object-cover"
+            />
+            <AvatarFallback
+              className={style.accent}
+              style={style.customColors ? { backgroundColor: style.customColors.primary } : {}}
+            >
+              {(userName || 'M').charAt(0).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+        )}
+
         {/* Header */}
-        <div className="flex justify-between items-start">
+        <div className={`flex justify-between items-start ${showUserProfilePicture ? 'pl-12' : ''}`}>
           <div className="flex items-center gap-1.5 min-w-0">
             {((card.customization?.showLogo !== undefined ? card.customization.showLogo : showLogo) &&
               (card.customization?.customLogo || club.logo)) && (
@@ -241,25 +258,6 @@ export function MembershipCard({
             </div>
           </div>
         </div>
-
-        {/* User Profile Picture — only when admin enables it and member has uploaded a photo */}
-        {showUserProfilePicture && (
-          <div className="flex justify-center">
-            <Avatar className="h-14 w-14 border-2 border-white/30 shadow-md">
-              <AvatarImage
-                src={resolveProfilePictureUrl(profilePicture!)}
-                alt={userName || 'Member'}
-                className="object-cover"
-              />
-              <AvatarFallback
-                className={style.accent}
-                style={style.customColors ? { backgroundColor: style.customColors.primary } : {}}
-              >
-                {(userName || 'M').charAt(0).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-          </div>
-        )}
 
         {/* User Name */}
         <div className="text-center">
