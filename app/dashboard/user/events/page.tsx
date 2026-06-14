@@ -43,6 +43,8 @@ import { EventCheckoutModal } from "@/components/modals/event-checkout-modal";
 import { RefundConfirmationModal } from "@/components/modals/refund-confirmation-modal";
 import { MemberTicketRefundAction } from "@/components/member/member-ticket-refund-action";
 import { RefundPolicyBadge } from "@/components/refund-policy-badge";
+import { EventImage } from "@/components/events/event-image";
+import { eventVariantUrl } from "@/lib/eventImageCache";
 import { isEventNonRefundable } from "@/lib/refund-policy";
 import { JointScreeningDisplay } from "@/components/events/joint-screening-display";
 import { EventScheduleMeta } from "@/components/events/event-schedule-meta";
@@ -659,6 +661,13 @@ function UserEventsPageInner() {
                     <Card
                       key={event._id}
                       className="overflow-hidden hover:shadow-md transition-shadow">
+                      <EventImage
+                        eventId={event._id}
+                        imageVersion={event.imageVersion}
+                        size="list"
+                        directUrl={eventVariantUrl(event, "list")}
+                        alt={event.title}
+                      />
                       <CardHeader className="pb-3">
                         <div className="flex items-start justify-between">
                           <div className="space-y-1 flex-1">
@@ -763,6 +772,13 @@ function UserEventsPageInner() {
                     <Card
                       key={event._id}
                       className="overflow-hidden hover:shadow-md transition-shadow">
+                      <EventImage
+                        eventId={event._id}
+                        imageVersion={event.imageVersion}
+                        size="list"
+                        directUrl={eventVariantUrl(event, "list")}
+                        alt={event.title}
+                      />
                       <CardHeader className="pb-3">
                         <div className="flex items-start justify-between">
                           <div className="space-y-1 flex-1">
@@ -988,6 +1004,13 @@ function UserEventsPageInner() {
                     <Card
                       key={event._id}
                       className="overflow-hidden hover:shadow-md transition-shadow">
+                      <EventImage
+                        eventId={event._id}
+                        imageVersion={event.imageVersion}
+                        size="list"
+                        directUrl={eventVariantUrl(event, "list")}
+                        alt={event.title}
+                      />
                       <CardHeader className="pb-3">
                         <div className="flex items-start justify-between">
                           <div className="space-y-1 flex-1">
