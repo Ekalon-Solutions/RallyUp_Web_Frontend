@@ -204,9 +204,12 @@ export function MembershipCard({
           }}
         >
       <CardContent className="relative p-3 flex flex-col gap-1.5">
-        {/* User Profile Picture — top-left corner when admin enables it and member has a photo */}
+        {/* User Profile Picture — top-right corner when admin enables it and member has a photo */}
         {showUserProfilePicture && (
-          <Avatar className="absolute top-2 left-2 h-10 w-10 border-2 border-white/30 shadow-md z-10">
+          <Avatar
+            className="absolute top-2 right-2 shrink-0 border-2 border-white/30 shadow-md z-10"
+            style={{ width: logoDimensionPx, height: logoDimensionPx }}
+          >
             <AvatarImage
               src={resolveProfilePictureUrl(profilePicture!)}
               alt={userName || 'Member'}
@@ -222,7 +225,7 @@ export function MembershipCard({
         )}
 
         {/* Header */}
-        <div className={`flex justify-between items-start ${showUserProfilePicture ? 'pl-12' : ''}`}>
+        <div className="flex justify-between items-start">
           <div className="flex items-center gap-1.5 min-w-0">
             {((card.customization?.showLogo !== undefined ? card.customization.showLogo : showLogo) &&
               (card.customization?.customLogo || club.logo)) && (
