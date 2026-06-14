@@ -98,7 +98,7 @@ export function SiteFooter({ brandName = "Wingman Pro" }: SiteFooterProps) {
             Proprietary Service of RallyUp Solutions Pvt. Ltd.
           </p> */}
         </div>
-        <EkalonAttribution className="text-center" />
+        {/* <EkalonAttribution className="text-center" /> */}
       </div>
     </footer>
   )

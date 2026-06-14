@@ -18,6 +18,7 @@ import { apiClient } from "@/lib/api"
 import {
   EventRefundPolicyData,
   formatHoursRemaining,
+  formatTierThreshold,
   PLATFORM_REFUND_PATH,
   PLATFORM_TERMS_PATH,
   STANDARD_CLUB_POLICY_LABEL,
@@ -98,7 +99,7 @@ export function RefundPolicyModal({
   }
 
   return (
-    <Dialog open={open} onOpenChange={isCheckoutFlow ? undefined : onOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className="max-w-lg gap-0 p-0 overflow-hidden border-primary/10"
         onInteractOutside={(e) => {
@@ -187,13 +188,11 @@ export function RefundPolicyModal({
                   <ul className="space-y-1.5 text-sm">
                     {policy.rules.map((r) => (
                       <li
-                        key={`${r.daysBefore}-${r.refundPercentage}`}
+                        key={`${r.hoursBefore ?? r.daysBefore * 24}-${r.refundPercentage}`}
                         className="flex justify-between gap-3 rounded-lg border px-3 py-2 bg-background"
                       >
                         <span className="text-muted-foreground">
-                          {r.daysBefore === 0
-                            ? "Day of event"
-                            : `${r.daysBefore}+ days before start`}
+                          {formatTierThreshold(r)}
                         </span>
                         <span className="font-semibold tabular-nums">{r.refundPercentage}%</span>
                       </li>
@@ -252,7 +251,7 @@ export function RefundPolicyModal({
             onClick={handleUnderstand}
             disabled={loading}
           >
-            I Understand
+            I Agree
           </Button>
         </DialogFooter>
       </DialogContent>

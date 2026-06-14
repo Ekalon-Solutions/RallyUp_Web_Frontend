@@ -493,7 +493,7 @@ export interface Event {
   is_refund_allowed?: boolean;
   refundCutoffHours?: number;
   refund_cutoff_hours?: number;
-  refundTiers?: { daysBefore: number; refundPercentage: number }[];
+  refundTiers?: { daysBefore: number; hoursBefore?: number; unit?: 'days' | 'hours'; refundPercentage: number }[];
   refundPolicyLastUpdated?: string;
   createdAt: string;
   updatedAt: string;
@@ -4698,7 +4698,7 @@ class ApiClient {
     cancelCutoffAt: string | null;
     policyText: string;
     usesStandardTemplate: boolean;
-    rules: Array<{ daysBefore: number; refundPercentage: number }>;
+    rules: Array<{ daysBefore: number; hoursBefore?: number; unit?: 'days' | 'hours'; refundPercentage: number }>;
     platformTermsUrl: string;
   }>> {
     const res = await this.request(`/refunds/policy/event/${encodeURIComponent(eventId)}`);

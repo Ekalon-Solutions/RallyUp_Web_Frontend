@@ -660,7 +660,7 @@ function UserEventsPageInner() {
                   eventsUserIsRegisteredForOngoing().map((event) => (
                     <Card
                       key={event._id}
-                      className="overflow-hidden hover:shadow-md transition-shadow">
+                      className="overflow-hidden hover:shadow-md transition-shadow flex flex-col h-full">
                       <EventImage
                         eventId={event._id}
                         imageVersion={event.imageVersion}
@@ -674,9 +674,6 @@ function UserEventsPageInner() {
                             <CardTitle className="text-lg line-clamp-2">
                               {event.title}
                             </CardTitle>
-                            <CardDescription className="line-clamp-2">
-                              {event.description}
-                            </CardDescription>
                           </div>
                           <div className="ml-2 flex-shrink-0 space-y-1 flex flex-col items-end">
                             <Badge variant="secondary" className="block">
@@ -690,7 +687,7 @@ function UserEventsPageInner() {
                           </div>
                         </div>
                       </CardHeader>
-                      <CardContent className="space-y-3">
+                      <CardContent className="flex flex-col gap-3 flex-1">
                         <div className="space-y-2 text-sm">
                           <div className="flex items-center gap-2">
                             <Calendar className="w-4 h-4 text-muted-foreground" />
@@ -712,7 +709,7 @@ function UserEventsPageInner() {
                             <span className="truncate">{getEventVenueDisplay(event)}</span>
                           </div>
                         </div>
-                        <div className="pt-2">
+                        <div className="pt-2 mt-auto">
                           {(() => {
                             return (
                               <Button
@@ -771,7 +768,7 @@ function UserEventsPageInner() {
                   .map((event) => (
                     <Card
                       key={event._id}
-                      className="overflow-hidden hover:shadow-md transition-shadow">
+                      className="overflow-hidden hover:shadow-md transition-shadow flex flex-col h-full">
                       <EventImage
                         eventId={event._id}
                         imageVersion={event.imageVersion}
@@ -785,9 +782,6 @@ function UserEventsPageInner() {
                             <CardTitle className="text-lg line-clamp-2">
                               {event.title}
                             </CardTitle>
-                            <CardDescription className="line-clamp-2">
-                              {event.description}
-                            </CardDescription>
                           </div>
                           <div className="ml-2 flex-shrink-0 space-y-1 flex flex-col items-end">
                             <Badge variant="secondary" className="block">
@@ -797,7 +791,7 @@ function UserEventsPageInner() {
                           </div>
                         </div>
                       </CardHeader>
-                      <CardContent className="space-y-3">
+                      <CardContent className="flex flex-col gap-3 flex-1">
                         <div className="space-y-2 text-sm">
                           <div className="flex items-center gap-2">
                             <Calendar className="w-4 h-4 text-muted-foreground" />
@@ -886,7 +880,7 @@ function UserEventsPageInner() {
                           );
                         })()}
 
-                        <div className="pt-2">
+                        <div className="pt-2 mt-auto">
                           {(() => {
                             const myReg = user?._id
                               ? (event.registrations || []).find((r: any) => r.userId === user._id)
@@ -1003,7 +997,7 @@ function UserEventsPageInner() {
                   .map((event) => (
                     <Card
                       key={event._id}
-                      className="overflow-hidden hover:shadow-md transition-shadow">
+                      className="overflow-hidden hover:shadow-md transition-shadow flex flex-col h-full">
                       <EventImage
                         eventId={event._id}
                         imageVersion={event.imageVersion}
@@ -1017,9 +1011,6 @@ function UserEventsPageInner() {
                             <CardTitle className="text-lg line-clamp-2">
                               {event.title}
                             </CardTitle>
-                            <CardDescription className="line-clamp-2">
-                              {event.description}
-                            </CardDescription>
                           </div>
                           <div className="ml-2 flex-shrink-0 space-y-1 flex flex-col items-end">
                             <Badge variant="secondary" className="block">
@@ -1029,7 +1020,7 @@ function UserEventsPageInner() {
                           </div>
                         </div>
                       </CardHeader>
-                      <CardContent className="space-y-3">
+                      <CardContent className="flex flex-col gap-3 flex-1">
                         <div className="space-y-2 text-sm">
                           <div className="flex items-center gap-2">
                             <Calendar className="w-4 h-4 text-muted-foreground" />
@@ -1088,7 +1079,7 @@ function UserEventsPageInner() {
                             </div>
                           );
                         })()}
-                        <div className="pt-2">
+                        <div className="pt-2 mt-auto">
                           <Button variant="outline" className="w-full" disabled>
                             Event Ended
                           </Button>

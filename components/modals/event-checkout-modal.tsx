@@ -1001,7 +1001,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
                   <RefundPolicyBadge eventId={checkoutEventId} source="checkout" isCheckoutFlow />
                   {refundPolicy.payBlockedByPolicy && (
                     <p className="text-xs text-amber-700 dark:text-amber-400 text-center max-w-sm">
-                      Review the refund policy and tap &quot;I Understand&quot; before paying.
+                      Review the refund policy and tap &quot;I Agree&quot; before paying.
                     </p>
                   )}
                 </div>

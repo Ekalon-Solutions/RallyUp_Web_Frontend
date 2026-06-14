@@ -83,8 +83,9 @@ export function EventScheduleMeta({
         <div className="flex items-center gap-2 text-sm">
           <Award className="w-4 h-4 text-muted-foreground shrink-0" />
           <span>
-            <span className="text-xs text-muted-foreground">Attendance points · </span>
-            <span className="font-medium">{points}</span>
+            <span className="text-xs text-muted-foreground">Reward points · </span>
+            <span className="font-medium">{points} </span>
+            <span className="font-medium">(Member Only)</span>
           </span>
         </div>
       )}

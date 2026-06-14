@@ -31,9 +31,9 @@ export function EkalonBranding() {
 
   return (
     <div className="fixed bottom-3 left-0 right-0 z-50 flex justify-center px-4 pointer-events-none">
-      <div className="pointer-events-auto rounded-md bg-background/80 px-3 py-1.5 shadow-sm border border-border/60 backdrop-blur-sm">
+      {/* <div className="pointer-events-auto rounded-md bg-background/80 px-3 py-1.5 shadow-sm border border-border/60 backdrop-blur-sm">
         <EkalonAttribution className="text-center" />
-      </div>
+      </div> */}
     </div>
   )
 }

@@ -4,7 +4,6 @@ import { useCallback, useState } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Loader2 } from "lucide-react"
 import { RefundPolicyModal } from "@/components/modals/refund-policy-modal"
-import { NonRefundableBadge } from "@/components/member/non-refundable-badge"
 import {
   isEventNonRefundable,
   showAutomaticRefundStatus,
@@ -64,7 +63,19 @@ export function RefundPolicyBadge({
   if (isEventNonRefundable(policy)) {
     return (
       <>
-        <NonRefundableBadge className={className} interactive onClick={openModal} />
+        <button
+          type="button"
+          onClick={openModal}
+          className="inline-flex focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-md"
+          aria-label="This ticket is non-refundable. View refund policy."
+        >
+          <Badge
+            variant="destructive"
+            className={`cursor-pointer hover:opacity-90 transition-opacity ${className ?? ""}`}
+          >
+            Non-Refundable
+          </Badge>
+        </button>
         <RefundPolicyModal
           eventId={eventId}
           open={modalOpen}

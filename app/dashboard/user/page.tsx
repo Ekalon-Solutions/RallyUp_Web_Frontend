@@ -634,7 +634,7 @@ export default function UserDashboardPage() {
     return (
       <Card
         key={event._id}
-        className="overflow-hidden hover:shadow-md transition-shadow"
+        className="overflow-hidden hover:shadow-md transition-shadow flex flex-col h-full"
       >
         <EventImage
           eventId={event._id}
@@ -649,9 +649,6 @@ export default function UserDashboardPage() {
               <CardTitle className="text-lg line-clamp-2">
                 {event.title}
               </CardTitle>
-              <CardDescription className="line-clamp-2">
-                {event.description}
-              </CardDescription>
             </div>
             <div className="ml-2 flex-shrink-0 space-y-1 flex flex-col items-end">
               <Badge
@@ -669,7 +666,7 @@ export default function UserDashboardPage() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="flex flex-col gap-4 flex-1">
           <div className="space-y-2 text-sm">
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4 text-muted-foreground" />
@@ -747,7 +744,7 @@ export default function UserDashboardPage() {
             </div>
           )}
 
-          <div className="pt-2">{renderActionButtons(event)}</div>
+          <div className="pt-2 mt-auto">{renderActionButtons(event)}</div>
         </CardContent>
       </Card>
     )
@@ -935,7 +932,7 @@ export default function UserDashboardPage() {
                               {ongoingRegisteredEvents.map((event) => (
                                 <Card
                                   key={event._id}
-                                  className="overflow-hidden hover:shadow-md transition-shadow"
+                                  className="overflow-hidden hover:shadow-md transition-shadow flex flex-col h-full"
                                 >
                                   <EventImage
                                     eventId={event._id}
@@ -950,9 +947,6 @@ export default function UserDashboardPage() {
                                         <CardTitle className="text-lg line-clamp-2">
                                           {event.title}
                                         </CardTitle>
-                                        <CardDescription className="line-clamp-2">
-                                          {event.description}
-                                        </CardDescription>
                                       </div>
                                       <div className="ml-2 flex-shrink-0 space-y-1 flex flex-col items-end">
                                         <Badge variant="secondary" className="block capitalize">
@@ -963,7 +957,7 @@ export default function UserDashboardPage() {
                                       </div>
                                     </div>
                                   </CardHeader>
-                                  <CardContent className="space-y-3">
+                                  <CardContent className="flex flex-col gap-3 flex-1">
                                     <div className="space-y-2 text-sm">
                                       <div className="flex items-center gap-2">
                                         <Calendar className="w-4 h-4 text-muted-foreground" />
@@ -980,7 +974,7 @@ export default function UserDashboardPage() {
                                         <span className="truncate">{event.venue}</span>
                                       </div>
                                     </div>
-                                    <div className="pt-2">
+                                    <div className="pt-2 mt-auto">
                                       <Button
                                         onClick={() => {
                                           setSelectedEventForDetails(event)
@@ -1033,7 +1027,7 @@ export default function UserDashboardPage() {
                             {pastEvents.map((event) => (
                               <Card
                                 key={event._id}
-                                className="overflow-hidden hover:shadow-md transition-shadow"
+                                className="overflow-hidden hover:shadow-md transition-shadow flex flex-col h-full"
                               >
                                 <EventImage
                                   eventId={event._id}
@@ -1048,9 +1042,6 @@ export default function UserDashboardPage() {
                                       <CardTitle className="text-lg line-clamp-2">
                                         {event.title}
                                       </CardTitle>
-                                      <CardDescription className="line-clamp-2">
-                                        {event.description}
-                                      </CardDescription>
                                     </div>
                                     <div className="ml-2 flex-shrink-0 space-y-1 flex flex-col items-end">
                                       <Badge
@@ -1063,7 +1054,7 @@ export default function UserDashboardPage() {
                                     </div>
                                   </div>
                                 </CardHeader>
-                                <CardContent className="space-y-3">
+                                <CardContent className="flex flex-col gap-3 flex-1">
                                   <div className="space-y-2 text-sm">
                                     <div className="flex items-center gap-2">
                                       <Calendar className="w-4 h-4 text-muted-foreground" />
@@ -1131,7 +1122,7 @@ export default function UserDashboardPage() {
                                       <span>Unlimited capacity</span>
                                     </div>
                                   )}
-                                  <div className="pt-2">
+                                  <div className="pt-2 mt-auto">
                                     <Button variant="outline" className="w-full" disabled>
                                       Event ended
                                     </Button>

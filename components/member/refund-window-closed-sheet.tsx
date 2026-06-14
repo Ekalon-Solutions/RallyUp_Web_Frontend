@@ -8,7 +8,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet"
 import type { EventRefundPolicyData } from "@/lib/refund-policy"
-import { formatHoursRemaining } from "@/lib/refund-policy"
+import { formatHoursRemaining, formatTierThreshold } from "@/lib/refund-policy"
 
 type Props = {
   open: boolean
@@ -47,7 +47,7 @@ export function RefundWindowClosedSheet({ open, onOpenChange, policy }: Props) {
           {topRule && (
             <p>
               <strong className="text-foreground">Club rule:</strong>{" "}
-              {topRule.daysBefore} day{topRule.daysBefore === 1 ? "" : "s"} before the event — up to{" "}
+              {formatTierThreshold(topRule, "before the event")} — up to{" "}
               {topRule.refundPercentage}% refund.
             </p>
           )}

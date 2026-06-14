@@ -27,6 +27,7 @@ import { WaitlistDisplay } from "@/components/events/waitlist-display"
 import { VenueTierCartModal } from "@/components/modals/venue-tier-cart-modal"
 import { PurchaseFlowModal, setStoredPurchaseIntent, getStoredPurchaseIntent, clearStoredPurchaseIntent } from "@/components/modals/purchase-flow-modal"
 import { CheckoutModal } from "@/components/modals/checkout-modal"
+import { LoginModal } from "@/components/login-modal"
 import NewsReadMoreModal from "@/components/modals/news-readmore-modal"
 import { SocialBrandButton } from "@/components/club-public/social-platform-icons"
 import { EkalonAttribution } from "@/components/ekalon-attribution"
@@ -170,6 +171,7 @@ export default function PublicClubPage() {
   const [merchandiseForQuickBuy, setMerchandiseForQuickBuy] = useState<any | null>(null)
   const [showMerchandiseCheckoutModal, setShowMerchandiseCheckoutModal] = useState(false)
   const [merchandiseCheckoutItems, setMerchandiseCheckoutItems] = useState<any[]>([])
+  const [loginOpen, setLoginOpen] = useState(false)
   const [showReadMoreModal, setShowReadMoreModal] = useState(false)
   const [selectedNewsForReadMore, setSelectedNewsForReadMore] = useState<News | null>(null)
 
@@ -545,11 +547,9 @@ export default function PublicClubPage() {
                 Join Club
               </Button>
             </Link>
-            <Link href="/login">
-              <Button size="sm" variant="outline" className="font-bold px-4 sm:px-6 text-sm">
-                Member Login
-              </Button>
-            </Link>
+            <Button size="sm" variant="outline" className="font-bold px-4 sm:px-6 text-sm" onClick={() => setLoginOpen(true)}>
+              Member Login
+            </Button>
           </div>
         </div>
       </header>
@@ -759,7 +759,7 @@ export default function PublicClubPage() {
                           ) : events.filter((e: any) => !e?.memberOnly).length > 0 ? (
                             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                               {events.filter((e: any) => !e?.memberOnly).map((event) => (
-                                <Card key={event._id} className="hover:shadow-lg transition-all border-2 overflow-hidden">
+                                <Card key={event._id} className="hover:shadow-lg transition-all border-2 overflow-hidden flex flex-col h-full">
                                   <EventImage
                                     eventId={event._id}
                                     imageVersion={event.imageVersion}
@@ -792,13 +792,8 @@ export default function PublicClubPage() {
                                       </div>
                                     </div>
                                     <CardTitle className="text-xl line-clamp-2 break-words">{event.title}</CardTitle>
-                                    {event.description && (
-                                      <CardDescription className="line-clamp-3 mt-2 break-words">
-                                        {event.description}
-                                      </CardDescription>
-                                    )}
                                   </CardHeader>
-                                  <CardContent className="space-y-3">
+                                  <CardContent className="flex flex-col gap-3 flex-1">
                                     {(event.eventDate || event.startTime) && (
                                       <div className="flex items-center gap-2 text-sm">
                                         <Calendar className="w-4 h-4 text-muted-foreground" />
@@ -852,7 +847,7 @@ export default function PublicClubPage() {
                                       const label = isEventFull ? "Event Full" : isEventPaid(event) ? "Buy Tickets" : "Register"
                                       return (
                                         <Button
-                                          className="w-full mt-2"
+                                          className="w-full mt-auto"
                                           style={isEventFull ? undefined : { backgroundColor: primaryColor, color: "white" }}
                                           variant={isEventFull ? "secondary" : "default"}
                                           disabled={isEventFull}
@@ -1180,7 +1175,7 @@ export default function PublicClubPage() {
           <div className={`${footerColumnCount > 0 ? "border-t mt-10 pt-6" : ""} text-center text-xs text-muted-foreground space-y-3`}>
             <p>Powered by RallyUp</p>
             <p>© 2025 RallyUp Solutions Private Limited. All rights reserved.</p>
-            <EkalonAttribution className="text-center" />
+            {/* <EkalonAttribution className="text-center" /> */}
           </div>
         </div>
       </footer>
@@ -1353,6 +1348,8 @@ export default function PublicClubPage() {
         }}
         onFailure={() => {}}
       />
+
+      <LoginModal open={loginOpen} onOpenChange={setLoginOpen} />
 
       <NewsReadMoreModal
         news={selectedNewsForReadMore}

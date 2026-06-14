@@ -231,7 +231,7 @@ export default function SplashPage() {
               return (
               <Card
                 key={club._id}
-                className={`group cursor-pointer border-2 hover:border-primary transition-all duration-300 hover:shadow-xl rounded-2xl overflow-hidden bg-card ${
+                className={`group cursor-pointer border-2 hover:border-primary transition-all duration-300 hover:shadow-xl rounded-2xl overflow-hidden bg-gradient-to-br from-sky-50 to-cyan-100 ${
                   isAnotherClubSelecting ? 'opacity-50 pointer-events-none' : ''
                 } ${isThisClubSelecting ? 'border-primary ring-2 ring-primary/20' : ''}`}
                 onClick={() => !selectingClubId && handleClubSelect(club._id)}
@@ -247,16 +247,16 @@ export default function SplashPage() {
                         className="object-contain p-2"
                       />
                     ) : (
-                      <Building2 className="h-12 w-12 md:h-14 md:w-14 text-muted-foreground" />
+                      <Building2 className="h-12 w-12 md:h-14 md:w-14 text-slate-400" />
                     )}
                   </div>
                   
                   <div className="space-y-1">
-                    <h3 className="text-xl md:text-2xl font-bold group-hover:text-primary transition-colors">
+                    <h3 className="text-xl md:text-2xl font-bold text-slate-900 group-hover:text-primary transition-colors">
                       {club.name}
                     </h3>
                     {club.description && (
-                      <p className="text-sm text-muted-foreground line-clamp-2">
+                      <p className="text-sm text-slate-600 line-clamp-2">
                         {club.description}
                       </p>
                     )}

@@ -114,7 +114,7 @@ const CATEGORIES = [
   { value: "others", label: "Others" },
 ]
 
-const CURRENCIES = ["INR", "USD", "EUR", "GBP", "AUD", "CAD", "JPY", "BRL", "MXN", "ZAR"]
+const CURRENCIES = ["INR", "USD", "EUR", "GBP", "AUD", "JPY","IDR", "SGD", "THB", "AED"]
 
 function toDatetimeLocal(iso?: string): string {
   if (!iso) return ""
@@ -313,13 +313,6 @@ function CreateEventForm() {
         toast.error("Booking close time must be after booking open time")
         return false
       }
-      if (form.startTime) {
-        const eventStart = new Date(form.startTime)
-        if (bookingEnd > eventStart) {
-          toast.error("Booking must close before or at event start time")
-          return false
-        }
-      }
       if (form.earlyBirdEnabled) {
         const ebVal = Number(form.earlyBirdValue)
         if (!form.earlyBirdValue || ebVal <= 0) { toast.error("Early bird discount value must be greater than 0"); return false }
@@ -426,7 +419,11 @@ function CreateEventForm() {
           initialRefundAllowedRef.current = ev.isRefundAllowed !== false && ev.is_refund_allowed !== false
         }
         if (Array.isArray(ev.refundTiers) && ev.refundTiers.length > 0) {
-          setRefundTiers(ev.refundTiers.map((t: any) => ({ daysBefore: Number(t.daysBefore), refundPercentage: Number(t.refundPercentage) })))
+          setRefundTiers(ev.refundTiers.map((t: any) => {
+            const hoursBefore = t.hoursBefore != null ? Number(t.hoursBefore) : Number(t.daysBefore || 0) * 24
+            const unit: 'days' | 'hours' = t.unit === 'hours' ? 'hours' : t.unit === 'days' ? 'days' : (hoursBefore % 24 === 0 ? 'days' : 'hours')
+            return { hoursBefore, unit, daysBefore: Math.floor(hoursBefore / 24), refundPercentage: Number(t.refundPercentage) }
+          }))
         }
         // Live-policy guards only apply when editing the original event, not a fresh copy.
         if (!isDuplicateMode) {
@@ -1089,11 +1086,11 @@ function CreateEventForm() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="bookingStartTime">Booking Opens *</Label>
+                  <Label htmlFor="bookingStartTime">Booking Start *</Label>
                   <Input id="bookingStartTime" type="datetime-local" value={form.bookingStartTime} onChange={(e) => set("bookingStartTime", e.target.value)} required />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="bookingEndTime">Booking Closes *</Label>
+                  <Label htmlFor="bookingEndTime">Booking End *</Label>
                   <Input id="bookingEndTime" type="datetime-local" value={form.bookingEndTime} onChange={(e) => set("bookingEndTime", e.target.value)} required />
                 </div>
               </div>

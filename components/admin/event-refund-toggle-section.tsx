@@ -8,6 +8,13 @@ import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -17,11 +24,20 @@ import { NonRefundableBadge } from "@/components/member/non-refundable-badge"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { hapticSelection } from "@/lib/haptic"
+import { tierThresholdHours, tierThresholdValue, tierDisplayUnit } from "@/lib/refund-policy"
 
 const REFUND_HELP_TEXT =
   "If disabled, members will not see the Cancel/Refund button in their app for this event."
 
-export type RefundTier = { daysBefore: number; refundPercentage: number }
+// `hoursBefore` is the canonical threshold; `unit` is what the admin picked (so
+// the member-facing copy shows the same unit). `daysBefore` kept for back-compat.
+export type RefundTier = { hoursBefore: number; unit: 'days' | 'hours'; daysBefore?: number; refundPercentage: number }
+
+function makeTier(value: number, unit: 'days' | 'hours', refundPercentage: number): RefundTier {
+  const v = Math.max(0, Math.round(Number(value) || 0))
+  const hoursBefore = unit === 'days' ? v * 24 : v
+  return { hoursBefore, unit, daysBefore: Math.floor(hoursBefore / 24), refundPercentage }
+}
 
 type Props = {
   isRefundAllowed: boolean
@@ -40,15 +56,16 @@ type Props = {
 }
 
 function validateTiers(tiers: RefundTier[]): string | null {
-  const daysSet = new Set<number>()
+  const hoursSet = new Set<number>()
   for (const t of tiers) {
-    if (daysSet.has(t.daysBefore)) return `Duplicate "days before" value (${t.daysBefore}) — each window must be unique`
-    daysSet.add(t.daysBefore)
+    const h = tierThresholdHours(t)
+    if (hoursSet.has(h)) return `Duplicate threshold (${tierThresholdValue(t)} ${tierDisplayUnit(t)}) — each window must be unique`
+    hoursSet.add(h)
   }
-  const sorted = [...tiers].sort((a, b) => b.daysBefore - a.daysBefore)
+  const sorted = [...tiers].sort((a, b) => tierThresholdHours(b) - tierThresholdHours(a))
   for (let i = 1; i < sorted.length; i++) {
     if (sorted[i].refundPercentage > sorted[i - 1].refundPercentage) {
-      return "Refund % must not increase as days decrease (e.g. 7 days: 75%, 3 days: 50%, 0 days: 25%)"
+      return "Refund % must not increase as the window gets closer (e.g. 7 days: 75%, 3 days: 50%, 12 hours: 25%)"
     }
   }
   return null
@@ -72,7 +89,11 @@ export function EventRefundToggleSection({
   const cannotEnableRefunds = isCompleted && !isRefundAllowed
   const toggleDisabled = isFreeEvent || cannotEnableRefunds
 
-  const [newTier, setNewTier] = useState<RefundTier>({ daysBefore: 7, refundPercentage: 100 })
+  const [newTier, setNewTier] = useState<{ value: number; unit: 'days' | 'hours'; refundPercentage: number }>({
+    value: 7,
+    unit: 'days',
+    refundPercentage: 100,
+  })
   const [tierError, setTierError] = useState<string | null>(null)
 
   const handleToggle = (checked: boolean) => {
@@ -83,12 +104,12 @@ export function EventRefundToggleSection({
   }
 
   const addTier = () => {
-    const next = [...refundTiers, newTier]
+    const next = [...refundTiers, makeTier(newTier.value, newTier.unit, newTier.refundPercentage)]
     const err = validateTiers(next)
     if (err) { setTierError(err); return }
     setTierError(null)
     onRefundTiersChange(next)
-    setNewTier({ daysBefore: 0, refundPercentage: 100 })
+    setNewTier({ value: 0, unit: newTier.unit, refundPercentage: 100 })
   }
 
   const removeTier = (idx: number) => {
@@ -97,7 +118,7 @@ export function EventRefundToggleSection({
     onRefundTiersChange(next)
   }
 
-  const sortedTiers = [...refundTiers].sort((a, b) => b.daysBefore - a.daysBefore)
+  const sortedTiers = [...refundTiers].sort((a, b) => tierThresholdHours(b) - tierThresholdHours(a))
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -184,7 +205,7 @@ export function EventRefundToggleSection({
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label>Refund % tiers (days before event)</Label>
+                <Label>Refund % tiers (before event)</Label>
                 <span className="text-xs text-muted-foreground">Max 5 tiers</span>
               </div>
               <p className="text-xs text-muted-foreground">
@@ -201,8 +222,8 @@ export function EventRefundToggleSection({
                         className="flex items-center gap-3 rounded-md border border-border bg-muted/30 px-3 py-2"
                       >
                         <span className="text-sm flex-1">
-                          <span className="font-medium">{tier.daysBefore}</span>
-                          <span className="text-muted-foreground"> days before → </span>
+                          <span className="font-medium">{tierThresholdValue(tier)}</span>
+                          <span className="text-muted-foreground"> {tierDisplayUnit(tier)} before → </span>
                           <span className="font-medium">{tier.refundPercentage}%</span>
                           <span className="text-muted-foreground"> refund</span>
                         </span>
@@ -224,13 +245,28 @@ export function EventRefundToggleSection({
               {refundTiers.length < 5 && (
                 <div className="flex gap-2 items-end pt-1">
                   <div className="grid gap-1 flex-1">
-                    <Label className="text-xs">Days before</Label>
-                    <Input
-                      type="number"
-                      min={0}
-                      value={newTier.daysBefore}
-                      onChange={(e) => setNewTier((t) => ({ ...t, daysBefore: Number(e.target.value) || 0 }))}
-                    />
+                    <Label className="text-xs">Before event</Label>
+                    <div className="flex gap-1.5">
+                      <Input
+                        type="number"
+                        min={0}
+                        value={newTier.value}
+                        onChange={(e) => setNewTier((t) => ({ ...t, value: Number(e.target.value) || 0 }))}
+                        className="flex-1"
+                      />
+                      <Select
+                        value={newTier.unit}
+                        onValueChange={(v) => setNewTier((t) => ({ ...t, unit: v as 'days' | 'hours' }))}
+                      >
+                        <SelectTrigger className="w-[88px] shrink-0">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="days">Days</SelectItem>
+                          <SelectItem value="hours">Hours</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                   <div className="grid gap-1 flex-1">
                     <Label className="text-xs">Refund %</Label>

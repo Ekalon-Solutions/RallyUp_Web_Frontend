@@ -311,7 +311,7 @@ export default function PublicEventsPage() {
                     const canRegister = event.isActive && !isEventFull && !isRegistered
 
                     return (
-                      <Card key={event._id} className="overflow-hidden">
+                      <Card key={event._id} className="overflow-hidden flex flex-col h-full">
                         <EventImage
                           eventId={event._id}
                           imageVersion={event.imageVersion}
@@ -331,12 +331,9 @@ export default function PublicEventsPage() {
                             )}
                           </div>
                           <CardTitle className="text-lg line-clamp-2">{event.title}</CardTitle>
-                          <CardDescription className="line-clamp-2">
-                            {event.description}
-                          </CardDescription>
                         </CardHeader>
                         
-                        <CardContent className="space-y-4">
+                        <CardContent className="flex flex-col gap-4 flex-1">
                           {/* Event Details */}
                           <div className="space-y-3 text-sm">
                             <div className="flex items-center gap-2">
@@ -405,7 +402,7 @@ export default function PublicEventsPage() {
                           </div>
 
                           {/* Action Button */}
-                          <div className="pt-2">
+                          <div className="pt-2 mt-auto">
                             {!user ? (
                               <Button 
                                 variant="outline" 

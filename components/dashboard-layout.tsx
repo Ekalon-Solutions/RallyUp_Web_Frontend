@@ -2,9 +2,9 @@
 
 import type React from "react"
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo, useEffect, createContext, useContext } from "react"
 import { useAuth } from "@/contexts/auth-context"
-import { buildAccessibleClubs, reconcileActiveClubId } from "@/lib/clubContext"
+import { buildAccessibleClubs, reconcileActiveClubId, normalizeClubId } from "@/lib/clubContext"
 import { useClubSettings } from "@/hooks/useClubSettings"
 import { useDesignSettings } from "@/hooks/useDesignSettings"
 import { Button } from "@/components/ui/button"
@@ -209,6 +209,14 @@ const userNavigation = [
 interface DashboardLayoutProps {
   children: React.ReactNode
 }
+
+// Tracks whether the dashboard chrome (sidebar + header) is already mounted
+// above the current tree. The persistent `app/dashboard/layout.tsx` renders the
+// chrome once and sets this to `true`, so any page that still wraps its content
+// in <DashboardLayout> renders as a pass-through instead of mounting a second
+// sidebar. This keeps the sidebar/header from unmounting & remounting (and
+// re-fetching roles/settings/features) on every client-side navigation.
+const DashboardChromeContext = createContext(false)
 
 interface DashboardSidebarProps {
   mobile?: boolean
@@ -549,6 +557,16 @@ function ThemeToggle() {
 }
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
+  // If the chrome is already provided by an ancestor (the dashboard layout),
+  // render children directly so we don't mount a duplicate sidebar/header.
+  const chromeAlreadyMounted = useContext(DashboardChromeContext)
+  if (chromeAlreadyMounted) {
+    return <>{children}</>
+  }
+  return <DashboardLayoutChrome>{children}</DashboardLayoutChrome>
+}
+
+function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
   const pathname = usePathname()
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -577,10 +595,34 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
   }
 
   const handleClubSwitch = async (clubId: string) => {
-    // Check if a different linked account (admin or member) owns this club
-    const targetAccount = availableRoles.find(
-      (r) => (r.accountType === 'admin' || r.accountType === 'user') && r.clubIds?.includes(clubId)
-    )
+    const currentIsAdmin = user?.role === 'admin' || user?.role === 'super_admin'
+
+    // If the currently-active admin/super_admin account already administers this
+    // club, just change the active club — never switch accounts. Switching to a
+    // linked member account here is what previously downgraded a super_admin to
+    // 'member' when moving between their own clubs. The per-club effective role
+    // (see getEffectiveRole) resolves super_admin vs admin for the new club.
+    //
+    // NOTE: the current account is deliberately excluded from `availableRoles`
+    // by the backend (findLinkedAccounts), so we read the clubs the current
+    // account administers from `user.clubs` directly, not from availableRoles.
+    const ownAdminClubIds: string[] = currentIsAdmin
+      ? (((user as any)?.clubs ?? [])
+          .map((c: any) => normalizeClubId(c))
+          .filter((id: string | null): id is string => Boolean(id)))
+      : []
+    if (currentIsAdmin && ownAdminClubIds.includes(clubId)) {
+      setActiveClubId(clubId)
+      router.refresh()
+      return
+    }
+
+    // Otherwise a different linked account owns this club. Prefer an admin
+    // account over a member account so we don't needlessly downgrade the role.
+    const targetAccount =
+      availableRoles.find((r) => r.accountType === 'admin' && r.clubIds?.includes(clubId)) ??
+      availableRoles.find((r) => r.accountType === 'user' && r.clubIds?.includes(clubId))
+
     if (targetAccount) {
       const result = await switchRole(targetAccount.accountType, targetAccount.accountId)
       if (result.success) {
@@ -831,6 +873,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
     : null
 
   return (
+    <DashboardChromeContext.Provider value={true}>
     <div className="flex h-screen bg-background overflow-hidden">
       <div className="hidden lg:flex lg:flex-col lg:w-72 lg:border-r bg-muted/5">
         <DashboardSidebar
@@ -931,9 +974,9 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
                 children
               )}
             </div>
-            <div className="mt-10 pt-6 border-t flex justify-center">
+            {/* <div className="mt-10 pt-6 border-t flex justify-center">
               <EkalonAttribution className="text-center" />
-            </div>
+            </div> */}
           </ClubFeaturesProvider>
         </main>
       </div>
@@ -956,5 +999,6 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         />
       )}
     </div>
+    </DashboardChromeContext.Provider>
   )
 }

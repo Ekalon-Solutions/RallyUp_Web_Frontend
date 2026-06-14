@@ -13,6 +13,46 @@ export function formatHoursRemaining(hours: number | null): string {
   return `${days} day${days === 1 ? '' : 's'} and ${rem} hour${rem === 1 ? '' : 's'} remaining to cancel`;
 }
 
+/** A refund tier threshold supporting either a days or hours unit. */
+export type RefundTierThreshold = {
+  daysBefore?: number;
+  hoursBefore?: number;
+  unit?: 'days' | 'hours';
+};
+
+/** Canonical threshold in hours (tolerant of legacy day-only tiers). */
+export function tierThresholdHours(tier: RefundTierThreshold): number {
+  if (tier.hoursBefore != null && Number.isFinite(tier.hoursBefore)) {
+    return Math.max(0, Math.round(tier.hoursBefore));
+  }
+  return Math.max(0, Math.round(Number(tier.daysBefore) || 0)) * 24;
+}
+
+/** The display unit for a tier (explicit, else inferred from the hours). */
+export function tierDisplayUnit(tier: RefundTierThreshold): 'days' | 'hours' {
+  if (tier.unit === 'hours') return 'hours';
+  if (tier.unit === 'days') return 'days';
+  return tierThresholdHours(tier) % 24 === 0 ? 'days' : 'hours';
+}
+
+/** The display value in the tier's own unit (e.g. 3 for "3 days", 12 for "12 hours"). */
+export function tierThresholdValue(tier: RefundTierThreshold): number {
+  const hours = tierThresholdHours(tier);
+  return tierDisplayUnit(tier) === 'days' ? Math.round(hours / 24) : hours;
+}
+
+/**
+ * Member-facing threshold label honouring the admin-selected unit, e.g.
+ * "3 days before start", "12 hours before start", "Day of event".
+ */
+export function formatTierThreshold(tier: RefundTierThreshold, suffix = 'before start'): string {
+  const value = tierThresholdValue(tier);
+  if (tierDisplayUnit(tier) === 'days') {
+    return value === 0 ? 'Day of event' : `${value}+ day${value === 1 ? '' : 's'} ${suffix}`;
+  }
+  return value === 0 ? 'At event start' : `${value}+ hour${value === 1 ? '' : 's'} ${suffix}`;
+}
+
 export type EventRefundPolicyData = {
   eventId: string;
   clubId: string;
@@ -30,7 +70,7 @@ export type EventRefundPolicyData = {
   cancelCutoffAt: string | null;
   policyText: string;
   usesStandardTemplate: boolean;
-  rules: Array<{ daysBefore: number; refundPercentage: number }>;
+  rules: Array<{ daysBefore: number; hoursBefore?: number; unit?: 'days' | 'hours'; refundPercentage: number }>;
   platformTermsUrl: string;
 };
 

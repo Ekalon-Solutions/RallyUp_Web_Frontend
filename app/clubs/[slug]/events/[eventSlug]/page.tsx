@@ -1,9 +1,8 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, type ComponentType, type ReactNode } from "react"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Card, CardContent } from "@/components/ui/card"
 import { apiClient, Event } from "@/lib/api"
@@ -24,6 +23,8 @@ import {
   Users,
   Ticket,
   Home,
+  CalendarClock,
+  Award,
 } from "lucide-react"
 import Link from "next/link"
 import {
@@ -40,8 +41,38 @@ import { VenueTierCartModal } from "@/components/modals/venue-tier-cart-modal"
 import { RefundPolicyBadge } from "@/components/refund-policy-badge"
 import { JointScreeningDisplay } from "@/components/events/joint-screening-display"
 import { useSocket } from "@/contexts/socket-context"
-import { EventScheduleMeta } from "@/components/events/event-schedule-meta"
+import { formatBookingWindow } from "@/components/events/event-schedule-meta"
 import { WaitlistDisplay } from "@/components/events/waitlist-display"
+
+// Consistent icon + title + value row used throughout the sidebar card.
+function InfoRow({
+  icon: Icon,
+  label,
+  primaryColor,
+  children,
+}: {
+  icon: ComponentType<{ className?: string }>
+  label: string
+  primaryColor: string
+  children: ReactNode
+}) {
+  return (
+    <div className="flex items-start gap-3.5 sm:gap-4">
+      <div
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
+        style={{ backgroundColor: `${primaryColor}18`, color: primaryColor }}
+      >
+        <Icon className="h-5 w-5" />
+      </div>
+      <div className="min-w-0 pt-0.5">
+        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          {label}
+        </p>
+        <p className="text-base font-semibold mt-1 leading-snug break-words">{children}</p>
+      </div>
+    </div>
+  )
+}
 
 interface ClubSettings {
   websiteSetup: {
@@ -219,6 +250,9 @@ export default function EventDetailPage() {
     fromPrefix: multiVenue,
     includeFees: true,
   })
+  const bookingWindow = formatBookingWindow(event.bookingStartTime, event.bookingEndTime)
+  const rewardPointsNum = Number(event.attendancePoints)
+  const rewardPoints = Number.isFinite(rewardPointsNum) && rewardPointsNum > 0 ? rewardPointsNum : null
   const returnPath = `/clubs/${slug}/events/${eventSlug}`
 
   return (
@@ -279,28 +313,8 @@ export default function EventDetailPage() {
         <div className="grid gap-8 sm:gap-10 lg:gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(280px,340px)] lg:items-start">
           {/* Main content */}
           <div className="min-w-0 space-y-6 sm:space-y-8 order-2 lg:order-1">
-            {/* Title & badges */}
-            <header className="space-y-4 sm:space-y-5">
-              <div className="flex flex-wrap items-center gap-2">
-                {event.isActive === false && (
-                  <Badge variant="secondary">Inactive</Badge>
-                )}
-                {event.category && (
-                  <Badge variant="outline">{event.category}</Badge>
-                )}
-                {isPaid && displayPrice && (
-                  <Badge variant="outline" className="font-bold">
-                    {displayPrice}
-                  </Badge>
-                )}
-                {!isPaid && (
-                  <Badge variant="outline" className="text-green-600 border-green-400">
-                    Free
-                  </Badge>
-                )}
-                <JointScreeningDisplay jointScreening={event.jointScreening} variant="badge" />
-                <WaitlistDisplay waitlist={event.waitlist} variant="badge" />
-              </div>
+            {/* Title */}
+            <header>
               <h1 className="text-3xl sm:text-4xl lg:text-[2.75rem] font-black tracking-tight leading-[1.15] text-balance">
                 {event.title}
               </h1>
@@ -357,66 +371,36 @@ export default function EventDetailPage() {
           <aside className="order-1 lg:order-2 lg:sticky lg:top-[4.5rem]">
             <Card className="border-2 shadow-md overflow-hidden">
               <CardContent className="p-5 sm:p-6 lg:p-7 space-y-6">
-                {/* Date */}
                 <div className="space-y-5 sm:space-y-6">
                   {(event.eventDate || event.startTime) && (
-                    <div className="flex items-start gap-3.5 sm:gap-4">
-                      <div
-                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
-                        style={{ backgroundColor: `${primaryColor}18`, color: primaryColor }}
-                      >
-                        <Calendar className="h-5 w-5" />
-                      </div>
-                      <div className="min-w-0 pt-0.5">
-                        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Date</p>
-                        <p className="font-semibold mt-1 leading-snug">
-                          {formatDisplayDate(event.eventDate || event.startTime)}
-                        </p>
-                      </div>
-                    </div>
+                    <InfoRow icon={Calendar} label="Date" primaryColor={primaryColor}>
+                      {formatDisplayDate(event.eventDate || event.startTime)}
+                    </InfoRow>
                   )}
 
                   {(event.eventTime || event.startTime) && (
-                    <div className="flex items-start gap-3.5 sm:gap-4">
-                      <div
-                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
-                        style={{ backgroundColor: `${primaryColor}18`, color: primaryColor }}
-                      >
-                        <Clock className="h-5 w-5" />
-                      </div>
-                      <div className="min-w-0 pt-0.5">
-                        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Time</p>
-                        <p className="font-semibold mt-1 leading-snug">
-                          {event.eventTime ||
-                            new Date(event.startTime).toLocaleTimeString("en-US", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          {event.endTime && (
-                            <span>
-                              {" "}– {new Date(event.endTime).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
-                            </span>
-                          )}
-                        </p>
-                      </div>
-                    </div>
+                    <InfoRow icon={Clock} label="Time" primaryColor={primaryColor}>
+                      {event.eventTime ||
+                        new Date(event.startTime).toLocaleTimeString("en-US", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      {event.endTime && (
+                        <span>
+                          {" "}– {new Date(event.endTime).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                      )}
+                    </InfoRow>
                   )}
 
                   {venueDisplay !== "—" && (
-                    <div className="flex items-start gap-3.5 sm:gap-4">
-                      <div
-                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
-                        style={{ backgroundColor: `${primaryColor}18`, color: primaryColor }}
-                      >
-                        <MapPin className="h-5 w-5" />
-                      </div>
-                      <div className="min-w-0 pt-0.5">
-                        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                          {multiVenue && (event.venues?.length ?? 0) > 1 ? "Venues" : "Venue"}
-                        </p>
-                        <p className="font-semibold mt-1 leading-snug break-words">{venueDisplay}</p>
-                      </div>
-                    </div>
+                    <InfoRow
+                      icon={MapPin}
+                      label={multiVenue && (event.venues?.length ?? 0) > 1 ? "Venues" : "Venue"}
+                      primaryColor={primaryColor}
+                    >
+                      {venueDisplay}
+                    </InfoRow>
                   )}
 
                   <JointScreeningDisplay
@@ -425,12 +409,17 @@ export default function EventDetailPage() {
                     className="mx-0"
                   />
 
-                  <EventScheduleMeta
-                    bookingStartTime={event.bookingStartTime}
-                    bookingEndTime={event.bookingEndTime}
-                    attendancePoints={event.attendancePoints}
-                    className="px-0.5"
-                  />
+                  {bookingWindow && (
+                    <InfoRow icon={CalendarClock} label="Booking window" primaryColor={primaryColor}>
+                      {bookingWindow}
+                    </InfoRow>
+                  )}
+
+                  {rewardPoints != null && (
+                    <InfoRow icon={Award} label="Reward Points" primaryColor={primaryColor}>
+                      {rewardPoints} <span className="text-muted-foreground">(Member Only)</span>
+                    </InfoRow>
+                  )}
 
                   <WaitlistDisplay
                     waitlist={event.waitlist}
@@ -440,45 +429,21 @@ export default function EventDetailPage() {
                   />
 
                   {capacityMax != null && (
-                    <div className="flex items-start gap-3.5 sm:gap-4">
-                      <div
-                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
-                        style={{ backgroundColor: `${primaryColor}18`, color: primaryColor }}
-                      >
-                        <Users className="h-5 w-5" />
-                      </div>
-                      <div className="min-w-0 pt-0.5">
-                        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Capacity</p>
-                        <p className="font-semibold mt-1 leading-snug">
-                          {capacityCount} / {capacityMax} registered
-                        </p>
+                    <InfoRow icon={Users} label="Capacity" primaryColor={primaryColor}>
+                      {capacityCount} / {capacityMax} registered
+                    </InfoRow>
+                  )}
+
+                  {isPaid && (
+                    <div className="space-y-2">
+                      <InfoRow icon={Ticket} label="Ticket Price" primaryColor={primaryColor}>
+                        {displayPrice}
+                      </InfoRow>
+                      <div className="pl-[3.625rem]">
+                        <RefundPolicyBadge eventId={event._id} source="event_detail" />
                       </div>
                     </div>
                   )}
-
-                  <div className="flex items-start gap-3.5 sm:gap-4">
-                    <div
-                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl"
-                      style={{ backgroundColor: `${primaryColor}18`, color: primaryColor }}
-                    >
-                      <Ticket className="h-5 w-5" />
-                    </div>
-                    <div className="min-w-0 pt-0.5">
-                      {isPaid && (
-                        <>
-                          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">Ticket Price</p>
-                          <p className="text-2xl font-black mt-1 leading-none" style={{ color: primaryColor }}>
-                            {displayPrice}
-                          </p>
-                        </>
-                      )}
-                      {isPaid && (
-                        <div className="mt-2">
-                          <RefundPolicyBadge eventId={event._id} source="event_detail" />
-                        </div>
-                      )}
-                    </div>
-                  </div>
                 </div>
 
                 <Separator className="my-1" />
