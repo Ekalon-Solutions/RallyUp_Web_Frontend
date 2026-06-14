@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   CreditCard,
   MapPin,
@@ -56,6 +57,14 @@ interface OrderForm {
   state: string
   zipCode: string
   country: string
+  billingSameAsShipping: boolean
+  billingFirstName: string
+  billingLastName: string
+  billingAddress: string
+  billingCity: string
+  billingState: string
+  billingZipCode: string
+  billingCountry: string
   notes: string
   paymentMethod: string
 }
@@ -132,7 +141,15 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
     city: '',
     state: '',
     zipCode: '',
-    country: '',
+    country: 'India',
+    billingSameAsShipping: true,
+    billingFirstName: '',
+    billingLastName: '',
+    billingAddress: '',
+    billingCity: '',
+    billingState: '',
+    billingZipCode: '',
+    billingCountry: 'India',
     notes: '',
     paymentMethod: 'all'
   })
@@ -236,61 +253,85 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
     return subtotalAfterCoupon * (merchandiseSettings.taxRate / 100)
   }
 
+  const validPincode = /^\d{6}$/.test(orderForm.zipCode?.trim() || '')
+  const hasCompleteShippingAddress =
+    validPincode &&
+    !!orderForm.address.trim() &&
+    !!orderForm.city.trim() &&
+    !!orderForm.state.trim() &&
+    !!orderForm.country.trim()
+
   // If serviceable and the club passes shipping costs to the member, use the
   // selected Shiprocket courier's rate; otherwise fall back to club-configured shipping.
   const selectedCourier = serviceability && !serviceability.fallback
     ? (shippingMethod === 'fastest' ? (serviceability.fastest ?? serviceability.cheapest) : (serviceability.cheapest ?? serviceability.fastest))
     : null
-  const shiprocketCost = (merchandiseSettings?.enableShipping && serviceability?.serviceable && selectedCourier)
+  const shiprocketCost = (merchandiseSettings?.enableShipping && hasCompleteShippingAddress && serviceability?.serviceable && selectedCourier)
     ? selectedCourier.rate
     : null
-  const shippingCost = shiprocketCost != null ? shiprocketCost : calculateShipping()
+  const shippingCost = !hasCompleteShippingAddress
+    ? null
+    : shiprocketCost != null
+      ? shiprocketCost
+      : serviceability?.fallback
+        ? calculateShipping()
+        : shiprocketLoading
+          ? null
+          : calculateShipping()
   const taxAmount = calculateTax()
   const codAvailable = !!(merchandiseSettings?.enableCOD && serviceability?.codAvailable)
 
   useEffect(() => {
-    if (merchandiseSettings && isOpen) {
-      setEstimatedShipping(calculateShipping())
-      setEstimatedTax(calculateTax())
-
-      ;(async () => {
-        try {
-          const clubId = typeof items[0]?.club === 'string' ? items[0].club : items[0]?.club?._id
-          const orderData = {
-            customer: {
-              firstName: orderForm.firstName || 'Guest',
-              lastName: orderForm.lastName || '',
-              email: orderForm.email || ''
-            },
-            shippingAddress: {
-              address: orderForm.address || '',
-              city: orderForm.city || '',
-              state: orderForm.state || '',
-              zipCode: orderForm.zipCode || '',
-              country: orderForm.country || ''
-            },
-            items: items.map(i => ({ productId: i._id, quantity: i.quantity })),
-            couponCode: appliedCoupon?.code || undefined
-          }
-
-          const resp = await apiClient.post('/orders/estimate', orderData)
-          if (resp && resp.success && resp.data) {
-            setEstimatedShipping(resp.data.shippingCost ?? calculateShipping())
-            setEstimatedTax(resp.data.tax ?? calculateTax())
-          }
-        } catch (e) {
-        }
-      })()
+    if (!merchandiseSettings || !isOpen || !hasCompleteShippingAddress) {
+      if (!hasCompleteShippingAddress) {
+        setEstimatedShipping(null)
+      }
+      return
     }
-  }, [merchandiseSettings, subtotalAfterCoupon])
 
-  const displayShipping = orderShipping ?? (createdOrder ? (createdOrder.shippingCost ?? (estimatedShipping ?? shippingCost)) : (estimatedShipping ?? shippingCost))
+    setEstimatedShipping(calculateShipping())
+    setEstimatedTax(calculateTax())
+
+    ;(async () => {
+      try {
+        const clubId = typeof items[0]?.club === 'string' ? items[0].club : items[0]?.club?._id
+        const orderData = {
+          customer: {
+            firstName: orderForm.firstName || 'Guest',
+            lastName: orderForm.lastName || '',
+            email: orderForm.email || ''
+          },
+          shippingAddress: {
+            address: orderForm.address || '',
+            city: orderForm.city || '',
+            state: orderForm.state || '',
+            zipCode: orderForm.zipCode || '',
+            country: orderForm.country || ''
+          },
+          items: items.map(i => ({ productId: i._id, quantity: i.quantity })),
+          couponCode: appliedCoupon?.code || undefined,
+          paymentMethod: orderForm.paymentMethod,
+          shippingMethod,
+        }
+
+        const resp = await apiClient.post('/orders/estimate', orderData)
+        if (resp && resp.success && resp.data) {
+          setEstimatedShipping(resp.data.shippingCost ?? calculateShipping())
+          setEstimatedTax(resp.data.tax ?? calculateTax())
+        }
+      } catch (e) {
+      }
+    })()
+  }, [merchandiseSettings, subtotalAfterCoupon, orderForm.paymentMethod, shippingMethod, hasCompleteShippingAddress, orderForm.address, orderForm.city, orderForm.state, orderForm.country, orderForm.zipCode, appliedCoupon?.code, items, isOpen])
+
+  const resolvedShippingCost = shippingCost ?? estimatedShipping ?? 0
+  const displayShipping = orderShipping ?? (createdOrder ? (createdOrder.shippingCost ?? resolvedShippingCost) : resolvedShippingCost)
   const displayTax = orderTax ?? (createdOrder ? (createdOrder.tax ?? (estimatedTax ?? taxAmount)) : (estimatedTax ?? taxAmount))
 
   const netSubtotal = Math.max(subtotalAfterCoupon - (reservedDiscount || 0), 0)
   // Fees are fixed on the original subtotal (before coupon and redeem points)
   const feeBreakdown = totalPrice > 0 ? calculateTransactionFees(totalPrice) : null
-  const finalAmount = netSubtotal + shippingCost + taxAmount + (feeBreakdown ? feeBreakdown.totalFees : 0)
+  const finalAmount = netSubtotal + resolvedShippingCost + taxAmount + (feeBreakdown ? feeBreakdown.totalFees : 0)
 
   const handleValidateCoupon = async () => {
     if (!couponCode.trim()) {
@@ -361,7 +402,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
         clubId,
         deliveryPincode,
         items: items.map(i => ({ productId: i._id, quantity: i.quantity })),
-        cod: true,
+        cod: orderForm.paymentMethod === 'cod',
       })
 
       if (!response.success || !response.data) {
@@ -379,7 +420,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
     } finally {
       setShiprocketLoading(false)
     }
-  }, [items, merchandiseSettings?.enableCOD])
+  }, [items, merchandiseSettings?.enableCOD, orderForm.paymentMethod])
 
   const serviceabilityDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
@@ -408,7 +449,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
         serviceabilityDebounceRef.current = null
       }
     }
-  }, [isOpen, orderForm.zipCode, items.length, fetchServiceability, merchandiseSettings])
+  }, [isOpen, orderForm.zipCode, orderForm.paymentMethod, items.length, fetchServiceability, merchandiseSettings])
 
   // If COD becomes unavailable for the entered pincode (or club doesn't offer it),
   // fall back to online payment.
@@ -431,7 +472,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
         city: prev.city || userAny?.city || '',
         state: prev.state || userAny?.state_province || '',
         zipCode: prev.zipCode || userAny?.zip_code || '',
-        country: prev.country || userAny?.country || '',
+        country: prev.country || userAny?.country || 'India',
       }))
     }
   }, [isOpen, user])
@@ -473,7 +514,21 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
         paymentMethod: orderForm.paymentMethod,
         notes: orderForm.notes,
         ...(appliedCoupon?.code ? { couponCode: appliedCoupon.code } : {}),
-        shippingCost,
+        shippingCost: resolvedShippingCost,
+        shippingMethod,
+        ...(!orderForm.billingSameAsShipping
+          ? {
+              billingAddress: {
+                firstName: orderForm.billingFirstName,
+                lastName: orderForm.billingLastName,
+                address: orderForm.billingAddress,
+                city: orderForm.billingCity,
+                state: orderForm.billingState,
+                zipCode: orderForm.billingZipCode,
+                country: orderForm.billingCountry,
+              },
+            }
+          : {}),
         tax: taxAmount,
         finalAmount,
         ...(feeBreakdown
@@ -584,12 +639,11 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
     }
   }
 
-  const validPincode = /^\d{6}$/.test(orderForm.zipCode?.trim() || '')
-  const deliveryUnavailable = validPincode && !shiprocketLoading && serviceability !== null && !serviceability.serviceable
-  const orderBlocked = validPincode && shiprocketLoading
+  const deliveryUnavailable = hasCompleteShippingAddress && !shiprocketLoading && serviceability !== null && !serviceability.serviceable
+  const orderBlocked = hasCompleteShippingAddress && shiprocketLoading
 
   const validateForm = () => {
-    const required = ['firstName', 'lastName', 'email', 'phone', 'address', 'city', 'state', 'zipCode']
+    const required = ['firstName', 'lastName', 'email', 'phone', 'address', 'city', 'state', 'zipCode', 'country']
     
     for (const field of required) {
       if (!orderForm[field as keyof OrderForm]) {
@@ -597,10 +651,42 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
         return false
       }
     }
+
+    if (!/^\d{6}$/.test(orderForm.zipCode.trim())) {
+      toast.error('Please enter a valid 6-digit PIN code')
+      return false
+    }
+
+    if (!orderForm.billingSameAsShipping) {
+      const billingRequired = [
+        'billingFirstName',
+        'billingLastName',
+        'billingAddress',
+        'billingCity',
+        'billingState',
+        'billingZipCode',
+        'billingCountry',
+      ]
+      for (const field of billingRequired) {
+        if (!orderForm[field as keyof OrderForm]) {
+          toast.error(`Please fill in billing ${field.replace(/^billing/, '').replace(/([A-Z])/g, ' $1').toLowerCase()}`)
+          return false
+        }
+      }
+      if (!/^\d{6}$/.test(orderForm.billingZipCode.trim())) {
+        toast.error('Please enter a valid 6-digit billing PIN code')
+        return false
+      }
+    }
     
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(orderForm.email)) {
       toast.error('Please enter a valid email address')
+      return false
+    }
+
+    if (!hasCompleteShippingAddress) {
+      toast.error('Please complete your shipping address before placing the order')
       return false
     }
 
@@ -759,8 +845,14 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                     </div>
                   </div>
 
+                  {!hasCompleteShippingAddress && (
+                    <p className="text-xs text-muted-foreground">
+                      Enter your full shipping address to calculate delivery options and shipping cost.
+                    </p>
+                  )}
+
                   {/* Serviceability / delivery estimate */}
-                  {validPincode && (
+                  {hasCompleteShippingAddress && (
                     <div className="rounded-lg border p-3 text-sm space-y-1">
                       {shiprocketLoading && (
                         <div className="flex items-center gap-2 text-muted-foreground">
@@ -808,8 +900,110 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                 </CardContent>
               </Card>
 
+              {/* Billing Address */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Building2 className="w-4 h-4" />
+                    Billing Address
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="billingSameAsShipping"
+                      checked={orderForm.billingSameAsShipping}
+                      onCheckedChange={(checked) =>
+                        setOrderForm(prev => ({
+                          ...prev,
+                          billingSameAsShipping: checked === true,
+                        }))
+                      }
+                    />
+                    <Label htmlFor="billingSameAsShipping" className="text-sm font-normal cursor-pointer">
+                      Billing address is the same as shipping address
+                    </Label>
+                  </div>
+
+                  {!orderForm.billingSameAsShipping && (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="billingFirstName">First Name *</Label>
+                          <Input
+                            id="billingFirstName"
+                            value={orderForm.billingFirstName}
+                            onChange={(e) => handleInputChange('billingFirstName', e.target.value)}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="billingLastName">Last Name *</Label>
+                          <Input
+                            id="billingLastName"
+                            value={orderForm.billingLastName}
+                            onChange={(e) => handleInputChange('billingLastName', e.target.value)}
+                            required
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <Label htmlFor="billingAddress">Street Address *</Label>
+                        <Input
+                          id="billingAddress"
+                          value={orderForm.billingAddress}
+                          onChange={(e) => handleInputChange('billingAddress', e.target.value)}
+                          required
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="billingCity">City *</Label>
+                          <Input
+                            id="billingCity"
+                            value={orderForm.billingCity}
+                            onChange={(e) => handleInputChange('billingCity', e.target.value)}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="billingState">State *</Label>
+                          <Input
+                            id="billingState"
+                            value={orderForm.billingState}
+                            onChange={(e) => handleInputChange('billingState', e.target.value)}
+                            required
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label htmlFor="billingZipCode">ZIP / PIN Code *</Label>
+                          <Input
+                            id="billingZipCode"
+                            value={orderForm.billingZipCode}
+                            onChange={(e) => handleInputChange('billingZipCode', e.target.value)}
+                            maxLength={6}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="billingCountry">Country *</Label>
+                          <Input
+                            id="billingCountry"
+                            value={orderForm.billingCountry}
+                            onChange={(e) => handleInputChange('billingCountry', e.target.value)}
+                            required
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
               {/* Shipping Method (Fastest / Cheapest) */}
-              {merchandiseSettings?.enableShipping && serviceability?.serviceable && !serviceability.fallback && (serviceability.cheapest || serviceability.fastest) && (
+              {merchandiseSettings?.enableShipping && hasCompleteShippingAddress && serviceability?.serviceable && !serviceability.fallback && (serviceability.cheapest || serviceability.fastest) && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -1184,10 +1378,14 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                     {merchandiseSettings?.enableShipping && (
                       <div className="flex justify-between">
                         <span>Shipping:</span>
-                        {shippingCost === 0 ? (
+                        {!hasCompleteShippingAddress ? (
+                          <span className="text-muted-foreground text-sm">Enter shipping address</span>
+                        ) : shiprocketLoading && shippingCost == null ? (
+                          <span className="text-muted-foreground text-sm">Calculating...</span>
+                        ) : displayShipping === 0 ? (
                           <span className="text-green-600">Free</span>
                         ) : (
-                          <span>{formatCurrency(shippingCost, currency)}</span>
+                          <span>{formatCurrency(displayShipping, currency)}</span>
                         )}
                       </div>
                     )}
@@ -1240,7 +1438,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                 type="submit"
                 className="w-full"
                 size="lg"
-                disabled={loading || items.length === 0 || orderBlocked || deliveryUnavailable}
+                disabled={loading || items.length === 0 || !hasCompleteShippingAddress || orderBlocked || deliveryUnavailable}
               >
                 {loading ? (
                   <>
@@ -1300,7 +1498,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
           orderNumber={createdOrder.orderNumber}
           total={finalAmount}
           subtotal={totalPrice}
-          shippingCost={createdOrder.shippingCost ?? shippingCost}
+          shippingCost={createdOrder.shippingCost ?? resolvedShippingCost}
           tax={createdOrder.tax ?? taxAmount}
           currency={createdOrder.currency ?? currency}
           paymentMethod={createdOrder.paymentMethod || orderForm.paymentMethod || 'all'}

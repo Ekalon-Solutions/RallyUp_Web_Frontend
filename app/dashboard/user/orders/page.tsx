@@ -20,6 +20,7 @@ import { RefundButton } from '@/components/refund-button'
 import { PaymentSimulationModal } from '@/components/modals/payment-simulation-modal'
 import { calculateTransactionFees, PLATFORM_FEE_PERCENT, RAZORPAY_FEE_PERCENT } from '@/lib/transactionFees'
 import { OrderTrackingProgress, TrackableOrder, TrackingEvent } from '@/components/order-tracking-progress'
+import { OrderAddressDisplay } from '@/components/order-address-display'
 import {
   Search,
   RefreshCw,
@@ -59,6 +60,15 @@ interface Order {
     phone: string
   }
   shippingAddress: {
+    firstName: string
+    lastName: string
+    address: string
+    city: string
+    state: string
+    zipCode: string
+    country: string
+  }
+  billingAddress?: {
     firstName: string
     lastName: string
     address: string
@@ -899,16 +909,19 @@ export default function UserOrdersPage() {
                   <div>
                     <h3 className="font-semibold mb-3 text-foreground">Shipping Address</h3>
                     <div className="bg-muted p-4 rounded-lg">
-                      <div className="text-sm">
-                        <div className="font-medium text-foreground">
-                          {selectedOrder.shippingAddress.firstName} {selectedOrder.shippingAddress.lastName}
-                        </div>
-                        <div className="text-foreground">{selectedOrder.shippingAddress.address}</div>
-                        <div className="text-foreground">
-                          {selectedOrder.shippingAddress.city}, {selectedOrder.shippingAddress.state} {selectedOrder.shippingAddress.zipCode}
-                        </div>
-                        <div className="text-foreground">{selectedOrder.shippingAddress.country}</div>
-                      </div>
+                      <OrderAddressDisplay address={selectedOrder.shippingAddress} />
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="font-semibold mb-3 text-foreground">Billing Address</h3>
+                    <div className="bg-muted p-4 rounded-lg">
+                      {selectedOrder.billingAddress?.address &&
+                      selectedOrder.billingAddress.address !== selectedOrder.shippingAddress?.address ? (
+                        <OrderAddressDisplay address={selectedOrder.billingAddress} />
+                      ) : (
+                        <p className="text-sm text-muted-foreground">Same as shipping address</p>
+                      )}
                     </div>
                   </div>
                 </div>

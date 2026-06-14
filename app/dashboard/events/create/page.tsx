@@ -686,7 +686,7 @@ function CreateEventForm() {
                 disabled={index > wizardStep}
                 className={cn(
                   "inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium border transition-colors",
-                  current && "border-[hsl(var(--success))] bg-[hsl(var(--success)/0.12)] text-[hsl(var(--success))]",
+                  current && "border-secondary bg-[hsl(var(--success)/0.12)] text-secondary",
                   done && "border-border bg-muted/50 text-foreground cursor-pointer hover:bg-muted",
                   !current && !done && "border-border text-muted-foreground opacity-60 cursor-not-allowed"
                 )}
@@ -694,7 +694,7 @@ function CreateEventForm() {
                 <span
                   className={cn(
                     "flex h-6 w-6 items-center justify-center rounded-full text-xs",
-                    current && "bg-[hsl(var(--success))] text-[hsl(var(--success-foreground))]",
+                    current && "bg-secondary text-secondary-foreground",
                     done && "bg-muted-foreground/20",
                     !current && !done && "bg-muted"
                   )}

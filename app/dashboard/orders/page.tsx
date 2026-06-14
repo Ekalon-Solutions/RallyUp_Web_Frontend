@@ -44,6 +44,7 @@ import { isFeatureEnabled } from '@/lib/clubFeatures'
 import { LockedFeaturePage, FeatureUnavailableOverlay, LockedInline } from '@/components/feature-gate'
 import { ReadyToShipModal } from '@/components/admin/ready-to-ship-modal'
 import { LogisticsTimeline } from '@/components/admin/logistics-timeline'
+import { OrderAddressDisplay } from '@/components/order-address-display'
 
 interface OrderItem {
   productId: string
@@ -73,6 +74,15 @@ interface Order {
     zipCode: string
     country: string
   }
+  billingAddress?: {
+    firstName: string
+    lastName: string
+    address: string
+    city: string
+    state: string
+    zipCode: string
+    country: string
+  }
   items: OrderItem[]
   subtotal: number
   shippingCost: number
@@ -84,8 +94,8 @@ interface Order {
   razorpayFeeGst?: number
   finalAmount?: number
   currency: string
-  status: 'pending' | 'cancelled' | 'completed' | 'ready_to_ship' | 'fulfillment_in_progress' | 'shipped'
-  paymentMethod: 'card' | 'paypal' | 'bank_transfer'
+  status: 'pending' | 'cancelled' | 'completed' | 'refunded' | 'ready_to_ship' | 'fulfillment_in_progress' | 'shipped'
+  paymentMethod: 'card' | 'paypal' | 'bank_transfer' | 'all' | 'cod'
   paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded'
   notes?: string
   trackingNumber?: string
@@ -137,9 +147,20 @@ const statusConfig: Record<string, { label: string; color: string; icon: any }> 
   pending: { label: 'Pending', color: 'bg-yellow-100 text-yellow-800', icon: Clock },
   cancelled: { label: 'Cancelled', color: 'bg-red-100 text-red-800', icon: XCircle },
   completed: { label: 'Completed', color: 'bg-green-100 text-green-800', icon: CheckCircle },
+  refunded: { label: 'Refunded', color: 'bg-gray-100 text-gray-800', icon: XCircle },
   ready_to_ship: { label: 'Ready to Ship', color: 'bg-blue-100 text-blue-800', icon: Truck },
   fulfillment_in_progress: { label: 'Fulfillment in Progress', color: 'bg-indigo-100 text-indigo-800', icon: Truck },
   shipped: { label: 'Shipped', color: 'bg-green-100 text-green-800', icon: Truck },
+}
+
+function getOrderStatusDisplay(status: string) {
+  return (
+    statusConfig[status] ?? {
+      label: status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+      color: 'bg-gray-100 text-gray-800',
+      icon: Clock,
+    }
+  )
 }
 
 const deliveryStatusConfig: Record<string, { label: string; color: string; icon: any }> = {
@@ -152,7 +173,7 @@ const deliveryStatusConfig: Record<string, { label: string; color: string; icon:
   lost: { label: 'Lost', color: 'bg-red-100 text-red-800', icon: AlertTriangle },
 }
 
-const eventStatusConfig = {
+const eventStatusConfig: Record<string, { label: string; color: string; icon: typeof CheckCircle }> = {
   confirmed: { label: 'Confirmed', color: 'bg-green-100 text-green-800', icon: CheckCircle },
   pending: { label: 'Pending', color: 'bg-yellow-100 text-yellow-800', icon: Clock },
   cancelled: { label: 'Cancelled', color: 'bg-red-100 text-red-800', icon: XCircle },
@@ -163,6 +184,15 @@ const paymentStatusConfig = {
   paid: { label: 'Paid', color: 'bg-green-100 text-green-800' },
   failed: { label: 'Failed', color: 'bg-red-100 text-red-800' },
   refunded: { label: 'Refunded', color: 'bg-gray-100 text-gray-800' }
+}
+
+function getPaymentStatusDisplay(status: string) {
+  return (
+    paymentStatusConfig[status as keyof typeof paymentStatusConfig] ?? {
+      label: status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
+      color: 'bg-gray-100 text-gray-800',
+    }
+  )
 }
 
 export default function OrdersPage() {
@@ -348,14 +378,14 @@ export default function OrdersPage() {
       if (earlyBirdFilter === 'used') {
         filtered = filtered.filter((reg: any) => (reg.earlyBirdDiscountAmt || 0) > 0)
       } else {
-        filtered = filtered.filter((reg: any) => !(reg.earlyBirdDiscountAmt || 0) > 0)
+        filtered = filtered.filter((reg: any) => !((reg.earlyBirdDiscountAmt || 0) > 0))
       }
     }
     if (couponFilter !== 'all') {
       if (couponFilter === 'used') {
         filtered = filtered.filter((reg: any) => (reg.couponDiscount || 0) > 0)
       } else {
-        filtered = filtered.filter((reg: any) => !(reg.couponDiscount || 0) > 0)
+        filtered = filtered.filter((reg: any) => !((reg.couponDiscount || 0) > 0))
       }
     }
     if (paymentDateFilter) {
@@ -411,8 +441,8 @@ export default function OrdersPage() {
           if (allOrdersResponse.success && allOrdersResponse.data) {
             const allOrders = allOrdersResponse.data.data?.orders || []
             const completedPaidRevenue = allOrders
-              .filter(order => order.status === 'completed' && order.paymentStatus === 'paid')
-              .reduce((sum, order) => sum + (order.finalAmount || order.total || 0), 0)
+              .filter((order: Order) => order.status === 'completed' && order.paymentStatus === 'paid')
+              .reduce((sum: number, order: Order) => sum + (order.finalAmount || order.total || 0), 0)
 
             setStats({
               ...apiStats,
@@ -461,14 +491,14 @@ export default function OrdersPage() {
           if (earlyBirdFilter === 'used') {
             filtered = filtered.filter((reg: any) => (reg.earlyBirdDiscountAmt || 0) > 0)
           } else {
-            filtered = filtered.filter((reg: any) => !(reg.earlyBirdDiscountAmt || 0) > 0)
+            filtered = filtered.filter((reg: any) => !((reg.earlyBirdDiscountAmt || 0) > 0))
           }
         }
         if (couponFilter !== 'all') {
           if (couponFilter === 'used') {
             filtered = filtered.filter((reg: any) => (reg.couponDiscount || 0) > 0)
           } else {
-            filtered = filtered.filter((reg: any) => !(reg.couponDiscount || 0) > 0)
+            filtered = filtered.filter((reg: any) => !((reg.couponDiscount || 0) > 0))
           }
         }
         if (paymentDateFilter) {
@@ -1086,7 +1116,8 @@ export default function OrdersPage() {
                     </TableHeader>
                   <TableBody>
                     {typeFilter === 'products' && orders.map((order) => {
-                      const StatusIcon = statusConfig[order.status].icon
+                      const orderStatus = getOrderStatusDisplay(order.status)
+                      const StatusIcon = orderStatus.icon
                       return (
                         <TableRow key={order._id}>
                           <TableCell className="font-medium">
@@ -1114,9 +1145,9 @@ export default function OrdersPage() {
                           </TableCell>
                           <TableCell>
                             <div className="flex flex-col gap-1">
-                              <Badge className={statusConfig[order.status].color}>
+                              <Badge className={orderStatus.color}>
                                 <StatusIcon className="w-3 h-3 mr-1" />
-                                {statusConfig[order.status].label}
+                                {orderStatus.label}
                               </Badge>
                               {order.deliveryStatus && deliveryStatusConfig[order.deliveryStatus] && (
                                 <Badge className={`text-xs ${deliveryStatusConfig[order.deliveryStatus].color}`}>
@@ -1132,8 +1163,8 @@ export default function OrdersPage() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Badge className={paymentStatusConfig[order.paymentStatus].color}>
-                              {paymentStatusConfig[order.paymentStatus].label}
+                            <Badge className={getPaymentStatusDisplay(order.paymentStatus).color}>
+                              {getPaymentStatusDisplay(order.paymentStatus).label}
                             </Badge>
                           </TableCell>
                           <TableCell>
@@ -1400,8 +1431,8 @@ export default function OrdersPage() {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Status:</span>
-                        <Badge className={statusConfig[selectedOrder.status].color}>
-                          {statusConfig[selectedOrder.status].label}
+                        <Badge className={getOrderStatusDisplay(selectedOrder.status).color}>
+                          {getOrderStatusDisplay(selectedOrder.status).label}
                         </Badge>
                       </div>
                       <div className="flex justify-between">
@@ -1410,8 +1441,8 @@ export default function OrdersPage() {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Payment Status:</span>
-                        <Badge className={paymentStatusConfig[selectedOrder.paymentStatus].color}>
-                          {paymentStatusConfig[selectedOrder.paymentStatus].label}
+                        <Badge className={getPaymentStatusDisplay(selectedOrder.paymentStatus).color}>
+                          {getPaymentStatusDisplay(selectedOrder.paymentStatus).label}
                         </Badge>
                       </div>
                       <div className="flex justify-between">
@@ -1629,17 +1660,21 @@ export default function OrdersPage() {
                 {/* Shipping Address */}
                 <div>
                   <h3 className="font-semibold mb-3">Shipping Address</h3>
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <div className="text-sm">
-                      <div className="font-medium">
-                        {selectedOrder.shippingAddress.firstName} {selectedOrder.shippingAddress.lastName}
-                      </div>
-                      <div>{selectedOrder.shippingAddress.address}</div>
-                      <div>
-                        {selectedOrder.shippingAddress.city}, {selectedOrder.shippingAddress.state} {selectedOrder.shippingAddress.zipCode}
-                      </div>
-                      <div>{selectedOrder.shippingAddress.country}</div>
-                    </div>
+                  <div className="border p-4 rounded-lg">
+                    <OrderAddressDisplay address={selectedOrder.shippingAddress} />
+                  </div>
+                </div>
+
+                {/* Billing Address */}
+                <div>
+                  <h3 className="font-semibold mb-3">Billing Address</h3>
+                  <div className="border p-4 rounded-lg">
+                    {selectedOrder.billingAddress?.address &&
+                    selectedOrder.billingAddress.address !== selectedOrder.shippingAddress?.address ? (
+                      <OrderAddressDisplay address={selectedOrder.billingAddress} />
+                    ) : (
+                      <p className="text-sm text-muted-foreground">Same as shipping address</p>
+                    )}
                   </div>
                 </div>
 
@@ -1729,7 +1764,7 @@ export default function OrdersPage() {
                 {selectedOrder.notes && (
                   <div>
                     <h3 className="font-semibold mb-3">Notes</h3>
-                    <div className="bg-gray-50 p-4 rounded-lg text-sm">
+                    <div className="p-4 rounded-lg text-sm">
                       {selectedOrder.notes}
                     </div>
                   </div>
