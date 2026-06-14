@@ -16,7 +16,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
-import { Plus, CreditCard, Users, Calendar, Edit, Trash2, Gift, TrendingUp } from "lucide-react"
+import { Plus, CreditCard, Edit, Trash2, Gift, TrendingUp } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { toast } from "sonner"
@@ -39,16 +39,6 @@ interface MembershipPlan {
   planEndDate?: string
   bookingStartDate?: string
   bookingEndDate?: string
-  features: {
-    maxEvents: number
-    maxNews: number
-    maxMembers: number
-    customBranding: boolean
-    advancedAnalytics: boolean
-    prioritySupport: boolean
-    apiAccess: boolean
-    customIntegrations: boolean
-  }
   referralReward?: { enabled: boolean; points: number }
   isActive: boolean
   createdAt: string
@@ -84,16 +74,6 @@ export default function MembershipPlansPage() {
     bookingEndDate: "",
     referralRewardEnabled: false,
     referralRewardPoints: 0,
-    features: {
-      maxEvents: 10,
-      maxNews: 5,
-      maxMembers: 100,
-      customBranding: false,
-      advancedAnalytics: false,
-      prioritySupport: false,
-      apiAccess: false,
-      customIntegrations: false,
-    }
   })
 
   // Use activeClubId from useAuth as the only source of truth for "selected" club
@@ -318,16 +298,6 @@ export default function MembershipPlansPage() {
           bookingEndDate: "",
           referralRewardEnabled: false,
           referralRewardPoints: 0,
-          features: {
-            maxEvents: 10,
-            maxNews: 5,
-            maxMembers: 100,
-            customBranding: false,
-            advancedAnalytics: false,
-            prioritySupport: false,
-            apiAccess: false,
-            customIntegrations: false,
-          }
         })
         loadPlans()
       } else {
@@ -442,16 +412,6 @@ export default function MembershipPlansPage() {
       bookingEndDate: toDateInputValue(plan.bookingEndDate),
       referralRewardEnabled: plan.referralReward?.enabled ?? false,
       referralRewardPoints: plan.referralReward?.points ?? 0,
-      features: {
-        maxEvents: plan.features.maxEvents,
-        maxNews: plan.features.maxNews,
-        maxMembers: plan.features.maxMembers,
-        customBranding: plan.features.customBranding || false,
-        advancedAnalytics: plan.features.advancedAnalytics || false,
-        prioritySupport: plan.features.prioritySupport || false,
-        apiAccess: plan.features.apiAccess || false,
-        customIntegrations: plan.features.customIntegrations || false,
-      }
     })
     setShowEditDialog(true)
   }
@@ -573,16 +533,6 @@ export default function MembershipPlansPage() {
           bookingEndDate: "",
           referralRewardEnabled: false,
           referralRewardPoints: 0,
-          features: {
-            maxEvents: 10,
-            maxNews: 5,
-            maxMembers: 100,
-            customBranding: false,
-            advancedAnalytics: false,
-            prioritySupport: false,
-            apiAccess: false,
-            customIntegrations: false,
-          }
         })
         await loadPlans()
       } else {
@@ -668,7 +618,7 @@ export default function MembershipPlansPage() {
                   <DialogHeader className="shrink-0 px-6 pt-6 pb-2 pr-10">
                     <DialogTitle>Create New Membership Plan</DialogTitle>
                     <DialogDescription>
-                      Create a new membership plan with features and pricing
+                      Create a new membership plan with pricing and booking dates
                     </DialogDescription>
                   </DialogHeader>
                   <form onSubmit={handleCreatePlan} className="flex flex-col min-h-0 flex-1">
@@ -786,48 +736,6 @@ export default function MembershipPlansPage() {
                       </p>
                     )}
 
-                    <div className="border-t pt-4">
-                      <h3 className="font-semibold mb-4 text-foreground">Plan Features</h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="maxEvents">Max Events</Label>
-                          <Input
-                            id="maxEvents"
-                            type="number"
-                            value={formData.features.maxEvents}
-                            onChange={(e) => setFormData({
-                              ...formData,
-                              features: { ...formData.features, maxEvents: parseInt(e.target.value) || 0 }
-                            })}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="maxNews">Max News</Label>
-                          <Input
-                            id="maxNews"
-                            type="number"
-                            value={formData.features.maxNews}
-                            onChange={(e) => setFormData({
-                              ...formData,
-                              features: { ...formData.features, maxNews: parseInt(e.target.value) || 0 }
-                            })}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="maxMembers">Max Members</Label>
-                          <Input
-                            id="maxMembers"
-                            type="number"
-                            value={formData.features.maxMembers}
-                            onChange={(e) => setFormData({
-                              ...formData,
-                              features: { ...formData.features, maxMembers: parseInt(e.target.value) || 0 }
-                            })}
-                          />
-                        </div>
-                      </div>
-                    </div>
-
                     <div className="border-t pt-4 space-y-3">
                       <div className="flex items-center justify-between">
                         <div>
@@ -876,7 +784,7 @@ export default function MembershipPlansPage() {
                   <DialogHeader className="shrink-0 px-6 pt-6 pb-2 pr-10">
                     <DialogTitle>Edit Membership Plan</DialogTitle>
                     <DialogDescription>
-                      Update the membership plan details and features
+                      Update the membership plan details
                     </DialogDescription>
                   </DialogHeader>
                   <form onSubmit={handleUpdatePlan} className="flex flex-col min-h-0 flex-1">
@@ -1005,48 +913,6 @@ export default function MembershipPlansPage() {
                       </div>
                     </div>
 
-                    <div className="border-t pt-4">
-                      <h3 className="font-semibold mb-4 text-foreground">Plan Features</h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="edit-maxEvents">Max Events</Label>
-                          <Input
-                            id="edit-maxEvents"
-                            type="number"
-                            value={formData.features.maxEvents}
-                            onChange={(e) => setFormData({
-                              ...formData,
-                              features: { ...formData.features, maxEvents: parseInt(e.target.value) || 0 }
-                            })}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="edit-maxNews">Max News</Label>
-                          <Input
-                            id="edit-maxNews"
-                            type="number"
-                            value={formData.features.maxNews}
-                            onChange={(e) => setFormData({
-                              ...formData,
-                              features: { ...formData.features, maxNews: parseInt(e.target.value) || 0 }
-                            })}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="edit-maxMembers">Max Members</Label>
-                          <Input
-                            id="edit-maxMembers"
-                            type="number"
-                            value={formData.features.maxMembers}
-                            onChange={(e) => setFormData({
-                              ...formData,
-                              features: { ...formData.features, maxMembers: parseInt(e.target.value) || 0 }
-                            })}
-                          />
-                        </div>
-                      </div>
-                    </div>
-
                     <div className="border-t pt-4 space-y-3">
                       <div className="flex items-center justify-between">
                         <div>
@@ -1169,30 +1035,6 @@ export default function MembershipPlansPage() {
                     </div>
                     <div className="text-sm text-muted-foreground">
                       per {formatPlanPeriod(plan)}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="flex items-center gap-2 text-foreground">
-                        <Calendar className="w-4 h-4" />
-                        Events
-                      </span>
-                      <span className="text-foreground">{plan.features.maxEvents}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="flex items-center gap-2 text-foreground">
-                        <Users className="w-4 h-4" />
-                        Members
-                      </span>
-                      <span className="text-foreground">{plan.features.maxMembers}</span>
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="flex items-center gap-2 text-foreground">
-                        <CreditCard className="w-4 h-4" />
-                        News
-                      </span>
-                      <span className="text-foreground">{plan.features.maxNews}</span>
                     </div>
                   </div>
 

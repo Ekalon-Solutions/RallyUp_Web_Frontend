@@ -27,7 +27,7 @@ import { RefundPolicyModal } from "@/components/modals/refund-policy-modal"
 import { useCheckoutRefundPolicy } from "@/hooks/useCheckoutRefundPolicy"
 import { getJointScreeningClubNames } from "@/lib/joint-screening-clubs"
 import { canShowPointsRedemption, validatePointsRedemptionInput } from "@/lib/points-redemption"
-import { hasVenueTierMatrix } from "@/lib/event-display-price"
+import { hasVenueTierMatrix, isEventPaid } from "@/lib/event-display-price"
 import { formatPhoneForDisplay } from "@/components/modals/purchase-flow-modal"
 
 declare global {
@@ -103,7 +103,10 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
   const { user, checkAuth, login } = useAuth()
   const router = useRouter()
 
-  const isLoggedIn = Boolean(user)
+  const hasAuthToken = typeof window !== "undefined" && !!localStorage.getItem("token")
+  const isAuthenticated = Boolean(user?._id)
+  const isLoggedIn = isAuthenticated || hasAuthToken
+  const authStillLoading = hasAuthToken && !isAuthenticated
   const isSimpleEvent = event ? !hasVenueTierMatrix(event) : false
   const showGuestWizard = !isLoggedIn
 
@@ -173,9 +176,12 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
     )
   )
 
-  // Reset all state on open/close
+  // Reset all state on open/close; skip guest wizard when session exists
   useEffect(() => {
     if (isOpen) {
+      if (hasAuthToken && !isAuthenticated) {
+        void checkAuth()
+      }
       setCart({})
       setAttendeeSlots([])
       setTicketCount(1)
@@ -214,6 +220,21 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen])
+
+  useEffect(() => {
+    if (!isOpen || !isAuthenticated || !user) return
+    setStep('attendees')
+    const userAny = user as any
+    const name = [userAny.first_name, userAny.last_name].filter(Boolean).join(" ").trim() || userAny.name || userAny.username || ""
+    const phone = String(userAny.phoneNumber || "").replace(/\D/g, "")
+    const phoneCode = userAny.countryCode || "+91"
+    if (name || phone) {
+      setPrimaryName(name)
+      setPrimaryPhone(phone)
+      setPrimaryCountryCode(phoneCode)
+      setSimpleAttendees([{ name, phone, phoneCode, open: true }])
+    }
+  }, [isOpen, isAuthenticated, user])
 
   useEffect(() => {
     if (!event?.venues || !hasVenueTierMatrix(event)) return
@@ -373,7 +394,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
   // When the club absorbs fees, the buyer pays the base net and fees are not appended.
   const { feeBreakdown, amountToCharge, feesAbsorbed } = resolveCheckoutCharge(netAmount, event?.feeHandlingType)
   const checkoutEventId = event?._id ? String(event._id) : undefined
-  const isPaidCheckout = amountToCharge > 0
+  const isPaidCheckout = event ? isEventPaid(event) : false
   const refundPolicy = useCheckoutRefundPolicy(checkoutEventId, isOpen, isPaidCheckout)
 
   if (!event || !isOpen) return null
@@ -726,6 +747,10 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
 
   const handlePayment = async () => {
     if (!event) return
+    if (!refundPolicy.ensureAgreed()) {
+      toast.error('Review the refund policy and tap "I Agree" before continuing.')
+      return
+    }
     if (!scriptLoaded) { toast.error("Payment system still loading — please wait"); return }
     if (isJointEvent && !attributedClub) {
       setShowClubAlert(true)
@@ -741,7 +766,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
   const handleSimpleEventPayment = async () => {
     if (!event) return
     if (ticketCount < 1) { toast.error("Select at least one ticket"); return }
-    if (!user) { toast.error("Please log in to purchase tickets"); return }
+    if (!user?._id) { toast.error("Please log in to purchase tickets"); return }
     if (remainingSeats !== null && ticketCount > remainingSeats) {
       toast.error(remainingSeats === 0 ? "This event is now full" : `Only ${remainingSeats} seat${remainingSeats !== 1 ? 's' : ''} remaining`)
       return
@@ -935,6 +960,10 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
 
   const handleGuestSimpleEventPayment = async () => {
     if (!event) return
+    if (!refundPolicy.ensureAgreed()) {
+      toast.error('Review the refund policy and tap "I Agree" before continuing.')
+      return
+    }
     if (ticketCount < 1) { toast.error("Select at least one ticket"); return }
     if (remainingSeats !== null && ticketCount > remainingSeats) {
       toast.error(remainingSeats === 0 ? "This event is now full" : `Only ${remainingSeats} seat${remainingSeats !== 1 ? 's' : ''} remaining`)
@@ -1148,6 +1177,10 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
 
   const handleGuestTierMatrixPayment = async () => {
     if (!event) return
+    if (!refundPolicy.ensureAgreed()) {
+      toast.error('Review the refund policy and tap "I Agree" before continuing.')
+      return
+    }
     if (cartItems.length === 0) { toast.error("Select at least one ticket"); return }
 
     for (let i = 0; i < attendeeSlots.length; i++) {
@@ -1352,7 +1385,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
 
   const handleTierMatrixPayment = async () => {
     if (cartItems.length === 0) { toast.error("Select at least one ticket"); return }
-    if (!user) { toast.error("Please log in to purchase tickets"); return }
+    if (!user?._id) { toast.error("Please log in to purchase tickets"); return }
 
     for (let i = 0; i < attendeeSlots.length; i++) {
       const s = attendeeSlots[i]
@@ -1546,8 +1579,9 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
   }
 
   const onPrimaryAction = () => {
+    if (authStillLoading) return
     if (showGuestWizard && step !== 'attendees') return
-    if (!user) {
+    if (!isAuthenticated) {
       if (isSimpleEvent) {
         void handleGuestSimpleEventPayment()
       } else {
@@ -1599,7 +1633,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
       modal={!razorpayOpen}
     >
       <DialogContent
-        className="max-w-xl w-[95vw] sm:w-full max-h-[90vh] overflow-hidden flex flex-col p-4 sm:p-6"
+        className={`max-w-xl w-[95vw] sm:w-full max-h-[90vh] overflow-hidden flex flex-col p-4 sm:p-6 ${refundPolicy.policyModalOpen ? "pointer-events-none" : ""}`}
         onInteractOutside={(e) => { if (razorpayOpen) e.preventDefault() }}
         onEscapeKeyDown={(e) => { if (razorpayOpen) e.preventDefault() }}
       >
@@ -2293,11 +2327,16 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
                 </div>
               )}
 
-              {checkoutEventId && (
+              {checkoutEventId && isPaidCheckout && (
                 <div className="flex flex-col gap-3 pb-2">
                   <RefundPolicyCheckoutLine eventId={checkoutEventId} />
                   <div className="flex flex-col items-center gap-2">
-                    <RefundPolicyBadge eventId={checkoutEventId} source="checkout" isCheckoutFlow />
+                    <RefundPolicyBadge
+                      eventId={checkoutEventId}
+                      source="checkout"
+                      isCheckoutFlow
+                      onRequestViewPolicy={() => refundPolicy.setPolicyModalOpen(true)}
+                    />
                     {refundPolicy.payBlockedByPolicy && (
                       <p className="text-xs text-amber-700 dark:text-amber-400 text-center max-w-sm">
                         Review the refund policy and tap &quot;I Agree&quot; before paying.
@@ -2325,11 +2364,13 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
             </div>
             <Button
               onClick={onPrimaryAction}
-              disabled={loading || !hasSelection || refundPolicy.payBlockedByPolicy}
+              disabled={loading || !hasSelection || refundPolicy.payBlockedByPolicy || authStillLoading}
               className="w-full"
               size="lg"
             >
-              {loading ? (
+              {authStillLoading ? (
+                <><Loader2 className="w-5 h-5 animate-spin mr-2" />Loading account...</>
+              ) : loading ? (
                 <><Loader2 className="w-5 h-5 animate-spin mr-2" />Processing...</>
               ) : !hasSelection ? (
                 "Select tickets to continue"
@@ -2348,7 +2389,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
       <RefundPolicyModal
         eventId={checkoutEventId}
         open={refundPolicy.policyModalOpen}
-        onOpenChange={refundPolicy.setPolicyModalOpen}
+        onOpenChange={(open) => refundPolicy.handlePolicyModalOpenChange(open, onClose)}
         isCheckoutFlow
         source="checkout"
         onAcknowledged={refundPolicy.onPolicyAcknowledged}

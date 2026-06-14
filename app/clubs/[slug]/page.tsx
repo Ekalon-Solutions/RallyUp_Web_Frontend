@@ -32,6 +32,9 @@ import NewsReadMoreModal from "@/components/modals/news-readmore-modal"
 import { SocialBrandButton } from "@/components/club-public/social-platform-icons"
 import { EkalonAttribution } from "@/components/ekalon-attribution"
 import { ClubGallerySection } from "@/components/club-public/club-gallery-section"
+import { JoinMembershipModal, JoinablePlan } from "@/components/modals/join-membership-modal"
+import { useAuth } from "@/contexts/auth-context"
+import { toast } from "sonner"
 import { normalizeAlbums } from "@/lib/album-utils"
 import {
   Globe,
@@ -149,7 +152,51 @@ export default function PublicClubPage() {
   const params = useParams()
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { user } = useAuth()
   const slug = params.slug as string
+
+  const isLoggedIn = Boolean(
+    user?._id || (typeof window !== "undefined" && localStorage.getItem("token"))
+  )
+
+  const getDashboardPath = () => {
+    if (!user) return "/dashboard"
+    const userAny = user as any
+    if (userAny.role === "admin" || userAny.role === "super_admin") {
+      return userAny.club?._id || userAny.club ? "/splash" : "/dashboard"
+    }
+    const memberships = userAny.memberships || []
+    const activeMemberships = memberships.filter((m: any) => m.status === "active")
+    const uniqueClubIds = new Set<string>()
+    activeMemberships.forEach((m: any) => {
+      const id = m.club_id?._id || m.club_id
+      if (id) uniqueClubIds.add(id)
+    })
+    return uniqueClubIds.size > 1 ? "/splash" : "/dashboard"
+  }
+
+  const handleQuickBuyMerchandise = (item: any) => {
+    if (!club?._id) return
+    const checkoutItem = {
+      _id: item._id,
+      name: item.name,
+      price: item.price,
+      currency: item.currency || "INR",
+      quantity: 1,
+      featuredImage: item.featuredImage,
+      stockQuantity: item.stockQuantity ?? 0,
+      tags: item.tags,
+      club: item.club || { _id: club._id, name: club.name },
+    }
+    if (isLoggedIn && user?._id) {
+      setMerchandiseCheckoutItems([checkoutItem])
+      setShowMerchandiseCheckoutModal(true)
+      return
+    }
+    setMerchandiseForQuickBuy(item)
+    setPurchaseFlowReason("merchandise")
+    setShowPurchaseFlowModal(true)
+  }
 
   const [loading, setLoading] = useState(true)
   const [club, setClub] = useState<Club | null>(null)
@@ -174,7 +221,23 @@ export default function PublicClubPage() {
   const [loginOpen, setLoginOpen] = useState(false)
   const [showReadMoreModal, setShowReadMoreModal] = useState(false)
   const [selectedNewsForReadMore, setSelectedNewsForReadMore] = useState<News | null>(null)
+  const [clubPlans, setClubPlans] = useState<JoinablePlan[]>([])
+  const [showJoinModal, setShowJoinModal] = useState(false)
+  const [pendingJoinPlanId, setPendingJoinPlanId] = useState<string | undefined>(undefined)
 
+  useEffect(() => {
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null
+    let pending: { clubId: string; membershipPlanId: string; returnPath?: string } | null = null
+    try {
+      const raw = typeof window !== "undefined" ? sessionStorage.getItem("clubs_pending_join") : null
+      if (raw) pending = JSON.parse(raw) as { clubId: string; membershipPlanId: string; returnPath?: string }
+    } catch (_) {}
+    if (!token || !pending || !club?._id || pending.clubId !== club._id) return
+
+    sessionStorage.removeItem("clubs_pending_join")
+    setPendingJoinPlanId(pending.membershipPlanId)
+    setShowJoinModal(true)
+  }, [club?._id, clubPlans])
 
   useEffect(() => {
     const resume = searchParams.get("resumePurchase")
@@ -216,8 +279,36 @@ export default function PublicClubPage() {
     }
   }, [searchParams, club?._id, events])
 
-  const encodeSearchParam = (value: string) =>
-    encodeURIComponent(value).replace(/[!'()*]/g, (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`)
+  // Active plans whose booking window is currently open for this club
+  const getJoinablePlans = (): JoinablePlan[] => {
+    const now = Date.now()
+    return clubPlans.filter((plan) => {
+      const startMs = plan.bookingStartDate ? new Date(plan.bookingStartDate).getTime() : null
+      const endMs = plan.bookingEndDate ? new Date(plan.bookingEndDate).getTime() : null
+      const notStarted = Boolean(startMs && now < startMs)
+      const closed = Boolean(endMs && now > endMs)
+      return !notStarted && !closed
+    })
+  }
+
+  const handleOpenJoinModal = () => {
+    if (getJoinablePlans().length === 0) {
+      toast.error("No memberships are currently available for joining")
+      return
+    }
+    setShowJoinModal(true)
+  }
+
+  const hasActiveMembership = Boolean(
+    user &&
+    "memberships" in user &&
+    (user.memberships as any[])?.some(
+      (m) => (m.club_id?._id === club?._id || m.club_id === club?._id) && m.status === "active"
+    )
+  )
+
+  const joinButtonLabel = hasActiveMembership ? "Upgrade Membership" : "Join Club"
+  const ctaButtonLabel = hasActiveMembership ? "Upgrade Membership" : "Become a Member"
 
   const handleReadMoreNews = async (article: News) => {
     try {
@@ -247,6 +338,7 @@ export default function PublicClubPage() {
       const clubResponse = await apiClient.getClubById(slug, true)
       if (clubResponse.success && clubResponse.data) {
         setClub(clubResponse.data)
+        loadClubPlans(clubResponse.data._id, slug)
       }
 
       const settingsResponse = await apiClient.getClubSettings(slug, true)
@@ -272,6 +364,20 @@ export default function PublicClubPage() {
     } catch (error) {
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadClubPlans = async (clubId: string, clubSlug: string) => {
+    try {
+      const res = await apiClient.getPublicClubs()
+      if (!res.success || !res.data) return
+      const match = (res.data.clubs || []).find(
+        (c: any) => c._id === clubId || c.slug === clubSlug
+      )
+      const plans = ((match as any)?.membershipPlans || []).filter((p: any) => p.isActive)
+      setClubPlans(plans as JoinablePlan[])
+    } catch (_) {
+      setClubPlans([])
     }
   }
 
@@ -436,7 +542,6 @@ export default function PublicClubPage() {
   const description = websiteSetup.description || club.description
 
   const primaryColor = designSettings.primaryColor || "#3b82f6"
-  const clubSearchHref = club?.name ? `/clubs?search=${encodeSearchParam(club.name)}` : "/clubs"
 
   const clubSettingsSocialMedia = getSocialMediaRecordFromClubSettings(settings)
   const socialLinks = clubSettingsSocialMedia
@@ -538,17 +643,16 @@ export default function PublicClubPage() {
           )}
 
           <div className="flex items-center gap-2 flex-shrink-0">
-            <Link href={clubSearchHref}>
-              <Button
-                size="sm"
-                className="font-bold px-4 sm:px-6 text-sm"
-                style={{ backgroundColor: primaryColor, color: "white" }}
-              >
-                Join Club
-              </Button>
-            </Link>
-            <Button size="sm" variant="outline" className="font-bold px-4 sm:px-6 text-sm" onClick={() => setLoginOpen(true)}>
-              Member Login
+            <Button
+              size="sm"
+              className="font-bold px-4 sm:px-6 text-sm"
+              style={{ backgroundColor: primaryColor, color: "white" }}
+              onClick={handleOpenJoinModal}
+            >
+              {joinButtonLabel}
+            </Button>
+            <Button size="sm" variant="outline" className="font-bold px-4 sm:px-6 text-sm" onClick={() => isLoggedIn ? router.push(getDashboardPath()) : setLoginOpen(true)}>
+              {isLoggedIn ? "Dashboard" : "Member Login"}
             </Button>
           </div>
         </div>
@@ -920,11 +1024,7 @@ export default function PublicClubPage() {
                                             size="sm"
                                             className="w-full mt-2"
                                             style={{ backgroundColor: primaryColor, color: "white" }}
-                                            onClick={() => {
-                                              setMerchandiseForQuickBuy(item)
-                                              setPurchaseFlowReason("merchandise")
-                                              setShowPurchaseFlowModal(true)
-                                            }}
+                                            onClick={() => handleQuickBuyMerchandise(item)}
                                           >
                                             Quick Buy
                                           </Button>
@@ -1047,18 +1147,17 @@ export default function PublicClubPage() {
               priority event booking, and a global network of passionate fans.
             </p>
             <div className="flex flex-col sm:flex-row justify-center gap-6 pt-10">
-              <Link href={clubSearchHref} className="w-full sm:w-auto">
-                <Button
-                  size="lg"
-                  className="w-full sm:px-16 h-20 text-2xl font-black shadow-2xl hover:scale-105 transition-all rounded-[2rem]"
-                  style={{
-                    backgroundColor: primaryColor,
-                    color: 'white'
-                  }}
-                >
-                  Become a Member
-                </Button>
-              </Link>
+              <Button
+                size="lg"
+                className="w-full sm:w-auto sm:px-16 h-20 text-2xl font-black shadow-2xl hover:scale-105 transition-all rounded-[2rem]"
+                style={{
+                  backgroundColor: primaryColor,
+                  color: 'white'
+                }}
+                onClick={handleOpenJoinModal}
+              >
+                {ctaButtonLabel}
+              </Button>
             </div>
           </div>
         </div>
@@ -1350,6 +1449,22 @@ export default function PublicClubPage() {
       />
 
       <LoginModal open={loginOpen} onOpenChange={setLoginOpen} />
+
+      {club?._id && (
+        <JoinMembershipModal
+          open={showJoinModal}
+          onOpenChange={(open) => {
+            setShowJoinModal(open)
+            if (!open) setPendingJoinPlanId(undefined)
+          }}
+          clubId={club._id}
+          clubName={club.name}
+          plans={getJoinablePlans()}
+          primaryColor={primaryColor}
+          returnPath={`/clubs/${slug}`}
+          initialPlanId={pendingJoinPlanId}
+        />
+      )}
 
       <NewsReadMoreModal
         news={selectedNewsForReadMore}

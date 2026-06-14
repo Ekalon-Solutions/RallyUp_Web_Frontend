@@ -19,6 +19,9 @@ type RefundPolicyBadgeProps = {
   source?: "badge" | "checkout" | "event_detail" | "other"
   isCheckoutFlow?: boolean
   onPolicyLoaded?: (policy: EventRefundPolicyData | null) => void
+  /** When set (checkout flow), opens the parent checkout policy modal instead of a nested one. */
+  onRequestViewPolicy?: () => void
+  onAcknowledged?: () => void
 }
 
 export function RefundPolicyBadge({
@@ -29,6 +32,8 @@ export function RefundPolicyBadge({
   source = "badge",
   isCheckoutFlow = false,
   onPolicyLoaded,
+  onRequestViewPolicy,
+  onAcknowledged,
 }: RefundPolicyBadgeProps) {
   const { policy: hookPolicy, loading } = useEventRefundPolicy(
     policyProp ? undefined : eventId,
@@ -37,7 +42,15 @@ export function RefundPolicyBadge({
   const policy = policyProp ?? hookPolicy
   const [modalOpen, setModalOpen] = useState(false)
 
-  const openModal = useCallback(() => setModalOpen(true), [])
+  const openModal = useCallback(() => {
+    if (onRequestViewPolicy) {
+      onRequestViewPolicy()
+      return
+    }
+    setModalOpen(true)
+  }, [onRequestViewPolicy])
+
+  const useExternalPolicyModal = Boolean(onRequestViewPolicy)
 
   if (isFreeEvent) return null
 
@@ -76,13 +89,16 @@ export function RefundPolicyBadge({
             Non-Refundable
           </Badge>
         </button>
-        <RefundPolicyModal
-          eventId={eventId}
-          open={modalOpen}
-          onOpenChange={setModalOpen}
-          isCheckoutFlow={isCheckoutFlow}
-          source={source}
-        />
+        {!useExternalPolicyModal && (
+          <RefundPolicyModal
+            eventId={eventId}
+            open={modalOpen}
+            onOpenChange={setModalOpen}
+            isCheckoutFlow={isCheckoutFlow}
+            source={source}
+            onAcknowledged={onAcknowledged}
+          />
+        )}
       </>
     )
   }
@@ -100,13 +116,16 @@ export function RefundPolicyBadge({
             Refund window closed
           </Badge>
         </button>
-        <RefundPolicyModal
-          eventId={eventId}
-          open={modalOpen}
-          onOpenChange={setModalOpen}
-          isCheckoutFlow={isCheckoutFlow}
-          source={source}
-        />
+        {!useExternalPolicyModal && (
+          <RefundPolicyModal
+            eventId={eventId}
+            open={modalOpen}
+            onOpenChange={setModalOpen}
+            isCheckoutFlow={isCheckoutFlow}
+            source={source}
+            onAcknowledged={onAcknowledged}
+          />
+        )}
       </>
     )
   }
@@ -128,13 +147,16 @@ export function RefundPolicyBadge({
           {label}
         </Badge>
       </button>
-      <RefundPolicyModal
-        eventId={eventId}
-        open={modalOpen}
-        onOpenChange={setModalOpen}
-        isCheckoutFlow={isCheckoutFlow}
-        source={source}
-      />
+      {!useExternalPolicyModal && (
+        <RefundPolicyModal
+          eventId={eventId}
+          open={modalOpen}
+          onOpenChange={setModalOpen}
+          isCheckoutFlow={isCheckoutFlow}
+          source={source}
+          onAcknowledged={onAcknowledged}
+        />
+      )}
     </>
   )
 }

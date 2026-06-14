@@ -315,37 +315,6 @@ export default function BrowseMembershipPlansPage() {
     return formatDuration(getPlanDurationMonths(plan))
   }
 
-  const getFeatureList = (features: MembershipPlan['features']) => {
-    const featureList = []
-    
-    if (features.maxEvents > 0) {
-      featureList.push(`Up to ${features.maxEvents} events`)
-    }
-    if (features.maxNews > 0) {
-      featureList.push(`Up to ${features.maxNews} news posts`)
-    }
-    if (features.maxMembers > 0) {
-      featureList.push(`Up to ${features.maxMembers} members`)
-    }
-    if (features.customBranding) {
-      featureList.push("Custom branding")
-    }
-    if (features.advancedAnalytics) {
-      featureList.push("Advanced analytics")
-    }
-    if (features.prioritySupport) {
-      featureList.push("Priority support")
-    }
-    if (features.apiAccess) {
-      featureList.push("API access")
-    }
-    if (features.customIntegrations) {
-      featureList.push("Custom integrations")
-    }
-    
-    return featureList
-  }
-
   const getMostPopularPlan = () => {
     if (plans.length <= 2) return null
     const sortedByPrice = [...plans].sort((a, b) => a.price - b.price)
@@ -623,8 +592,6 @@ export default function BrowseMembershipPlansPage() {
                 const isDowngrade = isDowngradePlan(plan)
                 const isCurrent = isCurrentPlan(plan)
                 const isDisabled = isPlanDisabled(plan)
-                const membershipExpired = isMembershipExpired()
-                const featureList = getFeatureList(plan.features)
                 const buttonText = getButtonText(plan)
                 const salesState = getPlanSalesState(plan)
                 
@@ -681,21 +648,6 @@ export default function BrowseMembershipPlansPage() {
                           <Calendar className="w-3 h-3" />
                           {getPlanDateRangeLabel(plan)}
                         </div>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <h4 className="font-semibold text-sm flex items-center gap-1">
-                          <Check className="w-4 h-4 text-green-500" />
-                          What's included:
-                        </h4>
-                        <ul className="space-y-1 text-sm">
-                          {featureList.map((feature, index) => (
-                            <li key={index} className="flex items-start gap-2">
-                              <Check className="w-3 h-3 text-green-500 mt-0.5 flex-shrink-0" />
-                              <span className="text-muted-foreground">{feature}</span>
-                            </li>
-                          ))}
-                        </ul>
                       </div>
                       
                       <Button 

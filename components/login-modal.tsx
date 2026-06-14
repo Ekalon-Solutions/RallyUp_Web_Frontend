@@ -261,7 +261,7 @@ export function LoginModal({ open, onOpenChange, onSuccess }: LoginModalProps) {
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!v) resetForm(); onOpenChange(v) }}>
-      <DialogContent className="p-0 gap-0 w-[92vw] max-w-[360px] sm:w-full sm:max-w-[420px] overflow-hidden rounded-2xl border-0 shadow-2xl" hideCloseButton>
+      <DialogContent className="public-theme p-0 gap-0 w-[92vw] max-w-[360px] sm:w-full sm:max-w-[420px] overflow-hidden rounded-2xl border-0 shadow-2xl" hideCloseButton>
         <DialogTitle className="sr-only">Login to RallyUp</DialogTitle>
         {/* Header */}
         <div className="relative bg-secondary px-5 pt-4">

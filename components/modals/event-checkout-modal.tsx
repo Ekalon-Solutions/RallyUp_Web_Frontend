@@ -149,7 +149,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
 
   useEffect(() => {
     if (isOpen) {
-      setMemberValidated(Boolean(skipMemberValidation))
+      setMemberValidated(Boolean(skipMemberValidation || user))
       setLocalCouponCode("")
       setCouponApplied(false)
       setCouponDiscount(0)
@@ -158,7 +158,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
       setAttributedClubError("")
       setShowClubAlert(false)
     }
-  }, [isOpen, skipMemberValidation])
+  }, [isOpen, skipMemberValidation, user])
 
   useEffect(() => {
     if (isOpen && !scriptLoaded) {
@@ -284,6 +284,10 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
     }
   }
 
+  const checkoutEventId = event?._id ? String(event._id) : undefined
+  const isPaidCheckout = (event?.ticketPrice ?? event?.price ?? 0) > 0
+  const refundPolicy = useCheckoutRefundPolicy(checkoutEventId, isOpen, isPaidCheckout)
+
   const handleValidateCoupon = async () => {
     if (!localCouponCode.trim() || !event?._id) {
       toast.error("Please enter a coupon code")
@@ -331,6 +335,10 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
   const affiliationClubOptions = getJointScreeningClubNames(jointScreening ?? undefined)
 
   const handlePayment = async () => {
+    if (!refundPolicy.ensureAgreed()) {
+      toast.error('Review the refund policy and tap "I Agree" before continuing.')
+      return
+    }
     if (!scriptLoaded) {
       toast.error("Payment system is still loading. Please wait.")
       return
@@ -676,9 +684,6 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
   // Fees are calculated on the final net amount (after all discounts). When the
   // club absorbs fees, the buyer pays the base net and fees are not appended.
   const { feeBreakdown, amountToCharge, feesAbsorbed } = resolveCheckoutCharge(netSubtotal, event?.feeHandlingType);
-  const checkoutEventId = event?._id ? String(event._id) : undefined
-  const isPaidCheckout = amountToCharge > 0
-  const refundPolicy = useCheckoutRefundPolicy(checkoutEventId, isOpen, isPaidCheckout)
 
   const currencySymbols: Record<string, string> = {
     INR: '₹',
@@ -731,7 +736,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
       </AlertDialog>
     <Dialog open={isOpen} onOpenChange={() => { if (!razorpayOpen) onClose() }} modal={!razorpayOpen}>
       <DialogContent
-        className="max-w-md w-[95vw] sm:w-full max-h-[90vh] overflow-hidden flex flex-col p-4 sm:p-6"
+        className={`max-w-md w-[95vw] sm:w-full max-h-[90vh] overflow-hidden flex flex-col p-4 sm:p-6 ${refundPolicy.policyModalOpen ? "pointer-events-none" : ""}`}
         onInteractOutside={(e) => { if (razorpayOpen) e.preventDefault() }}
         onEscapeKeyDown={(e) => { if (razorpayOpen) e.preventDefault() }}
       >
@@ -998,7 +1003,12 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
               <RefundPolicyCheckoutLine eventId={checkoutEventId} />
               {isPaidCheckout && (
                 <div className="flex flex-col items-center gap-2">
-                  <RefundPolicyBadge eventId={checkoutEventId} source="checkout" isCheckoutFlow />
+                  <RefundPolicyBadge
+                    eventId={checkoutEventId}
+                    source="checkout"
+                    isCheckoutFlow
+                    onRequestViewPolicy={() => refundPolicy.setPolicyModalOpen(true)}
+                  />
                   {refundPolicy.payBlockedByPolicy && (
                     <p className="text-xs text-amber-700 dark:text-amber-400 text-center max-w-sm">
                       Review the refund policy and tap &quot;I Agree&quot; before paying.
@@ -1044,7 +1054,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
         <RefundPolicyModal
           eventId={checkoutEventId}
           open={refundPolicy.policyModalOpen}
-          onOpenChange={refundPolicy.setPolicyModalOpen}
+          onOpenChange={(open) => refundPolicy.handlePolicyModalOpenChange(open, onClose)}
           isCheckoutFlow
           source="checkout"
           onAcknowledged={refundPolicy.onPolicyAcknowledged}
