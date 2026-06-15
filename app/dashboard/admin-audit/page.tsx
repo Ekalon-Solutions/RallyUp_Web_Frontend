@@ -76,6 +76,7 @@ import {
 import { useAuth } from "@/contexts/auth-context"
 import { CLUB_FEATURE_KEYS, FEATURE_DESCRIPTIONS, FEATURE_LABELS } from "@/lib/clubFeatures"
 import type { ClubFeatureKey } from "@/lib/clubFeatures"
+import { CONSTRAINT_KEYS, CONSTRAINT_LABELS } from "@/lib/billingConstraints"
 
 // ---------------------------------------------------------------------------
 // Types
@@ -157,6 +158,73 @@ const REASON_LABELS: Record<string, string> = {
   compliance:                      "Compliance",
   support_request:                 "Support Request",
   UPGRADE_INQUIRY:                 "Upgrade Inquiry",
+  LIMIT_INCREASE_REQUEST:          "Limit Increase Request",
+}
+
+type LimitIncreaseRequest = {
+  _id: string
+  clubId: { _id: string; name: string; slug: string }
+  featureKey: string
+  currentLimit: number
+  requestedLimit: number
+  justification: string
+  status: string
+  createdAt: string
+}
+
+const INQUIRY_PAGE_SIZE = 50
+
+function limitRequestToAuditEntry(req: LimitIncreaseRequest): AuditEntry {
+  const label = CONSTRAINT_LABELS[req.featureKey] ?? req.featureKey
+  return {
+    _id: `limit-${req._id}`,
+    club: req.clubId,
+    actorId: typeof req.clubId === "object" ? req.clubId._id : String(req.clubId),
+    actorType: "admin",
+    featureKey: req.featureKey as AuditEntry["featureKey"],
+    oldValue: String(req.currentLimit),
+    newValue: String(req.requestedLimit),
+    reasonCode: "LIMIT_INCREASE_REQUEST",
+    summary: `Limit increase for ${label}: ${req.currentLimit} → ${req.requestedLimit}. ${req.justification}`,
+    createdAt: req.createdAt,
+  }
+}
+
+function filterLimitRequests(
+  requests: LimitIncreaseRequest[],
+  opts: { search: string; featureKey: string; startDate: string; endDate: string },
+): LimitIncreaseRequest[] {
+  const search = opts.search.trim().toLowerCase()
+  const start = new Date(opts.startDate)
+  const end = new Date(opts.endDate)
+  end.setUTCHours(23, 59, 59, 999)
+
+  return requests.filter((req) => {
+    const created = new Date(req.createdAt)
+    if (created < start || created > end) return false
+    if (opts.featureKey !== "all" && req.featureKey !== opts.featureKey) return false
+    if (!search) return true
+
+    const label = (CONSTRAINT_LABELS[req.featureKey] ?? req.featureKey).toLowerCase()
+    const clubName = (req.clubId?.name ?? "").toLowerCase()
+    return (
+      clubName.includes(search) ||
+      label.includes(search) ||
+      req.featureKey.toLowerCase().includes(search) ||
+      req.justification.toLowerCase().includes(search)
+    )
+  })
+}
+
+function paginateEntries<T>(items: T[], page: number, limit: number): { slice: T[]; pagination: Pagination } {
+  const total = items.length
+  const pages = Math.max(1, Math.ceil(total / limit))
+  const safePage = Math.min(Math.max(1, page), pages)
+  const start = (safePage - 1) * limit
+  return {
+    slice: items.slice(start, start + limit),
+    pagination: { page: safePage, limit, total, pages },
+  }
 }
 
 const ACTION_LABELS: Record<string, string> = {
@@ -324,11 +392,11 @@ function PaginationBar({ pagination, page, setPage }: {
 }) {
   if (pagination.pages <= 1) return null
   return (
-    <div className="flex items-center justify-between">
-      <p className="text-sm text-muted-foreground tabular-nums">
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <p className="text-xs sm:text-sm text-muted-foreground tabular-nums text-center sm:text-left">
         Page {pagination.page} of {pagination.pages} &mdash; {pagination.total.toLocaleString()} records
       </p>
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center justify-center sm:justify-end gap-1.5">
         <div className="hidden sm:flex items-center gap-1 mr-2">
           {Array.from({ length: Math.min(pagination.pages, 7) }, (_, i) => {
             let pn: number
@@ -391,10 +459,10 @@ function FeatureAuditDetailSheet({ entry, open, onClose }: {
 
   return (
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
-      <SheetContent className="sm:max-w-lg overflow-y-auto">
+      <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
         <SheetHeader className="pb-4">
-          <SheetTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5 text-primary" />Audit Entry Detail
+          <SheetTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <FileText className="h-5 w-5 text-primary shrink-0" />Audit Entry Detail
           </SheetTitle>
           <SheetDescription>
             Log entry <code className="text-[10px] bg-muted px-1 py-0.5 rounded">{entry._id.slice(-8)}</code>
@@ -503,10 +571,10 @@ function AdminActionDetailSheet({ entry, open, onClose }: {
 
   return (
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
-      <SheetContent className="sm:max-w-lg overflow-y-auto">
+      <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
         <SheetHeader className="pb-4">
-          <SheetTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5 text-primary" />Admin Action Detail
+          <SheetTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <Users className="h-5 w-5 text-primary shrink-0" />Admin Action Detail
           </SheetTitle>
           <SheetDescription>
             Log entry <code className="text-[10px] bg-muted px-1 py-0.5 rounded">{entry._id.slice(-8)}</code>
@@ -676,23 +744,23 @@ function FeatureChangesTab() {
 
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <CardTitle className="text-base flex items-center gap-2"><Search className="h-4 w-4 text-muted-foreground" />Search & Filter</CardTitle>
-            <Button variant="outline" size="sm" onClick={handleExport} disabled={exporting} className="gap-1.5">
+            <Button variant="outline" size="sm" onClick={handleExport} disabled={exporting} className="gap-1.5 w-full sm:w-auto">
               {exporting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
               Compliance PDF
             </Button>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="relative min-w-[240px] flex-1 max-w-sm">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3">
+            <div className="relative w-full sm:min-w-[240px] sm:flex-1 sm:max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input className="pl-9 pr-8 text-sm" placeholder="Search by actor name…" value={search} onChange={e => setSearch(e.target.value)} />
               {search && <button className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-muted" onClick={() => setSearch("")}><X className="h-3 w-3 text-muted-foreground" /></button>}
             </div>
             <Select value={featureKey} onValueChange={setFeatureKey}>
-              <SelectTrigger className="w-52"><SelectValue placeholder="All features" /></SelectTrigger>
+              <SelectTrigger className="w-full sm:w-52"><SelectValue placeholder="All features" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All features</SelectItem>
                 <SelectItem value="billing_tier">Billing Tier</SelectItem>
@@ -701,10 +769,10 @@ function FeatureChangesTab() {
               </SelectContent>
             </Select>
             <Select value={String(datePreset)} onValueChange={v => setDatePreset(parseInt(v, 10))}>
-              <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-full sm:w-44"><SelectValue /></SelectTrigger>
               <SelectContent>{DATE_PRESETS.map(p => <SelectItem key={p.days} value={String(p.days)}>{p.label}</SelectItem>)}</SelectContent>
             </Select>
-            <span className="text-xs text-muted-foreground ml-auto tabular-nums">{pagination.total.toLocaleString()} record{pagination.total !== 1 ? "s" : ""}</span>
+            <span className="text-xs text-muted-foreground sm:ml-auto tabular-nums text-center sm:text-left">{pagination.total.toLocaleString()} record{pagination.total !== 1 ? "s" : ""}</span>
           </div>
         </CardContent>
       </Card>
@@ -717,13 +785,49 @@ function FeatureChangesTab() {
               <p className="text-sm text-muted-foreground">Loading audit records…</p>
             </div>
           ) : entries.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
+            <div className="flex flex-col items-center justify-center py-20 gap-3 text-center px-4">
               <div className="rounded-full bg-muted p-4"><ClipboardList className="h-8 w-8 text-muted-foreground/30" /></div>
               <p className="text-muted-foreground font-medium">No audit records found.</p>
               <p className="text-xs text-muted-foreground max-w-sm">Try adjusting the date range or clearing the search.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+            <div className="md:hidden divide-y">
+              {entries.map(entry => {
+                const isWaAlert = entry.featureKey === "wa_marketing" && renderValue(entry.newValue).isOn
+                return (
+                  <button
+                    key={entry._id}
+                    type="button"
+                    className={`w-full text-left p-4 space-y-2.5 transition-colors ${isWaAlert ? "bg-red-50/40 dark:bg-red-950/10" : "hover:bg-muted/40"}`}
+                    onClick={() => setDetailEntry(entry)}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-xs font-mono text-foreground">{formatTs(entry.createdAt)}</p>
+                        <p className="text-[10px] text-muted-foreground">{formatRelative(entry.createdAt)}</p>
+                      </div>
+                      <FeatureKeyBadge featureKey={entry.featureKey} />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <ActorAvatar name={entry.actorName ?? entry.actorId.slice(-6)} role={entry.actorType} />
+                      <div className="min-w-0">
+                        <p className="font-medium text-sm truncate">{entry.actorName ?? entry.actorId.slice(-8)}</p>
+                        <p className="text-xs text-muted-foreground truncate">{getClubName(entry)}</p>
+                      </div>
+                    </div>
+                    <ChangeIndicator oldVal={entry.oldValue} newVal={entry.newValue} />
+                    <p className="text-sm text-muted-foreground line-clamp-2">{entry.summary}</p>
+                    {isWaAlert && (
+                      <Badge variant="destructive" className="text-[9px] px-1 py-0">
+                        <AlertTriangle className="h-2.5 w-2.5 mr-0.5" />Security alert
+                      </Badge>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+            <div className="hidden md:block overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/30 hover:bg-muted/30">
@@ -808,13 +912,14 @@ function FeatureChangesTab() {
                 </TableBody>
               </Table>
             </div>
+            </>
           )}
         </CardContent>
       </Card>
 
       <PaginationBar pagination={pagination} page={page} setPage={setPage} />
 
-      <div className="flex flex-wrap items-center gap-4 text-[11px] text-muted-foreground border-t pt-4">
+      <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-[11px] text-muted-foreground border-t pt-4">
         <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-emerald-500" />Feature ON</span>
         <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-red-400" />Feature OFF</span>
         <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-amber-500" />Special (Tier/Bulk)</span>
@@ -832,7 +937,7 @@ function FeatureChangesTab() {
 
 function UpgradeInquiriesTab() {
   const [entries, setEntries] = useState<AuditEntry[]>([])
-  const [pagination, setPagination] = useState<Pagination>({ page: 1, limit: 50, total: 0, pages: 0 })
+  const [pagination, setPagination] = useState<Pagination>({ page: 1, limit: INQUIRY_PAGE_SIZE, total: 0, pages: 0 })
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [featureKey, setFeatureKey] = useState("all")
@@ -840,28 +945,55 @@ function UpgradeInquiriesTab() {
   const [page, setPage] = useState(1)
   const [detailEntry, setDetailEntry] = useState<AuditEntry | null>(null)
 
-  const buildParams = useCallback(() => ({
-    search: search.trim() || undefined,
-    featureKey: featureKey !== "all" ? featureKey : undefined,
-    reasonCode: "UPGRADE_INQUIRY",
-    startDate: daysAgoISO(datePreset),
-    endDate: nowISO(),
-    page,
-    limit: 50,
-  }), [search, featureKey, datePreset, page])
-
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await apiClient.getClubFeatureAuditLog(buildParams())
-      if (res.success) {
-        const body = (res as any).data
-        setEntries(Array.isArray(body?.data) ? body.data : [])
-        if (body?.pagination) setPagination(body.pagination)
-      }
-    } catch { toast.error("Failed to load inquiries") }
-    finally { setLoading(false) }
-  }, [buildParams])
+      const startDate = daysAgoISO(datePreset)
+      const endDate = nowISO()
+      const trimmedSearch = search.trim()
+
+      const [auditRes, limitRes] = await Promise.all([
+        apiClient.getClubFeatureAuditLog({
+          search: trimmedSearch || undefined,
+          featureKey: featureKey !== "all" ? featureKey : undefined,
+          reasonCode: "UPGRADE_INQUIRY",
+          startDate,
+          endDate,
+          page: 1,
+          limit: 200,
+        }),
+        apiClient.getAllLimitRequests(),
+      ])
+
+      const auditEntries: AuditEntry[] = auditRes.success
+        ? (Array.isArray((auditRes as any).data?.data)
+            ? (auditRes as any).data.data
+            : Array.isArray((auditRes as any).data)
+              ? (auditRes as any).data
+              : [])
+        : []
+
+      const limitRequests = limitRes.success && Array.isArray(limitRes.data) ? limitRes.data : []
+      const limitEntries = filterLimitRequests(limitRequests, {
+        search: trimmedSearch,
+        featureKey,
+        startDate,
+        endDate,
+      }).map(limitRequestToAuditEntry)
+
+      const merged = [...auditEntries, ...limitEntries].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      )
+
+      const { slice, pagination: nextPagination } = paginateEntries(merged, page, INQUIRY_PAGE_SIZE)
+      setEntries(slice)
+      setPagination(nextPagination)
+    } catch {
+      toast.error("Failed to load inquiries")
+    } finally {
+      setLoading(false)
+    }
+  }, [search, featureKey, datePreset, page])
 
   useEffect(() => { const t = setTimeout(load, 350); return () => clearTimeout(t) }, [load])
   useEffect(() => { setPage(1) }, [search, featureKey, datePreset])
@@ -894,26 +1026,29 @@ function UpgradeInquiriesTab() {
           <CardTitle className="text-base flex items-center gap-2"><Search className="h-4 w-4 text-muted-foreground" />Filter Inquiries</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="relative min-w-[240px] flex-1 max-w-sm">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3">
+            <div className="relative w-full sm:min-w-[240px] sm:flex-1 sm:max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-              <Input className="pl-9 pr-8 text-sm" placeholder="Search by admin name…" value={search} onChange={e => setSearch(e.target.value)} />
+              <Input className="pl-9 pr-8 text-sm" placeholder="Search by admin or club name…" value={search} onChange={e => setSearch(e.target.value)} />
               {search && <button className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-muted" onClick={() => setSearch("")}><X className="h-3 w-3 text-muted-foreground" /></button>}
             </div>
             <Select value={featureKey} onValueChange={setFeatureKey}>
-              <SelectTrigger className="w-52"><SelectValue placeholder="All features" /></SelectTrigger>
+              <SelectTrigger className="w-full sm:w-52"><SelectValue placeholder="All features" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All features</SelectItem>
+                <SelectItem value="all">All features & limits</SelectItem>
                 {CLUB_FEATURE_KEYS.map(k => (
                   <SelectItem key={k} value={k}>{(FEATURE_LABELS as Record<string, string>)[k] ?? k}</SelectItem>
+                ))}
+                {CONSTRAINT_KEYS.map(k => (
+                  <SelectItem key={k} value={k}>{CONSTRAINT_LABELS[k] ?? k}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
             <Select value={String(datePreset)} onValueChange={v => setDatePreset(parseInt(v, 10))}>
-              <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-full sm:w-44"><SelectValue /></SelectTrigger>
               <SelectContent>{DATE_PRESETS.map(p => <SelectItem key={p.days} value={String(p.days)}>{p.label}</SelectItem>)}</SelectContent>
             </Select>
-            <span className="text-xs text-muted-foreground ml-auto tabular-nums">{pagination.total.toLocaleString()} inquir{pagination.total !== 1 ? "ies" : "y"}</span>
+            <span className="text-xs text-muted-foreground sm:ml-auto tabular-nums text-center sm:text-left">{pagination.total.toLocaleString()} inquir{pagination.total !== 1 ? "ies" : "y"}</span>
           </div>
         </CardContent>
       </Card>
@@ -926,20 +1061,57 @@ function UpgradeInquiriesTab() {
               <p className="text-sm text-muted-foreground">Loading inquiries…</p>
             </div>
           ) : entries.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
+            <div className="flex flex-col items-center justify-center py-20 gap-3 text-center px-4">
               <div className="rounded-full bg-muted p-4"><MessageSquare className="h-8 w-8 text-muted-foreground/30" /></div>
               <p className="text-muted-foreground font-medium">No upgrade inquiries found.</p>
-              <p className="text-xs text-muted-foreground max-w-sm">Inquiries appear here when club admins click "Request Reactivation" or "Upgrade to Unlock."</p>
+              <p className="text-xs text-muted-foreground max-w-sm">Inquiries appear here when club admins request feature upgrades, reactivation, or higher usage limits from Admin Settings.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+            <div className="md:hidden divide-y">
+              {entries.map(entry => (
+                <button
+                  key={entry._id}
+                  type="button"
+                  className="w-full text-left p-4 space-y-2.5 hover:bg-muted/40 transition-colors"
+                  onClick={() => setDetailEntry(entry)}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="text-xs font-mono">{formatTs(entry.createdAt)}</p>
+                      <p className="text-[10px] text-muted-foreground">{formatRelative(entry.createdAt)}</p>
+                    </div>
+                    <Badge variant="outline" className={
+                      entry.reasonCode === "LIMIT_INCREASE_REQUEST"
+                        ? "text-[10px] border-blue-300 text-blue-700 bg-blue-50/50 dark:border-blue-700 dark:text-blue-400 dark:bg-blue-950/20"
+                        : "text-[10px] border-amber-300 text-amber-700 bg-amber-50/50 dark:border-amber-700 dark:text-amber-400 dark:bg-amber-950/20"
+                    }>
+                      {entry.reasonCode === "LIMIT_INCREASE_REQUEST" ? "Limit Increase" : "Feature Upgrade"}
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <ActorAvatar name={entry.actorName ?? "?"} role={entry.actorType} />
+                    <div className="min-w-0">
+                      <p className="font-medium text-sm truncate">{entry.actorName ?? (entry.reasonCode === "LIMIT_INCREASE_REQUEST" ? "Club Admin" : "—")}</p>
+                      <p className="text-xs text-muted-foreground truncate">{getClubName(entry)}</p>
+                    </div>
+                  </div>
+                  <code className="text-[10px] font-mono bg-amber-50 dark:bg-amber-950/30 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800/40 px-1.5 py-0.5 rounded">
+                    {entry.featureKey}
+                  </code>
+                  <p className="text-sm text-muted-foreground line-clamp-3">{entry.summary}</p>
+                </button>
+              ))}
+            </div>
+            <div className="hidden md:block overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/30 hover:bg-muted/30">
                     <TableHead className="whitespace-nowrap w-[150px]">Submitted</TableHead>
                     <TableHead className="w-[160px]">Admin</TableHead>
                     <TableHead className="w-[140px]">Club</TableHead>
-                    <TableHead className="w-[140px]">Feature Requested</TableHead>
+                    <TableHead className="w-[140px]">Feature / Limit</TableHead>
+                    <TableHead className="w-[120px]">Type</TableHead>
                     <TableHead className="min-w-[200px]">Message</TableHead>
                     <TableHead className="w-[140px]">IP / UA</TableHead>
                     <TableHead className="w-[60px]" />
@@ -956,7 +1128,9 @@ function UpgradeInquiriesTab() {
                         <div className="flex items-center gap-2">
                           <ActorAvatar name={entry.actorName ?? "?"} role={entry.actorType} />
                           <div className="min-w-0">
-                            <div className="font-medium text-sm truncate max-w-[110px]">{entry.actorName ?? "—"}</div>
+                            <div className="font-medium text-sm truncate max-w-[110px]">
+                              {entry.actorName ?? (entry.reasonCode === "LIMIT_INCREASE_REQUEST" ? "Club Admin" : "—")}
+                            </div>
                             <RoleBadge role={entry.actorType} />
                           </div>
                         </div>
@@ -969,9 +1143,20 @@ function UpgradeInquiriesTab() {
                             {entry.featureKey}
                           </code>
                         </div>
-                        {(FEATURE_LABELS as Record<string, string>)[entry.featureKey] && (
-                          <p className="text-[10px] text-muted-foreground mt-0.5">{(FEATURE_LABELS as Record<string, string>)[entry.featureKey]}</p>
+                        {((FEATURE_LABELS as Record<string, string>)[entry.featureKey] ?? CONSTRAINT_LABELS[entry.featureKey]) && (
+                          <p className="text-[10px] text-muted-foreground mt-0.5">
+                            {(FEATURE_LABELS as Record<string, string>)[entry.featureKey] ?? CONSTRAINT_LABELS[entry.featureKey]}
+                          </p>
                         )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={
+                          entry.reasonCode === "LIMIT_INCREASE_REQUEST"
+                            ? "text-[10px] border-blue-300 text-blue-700 bg-blue-50/50 dark:border-blue-700 dark:text-blue-400 dark:bg-blue-950/20"
+                            : "text-[10px] border-amber-300 text-amber-700 bg-amber-50/50 dark:border-amber-700 dark:text-amber-400 dark:bg-amber-950/20"
+                        }>
+                          {entry.reasonCode === "LIMIT_INCREASE_REQUEST" ? "Limit Increase" : "Feature Upgrade"}
+                        </Badge>
                       </TableCell>
                       <TableCell className="text-sm max-w-[300px]">
                         <Tooltip>
@@ -994,6 +1179,7 @@ function UpgradeInquiriesTab() {
                 </TableBody>
               </Table>
             </div>
+            </>
           )}
         </CardContent>
       </Card>
@@ -1078,21 +1264,21 @@ function AdminActionsTab() {
           <CardTitle className="text-base flex items-center gap-2"><Search className="h-4 w-4 text-muted-foreground" />Search & Filter</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="relative min-w-[240px] flex-1 max-w-sm">
+          <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3">
+            <div className="relative w-full sm:min-w-[240px] sm:flex-1 sm:max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input className="pl-9 pr-8 text-sm" placeholder="Search by actor name…" value={search} onChange={e => setSearch(e.target.value)} />
               {search && <button className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded-full hover:bg-muted" onClick={() => setSearch("")}><X className="h-3 w-3 text-muted-foreground" /></button>}
             </div>
             <Select value={actionType} onValueChange={setActionType}>
-              <SelectTrigger className="w-56"><SelectValue placeholder="All action types" /></SelectTrigger>
+              <SelectTrigger className="w-full sm:w-56"><SelectValue placeholder="All action types" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All action types</SelectItem>
                 {ACTION_TYPES.map(a => <SelectItem key={a} value={a}>{ACTION_LABELS[a] ?? a}</SelectItem>)}
               </SelectContent>
             </Select>
             <Select value={riskLevel} onValueChange={setRiskLevel}>
-              <SelectTrigger className="w-36"><SelectValue placeholder="All risk levels" /></SelectTrigger>
+              <SelectTrigger className="w-full sm:w-36"><SelectValue placeholder="All risk levels" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All risk levels</SelectItem>
                 <SelectItem value="low">Low</SelectItem>
@@ -1101,10 +1287,10 @@ function AdminActionsTab() {
               </SelectContent>
             </Select>
             <Select value={String(datePreset)} onValueChange={v => setDatePreset(parseInt(v, 10))}>
-              <SelectTrigger className="w-44"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-full sm:w-44"><SelectValue /></SelectTrigger>
               <SelectContent>{DATE_PRESETS.map(p => <SelectItem key={p.days} value={String(p.days)}>{p.label}</SelectItem>)}</SelectContent>
             </Select>
-            <span className="text-xs text-muted-foreground ml-auto tabular-nums">{pagination.total.toLocaleString()} record{pagination.total !== 1 ? "s" : ""}</span>
+            <span className="text-xs text-muted-foreground sm:ml-auto tabular-nums text-center sm:text-left">{pagination.total.toLocaleString()} record{pagination.total !== 1 ? "s" : ""}</span>
           </div>
         </CardContent>
       </Card>
@@ -1117,13 +1303,44 @@ function AdminActionsTab() {
               <p className="text-sm text-muted-foreground">Loading admin actions…</p>
             </div>
           ) : entries.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
+            <div className="flex flex-col items-center justify-center py-20 gap-3 text-center px-4">
               <div className="rounded-full bg-muted p-4"><Users className="h-8 w-8 text-muted-foreground/30" /></div>
               <p className="text-muted-foreground font-medium">No admin actions found.</p>
               <p className="text-xs text-muted-foreground max-w-sm">Admin actions appear here as club roles and permissions are managed.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+            <div className="md:hidden divide-y">
+              {entries.map(entry => {
+                const risk = RISK_CONFIG[entry.riskLevel] ?? RISK_CONFIG.low
+                return (
+                  <button
+                    key={entry._id}
+                    type="button"
+                    className={`w-full text-left p-4 space-y-2.5 transition-colors ${entry.riskLevel === "high" ? "bg-red-50/40 dark:bg-red-950/10" : "hover:bg-muted/40"}`}
+                    onClick={() => setDetailEntry(entry)}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="text-xs font-mono">{formatTs(entry.createdAt)}</p>
+                        <p className="text-[10px] text-muted-foreground">{formatRelative(entry.createdAt)}</p>
+                      </div>
+                      <Badge variant="outline" className={`text-[10px] ${risk.cls}`}>{risk.label}</Badge>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <ActorAvatar name={entry.actorName ?? "?"} role={entry.actorType} />
+                      <div className="min-w-0">
+                        <p className="font-medium text-sm truncate">{entry.actorName ?? "—"}</p>
+                        <p className="text-xs text-muted-foreground truncate">{getClubName(entry as unknown as AuditEntry)}</p>
+                      </div>
+                    </div>
+                    <code className="text-[10px] font-mono bg-muted px-1.5 py-0.5 rounded">{entry.action}</code>
+                    <p className="text-sm text-muted-foreground line-clamp-2">{entry.summary ?? "—"}</p>
+                  </button>
+                )
+              })}
+            </div>
+            <div className="hidden md:block overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/30 hover:bg-muted/30">
@@ -1191,13 +1408,14 @@ function AdminActionsTab() {
                 </TableBody>
               </Table>
             </div>
+            </>
           )}
         </CardContent>
       </Card>
 
       <PaginationBar pagination={pagination} page={page} setPage={setPage} />
 
-      <div className="flex flex-wrap items-center gap-4 text-[11px] text-muted-foreground border-t pt-4">
+      <div className="flex flex-wrap items-center gap-3 sm:gap-4 text-[11px] text-muted-foreground border-t pt-4">
         <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-emerald-500" />Low Risk</span>
         <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-amber-500" />Medium Risk</span>
         <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-red-400" />High Risk</span>
@@ -1232,11 +1450,11 @@ export default function AdminAuditPage() {
     <ProtectedRoute>
       <DashboardLayout>
         <TooltipProvider delayDuration={300}>
-          <div className="p-6 space-y-6 max-w-[1600px] mx-auto">
+          <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 max-w-[1600px] mx-auto">
             <div className="flex items-start justify-between gap-4 flex-wrap">
               <div>
-                <h1 className="text-2xl font-black flex items-center gap-2.5">
-                  <div className="rounded-lg p-1.5 bg-gradient-to-br from-primary to-violet-600 text-white">
+                <h1 className="text-xl sm:text-2xl font-black flex items-center gap-2.5">
+                  <div className="rounded-lg p-1.5 bg-gradient-to-br from-primary to-violet-600 text-white shrink-0">
                     <ClipboardList className="h-5 w-5" />
                   </div>
                   System Audit Logs
@@ -1248,25 +1466,28 @@ export default function AdminAuditPage() {
             </div>
 
             <Tabs defaultValue="feature-changes">
-              <TabsList className="grid w-full grid-cols-3 max-w-lg">
-                <TabsTrigger value="feature-changes" className="flex items-center gap-1.5">
-                  <ToggleRight className="h-3.5 w-3.5" />Feature Changes
+              <TabsList className="flex w-full max-w-full sm:max-w-lg h-auto p-1 overflow-x-auto">
+                <TabsTrigger value="feature-changes" className="flex items-center gap-1.5 flex-1 min-w-0 px-2 sm:px-3 text-xs sm:text-sm">
+                  <ToggleRight className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate">Features</span>
                 </TabsTrigger>
-                <TabsTrigger value="inquiries" className="flex items-center gap-1.5">
-                  <MessageSquare className="h-3.5 w-3.5" />Upgrade Inquiries
+                <TabsTrigger value="inquiries" className="flex items-center gap-1.5 flex-1 min-w-0 px-2 sm:px-3 text-xs sm:text-sm">
+                  <MessageSquare className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate">Inquiries</span>
                 </TabsTrigger>
-                <TabsTrigger value="admin-actions" className="flex items-center gap-1.5">
-                  <Users className="h-3.5 w-3.5" />Admin Actions
+                <TabsTrigger value="admin-actions" className="flex items-center gap-1.5 flex-1 min-w-0 px-2 sm:px-3 text-xs sm:text-sm">
+                  <Users className="h-3.5 w-3.5 shrink-0" />
+                  <span className="truncate">Admin</span>
                 </TabsTrigger>
               </TabsList>
 
-              <TabsContent value="feature-changes" className="mt-6">
+              <TabsContent value="feature-changes" className="mt-4 sm:mt-6">
                 <FeatureChangesTab />
               </TabsContent>
-              <TabsContent value="inquiries" className="mt-6">
+              <TabsContent value="inquiries" className="mt-4 sm:mt-6">
                 <UpgradeInquiriesTab />
               </TabsContent>
-              <TabsContent value="admin-actions" className="mt-6">
+              <TabsContent value="admin-actions" className="mt-4 sm:mt-6">
                 <AdminActionsTab />
               </TabsContent>
             </Tabs>

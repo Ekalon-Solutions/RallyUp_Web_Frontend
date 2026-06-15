@@ -322,7 +322,7 @@ export function ClubFeatureSheet({ club, labels, tooltips, onClose, onSaved }: P
                   <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-2.5">
                     Billing
                   </p>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-1.5">
                       <Label className="text-xs text-muted-foreground">Tier</Label>
                       <Select
@@ -527,19 +527,19 @@ export function ClubFeatureSheet({ club, labels, tooltips, onClose, onSaved }: P
           </div>
 
           {/* ── Sticky footer ─────────────────────────────────────────── */}
-          <div className="border-t bg-background px-5 py-3 flex items-center justify-between gap-3 sticky bottom-0 shrink-0">
-            <p className="text-xs truncate">
+          <div className="border-t bg-background px-4 sm:px-5 py-3 flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 sticky bottom-0 shrink-0">
+            <p className="text-xs truncate text-center sm:text-left">
               {diffLabel ? (
                 <span className="text-amber-600 dark:text-amber-400 font-medium">{diffLabel}</span>
               ) : (
                 <span className="text-muted-foreground">No unsaved changes</span>
               )}
             </p>
-            <div className="flex gap-2 shrink-0">
-              <Button variant="outline" size="sm" onClick={onClose} disabled={saving}>
+            <div className="flex gap-2 shrink-0 w-full sm:w-auto">
+              <Button variant="outline" size="sm" onClick={onClose} disabled={saving} className="flex-1 sm:flex-none">
                 Cancel
               </Button>
-              <Button size="sm" onClick={handleSave} disabled={saving || !diff.any}>
+              <Button size="sm" onClick={handleSave} disabled={saving || !diff.any} className="flex-1 sm:flex-none">
                 {saving && <Loader2 className="h-3 w-3 mr-1.5 animate-spin" />}
                 Save changes
               </Button>

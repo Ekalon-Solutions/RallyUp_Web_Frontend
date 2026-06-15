@@ -184,13 +184,13 @@ export default function FeatureMatrixPage() {
             </div>
           )}
 
-          <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
+          <div className="p-4 sm:p-6 space-y-4 sm:space-y-6 max-w-[1400px] mx-auto">
 
             {/* ── Page header ───────────────────────────────────────── */}
-            <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <h1 className="text-2xl font-black flex items-center gap-2.5">
-                  <Grid3X3 className="h-6 w-6 text-primary" />
+                <h1 className="text-xl sm:text-2xl font-black flex items-center gap-2.5">
+                  <Grid3X3 className="h-6 w-6 text-primary shrink-0" />
                   Service Matrix
                 </h1>
                 <p className="text-muted-foreground text-sm mt-1 max-w-lg">
@@ -198,9 +198,9 @@ export default function FeatureMatrixPage() {
                   Changes are applied atomically. Session auto-locks after 15 min.
                 </p>
               </div>
-              <Link href="/dashboard/billing-auditor">
+              <Link href="/dashboard/billing-auditor" className="w-full sm:w-auto">
                 <div
-                  className={`flex items-center gap-1.5 text-sm font-medium rounded-xl px-3.5 py-2 cursor-pointer transition-colors ${
+                  className={`flex items-center justify-center sm:justify-start gap-1.5 text-sm font-medium rounded-xl px-3.5 py-2 cursor-pointer transition-colors w-full sm:w-auto ${
                     alertCount > 0
                       ? "bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-950/40"
                       : "bg-muted text-muted-foreground hover:bg-muted/70"
@@ -261,8 +261,8 @@ export default function FeatureMatrixPage() {
             )}
 
             {/* ── Search & filters ──────────────────────────────────── */}
-            <div className="flex flex-wrap items-center gap-2.5">
-              <div className="relative flex-1 min-w-[200px] max-w-sm">
+            <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2.5">
+              <div className="relative w-full sm:flex-1 sm:min-w-[200px] sm:max-w-sm">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                 <Input
                   className="pl-9 h-9"
@@ -273,7 +273,7 @@ export default function FeatureMatrixPage() {
               </div>
 
               <Select value={tierFilter} onValueChange={setTierFilter}>
-                <SelectTrigger className="h-9 w-[130px] text-xs">
+                <SelectTrigger className="h-9 w-full sm:w-[130px] text-xs">
                   <SelectValue placeholder="All tiers" />
                 </SelectTrigger>
                 <SelectContent>
@@ -286,7 +286,7 @@ export default function FeatureMatrixPage() {
               </Select>
 
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="h-9 w-[140px] text-xs">
+                <SelectTrigger className="h-9 w-full sm:w-[140px] text-xs">
                   <SelectValue placeholder="All statuses" />
                 </SelectTrigger>
                 <SelectContent>
@@ -322,7 +322,7 @@ export default function FeatureMatrixPage() {
               <Button
                 variant="outline"
                 size="sm"
-                className="h-9 text-xs gap-1.5 ml-auto"
+                className="h-9 text-xs gap-1.5 w-full sm:w-auto sm:ml-auto"
                 onClick={() => setCohortOpen(true)}
               >
                 <Target className="h-3.5 w-3.5" />
@@ -355,8 +355,8 @@ export default function FeatureMatrixPage() {
 
             {/* ── Legend ────────────────────────────────────────────── */}
             {!loading && clubs.length > 0 && (
-              <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted-foreground border-t pt-4">
-                <span className="font-medium text-foreground/60 uppercase tracking-wide text-[10px]">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 sm:gap-x-5 text-xs text-muted-foreground border-t pt-4">
+                <span className="font-medium text-foreground/60 uppercase tracking-wide text-[10px] w-full sm:w-auto">
                   Feature health
                 </span>
                 {[
@@ -369,9 +369,9 @@ export default function FeatureMatrixPage() {
                     {label}
                   </span>
                 ))}
-                <span className="flex items-center gap-1.5 ml-auto text-[10px]">
-                  Click the <span className="font-medium text-foreground">Edit</span> button on
-                  any row to open the feature editor.
+                <span className="flex items-center gap-1.5 w-full sm:w-auto sm:ml-auto text-[10px]">
+                  Tap <span className="font-medium text-foreground">Edit</span> on
+                  any club to open the feature editor.
                 </span>
               </div>
             )}

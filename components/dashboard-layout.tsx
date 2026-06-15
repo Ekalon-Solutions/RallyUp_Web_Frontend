@@ -8,7 +8,7 @@ import { buildAccessibleClubs, reconcileActiveClubId, normalizeClubId } from "@/
 import { useClubSettings } from "@/hooks/useClubSettings"
 import { useDesignSettings } from "@/hooks/useDesignSettings"
 import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet"
 import {
   Users,
   Settings,
@@ -894,6 +894,7 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
 
       <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
         <SheetContent side="left" className="p-0 w-72">
+          <SheetTitle className="sr-only">Navigation menu</SheetTitle>
           <DashboardSidebar
             mobile
             navigation={activeNav}

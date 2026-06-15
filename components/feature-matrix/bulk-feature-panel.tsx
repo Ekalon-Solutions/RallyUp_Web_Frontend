@@ -92,19 +92,19 @@ export function BulkFeaturePanel({
 
   return (
     <div className="rounded-xl border bg-card shadow-sm">
-      <div className="px-4 py-3 border-b flex items-center justify-between">
-        <div className="flex items-center gap-2">
+      <div className="px-4 py-3 border-b flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2 flex-wrap">
           <Users className="h-4 w-4 text-muted-foreground" />
           <span className="text-sm font-semibold">Bulk actions</span>
           <Badge variant="secondary" className="text-xs font-mono px-2">
             {selectedIds.length} selected
           </Badge>
         </div>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 w-full sm:w-auto">
           <Button
             variant="outline"
             size="sm"
-            className="h-7 text-xs gap-1.5"
+            className="h-7 text-xs gap-1.5 flex-1 sm:flex-none"
             onClick={onOpenCohortDialog}
           >
             <Target className="h-3 w-3" />
@@ -113,7 +113,7 @@ export function BulkFeaturePanel({
           <Button
             variant="ghost"
             size="icon"
-            className="h-7 w-7 rounded-full"
+            className="h-7 w-7 rounded-full shrink-0"
             onClick={onClearSelection}
             title="Clear selection"
           >
@@ -122,16 +122,16 @@ export function BulkFeaturePanel({
         </div>
       </div>
 
-      <div className="px-4 py-3 flex flex-wrap items-end gap-x-6 gap-y-3">
+      <div className="px-4 py-3 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end sm:gap-x-6 sm:gap-y-3">
 
         {/* ── Billing tier ─────────────────────────────────────────── */}
-        <div className="flex items-end gap-2">
-          <div className="space-y-1.5">
+        <div className="flex flex-col sm:flex-row sm:items-end gap-2 w-full sm:w-auto">
+          <div className="space-y-1.5 flex-1 sm:flex-none">
             <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-1">
               <Layers className="h-2.5 w-2.5" /> Tier
             </p>
             <Select value={bulkTier} onValueChange={setBulkTier}>
-              <SelectTrigger className="h-8 w-[130px] text-xs">
+              <SelectTrigger className="h-8 w-full sm:w-[130px] text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -144,7 +144,7 @@ export function BulkFeaturePanel({
           <Button
             size="sm"
             variant="secondary"
-            className="h-8 text-xs"
+            className="h-8 text-xs w-full sm:w-auto"
             disabled={applyingTier}
             onClick={applyBulkTier}
           >
@@ -156,8 +156,8 @@ export function BulkFeaturePanel({
         <div className="w-px self-stretch bg-border hidden sm:block" />
 
         {/* ── Feature toggle ───────────────────────────────────────── */}
-        <div className="flex items-end gap-2 flex-wrap">
-          <div className="space-y-1.5">
+        <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-2 w-full sm:w-auto">
+          <div className="space-y-1.5 flex-1 sm:flex-none">
             <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-1">
               <ToggleRight className="h-2.5 w-2.5" /> Feature
             </p>
@@ -165,7 +165,7 @@ export function BulkFeaturePanel({
               value={featureKey}
               onValueChange={(v) => setFeatureKey(v as ClubFeatureKey)}
             >
-              <SelectTrigger className="h-8 w-[190px] text-xs">
+              <SelectTrigger className="h-8 w-full sm:w-[190px] text-xs">
                 <SelectValue placeholder="Select feature…" />
               </SelectTrigger>
               <SelectContent>
@@ -177,13 +177,13 @@ export function BulkFeaturePanel({
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 flex-1 sm:flex-none">
             <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Action</p>
             <Select
               value={featureAction}
               onValueChange={(v) => setFeatureAction(v as "enable" | "disable")}
             >
-              <SelectTrigger className="h-8 w-[100px] text-xs">
+              <SelectTrigger className="h-8 w-full sm:w-[100px] text-xs">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -195,7 +195,7 @@ export function BulkFeaturePanel({
           <Button
             size="sm"
             variant="secondary"
-            className="h-8 text-xs"
+            className="h-8 text-xs w-full sm:w-auto"
             disabled={applyingFeature || !featureKey}
             onClick={applyBulkFeature}
           >

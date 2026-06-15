@@ -188,8 +188,7 @@ export default function DashboardPage() {
   const getUserClubId = () => {
     if (!user || user.role === 'system_owner') return undefined
     const userAny = user as any
-    const { activeClubId } = useAuth();
-    
+
     if (user.role === 'admin') {
       const adminClubs = user.clubs || [];
       const currentClub = adminClubs.find((c) => c._id === activeClubId) ?? adminClubs?.[0];

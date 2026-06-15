@@ -346,12 +346,12 @@ export default function BillingAuditorPage() {
     <ProtectedRoute>
       <DashboardLayout>
         <TooltipProvider delayDuration={200}>
-          <div className="p-6 space-y-5 max-w-5xl mx-auto">
+          <div className="p-4 sm:p-6 space-y-4 sm:space-y-5 max-w-5xl mx-auto pb-24 sm:pb-6">
 
             {/* ── Header ─────────────────────────────────────────────── */}
-            <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <h1 className="text-2xl font-black flex items-center gap-2.5">
+                <h1 className="text-xl sm:text-2xl font-black flex items-center gap-2.5">
                   <ShieldAlert className="h-6 w-6 text-red-500 shrink-0" />
                   Billing Auditor
                 </h1>
@@ -360,7 +360,7 @@ export default function BillingAuditorPage() {
                 </p>
               </div>
 
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto sm:shrink-0">
                 {lastRefreshed && !loading && (
                   <span className="text-[10px] text-muted-foreground flex items-center gap-1">
                     <Clock className="h-2.5 w-2.5" />
@@ -377,14 +377,14 @@ export default function BillingAuditorPage() {
                   <RefreshCw className={cn("h-3 w-3", loading && "animate-spin")} />
                   Refresh
                 </Button>
-                <Link href="/dashboard/billing-settings">
-                  <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
+                <Link href="/dashboard/billing-settings" className="flex-1 sm:flex-none">
+                  <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs w-full sm:w-auto">
                     <Settings2 className="h-3 w-3" />
                     Settings
                   </Button>
                 </Link>
-                <Link href="/dashboard/feature-matrix">
-                  <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
+                <Link href="/dashboard/feature-matrix" className="flex-1 sm:flex-none">
+                  <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs w-full sm:w-auto">
                     <ArrowLeft className="h-3 w-3" />
                     Service Matrix
                   </Button>
@@ -393,7 +393,7 @@ export default function BillingAuditorPage() {
             </div>
 
             {/* ── Stat cards ─────────────────────────────────────────── */}
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <StatCard
                 icon={<AlertTriangle className="h-4 w-4 text-red-500" />}
                 accent="bg-red-500/10"
@@ -423,12 +423,12 @@ export default function BillingAuditorPage() {
             </div>
 
             {/* ── Filter toolbar ─────────────────────────────────────── */}
-            <div className="flex items-center gap-2.5 flex-wrap">
+            <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-2.5">
               <Select
                 value={severityFilter}
                 onValueChange={(v) => setSeverityFilter(v as typeof severityFilter)}
               >
-                <SelectTrigger className="h-8 w-[150px] text-xs">
+                <SelectTrigger className="h-8 w-full sm:w-[150px] text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -439,7 +439,7 @@ export default function BillingAuditorPage() {
               </Select>
 
               <Select value={typeFilter} onValueChange={setTypeFilter}>
-                <SelectTrigger className="h-8 w-[200px] text-xs">
+                <SelectTrigger className="h-8 w-full sm:w-[200px] text-xs">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -472,7 +472,7 @@ export default function BillingAuditorPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-8 text-xs ml-auto gap-1.5"
+                  className="h-8 text-xs w-full sm:w-auto sm:ml-auto gap-1.5"
                   disabled={bulkResolving}
                   onClick={() => handleBulkResolve(alerts.map((a) => a._id))}
                 >
@@ -512,6 +512,69 @@ export default function BillingAuditorPage() {
                   </div>
                 </div>
               ) : (
+                <>
+                <div className="md:hidden divide-y">
+                  {alerts.map((alert) => {
+                    const isResolving = resolving.has(alert._id)
+                    const isSelected  = selectedIds.has(alert._id)
+                    const isCritical  = alert.severity === "critical"
+                    return (
+                      <div
+                        key={alert._id}
+                        className={cn(
+                          "p-4 space-y-2.5",
+                          isCritical && !showResolved && "bg-red-50/40 dark:bg-red-950/10",
+                          isSelected && "bg-primary/[0.03]"
+                        )}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="font-medium text-sm">{getClubName(alert)}</p>
+                            {getClubSlug(alert) && (
+                              <p className="text-[10px] text-muted-foreground font-mono truncate">{getClubSlug(alert)}</p>
+                            )}
+                          </div>
+                          <SeverityDot severity={alert.severity} />
+                        </div>
+                        <AlertTypePill type={alert.alert_type} />
+                        {(alert.feature_key || alert.service_id) && (
+                          <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">
+                            {alert.feature_key ?? alert.service_id}
+                          </code>
+                        )}
+                        <p className="text-xs text-muted-foreground line-clamp-3">{alert.description}</p>
+                        <div className="flex items-center justify-between gap-2 pt-1">
+                          <span className="text-xs text-muted-foreground">
+                            {showResolved && alert.resolved_at
+                              ? `Resolved ${relativeTime(alert.resolved_at)}`
+                              : relativeTime(alert.created_at)}
+                          </span>
+                          {!showResolved && (
+                            <div className="flex items-center gap-2">
+                              <Checkbox
+                                checked={isSelected}
+                                onCheckedChange={() => toggleSelect(alert._id)}
+                              />
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 text-xs gap-1"
+                                disabled={isResolving || bulkResolving}
+                                onClick={() => handleResolve(alert._id)}
+                              >
+                                {isResolving
+                                  ? <Loader2 className="h-2.5 w-2.5 animate-spin" />
+                                  : <CheckCircle2 className="h-2.5 w-2.5" />}
+                                Resolve
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+                <div className="hidden md:block overflow-x-auto">
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent bg-muted/30">
@@ -653,6 +716,8 @@ export default function BillingAuditorPage() {
                     })}
                   </TableBody>
                 </Table>
+                </div>
+                </>
               )}
             </div>
 
@@ -660,12 +725,12 @@ export default function BillingAuditorPage() {
 
           {/* ── Floating bulk-resolve bar ──────────────────────────────── */}
           {selectedArr.length > 0 && (
-            <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40">
-              <div className="flex items-center gap-3 bg-background border rounded-xl shadow-xl px-4 py-2.5">
-                <span className="text-sm font-medium">
+            <div className="fixed bottom-4 sm:bottom-6 left-4 right-4 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 z-40 max-w-lg sm:w-auto mx-auto">
+              <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 bg-background border rounded-xl shadow-xl px-3 sm:px-4 py-2.5">
+                <span className="text-sm font-medium w-full sm:w-auto text-center sm:text-left">
                   {selectedArr.length} alert{selectedArr.length !== 1 ? "s" : ""} selected
                 </span>
-                <div className="h-4 w-px bg-border" />
+                <div className="hidden sm:block h-4 w-px bg-border" />
                 <Button
                   size="sm"
                   className="h-7 text-xs gap-1.5"

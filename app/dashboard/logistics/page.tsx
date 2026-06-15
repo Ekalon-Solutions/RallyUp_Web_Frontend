@@ -185,15 +185,15 @@ export default function LogisticsPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 p-6">
-        <div className="flex items-center justify-between">
+      <div className="space-y-4 sm:space-y-6 p-4 sm:p-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Logistics Health</h1>
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Logistics Health</h1>
             <p className="text-sm text-muted-foreground">
               Shiprocket API integration status and diagnostics
             </p>
           </div>
-          <Button variant="outline" size="sm" onClick={fetchHealth} disabled={healthLoading}>
+          <Button variant="outline" size="sm" onClick={fetchHealth} disabled={healthLoading} className="w-full sm:w-auto">
             <RefreshCw className={`h-4 w-4 mr-2 ${healthLoading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
@@ -215,16 +215,16 @@ export default function LogisticsPage() {
                   <span className="text-sm text-muted-foreground">Checking…</span>
                 </div>
               ) : statusCfg ? (
-                <div className="flex items-center gap-4">
+                <div className="flex flex-wrap items-center gap-3 sm:gap-4">
                   <span
-                    className={`inline-block h-3 w-3 rounded-full ${statusCfg.dotClass} ${health === 'connected' ? 'animate-pulse' : ''}`}
+                    className={`inline-block h-3 w-3 rounded-full shrink-0 ${statusCfg.dotClass} ${health === 'connected' ? 'animate-pulse' : ''}`}
                   />
                   {statusCfg.icon}
                   <Badge variant="outline" className={statusCfg.badgeClass}>
                     {statusCfg.label}
                   </Badge>
                   {healthReason && (
-                    <span className="text-sm text-muted-foreground truncate max-w-xs">
+                    <span className="text-sm text-muted-foreground w-full sm:w-auto sm:truncate sm:max-w-xs">
                       {healthReason}
                     </span>
                   )}
@@ -290,9 +290,9 @@ export default function LogisticsPage() {
         {/* Couriers */}
         {isSystemOwner && (
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pb-3">
               <CardTitle className="flex items-center gap-2 text-base">
-                <Truck className="h-4 w-4" />
+                <Truck className="h-4 w-4 shrink-0" />
                 Available Couriers ({couriers.length})
               </CardTitle>
               <Button
@@ -300,6 +300,7 @@ export default function LogisticsPage() {
                 size="sm"
                 onClick={() => fetchCouriers(true)}
                 disabled={couriersLoading}
+                className="w-full sm:w-auto"
               >
                 <RefreshCw className={`h-4 w-4 mr-1 ${couriersLoading ? 'animate-spin' : ''}`} />
                 Refresh
@@ -334,7 +335,7 @@ export default function LogisticsPage() {
         {/* Trace log */}
         {isSystemOwner && (
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pb-3">
               <CardTitle className="text-base">
                 Logistics Traces{' '}
                 <span className="text-muted-foreground font-normal text-sm">
@@ -346,6 +347,7 @@ export default function LogisticsPage() {
                 size="sm"
                 onClick={() => fetchTraces(tracesPage)}
                 disabled={tracesLoading}
+                className="w-full sm:w-auto"
               >
                 <RefreshCw className={`h-4 w-4 mr-1 ${tracesLoading ? 'animate-spin' : ''}`} />
                 Reload
@@ -361,6 +363,42 @@ export default function LogisticsPage() {
                 <p className="text-sm text-muted-foreground p-6">No traces yet.</p>
               ) : (
                 <>
+                  <div className="md:hidden divide-y">
+                    {traces.map((t) => (
+                      <div key={t._id} className="p-4 space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <Badge variant="outline" className="font-mono text-xs">
+                            {t.method}
+                          </Badge>
+                          <span
+                            className={`text-xs font-medium ${
+                              t.responseCode >= 200 && t.responseCode < 300
+                                ? 'text-green-600'
+                                : 'text-red-600'
+                            }`}
+                          >
+                            {t.responseCode || '—'}
+                          </span>
+                        </div>
+                        <p className="font-mono text-xs break-all">{t.endpoint}</p>
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          <span>{t.durationMs != null ? `${t.durationMs}ms` : '—'}</span>
+                          <span>{new Date(t.createdAt).toLocaleString()}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          {t.success ? (
+                            <CheckCircle2 className="h-4 w-4 text-green-500" />
+                          ) : (
+                            <XCircle className="h-4 w-4 text-red-500" />
+                          )}
+                          <span className="text-xs text-muted-foreground">
+                            {t.success ? 'Success' : t.errorMessage ?? 'Failed'}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="hidden md:block overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -409,15 +447,17 @@ export default function LogisticsPage() {
                       ))}
                     </TableBody>
                   </Table>
+                  </div>
                   {tracesPages > 1 && (
-                    <div className="flex items-center justify-between px-4 py-3 border-t">
-                      <span className="text-sm text-muted-foreground">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between px-4 py-3 border-t">
+                      <span className="text-sm text-muted-foreground text-center sm:text-left">
                         Page {tracesPage} of {tracesPages}
                       </span>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 w-full sm:w-auto">
                         <Button
                           variant="outline"
                           size="sm"
+                          className="flex-1 sm:flex-none"
                           onClick={() => fetchTraces(tracesPage - 1)}
                           disabled={tracesPage <= 1 || tracesLoading}
                         >
@@ -426,6 +466,7 @@ export default function LogisticsPage() {
                         <Button
                           variant="outline"
                           size="sm"
+                          className="flex-1 sm:flex-none"
                           onClick={() => fetchTraces(tracesPage + 1)}
                           disabled={tracesPage >= tracesPages || tracesLoading}
                         >

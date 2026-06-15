@@ -131,7 +131,125 @@ export function MatrixTable({
 
   return (
     <div className="rounded-xl border bg-card overflow-hidden">
-      {/* ── Min-width wrapper so we can h-scroll on narrow viewports ──── */}
+      {/* ── Mobile card list ─────────────────────────────────────────── */}
+      <div className="md:hidden">
+        {!loading && clubs.length > 0 && (
+          <div className="border-b bg-muted/40 px-4 py-2.5 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                onCheckedChange={(v) => onSelectAll(Boolean(v))}
+                aria-label="Select all visible clubs"
+              />
+              <span className="text-xs font-semibold text-muted-foreground">
+                Clubs ({clubs.length})
+              </span>
+            </div>
+            {selectedIds.length > 0 && (
+              <span className="text-[11px] text-muted-foreground">{selectedIds.length} selected</span>
+            )}
+          </div>
+        )}
+        {loading ? (
+          <div className="flex items-center justify-center py-16 text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin" />
+          </div>
+        ) : clubs.length === 0 ? (
+          <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">
+            No clubs found
+          </div>
+        ) : (
+          <div className="divide-y max-h-[70vh] overflow-y-auto">
+            {clubs.map((club) => {
+              const { enabled, total, pct } = featureSummary(club)
+              const limits = zeroLimits(club)
+              const hasExp = Object.keys(club.experimental_flags ?? {}).length > 0
+              const isSelected = selectedIds.includes(club.clubId)
+              return (
+                <div
+                  key={club.clubId}
+                  className={cn(
+                    "p-4 space-y-3",
+                    isSelected ? "bg-primary/[0.04]" : ""
+                  )}
+                >
+                  <div className="flex items-start gap-3">
+                    <Checkbox
+                      checked={isSelected}
+                      onCheckedChange={(v) => onSelect(club.clubId, Boolean(v))}
+                      className="mt-1"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <div className="h-8 w-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center text-[11px] font-bold shrink-0">
+                          {initials(club.name)}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium text-sm truncate">{club.name}</p>
+                          <p className="text-[10px] text-muted-foreground font-mono truncate">{club.slug}</p>
+                        </div>
+                        {hasExp && <FlaskConical className="h-3 w-3 text-amber-500 shrink-0" />}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2 mt-2">
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "text-[10px] capitalize px-2 py-0.5 font-semibold",
+                            TIER_BADGE[club.billing_tier] ?? TIER_BADGE.free
+                          )}
+                        >
+                          {club.billing_tier}
+                        </Badge>
+                        <span
+                          className={cn(
+                            "text-xs capitalize font-medium",
+                            STATUS_COLOR[club.billing_status] ?? "text-muted-foreground"
+                          )}
+                        >
+                          {club.billing_status}
+                        </span>
+                        <span className="text-xs font-mono ml-auto">
+                          ${club.estimated_monthly_usd.toLocaleString()}/mo
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-2">
+                        <div className="flex-1 bg-muted rounded-full h-1.5 overflow-hidden">
+                          <div
+                            className={cn(
+                              "h-1.5 rounded-full",
+                              pct >= 0.8 ? "bg-emerald-500" : pct >= 0.4 ? "bg-amber-500" : "bg-red-400"
+                            )}
+                            style={{ width: `${pct * 100}%` }}
+                          />
+                        </div>
+                        <span className="text-xs text-muted-foreground font-mono">{enabled}/{total}</span>
+                      </div>
+                      {limits.length > 0 && (
+                        <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1.5 flex items-center gap-1">
+                          <AlertTriangle className="h-2.5 w-2.5" />
+                          {limits.length} zero-limit{limits.length > 1 ? "s" : ""}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full h-8 text-xs gap-1.5"
+                    onClick={() => onEdit(club)}
+                  >
+                    <Settings2 className="h-3 w-3" />
+                    Edit features
+                  </Button>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ── Desktop table (min-width wrapper for horizontal scroll) ──── */}
+      <div className="hidden md:block overflow-x-auto">
       <div className="min-w-[700px]">
 
         {/* ── Sticky header (outside the virtualised scroll area) ──────── */}
@@ -358,6 +476,7 @@ export function MatrixTable({
             </span>
           </div>
         )}
+      </div>
       </div>
     </div>
   )
