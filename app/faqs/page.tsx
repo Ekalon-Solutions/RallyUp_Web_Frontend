@@ -138,12 +138,21 @@ export default function FAQsPage(): React.JSX.Element {
         }
     ]
 
+    const categoryBackgrounds: Record<string, string> = {
+        "General & Technical": "#FF5C1A21",
+        "Onboarding & Usage": "#44867B2E",
+        "Financial & Commerce Management": "#4784DB3D",
+        "Security & Compliance": "#FFB00C1A",
+        "Engagement & Data Security": "#FF5C1A21",
+        "Customization, Branding & Data Ownership": "#44867B2E",
+    }
+
     return (
         <main className="min-h-screen bg-white text-background relative overflow-x-clip public-theme">
             {/* <JellyCursor /> */}
             <SiteNavbar />
 
-            <div className="bg-secondary-purple/40 pt-16 md:pt-20 lg:pt-24 relative z-10">
+            <div className="bg-white pt-16 md:pt-20 lg:pt-24 relative z-10">
                 <div className="max-w-4xl mx-auto px-6 sm:px-8 lg:px-12 xl:px-16">
 
                     <div className="absolute inset-0 -z-10" />
@@ -196,16 +205,16 @@ export default function FAQsPage(): React.JSX.Element {
                                             <AccordionItem
                                                 key={faqIndex}
                                                 value={`item-${categoryIndex}-${faqIndex}`}
-                                                className="border border-secondary rounded-2xl px-5 bg-secondary-purple/30 data-[state=open]:border-[color:var(--category-color)] transition-all duration-300 animate-scale-in overflow-hidden"
+                                                className="border border-[#0D0D0D] md:border-[#6668A1] rounded-2xl px-5 bg-white data-[state=open]:border-[color:var(--category-color)] transition-all duration-300 animate-scale-in overflow-hidden"
                                                 style={{ 
                                                     animationDelay: `${(categoryIndex * 0.1) + (faqIndex * 0.05)}s`,
                                                     '--category-color': category.color
                                                 } as React.CSSProperties}
                                             >
-                                                <AccordionTrigger className="text-left py-4 text-sm font-medium text-secondary hover:no-underline data-[state=open]:text-[color:var(--category-color)] transition-colors duration-300">
+                                                <AccordionTrigger className="text-left py-4 text-sm font-medium text-[#0D0D0D] md:text-[#6668A1] hover:no-underline data-[state=open]:text-[color:var(--category-color)] transition-colors duration-300">
                                                     {faq.question}
                                                 </AccordionTrigger>
-                                                <AccordionContent className="text-secondary text-sm leading-relaxed pb-5">
+                                                <AccordionContent className="text-[#6668A1] text-sm leading-relaxed pb-5">
                                                     {faq.answer}
                                                 </AccordionContent>
                                             </AccordionItem>

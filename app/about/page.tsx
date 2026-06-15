@@ -58,8 +58,8 @@ export default function AboutPage(): React.JSX.Element {
                 <FadeIn>
                     <section className="grid md:grid-cols-2 gap-6">
                         {/* Card 1 */}
-                        <div className="bg-[#DCD4E2] hover:bg-[#CBAEE1] rounded-xl p-6 md:p-8 relative overflow-hidden flex flex-col justify-start shadow-[0px_4px_24px_#00000040] transition-shadow">
-                            <span className="absolute top-4 right-6 text-[7rem]  text-[#E3DCE8] leading-none pointer-events-none select-none font-sans">R</span>
+                        <div className="bg-[#595959] md:bg-[#404040] hover:bg-[#696969] rounded-xl p-6 md:p-8 relative overflow-hidden flex flex-col justify-start shadow-[0px_4px_24px_#00000040] transition-shadow">
+                            <span className="absolute top-4 right-6 text-[7rem] text-[#595959] md:text-[#404040] leading-none pointer-events-none select-none font-sans">R</span>
                             <div className="w-14 h-14 rounded-xl bg-[#5D5377] flex items-center justify-center mb-6 relative z-10 p-2 shadow-md">
                                 <Image
                                     src="/RallyUpSolutions Logo (Transparent Background).svg"
@@ -69,15 +69,15 @@ export default function AboutPage(): React.JSX.Element {
                                     className="object-contain"
                                 />
                             </div>
-                            <h3 className="font-bold text-[#1A1A1A] text-xl mb-3 relative z-10">RallyUp Solutions Private Limited</h3>
-                            <p className="text-[#675477] text-sm leading-relaxed relative z-10">
+                            <h3 className="font-bold text-[#0D0D0D] md:text-[#ffffff] text-xl mb-3 relative z-10">RallyUp Solutions Private Limited</h3>
+                            <p className="text-[#ffffff] text-sm leading-relaxed relative z-10">
                                 We engineer robust, scalable, and intelligent software for the global sports ecosystem — eliminating fragmentation and administrative overload that hinder growth and engagement. From grassroots groups to professional bodies, we empower organizations to operate with the efficiency and insight required in the digital age.
                             </p>
                         </div>
 
                         {/* Card 2 */}
-                        <div className="bg-[#BED6F8] hover:bg-[#B8BAFF] rounded-xl p-6 md:p-8 relative overflow-hidden flex flex-col justify-start shadow-[0px_4px_24px_#00000040] transition-shadow">
-                            <span className="absolute top-4 right-6 text-[7rem]  text-[#E3DCE8] leading-none pointer-events-none select-none font-sans">W</span>
+                        <div className="bg-[#595959] md:bg-[#81AEED] hover:bg-[#99BDF1] rounded-xl p-6 md:p-8 relative overflow-hidden flex flex-col justify-start shadow-[0px_4px_24px_#00000040] transition-shadow">
+                            <span className="absolute top-4 right-6 text-[7rem] text-[#595959] md:text-[#81AEED] leading-none pointer-events-none select-none font-sans">W</span>
                             <div className="w-14 h-14 rounded-xl bg-[#7D7FBC] flex items-center justify-center mb-6 relative z-10 p-2 shadow-md">
                                 <Image
                                     src="/Logo.svg"
@@ -87,8 +87,8 @@ export default function AboutPage(): React.JSX.Element {
                                     className="object-contain"
                                 />
                             </div>
-                            <h3 className="font-bold text-[#1A1A1A] text-xl mb-3 relative z-10">Wingman Pro</h3>
-                            <p className="text-[#6668A1] text-sm leading-relaxed relative z-10">
+                            <h3 className="font-bold text-[#0D0D0D] text-xl mb-3 relative z-10">Wingman Pro</h3>
+                            <p className="text-white md:text-[#0D0D0D] text-sm leading-relaxed relative z-10">
                                 The realization of our mission: a single, secure platform that brings membership management, payments, communications, and events into one seamless system. Wingman Pro replaces multiple tools with an intuitive experience, freeing managers and volunteers to focus on growing communities and delivering great matchday moments.
                             </p>
                         </div>
@@ -195,76 +195,76 @@ export default function AboutPage(): React.JSX.Element {
                             
                             <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
                                 {/* Card 1 */}
-                                <div className="group md:col-span-7 bg-[#2A2A2A] hover:bg-[#444444] rounded-3xl p-6 md:p-10 relative overflow-hidden flex flex-col justify-between hover:shadow-lg transition-all duration-300 min-h-[17.5rem]">
-                                    <span className="absolute top-2 right-2 md:top-auto md:bottom-4 md:right-6 text-[6rem] md:text-[8rem] font-[600]  text-[#1A1A1A] group-hover:text-[#2E2E2E] transition-colors duration-300 leading-none pointer-events-none select-none z-0">01</span>
-                                    <div className="w-14 h-14 rounded-2xl bg-white/10 flex items-center justify-center mb-12 md:mb-16 relative z-10 backdrop-blur-sm">
+                                <div className="group md:col-span-7 bg-[#0D0D0D] hover:bg-[#ffffff] rounded-3xl p-6 md:p-10 relative overflow-hidden flex flex-col justify-between hover:shadow-lg transition-all duration-300 min-h-[17.5rem]">
+                                    <span className="absolute top-2 right-2 md:top-auto md:bottom-4 md:right-6 text-[6rem] md:text-[8rem] font-[600]  text-[#595959] group-hover:text-[#90DB9D] transition-colors duration-300 leading-none pointer-events-none select-none z-0">01</span>
+                                    <div className="w-14 h-14 rounded-2xl bg-[#CC3B16] group-hover:bg-[#1761CA] flex items-center justify-center mb-12 md:mb-16 relative z-10 backdrop-blur-sm transition-all duration-300">
                                         <Users className="w-7 h-7 text-white" strokeWidth={1.5} />
                                     </div>
                                     <div className="relative z-10 mt-auto">
-                                        <h3 className="font-bold text-white text-xl mb-3">Membership Management</h3>
-                                        <p className="text-[#A3A3A3] text-sm leading-relaxed md:max-w-[85%]">
+                                        <h3 className="font-bold text-[#595959] group-hover:text-[#CC3B16] text-xl mb-3">Membership Management</h3>
+                                        <p className="text-[#595959] group-hover:text-[#CC3B16] text-sm leading-relaxed md:max-w-[85%]">
                                             Handle enrollment, maintain data integrity, manage access, and track member status from a single control center.
                                         </p>
                                     </div>
                                 </div>
 
                                 {/* Card 2 */}
-                                <div className="group md:col-span-5 bg-[#7D7FBC] hover:bg-[#8A8EE9] rounded-3xl p-6 md:p-10 relative overflow-hidden flex flex-col justify-between hover:shadow-lg transition-all duration-300 min-h-[17.5rem]">
-                                    <span className="absolute font-[600] top-2 right-2 md:top-4 md:right-6 text-[6rem] md:text-[8rem]  text-[#65679B] group-hover:text-[#797CCB] transition-colors duration-300 leading-none pointer-events-none select-none z-0">02</span>
-                                    <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center mb-12 md:mb-16 relative z-10 backdrop-blur-sm">
+                                <div className="group md:col-span-5 bg-[#3B3838] hover:bg-[#ffffff] rounded-3xl p-6 md:p-10 relative overflow-hidden flex flex-col justify-between hover:shadow-lg transition-all duration-300 min-h-[17.5rem]">
+                                    <span className="absolute font-[600] top-2 right-2 md:top-4 md:right-6 text-[6rem] md:text-[8rem]  text-[#D9D9D9] group-hover:text-[#90DB9D] transition-colors duration-300 leading-none pointer-events-none select-none z-0">02</span>
+                                    <div className="w-14 h-14 rounded-2xl bg-[#CC3B16] group-hover:bg-[#1761CA] flex items-center justify-center mb-12 md:mb-16 relative z-10 backdrop-blur-sm">
                                         <BarChart3 className="w-7 h-7 text-white" strokeWidth={1.5} />
                                     </div>
                                     <div className="relative z-10 mt-auto">
-                                        <h3 className="font-bold text-white text-xl mb-3">Integrated Commerce</h3>
-                                        <p className="text-[#D6D7F5] text-sm leading-relaxed">
+                                        <h3 className="font-bold text-[#D9D9D9] group-hover:text-[#CC3B16] text-xl mb-3 transition-all duration-300">Integrated Commerce</h3>
+                                        <p className="text-[#D9D9D9] group-hover:text-[#CC3B16] text-sm leading-relaxed transition-all duration-300">
                                             Manage ticketing, merchandise, and payments with full reporting and compliance.
                                         </p>
                                     </div>
                                 </div>
 
                                 {/* Card 3 */}
-                                <div className="group md:col-span-5 bg-[#D6D7FA] hover:bg-[#BCBDFF] rounded-3xl p-6 md:p-10 relative overflow-hidden flex flex-col justify-between hover:shadow-lg transition-all duration-300 min-h-[17.5rem]">
-                                    <span className="absolute top-2 font-[600] right-2 md:top-4 md:right-6 text-[6rem] md:text-[8rem]  text-white/60 group-hover:text-[#DEDFFF] transition-colors duration-300 leading-none pointer-events-none select-none z-0">03</span>
-                                    <div className="w-14 h-14 rounded-2xl bg-[#7D7FBC] flex items-center justify-center mb-12 md:mb-16 relative z-10 shadow-md">
+                                <div className="group md:col-span-5 bg-[#595959] hover:bg-[#ffffff] rounded-3xl p-6 md:p-10 relative overflow-hidden flex flex-col justify-between hover:shadow-lg transition-all duration-300 min-h-[17.5rem]">
+                                    <span className="absolute top-2 font-[600] right-2 md:top-4 md:right-6 text-[6rem] md:text-[8rem]  text-white/60 group-hover:text-[#90DB9D] transition-colors duration-300 leading-none pointer-events-none select-none z-0">03</span>
+                                    <div className="w-14 h-14 rounded-2xl bg-[#CC3B16] group-hover:bg-[#1761CA] flex items-center justify-center mb-12 md:mb-16 relative z-10 shadow-md">
                                         <Smartphone className="w-7 h-7 text-white" strokeWidth={1.5} />
                                     </div>
                                     <div className="relative z-10 mt-auto">
-                                        <h3 className="font-bold text-[#7D7FBC] text-xl mb-3">Seamless Engagement</h3>
-                                        <p className="text-[#65679B] text-sm leading-relaxed">
+                                        <h3 className="font-bold text-[#A6A6A6] group-hover:text-[#CC3B16] text-xl mb-3 transition-all duration-300">Seamless Engagement</h3>
+                                        <p className="text-[#A6A6A6] group-hover:text-[#CC3B16] text-sm leading-relaxed">
                                             Activate events, communications, and content—like OTP via Email/SMS, polls, and leaderboards—with ease.
                                         </p>
                                     </div>
                                 </div>
 
                                 {/* Card 4 */}
-                                <div className="group md:col-span-7 bg-[#E4DEE3] hover:bg-[#D8BBEE] rounded-3xl p-6 md:p-10 relative overflow-hidden flex flex-col justify-between hover:shadow-lg transition-all duration-300 min-h-[17.5rem]">
-                                    <span className="absolute font-[600] top-2 right-2 md:top-auto md:bottom-4 md:right-6 text-[6rem] md:text-[8rem]  text-white/80 group-hover:text-[#E7DFED] transition-colors duration-300 leading-none pointer-events-none select-none z-0">04</span>
-                                    <div className="w-14 h-14 rounded-2xl bg-[#5D5377] flex items-center justify-center mb-12 md:mb-16 relative z-10 shadow-md">
+                                <div className="group md:col-span-7 bg-[#A6A6A6] hover:bg-[#ffffff] rounded-3xl p-6 md:p-10 relative overflow-hidden flex flex-col justify-between hover:shadow-lg transition-all duration-300 min-h-[17.5rem]">
+                                    <span className="absolute font-[600] top-2 right-2 md:top-auto md:bottom-4 md:right-6 text-[6rem] md:text-[8rem]  text-[#3B3838] group-hover:text-[#90DB9D] transition-colors duration-300 leading-none pointer-events-none select-none z-0">04</span>
+                                    <div className="w-14 h-14 rounded-2xl bg-[#CC3B16] group-hover:bg-[#1761CA] flex items-center justify-center mb-12 md:mb-16 relative z-10 shadow-md">
                                         <ShieldCheck className="w-7 h-7 text-white" strokeWidth={1.5} />
                                     </div>
                                     <div className="relative z-10 mt-auto">
-                                        <h3 className="font-bold text-[#5D5377] text-xl mb-3">Compliance & Security</h3>
-                                        <p className="text-[#756A8F] text-sm leading-relaxed md:max-w-[85%]">
+                                        <h3 className="font-bold text-[#3B3838] group-hover:text-[#CC3B16] text-xl mb-3 transition-all duration-300">Compliance & Security</h3>
+                                        <p className="text-[#3B3838] group-hover:text-[#CC3B16] text-sm leading-relaxed md:max-w-[85%]">
                                             Meet stringent security standards and global data protection requirements, including DPDPA and GDPR-aligned principles.
                                         </p>
                                     </div>
                                 </div>
 
                                 {/* Card 5 */}
-                                <div className="group md:col-span-12 bg-[#C2DEF5] hover:bg-[#97BEF7] rounded-3xl p-6 md:p-10 relative overflow-hidden flex flex-col md:flex-row hover:shadow-lg transition-all duration-300 min-h-[15rem] items-stretch">
-                                    <span className="absolute font-[600] top-2 right-2 md:top-auto md:bottom-4 md:right-6 text-[6rem] md:text-[8rem]  text-white/80 group-hover:text-[#C9DFFF] transition-colors duration-300 leading-none pointer-events-none select-none z-0">05</span>
+                                <div className="group md:col-span-12 bg-[#D9D9D9] hover:bg-[#ffffff] rounded-3xl p-6 md:p-10 relative overflow-hidden flex flex-col md:flex-row hover:shadow-lg transition-all duration-300 min-h-[15rem] items-stretch">
+                                    <span className="absolute font-[600] top-2 right-2 md:top-auto md:bottom-4 md:right-6 text-[6rem] md:text-[8rem]  text-[#0D0D0D] group-hover:text-[#90DB9D] transition-colors duration-300 leading-none pointer-events-none select-none z-0">05</span>
                                     
                                     <div className="flex flex-col justify-between relative z-10 w-full md:w-1/3">
-                                        <div className="w-14 h-14 rounded-2xl bg-[#1D4ED8] flex items-center justify-center mb-8 md:mb-12 shadow-md">
+                                        <div className="w-14 h-14 rounded-2xl bg-[#CC3B16] group-hover:bg-[#1761CA] flex items-center justify-center mb-8 md:mb-12 shadow-md">
                                             <Puzzle className="w-7 h-7 text-white" strokeWidth={1.5} />
                                         </div>
-                                        <h3 className="font-bold text-[#1D4ED8] text-xl mt-auto">Gamification & AI</h3>
+                                        <h3 className="font-bold text-[#0D0D0D] group-hover:text-[#CC3B16] text-xl mt-auto transition-all duration-300">Gamification & AI</h3>
                                     </div>
                                     
-                                    <div className="hidden md:block w-px bg-[#1D4ED8]/20 mx-8 self-stretch relative z-10" />
+                                    <div className="hidden md:block w-px bg-[#0D0D0D] mx-8 self-stretch relative z-10" />
                                     
                                     <div className="mt-6 md:mt-0 relative z-10 flex items-center w-full md:w-2/3 pr-12 lg:pr-32">
-                                        <p className="text-[#1E3A8A] text-sm md:text-base leading-relaxed font-medium md:max-w-[90%]">
+                                        <p className="text-[#0D0D0D] group-hover:text-[#CC3B16] text-sm md:text-base leading-relaxed font-medium md:max-w-[90%] transition-all duration-300">
                                             Deliver intelligent engagement, performance leaderboards, actionable insights, automated content curation, and optimized communications using AI.
                                         </p>
                                     </div>
@@ -331,12 +331,12 @@ export default function AboutPage(): React.JSX.Element {
                                                     sizes="96px"
                                                 />
                                             </div>
-                                            <h3 className="font-bold text-[#1A1A1A] text-lg mb-3">{leader.name}</h3>
-                                            <p className="text-[#65679B] text-sm font-medium leading-relaxed whitespace-pre-wrap md:mb-0">
+                                            <h3 className="font-bold text-[#0D0D0D] text-lg mb-3">{leader.name}</h3>
+                                            <p className="text-[#6668A1] md:text-[#0D0D0D] text-sm font-medium leading-relaxed whitespace-pre-wrap md:mb-0">
                                                 {leader.title}
                                             </p>
                                             {/* Description only shown on mobile */}
-                                            <p className="md:hidden text-secondary text-sm leading-relaxed pt-2">
+                                            <p className="md:hidden text-[#6668A1] text-sm leading-relaxed pt-2">
                                                 {leader.description}
                                             </p>
                                         </div>
