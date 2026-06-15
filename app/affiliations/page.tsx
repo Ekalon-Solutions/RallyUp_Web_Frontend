@@ -41,34 +41,34 @@ export default function AffiliationsPage(): React.JSX.Element {
 
               <div className="flex flex-col md:flex-row flex-wrap gap-5">
                 {/* Stat Card 1 */}
-                <div className="w-full md:w-auto flex items-center gap-4 bg-[#EEF6F0] rounded-2xl p-4 pr-12 border border-green-50 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="w-14 h-14 rounded-xl bg-[#67B18A] flex items-center justify-center shadow-sm">
+                <div className="w-full md:w-auto flex items-center gap-4 bg-[#00958133] rounded-2xl p-4 pr-12 border border-green-50 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="w-14 h-14 rounded-xl bg-[#009581] flex items-center justify-center shadow-sm">
                     <Image src="/globalicon.svg" alt="Global Icon" width={28} height={28} />
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-3xl font-semibold text-background mr-1">4<span className="text-[#67B18A]">+</span></span>
+                    <span className="text-3xl font-semibold text-background mr-1">4<span className="text-[#009581]">+</span></span>
                     <span className="text-sm text-background font-medium">Continents</span>
                   </div>
                 </div>
 
                 {/* Stat Card 2 */}
-                <div className="w-full md:w-auto flex items-center gap-4 bg-[#F2EFFF] rounded-2xl p-4 pr-12 border border-purple-50 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="w-14 h-14 rounded-xl bg-[#665D96] flex items-center justify-center shadow-sm">
+                <div className="w-full md:w-auto flex items-center gap-4 bg-[#1761CA33] rounded-2xl p-4 pr-12 border border-purple-50 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="w-14 h-14 rounded-xl bg-[#1761CA] flex items-center justify-center shadow-sm">
                     <Image src="/locationicon.svg" alt="Location Icon" width={28} height={28} />
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-3xl font-semibold text-background mr-1">10<span className="text-[#665D96]">+</span></span>
+                    <span className="text-3xl font-semibold text-background mr-1">10<span className="text-[#1761CA]">+</span></span>
                     <span className="text-sm text-background font-medium">Markets</span>
                   </div>
                 </div>
 
                 {/* Stat Card 3 */}
-                <div className="w-full md:w-auto flex items-center gap-4 bg-[#FDF2EC] rounded-2xl p-4 pr-12 border border-orange-50 shadow-sm hover:shadow-md transition-shadow">
-                  <div className="w-14 h-14 rounded-xl bg-[#E28D69] flex items-center justify-center shadow-sm">
+                <div className="w-full md:w-auto flex items-center gap-4 bg-[#CC3B1633] rounded-2xl p-4 pr-12 border border-orange-50 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="w-14 h-14 rounded-xl bg-[#CC3B16] flex items-center justify-center shadow-sm">
                     <Image src="/baricon.svg" alt="Features Icon" width={28} height={28} />
                   </div>
                   <div className="flex flex-col">
-                    <span className="text-3xl font-semibold text-background mr-1">5<span className="text-[#E28D69]">+</span></span>
+                    <span className="text-3xl font-semibold text-background mr-1">5<span className="text-[#CC3B16]">+</span></span>
                     <span className="text-sm text-background font-medium">Core Features</span>
                   </div>
                 </div>
@@ -79,7 +79,7 @@ export default function AffiliationsPage(): React.JSX.Element {
       </section>
 
       {/* Bottom Section */}
-      <section className="relative z-10 bg-[#E2DCE7] py-16 md:py-20 lg:py-24 border-t border-[#D5CFDA]">
+      <section className="relative z-10 bg-[#ffffff] py-16 md:py-20 lg:py-24 border-t border-[#D5CFDA]">
         <FadeIn>
           <div className="max-w-8xl mx-auto px-6 sm:px-8 lg:px-12 xl:px-16">
             {/* Badge */}
@@ -101,15 +101,15 @@ export default function AffiliationsPage(): React.JSX.Element {
               <div className="hidden md:block group relative w-full h-64 [perspective:1000px]">
                 <div className="w-full h-full transition-all duration-700 [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)]">
                   {/* Front Face */}
-                  <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] bg-white rounded-3xl px-8 py-2 flex flex-col items-center justify-center text-center gap-5 shadow-sm border border-black/5">
-                    <div className="w-14 h-14 rounded-2xl bg-[#44867B] flex items-center justify-center shadow-sm mb-2">
+                  <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] bg-[#00000040] rounded-3xl px-8 py-2 flex flex-col items-center justify-center text-center gap-5 shadow-sm border border-black/5">
+                    <div className="w-14 h-14 rounded-2xl bg-[#17C5D1] flex items-center justify-center shadow-sm mb-2">
                       <Image src="/affiliationslogo/Framepayment.svg" alt="Payment Gateways" width={32} height={32} />
                     </div>
                     <h3 className="text-background text-lg">Payment Gateways</h3>
                   </div>
 
                   {/* Back Face */}
-                  <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] [transform:rotateY(180deg)] bg-[#00A68A] rounded-3xl p-6 flex flex-col items-center justify-center text-center shadow-lg">
+                  <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] [transform:rotateY(180deg)] bg-[#17C5D1] rounded-3xl p-6 flex flex-col items-center justify-center text-center shadow-lg">
                     <div className="inline-flex items-center justify-center rounded-full border border-white/50 px-3 py-1 mb-4">
                       <span className="text-[10px] text-white font-medium tracking-wide uppercase">Wingman Pro</span>
                     </div>
@@ -125,15 +125,15 @@ export default function AffiliationsPage(): React.JSX.Element {
               <div className="hidden md:block group relative w-full h-64 [perspective:1000px]">
                 <div className="w-full h-full transition-all duration-700 [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)]">
                   {/* Front Face */}
-                  <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] bg-[#A093B8] rounded-3xl px-8 py-2 flex flex-col items-center justify-center text-center gap-5 shadow-md border border-black/5">
-                    <div className="w-14 h-14 rounded-2xl bg-[#6668A1] flex items-center justify-center shadow-sm mb-2">
+                  <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] bg-[#00000040] rounded-3xl px-8 py-2 flex flex-col items-center justify-center text-center gap-5 shadow-md border border-black/5">
+                    <div className="w-14 h-14 rounded-2xl bg-[#009581] flex items-center justify-center shadow-sm mb-2">
                       <Image src="/affiliationslogo/Framecloud.svg" alt="Cloud Hosting" width={32} height={32} />
                     </div>
-                    <h3 className="text-white text-lg leading-snug">Cloud Hosting &<br/>Infrastructure</h3>
+                    <h3 className="text-background text-lg">Cloud Hosting &<br/>Infrastructure</h3>
                   </div>
 
                   {/* Back Face */}
-                  <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] [transform:rotateY(180deg)] bg-[#6668A1] rounded-3xl p-6 flex flex-col items-center justify-center text-center shadow-lg">
+                  <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] [transform:rotateY(180deg)] bg-[#009581] rounded-3xl p-6 flex flex-col items-center justify-center text-center shadow-lg">
                     <div className="inline-flex items-center justify-center rounded-full border border-white/50 px-3 py-1 mb-4">
                       <span className="text-[10px] text-white font-medium tracking-wide uppercase">Wingman Pro</span>
                     </div>
@@ -149,15 +149,15 @@ export default function AffiliationsPage(): React.JSX.Element {
               <div className="hidden md:block group relative w-full h-64 [perspective:1000px]">
                 <div className="w-full h-full transition-all duration-700 [transform-style:preserve-3d] group-hover:[transform:rotateY(180deg)]">
                   {/* Front Face */}
-                  <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] bg-white rounded-3xl px-8 py-2 flex flex-col items-center justify-center text-center gap-5 shadow-sm border border-black/5">
-                    <div className="w-14 h-14 rounded-2xl bg-[#E18F67] flex items-center justify-center shadow-sm mb-2">
+                  <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] bg-[#00000040] rounded-3xl px-8 py-2 flex flex-col items-center justify-center text-center gap-5 shadow-sm border border-black/5">
+                    <div className="w-14 h-14 rounded-2xl bg-[#1761CA] flex items-center justify-center shadow-sm mb-2">
                       <Image src="/affiliationslogo/Frameauthentication.svg" alt="Authentication Services" width={32} height={32} />
                     </div>
                     <h3 className="text-background text-lg leading-snug">Authentication<br/>Services</h3>
                   </div>
 
                   {/* Back Face */}
-                  <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] [transform:rotateY(180deg)] bg-[#F14921] rounded-3xl p-6 flex flex-col items-center justify-center text-center shadow-lg">
+                  <div className="absolute inset-0 w-full h-full [backface-visibility:hidden] [transform:rotateY(180deg)] bg-[#1761CA] rounded-3xl p-6 flex flex-col items-center justify-center text-center shadow-lg">
                     <div className="inline-flex items-center justify-center rounded-full border border-white/50 px-3 py-1 mb-4">
                       <span className="text-[10px] text-white font-medium tracking-wide uppercase">Wingman Pro</span>
                     </div>
@@ -279,8 +279,8 @@ export default function AffiliationsPage(): React.JSX.Element {
               </div>
 
               {/* Card 2 */}
-              <div className="group md:col-span-2 bg-[#786FBB] hover:bg-[#8A8EE9] rounded-3xl p-8 md:p-10 relative overflow-hidden flex flex-col justify-between hover:shadow-lg transition-all duration-300 min-h-[18rem] md:min-h-[22rem]">
-                <span className="absolute font-[600] top-2 right-2 md:top-4 md:right-6 text-[6rem] md:text-[8rem] text-[#6961A3] group-hover:text-[#797CCB] transition-colors duration-300 leading-none pointer-events-none select-none z-0">02</span>
+              <div className="group md:col-span-2 bg-[#7174BE] hover:bg-[#8A8EE9] rounded-3xl p-8 md:p-10 relative overflow-hidden flex flex-col justify-between hover:shadow-lg transition-all duration-300 min-h-[18rem] md:min-h-[22rem]">
+                <span className="absolute font-[600] top-2 right-2 md:top-4 md:right-6 text-[6rem] md:text-[8rem] text-[#797CCB] group-hover:text-[#797CCB] transition-colors duration-300 leading-none pointer-events-none select-none z-0">02</span>
                 <div className="w-14 h-14 rounded-xl bg-[#D6D3F0] flex items-center justify-center relative z-10 mt-2 md:mt-0">
                   <Image src="/affiliationslogo/Framecommunity.svg" alt="Community Building" width={28} height={28} />
                 </div>
@@ -339,13 +339,11 @@ export default function AffiliationsPage(): React.JSX.Element {
 
             <div className="grid md:grid-cols-3 gap-6">
               {/* Card 1 */}
-              <div className="group bg-[#D9DBFF] hover:bg-[#BCBDFF] rounded-3xl p-8 relative overflow-hidden flex flex-col items-start md:items-center text-left md:text-center hover:shadow-lg transition-all duration-300 min-h-[18rem]">
-                <span className="hidden md:flex md:absolute font-[600] top-2 right-2 md:top-4 md:right-6 text-[6.25rem]  text-[#BFC3FF] group-hover:text-[#DEDFFF] transition-colors duration-300 leading-none pointer-events-none select-none z-0">
-                  01
-                </span>
+              <div className="group bg-[#90DB9D] rounded-3xl p-8 relative overflow-hidden flex flex-col items-start md:items-center text-left md:text-center hover:shadow-lg hover:z-30 transition-all duration-300 min-h-[18rem]">
 
-                <div className="w-14 h-14 rounded-xl bg-[#7D7FBC] flex items-center justify-center mb-6 relative z-10 mt-2">
+                <div className="w-14 h-14 rounded-xl bg-[#1761CA] flex items-center justify-center mb-6 relative z-10 mt-2 group-hover:rotate-45 transition-transform duration-300">
                   <Image
+                    className="transition-transform duration-300 group-hover:rotate-[-45deg]"
                     src="/affiliationslogo/Framesupporter.svg"
                     alt="Supporter Group Networks"
                     width={28}
@@ -358,7 +356,7 @@ export default function AffiliationsPage(): React.JSX.Element {
                     Supporter Group Networks
                   </h3>
 
-                  <p className="text-[#7D7FBC] text-sm leading-relaxed max-w-sm group-hover:text-[#5B5D99] transition-colors duration-300">
+                  <p className="text-[#000000] text-sm leading-relaxed max-w-sm ">
                     Collaborations with global supporter networks — sharing best practices
                     in member management and delivering shared knowledge among Wingman Pro
                     communities.
@@ -367,13 +365,11 @@ export default function AffiliationsPage(): React.JSX.Element {
               </div>
 
               {/* Card 2 */}
-              <div className="group bg-[#E4DCDF] hover:bg-[#D8BBEE] rounded-3xl p-8 relative overflow-hidden flex flex-col items-start md:items-center text-left md:text-center hover:shadow-lg transition-all duration-300 min-h-[18rem]">
-                <span className="hidden md:flex absolute font-[600] top-2 right-2 md:top-4 md:right-6 text-[6.25rem]  text-[#D0C7CC] group-hover:text-[#E7DFED] transition-colors duration-300 leading-none pointer-events-none select-none z-0">
-                  02
-                </span>
+              <div className="group bg-[#90DB9D] rounded-3xl p-8 relative overflow-hidden flex flex-col items-start md:items-center text-left md:text-center hover:shadow-lg transition-all duration-300 min-h-[18rem]">
 
-                <div className="w-14 h-14 rounded-xl bg-[#A2919A] flex items-center justify-center mb-6 relative z-10 mt-2">
+                <div className="w-14 h-14 rounded-xl bg-[#1761CA] flex items-center justify-center mb-6 relative z-10 mt-2 group-hover:rotate-45 transition-transform duration-300">
                   <Image
+                    className="transition-transform duration-300 group-hover:rotate-[-45deg]"
                     src="/affiliationslogo/Vectorcorporate.svg"
                     alt="Corporate Sponsors"
                     width={28}
@@ -386,7 +382,7 @@ export default function AffiliationsPage(): React.JSX.Element {
                     Corporate Sponsors
                   </h3>
 
-                  <p className="text-[#A2919A] text-sm leading-relaxed max-w-sm group-hover:text-[#7A6B73] transition-colors duration-300">
+                  <p className="text-[#000000] text-sm leading-relaxed max-w-sm">
                     Streamlined engagement channels between sponsors and our network of
                     engaged supporter groups — unlocking new revenue opportunities for
                     partner clubs.
@@ -395,13 +391,11 @@ export default function AffiliationsPage(): React.JSX.Element {
               </div>
 
               {/* Card 3 */}
-              <div className="group bg-[#9AE69D] hover:bg-[#7FD483] rounded-3xl p-8 relative overflow-hidden flex flex-col items-start md:items-center text-left md:text-center hover:shadow-lg transition-all duration-300 min-h-[18rem]">
-                <span className="hidden md:flex absolute font-[600] top-2 right-2 md:top-4 md:right-6 text-[6.25rem]  text-[#86CD89] group-hover:text-[#B3EDB6] transition-colors duration-300 leading-none pointer-events-none select-none z-0">
-                  03
-                </span>
+              <div className="group bg-[#90DB9D] rounded-3xl p-8 relative overflow-hidden flex flex-col items-start md:items-center text-left md:text-center hover:shadow-lg transition-all duration-300 min-h-[18rem]">
 
-                <div className="w-14 h-14 rounded-xl bg-[#5C9460] flex items-center justify-center mb-6 relative z-10 mt-2">
+                <div className="w-14 h-14 rounded-xl bg-[#1761CA] flex items-center justify-center mb-6 relative z-10 mt-2 group-hover:rotate-45 transition-transform duration-300">
                   <Image
+                    className="transition-transform duration-300 group-hover:rotate-[-45deg]"
                     src="/affiliationslogo/Framegrassroots.svg"
                     alt="Youth & Grassroots Programs"
                     width={28}
@@ -414,7 +408,7 @@ export default function AffiliationsPage(): React.JSX.Element {
                     Youth & Grassroots Programs
                   </h3>
 
-                  <p className="text-[#5C9460] text-sm leading-relaxed max-w-sm group-hover:text-[#3B663E] transition-colors duration-300">
+                  <p className="text-[#000000] text-sm leading-relaxed max-w-sm">
                     Purpose-built tracking for attendance and engagement scoring —
                     documenting development, supporting grant obligations, and growing
                     local communities.
@@ -442,20 +436,20 @@ export default function AffiliationsPage(): React.JSX.Element {
           <div className="max-w-8xl mx-auto relative z-10 px-6 sm:px-8 lg:px-12 xl:px-16">
             <div className="flex items-center gap-2 mb-6">
               <div className="w-1.5 h-1.5 rounded-full bg-[#67B18A]" />
-              <span className="text-base text-[#67B18A]">Global Reach</span>
+              <span className="text-base text-[#90DB9D]">Global Reach</span>
             </div>
             <h2 className="text-4xl lg:text-6xl font-extrabold mb-16 text-white tracking-tight leading-[1.1]">
-              We're <span className="text-[#67B18A]">Everywhere.</span>
+              We're <span className="text-[#90DB9D]">Everywhere.</span>
             </h2>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
               {/* Card 1 */}
-              <div className="group rounded-3xl border-2 border-white/10 bg-[#2A2A2A]/50 backdrop-blur-sm p-8 flex flex-col justify-start hover:bg-primary/20 hover:border-primary transition-all duration-300 min-h-[16.25rem]">
-                <div className="w-14 h-14 rounded-xl bg-[#665D96] flex items-center justify-center mb-8">
+              <div className="group rounded-3xl border-2 border-white/10 bg-[#FFFFFFC4] backdrop-blur-sm p-8 flex flex-col justify-start hover:bg-[#FFFFFFC4]/20 hover:border-[#FFFFFFC4]/50 transition-all duration-300 min-h-[16.25rem]">
+                <div className="w-14 h-14 rounded-xl bg-[#1761CA] flex items-center justify-center mb-8">
                   <Image src="/affiliationslogo/Frameasia.svg" alt="Asia-Pacific Icon" width={28} height={28} />
                 </div>
-                <h3 className="font-bold text-white text-xl mb-3">Asia-Pacific</h3>
-                <p className="text-[#A291B1] text-sm leading-relaxed">
+                <h3 className="font-bold text-[#0D0D0D] text-xl mb-3">Asia-Pacific</h3>
+                <p className="text-[#0D0D0D] text-sm leading-relaxed">
                   India • Singapore • Malaysia
                   <br />
                   Indonesia • Thailand • Australia
@@ -463,12 +457,12 @@ export default function AffiliationsPage(): React.JSX.Element {
               </div>
 
               {/* Card 2 */}
-              <div className="group rounded-3xl border-2 border-white/10 bg-[#2A2A2A]/50 backdrop-blur-sm p-8 flex flex-col justify-start hover:bg-primary/20 hover:border-primary transition-all duration-300 min-h-[16.25rem]">
-                <div className="w-14 h-14 rounded-xl bg-[#E28D69] flex items-center justify-center mb-8">
+              <div className="group rounded-3xl border-2 border-white/10 bg-[#FFFFFFC4] backdrop-blur-sm p-8 flex flex-col justify-start hover:bg-[#FFFFFFC4]/20 hover:border-[#FFFFFFC4]/50 transition-all duration-300 min-h-[16.25rem]">
+                <div className="w-14 h-14 rounded-xl bg-[#1761CA] flex items-center justify-center mb-8">
                   <Image src="/affiliationslogo/Framemiddleeast.svg" alt="Middle East Icon" width={28} height={28} />
                 </div>
-                <h3 className="font-bold text-white text-xl mb-3">Middle East</h3>
-                <p className="text-[#A291B1] text-sm leading-relaxed">
+                <h3 className="font-bold text-[#0D0D0D] text-xl mb-3">Middle East</h3>
+                <p className="text-[#0D0D0D] text-sm leading-relaxed">
                   UAE
                   <br />
                   & expanding regionally
@@ -476,23 +470,23 @@ export default function AffiliationsPage(): React.JSX.Element {
               </div>
 
               {/* Card 3 */}
-              <div className="group rounded-3xl border-2 border-white/10 bg-[#2A2A2A]/50 backdrop-blur-sm p-8 flex flex-col justify-start hover:bg-primary/20 hover:border-primary transition-all duration-300 min-h-[16.25rem]">
-                <div className="w-14 h-14 rounded-xl bg-[#A2919A] flex items-center justify-center mb-8">
+              <div className="group rounded-3xl border-2 border-white/10 bg-[#FFFFFFC4] backdrop-blur-sm p-8 flex flex-col justify-start hover:bg-[#FFFFFFC4]/20 hover:border-[#FFFFFFC4]/50 transition-all duration-300 min-h-[16.25rem]">
+                <div className="w-14 h-14 rounded-xl bg-[#1761CA] flex items-center justify-center mb-8">
                   <Image src="/affiliationslogo/Frameamericas.svg" alt="Americas Icon" width={28} height={28} />
                 </div>
-                <h3 className="font-bold text-white text-xl mb-3">Americas</h3>
-                <p className="text-[#A291B1] text-sm leading-relaxed">
+                <h3 className="font-bold text-[#0D0D0D] text-xl mb-3">Americas</h3>
+                <p className="text-[#0D0D0D] text-sm leading-relaxed">
                   United States • Mexico
                 </p>
               </div>
 
               {/* Card 4 */}
-              <div className="group rounded-3xl border-2 border-white/10 bg-[#2A2A2A]/50 backdrop-blur-sm p-8 flex flex-col justify-start hover:bg-primary/20 hover:border-primary transition-all duration-300 min-h-[16.25rem]">
-                <div className="w-14 h-14 rounded-xl bg-[#67B18A] flex items-center justify-center mb-8">
+              <div className="group rounded-3xl border-2 border-white/10 bg-[#FFFFFFC4] backdrop-blur-sm p-8 flex flex-col justify-start hover:bg-[#FFFFFFC4]/20 hover:border-[#FFFFFFC4]/50 transition-all duration-300 min-h-[16.25rem]">
+                <div className="w-14 h-14 rounded-xl bg-[#1761CA] flex items-center justify-center mb-8">
                   <Image src="/affiliationslogo/Frameeurope.svg" alt="Europe Icon" width={28} height={28} />
                 </div>
-                <h3 className="font-bold text-white text-xl mb-3">Europe</h3>
-                <p className="text-[#A291B1] text-sm leading-relaxed">
+                <h3 className="font-bold text-[#0D0D0D] text-xl mb-3">Europe</h3>
+                <p className="text-[#0D0D0D] text-sm leading-relaxed">
                   United Kingdom • Germany
                   <br />
                   & growing presence
