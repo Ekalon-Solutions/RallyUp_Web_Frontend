@@ -94,6 +94,15 @@ interface ServiceabilityResult {
   message: string
 }
 
+function formatEstimatedDays(estimatedDays: { min: number; max: number }, titleCase = false): string {
+  const { min, max } = estimatedDays
+  const unit = titleCase
+    ? (n: number) => (n === 1 ? 'Day' : 'Days')
+    : (n: number) => (n === 1 ? 'day' : 'days')
+  if (min === max) return `${min} ${unit(min)}`
+  return `${min}-${max} ${titleCase ? 'Days' : 'days'}`
+}
+
 export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems }: CheckoutModalProps) {
   const { user } = useAuth()
   const router = useRouter()
@@ -672,9 +681,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Order Form */}
             <div className="space-y-6">
-              {/* Personal Information */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -728,7 +735,6 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                 </CardContent>
               </Card>
 
-              {/* Shipping Address */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -805,7 +811,6 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                     </p>
                   )}
 
-                  {/* Serviceability / delivery estimate */}
                   {hasCompleteShippingAddress && (
                     <div className="rounded-lg border p-3 text-sm space-y-1">
                       {shiprocketLoading && (
@@ -831,7 +836,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                             <div className="flex items-center gap-2 text-muted-foreground">
                               <Clock className="w-4 h-4" />
                               <span>
-                                Estimated Delivery: {serviceability.estimatedDays.min}-{serviceability.estimatedDays.max} Days
+                                Estimated Delivery: {formatEstimatedDays(serviceability.estimatedDays, true)}
                               </span>
                             </div>
                           )}
@@ -854,7 +859,6 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                 </CardContent>
               </Card>
 
-              {/* Billing Address */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -956,7 +960,6 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                 </CardContent>
               </Card>
 
-              {/* Shipping Method (Fastest / Cheapest) */}
               {merchandiseSettings?.enableShipping && hasCompleteShippingAddress && serviceability?.serviceable && !serviceability.fallback && (serviceability.cheapest || serviceability.fastest) && (
                 <Card>
                   <CardHeader>
@@ -986,7 +989,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                           <p className="text-sm mt-1">
                             {formatCurrency(serviceability.cheapest.rate, currency)}
                             {serviceability.cheapest.estimatedDays && (
-                              <span className="text-muted-foreground"> · {serviceability.cheapest.estimatedDays.min}-{serviceability.cheapest.estimatedDays.max} days</span>
+                              <span className="text-muted-foreground"> · {formatEstimatedDays(serviceability.cheapest.estimatedDays)}</span>
                             )}
                           </p>
                         </button>
@@ -1010,7 +1013,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                           <p className="text-sm mt-1">
                             {formatCurrency(serviceability.fastest.rate, currency)}
                             {serviceability.fastest.estimatedDays && (
-                              <span className="text-muted-foreground"> · {serviceability.fastest.estimatedDays.min}-{serviceability.fastest.estimatedDays.max} days</span>
+                              <span className="text-muted-foreground"> · {formatEstimatedDays(serviceability.fastest.estimatedDays)}</span>
                             )}
                           </p>
                         </button>
@@ -1020,7 +1023,6 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                 </Card>
               )}
 
-              {/* Order Notes */}
               <Card>
                 <CardHeader>
                   <CardTitle>Order Notes</CardTitle>
@@ -1036,9 +1038,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
               </Card>
             </div>
 
-            {/* Order Summary */}
             <div className="space-y-6">
-              {/* Order Items */}
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
