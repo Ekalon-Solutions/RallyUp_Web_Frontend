@@ -11,7 +11,6 @@ type WaitlistConfig = {
 
 type Props = {
   waitlist?: WaitlistConfig | null
-  /** For create preview — pass when waitlist object is not persisted yet */
   enabled?: boolean
   purchaseWindowHours?: number | string | null
   variant?: "badge" | "row" | "inline"

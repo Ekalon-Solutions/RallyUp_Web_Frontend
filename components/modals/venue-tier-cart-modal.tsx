@@ -46,11 +46,8 @@ interface VenueTierCartModalProps {
   event: Event | null
   onSuccess: () => void
   onFailure: () => void
-  /** Guest discovered to already hold a member account — give them the option to log in for member pricing. */
   onLogin?: (guest: GuestIdentity) => void
-  /** Guest with no member account — give them the option to create one instead of continuing as a guest. */
   onSignup?: (guest: GuestIdentity) => void
-  /** Forwarded to the booking call so a waitlist purchase link bypasses the capacity check. */
   waitlistToken?: string | null
 }
 
@@ -96,7 +93,6 @@ const normalizeCountryCode = (code: string) => {
   return trimmed.startsWith('+') ? trimmed : `+${trimmed}`
 }
 
-/** Guest registration wizard order: identify (name+phone) -> member/already-booked check -> OTP -> attendee details. */
 type GuestStep = 'identify' | 'member-found' | 'guest-or-signup' | 'otp' | 'attendees'
 
 export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailure, onLogin, onSignup, waitlistToken }: VenueTierCartModalProps) {

@@ -13,21 +13,12 @@ import { DEFAULT_CLUB_PRIMARY } from '@/lib/clubThemeButton';
 
 interface EventImageProps {
   eventId: string;
-  /** Bumped by the backend whenever the poster changes — drives cache invalidation. */
   imageVersion?: number;
-  /** `list` -> 400px feed variant, `full` -> 1080px detail variant. */
   size?: 'list' | 'full';
-  /**
-   * Embedded variant URL from the event object (e.g. eventImageVariants.list400.url).
-   * When provided it renders immediately — no presigned round-trip. Presigned
-   * fetch is used only as a fallback, or to refresh after a live image update.
-   */
   directUrl?: string | null;
-  /** Club primary colour for the blurred placeholder (defaults to brand blue). */
   primaryColor?: string;
   alt: string;
   className?: string;
-  /** Tailwind aspect class for the frame, e.g. "aspect-video". */
   aspectClassName?: string;
   priority?: boolean;
 }
@@ -62,20 +53,16 @@ export function EventImage({
   const [url, setUrl] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [failed, setFailed] = useState(false);
-  // Bumped on socket invalidation to force a re-resolve.
   const [version, setVersion] = useState(imageVersion);
-  // After a live update the embedded directUrl is stale — fetch a fresh presigned one.
   const [forceFetch, setForceFetch] = useState(false);
 
   const shouldLoad = priority || isInViewport;
   const color = primaryColor || DEFAULT_CLUB_PRIMARY;
 
-  // Keep local version in sync if the prop changes (e.g. parent re-fetches event).
   useEffect(() => {
     setVersion(imageVersion);
   }, [imageVersion]);
 
-  // Realtime cache invalidation: when an admin swaps this event's poster.
   useEffect(() => {
     if (!socket) return;
     const handler = (payload: { eventId: string; imageVersion: number }) => {
@@ -84,7 +71,7 @@ export function EventImage({
       setLoaded(false);
       setFailed(false);
       setUrl(null);
-      setForceFetch(true); // ignore the now-stale directUrl, fetch fresh
+      setForceFetch(true);
       setVersion(payload.imageVersion ?? Date.now());
     };
     socket.on('event:image-updated', handler);
@@ -93,8 +80,6 @@ export function EventImage({
     };
   }, [socket, eventId]);
 
-  // Resolve the image URL once in view: prefer the embedded directUrl (instant),
-  // otherwise fetch a presigned URL.
   useEffect(() => {
     if (!shouldLoad) return;
     if (directUrl && !forceFetch) {
@@ -124,7 +109,6 @@ export function EventImage({
       ref={ref}
       className={cn('relative w-full overflow-hidden bg-muted', aspectClassName, className)}
     >
-      {/* Blurred club-primary-colour placeholder + skeleton shimmer. */}
       {!loaded && (
         <div
           className="absolute inset-0 animate-pulse"
@@ -137,9 +121,6 @@ export function EventImage({
       )}
 
       {showImage && (
-        // Plain <img> (next/image is unoptimized in this project) with native lazy
-        // loading as a second line of defence behind the IntersectionObserver.
-        // eslint-disable-next-line @next/next/no-img-element
         <img
           src={url!}
           alt={alt}

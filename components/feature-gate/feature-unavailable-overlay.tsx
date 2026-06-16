@@ -15,24 +15,9 @@ interface FeatureUnavailableOverlayProps {
   featureKey: ClubFeatureKey
   featureLabel: string
   clubId: string
-  /** Extra class on the outer wrapper — must include `relative` on the parent */
   className?: string
 }
 
-/**
- * Renders an absolute overlay over its nearest `relative` ancestor when the
- * given feature is disabled — either from the initial load or from a live
- * Socket.io config-sync event (i.e., Wingman Support toggling it off mid-session).
- *
- * Place this inside a `relative` wrapper that covers the editable region.
- * The overlay blocks all pointer events below it.
- *
- * @example
- * <div className="relative">
- *   <FeatureUnavailableOverlay featureKey="merchandise" ... />
- *   <MerchandiseEditForm ... />
- * </div>
- */
 export function FeatureUnavailableOverlay({
   featureKey,
   featureLabel,
@@ -43,7 +28,6 @@ export function FeatureUnavailableOverlay({
   const [liveDisabled, setLiveDisabled] = useState(false)
   const [upgradeOpen, setUpgradeOpen] = useState(false)
 
-  // Also react to the custom event dispatched by api.ts on 403 responses
   useEffect(() => {
     const handler = (e: Event) => {
       const detail = (e as CustomEvent<{ feature?: ClubFeatureKey }>).detail
@@ -68,7 +52,6 @@ export function FeatureUnavailableOverlay({
         aria-label={`${featureLabel} is no longer available`}
       >
         <div className="flex flex-col items-center gap-5 text-center max-w-sm p-7 rounded-2xl border-2 border-destructive/20 bg-card shadow-2xl">
-          {/* Icon */}
           <div className="w-16 h-16 rounded-2xl bg-destructive/10 flex items-center justify-center">
             <div className="relative">
               <AlertTriangle className="w-8 h-8 text-destructive" />
@@ -76,7 +59,6 @@ export function FeatureUnavailableOverlay({
             </div>
           </div>
 
-          {/* Copy */}
           <div className="space-y-3">
             <p className="font-black text-lg text-foreground leading-tight">
               {featureLabel} Has Been Turned Off
@@ -94,7 +76,6 @@ export function FeatureUnavailableOverlay({
             </div>
           </div>
 
-          {/* Actions */}
           <div className="flex flex-col gap-2 w-full">
             <Button
               size="sm"

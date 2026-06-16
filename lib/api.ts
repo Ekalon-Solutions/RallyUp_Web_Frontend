@@ -4257,7 +4257,6 @@ class ApiClient {
       taxRate: number;
       enableTax: boolean;
       enableShipping: boolean;
-      enableCOD: boolean;
     };
   }>> {
     return this.get('/merchandise/admin/settings', { params: clubId ? { clubId } : undefined });
@@ -4269,7 +4268,6 @@ class ApiClient {
     taxRate?: number;
     enableTax?: boolean;
     enableShipping?: boolean;
-    enableCOD?: boolean;
   }, clubId?: string): Promise<ApiResponse<{
     clubId: string;
     clubName: string;
@@ -4279,7 +4277,6 @@ class ApiClient {
       taxRate: number;
       enableTax: boolean;
       enableShipping: boolean;
-      enableCOD: boolean;
     };
   }>> {
     const result = await this.request<{
@@ -4291,7 +4288,6 @@ class ApiClient {
         taxRate: number;
         enableTax: boolean;
         enableShipping: boolean;
-        enableCOD: boolean;
       };
     }>('/merchandise/admin/settings', {
       method: 'PUT',
@@ -4332,7 +4328,6 @@ class ApiClient {
       taxRate: number;
       enableTax: boolean;
       enableShipping: boolean;
-      enableCOD: boolean;
     };
   }>> {
     return this.get(`/merchandise/public/settings/${clubId}`);
@@ -4343,7 +4338,6 @@ class ApiClient {
     deliveryPostcode: number;
     weight: number;
     declaredValue: number;
-    cod?: boolean;
   }): Promise<ApiResponse<{ data?: unknown }>> {
     return this.request<{ data?: unknown }>('/merchandise/shipping-rate', {
       method: 'POST',
@@ -4352,7 +4346,7 @@ class ApiClient {
         deliveryPostcode: params.deliveryPostcode,
         weight: params.weight,
         declaredValue: params.declaredValue,
-        cod: params.cod !== false,
+        cod: false,
       }),
     });
   }
@@ -4361,16 +4355,13 @@ class ApiClient {
     clubId: string;
     deliveryPincode: string;
     items: Array<{ productId: string; quantity: number }>;
-    cod?: boolean;
   }): Promise<ApiResponse<{
     serviceable: boolean;
-    codAvailable: boolean;
     estimatedDays: { min: number; max: number } | null;
     cheapest: { courierId: number; courierName: string; rate: number; estimatedDays: { min: number; max: number } | null } | null;
     fastest: { courierId: number; courierName: string; rate: number; estimatedDays: { min: number; max: number } | null } | null;
     fallback: boolean;
     message: string;
-    enableCOD: boolean;
     chargeableWeight: number;
     actualWeight: number;
     volumetricWeight: number;

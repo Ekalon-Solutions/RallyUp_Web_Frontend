@@ -19,7 +19,6 @@ import {
   CheckCircle,
   Image as ImageIcon,
   Loader2,
-  Wallet,
   Building2,
   Smartphone,
   Tag,
@@ -88,13 +87,11 @@ interface ServiceabilityCourier {
 
 interface ServiceabilityResult {
   serviceable: boolean
-  codAvailable: boolean
   estimatedDays: { min: number; max: number } | null
   cheapest: ServiceabilityCourier | null
   fastest: ServiceabilityCourier | null
   fallback: boolean
   message: string
-  enableCOD: boolean
 }
 
 export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems }: CheckoutModalProps) {
@@ -124,12 +121,10 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
   const [serviceability, setServiceability] = useState<ServiceabilityResult | null>(null)
   const [shippingMethod, setShippingMethod] = useState<'cheapest' | 'fastest'>('cheapest')
   const [merchandiseSettings, setMerchandiseSettings] = useState<{
-    shippingCost: number
     freeShippingThreshold: number
     taxRate: number
     enableTax: boolean
     enableShipping: boolean
-    enableCOD?: boolean
     pickupPostcode?: number | null
   } | null>(null)
   const [orderForm, setOrderForm] = useState<OrderForm>({
@@ -157,10 +152,8 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
   const [validatingCoupon, setValidatingCoupon] = useState(false)
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null)
 
-  // Currency from first item or fallback
   const currency = items.length > 0 ? (items[0].currency || 'INR') : 'INR'
 
-  // Format currency function
   const formatCurrency = (amount: number, currencyCode: string = currency) => {
     const localeMap: Record<string, string> = {
       'USD': 'en-US',
@@ -181,7 +174,6 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
     }).format(amount)
   }
 
-  // Reset coupon and points state when modal closes; cancel any pending reservation
   useEffect(() => {
     if (!isOpen) {
       if (reservationToken) {
@@ -245,7 +237,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
     if (merchandiseSettings.freeShippingThreshold && subtotalAfterCoupon >= merchandiseSettings.freeShippingThreshold) {
       return 0
     }
-    return merchandiseSettings.shippingCost || 0
+    return 0
   }
 
   const calculateTax = () => {
@@ -260,9 +252,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
     !!orderForm.city.trim() &&
     !!orderForm.state.trim() &&
     !!orderForm.country.trim()
-
-  // If serviceable and the club passes shipping costs to the member, use the
-  // selected Shiprocket courier's rate; otherwise fall back to club-configured shipping.
+  
   const selectedCourier = serviceability && !serviceability.fallback
     ? (shippingMethod === 'fastest' ? (serviceability.fastest ?? serviceability.cheapest) : (serviceability.cheapest ?? serviceability.fastest))
     : null
@@ -273,13 +263,10 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
     ? null
     : shiprocketCost != null
       ? shiprocketCost
-      : serviceability?.fallback
-        ? calculateShipping()
-        : shiprocketLoading
-          ? null
-          : calculateShipping()
+      : shiprocketLoading
+        ? null
+        : estimatedShipping
   const taxAmount = calculateTax()
-  const codAvailable = !!(merchandiseSettings?.enableCOD && serviceability?.codAvailable)
 
   useEffect(() => {
     if (!merchandiseSettings || !isOpen || !hasCompleteShippingAddress) {
@@ -329,7 +316,6 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
   const displayTax = orderTax ?? (createdOrder ? (createdOrder.tax ?? (estimatedTax ?? taxAmount)) : (estimatedTax ?? taxAmount))
 
   const netSubtotal = Math.max(subtotalAfterCoupon - (reservedDiscount || 0), 0)
-  // Fees are fixed on the original subtotal (before coupon and redeem points)
   const feeBreakdown = totalPrice > 0 ? calculateTransactionFees(totalPrice) : null
   const finalAmount = netSubtotal + resolvedShippingCost + taxAmount + (feeBreakdown ? feeBreakdown.totalFees : 0)
 
@@ -385,13 +371,11 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
 
     const fallbackResult: ServiceabilityResult = {
       serviceable: true,
-      codAvailable: false,
       estimatedDays: { min: 5, max: 7 },
       cheapest: null,
       fastest: null,
       fallback: true,
       message: "Unable to verify delivery for this pincode right now — showing standard delivery estimate",
-      enableCOD: !!merchandiseSettings?.enableCOD,
     }
 
     try {
@@ -402,7 +386,6 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
         clubId,
         deliveryPincode,
         items: items.map(i => ({ productId: i._id, quantity: i.quantity })),
-        cod: orderForm.paymentMethod === 'cod',
       })
 
       if (!response.success || !response.data) {
@@ -420,7 +403,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
     } finally {
       setShiprocketLoading(false)
     }
-  }, [items, merchandiseSettings?.enableCOD, orderForm.paymentMethod])
+  }, [items])
 
   const serviceabilityDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
@@ -449,15 +432,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
         serviceabilityDebounceRef.current = null
       }
     }
-  }, [isOpen, orderForm.zipCode, orderForm.paymentMethod, items.length, fetchServiceability, merchandiseSettings])
-
-  // If COD becomes unavailable for the entered pincode (or club doesn't offer it),
-  // fall back to online payment.
-  useEffect(() => {
-    if (orderForm.paymentMethod === 'cod' && !codAvailable) {
-      setOrderForm(prev => ({ ...prev, paymentMethod: 'all' }))
-    }
-  }, [codAvailable, orderForm.paymentMethod])
+  }, [isOpen, orderForm.zipCode, items.length, fetchServiceability, merchandiseSettings])
 
   useEffect(() => {
     if (isOpen && user) {
@@ -560,26 +535,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
         setOrderTax(order.tax ?? null)
         setCreatedOrder(order)
 
-        if (orderForm.paymentMethod === 'cod') {
-          // COD orders skip the (simulated) Razorpay flow entirely.
-          if (reservationToken) {
-            try {
-              await apiClient.confirmReservation(reservationToken, order._id)
-            } catch (e) {
-            }
-            setReservationToken(null)
-            setReservedDiscount(0)
-            setRedeemPoints(0)
-          }
-          toast.success('Order placed successfully! Pay with cash on delivery.')
-          if (!directCheckoutItems) {
-            clearCart()
-          }
-          onSuccess()
-          onClose()
-        } else {
-          setShowPaymentModal(true)
-        }
+        setShowPaymentModal(true)
       } else {
         toast.error(response.message || 'Failed to place order. Please try again.')
       }
@@ -597,7 +553,6 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
           await apiClient.confirmReservation(reservationToken, orderId)
         } catch (e) {
         }
-        // Clear so the modal-close effect doesn't try to cancel the confirmed reservation
         setReservationToken(null)
         setReservedDiscount(0)
         setRedeemPoints(0)
@@ -624,7 +579,6 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
           await apiClient.cancelReservation(reservationToken)
         } catch (e) {
         }
-        // Clear so the modal-close effect doesn't try to cancel again
         setReservationToken(null)
         setReservedDiscount(0)
         setRedeemPoints(0)
@@ -1066,50 +1020,6 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                 </Card>
               )}
 
-              {/* Payment Method */}
-              {codAvailable && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Wallet className="w-4 h-4" />
-                      Payment Method
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleInputChange('paymentMethod', 'all')}
-                        className={cn(
-                          "border rounded-lg p-3 text-left flex items-center gap-2 text-sm font-medium transition-colors",
-                          orderForm.paymentMethod !== 'cod'
-                            ? "border-primary ring-1 ring-primary"
-                            : "border-gray-200 hover:border-gray-300"
-                        )}
-                      >
-                        <CreditCard className="w-4 h-4" />
-                        Online Payment
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleInputChange('paymentMethod', 'cod')}
-                        className={cn(
-                          "border rounded-lg p-3 text-left flex items-center gap-2 text-sm font-medium transition-colors",
-                          orderForm.paymentMethod === 'cod'
-                            ? "border-primary ring-1 ring-primary"
-                            : "border-gray-200 hover:border-gray-300"
-                        )}
-                      >
-                        <Wallet className="w-4 h-4" />
-                        Cash on Delivery
-                      </button>
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      Cash on Delivery is available for your pincode.
-                    </p>
-                  </CardContent>
-                </Card>
-              )}
               {/* Order Notes */}
               <Card>
                 <CardHeader>
@@ -1448,7 +1358,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                 ) : (
                   <>
                     <CheckCircle className="w-4 h-4 mr-2" />
-                    {orderForm.paymentMethod === 'cod' ? 'Place Order (Pay on Delivery)' : 'Proceed to Payment'}
+                    Proceed to Payment
                   </>
                 )}
               </Button>

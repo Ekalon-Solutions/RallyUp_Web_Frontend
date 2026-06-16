@@ -110,7 +110,6 @@ interface PurchaseFlowModalProps {
   onLogin?: (returnUrl: string) => void
   onRegister?: (returnUrl: string) => void
   returnPath: string
-  /** When set (e.g. from attendee step), membership is checked automatically — no second phone prompt. */
   initialMobileNumber?: string
   initialCountryCode?: string
 }

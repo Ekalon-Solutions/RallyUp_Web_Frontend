@@ -124,7 +124,6 @@ export function BulkFeaturePanel({
 
       <div className="px-4 py-3 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end sm:gap-x-6 sm:gap-y-3">
 
-        {/* ── Billing tier ─────────────────────────────────────────── */}
         <div className="flex flex-col sm:flex-row sm:items-end gap-2 w-full sm:w-auto">
           <div className="space-y-1.5 flex-1 sm:flex-none">
             <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-1">
@@ -155,7 +154,6 @@ export function BulkFeaturePanel({
 
         <div className="w-px self-stretch bg-border hidden sm:block" />
 
-        {/* ── Feature toggle ───────────────────────────────────────── */}
         <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-end gap-2 w-full sm:w-auto">
           <div className="space-y-1.5 flex-1 sm:flex-none">
             <p className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground flex items-center gap-1">

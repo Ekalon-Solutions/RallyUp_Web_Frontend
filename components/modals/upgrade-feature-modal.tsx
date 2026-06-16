@@ -58,7 +58,6 @@ export function UpgradeFeatureModal({
   const description = FEATURE_DESCRIPTIONS[featureKey]
   const unlockTier = FEATURE_UNLOCK_TIER[featureKey]
 
-  // Pre-fill the textarea with context when the modal opens
   const displayMessage = message || buildPrefilledMessage(featureLabel, user?.name)
 
   const handleOpenChange = (v: boolean) => {
@@ -92,9 +91,7 @@ export function UpgradeFeatureModal({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-lg p-0 overflow-hidden border-0 shadow-2xl">
-        {/* Premium gradient header */}
         <div className="relative bg-gradient-to-br from-amber-500 via-orange-500 to-rose-500 p-6 pb-8 text-white overflow-hidden">
-          {/* Decorative circles */}
           <div className="absolute -top-6 -right-6 w-32 h-32 rounded-full bg-white/10 blur-xl" />
           <div className="absolute -bottom-4 left-8 w-24 h-24 rounded-full bg-white/5 blur-xl" />
 
@@ -121,9 +118,7 @@ export function UpgradeFeatureModal({
           </DialogHeader>
         </div>
 
-        {/* Body */}
         <div className="p-6 space-y-5 bg-card">
-          {/* Tier badge */}
           <div className="flex items-center justify-between rounded-xl bg-muted/40 border px-4 py-3">
             <span className="text-sm text-muted-foreground font-medium">Unlocks with</span>
             <div className="flex items-center gap-1.5">
@@ -137,7 +132,6 @@ export function UpgradeFeatureModal({
             </div>
           </div>
 
-          {/* Message */}
           <div className="space-y-2">
             <label className="text-sm font-semibold text-foreground">
               Message to Wingman support
@@ -155,7 +149,6 @@ export function UpgradeFeatureModal({
             </p>
           </div>
 
-          {/* Actions */}
           <div className="flex gap-3 pt-1">
             <Button
               variant="outline"

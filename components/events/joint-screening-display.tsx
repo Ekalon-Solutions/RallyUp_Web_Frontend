@@ -23,7 +23,6 @@ export function getJointScreeningLabel(config?: JointScreeningConfig | null): st
 
 type Props = {
   jointScreening?: JointScreeningConfig | null
-  /** inline badge for cards/tables */
   variant?: "badge" | "detail" | "row"
   className?: string
   primaryColor?: string

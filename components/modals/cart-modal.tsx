@@ -33,7 +33,6 @@ export function CartModal({ isOpen, onClose, onCheckout }: CartModalProps) {
     clearCart 
   } = useCart()
   const [merchandiseSettings, setMerchandiseSettings] = React.useState<{
-    shippingCost: number
     freeShippingThreshold?: number
     taxRate?: number
     enableTax?: boolean
@@ -43,7 +42,7 @@ export function CartModal({ isOpen, onClose, onCheckout }: CartModalProps) {
   const calculateShipping = () => {
     if (!merchandiseSettings?.enableShipping) return 0
     if (merchandiseSettings.freeShippingThreshold && totalPrice >= merchandiseSettings.freeShippingThreshold) return 0
-    return merchandiseSettings.shippingCost || 0
+    return 0
   }
 
   const calculateTax = () => {

@@ -34,8 +34,7 @@ import {
   AlertTriangle,
   Settings,
   Truck,
-  Percent,
-  Wallet
+  Percent
 } from "lucide-react"
 import {
   Table,
@@ -95,12 +94,10 @@ interface MerchandiseStats {
 }
 
 interface MerchandiseSettings {
-  shippingCost: number
   freeShippingThreshold: number
   taxRate: number
   enableTax: boolean
   enableShipping: boolean
-  enableCOD: boolean
 }
 
 export default function MerchandiseManagementPage() {
@@ -112,12 +109,10 @@ export default function MerchandiseManagementPage() {
   const [merchandise, setMerchandise] = useState<Merchandise[]>([])
   const [stats, setStats] = useState<MerchandiseStats | null>(null)
   const [settings, setSettings] = useState<MerchandiseSettings>({
-    shippingCost: 0,
     freeShippingThreshold: 0,
     taxRate: 0,
     enableTax: false,
-    enableShipping: false,
-    enableCOD: false
+    enableShipping: false
   })
   const [settingsLoading, setSettingsLoading] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
@@ -238,7 +233,14 @@ export default function MerchandiseManagementPage() {
       if (!clubId) return
       const response = await apiClient.getMerchandiseSettings(clubId)
       const settingsData = (response.data as any)?.data?.settings || (response.data as any)?.settings
-      if (response.success && settingsData) setSettings(settingsData)
+      if (response.success && settingsData) {
+        setSettings({
+          freeShippingThreshold: settingsData.freeShippingThreshold ?? 0,
+          taxRate: settingsData.taxRate ?? 0,
+          enableTax: settingsData.enableTax ?? false,
+          enableShipping: settingsData.enableShipping ?? false,
+        })
+      }
     } catch (error: any) {
       // console.error('Error fetching settings:', error)
     }
@@ -375,23 +377,13 @@ export default function MerchandiseManagementPage() {
                         onCheckedChange={(checked) => setSettings({ ...settings, enableShipping: checked })}
                       />
                     </div>
+                    <p className="text-xs text-muted-foreground">
+                      Shipping rates are calculated automatically via Shiprocket based on delivery pincode and order weight.
+                    </p>
                     
                     {settings.enableShipping && (
-                      <>
-                        <div className="space-y-2">
-                          <Label htmlFor="shippingCost">Shipping Cost (₹)</Label>
-                          <Input
-                            id="shippingCost"
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={settings.shippingCost}
-                            onChange={(e) => setSettings({ ...settings, shippingCost: parseFloat(e.target.value) || 0 })}
-                            placeholder="Enter shipping cost"
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="freeShippingThreshold">Free Shipping Threshold (₹)</Label>
+                      <div className="space-y-2">
+                        <Label htmlFor="freeShippingThreshold">Free Shipping Threshold (₹)</Label>
                           <Input
                             id="freeShippingThreshold"
                             type="number"
@@ -402,10 +394,9 @@ export default function MerchandiseManagementPage() {
                             placeholder="Order amount for free shipping (0 to disable)"
                           />
                           <p className="text-xs text-muted-foreground">
-                            Orders above this amount will have free shipping. Set to 0 to always charge shipping.
-                          </p>
-                        </div>
-                      </>
+                            Orders above this threshold qualify for free shipping, with the club absorbing the delivery cost. Set to 0 to charge shipping on every order.
+                        </p>
+                      </div>
                     )}
                   </div>
 
@@ -441,24 +432,6 @@ export default function MerchandiseManagementPage() {
                         </p>
                       </div>
                     )}
-                  </div>
-
-                  {/* COD Settings */}
-                  <div className="space-y-4 md:col-span-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Wallet className="w-4 h-4 text-muted-foreground" />
-                        <Label htmlFor="enableCOD">Enable Cash on Delivery (COD)</Label>
-                      </div>
-                      <Switch
-                        id="enableCOD"
-                        checked={settings.enableCOD}
-                        onCheckedChange={(checked) => setSettings({ ...settings, enableCOD: checked })}
-                      />
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      When enabled, COD will be offered at checkout only for pincodes where Shiprocket confirms COD service.
-                    </p>
                   </div>
                 </div>
 

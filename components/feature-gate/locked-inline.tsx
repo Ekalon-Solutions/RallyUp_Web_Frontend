@@ -10,12 +10,6 @@ interface LockedInlineProps {
   className?: string
 }
 
-/**
- * Drop-in replacement for a UI element that is inaccessible due to a disabled
- * feature. Renders a faded, non-interactive pill with a tooltip explaining the
- * lock. Useful for partial masking (e.g. hiding an "Export" button when the
- * Reporting module is off) without removing the element entirely.
- */
 export function LockedInline({ label, reason, className }: LockedInlineProps) {
   return (
     <TooltipProvider>
