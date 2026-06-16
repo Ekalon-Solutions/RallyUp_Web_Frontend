@@ -39,7 +39,7 @@ export default function AboutPage(): React.JSX.Element {
                     <FadeIn>
                     <div className="mb-16">
                         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-background border border-primary my-12">
-                            <div className="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0" />
+                            <div className="w-1.5 h-1.5 rounded-full bg-[#07B065] flex-shrink-0" />
                             <span className="text-[#E18F67] text-[10px] font-medium leading-tight">
                                 About RallyUp Solutions
                             </span>
@@ -58,9 +58,9 @@ export default function AboutPage(): React.JSX.Element {
                 <FadeIn>
                     <section className="grid md:grid-cols-2 gap-6">
                         {/* Card 1 */}
-                        <div className="bg-[#595959] md:bg-[#404040] hover:bg-[#696969] rounded-xl p-6 md:p-8 relative overflow-hidden flex flex-col justify-start shadow-[0px_4px_24px_#00000040] transition-shadow">
-                            <span className="absolute top-4 right-6 text-[7rem] text-[#595959] md:text-[#404040] leading-none pointer-events-none select-none font-sans">R</span>
-                            <div className="w-14 h-14 rounded-xl bg-[#5D5377] flex items-center justify-center mb-6 relative z-10 p-2 shadow-md">
+                        <div className="bg-[#595959] md:bg-[#404040] hover:bg-[#696969] rounded-xl p-6 md:p-6 relative overflow-hidden flex flex-col justify-start shadow-[0px_4px_24px_#00000040] hover:-translate-y-1 hover:shadow-[4px_4px_12px_0px_#00000080] transition-all duration-300">
+                            <span className="absolute top-0 right-0 text-[7rem] text-[#595959] md:text-[#404040] font-semibold leading-none pointer-events-none select-none font-sans">R</span>
+                            <div className="w-20 h-20 md:w-24 md:h-24 rounded-xl bg-[#ffffff] flex items-center justify-center mb-6 relative z-10 p-2 shadow-md">
                                 <Image
                                     src="/RallyUpSolutions Logo (Transparent Background).svg"
                                     alt="RallyUp Solutions"
@@ -76,14 +76,14 @@ export default function AboutPage(): React.JSX.Element {
                         </div>
 
                         {/* Card 2 */}
-                        <div className="bg-[#595959] md:bg-[#81AEED] hover:bg-[#99BDF1] rounded-xl p-6 md:p-8 relative overflow-hidden flex flex-col justify-start shadow-[0px_4px_24px_#00000040] transition-shadow">
-                            <span className="absolute top-4 right-6 text-[7rem] text-[#595959] md:text-[#81AEED] leading-none pointer-events-none select-none font-sans">W</span>
-                            <div className="w-14 h-14 rounded-xl bg-[#7D7FBC] flex items-center justify-center mb-6 relative z-10 p-2 shadow-md">
+                        <div className="bg-[#595959] md:bg-[#81AEED] hover:bg-[#99BDF1] rounded-xl p-6 md:p-6 relative overflow-hidden flex flex-col justify-start shadow-[0px_4px_24px_#00000040] hover:-translate-y-1 hover:shadow-[4px_4px_12px_0px_#00000080] transition-all duration-300">
+                            <span className="absolute top-0 right-0 text-[7rem] text-[#595959] md:text-[#81AEED] font-semibold leading-none pointer-events-none select-none font-sans">W</span>
+                            <div className="w-20 h-20 md:w-24 md:h-24 rounded-xl bg-[#ffffff] flex items-center justify-center mb-6 relative z-10 p-2 shadow-md">
                                 <Image
                                     src="/Logo.svg"
                                     alt="Wingman Pro"
-                                    width={42}
-                                    height={42}
+                                    width={32}
+                                    height={32}
                                     className="object-contain"
                                 />
                             </div>
@@ -112,11 +112,11 @@ export default function AboutPage(): React.JSX.Element {
                 <FadeIn>
                     <div className="max-w-8xl mx-auto relative z-10 px-6 sm:px-8 lg:px-12 xl:px-16">
                         <div className="flex items-center gap-2 mb-6">
-                            <div className="w-1.5 h-1.5 rounded-full bg-[#67B18A]" />
-                            <span className="text-base text-[#67B18A]">Our North Star</span>
+                            <div className="w-2 h-2 rounded-full bg-[#90DB9D]" />
+                            <span className="text-base text-[#90DB9D]">Our North Star</span>
                         </div>
                         <h2 className="text-3xl lg:text-5xl font-extrabold mb-12 md:mb-16 text-white tracking-tight leading-[1.1]">
-                            Why We <span className="text-[#67B18A]">Exist.</span>
+                            Why We <span className="text-[#90DB9D]">Exist.</span>
                         </h2>
 
                         <div className="grid md:grid-cols-2 gap-6 md:gap-8">
@@ -124,7 +124,7 @@ export default function AboutPage(): React.JSX.Element {
                             {/* Mission Card */}
                             <div className="group rounded-3xl border-2 border-white/10 bg-[#2A2A2A]/50 backdrop-blur-sm p-8 md:p-12 flex flex-col justify-start hover:border-primary hover:bg-[#333333]/80 transition-all duration-300">
 
-                                <span className="text-[#67B18A] group-hover:text-primary font-semibold text-base mb-6 md:mb-8 block transition-colors duration-300">
+                                <span className="text-[#90DB9D] group-hover:text-primary font-semibold text-base mb-6 md:mb-8 block transition-colors duration-300">
                                     Mission
                                 </span>
 
@@ -134,7 +134,7 @@ export default function AboutPage(): React.JSX.Element {
                                     Compliant.
                                 </h3>
 
-                                <p className="text-[#A3A3A3] group-hover:text-[#E18F67] text-sm leading-relaxed transition-colors duration-300">
+                                <p className="text-[#A3A3A3] text-sm leading-relaxed transition-colors duration-300">
                                     To eliminate administrative fragmentation in sports organizations globally by providing a unified, intelligent platform that maximizes operational efficiency, compliance, and member engagement.
                                 </p>
                             </div>
@@ -142,7 +142,7 @@ export default function AboutPage(): React.JSX.Element {
                             {/* Vision Card */}
                             <div className="group rounded-3xl border-2 border-white/10 bg-[#2A2A2A]/50 backdrop-blur-sm p-8 md:p-12 flex flex-col justify-start hover:border-primary hover:bg-[#333333]/80 transition-all duration-300">
 
-                                <span className="text-[#67B18A] group-hover:text-primary font-semibold text-base mb-6 md:mb-8 block transition-colors duration-300">
+                                <span className="text-[#90DB9D] group-hover:text-primary font-semibold text-base mb-6 md:mb-8 block transition-colors duration-300">
                                     Vision
                                 </span>
 
@@ -152,7 +152,7 @@ export default function AboutPage(): React.JSX.Element {
                                     Trusted.
                                 </h3>
 
-                                <p className="text-[#A3A3A3] group-hover:text-[#E18F67] text-sm leading-relaxed transition-colors duration-300">
+                                <p className="text-[#A3A3A3] text-sm leading-relaxed transition-colors duration-300">
                                     To become the leading global technology partner for sports clubs and supporter groups, recognized for transforming community management through innovation and unparalleled user experience.
                                 </p>
                             </div>
@@ -185,7 +185,7 @@ export default function AboutPage(): React.JSX.Element {
                             {/* Desktop Title */}
                             <div className="hidden md:block mb-12">
                                 <div className="inline-flex items-center gap-2 mb-4">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                                    <div className="w-2 h-2 rounded-full bg-[#07B065]" />
                                     <span className="text-base text-primary tracking-wide">What We Do</span>
                                 </div>
                                 <h2 className="text-3xl lg:text-4xl font-extrabold text-[#1A1A1A] tracking-tight leading-[1.1]">
@@ -197,8 +197,14 @@ export default function AboutPage(): React.JSX.Element {
                                 {/* Card 1 */}
                                 <div className="group md:col-span-7 bg-[#0D0D0D] hover:bg-[#ffffff] rounded-3xl p-6 md:p-10 relative overflow-hidden flex flex-col justify-between hover:shadow-lg transition-all duration-300 min-h-[17.5rem]">
                                     <span className="absolute top-2 right-2 md:top-auto md:bottom-4 md:right-6 text-[6rem] md:text-[8rem] font-[600]  text-[#595959] group-hover:text-[#90DB9D] transition-colors duration-300 leading-none pointer-events-none select-none z-0">01</span>
-                                    <div className="w-14 h-14 rounded-2xl bg-[#CC3B16] group-hover:bg-[#1761CA] flex items-center justify-center mb-12 md:mb-16 relative z-10 backdrop-blur-sm transition-all duration-300">
-                                        <Users className="w-7 h-7 text-white" strokeWidth={1.5} />
+                                    <div className="w-14 h-14 rounded-2xl bg-[#595959] md:bg-[#CC3B16] group-hover:bg-[#1761CA] flex items-center justify-center mb-12 md:mb-16 relative z-10 backdrop-blur-sm transition-all duration-300">
+                                        <Image
+                                            src="/User.svg"
+                                            alt="User"
+                                            width={19.5}
+                                            height={17.25}
+                                            className="object-contain text-[#0D0D0D] md:text-white"
+                                        />
                                     </div>
                                     <div className="relative z-10 mt-auto">
                                         <h3 className="font-bold text-[#595959] group-hover:text-[#CC3B16] text-xl mb-3">Membership Management</h3>
@@ -210,13 +216,19 @@ export default function AboutPage(): React.JSX.Element {
 
                                 {/* Card 2 */}
                                 <div className="group md:col-span-5 bg-[#3B3838] hover:bg-[#ffffff] rounded-3xl p-6 md:p-10 relative overflow-hidden flex flex-col justify-between hover:shadow-lg transition-all duration-300 min-h-[17.5rem]">
-                                    <span className="absolute font-[600] top-2 right-2 md:top-4 md:right-6 text-[6rem] md:text-[8rem]  text-[#D9D9D9] group-hover:text-[#90DB9D] transition-colors duration-300 leading-none pointer-events-none select-none z-0">02</span>
-                                    <div className="w-14 h-14 rounded-2xl bg-[#CC3B16] group-hover:bg-[#1761CA] flex items-center justify-center mb-12 md:mb-16 relative z-10 backdrop-blur-sm">
-                                        <BarChart3 className="w-7 h-7 text-white" strokeWidth={1.5} />
+                                    <span className="absolute font-[600] top-2 right-2 md:top-4 md:right-6 text-[6rem] md:text-[8rem] text-[#A6A6A6] md:text-[#D9D9D9] group-hover:text-[#90DB9D] transition-colors duration-300 leading-none pointer-events-none select-none z-0">02</span>
+                                    <div className="w-14 h-14 rounded-2xl bg-[#A6A6A6] md:bg-[#CC3B16] group-hover:bg-[#1761CA] flex items-center justify-center mb-12 md:mb-16 relative z-10 backdrop-blur-sm">
+                                        <Image
+                                            src="/Barchart.svg"
+                                            alt="User"
+                                            width={16.5}
+                                            height={16.5}
+                                            className="object-contain text-[#3B3838] md:text-white"
+                                        />
                                     </div>
                                     <div className="relative z-10 mt-auto">
-                                        <h3 className="font-bold text-[#D9D9D9] group-hover:text-[#CC3B16] text-xl mb-3 transition-all duration-300">Integrated Commerce</h3>
-                                        <p className="text-[#D9D9D9] group-hover:text-[#CC3B16] text-sm leading-relaxed transition-all duration-300">
+                                        <h3 className="font-bold text-[#A6A6A6] md:text-[#D9D9D9] group-hover:text-[#CC3B16] text-xl mb-3 transition-all duration-300">Integrated Commerce</h3>
+                                        <p className="text-[#A6A6A6] md:text-[#D9D9D9] group-hover:text-[#CC3B16] text-sm leading-relaxed transition-all duration-300">
                                             Manage ticketing, merchandise, and payments with full reporting and compliance.
                                         </p>
                                     </div>
@@ -224,13 +236,19 @@ export default function AboutPage(): React.JSX.Element {
 
                                 {/* Card 3 */}
                                 <div className="group md:col-span-5 bg-[#595959] hover:bg-[#ffffff] rounded-3xl p-6 md:p-10 relative overflow-hidden flex flex-col justify-between hover:shadow-lg transition-all duration-300 min-h-[17.5rem]">
-                                    <span className="absolute top-2 font-[600] right-2 md:top-4 md:right-6 text-[6rem] md:text-[8rem]  text-white/60 group-hover:text-[#90DB9D] transition-colors duration-300 leading-none pointer-events-none select-none z-0">03</span>
-                                    <div className="w-14 h-14 rounded-2xl bg-[#CC3B16] group-hover:bg-[#1761CA] flex items-center justify-center mb-12 md:mb-16 relative z-10 shadow-md">
-                                        <Smartphone className="w-7 h-7 text-white" strokeWidth={1.5} />
+                                    <span className="absolute top-2 font-[600] right-2 md:top-4 md:right-6 text-[6rem] md:text-[8rem]  text-[#D9D9D9] md:text-[#A6A6A6] group-hover:text-[#90DB9D] transition-colors duration-300 leading-none pointer-events-none select-none z-0">03</span>
+                                    <div className="w-14 h-14 rounded-2xl bg-[#D9D9D9] md:bg-[#CC3B16] group-hover:bg-[#1761CA] flex items-center justify-center mb-12 md:mb-16 relative z-10 shadow-md">
+                                        <Image
+                                            src="/Smartphone.svg"
+                                            alt="User"
+                                            width={12}
+                                            height={21}
+                                            className="object-contain text-[#595959] md:text-white"
+                                        />
                                     </div>
                                     <div className="relative z-10 mt-auto">
-                                        <h3 className="font-bold text-[#A6A6A6] group-hover:text-[#CC3B16] text-xl mb-3 transition-all duration-300">Seamless Engagement</h3>
-                                        <p className="text-[#A6A6A6] group-hover:text-[#CC3B16] text-sm leading-relaxed">
+                                        <h3 className="font-bold text-[#D9D9D9] md:text-[#A6A6A6] group-hover:text-[#CC3B16] text-xl mb-3 transition-all duration-300">Seamless Engagement</h3>
+                                        <p className="text-[#D9D9D9] md:text-[#A6A6A6] group-hover:text-[#CC3B16] text-sm leading-relaxed">
                                             Activate events, communications, and content—like OTP via Email/SMS, polls, and leaderboards—with ease.
                                         </p>
                                     </div>
@@ -239,8 +257,14 @@ export default function AboutPage(): React.JSX.Element {
                                 {/* Card 4 */}
                                 <div className="group md:col-span-7 bg-[#A6A6A6] hover:bg-[#ffffff] rounded-3xl p-6 md:p-10 relative overflow-hidden flex flex-col justify-between hover:shadow-lg transition-all duration-300 min-h-[17.5rem]">
                                     <span className="absolute font-[600] top-2 right-2 md:top-auto md:bottom-4 md:right-6 text-[6rem] md:text-[8rem]  text-[#3B3838] group-hover:text-[#90DB9D] transition-colors duration-300 leading-none pointer-events-none select-none z-0">04</span>
-                                    <div className="w-14 h-14 rounded-2xl bg-[#CC3B16] group-hover:bg-[#1761CA] flex items-center justify-center mb-12 md:mb-16 relative z-10 shadow-md">
-                                        <ShieldCheck className="w-7 h-7 text-white" strokeWidth={1.5} />
+                                    <div className="w-14 h-14 rounded-2xl bg-[#3B3838] md:bg-[#CC3B16] group-hover:bg-[#1761CA] flex items-center justify-center mb-12 md:mb-16 relative z-10 shadow-md">
+                                        <Image
+                                            src="/Shieldcheck.svg"
+                                            alt="User"
+                                            width={18}
+                                            height={18.66}
+                                            className="object-contain text-[#A6A6A6] md:text-white"
+                                        />
                                     </div>
                                     <div className="relative z-10 mt-auto">
                                         <h3 className="font-bold text-[#3B3838] group-hover:text-[#CC3B16] text-xl mb-3 transition-all duration-300">Compliance & Security</h3>
@@ -255,13 +279,19 @@ export default function AboutPage(): React.JSX.Element {
                                     <span className="absolute font-[600] top-2 right-2 md:top-auto md:bottom-4 md:right-6 text-[6rem] md:text-[8rem]  text-[#0D0D0D] group-hover:text-[#90DB9D] transition-colors duration-300 leading-none pointer-events-none select-none z-0">05</span>
                                     
                                     <div className="flex flex-col justify-between relative z-10 w-full md:w-1/3">
-                                        <div className="w-14 h-14 rounded-2xl bg-[#CC3B16] group-hover:bg-[#1761CA] flex items-center justify-center mb-8 md:mb-12 shadow-md">
-                                            <Puzzle className="w-7 h-7 text-white" strokeWidth={1.5} />
+                                        <div className="w-14 h-14 rounded-2xl bg-[#0D0D0D] md:bg-[#CC3B16] group-hover:bg-[#1761CA] flex items-center justify-center mb-8 md:mb-12 shadow-md">
+                                            <Image
+                                                src="/Puzzle.svg"
+                                                alt="User"
+                                                width={18.75}
+                                                height={18.73}
+                                                className="object-contain text-[#D9D9D9] md:text-white"
+                                            />
                                         </div>
                                         <h3 className="font-bold text-[#0D0D0D] group-hover:text-[#CC3B16] text-xl mt-auto transition-all duration-300">Gamification & AI</h3>
                                     </div>
                                     
-                                    <div className="hidden md:block w-px bg-[#0D0D0D] mx-8 self-stretch relative z-10" />
+                                    <div className="hidden md:block w-px bg-[#1761CA4F] mx-8 self-stretch relative z-10" />
                                     
                                     <div className="mt-6 md:mt-0 relative z-10 flex items-center w-full md:w-2/3 pr-12 lg:pr-32">
                                         <p className="text-[#0D0D0D] group-hover:text-[#CC3B16] text-sm md:text-base leading-relaxed font-medium md:max-w-[90%] transition-all duration-300">
@@ -275,13 +305,13 @@ export default function AboutPage(): React.JSX.Element {
                 </FadeIn>
             </section>
             
-            <section className="py-16 md:py-20 lg:py-24 bg-secondary-purple relative z-10">
+            <section className="py-16 md:py-20 lg:py-24 bg-[#BED6F8] md:bg-secondary-purple relative z-10">
                 <FadeIn>
                     <div className="max-w-8xl mx-auto px-6 sm:px-8 lg:px-12 xl:px-16">
                         {/* Leadership Team Header */}
                         <div className="mb-12 relative z-10">
                         <div className="flex items-center gap-2 mb-4">
-                            <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                            <div className="w-2 h-2 rounded-full bg-[#07B065]" />
                             <span className="text-base text-primary tracking-wide">Leadership Team</span>
                         </div>
                         <h2 className="text-3xl lg:text-4xl font-extrabold text-[#1A1A1A] tracking-tight leading-[1.1]">

@@ -19,7 +19,7 @@ export default function AffiliationsPage(): React.JSX.Element {
         <div className="absolute -bottom-32 right-0 w-[25rem] h-[25rem] lg:w-[35rem] lg:h-[35rem] opacity-60 pointer-events-none select-none z-[-5]">
           <Image src="/VectorLeft.svg" alt="" fill className="object-contain object-right-bottom" />
         </div>
-        
+
         <div className="max-w-8xl mx-auto px-6 sm:px-8 lg:px-12 xl:px-16 w-full">
           <FadeIn>
             <div className="relative z-10 max-w-3xl">
@@ -34,7 +34,7 @@ export default function AffiliationsPage(): React.JSX.Element {
               <h1 className="text-5xl font-extrabold mb-6 text-background tracking-tight leading-[1.1]">
                 Our <span className="text-primary">Affiliation</span> Ecosystem
               </h1>
-              
+
               <p className="text-background text-lg md:text-xl mb-12 max-w-2xl leading-relaxed">
                 Connecting supporter groups and sports organizations with the technology, infrastructure, and partnerships they need to thrive.
               </p>
@@ -85,7 +85,7 @@ export default function AffiliationsPage(): React.JSX.Element {
       </section>
 
       {/* Bottom Section */}
-      <section className="relative z-10 bg-[#ffffff] py-16 md:py-20 lg:py-24 border-t border-[#D5CFDA]">
+      <section className="relative z-10 bg-[#ffffff] py-16 md:py-20 lg:py-24">
         <FadeIn>
           <div className="max-w-8xl mx-auto px-6 sm:px-8 lg:px-12 xl:px-16">
             {/* Badge */}
@@ -135,7 +135,7 @@ export default function AffiliationsPage(): React.JSX.Element {
                     <div className="w-14 h-14 rounded-2xl bg-[#009581] flex items-center justify-center shadow-sm mb-2">
                       <Image src="/affiliationslogo/Framecloud.svg" alt="Cloud Hosting" width={32} height={32} />
                     </div>
-                    <h3 className="text-background text-lg">Cloud Hosting &<br/>Infrastructure</h3>
+                    <h3 className="text-background text-lg">Cloud Hosting &<br />Infrastructure</h3>
                   </div>
 
                   {/* Back Face */}
@@ -159,7 +159,7 @@ export default function AffiliationsPage(): React.JSX.Element {
                     <div className="w-14 h-14 rounded-2xl bg-[#1761CA] flex items-center justify-center shadow-sm mb-2">
                       <Image src="/affiliationslogo/Frameauthentication.svg" alt="Authentication Services" width={32} height={32} />
                     </div>
-                    <h3 className="text-background text-lg leading-snug">Authentication<br/>Services</h3>
+                    <h3 className="text-background text-lg leading-snug">Authentication<br />Services</h3>
                   </div>
 
                   {/* Back Face */}
@@ -212,338 +212,338 @@ export default function AffiliationsPage(): React.JSX.Element {
       </section>
 
       <div className="flex flex-col">
-      {/* What You Get Section */}
-      <section className="order-3 md:order-1 py-16 md:py-20 lg:py-24 bg-white relative">
-        <FadeIn>
-          <div className="max-w-8xl mx-auto px-6 sm:px-8 lg:px-12 xl:px-16">
-            <div className="flex items-center gap-2 mb-6">
-              <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-              <span className="text-base text-primary">Partnership Benefits</span>
+        {/* What You Get Section */}
+        <section className="order-3 md:order-1 py-16 md:py-20 lg:py-24 bg-white relative">
+          <FadeIn>
+            <div className="max-w-8xl mx-auto px-6 sm:px-8 lg:px-12 xl:px-16">
+              <div className="flex items-center gap-2 mb-6">
+                <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                <span className="text-base text-primary">Partnership Benefits</span>
+              </div>
+              <h2 className="text-4xl lg:text-6xl font-extrabold mb-12 text-background tracking-tight leading-[1.1]">
+                What <span className="text-primary">You Get.</span>
+              </h2>
+
+              <div className="grid md:grid-cols-5 gap-6">
+                {/* Card 1 */}
+                <div className="group md:col-span-3 bg-[#222222] hover:bg-[#444444] rounded-3xl p-8 md:p-10 relative overflow-hidden flex flex-col justify-between shadow-sm hover:-translate-y-1 hover:z-10 hover:shadow-[4px_4px_4px_0px_#00000040] transition-all duration-300 min-h-[18rem] md:min-h-[22rem]">
+                  <span className="absolute font-[600] top-2 right-2 md:top-auto md:bottom-4 md:right-6 text-[6rem] md:text-[8rem] text-[#2A2A2A] group-hover:text-[#2E2E2E] transition-colors duration-300 leading-none pointer-events-none select-none z-0">
+                    01
+                  </span>
+                  <div className="w-14 h-14 rounded-xl bg-[#8A8A8A] flex items-center justify-center relative z-10 mt-2 md:mt-0">
+                    <Image src="/affiliationslogo/Frametrophy.svg" alt="Club Solutions" width={28} height={28} />
+                  </div>
+                  <div className="mt-auto pt-12 relative z-10 w-full">
+                    <h3 className="font-bold text-white text-3xl mb-3">Club Solutions</h3>
+                    <p className="text-[#A3A3A3] text-base leading-relaxed max-w-xl">
+                      Dedicated platforms for professional clubs to manage membership, ticketing, and fan engagement — everything in one place.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Card 2 */}
+                <div className="group md:col-span-2 bg-[#404040] hover:bg-[#4D4D4D] md:bg-[#7174BE] md:hover:bg-[#8A8EE9] rounded-3xl p-8 md:p-10 relative overflow-hidden flex flex-col justify-between shadow-sm hover:-translate-y-1 hover:z-10 hover:shadow-[4px_4px_4px_0px_#00000040] transition-all duration-300 min-h-[18rem] md:min-h-[22rem]">
+                  <span className="absolute font-[600] top-2 right-2 md:top-4 md:right-6 text-[6rem] md:text-[8rem] text-[#4D4D4D] group-hover:text-[#525252] md:text-[#797CCB] md:group-hover:text-[#797CCB] transition-colors duration-300 leading-none pointer-events-none select-none z-0">02</span>
+                  <div className="w-14 h-14 rounded-xl bg-[#727274] md:bg-[#D6D3F0] flex items-center justify-center relative z-10 mt-2 md:mt-0">
+                    <Image src="/affiliationslogo/Framecommunity.svg" alt="Community Building" width={28} height={28} />
+                  </div>
+                  <div className="mt-auto pt-12 relative z-10 w-full">
+                    <h3 className="font-bold text-white text-3xl mb-3">Community Building</h3>
+                    <p className="text-[#B0B0B0] md:text-[#E0DDF0] text-base leading-relaxed max-w-sm">
+                      Features designed to strengthen connections between fans, clubs, and local communities.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Card 3 */}
+                <div className="group md:col-span-2 bg-[#7F7F7F] hover:bg-[#8C8C8C] md:bg-[#D8D5FB] md:hover:bg-[#BCBDFF] rounded-3xl p-8 md:p-10 relative overflow-hidden flex flex-col justify-between shadow-sm hover:-translate-y-1 hover:z-10 hover:shadow-[4px_4px_4px_0px_#00000040] transition-all duration-300 min-h-[18rem] md:min-h-[22rem]">
+                  <span className="absolute font-[600] top-2 right-2 md:top-4 md:right-6 text-[6rem] md:text-[8rem] text-[#8C8C8C] group-hover:text-[#999999] md:text-[#E9E6FF] md:group-hover:text-[#DEDFFF] transition-colors duration-300 leading-none pointer-events-none select-none z-0">
+                    03</span>
+                  <div className="w-14 h-14 rounded-xl bg-[#404040] md:bg-[#8076B9] flex items-center justify-center relative z-10 mt-2 md:mt-0">
+                    <Image src="/affiliationslogo/Vectortool.svg" alt="Supporter Group Tools" width={28} height={28} />
+                  </div>
+                  <div className="mt-auto pt-12 relative z-10 w-full">
+                    <h3 className="font-bold text-[#6D6392] text-3xl mb-3 group-hover:text-[#4A4363] transition-colors duration-300">Supporter Group Tools</h3>
+                    <p className="text-[#D4D5FB] md:text-[#6D6392] text-base leading-relaxed max-w-sm md:group-hover:text-[#4A4363] transition-colors duration-300">
+                      Complete toolkit for independent fan clubs — member management, events, and merchandise built in.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Card 4 */}
+                <div className="group md:col-span-3 bg-[#BFBFBF] hover:bg-[#CCCCCC] md:bg-[#E4D9DF] md:hover:bg-[#D8BBEE] rounded-3xl p-8 md:p-10 relative overflow-hidden flex flex-col justify-between shadow-sm hover:-translate-y-1 hover:z-10 hover:shadow-[4px_4px_4px_0px_#00000040] transition-all duration-300 min-h-[18rem] md:min-h-[22rem]">
+                  <span className="absolute font-[600] top-2 right-2 md:top-auto md:bottom-4 md:right-6 text-[6rem] md:text-[8rem] text-[#ACACAC] group-hover:text-[#B5B5B5] md:text-[#F4ECF0] md:group-hover:text-[#E7DFED] transition-colors duration-300 leading-none pointer-events-none select-none z-0">04</span>
+                  <div className="w-14 h-14 rounded-xl bg-[#7F7F7F] md:bg-[#7B6A76] flex items-center justify-center relative z-10 mt-2 md:mt-0">
+                    <Image src="/affiliationslogo/Framepartnership.svg" alt="Custom Partnerships" width={28} height={28} />
+                  </div>
+                  <div className="mt-auto pt-12 relative z-10 w-full">
+                    <h3 className="font-bold text-[#564954] text-3xl mb-3 group-hover:text-[#2E2E2E] transition-colors duration-300">Custom Partnerships</h3>
+                    <p className="text-[#6C5E6A] text-base leading-relaxed max-w-xl group-hover:text-[#4A4A4A] transition-colors duration-300">
+                      Tailored solutions and integrations for organizations with specific needs and requirements.
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
-            <h2 className="text-4xl lg:text-6xl font-extrabold mb-12 text-background tracking-tight leading-[1.1]">
-              What <span className="text-primary">You Get.</span>
-            </h2>
+          </FadeIn>
+        </section>
 
-            <div className="grid md:grid-cols-5 gap-6">
-              {/* Card 1 */}
-              <div className="group md:col-span-3 bg-[#222222] hover:bg-[#444444] rounded-3xl p-8 md:p-10 relative overflow-hidden flex flex-col justify-between hover:shadow-lg transition-all duration-300 min-h-[18rem] md:min-h-[22rem]">
-                <span className="absolute font-[600] top-2 right-2 md:top-auto md:bottom-4 md:right-6 text-[6rem] md:text-[8rem] text-[#2A2A2A] group-hover:text-[#2E2E2E] transition-colors duration-300 leading-none pointer-events-none select-none z-0">
-                  01
-                </span>
-                <div className="w-14 h-14 rounded-xl bg-[#8A8A8A] flex items-center justify-center relative z-10 mt-2 md:mt-0">
-                  <Image src="/affiliationslogo/Frametrophy.svg" alt="Club Solutions" width={28} height={28} />
-                </div>
-                <div className="mt-auto pt-12 relative z-10 w-full">
-                  <h3 className="font-bold text-white text-3xl mb-3">Club Solutions</h3>
-                  <p className="text-[#A3A3A3] text-base leading-relaxed max-w-xl">
-                    Dedicated platforms for professional clubs to manage membership, ticketing, and fan engagement — everything in one place.
-                  </p>
-                </div>
+        {/* Who We Work With Section */}
+        <section className="order-1 md:order-2 py-16 md:py-20 lg:py-24 bg-white relative">
+          <FadeIn>
+            <div className="max-w-8xl mx-auto px-6 sm:px-8 lg:px-12 xl:px-16">
+              <div className="flex items-center gap-2 mb-6">
+                <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                <span className="text-base text-primary">League & Organizational Affiliates</span>
               </div>
+              <h2 className="text-4xl lg:text-6xl font-extrabold mb-12 text-background tracking-tight leading-[1.1]">
+                Who We <span className="text-primary">Work With.</span>
+              </h2>
 
-              {/* Card 2 */}
-              <div className="group md:col-span-2 bg-[#404040] hover:bg-[#4D4D4D] md:bg-[#7174BE] md:hover:bg-[#8A8EE9] rounded-3xl p-8 md:p-10 relative overflow-hidden flex flex-col justify-between hover:shadow-lg transition-all duration-300 min-h-[18rem] md:min-h-[22rem]">
-                <span className="absolute font-[600] top-2 right-2 md:top-4 md:right-6 text-[6rem] md:text-[8rem] text-[#4D4D4D] group-hover:text-[#525252] md:text-[#797CCB] md:group-hover:text-[#797CCB] transition-colors duration-300 leading-none pointer-events-none select-none z-0">02</span>
-                <div className="w-14 h-14 rounded-xl bg-[#727274] md:bg-[#D6D3F0] flex items-center justify-center relative z-10 mt-2 md:mt-0">
-                  <Image src="/affiliationslogo/Framecommunity.svg" alt="Community Building" width={28} height={28} />
-                </div>
-                <div className="mt-auto pt-12 relative z-10 w-full">
-                  <h3 className="font-bold text-white text-3xl mb-3">Community Building</h3>
-                  <p className="text-[#B0B0B0] md:text-[#E0DDF0] text-base leading-relaxed max-w-sm">
-                    Features designed to strengthen connections between fans, clubs, and local communities.
-                  </p>
-                </div>
-              </div>
+              <div className="grid md:grid-cols-3 gap-10">
+                {/* Card 1 */}
+                <div className="group bg-[#00000040] md:bg-[#90DB9D] rounded-3xl p-8 relative overflow-hidden flex flex-col items-start md:items-center text-left md:text-center shadow-sm hover:shadow-[1px_1px_10px_0px_#00000052] hover:z-30 transition-all duration-300 min-h-[18rem]">
 
-              {/* Card 3 */}
-              <div className="group md:col-span-2 bg-[#7F7F7F] hover:bg-[#8C8C8C] md:bg-[#D8D5FB] md:hover:bg-[#BCBDFF] rounded-3xl p-8 md:p-10 relative overflow-hidden flex flex-col justify-between hover:shadow-lg transition-all duration-300 min-h-[18rem] md:min-h-[22rem]">
-                <span className="absolute font-[600] top-2 right-2 md:top-4 md:right-6 text-[6rem] md:text-[8rem] text-[#8C8C8C] group-hover:text-[#999999] md:text-[#E9E6FF] md:group-hover:text-[#DEDFFF] transition-colors duration-300 leading-none pointer-events-none select-none z-0">
-                03</span>
-              <div className="w-14 h-14 rounded-xl bg-[#404040] md:bg-[#8076B9] flex items-center justify-center relative z-10 mt-2 md:mt-0">
-                  <Image src="/affiliationslogo/Vectortool.svg" alt="Supporter Group Tools" width={28} height={28} />
-                </div>
-                <div className="mt-auto pt-12 relative z-10 w-full">
-                  <h3 className="font-bold text-[#6D6392] text-3xl mb-3 group-hover:text-[#4A4363] transition-colors duration-300">Supporter Group Tools</h3>
-                  <p className="text-[#D4D5FB] md:text-[#6D6392] text-base leading-relaxed max-w-sm md:group-hover:text-[#4A4363] transition-colors duration-300">
-                    Complete toolkit for independent fan clubs — member management, events, and merchandise built in.
-                  </p>
-                </div>
-              </div>
+                  <div className="w-14 h-14 rounded-xl bg-[#1761CA] flex items-center justify-center mb-6 relative z-10 mt-2 group-hover:rotate-45 transition-transform duration-300">
+                    <Image
+                      className="transition-transform duration-300 group-hover:rotate-[-45deg]"
+                      src="/affiliationslogo/Framesupporter.svg"
+                      alt="Supporter Group Networks"
+                      width={28}
+                      height={28}
+                    />
+                  </div>
 
-              {/* Card 4 */}
-              <div className="group md:col-span-3 bg-[#BFBFBF] hover:bg-[#CCCCCC] md:bg-[#E4D9DF] md:hover:bg-[#D8BBEE] rounded-3xl p-8 md:p-10 relative overflow-hidden flex flex-col justify-between hover:shadow-lg transition-all duration-300 min-h-[18rem] md:min-h-[22rem]">
-                <span className="absolute font-[600] top-2 right-2 md:top-auto md:bottom-4 md:right-6 text-[6rem] md:text-[8rem] text-[#ACACAC] group-hover:text-[#B5B5B5] md:text-[#F4ECF0] md:group-hover:text-[#E7DFED] transition-colors duration-300 leading-none pointer-events-none select-none z-0">04</span>
-                <div className="w-14 h-14 rounded-xl bg-[#7F7F7F] md:bg-[#7B6A76] flex items-center justify-center relative z-10 mt-2 md:mt-0">
-                  <Image src="/affiliationslogo/Framepartnership.svg" alt="Custom Partnerships" width={28} height={28} />
+                  <div className="mt-auto relative z-10 w-full flex flex-col items-start md:items-center">
+                    <h3 className="text-background text-lg mb-4">
+                      Supporter Group Networks
+                    </h3>
+
+                    <p className="text-[#000000] text-sm leading-relaxed max-w-sm ">
+                      Collaborations with global supporter networks — sharing best practices
+                      in member management and delivering shared knowledge among Wingman Pro
+                      communities.
+                    </p>
+                  </div>
                 </div>
-                <div className="mt-auto pt-12 relative z-10 w-full">
-                  <h3 className="font-bold text-[#564954] text-3xl mb-3 group-hover:text-[#2E2E2E] transition-colors duration-300">Custom Partnerships</h3>
-                  <p className="text-[#6C5E6A] text-base leading-relaxed max-w-xl group-hover:text-[#4A4A4A] transition-colors duration-300">
-                    Tailored solutions and integrations for organizations with specific needs and requirements.
-                  </p>
+
+                {/* Card 2 */}
+                <div className="group bg-[#00000040] md:bg-[#90DB9D] rounded-3xl p-8 relative overflow-hidden flex flex-col items-start md:items-center text-left md:text-center shadow-sm hover:shadow-[1px_1px_10px_0px_#00000052] hover:z-30 transition-all duration-300 min-h-[18rem]">
+
+                  <div className="w-14 h-14 rounded-xl bg-[#1761CA] flex items-center justify-center mb-6 relative z-10 mt-2 group-hover:rotate-45 transition-transform duration-300">
+                    <Image
+                      className="transition-transform duration-300 group-hover:rotate-[-45deg]"
+                      src="/affiliationslogo/Vectorcorporate.svg"
+                      alt="Corporate Sponsors"
+                      width={28}
+                      height={28}
+                    />
+                  </div>
+
+                  <div className="mt-auto relative z-10 w-full flex flex-col items-start md:items-center">
+                    <h3 className="text-background text-lg mb-4">
+                      Corporate Sponsors
+                    </h3>
+
+                    <p className="text-[#000000] text-sm leading-relaxed max-w-sm">
+                      Streamlined engagement channels between sponsors and our network of
+                      engaged supporter groups — unlocking new revenue opportunities for
+                      partner clubs.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Card 3 */}
+                <div className="group bg-[#00000040] md:bg-[#90DB9D] rounded-3xl p-8 relative overflow-hidden flex flex-col items-start md:items-center text-left md:text-center shadow-sm hover:shadow-[1px_1px_10px_0px_#00000052] hover:z-30 transition-all duration-300 min-h-[18rem]">
+
+                  <div className="w-14 h-14 rounded-xl bg-[#1761CA] flex items-center justify-center mb-6 relative z-10 mt-2 group-hover:rotate-45 transition-transform duration-300">
+                    <Image
+                      className="transition-transform duration-300 group-hover:rotate-[-45deg]"
+                      src="/affiliationslogo/Framegrassroots.svg"
+                      alt="Youth & Grassroots Programs"
+                      width={28}
+                      height={28}
+                    />
+                  </div>
+
+                  <div className="mt-auto relative z-10 w-full flex flex-col items-start md:items-center">
+                    <h3 className="text-background text-lg mb-4">
+                      Youth & Grassroots Programs
+                    </h3>
+
+                    <p className="text-[#000000] text-sm leading-relaxed max-w-sm">
+                      Purpose-built tracking for attendance and engagement scoring —
+                      documenting development, supporting grant obligations, and growing
+                      local communities.
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
+          </FadeIn>
+        </section>
+
+        {/* Global Reach Section */}
+        <section className="order-2 md:order-3 py-16 md:py-20 lg:py-24 bg-[#222222] relative overflow-hidden">
+          {/* Large faint background text */}
+          <div className="hidden md:flex absolute inset-0 items-center justify-center pointer-events-none select-none overflow-hidden">
+            <span
+              className="text-6xl md:text-8xl lg:text-9xl text-[#353434] tracking-wider leading-none whitespace-nowrap"
+              style={{ fontFamily: "var(--font-purple-purse)" }}
+            >
+              GLOBAL
+            </span>
           </div>
-        </FadeIn>
-      </section>
 
-      {/* Who We Work With Section */}
-      <section className="order-1 md:order-2 py-16 md:py-20 lg:py-24 bg-white relative">
-        <FadeIn>
-          <div className="max-w-8xl mx-auto px-6 sm:px-8 lg:px-12 xl:px-16">
-            <div className="flex items-center gap-2 mb-6">
-              <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-              <span className="text-base text-primary">League & Organizational Affiliates</span>
-            </div>
-            <h2 className="text-4xl lg:text-6xl font-extrabold mb-12 text-background tracking-tight leading-[1.1]">
-              Who We <span className="text-primary">Work With.</span>
-            </h2>
+          <FadeIn>
+            <div className="max-w-8xl mx-auto relative z-10 px-6 sm:px-8 lg:px-12 xl:px-16">
+              <div className="flex items-center gap-2 mb-6">
+                <div className="w-1.5 h-1.5 rounded-full bg-[#67B18A]" />
+                <span className="text-base text-[#90DB9D]">Global Reach</span>
+              </div>
+              <h2 className="text-4xl lg:text-6xl font-extrabold mb-16 text-white tracking-tight leading-[1.1]">
+                We're <span className="text-[#90DB9D]">Everywhere.</span>
+              </h2>
 
-            <div className="grid md:grid-cols-3 gap-6">
-              {/* Card 1 */}
-              <div className="group bg-[#00000040] md:bg-[#90DB9D] rounded-3xl p-8 relative overflow-hidden flex flex-col items-start md:items-center text-left md:text-center hover:shadow-lg hover:z-30 transition-all duration-300 min-h-[18rem]">
-
-                <div className="w-14 h-14 rounded-xl bg-[#1761CA] flex items-center justify-center mb-6 relative z-10 mt-2 group-hover:rotate-45 transition-transform duration-300">
-                  <Image
-                    className="transition-transform duration-300 group-hover:rotate-[-45deg]"
-                    src="/affiliationslogo/Framesupporter.svg"
-                    alt="Supporter Group Networks"
-                    width={28}
-                    height={28}
-                  />
-                </div>
-
-                <div className="mt-auto relative z-10 w-full flex flex-col items-start md:items-center">
-                  <h3 className="text-background text-lg mb-4">
-                    Supporter Group Networks
-                  </h3>
-
-                  <p className="text-[#000000] text-sm leading-relaxed max-w-sm ">
-                    Collaborations with global supporter networks — sharing best practices
-                    in member management and delivering shared knowledge among Wingman Pro
-                    communities.
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {/* Card 1 */}
+                <div className="group rounded-3xl border-2 border-white/10 bg-[#2A2A2A] md:bg-[#FFFFFFC4] backdrop-blur-sm p-8 flex flex-col justify-start hover:bg-white/5 hover:border-white/20 md:hover:bg-[#FFFFFFC4]/20 md:hover:border-[#FFFFFFC4]/50 transition-all duration-300 min-h-[16.25rem]">
+                  <div className="w-14 h-14 rounded-xl bg-[#1761CA] flex items-center justify-center mb-8">
+                    <Image src="/affiliationslogo/Frameasia.svg" alt="Asia-Pacific Icon" width={28} height={28} />
+                  </div>
+                  <h3 className="font-bold text-white md:text-[#0D0D0D] text-xl mb-3">Asia-Pacific</h3>
+                  <p className="text-[#8598C7] md:text-[#0D0D0D] text-sm leading-relaxed">
+                    India • Singapore • Malaysia
+                    <br />
+                    Indonesia • Thailand • Australia
                   </p>
                 </div>
-              </div>
 
-              {/* Card 2 */}
-              <div className="group bg-[#00000040] md:bg-[#90DB9D] rounded-3xl p-8 relative overflow-hidden flex flex-col items-start md:items-center text-left md:text-center hover:shadow-lg transition-all duration-300 min-h-[18rem]">
-
-                <div className="w-14 h-14 rounded-xl bg-[#1761CA] flex items-center justify-center mb-6 relative z-10 mt-2 group-hover:rotate-45 transition-transform duration-300">
-                  <Image
-                    className="transition-transform duration-300 group-hover:rotate-[-45deg]"
-                    src="/affiliationslogo/Vectorcorporate.svg"
-                    alt="Corporate Sponsors"
-                    width={28}
-                    height={28}
-                  />
-                </div>
-
-                <div className="mt-auto relative z-10 w-full flex flex-col items-start md:items-center">
-                  <h3 className="text-background text-lg mb-4">
-                    Corporate Sponsors
-                  </h3>
-
-                  <p className="text-[#000000] text-sm leading-relaxed max-w-sm">
-                    Streamlined engagement channels between sponsors and our network of
-                    engaged supporter groups — unlocking new revenue opportunities for
-                    partner clubs.
+                {/* Card 2 */}
+                <div className="group rounded-3xl border-2 border-white/10 bg-[#2A2A2A] md:bg-[#FFFFFFC4] backdrop-blur-sm p-8 flex flex-col justify-start hover:bg-white/5 hover:border-white/20 md:hover:bg-[#FFFFFFC4]/20 md:hover:border-[#FFFFFFC4]/50 transition-all duration-300 min-h-[16.25rem]">
+                  <div className="w-14 h-14 rounded-xl bg-[#1761CA] flex items-center justify-center mb-8">
+                    <Image src="/affiliationslogo/Framemiddleeast.svg" alt="Middle East Icon" width={28} height={28} />
+                  </div>
+                  <h3 className="font-bold text-white md:text-[#0D0D0D] text-xl mb-3">Middle East</h3>
+                  <p className="text-[#8598C7] md:text-[#0D0D0D] text-sm leading-relaxed">
+                    UAE
+                    <br />
+                    & expanding regionally
                   </p>
                 </div>
-              </div>
 
-              {/* Card 3 */}
-              <div className="group bg-[#00000040] md:bg-[#90DB9D] rounded-3xl p-8 relative overflow-hidden flex flex-col items-start md:items-center text-left md:text-center hover:shadow-lg transition-all duration-300 min-h-[18rem]">
-
-                <div className="w-14 h-14 rounded-xl bg-[#1761CA] flex items-center justify-center mb-6 relative z-10 mt-2 group-hover:rotate-45 transition-transform duration-300">
-                  <Image
-                    className="transition-transform duration-300 group-hover:rotate-[-45deg]"
-                    src="/affiliationslogo/Framegrassroots.svg"
-                    alt="Youth & Grassroots Programs"
-                    width={28}
-                    height={28}
-                  />
+                {/* Card 3 */}
+                <div className="group rounded-3xl border-2 border-white/10 bg-[#2A2A2A] md:bg-[#FFFFFFC4] backdrop-blur-sm p-8 flex flex-col justify-start hover:bg-white/5 hover:border-white/20 md:hover:bg-[#FFFFFFC4]/20 md:hover:border-[#FFFFFFC4]/50 transition-all duration-300 min-h-[16.25rem]">
+                  <div className="w-14 h-14 rounded-xl bg-[#1761CA] flex items-center justify-center mb-8">
+                    <Image src="/affiliationslogo/Frameamericas.svg" alt="Americas Icon" width={28} height={28} />
+                  </div>
+                  <h3 className="font-bold text-white md:text-[#0D0D0D] text-xl mb-3">Americas</h3>
+                  <p className="text-[#8598C7] md:text-[#0D0D0D] text-sm leading-relaxed">
+                    United States • Mexico
+                  </p>
                 </div>
 
-                <div className="mt-auto relative z-10 w-full flex flex-col items-start md:items-center">
-                  <h3 className="text-background text-lg mb-4">
-                    Youth & Grassroots Programs
-                  </h3>
-
-                  <p className="text-[#000000] text-sm leading-relaxed max-w-sm">
-                    Purpose-built tracking for attendance and engagement scoring —
-                    documenting development, supporting grant obligations, and growing
-                    local communities.
+                {/* Card 4 */}
+                <div className="group rounded-3xl border-2 border-white/10 bg-[#2A2A2A] md:bg-[#FFFFFFC4] backdrop-blur-sm p-8 flex flex-col justify-start hover:bg-white/5 hover:border-white/20 md:hover:bg-[#FFFFFFC4]/20 md:hover:border-[#FFFFFFC4]/50 transition-all duration-300 min-h-[16.25rem]">
+                  <div className="w-14 h-14 rounded-xl bg-[#1761CA] flex items-center justify-center mb-8">
+                    <Image src="/affiliationslogo/Frameeurope.svg" alt="Europe Icon" width={28} height={28} />
+                  </div>
+                  <h3 className="font-bold text-white md:text-[#0D0D0D] text-xl mb-3">Europe</h3>
+                  <p className="text-[#8598C7] md:text-[#0D0D0D] text-sm leading-relaxed">
+                    United Kingdom • Germany
+                    <br />
+                    & growing presence
                   </p>
                 </div>
               </div>
             </div>
-          </div>
-        </FadeIn>
-      </section>
-
-      {/* Global Reach Section */}
-      <section className="order-2 md:order-3 py-16 md:py-20 lg:py-24 bg-[#222222] relative overflow-hidden">
-        {/* Large faint background text */}
-        <div className="hidden md:flex absolute inset-0 items-center justify-center pointer-events-none select-none overflow-hidden">
-          <span
-            className="text-6xl md:text-8xl lg:text-9xl text-[#353434] tracking-wider leading-none whitespace-nowrap"
-            style={{ fontFamily: "var(--font-purple-purse)" }}
-          >
-            GLOBAL
-          </span>
-        </div>
-
-        <FadeIn>
-          <div className="max-w-8xl mx-auto relative z-10 px-6 sm:px-8 lg:px-12 xl:px-16">
-            <div className="flex items-center gap-2 mb-6">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#67B18A]" />
-              <span className="text-base text-[#90DB9D]">Global Reach</span>
-            </div>
-            <h2 className="text-4xl lg:text-6xl font-extrabold mb-16 text-white tracking-tight leading-[1.1]">
-              We're <span className="text-[#90DB9D]">Everywhere.</span>
-            </h2>
-
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {/* Card 1 */}
-              <div className="group rounded-3xl border-2 border-white/10 bg-[#2A2A2A] md:bg-[#FFFFFFC4] backdrop-blur-sm p-8 flex flex-col justify-start hover:bg-white/5 hover:border-white/20 md:hover:bg-[#FFFFFFC4]/20 md:hover:border-[#FFFFFFC4]/50 transition-all duration-300 min-h-[16.25rem]">
-                <div className="w-14 h-14 rounded-xl bg-[#1761CA] flex items-center justify-center mb-8">
-                  <Image src="/affiliationslogo/Frameasia.svg" alt="Asia-Pacific Icon" width={28} height={28} />
-                </div>
-                <h3 className="font-bold text-white md:text-[#0D0D0D] text-xl mb-3">Asia-Pacific</h3>
-                <p className="text-[#8598C7] md:text-[#0D0D0D] text-sm leading-relaxed">
-                  India • Singapore • Malaysia
-                  <br />
-                  Indonesia • Thailand • Australia
-                </p>
-              </div>
-
-              {/* Card 2 */}
-              <div className="group rounded-3xl border-2 border-white/10 bg-[#2A2A2A] md:bg-[#FFFFFFC4] backdrop-blur-sm p-8 flex flex-col justify-start hover:bg-white/5 hover:border-white/20 md:hover:bg-[#FFFFFFC4]/20 md:hover:border-[#FFFFFFC4]/50 transition-all duration-300 min-h-[16.25rem]">
-                <div className="w-14 h-14 rounded-xl bg-[#1761CA] flex items-center justify-center mb-8">
-                  <Image src="/affiliationslogo/Framemiddleeast.svg" alt="Middle East Icon" width={28} height={28} />
-                </div>
-                <h3 className="font-bold text-white md:text-[#0D0D0D] text-xl mb-3">Middle East</h3>
-                <p className="text-[#8598C7] md:text-[#0D0D0D] text-sm leading-relaxed">
-                  UAE
-                  <br />
-                  & expanding regionally
-                </p>
-              </div>
-
-              {/* Card 3 */}
-              <div className="group rounded-3xl border-2 border-white/10 bg-[#2A2A2A] md:bg-[#FFFFFFC4] backdrop-blur-sm p-8 flex flex-col justify-start hover:bg-white/5 hover:border-white/20 md:hover:bg-[#FFFFFFC4]/20 md:hover:border-[#FFFFFFC4]/50 transition-all duration-300 min-h-[16.25rem]">
-                <div className="w-14 h-14 rounded-xl bg-[#1761CA] flex items-center justify-center mb-8">
-                  <Image src="/affiliationslogo/Frameamericas.svg" alt="Americas Icon" width={28} height={28} />
-                </div>
-                <h3 className="font-bold text-white md:text-[#0D0D0D] text-xl mb-3">Americas</h3>
-                <p className="text-[#8598C7] md:text-[#0D0D0D] text-sm leading-relaxed">
-                  United States • Mexico
-                </p>
-              </div>
-
-              {/* Card 4 */}
-              <div className="group rounded-3xl border-2 border-white/10 bg-[#2A2A2A] md:bg-[#FFFFFFC4] backdrop-blur-sm p-8 flex flex-col justify-start hover:bg-white/5 hover:border-white/20 md:hover:bg-[#FFFFFFC4]/20 md:hover:border-[#FFFFFFC4]/50 transition-all duration-300 min-h-[16.25rem]">
-                <div className="w-14 h-14 rounded-xl bg-[#1761CA] flex items-center justify-center mb-8">
-                  <Image src="/affiliationslogo/Frameeurope.svg" alt="Europe Icon" width={28} height={28} />
-                </div>
-                <h3 className="font-bold text-white md:text-[#0D0D0D] text-xl mb-3">Europe</h3>
-                <p className="text-[#8598C7] md:text-[#0D0D0D] text-sm leading-relaxed">
-                  United Kingdom • Germany
-                  <br />
-                  & growing presence
-                </p>
-              </div>
-            </div>
-          </div>
-        </FadeIn>
-      </section>
+          </FadeIn>
+        </section>
       </div>
 
       {/* CTA Section */}
       <div className="w-full">
         <FadeIn>
           <div className="relative overflow-hidden bg-[linear-gradient(to_right,#FFFFFF_50%,#1761CA_100%)]">
-          {/* Exact geometric line pattern */}
-          <svg
+            {/* Exact geometric line pattern */}
+            <svg
               className="hidden md:block absolute inset-0 w-full h-full"
               viewBox="0 0 1440 500"
               preserveAspectRatio="none"
               xmlns="http://www.w3.org/2000/svg"
-          >
+            >
               {/* LEFT TRIANGLE */}
               <line
-              x1="0"
-              y1="500"
-              x2="380"
-              y2="0"
-              stroke="#C9C1CF"
-              strokeWidth="0.8"
+                x1="0"
+                y1="500"
+                x2="380"
+                y2="0"
+                stroke="#C9C1CF"
+                strokeWidth="0.8"
               />
               <line
-              x1="380"
-              y1="0"
-              x2="770"
-              y2="500"
-              stroke="#C9C1CF"
-              strokeWidth="0.8"
+                x1="380"
+                y1="0"
+                x2="770"
+                y2="500"
+                stroke="#C9C1CF"
+                strokeWidth="0.8"
               />
 
               {/* CENTER INTERSECTING TRIANGLE */}
               <line
-              x1="530"
-              y1="500"
-              x2="905"
-              y2="0"
-              stroke="#A291B178"
-              strokeWidth="0.8"
+                x1="530"
+                y1="500"
+                x2="905"
+                y2="0"
+                stroke="#A291B178"
+                strokeWidth="0.8"
               />
               <line
-              x1="905"
-              y1="0"
-              x2="1245"
-              y2="500"
-              stroke="#F1441A1F"
-              strokeWidth="0.8"
+                x1="905"
+                y1="0"
+                x2="1245"
+                y2="500"
+                stroke="#F1441A1F"
+                strokeWidth="0.8"
               />
 
               {/* PARALLEL INNER RIGHT LINE */}
               <line
-              x1="880"
-              y1="0"
-              x2="1215"
-              y2="500"
-              stroke="#8598C7AB"
-              strokeWidth="0.8"
+                x1="880"
+                y1="0"
+                x2="1215"
+                y2="500"
+                stroke="#8598C7AB"
+                strokeWidth="0.8"
               />
-          </svg>
+            </svg>
 
-          {/* CONTENT */}
-          <div className="relative z-10 px-6 py-16 md:py-14 flex flex-col items-center text-center">
-            <span className="text-primary font-medium text-base tracking-wide mb-6">
-              Interested in Partnering?
-            </span>
+            {/* CONTENT */}
+            <div className="relative z-10 px-6 py-16 md:py-14 flex flex-col items-center text-center">
+              <span className="text-primary font-medium text-base tracking-wide mb-6">
+                Interested in Partnering?
+              </span>
 
-            <h2 className="text-4xl md:text-5xl font-bold tracking-tight leading-none text-black">
-              Let's Build{" "}
-              <span className="text-primary">Together.</span>
-            </h2>
+              <h2 className="text-4xl md:text-5xl font-bold tracking-tight leading-none text-black">
+                Let's Build{" "}
+                <span className="text-primary">Together.</span>
+              </h2>
 
-            <p className="mt-8 max-w-3xl text-secondary text-xl md:text-lg font-medium">
-              Whether you're a football club, supporter group, or football
-              organization — we'd love to explore how Wingman Pro can support your
-              community.
-            </p>
+              <p className="mt-8 max-w-3xl text-secondary text-xl md:text-lg font-medium">
+                Whether you're a football club, supporter group, or football
+                organization — we'd love to explore how Wingman Pro can support your
+                community.
+              </p>
 
-            <a
-              href="/contact"
-              className="mt-12 inline-flex h-12 items-center justify-center rounded-xl bg-primary px-12 text-sm font-bold uppercase tracking-[0.15em] text-white shadow-xl transition-all hover:-translate-y-1 hover:bg-[#FF7E4A] hover:shadow-[0_8px_20px_#FF5C1A6B]"
-            >
-              Contact Us
-            </a>
+              <a
+                href="/contact"
+                className="mt-12 inline-flex h-12 items-center justify-center rounded-xl bg-primary px-12 text-sm font-bold uppercase tracking-[0.15em] text-white shadow-xl transition-all hover:-translate-y-1 hover:bg-[#FF7E4A] hover:shadow-[0_8px_20px_#FF5C1A6B]"
+              >
+                Contact Us
+              </a>
+            </div>
           </div>
-        </div>
         </FadeIn>
       </div>
 
