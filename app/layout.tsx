@@ -1,4 +1,5 @@
 import type React from "react"
+import { Suspense } from "react"
 import type { Metadata } from "next"
 import { Poppins, Purple_Purse } from "next/font/google"
 import "./globals.css"
@@ -12,6 +13,7 @@ import Analytics from "@/components/Analytics"
 import { AntiScrapingProtection } from "@/components/anti-scraping-protection"
 import { EkalonBranding } from "@/components/ekalon-branding"
 import { DashboardThemeProvider } from "@/components/dashboard-theme-provider"
+import { AppUpdateWatcher } from "@/components/app-update-watcher"
 import Script from "next/script"
 
 const poppins = Poppins({
@@ -113,6 +115,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="manifest" href="/site.webmanifest" />
         <meta name="theme-color" content="#0ea5e9" />
+        <meta name="app-build-id" content={process.env.NEXT_PUBLIC_APP_BUILD_ID || ""} />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
         <Script
           async
@@ -129,6 +132,9 @@ export default function RootLayout({
       </head>
 
       <body className={`${poppins.className} ${poppins.variable} ${purplePurse.variable}`}>
+        <Suspense fallback={null}>
+          <AppUpdateWatcher />
+        </Suspense>
         <Analytics />
         <AntiScrapingProtection />
         <DashboardThemeProvider />

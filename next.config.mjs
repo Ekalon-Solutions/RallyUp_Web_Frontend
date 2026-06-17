@@ -1,5 +1,10 @@
 /** @type {import('next').NextConfig} */
+const buildId = process.env.NEXT_PUBLIC_APP_BUILD_ID || `${Date.now()}`;
+
 const nextConfig = {
+  env: {
+    NEXT_PUBLIC_APP_BUILD_ID: buildId,
+  },
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -11,6 +16,24 @@ const nextConfig = {
   },
   async headers() {
     return [
+      {
+        source: '/version.json',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-cache, no-store, must-revalidate',
+          },
+        ],
+      },
+      {
+        source: '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2|ttf)).*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'no-cache, no-store, must-revalidate',
+          },
+        ],
+      },
       {
         source: '/dashboard/events/scanner',
         headers: [
