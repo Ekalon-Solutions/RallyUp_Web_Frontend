@@ -48,7 +48,9 @@ export const NAV_HREF_TO_PERMISSION_MODULE: Record<string, string> = {
   '/dashboard/membership-cards': 'membershipCards',
   '/dashboard/admin-settings': 'adminSettings',
   '/dashboard/onboarding': 'onboarding',
-  '/dashboard/elevate-admin': 'elevateAdmins',
+  '/dashboard/events/scanner': 'eventScanner',
+  '/dashboard/quick-scanner': 'eventScanner',
+  '/dashboard/vendor-reports': 'vendorReports',
 };
 
 /**
@@ -78,4 +80,6 @@ export const PERMISSION_MODULE_TO_FEATURE_KEY: Record<string, string | null> = {
   onboarding: 'onboarding',
   adminSettings: null,
   elevateAdmins: null,
+  eventScanner: 'events',
+  vendorReports: 'events',
 };

@@ -57,6 +57,7 @@ const ROLE_ACCESS_DESCRIPTION: Record<string, string> = {
     "Full dashboard access except elevating other admins — manage members, events, news, and club settings.",
   venue_partner: "Manage merchandise, orders, inventory, and store-related club content.",
   events_manager: "Create and manage events, ticketing, registrations, and attendance.",
+  vendor: "Scan-only match-day access — event scanner and vendor reports only. No finance, settings, or member directory.",
 }
 
 export function ElevateMemberAdminPanel() {

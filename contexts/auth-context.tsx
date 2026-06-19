@@ -10,6 +10,8 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   isAdmin: boolean;
+  isVendor: boolean;
+  isDashboardStaff: boolean;
   isSystemOwner: boolean;
   userRole: string | undefined;
   activeClubId: string | null;
@@ -460,6 +462,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isLoading,
     isAuthenticated: !!user,
     isAdmin: user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'system_owner',
+    isVendor: user?.role === 'vendor' || (user as Admin)?.isVendor === true,
+    isDashboardStaff:
+      user?.role === 'admin' ||
+      user?.role === 'super_admin' ||
+      user?.role === 'system_owner' ||
+      user?.role === 'vendor' ||
+      (user as Admin)?.isVendor === true,
     isSystemOwner: user?.role === 'system_owner',
     userRole: user?.role,
     activeClubId,

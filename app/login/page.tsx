@@ -21,6 +21,13 @@ import { CountryCodeSelect } from "@/components/country-code-select"
 
 const DEBUG_OTP = "123456"
 
+function adminPostLoginPath(): string {
+  if (typeof window !== "undefined" && localStorage.getItem("userType") === "vendor") {
+    return "/dashboard/quick-scanner"
+  }
+  return "/splash"
+}
+
 const validateEmail = (email: string): string => {
   if (!email) return ""
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -278,6 +285,12 @@ function AuthPageContent() {
       }
 
       const userAny = user as any
+      const isVendor = userAny.role === 'vendor' || userAny.isVendor
+      if (isVendor) {
+        router.push('/dashboard/quick-scanner')
+        return
+      }
+
       const isAdmin = userAny.role === 'admin' || userAny.role === 'super_admin'
       const adminHasClub = !!(userAny.club?._id || userAny.club)
 
@@ -624,7 +637,7 @@ function AuthPageContent() {
 
         if (loginResult?.success) {
           toast.success("Admin login successful!")
-          router.push("/dashboard")
+          router.push(adminPostLoginPath())
         } else {
           toast.error(loginResult?.error || "Admin login failed. Please try again.")
         }

@@ -178,7 +178,10 @@ export function middleware(request: NextRequest) {
 }
 
 function cameraPermissionsPolicy(pathname: string): string {
-  if (pathname.startsWith('/dashboard/events/scanner')) {
+  if (
+    pathname.startsWith('/dashboard/events/scanner') ||
+    pathname.startsWith('/dashboard/quick-scanner')
+  ) {
     return 'camera=(self)'
   }
   return 'camera=()'

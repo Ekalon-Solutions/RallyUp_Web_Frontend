@@ -34,6 +34,12 @@ export default function SplashPage() {
         const userAny = user as any
         let memberships = userAny.memberships || []
         const isAdmin = userAny.role === 'admin' || userAny.role === 'super_admin'
+        const isVendor = userAny.role === 'vendor' || userAny.isVendor
+
+        if (isVendor) {
+          router.replace('/dashboard/quick-scanner')
+          return
+        }
 
         if (isAdmin) {
           const profileRes = await apiClient.adminProfile()
