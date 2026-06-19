@@ -45,6 +45,12 @@ import { LockedFeaturePage, FeatureUnavailableOverlay, LockedInline } from '@/co
 import { ReadyToShipModal } from '@/components/admin/ready-to-ship-modal'
 import { LogisticsTimeline } from '@/components/admin/logistics-timeline'
 import { OrderAddressDisplay } from '@/components/order-address-display'
+import { AttendeeTicketSelectModal, CancellableAttendee } from '@/components/modals/attendee-ticket-select-modal'
+import {
+  getActiveAttendees,
+  getCancellableAttendees,
+  getRegistrationDisplayStatus,
+} from '@/lib/event-registration'
 
 interface OrderItem {
   productId: string
@@ -176,6 +182,7 @@ const deliveryStatusConfig: Record<string, { label: string; color: string; icon:
 const eventStatusConfig: Record<string, { label: string; color: string; icon: typeof CheckCircle }> = {
   confirmed: { label: 'Confirmed', color: 'bg-green-100 text-green-800', icon: CheckCircle },
   pending: { label: 'Pending', color: 'bg-yellow-100 text-yellow-800', icon: Clock },
+  partially_cancelled: { label: 'Partially Cancelled', color: 'bg-orange-100 text-orange-800', icon: Clock },
   cancelled: { label: 'Cancelled', color: 'bg-red-100 text-red-800', icon: XCircle },
 }
 
@@ -240,6 +247,10 @@ export default function OrdersPage() {
   const [sendingQrFromModal, setSendingQrFromModal] = useState(false)
   const [pushingToShiprocket, setPushingToShiprocket] = useState(false)
   const [showReadyToShipModal, setShowReadyToShipModal] = useState(false)
+  const [attendeeSelectOpen, setAttendeeSelectOpen] = useState(false)
+  const [attendeeSelectList, setAttendeeSelectList] = useState<CancellableAttendee[]>([])
+  const [pendingCancelReg, setPendingCancelReg] = useState<any | null>(null)
+  const [cancellingAttendeeId, setCancellingAttendeeId] = useState<string | null>(null)
 
   useEffect(() => {
     if (user?.role === 'admin' || user?.role === 'super_admin') {
@@ -330,17 +341,22 @@ export default function OrdersPage() {
       const response = await apiClient.getClubEventRegistrations(clubId)
       if (response.success && response.data) {
         const registrations: any[] = Array.isArray(response.data) ? response.data : []
+        const getDisplayStatus = (reg: any) => reg.displayStatus || reg.status || 'confirmed'
+        const isActiveRegistration = (reg: any) => {
+          const status = getDisplayStatus(reg)
+          return status === 'confirmed' || status === 'partially_cancelled'
+        }
 
         const totalRevenue = registrations
-          .filter(reg => reg.status === 'confirmed' && reg.amountPaid && reg.paymentId)
+          .filter(reg => isActiveRegistration(reg) && reg.amountPaid && reg.paymentId)
           .reduce((sum, reg) => sum + (reg.amountPaid || 0), 0)
 
         setEventStats({
           totalOrders: registrations.length,
           totalRevenue,
-          pendingOrders: registrations.filter(reg => reg.status === 'pending').length,
-          completedOrders: registrations.filter(reg => reg.status === 'confirmed').length,
-          cancelledOrders: registrations.filter(reg => reg.status === 'cancelled').length,
+          pendingOrders: registrations.filter(reg => getDisplayStatus(reg) === 'pending').length,
+          completedOrders: registrations.filter(reg => getDisplayStatus(reg) === 'confirmed').length,
+          cancelledOrders: registrations.filter(reg => getDisplayStatus(reg) === 'cancelled').length,
         })
 
         setAllEventRegistrations(registrations)
@@ -372,7 +388,7 @@ export default function OrdersPage() {
       )
     }
     if (statusFilter !== 'all') {
-      filtered = filtered.filter((reg: any) => reg.status === statusFilter)
+      filtered = filtered.filter((reg: any) => (reg.displayStatus || reg.status) === statusFilter)
     }
     if (earlyBirdFilter !== 'all') {
       if (earlyBirdFilter === 'used') {
@@ -485,7 +501,7 @@ export default function OrdersPage() {
           )
         }
         if (statusFilter !== 'all') {
-          filtered = filtered.filter((reg: any) => reg.status === statusFilter)
+          filtered = filtered.filter((reg: any) => (reg.displayStatus || reg.status) === statusFilter)
         }
         if (earlyBirdFilter !== 'all') {
           if (earlyBirdFilter === 'used') {
@@ -696,7 +712,29 @@ export default function OrdersPage() {
     }
   }
 
-  const handleCancelEventRegistration = async (reg: any) => {
+  const refreshRegistrationInModal = async (registrationId: string, regMeta?: any) => {
+    try {
+      const res = await apiClient.getRegistrationById(String(registrationId))
+      const registration =
+        res.data?.registration ??
+        (res.data as { registration?: unknown })?.registration
+      if (res.success && registration) {
+        setSelectedRegistration(registration)
+        const displayStatus = getRegistrationDisplayStatus(regMeta, (registration as any).attendees)
+        if (regMeta) {
+          setSelectedRegistrationMeta({
+            ...regMeta,
+            displayStatus,
+            activeAttendeeCount: getActiveAttendees((registration as any).attendees).length,
+          })
+        }
+      }
+    } catch {
+      // non-fatal
+    }
+  }
+
+  const handleCancelEventRegistration = async (reg: any, attendeeId?: string) => {
     const registrationId = reg.registrationId || reg._id
     if (!registrationId) {
       toast({
@@ -706,53 +744,140 @@ export default function OrdersPage() {
       })
       return
     }
-    if (reg.status && reg.status !== 'confirmed') {
+
+    const displayStatus = reg.displayStatus || reg.status || 'confirmed'
+    if (displayStatus === 'cancelled') {
       toast({
         title: 'Cannot cancel',
-        description: 'Only confirmed registrations can be cancelled.',
+        description: 'This registration is already fully cancelled.',
         variant: 'destructive',
       })
       return
     }
 
-    const label = reg.userName || reg.userEmail || 'this registration'
-    if (!window.confirm(`Cancel ticket for ${label}? This frees their seat(s) and invalidates QR check-in.`)) {
-      return
-    }
+    const executeCancel = async (resolvedAttendeeId?: string) => {
+      const attendeeLabel = resolvedAttendeeId
+        ? attendeeSelectList.find((a) => a.attendeeId === resolvedAttendeeId)?.name ||
+          selectedRegistration?.attendees?.find((a: any) => String(a._id) === String(resolvedAttendeeId))?.name
+        : null
+      const label = attendeeLabel || reg.userName || reg.userEmail || 'this registration'
+      if (
+        !window.confirm(
+          resolvedAttendeeId
+            ? `Cancel ticket for ${label}? This frees one seat and invalidates that attendee's QR check-in.`
+            : `Cancel ticket for ${label}? This frees their seat(s) and invalidates QR check-in.`
+        )
+      ) {
+        return
+      }
 
-    try {
-      setCancellingTicketId(String(registrationId))
-      const response = await apiClient.cancelClubEventRegistration(
-        String(registrationId),
-        'Cancelled by club admin'
-      )
-      if (response.success) {
-        toast({
-          title: 'Ticket cancelled',
-          description: response.message || 'Registration cancelled successfully',
-        })
-        await loadEventRegistrations()
-        if (showRegistrationModal && String(selectedRegistrationMeta?.registrationId) === String(registrationId)) {
-          setShowRegistrationModal(false)
-          setSelectedRegistrationMeta(null)
-          setSelectedRegistration(null)
+      try {
+        setCancellingTicketId(String(registrationId))
+        if (resolvedAttendeeId) setCancellingAttendeeId(resolvedAttendeeId)
+        const response = await apiClient.cancelClubEventRegistration(
+          String(registrationId),
+          'Cancelled by club admin',
+          resolvedAttendeeId
+        )
+        if (response.success) {
+          toast({
+            title: 'Ticket cancelled',
+            description: response.message || response.data?.message || 'Ticket cancelled successfully',
+          })
+          await loadEventRegistrations()
+          const allCancelled =
+            response.data?.status === 'cancelled' ||
+            response.message?.toLowerCase().includes('registration cancelled')
+          if (showRegistrationModal && String(selectedRegistrationMeta?.registrationId) === String(registrationId)) {
+            if (allCancelled) {
+              setShowRegistrationModal(false)
+              setSelectedRegistrationMeta(null)
+              setSelectedRegistration(null)
+            } else {
+              await refreshRegistrationInModal(String(registrationId), {
+                ...selectedRegistrationMeta,
+                ...reg,
+              })
+            }
+          }
+        } else {
+          const data = response as any
+          if (data?.requiresAttendeeSelection || data?.data?.requiresAttendeeSelection) {
+            let registration = null
+            if (String(selectedRegistrationMeta?.registrationId) === String(registrationId) && selectedRegistration) {
+              registration = selectedRegistration
+            } else {
+              const res = await apiClient.getRegistrationById(String(registrationId))
+              registration = res.data?.registration ?? (res.data as any)?.registration
+            }
+            const cancellable = getCancellableAttendees(registration)
+            if (cancellable.length > 0) {
+              setAttendeeSelectList(cancellable)
+              setPendingCancelReg(reg)
+              setAttendeeSelectOpen(true)
+              return
+            }
+          }
+          toast({
+            title: 'Failed to cancel',
+            description: response.message || response.error || 'Could not cancel registration',
+            variant: 'destructive',
+          })
         }
-      } else {
+      } catch {
         toast({
           title: 'Failed to cancel',
-          description: response.message || response.error || 'Could not cancel registration',
+          description: 'Could not cancel registration. Please try again.',
           variant: 'destructive',
         })
+      } finally {
+        setCancellingTicketId(null)
+        setCancellingAttendeeId(null)
       }
-    } catch {
+    }
+
+    if (attendeeId) {
+      await executeCancel(attendeeId)
+      return
+    }
+
+    let registration = null
+    if (String(selectedRegistrationMeta?.registrationId) === String(registrationId) && selectedRegistration) {
+      registration = selectedRegistration
+    } else {
+      try {
+        const res = await apiClient.getRegistrationById(String(registrationId))
+        registration = res.data?.registration ?? (res.data as any)?.registration
+      } catch {
+        registration = null
+      }
+    }
+
+    const cancellable = getCancellableAttendees(registration)
+    if (cancellable.length === 0) {
       toast({
-        title: 'Failed to cancel',
-        description: 'Could not cancel registration. Please try again.',
+        title: 'Cannot cancel',
+        description: 'No active tickets are available to cancel.',
         variant: 'destructive',
       })
-    } finally {
-      setCancellingTicketId(null)
+      return
     }
+    if (cancellable.length > 1) {
+      setAttendeeSelectList(cancellable)
+      setPendingCancelReg(reg)
+      setAttendeeSelectOpen(true)
+      return
+    }
+
+    await executeCancel(cancellable[0]?.attendeeId)
+  }
+
+  const handleAttendeeSelectCancel = async (attendeeId: string) => {
+    if (!pendingCancelReg) return
+    setAttendeeSelectOpen(false)
+    const reg = pendingCancelReg
+    setPendingCancelReg(null)
+    await handleCancelEventRegistration(reg, attendeeId)
   }
 
   const handleViewRegistrationDetails = async (reg: any) => {
@@ -771,6 +896,11 @@ export default function OrdersPage() {
           (res.data as { registration?: unknown })?.registration
         if (res.success && registration) {
           setSelectedRegistration(registration)
+          setSelectedRegistrationMeta({
+            ...reg,
+            displayStatus: getRegistrationDisplayStatus(reg, (registration as any).attendees),
+            activeAttendeeCount: getActiveAttendees((registration as any).attendees).length,
+          })
         }
       } catch {
       } finally {
@@ -1251,9 +1381,11 @@ export default function OrdersPage() {
                       )
                     })}
                     {typeFilter === 'events' && eventRegistrations.map((reg) => {
-                      const regStatus = reg.status || 'confirmed'
-                      const StatusIcon = regStatus === 'confirmed' ? CheckCircle : (regStatus === 'cancelled' ? XCircle : Clock)
+                      const regStatus = reg.displayStatus || reg.status || 'confirmed'
+                      const StatusIcon = eventStatusConfig[regStatus]?.icon || CheckCircle
                       const registrationId = String(reg.registrationId || reg._id || '')
+                      const activeCount = reg.activeAttendeeCount ?? (regStatus === 'cancelled' ? 0 : 1)
+                      const totalCount = reg.numAttendees ?? 1
                       const eventEnded = (() => {
                         const cutoffRaw = reg.eventEndTime || reg.eventStartTime
                         if (!cutoffRaw) return false
@@ -1261,7 +1393,10 @@ export default function OrdersPage() {
                         return !isNaN(cutoff.getTime()) && Date.now() > cutoff.getTime()
                       })()
                       const isCancelling = cancellingTicketId === registrationId
-                      const canCancel = regStatus === 'confirmed' && Boolean(registrationId)
+                      const canCancel =
+                        (regStatus === 'confirmed' || regStatus === 'partially_cancelled') &&
+                        Boolean(registrationId) &&
+                        activeCount > 0
                       return (
                         <TableRow key={`${reg.eventId}-${reg.userId}-${reg.registrationDate}`}>
                           <TableCell className="font-medium">
@@ -1275,6 +1410,11 @@ export default function OrdersPage() {
                               <div className="text-sm text-muted-foreground break-words">
                                 {reg.userEmail || 'N/A'}
                               </div>
+                              {totalCount > 1 && (
+                                <div className="text-xs text-muted-foreground mt-1">
+                                  {activeCount}/{totalCount} active tickets
+                                </div>
+                              )}
                             </div>
                           </TableCell>
                           <TableCell>
@@ -1324,8 +1464,8 @@ export default function OrdersPage() {
                                 registrationId={registrationId}
                                 phone={reg.primaryPhone}
                                 eventEnded={eventEnded}
-                                disabled={regStatus !== 'confirmed' || !registrationId}
-                                disabledReason="Only confirmed registrations can be resent"
+                                disabled={activeCount === 0 || !registrationId}
+                                disabledReason="Only active tickets can be resent"
                                 variant="ghost"
                                 className="h-8 px-2"
                               />
@@ -1345,7 +1485,7 @@ export default function OrdersPage() {
                                   ) : (
                                     <>
                                       <XCircle className="h-4 w-4 mr-1" />
-                                      Cancel
+                                      {totalCount > 1 ? 'Cancel ticket' : 'Cancel'}
                                     </>
                                   )}
                                 </Button>
@@ -1892,13 +2032,15 @@ export default function OrdersPage() {
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Status:</span>
                       <Badge className={
-                        selectedRegistrationMeta?.status === 'confirmed' ? 'bg-green-100 text-green-800' :
-                        selectedRegistrationMeta?.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                        (selectedRegistrationMeta?.displayStatus || selectedRegistrationMeta?.status) === 'confirmed' ? 'bg-green-100 text-green-800' :
+                        (selectedRegistrationMeta?.displayStatus || selectedRegistrationMeta?.status) === 'cancelled' ? 'bg-red-100 text-red-800' :
+                        (selectedRegistrationMeta?.displayStatus || selectedRegistrationMeta?.status) === 'partially_cancelled' ? 'bg-orange-100 text-orange-800' :
                         'bg-yellow-100 text-yellow-800'
                       }>
-                        {selectedRegistrationMeta?.status
-                          ? selectedRegistrationMeta.status.charAt(0).toUpperCase() + selectedRegistrationMeta.status.slice(1)
-                          : 'Confirmed'}
+                        {(() => {
+                          const status = selectedRegistrationMeta?.displayStatus || selectedRegistrationMeta?.status || 'confirmed'
+                          return status.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())
+                        })()}
                       </Badge>
                     </div>
                     <div className="flex justify-between">
@@ -1920,6 +2062,7 @@ export default function OrdersPage() {
                   const currency = meta?.currency || meta?.currencyAtPurchase || 'INR'
                   const ticketPrice = meta?.ticketPrice ?? 0
                   const numAttendees = selectedRegistration?.attendees?.length ?? 1
+                  const activeAttendeeCount = getActiveAttendees(selectedRegistration?.attendees).length
                   const originalTotal = ticketPrice * numAttendees
                   const amountPaid = meta?.amountPaid
                   const couponCode = meta?.couponCode
@@ -1935,8 +2078,8 @@ export default function OrdersPage() {
                       <div className="space-y-2 text-sm">
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">
-                            {numAttendees > 1
-                              ? `Ticket Price (${numAttendees} × ${formatCurrency(ticketPrice, currency)}):`
+                            {activeAttendeeCount > 1 || numAttendees > 1
+                              ? `Ticket Price (${activeAttendeeCount > 0 ? activeAttendeeCount : numAttendees} × ${formatCurrency(ticketPrice, currency)}):`
                               : 'Ticket Price:'}
                           </span>
                           <span className="font-medium">
@@ -2025,27 +2168,71 @@ export default function OrdersPage() {
                 {/* Attendees */}
                 {selectedRegistration?.attendees && selectedRegistration.attendees.length > 0 && (
                   <div>
-                    <h3 className="font-semibold mb-3">Attendees ({selectedRegistration.attendees.length})</h3>
+                    <h3 className="font-semibold mb-3">
+                      Attendees ({getActiveAttendees(selectedRegistration.attendees).length}/{selectedRegistration.attendees.length} active)
+                    </h3>
                     <div className="space-y-2">
-                      {selectedRegistration.attendees.map((att: any, idx: number) => (
-                        <div key={att._id || idx} className="flex items-center justify-between p-3 border rounded-lg text-sm">
-                          <div>
-                            <div className="font-medium">{att.name || `Attendee ${idx + 1}`}</div>
-                            {att.phone && <div className="text-muted-foreground text-xs">{att.phone}</div>}
-                            {att.email && <div className="text-muted-foreground text-xs">{att.email}</div>}
+                      {selectedRegistration.attendees.map((att: any, idx: number) => {
+                        const isCancelled = att.status === 'cancelled'
+                        const isCancellingAttendee = cancellingAttendeeId === String(att._id)
+                        const canCancelAttendee =
+                          !isCancelled &&
+                          !att.attended &&
+                          att.refundStatus !== 'requested' &&
+                          att.refundStatus !== 'processed'
+                        return (
+                          <div key={att._id || idx} className="flex items-center justify-between gap-3 p-3 border rounded-lg text-sm">
+                            <div className="min-w-0">
+                              <div className="font-medium">{att.name || `Attendee ${idx + 1}`}</div>
+                              {att.phone && <div className="text-muted-foreground text-xs">{att.phone}</div>}
+                              {(att.venueName || att.tierName) && (
+                                <div className="text-muted-foreground text-xs">
+                                  {[att.venueName, att.tierName].filter(Boolean).join(' · ')}
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <Badge
+                                variant={isCancelled ? 'destructive' : att.attended ? 'default' : 'secondary'}
+                              >
+                                {isCancelled
+                                  ? 'Cancelled'
+                                  : att.refundStatus === 'requested'
+                                    ? 'Refund requested'
+                                    : att.refundStatus === 'processed'
+                                      ? 'Refunded'
+                                      : att.attended
+                                        ? 'Attended'
+                                        : 'Active'}
+                              </Badge>
+                              {canCancelAttendee && selectedRegistrationMeta && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  disabled={cancellingTicketId !== null}
+                                  onClick={() => handleCancelEventRegistration(selectedRegistrationMeta, String(att._id))}
+                                >
+                                  {isCancellingAttendee ? (
+                                    <RefreshCw className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    <XCircle className="h-4 w-4" />
+                                  )}
+                                </Button>
+                              )}
+                            </div>
                           </div>
-                          <Badge variant={att.attended ? 'default' : 'secondary'}>
-                            {att.attended ? 'Attended' : 'Not Attended'}
-                          </Badge>
-                        </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   </div>
                 )}
               </div>
             )}
             <DialogFooter className="flex-col sm:flex-row gap-2">
-              {selectedRegistrationMeta?.status === 'confirmed' && (
+              {(['confirmed', 'partially_cancelled'] as string[]).includes(
+                selectedRegistrationMeta?.displayStatus || selectedRegistrationMeta?.status || ''
+              ) && getActiveAttendees(selectedRegistration?.attendees).length > 0 && (
                 <Button onClick={handleSendQrFromModal} disabled={sendingQrFromModal} className="w-full sm:w-auto">
                   {sendingQrFromModal ? (
                     <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />Sending...</>
@@ -2060,6 +2247,20 @@ export default function OrdersPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <AttendeeTicketSelectModal
+          open={attendeeSelectOpen}
+          attendees={attendeeSelectList}
+          loading={cancellingTicketId !== null}
+          title="Select ticket to cancel"
+          description="Choose which attendee ticket to cancel. Other tickets in this registration will remain active."
+          confirmLabel="Continue"
+          onSelect={handleAttendeeSelectCancel}
+          onCancel={() => {
+            setAttendeeSelectOpen(false)
+            setPendingCancelReg(null)
+          }}
+        />
 
         {/* Ready to Ship Modal */}
         {selectedOrder && (

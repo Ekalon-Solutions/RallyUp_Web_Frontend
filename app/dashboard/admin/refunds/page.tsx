@@ -143,7 +143,11 @@ function RefundsPageInner() {
     const fetchRecalc = async () => {
       try {
         const token = localStorage.getItem('token')
-        const res = await fetch(getApiUrl(`/refunds/admin/${selectedRefund._id}/recalculate`), {
+        const res = await fetch(
+          getApiUrl(
+            `/refunds/admin/${selectedRefund._id}/recalculate${clubId ? `?clubId=${encodeURIComponent(clubId)}` : ''}`
+          ),
+          {
           headers: { Authorization: `Bearer ${token}` }
         })
         const data = await res.json()
@@ -162,7 +166,7 @@ function RefundsPageInner() {
     }
     fetchRecalc()
     return () => { cancelled = true }
-  }, [selectedRefund?._id, selectedRefund?.status])
+  }, [selectedRefund?._id, selectedRefund?.status, clubId])
 
   const saveGrandfathering = async (enabled: boolean) => {
     if (!clubId) return
@@ -268,7 +272,7 @@ function RefundsPageInner() {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
-          body: JSON.stringify({ adminNotes })
+          body: JSON.stringify({ adminNotes, ...(clubId ? { clubId } : {}) })
         }
       )
 

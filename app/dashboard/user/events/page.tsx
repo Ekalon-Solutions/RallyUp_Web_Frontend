@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/auth-context";
 import { useSocket } from "@/contexts/socket-context";
 import { formatLocalDate } from "@/lib/timezone";
+import { isUserRegisteredForEvent } from "@/lib/event-registration";
 import { User as UserInterface } from "@/lib/api";
 import { useSearchParams } from "next/navigation";
 import { useRequiredClubId } from "@/hooks/useRequiredClubId";
@@ -430,11 +431,9 @@ function UserEventsPageInner() {
 
   const eventsUserIsRegisteredForOngoing = () => {
     if (!user) return [] as Event[];
-    return (events || []).filter((ev) => {
-      const regs = ev.registrations || [];
-      const found = regs.find((r: any) => r.userId === user._id);
-      return !!found && isEventOngoing(ev);
-    });
+    return (events || []).filter(
+      (ev) => isEventOngoing(ev) && isUserRegisteredForEvent(ev, user._id)
+    );
   };
 
   const handleCancelRegistration = async (eventId: string, attendeeId?: string) => {
@@ -479,22 +478,32 @@ function UserEventsPageInner() {
     if (res.success && res.data) {
       const rawData = res.data as any;
       const estimate = rawData?.data != null ? rawData.data : rawData;
-      if (estimate.requiresAttendeeSelection && estimate.meta?.cancellableAttendees?.length) {
-        setAttendeeSelectList(estimate.meta.cancellableAttendees);
-        setAttendeeSelectMode('refund');
-        setPendingRefundEventId(eventId);
-        setAttendeeSelectOpen(true);
+      if (estimate.requiresAttendeeSelection) {
+        const cancellable = estimate.meta?.cancellableAttendees || [];
+        if (cancellable.length > 0) {
+          setAttendeeSelectList(cancellable);
+          setAttendeeSelectMode('refund');
+          setPendingRefundEventId(eventId);
+          setAttendeeSelectOpen(true);
+          return;
+        }
+        toast.error('No cancellable tickets found for this registration');
+        return;
+      }
+      if (!estimate.eligible) {
+        toast.error('Refund is not available for this ticket under the current policy');
         return;
       }
       if (!estimate.breakdown?.grossPaid && estimate.estimatedRefund === 0) {
-        await handleCancelRegistration(eventId, attendeeId);
+        await handleCancelRegistration(eventId, attendeeId || estimate.meta?.attendeeId);
         return;
       }
       setRefundEstimate(estimate);
       setRefundCancelEventId(eventId);
       setRefundCancelAttendeeId(estimate.meta?.attendeeId || attendeeId || null);
     } else {
-      await handleCancelRegistration(eventId, attendeeId);
+      const msg = (res as any).error || (res as any).message || 'Failed to load refund estimate';
+      toast.error(msg);
     }
   };
 
@@ -939,13 +948,7 @@ function UserEventsPageInner() {
 
                         <div className="pt-2 mt-auto">
                           {(() => {
-                            const myReg = user?._id
-                              ? (event.registrations || []).find((r: any) => r.userId === user._id)
-                              : null;
-
-                            const hasConfirmed = (event.registrations || []).some(
-                              (r: any) => r.userId === user._id && r.status === "confirmed"
-                            );
+                            const hasConfirmed = isUserRegisteredForEvent(event, user?._id);
                             if (hasConfirmed) {
                               return (
                                 <div className="flex gap-2">

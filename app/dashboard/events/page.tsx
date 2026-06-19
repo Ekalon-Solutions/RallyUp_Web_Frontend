@@ -24,6 +24,7 @@ import { JointScreeningDisplay } from "@/components/events/joint-screening-displ
 import { EventScheduleMeta } from "@/components/events/event-schedule-meta"
 import { WaitlistDisplay } from "@/components/events/waitlist-display"
 import { formatEventPriceDisplay, isEventPaid, getEventVenueDisplay, hasVenueTierMatrix } from "@/lib/event-display-price"
+import { isUserRegisteredForEvent as isUserRegisteredOnEvent, getUserRegistrationStatus } from "@/lib/event-registration"
 import { RefundPolicyToggle } from "@/components/admin/refund-policy-toggle"
 import { useClubFeatures } from "@/hooks/useClubFeatures"
 import { isFeatureEnabled } from "@/lib/clubFeatures"
@@ -152,12 +153,19 @@ export default function EventsPage() {
     }
   }
 
-  const getRegistrationStatus = (eventId: string) => {
+  const isUserRegistered = (eventId: string) => {
     const registration = userRegistrations.get(eventId)
-    return registration ? registration.status : null
+    if (registration) return registration.status === 'confirmed'
+    const event = events.find((e) => e._id === eventId)
+    return event ? isUserRegisteredOnEvent(event, user?._id) : false
   }
 
-  const isUserRegistered = (eventId: string) => userRegistrations.has(eventId)
+  const getRegistrationStatus = (eventId: string) => {
+    const registration = userRegistrations.get(eventId)
+    if (registration) return registration.status
+    const event = events.find((e) => e._id === eventId)
+    return event ? getUserRegistrationStatus(event, user?._id) : null
+  }
 
   if (!isFeatureEnabled(clubFeatureConfig, 'events')) {
     return (

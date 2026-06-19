@@ -1587,11 +1587,24 @@ class ApiClient {
 
   async cancelClubEventRegistration(
     registrationId: string,
-    reason?: string
-  ): Promise<ApiResponse<{ message: string; data?: { eventTitle?: string; seatsReleased?: number } }>> {
+    reason?: string,
+    attendeeId?: string
+  ): Promise<ApiResponse<{
+    message: string;
+    requiresAttendeeSelection?: boolean;
+    data?: {
+      eventTitle?: string;
+      seatsReleased?: number;
+      status?: string;
+      attendeeId?: string;
+    };
+  }>> {
+    const body: Record<string, string> = {};
+    if (reason) body.reason = reason;
+    if (attendeeId) body.attendeeId = attendeeId;
     return this.request(`/events/club/registrations/${encodeURIComponent(registrationId)}/cancel`, {
       method: 'POST',
-      body: JSON.stringify(reason ? { reason } : {}),
+      body: JSON.stringify(body),
     });
   }
 
@@ -4682,20 +4695,21 @@ class ApiClient {
     return this.get('/refunds/admin', { params });
   }
 
-  async getRefundRecalculate(refundId: string): Promise<ApiResponse<{
+  async getRefundRecalculate(refundId: string, clubId?: string): Promise<ApiResponse<{
     recalculatedRefund: number;
     percentage: number;
     breakdown: any;
     originalRefund: number;
     differs: boolean;
   }>> {
-    return this.get(`/refunds/admin/${refundId}/recalculate`);
+    const qs = clubId ? `?clubId=${encodeURIComponent(clubId)}` : '';
+    return this.get(`/refunds/admin/${refundId}/recalculate${qs}`);
   }
 
-  async markRefundProcessed(refundId: string, adminNotes?: string): Promise<ApiResponse<any>> {
+  async markRefundProcessed(refundId: string, adminNotes?: string, clubId?: string): Promise<ApiResponse<any>> {
     return this.request(`/refunds/admin/${refundId}/processed`, {
       method: 'PATCH',
-      body: JSON.stringify({ adminNotes }),
+      body: JSON.stringify({ adminNotes, ...(clubId ? { clubId } : {}) }),
     });
   }
 

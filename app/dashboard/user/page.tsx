@@ -12,6 +12,7 @@ import NewsReadMoreModal from "@/components/modals/news-readmore-modal"
 import { apiClient, Event, News, User, Admin } from "@/lib/api"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
+import { isUserRegisteredForEvent as isUserRegisteredOnEvent, getUserRegistrationStatus } from "@/lib/event-registration"
 import { formatLocalDate } from "@/lib/timezone"
 import { Calendar, MapPin, Clock, Users, Newspaper, Tag, User as UserIcon, Eye, CreditCard, Crown, Star, Shield, Infinity as InfinityIcon, Trash } from "lucide-react"
 import EventDetailsModal from '@/components/modals/event-details-modal'
@@ -420,22 +421,32 @@ export default function UserDashboardPage() {
     if (res.success && res.data) {
       const rawData = res.data as any
       const estimate = rawData?.data != null ? rawData.data : rawData
-      if (estimate.requiresAttendeeSelection && estimate.meta?.cancellableAttendees?.length) {
-        setAttendeeSelectList(estimate.meta.cancellableAttendees)
-        setAttendeeSelectMode('refund')
-        setPendingRefundEventId(eventId)
-        setAttendeeSelectOpen(true)
+      if (estimate.requiresAttendeeSelection) {
+        const cancellable = estimate.meta?.cancellableAttendees || []
+        if (cancellable.length > 0) {
+          setAttendeeSelectList(cancellable)
+          setAttendeeSelectMode('refund')
+          setPendingRefundEventId(eventId)
+          setAttendeeSelectOpen(true)
+          return
+        }
+        toast.error("No cancellable tickets found for this registration")
+        return
+      }
+      if (!estimate.eligible) {
+        toast.error("Refund is not available for this ticket under the current policy")
         return
       }
       if (!estimate.breakdown?.grossPaid && estimate.estimatedRefund === 0) {
-        await handleCancelRegistration(eventId, attendeeId)
+        await handleCancelRegistration(eventId, attendeeId || estimate.meta?.attendeeId)
         return
       }
       setRefundEstimate(estimate)
       setRefundCancelEventId(eventId)
       setRefundCancelAttendeeId(estimate.meta?.attendeeId || attendeeId || null)
     } else {
-      await handleCancelRegistration(eventId, attendeeId)
+      const msg = (res as any).error || (res as any).message || "Failed to load refund estimate"
+      toast.error(msg)
     }
   }
 
@@ -518,7 +529,7 @@ export default function UserDashboardPage() {
     if (!user?._id) return null
 
     const registrationFromEvent = (event.registrations || []).find(
-      (r: any) => String(r?.userId) === String(user._id) && (r.status === "confirmed")
+      (r: any) => String(r?.userId) === String(user._id) && r.status === "confirmed"
     )
 
     if (registrationFromEvent) {
@@ -532,16 +543,10 @@ export default function UserDashboardPage() {
     return registrationFromMap
   }
 
-  const isUserRegisteredForEvent = (event: Event) => {
-    const registration = getUserRegistrationForEvent(event)
-    if (!registration) return false
-    return registration.status ? registration.status !== "cancelled" : true
-  }
+  const isUserRegisteredForEvent = (event: Event) => isUserRegisteredOnEvent(event, user?._id)
 
-  const getRegistrationStatusForEvent = (event: Event) => {
-    const registration = getUserRegistrationForEvent(event)
-    return registration?.status ?? null
-  }
+  const getRegistrationStatusForEvent = (event: Event) =>
+    getUserRegistrationStatus(event, user?._id)
 
   const handleReadMore = async (newsItem: News) => {
     try {

@@ -15,6 +15,7 @@ import { formatLocalDate } from '@/lib/timezone'
 import { RefundButton } from '@/components/refund-button'
 import { ResendQrButton } from '@/components/resend-qr-button'
 import { getEventVenueDisplay, getEventCapacity, hasVenueTierMatrix } from '@/lib/event-display-price'
+import { isUserRegisteredForEvent } from '@/lib/event-registration'
 
 interface EventDetailsModalProps {
   event: Event | null
@@ -27,11 +28,8 @@ export default function EventDetailsModal({ event, isOpen, onClose }: EventDetai
   const [registration, setRegistration] = useState<any | null>(null)
   const baseUrl = (process.env.NEXT_PUBLIC_APP_URL as string) || "https://wingmanpro.tech";
 
-  const userRegistration = event?.registrations?.find(
-    r => r && String((r as any).userId) === String(user?._id)
-  )
-  const isRegistered = Boolean(userRegistration)
-  const isConfirmed = userRegistration && (userRegistration as any).status === 'confirmed'
+  const isRegistered = isUserRegisteredForEvent(event, user?._id)
+  const isConfirmed = isRegistered
 
   const eventHasEnded = (() => {
     const cutoffRaw = event?.endTime || event?.startTime
