@@ -25,7 +25,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/auth-context";
 import { useSocket } from "@/contexts/socket-context";
 import { formatLocalDate } from "@/lib/timezone";
-import { isUserRegisteredForEvent } from "@/lib/event-registration";
+import { isUserRegisteredForEvent, extractCancellableAttendeesFromApiResponse } from "@/lib/event-registration";
 import { User as UserInterface } from "@/lib/api";
 import { useSearchParams } from "next/navigation";
 import { useRequiredClubId } from "@/hooks/useRequiredClubId";
@@ -279,7 +279,7 @@ function UserEventsPageInner() {
     if (refund !== "1" || !eventId || loading) return;
     const found = events.find((e) => String(e._id) === String(eventId));
     if (found) {
-      initiateRefundCancel(found._id);
+      initiateRefundCancel(found._id, found);
     }
   }, [searchParams, events, loading]);
 
@@ -447,13 +447,21 @@ function UserEventsPageInner() {
       } else {
         const data = res as any;
         if (data?.requiresAttendeeSelection || data?.data?.requiresAttendeeSelection) {
+          const attendees = extractCancellableAttendeesFromApiResponse(data);
+          if (attendees.length > 0) {
+            setAttendeeSelectList(attendees);
+            setAttendeeSelectMode('cancel');
+            setPendingRefundEventId(eventId);
+            setAttendeeSelectOpen(true);
+            return;
+          }
           const estimateRes = await apiClient.estimateRefund({ sourceType: 'event_ticket', eventId });
           const estimate = estimateRes.success && estimateRes.data
             ? ((estimateRes.data as any)?.data ?? estimateRes.data)
             : null;
-          const attendees = estimate?.meta?.cancellableAttendees || [];
-          if (attendees.length > 0) {
-            setAttendeeSelectList(attendees);
+          const estimateAttendees = estimate?.meta?.cancellableAttendees || [];
+          if (estimateAttendees.length > 0) {
+            setAttendeeSelectList(estimateAttendees);
             setAttendeeSelectMode('cancel');
             setPendingRefundEventId(eventId);
             setAttendeeSelectOpen(true);
@@ -507,10 +515,15 @@ function UserEventsPageInner() {
     }
   };
 
-  const initiateRefundCancel = async (eventId: string) => {
+  const initiateRefundCancel = async (eventId: string, event?: Event) => {
     try {
       setRefundModalLoading(true);
       setRefundModalError(null);
+      const isFree = event ? !isEventPaid(event) : false;
+      if (isFree) {
+        await handleCancelRegistration(eventId);
+        return;
+      }
       const policyRes = await apiClient.getEventRefundPolicy(eventId);
       const policy = policyRes.success && policyRes.data ? policyRes.data : null;
       if (policy?.event_cancelled) {
@@ -961,7 +974,8 @@ function UserEventsPageInner() {
                                   <MemberTicketRefundAction
                                     eventId={event._id}
                                     eventIsActive={event.isActive !== false}
-                                    onRequestRefund={() => initiateRefundCancel(event._id)}
+                                    isFreeEvent={!isEventPaid(event)}
+                                    onRequestRefund={() => initiateRefundCancel(event._id, event)}
                                     loading={cancellingEventId === event._id || refundModalLoading}
                                   />
                                 </div>

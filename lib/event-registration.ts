@@ -57,3 +57,21 @@ export function getCancellableAttendees(registration: { attendees?: any[] } | nu
       attended: a.attended,
     }))
 }
+
+export function extractCancellableAttendeesFromApiResponse(res: any): Array<{
+  attendeeId: string
+  name: string
+  phone?: string
+  venueName?: string
+  tierName?: string
+  price?: number
+  refundStatus?: string
+  attended?: boolean
+}> {
+  const direct =
+    res?.cancellableAttendees ||
+    res?.data?.cancellableAttendees ||
+    []
+  if (Array.isArray(direct) && direct.length > 0) return direct
+  return []
+}

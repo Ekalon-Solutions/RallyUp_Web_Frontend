@@ -13,6 +13,7 @@ import {
 type Props = {
   eventId: string
   eventIsActive?: boolean
+  isFreeEvent?: boolean
   onRequestRefund: () => void
   loading?: boolean
   variant?: "icon" | "full"
@@ -22,6 +23,7 @@ type Props = {
 export function MemberTicketRefundAction({
   eventId,
   eventIsActive = true,
+  isFreeEvent = false,
   onRequestRefund,
   loading = false,
   variant = "icon",
@@ -73,7 +75,7 @@ export function MemberTicketRefundAction({
     )
   }
 
-  if (isEventNonRefundable(effectivePolicy)) {
+  if (isEventNonRefundable(effectivePolicy) && !isFreeEvent) {
     return null
   }
 
@@ -114,7 +116,7 @@ export function MemberTicketRefundAction({
       }}
       disabled={loading}
       className={className}
-      title="Request refund or cancel ticket"
+      title={isFreeEvent ? "Cancel registration" : "Request refund or cancel ticket"}
       size={variant === "icon" ? "icon" : "default"}
     >
       {loading ? (
@@ -122,7 +124,7 @@ export function MemberTicketRefundAction({
       ) : variant === "icon" ? (
         <Trash className="w-4 h-4" />
       ) : (
-        "Request Refund"
+        isFreeEvent ? "Cancel ticket" : "Request Refund"
       )}
     </Button>
   )

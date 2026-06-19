@@ -12,7 +12,7 @@ import NewsReadMoreModal from "@/components/modals/news-readmore-modal"
 import { apiClient, Event, News, User, Admin } from "@/lib/api"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
-import { isUserRegisteredForEvent as isUserRegisteredOnEvent, getUserRegistrationStatus } from "@/lib/event-registration"
+import { isUserRegisteredForEvent as isUserRegisteredOnEvent, getUserRegistrationStatus, extractCancellableAttendeesFromApiResponse } from "@/lib/event-registration"
 import { formatLocalDate } from "@/lib/timezone"
 import { Calendar, MapPin, Clock, Users, Newspaper, Tag, User as UserIcon, Eye, CreditCard, Crown, Star, Shield, Infinity as InfinityIcon, Trash } from "lucide-react"
 import EventDetailsModal from '@/components/modals/event-details-modal'
@@ -23,6 +23,7 @@ import { MemberTicketRefundAction } from "@/components/member/member-ticket-refu
 import { RefundPolicyBadge } from "@/components/refund-policy-badge"
 import { EventImage } from "@/components/events/event-image"
 import { eventVariantUrl } from "@/lib/eventImageCache"
+import { isEventPaid } from "@/lib/event-display-price"
 
 function AttendanceMarker({ event, userId }: { event: Event; userId?: string }) {
   const [registration, setRegistration] = useState<any | null>(null)
@@ -393,13 +394,21 @@ export default function UserDashboardPage() {
       } else {
         const data = res as any
         if (data?.requiresAttendeeSelection || data?.data?.requiresAttendeeSelection) {
+          const attendees = extractCancellableAttendeesFromApiResponse(data)
+          if (attendees.length > 0) {
+            setAttendeeSelectList(attendees)
+            setAttendeeSelectMode('cancel')
+            setPendingRefundEventId(eventId)
+            setAttendeeSelectOpen(true)
+            return
+          }
           const estimateRes = await apiClient.estimateRefund({ sourceType: "event_ticket", eventId })
           const estimate = estimateRes.success && estimateRes.data
             ? ((estimateRes.data as any)?.data ?? estimateRes.data)
             : null
-          const attendees = estimate?.meta?.cancellableAttendees || []
-          if (attendees.length > 0) {
-            setAttendeeSelectList(attendees)
+          const estimateAttendees = estimate?.meta?.cancellableAttendees || []
+          if (estimateAttendees.length > 0) {
+            setAttendeeSelectList(estimateAttendees)
             setAttendeeSelectMode('cancel')
             setPendingRefundEventId(eventId)
             setAttendeeSelectOpen(true)
@@ -450,10 +459,15 @@ export default function UserDashboardPage() {
     }
   }
 
-  const initiateRefundCancel = async (eventId: string) => {
+  const initiateRefundCancel = async (eventId: string, event?: Event) => {
     try {
       setRefundModalLoading(true)
       setRefundModalError(null)
+      const isFree = event ? !isEventPaid(event) : false
+      if (isFree) {
+        await handleCancelRegistration(eventId)
+        return
+      }
       const policyRes = await apiClient.getEventRefundPolicy(eventId)
       const policy = policyRes.success && policyRes.data ? policyRes.data : null
       if (policy?.event_cancelled) {
@@ -638,7 +652,8 @@ export default function UserDashboardPage() {
           <MemberTicketRefundAction
             eventId={event._id}
             eventIsActive={event.isActive !== false}
-            onRequestRefund={() => initiateRefundCancel(event._id)}
+            isFreeEvent={!isEventPaid(event)}
+            onRequestRefund={() => initiateRefundCancel(event._id, event)}
             loading={cancellingEventId === event._id || refundModalLoading}
           />
         </div>
