@@ -858,6 +858,10 @@ class ApiClient {
       if (deviceId) {
         headers['X-Device-Id'] = deviceId;
       }
+      const sessionToken = sessionStorage.getItem('vendorScanSessionToken');
+      if (sessionToken) {
+        headers['X-Vendor-Session-Token'] = sessionToken;
+      }
     }
 
     if (!isFormData) {
@@ -1065,11 +1069,23 @@ class ApiClient {
     clubId?: string;
     assignmentId?: string;
     gateZone?: string;
-  }): Promise<ApiResponse<any>> {
-    return this.request('/events/admin/attendance', {
+    scanMode?: 'check_in' | 'check_out';
+  }): Promise<ApiResponse<any> & { code?: string; originalCheckInAt?: string }> {
+    const res = await this.request<any>('/events/admin/attendance', {
       method: 'POST',
       body: JSON.stringify(data),
     });
+    if (!res.success && res.data) {
+      const payload = res.data as any;
+      return {
+        ...res,
+        code: payload.code,
+        originalCheckInAt: payload.originalCheckInAt,
+        redirectGate: payload.redirectGate,
+        message: payload.message ?? res.message,
+      };
+    }
+    return res;
   }
 
   async getVendorScanPreview(
@@ -1089,14 +1105,19 @@ class ApiClient {
     registrationId: string;
     attendeeId: string;
     venueItems?: Array<{ tierName: string; venueName: string }>;
-  }> & { code?: string }> {
+  }> & { code?: string; redirectGate?: string }> {
     const params = new URLSearchParams({ registrationId, attendeeId });
     if (clubId) params.set('clubId', clubId);
     if (gateVenueId) params.set('gateVenueId', gateVenueId);
     const res = await this.request<any>(`/events/scan-preview?${params.toString()}`);
     if (!res.success) {
-      const code = (res.data as any)?.code;
-      return { ...res, code };
+      const payload = res.data as any;
+      return {
+        ...res,
+        code: payload?.code,
+        message: payload?.message ?? res.message,
+        redirectGate: payload?.redirectGate,
+      };
     }
     return { success: true, data: res.data?.data ?? res.data };
   }
@@ -3292,6 +3313,71 @@ class ApiClient {
     return res;
   }
 
+  async getVendorAttendanceDashboard(params?: {
+    eventId?: string;
+    assignmentId?: string;
+    gateZone?: string;
+    clubId?: string;
+  }): Promise<ApiResponse<{
+    myTotalScans: number;
+    memberCheckIns: number;
+    guestWalkIns: number;
+    zoneTurnout: number;
+    maxCapacity: number | null;
+    turnoutPercent: number | null;
+    eventTitle?: string;
+    eventVenue?: string;
+    gateZone?: string;
+    recentScans: Array<{
+      attendanceId: string;
+      attendeeName: string;
+      attendeeCategory: 'member' | 'guest';
+      scannedAt: string;
+      gateZone?: string;
+      deviceId?: string;
+      vendorId?: string;
+      eventId: string;
+    }>;
+    syncedAt: string;
+  }>> {
+    const query = new URLSearchParams();
+    if (params?.eventId) query.set('eventId', params.eventId);
+    if (params?.assignmentId) query.set('assignmentId', params.assignmentId);
+    if (params?.gateZone) query.set('gateZone', params.gateZone);
+    if (params?.clubId) query.set('clubId', params.clubId);
+    const qs = query.toString();
+    const res = await this.request<any>(`/vendor-reports/attendance-dashboard${qs ? `?${qs}` : ''}`);
+    if (res.success && res.data) {
+      return { ...res, data: res.data.data ?? res.data };
+    }
+    return res;
+  }
+
+  async getAdminLiveScreening(clubId: string, eventId?: string): Promise<ApiResponse<{
+    events: Array<{
+      eventId: string;
+      title: string;
+      venue?: string;
+      startTime?: string;
+      maxCapacity: number | null;
+      totalCheckIns: number;
+      memberCheckIns: number;
+      guestWalkIns: number;
+      turnoutPercent: number | null;
+      gates: Array<{ gateZone: string; count: number }>;
+      vendors: Array<{ vendorId: string; count: number }>;
+    }>;
+    syncedAt: string;
+  }>> {
+    const query = new URLSearchParams({ clubId });
+    if (eventId) query.set('eventId', eventId);
+    const res = await this.request<any>(`/vendor-reports/admin/live-screening?${query.toString()}`);
+    if (res.success && res.data) {
+      return { ...res, data: res.data.data ?? res.data };
+    }
+    return res;
+  }
+
   async getVendorReports(clubId?: string): Promise<ApiResponse<{
     totalScans: number;
     events: Array<{
@@ -3338,11 +3424,88 @@ class ApiClient {
     });
   }
 
+  async checkVendorPhone(data: {
+    phoneNumber: string;
+    countryCode: string;
+  }): Promise<ApiResponse<{ userData?: Record<string, unknown> }>> {
+    return this.request('/vendor-auth/check-phone', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async sendVendorOtp(data: {
+    phoneNumber: string;
+    countryCode: string;
+    channel?: 'whatsapp' | 'sms';
+    recaptchaToken?: string;
+  }): Promise<ApiResponse<{
+    userData?: Record<string, unknown>;
+    sessionInfo?: string;
+    deliveryChannel?: string;
+    whatsAppUsed?: boolean;
+  }>> {
+    return this.request('/vendor-auth/send-otp', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async resendVendorOtp(data: {
+    phoneNumber: string;
+    countryCode: string;
+    channel?: 'whatsapp' | 'sms';
+    recaptchaToken?: string;
+  }): Promise<ApiResponse<{
+    userData?: Record<string, unknown>;
+    sessionInfo?: string;
+    deliveryChannel?: string;
+    whatsAppUsed?: boolean;
+  }>> {
+    return this.request('/vendor-auth/resend-otp', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async verifyVendorOtpAndLogin(data: {
+    phoneNumber: string;
+    countryCode: string;
+    otp: string;
+    sessionInfo: string;
+  }): Promise<ApiResponse<Admin & { token: string; isVendor?: boolean }>> {
+    const res = await this.request<any>('/vendor-auth/verify-and-login', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    if (res.success && res.data) {
+      return { ...res, data: res.data.data ?? res.data };
+    }
+    return res;
+  }
+
+  async getVendorOfflineGuestList(eventId: string): Promise<ApiResponse<{
+    eventId: string;
+    count: number;
+    passes: Array<Record<string, unknown>>;
+    syncedAt: string;
+  }>> {
+    const res = await this.request<any>(`/vendor-auth/offline-guest-list/${encodeURIComponent(eventId)}`);
+    if (res.success && res.data) {
+      return { ...res, data: res.data.data ?? res.data };
+    }
+    return res;
+  }
+
   async getMyVendorAssignments(): Promise<ApiResponse<Array<{
     assignmentId: string;
     clubId: string;
     gateZone: string;
+    gateType?: 'general' | 'vip' | 'all';
+    venueId?: string;
     venueName?: string;
+    venueLatitude?: number;
+    venueLongitude?: number;
     events: Array<{
       eventId: string;
       eventTitle?: string;
@@ -3370,14 +3533,71 @@ class ApiClient {
     return res;
   }
 
+  async startVendorScanSession(
+    assignmentId: string,
+    eventId: string
+  ): Promise<ApiResponse<{
+    sessionToken: string;
+    expiresAt: string;
+    matchDayKey: string;
+    venueId?: string;
+    venueName?: string;
+    gateZone: string;
+    gateType?: 'general' | 'vip' | 'all';
+    venueLatitude?: number;
+    venueLongitude?: number;
+  }>> {
+    const res = await this.request<any>('/vendor-assignments/session/start', {
+      method: 'POST',
+      body: JSON.stringify({ assignmentId, eventId }),
+    });
+    if (res.success && res.data) {
+      return { ...res, data: res.data.data ?? res.data };
+    }
+    return res;
+  }
+
+  async activateVendorSessionOverride(payload: {
+    sessionToken: string;
+    overrideCode: string;
+    clubId: string;
+    eventId: string;
+  }): Promise<ApiResponse<{ message?: string }>> {
+    return this.request('/vendor-assignments/session/override', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async generateVendorOverrideCode(
+    clubId: string,
+    eventId: string,
+    ttlMinutes?: number
+  ): Promise<ApiResponse<{ code: string; expiresAt: string }>> {
+    const res = await this.request<any>(
+      `/vendor-assignments/clubs/${encodeURIComponent(clubId)}/override-code`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ eventId, ttlMinutes }),
+      }
+    );
+    if (res.success && res.data) {
+      return { ...res, data: res.data.data ?? res.data };
+    }
+    return res;
+  }
+
   async createVendorAssignment(
     clubId: string,
     payload: {
       vendorId: string;
       eventIds: string[];
       gateZone: string;
+      gateType?: 'general' | 'vip' | 'all';
       venueId?: string;
       venueName?: string;
+      venueLatitude?: number;
+      venueLongitude?: number;
     }
   ): Promise<ApiResponse<any>> {
     return this.request(`/vendor-assignments/clubs/${encodeURIComponent(clubId)}`, {

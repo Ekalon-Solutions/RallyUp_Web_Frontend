@@ -180,9 +180,11 @@ export function middleware(request: NextRequest) {
 function cameraPermissionsPolicy(pathname: string): string {
   if (
     pathname.startsWith('/dashboard/events/scanner') ||
-    pathname.startsWith('/dashboard/quick-scanner')
+    pathname.startsWith('/dashboard/quick-scanner') ||
+    pathname.startsWith('/vendor/login') ||
+    pathname.startsWith('/vendor/onboarding')
   ) {
-    return 'camera=(self)'
+    return 'camera=(self), geolocation=(self)'
   }
   return 'camera=()'
 }
@@ -194,7 +196,7 @@ function applySecurityHeaders(response: NextResponse, pathname = '') {
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
   response.headers.set(
     'Permissions-Policy',
-    `${cameraPermissionsPolicy(pathname)}, microphone=(), geolocation=(), interest-cohort=()`
+    `${cameraPermissionsPolicy(pathname)}, microphone=(), interest-cohort=()`
   )
   return response
 }

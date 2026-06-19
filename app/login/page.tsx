@@ -18,12 +18,16 @@ import { auth } from "@/lib/firebase/config"
 import { apiClient } from "@/lib/api"
 import { getStoredPurchaseIntent } from "@/components/modals/purchase-flow-modal"
 import { CountryCodeSelect } from "@/components/country-code-select"
+import { isVendorOnboardingComplete } from "@/lib/vendorOnboarding"
 
 const DEBUG_OTP = "123456"
 
-function adminPostLoginPath(): string {
+function adminPostLoginPath(userId?: string): string {
   if (typeof window !== "undefined" && localStorage.getItem("userType") === "vendor") {
-    return "/dashboard/quick-scanner"
+    if (userId && isVendorOnboardingComplete(userId)) {
+      return "/dashboard/quick-scanner"
+    }
+    return "/vendor/onboarding"
   }
   return "/splash"
 }
@@ -287,7 +291,12 @@ function AuthPageContent() {
       const userAny = user as any
       const isVendor = userAny.role === 'vendor' || userAny.isVendor
       if (isVendor) {
-        router.push('/dashboard/quick-scanner')
+        const userId = String(userAny._id || '')
+        router.push(
+          isVendorOnboardingComplete(userId)
+            ? '/dashboard/quick-scanner'
+            : '/vendor/onboarding'
+        )
         return
       }
 

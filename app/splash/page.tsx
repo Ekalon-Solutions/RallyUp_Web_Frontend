@@ -37,8 +37,12 @@ export default function SplashPage() {
         const isVendor = userAny.role === 'vendor' || userAny.isVendor
 
         if (isVendor) {
-          router.replace('/dashboard/quick-scanner')
-          return
+          const userId = String(userAny._id || '');
+          const onboardingDone =
+            typeof window !== 'undefined' &&
+            localStorage.getItem(`vendorOnboardingComplete:${userId}`) === '1';
+          router.replace(onboardingDone ? '/dashboard/quick-scanner' : '/vendor/onboarding');
+          return;
         }
 
         if (isAdmin) {

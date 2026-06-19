@@ -3,7 +3,10 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { BrowserQRCodeReader, IScannerControls } from '@zxing/browser';
-import { Flashlight, FlashlightOff, SwitchCamera, ScanLine, WifiOff, User } from 'lucide-react';
+import { Flashlight, FlashlightOff, SwitchCamera, ScanLine, WifiOff, User, LogOut } from 'lucide-react';
+import { VendorAttendancePanel } from '@/components/vendor/vendor-attendance-panel';
+import { VenueLockBanner } from '@/components/vendor/venue-lock-banner';
+import { VendorOverrideModal } from '@/components/vendor/vendor-override-modal';
 import { apiClient } from '@/lib/api';
 import { parseTicketQr, ticketCacheKey } from '@/lib/parseTicketQr';
 import { vibrateError, vibrateSuccess } from '@/lib/vendorHaptics';
@@ -45,7 +48,10 @@ function passFromPreview(data: Record<string, unknown>): VendorScanPass {
     eventId: String(data.eventId || ''),
     registrationId: String(data.registrationId || ''),
     attendeeId: String(data.attendeeId || ''),
-    attended: Boolean(data.attended),
+    attended: Boolean(data.attended ?? data.onPremise),
+    onPremise: Boolean(data.onPremise ?? data.attended),
+    originalCheckInAt: data.originalCheckInAt ? String(data.originalCheckInAt) : undefined,
+    attendeeCategory: data.attendeeCategory as VendorScanPass['attendeeCategory'],
   };
 }
 
@@ -54,6 +60,9 @@ type QuickScannerViewProps = {
   clubId?: string;
   activeAssignment?: VendorActiveAssignment;
   onChangeAssignment?: () => void;
+  geofenceWarning?: string | null;
+  overrideActive?: boolean;
+  onOverrideActivated?: () => void;
 };
 
 export function QuickScannerView({
@@ -61,6 +70,9 @@ export function QuickScannerView({
   clubId,
   activeAssignment,
   onChangeAssignment,
+  geofenceWarning,
+  overrideActive,
+  onOverrideActivated,
 }: QuickScannerViewProps) {
   const { logout } = useAuth();
   const online = useNetworkStatus();
@@ -82,6 +94,10 @@ export function QuickScannerView({
   const [overlay, setOverlay] = useState<ScanOverlayState>({ type: 'idle' });
   const [sessionCount, setSessionCount] = useState(0);
   const [pendingSync, setPendingSync] = useState(0);
+  const [checkOutMode, setCheckOutMode] = useState(false);
+  const [dashboardExpanded, setDashboardExpanded] = useState(true);
+  const [dashboardRefreshKey, setDashboardRefreshKey] = useState(0);
+  const [overrideOpen, setOverrideOpen] = useState(false);
 
   useEffect(() => {
     setSessionCount(getSessionScanCount());
@@ -156,6 +172,7 @@ export function QuickScannerView({
           clubId: item.clubId,
           assignmentId: item.assignmentId,
           gateZone: item.gateZone,
+          scanMode: item.scanMode,
         });
         if (res.success) {
           await removePendingAttendance(item.key);
@@ -176,17 +193,26 @@ export function QuickScannerView({
   const processScan = useCallback(
     async (registrationId: string, attendeeId: string) => {
       const key = ticketCacheKey(registrationId, attendeeId);
+      const scanMode = checkOutMode ? 'check_out' : 'check_in';
 
-      const markValid = (pass: VendorScanPass) => {
+      const markValid = (pass: VendorScanPass, mode: 'check_in' | 'check_out' = 'check_in') => {
         vibrateSuccess();
-        const count = incrementSessionScanCount();
-        setSessionCount(count);
-        showOverlay({ type: 'valid', pass });
+        if (mode === 'check_in') {
+          const count = incrementSessionScanCount();
+          setSessionCount(count);
+        }
+        setDashboardRefreshKey((k) => k + 1);
+        showOverlay({ type: 'valid', pass, scanMode: mode });
       };
 
-      const markError = (code: ScanErrorCode, message: string) => {
+      const markError = (
+        code: ScanErrorCode,
+        message: string,
+        originalCheckInAt?: string,
+        redirectGate?: string
+      ) => {
         vibrateError();
-        showOverlay({ type: 'error', code, message });
+        showOverlay({ type: 'error', code, message, originalCheckInAt, redirectGate });
       };
 
       if (!online) {
@@ -195,20 +221,17 @@ export function QuickScannerView({
           markError('OFFLINE_UNKNOWN', 'TICKET NOT CACHED');
           return;
         }
-        if (cached.attended) {
-          markError('ALREADY_SCANNED', 'ALREADY SCANNED');
+        if (scanMode === 'check_in') {
+          if (cached.onPremise || cached.attended) {
+            markError('ALREADY_SCANNED', 'ALREADY SCANNED', cached.originalCheckInAt);
+            return;
+          }
+        } else if (!cached.onPremise && !cached.attended) {
+          markError('NOT_CHECKED_IN', 'NOT CHECKED IN');
           return;
         }
         if (activeAssignment && cached.eventId !== activeAssignment.eventId) {
           markError('NOT_ASSIGNED_TO_EVENT', 'NOT ASSIGNED');
-          return;
-        }
-        if (
-          gateVenueId &&
-          cached.assignedVenueId &&
-          cached.assignedVenueId !== gateVenueId
-        ) {
-          markError('WRONG_VENUE', 'WRONG VENUE');
           return;
         }
         await queuePendingAttendance({
@@ -218,10 +241,18 @@ export function QuickScannerView({
           clubId: activeAssignment?.clubId ?? clubId,
           assignmentId: activeAssignment?.assignmentId,
           gateZone: activeAssignment?.gateZone,
+          scanMode,
           queuedAt: Date.now(),
         });
         setPendingSync((n) => n + 1);
-        markValid({ ...cached, attended: true });
+        markValid(
+          {
+            ...cached,
+            onPremise: scanMode === 'check_in',
+            attended: scanMode === 'check_in',
+          },
+          scanMode
+        );
         return;
       }
 
@@ -235,8 +266,29 @@ export function QuickScannerView({
 
         if (!previewRes.success) {
           const code = (previewRes as { code?: string }).code || (previewRes.data as any)?.code;
+          const redirectGate = (previewRes.data as any)?.redirectGate as string | undefined;
           if (code === 'WRONG_VENUE') {
             markError('WRONG_VENUE', 'WRONG VENUE');
+            return;
+          }
+          if (code === 'WRONG_ZONE') {
+            markError(
+              'WRONG_ZONE',
+              previewRes.message ||
+                (redirectGate
+                  ? `Wrong Zone - Redirect to ${redirectGate}`
+                  : 'Wrong Zone - Redirect to VIP Gate'),
+              undefined,
+              redirectGate || (previewRes as { redirectGate?: string }).redirectGate
+            );
+            return;
+          }
+          if (code === 'ZONE_ALREADY_ENTERED') {
+            markError('ZONE_ALREADY_ENTERED', previewRes.message || 'ALREADY IN ANOTHER ZONE');
+            return;
+          }
+          if (code === 'SESSION_INVALID' || code === 'SESSION_EXPIRED') {
+            markError(code as ScanErrorCode, previewRes.message || 'Session expired');
             return;
           }
           if (code === 'ALREADY_SCANNED') {
@@ -263,8 +315,13 @@ export function QuickScannerView({
           return;
         }
 
-        if (pass.attended) {
-          markError('ALREADY_SCANNED', 'ALREADY SCANNED');
+        if (scanMode === 'check_out') {
+          if (!pass.onPremise && !pass.attended) {
+            markError('NOT_CHECKED_IN', 'NOT CHECKED IN');
+            return;
+          }
+        } else if (pass.onPremise || pass.attended) {
+          markError('ALREADY_SCANNED', 'ALREADY SCANNED', pass.originalCheckInAt);
           return;
         }
 
@@ -274,11 +331,34 @@ export function QuickScannerView({
           clubId: activeAssignment?.clubId ?? clubId,
           assignmentId: activeAssignment?.assignmentId,
           gateZone: activeAssignment?.gateZone,
+          scanMode,
         });
 
         if (!attendRes.success) {
           const msg = attendRes.error || attendRes.message || '';
-          const code = (attendRes as { code?: string }).code;
+          const code = attendRes.code;
+          const redirectGate = (attendRes.data as any)?.redirectGate as string | undefined;
+          if (code === 'WRONG_ZONE') {
+            markError(
+              'WRONG_ZONE',
+              msg || 'Wrong Zone - Redirect to VIP Gate',
+              undefined,
+              redirectGate
+            );
+            return;
+          }
+          if (code === 'ZONE_ALREADY_ENTERED') {
+            markError('ZONE_ALREADY_ENTERED', msg || 'ALREADY IN ANOTHER ZONE');
+            return;
+          }
+          if (code === 'SESSION_INVALID' || code === 'SESSION_EXPIRED') {
+            markError(code as ScanErrorCode, msg || 'Session expired');
+            return;
+          }
+          if (code === 'WRONG_VENUE') {
+            markError('WRONG_VENUE', 'WRONG VENUE');
+            return;
+          }
           if (code === 'NOT_ASSIGNED_TO_EVENT') {
             markError('NOT_ASSIGNED_TO_EVENT', 'NOT ASSIGNED');
             return;
@@ -287,20 +367,24 @@ export function QuickScannerView({
             markError('ASSIGNMENT_NOT_ACTIVE', 'NOT ACTIVE');
             return;
           }
-          if (msg.toUpperCase().includes('ALREADY')) {
-            markError('ALREADY_SCANNED', 'ALREADY SCANNED');
+          if (code === 'NOT_CHECKED_IN') {
+            markError('NOT_CHECKED_IN', 'NOT CHECKED IN');
+            return;
+          }
+          if (code === 'ALREADY_SCANNED' || msg.toUpperCase().includes('ALREADY')) {
+            markError('ALREADY_SCANNED', 'ALREADY SCANNED', attendRes.originalCheckInAt);
             return;
           }
           markError('INVALID', msg || 'SCAN FAILED');
           return;
         }
 
-        markValid(pass);
+        markValid(pass, scanMode);
       } catch {
         markError('NETWORK', 'CONNECTION ERROR');
       }
     },
-    [activeAssignment, clubId, gateVenueId, online, showOverlay]
+    [activeAssignment, checkOutMode, clubId, gateVenueId, online, showOverlay]
   );
 
   const handleRawScan = useCallback(
@@ -382,7 +466,14 @@ export function QuickScannerView({
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-black text-white select-none touch-manipulation">
       {/* Top bar */}
-      <div className="relative z-20 flex items-center justify-between px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-2">
+      <VenueLockBanner
+        assignment={activeAssignment}
+        geofenceWarning={geofenceWarning}
+        overrideActive={overrideActive}
+        onRequestOverride={activeAssignment ? () => setOverrideOpen(true) : undefined}
+      />
+
+      <div className="relative z-20 flex items-center justify-between px-4 pt-2 pb-2">
         <div className="flex min-w-0 flex-col gap-0.5">
           <div className="flex items-center gap-2">
             <ScanLine className="h-5 w-5 shrink-0 text-emerald-400" />
@@ -390,7 +481,7 @@ export function QuickScannerView({
           </div>
           {activeAssignment && (
             <p className="truncate text-xs text-zinc-400">
-              {activeAssignment.eventTitle || 'Event'} · {activeAssignment.gateZone}
+              {activeAssignment.eventTitle || 'Event'}
             </p>
           )}
         </div>
@@ -458,8 +549,14 @@ export function QuickScannerView({
 
         {/* VALID overlay */}
         {overlay.type === 'valid' && (
-          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-emerald-600 px-6 text-center animate-in fade-in duration-150">
-            <p className="text-5xl font-black tracking-tighter text-white drop-shadow-lg sm:text-6xl">VALID</p>
+          <div
+            className={`absolute inset-0 z-30 flex flex-col items-center justify-center px-6 text-center animate-in fade-in duration-150 ${
+              overlay.scanMode === 'check_out' ? 'bg-sky-700' : 'bg-emerald-600'
+            }`}
+          >
+            <p className="text-5xl font-black tracking-tighter text-white drop-shadow-lg sm:text-6xl">
+              {overlay.scanMode === 'check_out' ? 'OUT' : 'VALID'}
+            </p>
             <div className="mt-6 flex flex-col items-center gap-3">
               {overlay.pass.attendeePhoto ? (
                 <div className="relative h-24 w-24 overflow-hidden rounded-full border-4 border-white/90 shadow-xl">
@@ -490,6 +587,20 @@ export function QuickScannerView({
             <p className="text-4xl font-black tracking-tighter text-white drop-shadow-lg sm:text-5xl">
               {overlay.message}
             </p>
+            {overlay.code === 'ALREADY_SCANNED' && overlay.originalCheckInAt && (
+              <p className="mt-3 text-base font-semibold text-red-100">
+                Checked in at{' '}
+                {new Date(overlay.originalCheckInAt).toLocaleTimeString(undefined, {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </p>
+            )}
+            {overlay.code === 'WRONG_ZONE' && overlay.redirectGate && (
+              <p className="mt-3 text-lg font-semibold text-red-100">
+                Redirect to {overlay.redirectGate}
+              </p>
+            )}
             <p className="mt-4 text-sm font-medium uppercase tracking-widest text-red-100/90">
               Scan rejected
             </p>
@@ -497,8 +608,44 @@ export function QuickScannerView({
         )}
       </div>
 
+      <VendorAttendancePanel
+        activeAssignment={activeAssignment}
+        refreshKey={dashboardRefreshKey}
+        expanded={dashboardExpanded}
+        onToggleExpanded={() => setDashboardExpanded((v) => !v)}
+      />
+
+      {/* Mode + camera controls */}
+      <div className="relative z-20 space-y-2 border-t border-zinc-800 bg-zinc-950/95 px-4 pt-3">
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => setCheckOutMode(false)}
+            className={`min-h-[44px] rounded-xl border px-3 py-2 text-xs font-bold uppercase tracking-wide ${
+              !checkOutMode
+                ? 'border-emerald-500 bg-emerald-500/20 text-emerald-300'
+                : 'border-zinc-700 bg-zinc-900 text-zinc-400'
+            }`}
+          >
+            Check-In
+          </button>
+          <button
+            type="button"
+            onClick={() => setCheckOutMode(true)}
+            className={`flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-bold uppercase tracking-wide ${
+              checkOutMode
+                ? 'border-sky-500 bg-sky-500/20 text-sky-300'
+                : 'border-zinc-700 bg-zinc-900 text-zinc-400'
+            }`}
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            Check-Out
+          </button>
+        </div>
+      </div>
+
       {/* Lower-third controls */}
-      <div className="relative z-20 grid grid-cols-2 gap-3 border-t border-zinc-800 bg-zinc-950/95 px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+      <div className="relative z-20 grid grid-cols-2 gap-3 bg-zinc-950/95 px-4 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
         <button
           type="button"
           disabled={!torchSupported}
@@ -524,6 +671,15 @@ export function QuickScannerView({
           <span className="text-xs font-semibold uppercase tracking-wide text-zinc-300">Switch Cam</span>
         </button>
       </div>
+
+      <VendorOverrideModal
+        open={overrideOpen}
+        onOpenChange={setOverrideOpen}
+        sessionToken={activeAssignment?.sessionToken}
+        clubId={activeAssignment?.clubId}
+        eventId={activeAssignment?.eventId}
+        onActivated={onOverrideActivated}
+      />
     </div>
   );
 }

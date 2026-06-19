@@ -159,7 +159,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       let profileResponse = null;
 
-      if (userType === 'admin') {
+      if (userType === 'admin' || userType === 'vendor') {
         try {
           // console.log('Trying admin profile (from userType)...');
           const adminResponse = await apiClient.adminProfile();
