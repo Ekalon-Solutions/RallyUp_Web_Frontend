@@ -2212,6 +2212,15 @@ class ApiClient {
     return { ...res, data: { registration } };
   }
 
+  async getAdminRegistrationById(registrationId: string): Promise<ApiResponse<{ registration: any }>> {
+    const res = await this.request<{ registration?: any; success?: boolean }>(
+      `/events/admin/registration/${registrationId}`
+    );
+    if (!res.success || !res.data) return res as ApiResponse<{ registration: any }>;
+    const registration = res.data.registration ?? (res.data as any).registration;
+    return { ...res, data: { registration } };
+  }
+
   async getUserEventRegistrations(clubId?: string): Promise<ApiResponse<Array<{
     eventId: string;
     eventTitle: string;

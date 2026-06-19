@@ -50,6 +50,7 @@ import {
   getActiveAttendees,
   getCancellableAttendees,
   getRegistrationDisplayStatus,
+  extractCancellableAttendeesFromApiResponse,
 } from '@/lib/event-registration'
 
 interface OrderItem {
@@ -714,7 +715,7 @@ export default function OrdersPage() {
 
   const refreshRegistrationInModal = async (registrationId: string, regMeta?: any) => {
     try {
-      const res = await apiClient.getRegistrationById(String(registrationId))
+      const res = await apiClient.getAdminRegistrationById(String(registrationId))
       const registration =
         res.data?.registration ??
         (res.data as { registration?: unknown })?.registration
@@ -732,6 +733,42 @@ export default function OrdersPage() {
     } catch {
       // non-fatal
     }
+  }
+
+  const loadCancellableAttendeesForReg = async (reg: any): Promise<CancellableAttendee[]> => {
+    const registrationId = reg.registrationId || reg._id
+    if (!registrationId) return []
+
+    if (String(selectedRegistrationMeta?.registrationId) === String(registrationId) && selectedRegistration) {
+      return getCancellableAttendees(selectedRegistration)
+    }
+
+    try {
+      const res = await apiClient.getAdminRegistrationById(String(registrationId))
+      const registration =
+        res.data?.registration ?? (res.data as any)?.registration
+      return getCancellableAttendees(registration)
+    } catch {
+      return []
+    }
+  }
+
+  const openAttendeeCancelPicker = (reg: any, attendees: CancellableAttendee[]) => {
+    if (attendees.length === 0) {
+      toast({
+        title: 'Cannot cancel',
+        description: 'No active tickets are available to cancel.',
+        variant: 'destructive',
+      })
+      return
+    }
+    if (attendees.length === 1) {
+      void handleCancelEventRegistration(reg, attendees[0].attendeeId)
+      return
+    }
+    setAttendeeSelectList(attendees)
+    setPendingCancelReg(reg)
+    setAttendeeSelectOpen(true)
   }
 
   const handleCancelEventRegistration = async (reg: any, attendeeId?: string) => {
@@ -785,8 +822,10 @@ export default function OrdersPage() {
             description: response.message || response.data?.message || 'Ticket cancelled successfully',
           })
           await loadEventRegistrations()
+          const cancelPayload = response.data as any
           const allCancelled =
-            response.data?.status === 'cancelled' ||
+            cancelPayload?.data?.status === 'cancelled' ||
+            cancelPayload?.status === 'cancelled' ||
             response.message?.toLowerCase().includes('registration cancelled')
           if (showRegistrationModal && String(selectedRegistrationMeta?.registrationId) === String(registrationId)) {
             if (allCancelled) {
@@ -803,18 +842,14 @@ export default function OrdersPage() {
         } else {
           const data = response as any
           if (data?.requiresAttendeeSelection || data?.data?.requiresAttendeeSelection) {
-            let registration = null
-            if (String(selectedRegistrationMeta?.registrationId) === String(registrationId) && selectedRegistration) {
-              registration = selectedRegistration
-            } else {
-              const res = await apiClient.getRegistrationById(String(registrationId))
-              registration = res.data?.registration ?? (res.data as any)?.registration
+            const fromApi = extractCancellableAttendeesFromApiResponse(data)
+            if (fromApi.length > 0) {
+              openAttendeeCancelPicker(reg, fromApi)
+              return
             }
-            const cancellable = getCancellableAttendees(registration)
+            const cancellable = await loadCancellableAttendeesForReg(reg)
             if (cancellable.length > 0) {
-              setAttendeeSelectList(cancellable)
-              setPendingCancelReg(reg)
-              setAttendeeSelectOpen(true)
+              openAttendeeCancelPicker(reg, cancellable)
               return
             }
           }
@@ -841,35 +876,8 @@ export default function OrdersPage() {
       return
     }
 
-    let registration = null
-    if (String(selectedRegistrationMeta?.registrationId) === String(registrationId) && selectedRegistration) {
-      registration = selectedRegistration
-    } else {
-      try {
-        const res = await apiClient.getRegistrationById(String(registrationId))
-        registration = res.data?.registration ?? (res.data as any)?.registration
-      } catch {
-        registration = null
-      }
-    }
-
-    const cancellable = getCancellableAttendees(registration)
-    if (cancellable.length === 0) {
-      toast({
-        title: 'Cannot cancel',
-        description: 'No active tickets are available to cancel.',
-        variant: 'destructive',
-      })
-      return
-    }
-    if (cancellable.length > 1) {
-      setAttendeeSelectList(cancellable)
-      setPendingCancelReg(reg)
-      setAttendeeSelectOpen(true)
-      return
-    }
-
-    await executeCancel(cancellable[0]?.attendeeId)
+    const cancellable = await loadCancellableAttendeesForReg(reg)
+    openAttendeeCancelPicker(reg, cancellable)
   }
 
   const handleAttendeeSelectCancel = async (attendeeId: string) => {
@@ -890,7 +898,7 @@ export default function OrdersPage() {
     if (registrationId) {
       setRegistrationLoading(true)
       try {
-        const res = await apiClient.getRegistrationById(String(registrationId))
+        const res = await apiClient.getAdminRegistrationById(String(registrationId))
         const registration =
           res.data?.registration ??
           (res.data as { registration?: unknown })?.registration
@@ -2214,9 +2222,15 @@ export default function OrdersPage() {
                                   onClick={() => handleCancelEventRegistration(selectedRegistrationMeta, String(att._id))}
                                 >
                                   {isCancellingAttendee ? (
-                                    <RefreshCw className="h-4 w-4 animate-spin" />
+                                    <>
+                                      <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                                      Cancelling...
+                                    </>
                                   ) : (
-                                    <XCircle className="h-4 w-4" />
+                                    <>
+                                      <XCircle className="h-4 w-4 mr-1" />
+                                      Cancel ticket
+                                    </>
                                   )}
                                 </Button>
                               )}
@@ -2233,13 +2247,39 @@ export default function OrdersPage() {
               {(['confirmed', 'partially_cancelled'] as string[]).includes(
                 selectedRegistrationMeta?.displayStatus || selectedRegistrationMeta?.status || ''
               ) && getActiveAttendees(selectedRegistration?.attendees).length > 0 && (
-                <Button onClick={handleSendQrFromModal} disabled={sendingQrFromModal} className="w-full sm:w-auto">
-                  {sendingQrFromModal ? (
-                    <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />Sending...</>
-                  ) : (
-                    <><MessageCircle className="h-4 w-4 mr-2" />Send QR (WhatsApp)</>
-                  )}
-                </Button>
+                <>
+                  <Button
+                    variant="destructive"
+                    className="w-full sm:w-auto"
+                    disabled={cancellingTicketId !== null}
+                    onClick={() => {
+                      if (selectedRegistrationMeta) {
+                        void handleCancelEventRegistration(selectedRegistrationMeta)
+                      }
+                    }}
+                  >
+                    {cancellingTicketId ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                        Cancelling...
+                      </>
+                    ) : (
+                      <>
+                        <XCircle className="h-4 w-4 mr-2" />
+                        {getActiveAttendees(selectedRegistration?.attendees).length > 1
+                          ? 'Cancel one ticket'
+                          : 'Cancel ticket'}
+                      </>
+                    )}
+                  </Button>
+                  <Button onClick={handleSendQrFromModal} disabled={sendingQrFromModal} className="w-full sm:w-auto">
+                    {sendingQrFromModal ? (
+                      <><RefreshCw className="h-4 w-4 mr-2 animate-spin" />Sending...</>
+                    ) : (
+                      <><MessageCircle className="h-4 w-4 mr-2" />Send QR (WhatsApp)</>
+                    )}
+                  </Button>
+                </>
               )}
               <Button variant="outline" onClick={() => setShowRegistrationModal(false)}>
                 Close
@@ -2253,8 +2293,8 @@ export default function OrdersPage() {
           attendees={attendeeSelectList}
           loading={cancellingTicketId !== null}
           title="Select ticket to cancel"
-          description="Choose which attendee ticket to cancel. Other tickets in this registration will remain active."
-          confirmLabel="Continue"
+          description="Choose which attendee ticket to cancel. Other tickets in this registration will stay active."
+          confirmLabel="Cancel ticket"
           onSelect={handleAttendeeSelectCancel}
           onCancel={() => {
             setAttendeeSelectOpen(false)

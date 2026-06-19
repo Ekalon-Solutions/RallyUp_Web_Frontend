@@ -75,16 +75,21 @@ export function NotificationCenterModal() {
   }, [])
 
   const onClickNotification = useCallback(
-    async (n: InAppNotification) => {
+    async (n: InAppNotification, targetUrl?: string) => {
       if (!n.readAt) {
         await apiClient.markInAppNotificationRead(n._id)
         setUnreadCount((c) => Math.max(0, c - 1))
         setItems((prev) => prev.map((x) => (x._id === n._id ? { ...x, readAt: new Date().toISOString() } : x)))
       }
 
-      if (n.cta?.url) {
+      const url = targetUrl || n.cta?.url
+      if (url) {
         setOpen(false)
-        router.push(n.cta.url)
+        if (url.startsWith("http://") || url.startsWith("https://")) {
+          window.location.href = url
+        } else {
+          router.push(url)
+        }
       }
     },
     [router]
@@ -164,12 +169,10 @@ export function NotificationCenterModal() {
                 const isUnread = !n.readAt
 
                 return (
-                  <button
+                  <div
                     key={n._id}
-                    type="button"
-                    onClick={() => onClickNotification(n)}
                     className={cn(
-                      "w-full text-left rounded-2xl border p-4 hover:bg-muted/40 transition-colors",
+                      "w-full rounded-2xl border p-4",
                       isUnread ? "border-primary/30 bg-primary/5" : "border-border bg-background"
                     )}
                   >
@@ -183,19 +186,39 @@ export function NotificationCenterModal() {
                           <p className="font-bold leading-snug truncate">{n.title}</p>
                           <span className="text-xs text-muted-foreground whitespace-nowrap">{age}</span>
                         </div>
-                        <p className="text-sm text-muted-foreground mt-1 line-clamp-2">{n.message}</p>
+                        <p className="text-sm text-muted-foreground mt-1 line-clamp-3">{n.message}</p>
 
-                        {n.cta?.url && (
-                          <div className="mt-3 flex items-center gap-2">
-                            <span className="text-xs font-bold text-primary">
-                              {n.cta.label || "Open"}
-                            </span>
-                            <ExternalLink className="h-3.5 w-3.5 text-primary" />
+                        {(n.cta?.url || n.metadata?.declineUrl) && (
+                          <div className="mt-3 flex flex-wrap items-center gap-2">
+                            {n.cta?.url && (
+                              <Button
+                                type="button"
+                                size="sm"
+                                className="h-8 text-xs font-bold"
+                                onClick={() => onClickNotification(n, n.cta?.url)}
+                              >
+                                {n.cta.label || "Open"}
+                              </Button>
+                            )}
+                            {n.type === "admin_invitation" && n.metadata?.declineUrl && (
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="h-8 text-xs font-bold border-destructive text-destructive hover:bg-destructive/10"
+                                onClick={() => onClickNotification(n, n.metadata.declineUrl)}
+                              >
+                                Decline
+                              </Button>
+                            )}
+                            {n.cta?.url && n.type !== "admin_invitation" && (
+                              <ExternalLink className="h-3.5 w-3.5 text-primary" />
+                            )}
                           </div>
                         )}
                       </div>
                     </div>
-                  </button>
+                  </div>
                 )
               })
             )}
