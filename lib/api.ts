@@ -1588,7 +1588,8 @@ class ApiClient {
   async cancelClubEventRegistration(
     registrationId: string,
     reason?: string,
-    attendeeId?: string
+    attendeeId?: string,
+    clubId?: string
   ): Promise<ApiResponse<{
     message: string;
     requiresAttendeeSelection?: boolean;
@@ -1602,7 +1603,9 @@ class ApiClient {
     const body: Record<string, string> = {};
     if (reason) body.reason = reason;
     if (attendeeId) body.attendeeId = attendeeId;
-    return this.request(`/events/club/registrations/${encodeURIComponent(registrationId)}/cancel`, {
+    if (clubId) body.clubId = clubId;
+    const params = clubId ? `?clubId=${encodeURIComponent(clubId)}` : '';
+    return this.request(`/events/club/registrations/${encodeURIComponent(registrationId)}/cancel${params}`, {
       method: 'POST',
       body: JSON.stringify(body),
     });

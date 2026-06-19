@@ -814,7 +814,8 @@ export default function OrdersPage() {
         const response = await apiClient.cancelClubEventRegistration(
           String(registrationId),
           'Cancelled by club admin',
-          resolvedAttendeeId
+          resolvedAttendeeId,
+          clubId ?? undefined
         )
         if (response.success) {
           toast({
