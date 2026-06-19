@@ -2212,9 +2212,10 @@ class ApiClient {
     return { ...res, data: { registration } };
   }
 
-  async getAdminRegistrationById(registrationId: string): Promise<ApiResponse<{ registration: any }>> {
+  async getAdminRegistrationById(registrationId: string, clubId?: string): Promise<ApiResponse<{ registration: any }>> {
+    const params = clubId ? `?clubId=${encodeURIComponent(clubId)}` : '';
     const res = await this.request<{ registration?: any; success?: boolean }>(
-      `/events/admin/registration/${registrationId}`
+      `/events/admin/registration/${registrationId}${params}`
     );
     if (!res.success || !res.data) return res as ApiResponse<{ registration: any }>;
     const registration = res.data.registration ?? (res.data as any).registration;

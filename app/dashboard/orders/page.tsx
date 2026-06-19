@@ -715,7 +715,7 @@ export default function OrdersPage() {
 
   const refreshRegistrationInModal = async (registrationId: string, regMeta?: any) => {
     try {
-      const res = await apiClient.getAdminRegistrationById(String(registrationId))
+      const res = await apiClient.getAdminRegistrationById(String(registrationId), clubId ?? undefined)
       const registration =
         res.data?.registration ??
         (res.data as { registration?: unknown })?.registration
@@ -744,7 +744,7 @@ export default function OrdersPage() {
     }
 
     try {
-      const res = await apiClient.getAdminRegistrationById(String(registrationId))
+      const res = await apiClient.getAdminRegistrationById(String(registrationId), clubId ?? undefined)
       const registration =
         res.data?.registration ?? (res.data as any)?.registration
       return getCancellableAttendees(registration)
@@ -898,7 +898,7 @@ export default function OrdersPage() {
     if (registrationId) {
       setRegistrationLoading(true)
       try {
-        const res = await apiClient.getAdminRegistrationById(String(registrationId))
+        const res = await apiClient.getAdminRegistrationById(String(registrationId), clubId ?? undefined)
         const registration =
           res.data?.registration ??
           (res.data as { registration?: unknown })?.registration
