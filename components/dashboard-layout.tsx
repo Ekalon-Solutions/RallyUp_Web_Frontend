@@ -46,6 +46,7 @@ import {
   Crown,
   Truck,
   ScanLine,
+  FileBarChart,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -130,6 +131,7 @@ const FEED_PATH = "/dashboard/user"
 
 const vendorNavigation = [
   { name: "Quick Scanner", href: "/dashboard/quick-scanner", icon: ScanLine },
+  { name: "Attendance Log", href: "/dashboard/vendor-reports", icon: FileBarChart },
 ]
 
 const adminNavigation = [

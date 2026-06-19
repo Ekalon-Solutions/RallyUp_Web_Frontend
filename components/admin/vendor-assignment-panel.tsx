@@ -58,6 +58,9 @@ export function VendorAssignmentPanel() {
   const [vendorId, setVendorId] = useState("")
   const [selectedEventIds, setSelectedEventIds] = useState<string[]>([])
   const [gateZone, setGateZone] = useState("")
+  const [gateType, setGateType] = useState<"general" | "vip" | "all">("all")
+  const [overrideEventId, setOverrideEventId] = useState("")
+  const [generatedOverrideCode, setGeneratedOverrideCode] = useState<string | null>(null)
 
   const loadData = useCallback(async (activeClubId: string) => {
     setLoading(true)
@@ -122,6 +125,7 @@ export function VendorAssignmentPanel() {
         vendorId,
         eventIds: selectedEventIds,
         gateZone: gateZone.trim(),
+        gateType,
       })
       if (res.success) {
         toast.success("Vendor assignment created")
@@ -163,6 +167,24 @@ export function VendorAssignmentPanel() {
       }
     } catch {
       toast.error("Sync failed")
+    }
+  }
+
+  const handleGenerateOverride = async () => {
+    if (!clubId || !overrideEventId) {
+      toast.error("Select an event for override code generation")
+      return
+    }
+    try {
+      const res = await apiClient.generateVendorOverrideCode(clubId, overrideEventId)
+      if (res.success && res.data?.code) {
+        setGeneratedOverrideCode(res.data.code)
+        toast.success("Override code generated — share with gate staff")
+      } else {
+        toast.error(res.error || res.message || "Failed to generate code")
+      }
+    } catch {
+      toast.error("Failed to generate override code")
     }
   }
 
@@ -219,7 +241,7 @@ export function VendorAssignmentPanel() {
           </div>
         )}
 
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-3">
           <div className="space-y-2">
             <Label>Vendor</Label>
             <Select value={vendorId} onValueChange={setVendorId}>
@@ -242,6 +264,19 @@ export function VendorAssignmentPanel() {
               value={gateZone}
               onChange={(e) => setGateZone(e.target.value)}
             />
+          </div>
+          <div className="space-y-2">
+            <Label>Gate type</Label>
+            <Select value={gateType} onValueChange={(v) => setGateType(v as typeof gateType)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All tiers</SelectItem>
+                <SelectItem value="general">General entry only</SelectItem>
+                <SelectItem value="vip">VIP gate only</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
@@ -279,6 +314,35 @@ export function VendorAssignmentPanel() {
           {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
           Create assignment
         </Button>
+
+        <div className="rounded-lg border border-dashed p-4 space-y-3">
+          <h4 className="text-sm font-semibold">Master Admin Override</h4>
+          <p className="text-xs text-muted-foreground">
+            Generate a short-lived code for gate staff to lift venue locks during bottlenecks.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Select value={overrideEventId} onValueChange={setOverrideEventId}>
+              <SelectTrigger className="w-[220px]">
+                <SelectValue placeholder="Event for override" />
+              </SelectTrigger>
+              <SelectContent>
+                {events.map((event) => (
+                  <SelectItem key={event._id} value={event._id}>
+                    {event.title}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button type="button" variant="outline" onClick={() => void handleGenerateOverride()}>
+              Generate code
+            </Button>
+          </div>
+          {generatedOverrideCode && (
+            <p className="font-mono text-lg font-bold tracking-widest text-emerald-700">
+              {generatedOverrideCode}
+            </p>
+          )}
+        </div>
 
         <div className="space-y-3">
           <h4 className="text-sm font-semibold">Active assignments</h4>

@@ -64,6 +64,7 @@ export type PendingAttendance = {
   clubId?: string;
   assignmentId?: string;
   gateZone?: string;
+  scanMode?: 'check_in' | 'check_out';
   queuedAt: number;
 };
 
@@ -113,7 +114,29 @@ export async function removePendingAttendance(key: string): Promise<void> {
   }
 }
 
-const SESSION_COUNT_KEY = 'vendorScanSessionCount';
+export async function bulkCacheVendorPasses(
+  entries: Array<{ key: string; pass: VendorScanPass }>
+): Promise<number> {
+  if (!entries.length) return 0;
+  try {
+    const db = await openDb();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(PASS_STORE, 'readwrite');
+      const store = tx.objectStore(PASS_STORE);
+      const cachedAt = Date.now();
+      for (const entry of entries) {
+        store.put({ key: entry.key, pass: entry.pass, cachedAt });
+      }
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+    db.close();
+    return entries.length;
+  } catch {
+    return 0;
+  }
+}
+
 
 export function getSessionScanCount(): number {
   if (typeof window === 'undefined') return 0;

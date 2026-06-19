@@ -19,7 +19,11 @@ type AssignmentGroup = {
   assignmentId: string;
   clubId: string;
   gateZone: string;
+  gateType?: 'general' | 'vip' | 'all';
+  venueId?: string;
   venueName?: string;
+  venueLatitude?: number;
+  venueLongitude?: number;
   events: AssignmentEvent[];
 };
 
@@ -152,8 +156,13 @@ export function VendorAssignmentsHome({ onSelect, revokedAssignmentIds = [] }: V
                       assignmentId: group.assignmentId,
                       eventId: event.eventId,
                       gateZone: group.gateZone,
+                      gateType: group.gateType,
                       eventTitle: event.eventTitle,
                       venue: event.venue || group.venueName,
+                      venueId: group.venueId,
+                      venueName: group.venueName,
+                      venueLatitude: group.venueLatitude,
+                      venueLongitude: group.venueLongitude,
                       clubId: group.clubId,
                     })
                   }
