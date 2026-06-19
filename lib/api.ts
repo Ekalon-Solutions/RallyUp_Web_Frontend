@@ -114,8 +114,10 @@ export interface Admin {
   phoneNumber: string;
   countryCode: string;
   isPhoneVerified: boolean;
-  role: 'admin' | 'super_admin';
+  role: 'admin' | 'super_admin' | 'vendor';
   adminTitle?: string;
+  isVendor?: boolean;
+  last_active_device_id?: string;
   club?: Club;
   clubs?: Club[];
   superAdminClubIds?: string[];
@@ -851,6 +853,13 @@ class ApiClient {
       headers['Authorization'] = `Bearer ${token}`;
     }
 
+    if (typeof window !== 'undefined') {
+      const deviceId = sessionStorage.getItem('vendorDeviceId');
+      if (deviceId) {
+        headers['X-Device-Id'] = deviceId;
+      }
+    }
+
     if (!isFormData) {
       headers['Content-Type'] = 'application/json';
     }
@@ -1050,11 +1059,46 @@ class ApiClient {
     return this.request('/admin/profile');
   }
 
-  async adminLogAttendance(data: { registrationId?: string | null; attendeeId?: string | null; clubId?: string; }): Promise<ApiResponse<any>> {
+  async adminLogAttendance(data: {
+    registrationId?: string | null;
+    attendeeId?: string | null;
+    clubId?: string;
+    assignmentId?: string;
+    gateZone?: string;
+  }): Promise<ApiResponse<any>> {
     return this.request('/events/admin/attendance', {
       method: 'POST',
       body: JSON.stringify(data),
     });
+  }
+
+  async getVendorScanPreview(
+    registrationId: string,
+    attendeeId: string,
+    clubId?: string,
+    gateVenueId?: string
+  ): Promise<ApiResponse<{
+    attendeeName: string;
+    attendeePhoto?: string;
+    attended: boolean;
+    assignedVenueName?: string;
+    assignedVenueId?: string;
+    assignedTierName?: string;
+    eventTitle: string;
+    eventId: string;
+    registrationId: string;
+    attendeeId: string;
+    venueItems?: Array<{ tierName: string; venueName: string }>;
+  }> & { code?: string }> {
+    const params = new URLSearchParams({ registrationId, attendeeId });
+    if (clubId) params.set('clubId', clubId);
+    if (gateVenueId) params.set('gateVenueId', gateVenueId);
+    const res = await this.request<any>(`/events/scan-preview?${params.toString()}`);
+    if (!res.success) {
+      const code = (res.data as any)?.code;
+      return { ...res, code };
+    }
+    return { success: true, data: res.data?.data ?? res.data };
   }
 
   async getScanPreview(registrationId: string, attendeeId: string, clubId?: string): Promise<ApiResponse<{
@@ -3215,6 +3259,161 @@ class ApiClient {
   }>> {
     const res = await this.request<any>(
       `/member-elevation/${encodeURIComponent(clubId)}/permission-matrix/${encodeURIComponent(adminId)}/preview`
+    );
+    if (res.success && res.data) {
+      return { ...res, data: res.data.data ?? res.data };
+    }
+    return res;
+  }
+
+  async getVendorRolePreview(): Promise<ApiResponse<{
+    role: string;
+    roleLabel: string;
+    permissionsMatrix: Record<string, { view: boolean; edit: boolean }>;
+    activeFeatures: Array<{
+      moduleId: string;
+      label: string;
+      href?: string;
+      canEdit?: boolean;
+      category: string;
+      active: boolean;
+    }>;
+    inactiveFeatures: Array<{
+      moduleId: string;
+      label: string;
+      category: string;
+      active: boolean;
+    }>;
+  }>> {
+    const res = await this.request<any>('/vendor-reports/role-preview');
+    if (res.success && res.data) {
+      return { ...res, data: res.data.data ?? res.data };
+    }
+    return res;
+  }
+
+  async getVendorReports(clubId?: string): Promise<ApiResponse<{
+    totalScans: number;
+    events: Array<{
+      _id: string;
+      title: string;
+      startDate?: string;
+      scans: number;
+      currentAttendees?: number;
+      maxAttendees?: number;
+    }>;
+    vendorDeviceId?: string | null;
+    generatedAt?: string;
+  }>> {
+    const params = clubId ? `?clubId=${encodeURIComponent(clubId)}` : '';
+    const res = await this.request<any>(`/vendor-reports/reports${params}`);
+    if (res.success && res.data) {
+      return { ...res, data: res.data.data ?? res.data };
+    }
+    return res;
+  }
+
+  async listClubVendors(clubId: string): Promise<ApiResponse<Array<{
+    _id: string;
+    name: string;
+    email: string;
+    clubs?: string[];
+    isActive?: boolean;
+    last_active_device_id?: string;
+  }>>> {
+    const res = await this.request<any>(`/vendor-reports/clubs/${encodeURIComponent(clubId)}/vendors`);
+    if (res.success && res.data) {
+      return { ...res, data: res.data.data ?? res.data };
+    }
+    return res;
+  }
+
+  async downgradeAdminToVendor(clubId: string, adminId: string): Promise<ApiResponse<{
+    sessionsTerminated?: number;
+    accessTokenInvalidated?: boolean;
+  }>> {
+    return this.request(`/vendor-reports/clubs/${encodeURIComponent(clubId)}/vendors/downgrade-admin`, {
+      method: 'POST',
+      body: JSON.stringify({ adminId }),
+    });
+  }
+
+  async getMyVendorAssignments(): Promise<ApiResponse<Array<{
+    assignmentId: string;
+    clubId: string;
+    gateZone: string;
+    venueName?: string;
+    events: Array<{
+      eventId: string;
+      eventTitle?: string;
+      venue?: string;
+      eventStartTime: string;
+      eventEndTime?: string;
+      activatesAt: string;
+      expiresAt: string;
+      isActive: boolean;
+      needsTimingUpdate?: boolean;
+    }>;
+  }>>> {
+    const res = await this.request<any>('/vendor-assignments/my');
+    if (res.success && res.data) {
+      return { ...res, data: res.data.data ?? res.data };
+    }
+    return res;
+  }
+
+  async listVendorAssignments(clubId: string): Promise<ApiResponse<any[]>> {
+    const res = await this.request<any>(`/vendor-assignments/clubs/${encodeURIComponent(clubId)}`);
+    if (res.success && res.data) {
+      return { ...res, data: res.data.data ?? res.data };
+    }
+    return res;
+  }
+
+  async createVendorAssignment(
+    clubId: string,
+    payload: {
+      vendorId: string;
+      eventIds: string[];
+      gateZone: string;
+      venueId?: string;
+      venueName?: string;
+    }
+  ): Promise<ApiResponse<any>> {
+    return this.request(`/vendor-assignments/clubs/${encodeURIComponent(clubId)}`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async revokeVendorAssignment(clubId: string, assignmentId: string): Promise<ApiResponse<any>> {
+    return this.request(
+      `/vendor-assignments/clubs/${encodeURIComponent(clubId)}/${encodeURIComponent(assignmentId)}/revoke`,
+      { method: 'POST' }
+    );
+  }
+
+  async syncVendorAssignmentTimings(clubId: string, assignmentId: string): Promise<ApiResponse<any>> {
+    return this.request(
+      `/vendor-assignments/clubs/${encodeURIComponent(clubId)}/${encodeURIComponent(assignmentId)}/sync-timings`,
+      { method: 'POST' }
+    );
+  }
+
+  async getVendorAssignmentReschedulePrompts(clubId: string): Promise<ApiResponse<Array<{
+    assignmentId: string;
+    vendorId: string;
+    gateZone: string;
+    events: Array<{
+      eventId: string;
+      eventTitle?: string;
+      eventStartTime: string;
+      activatesAt: string;
+      expiresAt: string;
+    }>;
+  }>>> {
+    const res = await this.request<any>(
+      `/vendor-assignments/clubs/${encodeURIComponent(clubId)}/reschedule-prompts`
     );
     if (res.success && res.data) {
       return { ...res, data: res.data.data ?? res.data };

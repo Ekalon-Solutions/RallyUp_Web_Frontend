@@ -74,6 +74,7 @@ import {
   Zap,
 } from "lucide-react"
 import { useAuth } from "@/contexts/auth-context"
+import { VendorRoleToggle } from "@/components/admin/vendor-role-toggle"
 import { CLUB_FEATURE_KEYS, FEATURE_DESCRIPTIONS, FEATURE_LABELS } from "@/lib/clubFeatures"
 import type { ClubFeatureKey } from "@/lib/clubFeatures"
 import { CONSTRAINT_KEYS, CONSTRAINT_LABELS } from "@/lib/billingConstraints"
@@ -1464,6 +1465,8 @@ export default function AdminAuditPage() {
                 </p>
               </div>
             </div>
+
+            <VendorRoleToggle />
 
             <Tabs defaultValue="feature-changes">
               <TabsList className="flex w-full max-w-full sm:max-w-lg h-auto p-1 overflow-x-auto">

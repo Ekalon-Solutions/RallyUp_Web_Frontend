@@ -5,6 +5,8 @@ import { useEffect } from "react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
 import { ElevateMemberAdminPanel } from "@/components/admin/elevate-member-admin-panel"
+import { VendorRoleToggle } from "@/components/admin/vendor-role-toggle"
+import { VendorAssignmentPanel } from "@/components/admin/vendor-assignment-panel"
 import { usePrimaryClubOwner } from "@/hooks/usePrimaryClubOwner"
 import { Loader2 } from "lucide-react"
 
@@ -26,7 +28,11 @@ export default function ElevateAdminPage() {
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         ) : isPrimaryOwner ? (
-          <ElevateMemberAdminPanel />
+          <div className="space-y-6">
+            <ElevateMemberAdminPanel />
+            <VendorAssignmentPanel />
+            <VendorRoleToggle />
+          </div>
         ) : null}
       </DashboardLayout>
     </ProtectedRoute>

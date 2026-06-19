@@ -45,6 +45,7 @@ import {
   Repeat,
   Crown,
   Truck,
+  ScanLine,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -64,6 +65,7 @@ import { EkalonAttribution } from "@/components/ekalon-attribution"
 import { useClubFeatures } from "@/hooks/useClubFeatures"
 import { ADMIN_NAV_FEATURE_MAP, CLUB_FEATURE_DISABLED_EVENT, clubFeatureFlags, type ClubFeatureKey } from "@/lib/clubFeatures"
 import { NAV_HREF_TO_PERMISSION_MODULE } from "@/lib/permissionMatrix"
+import { isVendorAllowedPath } from "@/lib/vendorScanTypes"
 import type { AdminClubContext } from "@/lib/api"
 import { clearFeatureCache } from "@/lib/featureCacheStore"
 import { UpgradeFeatureModal } from "@/components/modals/upgrade-feature-modal"
@@ -77,6 +79,7 @@ const ROLE_LABELS: Record<string, string> = {
   admin: 'Admin',
   super_admin: 'Super Admin',
   system_owner: 'System Owner',
+  vendor: 'Vendor / Crew',
 }
 
 const ROLE_ICONS: Record<string, React.ElementType> = {
@@ -84,6 +87,7 @@ const ROLE_ICONS: Record<string, React.ElementType> = {
   admin: Shield,
   super_admin: ShieldCheck,
   system_owner: Crown,
+  vendor: ScanLine,
 }
 
 function formatRoleLabel(role: string): string {
@@ -101,6 +105,7 @@ function getRoleIcon(role: string): React.ElementType {
 function getEffectiveRole(user: any, clubId: string | null | undefined): string {
   if (!user) return 'member'
   if (user.role === 'system_owner') return 'system_owner'
+  if (user.role === 'vendor' || user.isVendor) return 'vendor'
   if (user.role !== 'super_admin') return user.role || 'member'
   if (!clubId) return 'super_admin'
   const ids: string[] = user.superAdminClubIds ?? []
@@ -122,6 +127,10 @@ const USER_PATH_TO_SECTION: Record<string, WebsiteSectionKey> = {
 }
 
 const FEED_PATH = "/dashboard/user"
+
+const vendorNavigation = [
+  { name: "Quick Scanner", href: "/dashboard/quick-scanner", icon: ScanLine },
+]
 
 const adminNavigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -570,7 +579,7 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
   const pathname = usePathname()
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const { user, logout, isAdmin, activeClubId, setActiveClubId, switchRole } = useAuth()
+  const { user, logout, isAdmin, isVendor, activeClubId, setActiveClubId, switchRole } = useAuth()
   const [availableRoles, setAvailableRoles] = useState<{ accountType: 'user' | 'admin' | 'system_owner'; accountId: string; role: string; name: string; clubIds?: string[] }[]>([])
 
   useEffect(() => {
@@ -687,7 +696,15 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
   }, [isRegularUser, clubId, settingsLoading, pathname, settings])
 
   const isAdminRole = user?.role === 'admin' || user?.role === 'super_admin'
+  const isVendorRole = isVendor || user?.role === 'vendor'
   const isAuthenticated = Boolean(user)
+
+  useEffect(() => {
+    if (!isVendorRole || !pathname) return
+    if (!isVendorAllowedPath(pathname)) {
+      router.replace('/dashboard/quick-scanner')
+    }
+  }, [isVendorRole, pathname, router])
 
   // Register FCM device token for CONFIG_SYNC push notifications
   useFcmRegistration({ isAdmin: isAdminRole, isAuthenticated })
@@ -785,6 +802,9 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
       case 'system_owner':
         nav = systemOwnerNavigation
         break
+      case 'vendor':
+        nav = vendorNavigation
+        break
       case 'super_admin':
         nav = superAdminNavigation
         break
@@ -865,8 +885,12 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
   }
 
   const allNav = getNavigation()
-  const activeNav = isAdminRole ? allNav.filter((item) => !isNavLocked(item.href)) : allNav
-  const addOnNav = isAdminRole ? allNav.filter((item) => isNavLocked(item.href)) : []
+  const activeNav = isVendorRole
+    ? allNav
+    : isAdminRole
+      ? allNav.filter((item) => !isNavLocked(item.href))
+      : allNav
+  const addOnNav = isVendorRole ? [] : isAdminRole ? allNav.filter((item) => isNavLocked(item.href)) : []
 
   const lockedPageLabel = currentPageFeatureKey
     ? (clubFeatureFlags(clubFeatures).find((f) => f.key === currentPageFeatureKey)?.label ?? currentPageFeatureKey)
