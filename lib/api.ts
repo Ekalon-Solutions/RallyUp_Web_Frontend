@@ -2140,9 +2140,10 @@ class ApiClient {
     })
   }
 
-  async cancelEventRegistration(eventId: string): Promise<ApiResponse<{ message: string; event: Event }>> {
+  async cancelEventRegistration(eventId: string, attendeeId?: string): Promise<ApiResponse<{ message: string; event: Event }>> {
     return this.request(`/events/${eventId}/register`, {
       method: 'DELETE',
+      body: attendeeId ? JSON.stringify({ attendeeId }) : undefined,
     });
   }
 
@@ -4620,9 +4621,11 @@ class ApiClient {
     sourceType: 'event_ticket' | 'store_order';
     eventId?: string;
     orderId?: string;
+    attendeeId?: string;
   }): Promise<ApiResponse<{
     ok: boolean;
     eligible: boolean;
+    requiresAttendeeSelection?: boolean;
     cutoff: string | null;
     estimatedRefund: number;
     currency: string;
@@ -4631,6 +4634,17 @@ class ApiClient {
       taxesExcluded: number;
       platformFeesExcluded: number;
       paymentGatewayFeesExcluded: number;
+    };
+    meta?: {
+      attendeeId?: string;
+      attendeeName?: string;
+      cancellableAttendees?: Array<{
+        attendeeId: string;
+        name: string;
+        phone?: string;
+        venueName?: string;
+        tierName?: string;
+      }>;
     };
   }>> {
     return this.request('/refunds/estimate', {
@@ -4643,6 +4657,7 @@ class ApiClient {
     sourceType: 'event_ticket' | 'store_order';
     eventId?: string;
     orderId?: string;
+    attendeeId?: string;
   }): Promise<ApiResponse<any>> {
     return this.request('/refunds/request', {
       method: 'POST',

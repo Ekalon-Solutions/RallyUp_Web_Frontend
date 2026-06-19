@@ -152,17 +152,27 @@ export default function EventDetailsModal({ event, isOpen, onClose }: EventDetai
                               <div className="flex items-center gap-3 w-full">
                                 <div className="text-sm font-medium">{att.name || 'Attendee'}</div>
                                 <div className="text-xs text-muted-foreground">{att.phone}</div>
-                                <Badge variant={att.attended ? "default" : "secondary"} className="text-xs ml-auto">
-                                  {att.attended ? "Attended" : "Not Attended"}
+                                <Badge variant={att.status === 'cancelled' ? "destructive" : att.attended ? "default" : "secondary"} className="text-xs ml-auto">
+                                  {att.status === 'cancelled'
+                                    ? 'Cancelled'
+                                    : att.refundStatus === 'requested'
+                                      ? 'Refund requested'
+                                      : att.attended
+                                        ? "Attended"
+                                        : "Not Attended"}
                                 </Badge>
                               </div>
                             </AccordionTrigger>
                             <AccordionContent>
+                              {att.status === 'cancelled' ? (
+                                <p className="text-sm text-muted-foreground py-4 text-center">This ticket has been cancelled.</p>
+                              ) : (
                               <div className="flex items-center justify-center">
                                 <a href={linkSuffix} target="_blank" rel="noopener noreferrer" className="w-40 h-40 bg-white rounded-md flex items-center justify-center cursor-pointer" aria-label={`Open attendance link for ${att.name}`}>
                                   <QRCode value={val} size={152} />
                                 </a>
                               </div>
+                              )}
                             </AccordionContent>
                           </AccordionItem>
                         )
@@ -183,7 +193,7 @@ export default function EventDetailsModal({ event, isOpen, onClose }: EventDetai
                   <div>
                     <h3 className="text-sm font-semibold mb-1">Request Refund</h3>
                     <p className="text-xs text-muted-foreground">
-                      Cancel your registration and request a refund
+                      Cancel an individual ticket and request a refund
                     </p>
                   </div>
                   <RefundButton

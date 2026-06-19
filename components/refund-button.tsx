@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { AlertCircle } from 'lucide-react'
 import { RefundConfirmationModal } from './modals/refund-confirmation-modal'
+import { AttendeeTicketSelectModal, CancellableAttendee } from './modals/attendee-ticket-select-modal'
 import { getApiUrl } from '@/lib/config'
 import { useToast } from '@/hooks/use-toast'
 
@@ -16,9 +17,15 @@ interface RefundButtonProps {
 
 interface RefundEstimate {
   eligible: boolean
+  requiresAttendeeSelection?: boolean
   cutoff: string | null
   estimatedRefund: number
   currency: string
+  meta?: {
+    attendeeId?: string
+    attendeeName?: string
+    cancellableAttendees?: CancellableAttendee[]
+  }
   breakdown?: {
     grossPaid?: number
     taxesExcluded?: number
@@ -30,15 +37,14 @@ interface RefundEstimate {
 export function RefundButton({ sourceType, eventId, orderId, onRefundRequested }: RefundButtonProps) {
   const { toast } = useToast()
   const [estimate, setEstimate] = useState<RefundEstimate | null>(null)
+  const [selectedAttendeeId, setSelectedAttendeeId] = useState<string | null>(null)
+  const [attendeeSelectOpen, setAttendeeSelectOpen] = useState(false)
+  const [attendeeSelectList, setAttendeeSelectList] = useState<CancellableAttendee[]>([])
   const [loading, setLoading] = useState(false)
   const [showModal, setShowModal] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    fetchEstimate()
-  }, [sourceType, eventId, orderId])
-
-  const fetchEstimate = async () => {
+  const fetchEstimate = async (attendeeId?: string) => {
     try {
       setLoading(true)
       const token = localStorage.getItem('token')
@@ -48,13 +54,22 @@ export function RefundButton({ sourceType, eventId, orderId, onRefundRequested }
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ sourceType, eventId, orderId })
+        body: JSON.stringify({ sourceType, eventId, orderId, attendeeId })
       })
 
       const data = await response.json()
       
       if (response.ok && data.success && data.data) {
-        setEstimate(data.data)
+        const nextEstimate = data.data as RefundEstimate
+        if (nextEstimate.requiresAttendeeSelection && nextEstimate.meta?.cancellableAttendees?.length) {
+          setAttendeeSelectList(nextEstimate.meta.cancellableAttendees)
+          setAttendeeSelectOpen(true)
+          setEstimate(null)
+          setError(null)
+          return
+        }
+        setEstimate(nextEstimate)
+        setSelectedAttendeeId(nextEstimate.meta?.attendeeId || attendeeId || null)
         setError(null)
       } else {
         const msg =
@@ -73,6 +88,10 @@ export function RefundButton({ sourceType, eventId, orderId, onRefundRequested }
     }
   }
 
+  useEffect(() => {
+    fetchEstimate()
+  }, [sourceType, eventId, orderId])
+
   const handleRequestRefund = async () => {
     try {
       setLoading(true)
@@ -83,7 +102,12 @@ export function RefundButton({ sourceType, eventId, orderId, onRefundRequested }
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ sourceType, eventId, orderId })
+        body: JSON.stringify({
+          sourceType,
+          eventId,
+          orderId,
+          attendeeId: selectedAttendeeId || undefined,
+        })
       })
 
       const data = await response.json()
@@ -124,7 +148,20 @@ export function RefundButton({ sourceType, eventId, orderId, onRefundRequested }
   }
 
   if (!estimate) {
-    return null
+    return (
+      <>
+        <AttendeeTicketSelectModal
+          open={attendeeSelectOpen}
+          attendees={attendeeSelectList}
+          loading={loading}
+          onSelect={(attendeeId) => {
+            setAttendeeSelectOpen(false)
+            fetchEstimate(attendeeId)
+          }}
+          onCancel={() => setAttendeeSelectOpen(false)}
+        />
+      </>
+    )
   }
 
   const isPastCutoff = !estimate.eligible
@@ -172,6 +209,17 @@ export function RefundButton({ sourceType, eventId, orderId, onRefundRequested }
           }}
         />
       )}
+
+      <AttendeeTicketSelectModal
+        open={attendeeSelectOpen}
+        attendees={attendeeSelectList}
+        loading={loading}
+        onSelect={(attendeeId) => {
+          setAttendeeSelectOpen(false)
+          fetchEstimate(attendeeId)
+        }}
+        onCancel={() => setAttendeeSelectOpen(false)}
+      />
     </>
   )
 }

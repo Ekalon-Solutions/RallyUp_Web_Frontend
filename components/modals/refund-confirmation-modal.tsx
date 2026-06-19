@@ -111,7 +111,7 @@ export function RefundConfirmationModal({
               <div className="text-sm text-yellow-800 dark:text-yellow-200 space-y-2">
                 <p>
                   {sourceType === 'event_ticket'
-                    ? 'Your ticket will be cancelled and the refund will be processed in 5-7 working days excluding the platform fees, payment gateway fees and taxes.'
+                    ? 'The selected ticket will be cancelled and the refund will be processed in 5-7 working days excluding the platform fees, payment gateway fees and taxes. Other tickets in your registration will remain active.'
                     : 'Your order will be cancelled and the refund will be processed in 5-7 working days excluding the platform fees, payment gateway fees and taxes.'}
                 </p>
                 <p className="text-xs">
