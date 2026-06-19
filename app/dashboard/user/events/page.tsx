@@ -198,10 +198,16 @@ function UserEventsPageInner() {
   const [pendingRefundEventId, setPendingRefundEventId] = useState<string | null>(null);
   const [showVenueTierCartModal, setShowVenueTierCartModal] = useState(false);
   const [venueTierEvent, setVenueTierEvent] = useState<Event | null>(null);
+  const [userRegistrations, setUserRegistrations] = useState<Map<string, any>>(new Map());
 
 
   useEffect(() => {
     fetchEvents();
+    if (user) {
+      fetchUserRegistrations();
+    } else {
+      setUserRegistrations(new Map());
+    }
   }, [clubId]);
 
   useEffect(() => {
@@ -283,6 +289,24 @@ function UserEventsPageInner() {
     }
   }, [searchParams, events, loading]);
 
+  const fetchUserRegistrations = async () => {
+    if (!user) {
+      setUserRegistrations(new Map());
+      return;
+    }
+    try {
+      const response = await apiClient.getUserEventRegistrations(clubId || undefined);
+      if (response.success && response.data) {
+        const registrationsMap = new Map<string, any>();
+        response.data.forEach((reg: any) => {
+          registrationsMap.set(String(reg.eventId), reg.registration);
+        });
+        setUserRegistrations(registrationsMap);
+      }
+    } catch {
+    }
+  };
+
   const fetchEvents = async () => {
     try {
       setLoading(true);
@@ -298,6 +322,9 @@ function UserEventsPageInner() {
         const data: any = response.data;
         const eventsData = Array.isArray(data) ? data : (data?.events || []);
         setEvents(eventsData);
+        if (user) {
+          await fetchUserRegistrations();
+        }
       } else {
         toast.error("Failed to fetch events");
       }
@@ -432,7 +459,7 @@ function UserEventsPageInner() {
   const eventsUserIsRegisteredForOngoing = () => {
     if (!user) return [] as Event[];
     return (events || []).filter(
-      (ev) => isEventOngoing(ev) && isUserRegisteredForEvent(ev, user._id)
+      (ev) => isEventOngoing(ev) && isUserRegisteredForEvent(ev, user._id, userRegistrations)
     );
   };
 
@@ -961,7 +988,7 @@ function UserEventsPageInner() {
 
                         <div className="pt-2 mt-auto">
                           {(() => {
-                            const hasConfirmed = isUserRegisteredForEvent(event, user?._id);
+                            const hasConfirmed = isUserRegisteredForEvent(event, user?._id, userRegistrations);
                             if (hasConfirmed) {
                               return (
                                 <div className="flex gap-2">
@@ -1242,6 +1269,7 @@ function UserEventsPageInner() {
           setShowVenueTierCartModal(false);
           setVenueTierEvent(null);
           fetchEvents();
+          fetchUserRegistrations();
         }}
         onFailure={() => {
           setShowVenueTierCartModal(false);

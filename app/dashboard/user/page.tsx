@@ -361,7 +361,7 @@ export default function UserDashboardPage() {
       return
     }
     try {
-      const response = await apiClient.getUserEventRegistrations()
+      const response = await apiClient.getUserEventRegistrations(clubId || undefined)
       if (response.success && response.data) {
         const registrationsMap = new Map<string, any>()
         response.data.forEach((reg: any) => {
@@ -557,10 +557,11 @@ export default function UserDashboardPage() {
     return registrationFromMap
   }
 
-  const isUserRegisteredForEvent = (event: Event) => isUserRegisteredOnEvent(event, user?._id)
+  const isUserRegisteredForEvent = (event: Event) =>
+    isUserRegisteredOnEvent(event, user?._id, userRegistrations)
 
   const getRegistrationStatusForEvent = (event: Event) =>
-    getUserRegistrationStatus(event, user?._id)
+    getUserRegistrationStatus(event, user?._id, userRegistrations)
 
   const handleReadMore = async (newsItem: News) => {
     try {

@@ -155,9 +155,17 @@ export default function EventsPage() {
 
   const isUserRegistered = (eventId: string) => {
     const registration = userRegistrations.get(eventId)
-    if (registration) return registration.status === 'confirmed'
+    if (registration) {
+      if (registration.status === 'pending') return true
+      if (registration.status === 'confirmed') {
+        if (typeof registration.activeTicketCount === 'number') {
+          return registration.activeTicketCount > 0
+        }
+        return true
+      }
+    }
     const event = events.find((e) => e._id === eventId)
-    return event ? isUserRegisteredOnEvent(event, user?._id) : false
+    return event ? isUserRegisteredOnEvent(event, user?._id, userRegistrations) : false
   }
 
   const getRegistrationStatus = (eventId: string) => {

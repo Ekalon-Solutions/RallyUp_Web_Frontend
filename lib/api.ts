@@ -2212,7 +2212,7 @@ class ApiClient {
     return { ...res, data: { registration } };
   }
 
-  async getUserEventRegistrations(): Promise<ApiResponse<Array<{
+  async getUserEventRegistrations(clubId?: string): Promise<ApiResponse<Array<{
     eventId: string;
     eventTitle: string;
     eventStartTime: string;
@@ -2227,7 +2227,7 @@ class ApiClient {
       notes?: string;
     };
   }>>> {
-    return this.request('/events/my-registrations');
+    return this.request(`/events/my-registrations${clubId ? `?clubId=${encodeURIComponent(clubId)}` : ''}`);
   }
 
   async getLeaderboard(clubId?: string): Promise<ApiResponse<{
