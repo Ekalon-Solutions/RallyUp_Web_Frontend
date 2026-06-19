@@ -1587,11 +1587,24 @@ class ApiClient {
 
   async cancelClubEventRegistration(
     registrationId: string,
-    reason?: string
-  ): Promise<ApiResponse<{ message: string; data?: { eventTitle?: string; seatsReleased?: number } }>> {
+    reason?: string,
+    attendeeId?: string
+  ): Promise<ApiResponse<{
+    message: string;
+    requiresAttendeeSelection?: boolean;
+    data?: {
+      eventTitle?: string;
+      seatsReleased?: number;
+      status?: string;
+      attendeeId?: string;
+    };
+  }>> {
+    const body: Record<string, string> = {};
+    if (reason) body.reason = reason;
+    if (attendeeId) body.attendeeId = attendeeId;
     return this.request(`/events/club/registrations/${encodeURIComponent(registrationId)}/cancel`, {
       method: 'POST',
-      body: JSON.stringify(reason ? { reason } : {}),
+      body: JSON.stringify(body),
     });
   }
 
@@ -2140,9 +2153,10 @@ class ApiClient {
     })
   }
 
-  async cancelEventRegistration(eventId: string): Promise<ApiResponse<{ message: string; event: Event }>> {
+  async cancelEventRegistration(eventId: string, attendeeId?: string): Promise<ApiResponse<{ message: string; event: Event }>> {
     return this.request(`/events/${eventId}/register`, {
       method: 'DELETE',
+      body: attendeeId ? JSON.stringify({ attendeeId }) : undefined,
     });
   }
 
@@ -4611,9 +4625,11 @@ class ApiClient {
     sourceType: 'event_ticket' | 'store_order';
     eventId?: string;
     orderId?: string;
+    attendeeId?: string;
   }): Promise<ApiResponse<{
     ok: boolean;
     eligible: boolean;
+    requiresAttendeeSelection?: boolean;
     cutoff: string | null;
     estimatedRefund: number;
     currency: string;
@@ -4622,6 +4638,17 @@ class ApiClient {
       taxesExcluded: number;
       platformFeesExcluded: number;
       paymentGatewayFeesExcluded: number;
+    };
+    meta?: {
+      attendeeId?: string;
+      attendeeName?: string;
+      cancellableAttendees?: Array<{
+        attendeeId: string;
+        name: string;
+        phone?: string;
+        venueName?: string;
+        tierName?: string;
+      }>;
     };
   }>> {
     return this.request('/refunds/estimate', {
@@ -4634,6 +4661,7 @@ class ApiClient {
     sourceType: 'event_ticket' | 'store_order';
     eventId?: string;
     orderId?: string;
+    attendeeId?: string;
   }): Promise<ApiResponse<any>> {
     return this.request('/refunds/request', {
       method: 'POST',
@@ -4658,20 +4686,21 @@ class ApiClient {
     return this.get('/refunds/admin', { params });
   }
 
-  async getRefundRecalculate(refundId: string): Promise<ApiResponse<{
+  async getRefundRecalculate(refundId: string, clubId?: string): Promise<ApiResponse<{
     recalculatedRefund: number;
     percentage: number;
     breakdown: any;
     originalRefund: number;
     differs: boolean;
   }>> {
-    return this.get(`/refunds/admin/${refundId}/recalculate`);
+    const qs = clubId ? `?clubId=${encodeURIComponent(clubId)}` : '';
+    return this.get(`/refunds/admin/${refundId}/recalculate${qs}`);
   }
 
-  async markRefundProcessed(refundId: string, adminNotes?: string): Promise<ApiResponse<any>> {
+  async markRefundProcessed(refundId: string, adminNotes?: string, clubId?: string): Promise<ApiResponse<any>> {
     return this.request(`/refunds/admin/${refundId}/processed`, {
       method: 'PATCH',
-      body: JSON.stringify({ adminNotes }),
+      body: JSON.stringify({ adminNotes, ...(clubId ? { clubId } : {}) }),
     });
   }
 

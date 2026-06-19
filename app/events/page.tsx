@@ -15,6 +15,7 @@ import { eventVariantUrl } from "@/lib/eventImageCache"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
 import { formatLocalDate } from "@/lib/timezone"
+import { isUserRegisteredForEvent as isUserRegisteredOnEvent, getUserRegistrationStatus } from "@/lib/event-registration"
 import { JointScreeningDisplay } from "@/components/events/joint-screening-display"
 import { EventScheduleMeta } from "@/components/events/event-schedule-meta"
 import { WaitlistDisplay } from "@/components/events/waitlist-display"
@@ -198,12 +199,17 @@ export default function PublicEventsPage() {
   }
 
   const isUserRegistered = (eventId: string) => {
-    return userRegistrations.has(eventId)
+    const registration = userRegistrations.get(eventId)
+    if (registration) return registration.status === 'confirmed'
+    const event = events.find((e) => e._id === eventId)
+    return event ? isUserRegisteredOnEvent(event, user?._id) : false
   }
 
   const getRegistrationStatus = (eventId: string) => {
     const registration = userRegistrations.get(eventId)
-    return registration ? registration.status : null
+    if (registration) return registration.status
+    const event = events.find((e) => e._id === eventId)
+    return event ? getUserRegistrationStatus(event, user?._id) : null
   }
 
   return (

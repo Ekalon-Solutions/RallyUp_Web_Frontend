@@ -15,6 +15,7 @@ import { formatLocalDate } from '@/lib/timezone'
 import { RefundButton } from '@/components/refund-button'
 import { ResendQrButton } from '@/components/resend-qr-button'
 import { getEventVenueDisplay, getEventCapacity, hasVenueTierMatrix } from '@/lib/event-display-price'
+import { isUserRegisteredForEvent } from '@/lib/event-registration'
 
 interface EventDetailsModalProps {
   event: Event | null
@@ -27,11 +28,8 @@ export default function EventDetailsModal({ event, isOpen, onClose }: EventDetai
   const [registration, setRegistration] = useState<any | null>(null)
   const baseUrl = (process.env.NEXT_PUBLIC_APP_URL as string) || "https://wingmanpro.tech";
 
-  const userRegistration = event?.registrations?.find(
-    r => r && String((r as any).userId) === String(user?._id)
-  )
-  const isRegistered = Boolean(userRegistration)
-  const isConfirmed = userRegistration && (userRegistration as any).status === 'confirmed'
+  const isRegistered = isUserRegisteredForEvent(event, user?._id)
+  const isConfirmed = isRegistered
 
   const eventHasEnded = (() => {
     const cutoffRaw = event?.endTime || event?.startTime
@@ -152,17 +150,27 @@ export default function EventDetailsModal({ event, isOpen, onClose }: EventDetai
                               <div className="flex items-center gap-3 w-full">
                                 <div className="text-sm font-medium">{att.name || 'Attendee'}</div>
                                 <div className="text-xs text-muted-foreground">{att.phone}</div>
-                                <Badge variant={att.attended ? "default" : "secondary"} className="text-xs ml-auto">
-                                  {att.attended ? "Attended" : "Not Attended"}
+                                <Badge variant={att.status === 'cancelled' ? "destructive" : att.attended ? "default" : "secondary"} className="text-xs ml-auto">
+                                  {att.status === 'cancelled'
+                                    ? 'Cancelled'
+                                    : att.refundStatus === 'requested'
+                                      ? 'Refund requested'
+                                      : att.attended
+                                        ? "Attended"
+                                        : "Not Attended"}
                                 </Badge>
                               </div>
                             </AccordionTrigger>
                             <AccordionContent>
+                              {att.status === 'cancelled' ? (
+                                <p className="text-sm text-muted-foreground py-4 text-center">This ticket has been cancelled.</p>
+                              ) : (
                               <div className="flex items-center justify-center">
                                 <a href={linkSuffix} target="_blank" rel="noopener noreferrer" className="w-40 h-40 bg-white rounded-md flex items-center justify-center cursor-pointer" aria-label={`Open attendance link for ${att.name}`}>
                                   <QRCode value={val} size={152} />
                                 </a>
                               </div>
+                              )}
                             </AccordionContent>
                           </AccordionItem>
                         )
@@ -183,7 +191,7 @@ export default function EventDetailsModal({ event, isOpen, onClose }: EventDetai
                   <div>
                     <h3 className="text-sm font-semibold mb-1">Request Refund</h3>
                     <p className="text-xs text-muted-foreground">
-                      Cancel your registration and request a refund
+                      Cancel an individual ticket and request a refund
                     </p>
                   </div>
                   <RefundButton

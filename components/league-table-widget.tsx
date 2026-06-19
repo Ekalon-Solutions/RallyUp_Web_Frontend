@@ -103,21 +103,25 @@ export default function LeagueTableWidget({ leagueId, highlightTeamId, highlight
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="border-b bg-muted/50">
-              <tr>
-                <th className="text-center px-2 py-2 font-semibold">Position</th>
-                <th className="text-left px-2 py-2 font-semibold">Team</th>              <th className="text-center px-2 py-2 font-semibold">Form</th>                <th className="text-center px-2 py-2 font-semibold">P</th>
-                <th className="text-center px-2 py-2 font-semibold">W</th>
-                <th className="text-center px-2 py-2 font-semibold">D</th>
-                <th className="text-center px-2 py-2 font-semibold">L</th>
-                <th className="text-center px-2 py-2 font-semibold">GD</th>
-                <th className="text-center px-2 py-2 font-semibold">Pts</th>
-              </tr>
+              <tr>{[
+                { key: 'position', className: 'text-center px-2 py-2 font-semibold', label: 'Position' },
+                { key: 'team', className: 'text-left px-2 py-2 font-semibold', label: 'Team' },
+                { key: 'form', className: 'text-center px-2 py-2 font-semibold', label: 'Form' },
+                { key: 'played', className: 'text-center px-2 py-2 font-semibold', label: 'P' },
+                { key: 'win', className: 'text-center px-2 py-2 font-semibold', label: 'W' },
+                { key: 'draw', className: 'text-center px-2 py-2 font-semibold', label: 'D' },
+                { key: 'loss', className: 'text-center px-2 py-2 font-semibold', label: 'L' },
+                { key: 'gd', className: 'text-center px-2 py-2 font-semibold', label: 'GD' },
+                { key: 'pts', className: 'text-center px-2 py-2 font-semibold', label: 'Pts' },
+              ].map((col) => (
+                <th key={col.key} className={col.className}>{col.label}</th>
+              ))}</tr>
             </thead>
             <tbody>
               {displayedStandings.map((standing) => (
-                <tr key={standing.idStanding} className="border-b hover:bg-muted/40">
-                  <td className="text-center px-2 py-3 font-semibold text-black dark:text-white">{standing.intRank}</td>
-                  <td className="px-2 py-3">
+                <tr key={standing.idStanding} className="border-b hover:bg-muted/40">{[
+                  <td key="rank" className="text-center px-2 py-3 font-semibold text-black dark:text-white">{standing.intRank}</td>,
+                  <td key="team" className="px-2 py-3">
                     <div className="flex items-center gap-2">
                       {standing.strBadge && (
                         <img
@@ -128,29 +132,29 @@ export default function LeagueTableWidget({ leagueId, highlightTeamId, highlight
                       )}
                       <span className="font-medium">{standing.strTeam}</span>
                     </div>
-                  </td>
-                  <td className="text-center px-2 py-3">
+                  </td>,
+                  <td key="form" className="text-center px-2 py-3">
                     {standing.strForm ? (
                       <span className="inline-flex items-center justify-center gap-1">
-                        {String(standing.strForm).split("").map((ch, idx) => {
-                          const c = (ch || '').toUpperCase()
-                          if (c === 'W') return <img key={idx} src="/Green_Check.svg" alt="Win" className="w-4 h-4" />
-                          if (c === 'L') return <img key={idx} src="/Red-Cross.svg" alt="Loss" className="w-4 h-4" />
-                          if (c === 'D') return <img key={idx} src="/Grey_Dash.svg" alt="Draw" className="w-4 h-4" />
-                          return <img key={idx} src="/Grey_Dash.svg" alt="-" className="w-4 h-4" />
+                        {String(standing.strForm).split('').map((ch, idx) => {
+                          const c = (ch || '').toUpperCase();
+                          if (c === 'W') return <img key={idx} src="/Green_Check.svg" alt="Win" className="w-4 h-4" />;
+                          if (c === 'L') return <img key={idx} src="/Red-Cross.svg" alt="Loss" className="w-4 h-4" />;
+                          if (c === 'D') return <img key={idx} src="/Grey_Dash.svg" alt="Draw" className="w-4 h-4" />;
+                          return <img key={idx} src="/Grey_Dash.svg" alt="-" className="w-4 h-4" />;
                         })}
                       </span>
                     ) : (
                       '-'
                     )}
-                  </td>
-                  <td className="text-center px-2 py-3">{standing.intPlayed}</td>
-                  <td className="text-center px-2 py-3 text-green-600 font-semibold">{standing.intWin}</td>
-                  <td className="text-center px-2 py-3 text-orange-600 font-semibold">{standing.intDraw}</td>
-                  <td className="text-center px-2 py-3 text-red-600 font-semibold">{standing.intLoss}</td>
-                  <td className="text-center px-2 py-3 font-semibold">{standing.intGoalDifference}</td>
-                  <td className="text-center px-2 py-3 font-bold text-lg">{standing.intPoints}</td>
-                </tr>
+                  </td>,
+                  <td key="played" className="text-center px-2 py-3">{standing.intPlayed}</td>,
+                  <td key="win" className="text-center px-2 py-3 text-green-600 font-semibold">{standing.intWin}</td>,
+                  <td key="draw" className="text-center px-2 py-3 text-orange-600 font-semibold">{standing.intDraw}</td>,
+                  <td key="loss" className="text-center px-2 py-3 text-red-600 font-semibold">{standing.intLoss}</td>,
+                  <td key="gd" className="text-center px-2 py-3 font-semibold">{standing.intGoalDifference}</td>,
+                  <td key="pts" className="text-center px-2 py-3 font-bold text-lg">{standing.intPoints}</td>,
+                ]}</tr>
               ))}
             </tbody>
           </table>
