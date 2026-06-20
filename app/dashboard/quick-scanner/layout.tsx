@@ -14,9 +14,8 @@ export const viewport: Viewport = {
 };
 
 export default function QuickScannerLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="min-h-[100dvh] bg-black text-white overscroll-none">
-      {children}
-    </div>
-  );
+  // Pass-through: the page now renders inside the shared DashboardLayout chrome
+  // (sidebar + header), so this segment must not impose its own full-screen
+  // black shell. The scanner views provide their own contained dark surfaces.
+  return <>{children}</>;
 }

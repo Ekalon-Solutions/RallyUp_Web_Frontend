@@ -3036,6 +3036,9 @@ class ApiClient {
       membershipStatus: string;
       isActive: boolean;
       isAlreadyAdmin: boolean;
+      existingRoleType: "owner" | "admin" | "vendor" | null;
+      existingRoleLabel: string | null;
+      existingTierKey: string | null;
       canElevate: boolean;
       elevateDisabledReason: string | null;
     }>;
@@ -3050,7 +3053,14 @@ class ApiClient {
   ): Promise<ApiResponse<{
     message: string;
     admin: { _id: string; name: string; email: string; role: string; adminTitle?: string; startingRoleLabel?: string };
-    member: { _id: string; isAlreadyAdmin: boolean; canElevate: boolean };
+    member: {
+      _id: string;
+      isAlreadyAdmin: boolean;
+      canElevate: boolean;
+      existingRoleType?: "owner" | "admin" | "vendor";
+      existingRoleLabel?: string;
+      existingTierKey?: string;
+    };
   }>> {
     return this.request(`/member-elevation/${encodeURIComponent(clubId)}/elevate`, {
       method: 'POST',
@@ -3064,6 +3074,9 @@ class ApiClient {
       adminId: string;
       name: string;
       email: string;
+      role: "admin" | "super_admin" | "vendor";
+      roleType: "owner" | "admin" | "vendor";
+      tierKey: string;
       adminTier: string;
       roleLabel: string;
       isOwner: boolean;
@@ -3399,6 +3412,8 @@ class ApiClient {
     _id: string;
     name: string;
     email: string;
+    phoneNumber?: string;
+    countryCode?: string;
     clubs?: string[];
     isActive?: boolean;
     last_active_device_id?: string;
@@ -3410,6 +3425,24 @@ class ApiClient {
     return res;
   }
 
+  // Edit a vendor's profile / active state. Email (the login identity) is immutable.
+  async updateVendor(
+    clubId: string,
+    vendorId: string,
+    payload: {
+      name?: string;
+      phoneNumber?: string;
+      countryCode?: string;
+      isActive?: boolean;
+      clubIds?: string[];
+    }
+  ): Promise<ApiResponse<{ message: string; vendor?: Record<string, unknown> }>> {
+    return this.request(
+      `/vendor-reports/clubs/${encodeURIComponent(clubId)}/vendors/${encodeURIComponent(vendorId)}`,
+      { method: 'PATCH', body: JSON.stringify(payload) }
+    );
+  }
+
   async downgradeAdminToVendor(clubId: string, adminId: string): Promise<ApiResponse<{
     sessionsTerminated?: number;
     accessTokenInvalidated?: boolean;
@@ -3417,6 +3450,26 @@ class ApiClient {
     return this.request(`/vendor-reports/clubs/${encodeURIComponent(clubId)}/vendors/downgrade-admin`, {
       method: 'POST',
       body: JSON.stringify({ adminId }),
+    });
+  }
+
+  // Create a vendor directly from name/email/phone (no existing membership required).
+  // Pass `userId` instead to elevate an existing member.
+  async createVendor(
+    clubId: string,
+    payload: {
+      name: string;
+      email: string;
+      phoneNumber: string;
+      countryCode: string;
+    }
+  ): Promise<ApiResponse<{
+    message: string;
+    vendor: { _id: string; name: string; email: string; role: string };
+  }>> {
+    return this.request(`/vendor-reports/clubs/${encodeURIComponent(clubId)}/vendors`, {
+      method: 'POST',
+      body: JSON.stringify(payload),
     });
   }
 
@@ -3471,6 +3524,30 @@ class ApiClient {
     sessionInfo: string;
   }): Promise<ApiResponse<Admin & { token: string; isVendor?: boolean }>> {
     const res = await this.request<any>('/vendor-auth/verify-and-login', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    if (res.success && res.data) {
+      return { ...res, data: res.data.data ?? res.data };
+    }
+    return res;
+  }
+
+  async sendVendorEmailOtp(data: { email: string }): Promise<ApiResponse<{
+    userData?: Record<string, unknown>;
+    deliveryChannel?: string;
+  }>> {
+    return this.request('/vendor-auth/send-email-otp', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async verifyVendorEmailOtpAndLogin(data: {
+    email: string;
+    otp: string;
+  }): Promise<ApiResponse<Admin & { token: string; isVendor?: boolean }>> {
+    const res = await this.request<any>('/vendor-auth/verify-email-and-login', {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -3588,18 +3665,45 @@ class ApiClient {
     payload: {
       vendorId: string;
       eventIds: string[];
-      gateZone: string;
-      gateType?: 'general' | 'vip' | 'all';
-      venueId?: string;
-      venueName?: string;
-      venueLatitude?: number;
-      venueLongitude?: number;
+      // One or more venue + gate/zone (ticket tier) selections.
+      // A single `{ allAccess: true }` gate grants unrestricted scanning.
+      gates: Array<{
+        venueId?: string;
+        tierId?: string;
+        label?: string;
+        gateType?: 'general' | 'vip' | 'all';
+        allAccess?: boolean;
+      }>;
     }
   ): Promise<ApiResponse<any>> {
     return this.request(`/vendor-assignments/clubs/${encodeURIComponent(clubId)}`, {
       method: 'POST',
       body: JSON.stringify(payload),
     });
+  }
+
+  async getVendorAssignmentGateOptions(
+    clubId: string,
+    eventIds: string[]
+  ): Promise<ApiResponse<Array<{
+    eventId: string;
+    eventTitle: string;
+    fallbackVenue?: string;
+    hasStructuredVenues: boolean;
+    venues: Array<{
+      venueId: string;
+      venueName: string;
+      tiers: Array<{ tierId: string; tierName: string; price: number }>;
+    }>;
+  }>>> {
+    const params = new URLSearchParams({ eventIds: eventIds.join(',') });
+    const res = await this.request<any>(
+      `/vendor-assignments/clubs/${encodeURIComponent(clubId)}/event-gates?${params}`
+    );
+    if (res.success && res.data) {
+      return { ...res, data: res.data.data ?? res.data };
+    }
+    return res;
   }
 
   async revokeVendorAssignment(clubId: string, assignmentId: string): Promise<ApiResponse<any>> {

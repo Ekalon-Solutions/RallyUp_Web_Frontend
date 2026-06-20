@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Select,
   SelectContent,
@@ -14,7 +15,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Loader2, MapPin, ShieldAlert, UserCheck, Zap } from "lucide-react"
+import {
+  Loader2,
+  MapPin,
+  ShieldAlert,
+  ShieldCheck,
+  UserCheck,
+  Zap,
+  Plus,
+  X,
+  DoorOpen,
+} from "lucide-react"
 import { toast } from "sonner"
 
 type ClubEvent = {
@@ -30,13 +41,45 @@ type VendorRow = {
   email: string
 }
 
+type AssignmentGate = {
+  venueId?: string
+  venueName?: string
+  tierId?: string
+  tierName?: string
+  label: string
+  gateType?: "general" | "vip" | "all"
+}
+
 type AssignmentRow = {
   _id: string
   vendorId: { _id: string; name?: string; email?: string } | string
   gateZone: string
+  gates?: AssignmentGate[]
   eventIds: string[]
   eventWindows?: Array<{ eventId: string; eventTitle?: string; needsTimingUpdate?: boolean }>
   isRevoked?: boolean
+}
+
+type GateOption = {
+  eventId: string
+  eventTitle: string
+  fallbackVenue?: string
+  hasStructuredVenues: boolean
+  venues: Array<{
+    venueId: string
+    venueName: string
+    tiers: Array<{ tierId: string; tierName: string; price: number }>
+  }>
+}
+
+// A gate the admin has selected. `key` is stable for toggling/dedup.
+type GateChoice = {
+  key: string
+  label: string
+  venueId?: string
+  venueName?: string
+  tierId?: string
+  tierName?: string
 }
 
 function formatEventTime(iso?: string) {
@@ -44,7 +87,12 @@ function formatEventTime(iso?: string) {
   return new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })
 }
 
-export function VendorAssignmentPanel() {
+type VendorAssignmentPanelProps = {
+  /** Bump to re-fetch the vendor dropdown when a vendor is added/edited elsewhere. */
+  refreshSignal?: number
+}
+
+export function VendorAssignmentPanel({ refreshSignal }: VendorAssignmentPanelProps = {}) {
   const [clubId, setClubId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -57,8 +105,11 @@ export function VendorAssignmentPanel() {
 
   const [vendorId, setVendorId] = useState("")
   const [selectedEventIds, setSelectedEventIds] = useState<string[]>([])
-  const [gateZone, setGateZone] = useState("")
-  const [gateType, setGateType] = useState<"general" | "vip" | "all">("all")
+  const [gateOptions, setGateOptions] = useState<GateOption[]>([])
+  const [loadingGates, setLoadingGates] = useState(false)
+  const [selectedGates, setSelectedGates] = useState<GateChoice[]>([])
+  const [allAccess, setAllAccess] = useState(false)
+  const [customGate, setCustomGate] = useState("")
   const [overrideEventId, setOverrideEventId] = useState("")
   const [generatedOverrideCode, setGeneratedOverrideCode] = useState<string | null>(null)
 
@@ -101,12 +152,56 @@ export function VendorAssignmentPanel() {
     setClubId(id)
     if (id) void loadData(id)
     else setLoading(false)
-  }, [loadData])
+  }, [loadData, refreshSignal])
+
+  // Fetch the real venues + ticket tiers (gate/zone options) for the chosen events.
+  useEffect(() => {
+    if (!clubId || selectedEventIds.length === 0) {
+      setGateOptions([])
+      return
+    }
+    let cancelled = false
+    setLoadingGates(true)
+    apiClient
+      .getVendorAssignmentGateOptions(clubId, selectedEventIds)
+      .then((res) => {
+        if (cancelled) return
+        setGateOptions(res.success && res.data ? res.data : [])
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingGates(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [clubId, selectedEventIds])
 
   const activeAssignments = useMemo(
     () => assignments.filter((a) => !a.isRevoked),
     [assignments]
   )
+
+  // Unique venues across all selected events, tiers merged by id.
+  const venueChoices = useMemo(() => {
+    const map = new Map<
+      string,
+      { venueId: string; venueName: string; tiers: Map<string, { tierName: string; price: number }> }
+    >()
+    let hasUnstructuredEvent = false
+    for (const opt of gateOptions) {
+      if (!opt.hasStructuredVenues) hasUnstructuredEvent = true
+      for (const v of opt.venues) {
+        const existing = map.get(v.venueId)
+        const tierMap = existing?.tiers ?? new Map()
+        for (const t of v.tiers) tierMap.set(t.tierId, { tierName: t.tierName, price: t.price })
+        if (!existing) map.set(v.venueId, { venueId: v.venueId, venueName: v.venueName, tiers: tierMap })
+      }
+    }
+    return {
+      venues: [...map.values()].map((v) => ({ ...v, tiers: [...v.tiers.entries()] })),
+      hasUnstructuredEvent,
+    }
+  }, [gateOptions])
 
   const toggleEvent = (eventId: string) => {
     setSelectedEventIds((prev) =>
@@ -114,23 +209,69 @@ export function VendorAssignmentPanel() {
     )
   }
 
+  const isGateSelected = (key: string) => selectedGates.some((g) => g.key === key)
+
+  const toggleGate = (choice: GateChoice) => {
+    setSelectedGates((prev) =>
+      prev.some((g) => g.key === choice.key)
+        ? prev.filter((g) => g.key !== choice.key)
+        : [...prev, choice]
+    )
+  }
+
+  const removeGate = (key: string) => setSelectedGates((prev) => prev.filter((g) => g.key !== key))
+
+  const addCustomGate = () => {
+    const label = customGate.trim()
+    if (!label) return
+    const key = `custom::${label.toLowerCase()}`
+    if (!isGateSelected(key)) {
+      setSelectedGates((prev) => [...prev, { key, label }])
+    }
+    setCustomGate("")
+  }
+
+  // Events with no venue/tier matrix can't be scoped by gate — vendor gets all access.
+  const noStructuredVenues =
+    selectedEventIds.length > 0 && !loadingGates && venueChoices.venues.length === 0
+  const effectiveAllAccess = allAccess || noStructuredVenues
+
+  const resetForm = () => {
+    setSelectedEventIds([])
+    setSelectedGates([])
+    setAllAccess(false)
+    setCustomGate("")
+    setGateOptions([])
+  }
+
   const handleCreate = async () => {
-    if (!clubId || !vendorId || !selectedEventIds.length || !gateZone.trim()) {
-      toast.error("Select a vendor, at least one event, and a gate/zone")
+    if (!clubId || !vendorId || !selectedEventIds.length) {
+      toast.error("Select a vendor and at least one event")
+      return
+    }
+    if (!effectiveAllAccess && !selectedGates.length) {
+      toast.error("Select at least one gate / zone, or grant All access")
       return
     }
     setSaving(true)
     try {
+      const gates = effectiveAllAccess
+        ? [{ allAccess: true }]
+        : selectedGates.map((g) =>
+            g.tierId
+              ? { venueId: g.venueId, tierId: g.tierId }
+              : g.venueId
+                ? { venueId: g.venueId }
+                : { label: g.label }
+          )
       const res = await apiClient.createVendorAssignment(clubId, {
         vendorId,
         eventIds: selectedEventIds,
-        gateZone: gateZone.trim(),
-        gateType,
+        gates,
       })
       if (res.success) {
         toast.success("Vendor assignment created")
-        setSelectedEventIds([])
-        setGateZone("")
+        resetForm()
         await loadData(clubId)
       } else {
         toast.error(res.error || res.message || "Failed to create assignment")
@@ -201,7 +342,7 @@ export function VendorAssignmentPanel() {
       <Card>
         <CardHeader>
           <CardTitle>Vendor Assignments</CardTitle>
-          <CardDescription>Select an active club to manage bouncer assignments.</CardDescription>
+          <CardDescription>Select an active club to manage vendor assignments.</CardDescription>
         </CardHeader>
       </Card>
     )
@@ -215,8 +356,9 @@ export function VendorAssignmentPanel() {
           Vendor Event Assignments
         </CardTitle>
         <CardDescription>
-          Link vendors to specific events and gates. Scanning activates 3 hours before kick-off and
-          expires 2 hours after the event ends.
+          Link a vendor to events, then pick which gates/zones (ticket tiers) they can scan — a
+          vendor can cover multiple gates across venues. Scanning activates 3 hours before kick-off
+          and expires 2 hours after the event ends.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-8">
@@ -241,47 +383,36 @@ export function VendorAssignmentPanel() {
           </div>
         )}
 
-        <div className="grid gap-4 md:grid-cols-3">
-          <div className="space-y-2">
-            <Label>Vendor</Label>
-            <Select value={vendorId} onValueChange={setVendorId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select vendor" />
-              </SelectTrigger>
-              <SelectContent>
-                {vendors.map((v) => (
+        {/* Step 1 — vendor */}
+        <div className="space-y-2 max-w-sm">
+          <Label>
+            <span className="text-xs font-semibold text-muted-foreground">Step 1</span> · Vendor
+          </Label>
+          <Select value={vendorId} onValueChange={setVendorId}>
+            <SelectTrigger>
+              <SelectValue placeholder="Select vendor" />
+            </SelectTrigger>
+            <SelectContent>
+              {vendors.length === 0 ? (
+                <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                  No vendors yet — add one in the Vendors list above.
+                </div>
+              ) : (
+                vendors.map((v) => (
                   <SelectItem key={v._id} value={v._id}>
                     {v.name || v.email}
                   </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Gate / Zone</Label>
-            <Input
-              placeholder="e.g. Gate A, VIP Lounge"
-              value={gateZone}
-              onChange={(e) => setGateZone(e.target.value)}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label>Gate type</Label>
-            <Select value={gateType} onValueChange={(v) => setGateType(v as typeof gateType)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All tiers</SelectItem>
-                <SelectItem value="general">General entry only</SelectItem>
-                <SelectItem value="vip">VIP gate only</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+                ))
+              )}
+            </SelectContent>
+          </Select>
         </div>
 
+        {/* Step 2 — events */}
         <div className="space-y-2">
-          <Label>Events</Label>
+          <Label>
+            <span className="text-xs font-semibold text-muted-foreground">Step 2</span> · Events
+          </Label>
           <div className="max-h-48 space-y-2 overflow-y-auto rounded-md border p-3">
             {events.length === 0 ? (
               <p className="text-sm text-muted-foreground">No upcoming events for this club.</p>
@@ -291,11 +422,10 @@ export function VendorAssignmentPanel() {
                   key={event._id}
                   className="flex cursor-pointer items-start gap-3 rounded-md px-2 py-1.5 hover:bg-muted/50"
                 >
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     className="mt-1"
                     checked={selectedEventIds.includes(event._id)}
-                    onChange={() => toggleEvent(event._id)}
+                    onCheckedChange={() => toggleEvent(event._id)}
                   />
                   <div>
                     <p className="text-sm font-medium">{event.title}</p>
@@ -308,6 +438,155 @@ export function VendorAssignmentPanel() {
               ))
             )}
           </div>
+        </div>
+
+        {/* Step 3 — gates / zones */}
+        <div className="space-y-3">
+          <Label className="flex items-center gap-2">
+            <DoorOpen className="h-4 w-4" />
+            <span>
+              <span className="text-xs font-semibold text-muted-foreground">Step 3</span> · Gates /
+              Zones
+            </span>
+          </Label>
+
+          {selectedEventIds.length === 0 ? (
+            <p className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
+              Select one or more events above to see their venues and ticket tiers.
+            </p>
+          ) : loadingGates ? (
+            <div className="flex items-center gap-2 rounded-md border p-4 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" /> Loading venues &amp; tiers…
+            </div>
+          ) : effectiveAllAccess ? (
+            <div className="space-y-3 rounded-lg border border-emerald-200 bg-emerald-50/60 p-4 dark:border-emerald-900 dark:bg-emerald-950/30">
+              <div className="flex items-start gap-3">
+                <ShieldCheck className="h-5 w-5 shrink-0 text-emerald-600" />
+                <div>
+                  <p className="font-medium">All access</p>
+                  <p className="text-sm text-muted-foreground">
+                    {noStructuredVenues
+                      ? "The selected event(s) have a single venue and no ticket tiers, so there are no gates to scope by — this vendor can scan every ticket for them."
+                      : "This vendor can scan every ticket — no gate or venue restriction."}
+                  </p>
+                </div>
+              </div>
+              {!noStructuredVenues && (
+                <label className="flex cursor-pointer items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={allAccess}
+                    onCheckedChange={(v) => setAllAccess(v === true)}
+                  />
+                  Grant all access (ignore specific gates)
+                </label>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {/* All-access toggle (events do have a venue/tier matrix) */}
+              <label className="flex cursor-pointer items-center gap-2 rounded-md border border-dashed p-3 hover:bg-muted/40">
+                <Checkbox checked={allAccess} onCheckedChange={(v) => setAllAccess(v === true)} />
+                <span className="text-sm">
+                  <span className="font-medium">All access</span> — scan every ticket (no gate /
+                  venue restriction)
+                </span>
+              </label>
+
+              {/* Selected gate chips */}
+              {selectedGates.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {selectedGates.map((g) => (
+                    <Badge key={g.key} variant="secondary" className="gap-1 pr-1">
+                      {g.label}
+                      <button
+                        type="button"
+                        onClick={() => removeGate(g.key)}
+                        className="ml-0.5 rounded-full p-0.5 hover:bg-background/60"
+                        aria-label={`Remove ${g.label}`}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
+
+              {/* Structured venue → tier picker */}
+              {venueChoices.venues.map((venue) => (
+                <div key={venue.venueId} className="rounded-lg border p-3">
+                  <div className="mb-2 flex items-center gap-2 text-sm font-medium">
+                    <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+                    {venue.venueName}
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {/* Whole-venue gate */}
+                    <label className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted/50">
+                      <Checkbox
+                        checked={isGateSelected(`${venue.venueId}::all`)}
+                        onCheckedChange={() =>
+                          toggleGate({
+                            key: `${venue.venueId}::all`,
+                            label: `${venue.venueName} · All gates`,
+                            venueId: venue.venueId,
+                            venueName: venue.venueName,
+                          })
+                        }
+                      />
+                      <span className="text-sm italic text-muted-foreground">All gates</span>
+                    </label>
+                    {venue.tiers.map(([tierId, tier]) => (
+                      <label
+                        key={tierId}
+                        className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 hover:bg-muted/50"
+                      >
+                        <Checkbox
+                          checked={isGateSelected(`${venue.venueId}::${tierId}`)}
+                          onCheckedChange={() =>
+                            toggleGate({
+                              key: `${venue.venueId}::${tierId}`,
+                              label: `${venue.venueName} · ${tier.tierName}`,
+                              venueId: venue.venueId,
+                              venueName: venue.venueName,
+                              tierId,
+                              tierName: tier.tierName,
+                            })
+                          }
+                        />
+                        <span className="text-sm">{tier.tierName}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ))}
+
+              {/* Free-text gate — for mixed selections where some events have no tier matrix */}
+              {venueChoices.hasUnstructuredEvent && (
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground">
+                    Some selected events have no tier matrix — add a custom gate/zone name, or leave
+                    it and use All access above.
+                  </p>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="e.g. Gate A, VIP Lounge"
+                      value={customGate}
+                      onChange={(e) => setCustomGate(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault()
+                          addCustomGate()
+                        }
+                      }}
+                    />
+                    <Button type="button" variant="outline" onClick={addCustomGate}>
+                      <Plus className="h-4 w-4" />
+                      Add
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <Button onClick={handleCreate} disabled={saving}>
@@ -355,17 +634,31 @@ export function VendorAssignmentPanel() {
                   ? row.vendorId.name || row.vendorId.email || "Vendor"
                   : String(row.vendorId)
               const needsUpdate = row.eventWindows?.some((w) => w.needsTimingUpdate)
+              const gateList =
+                row.gates && row.gates.length
+                  ? row.gates.map((g) => g.label)
+                  : row.gateZone
+                    ? [row.gateZone]
+                    : []
               return (
                 <div
                   key={row._id}
-                  className="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between"
+                  className="flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-start sm:justify-between"
                 >
-                  <div className="space-y-1">
+                  <div className="space-y-2">
                     <p className="font-medium">{vendorLabel}</p>
-                    <p className="flex items-center gap-1 text-sm text-muted-foreground">
-                      <MapPin className="h-3.5 w-3.5" />
-                      {row.gateZone}
-                    </p>
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <DoorOpen className="h-3.5 w-3.5 text-muted-foreground" />
+                      {gateList.length ? (
+                        gateList.map((label) => (
+                          <Badge key={label} variant="outline" className="text-xs">
+                            {label}
+                          </Badge>
+                        ))
+                      ) : (
+                        <span className="text-sm text-muted-foreground">No gate set</span>
+                      )}
+                    </div>
                     <div className="flex flex-wrap gap-1">
                       {(row.eventWindows || []).map((w) => (
                         <Badge key={String(w.eventId)} variant="secondary" className="text-xs">

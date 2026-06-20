@@ -1466,7 +1466,7 @@ export default function AdminAuditPage() {
               </div>
             </div>
 
-            <VendorRoleToggle />
+            {/* <VendorRoleToggle /> */}
 
             <Tabs defaultValue="feature-changes">
               <TabsList className="flex w-full max-w-full sm:max-w-lg h-auto p-1 overflow-x-auto">

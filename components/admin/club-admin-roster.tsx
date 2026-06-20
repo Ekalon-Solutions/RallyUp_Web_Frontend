@@ -16,6 +16,9 @@ type RosterAdmin = {
   adminId: string
   name: string
   email: string
+  role: "admin" | "super_admin" | "vendor"
+  roleType: "owner" | "admin" | "vendor"
+  tierKey: string
   adminTier: string
   roleLabel: string
   isOwner: boolean
@@ -33,6 +36,21 @@ function invitationBadgeVariant(status: string): "default" | "secondary" | "dest
   if (status === "bounced" || status === "failed") return "destructive"
   if (status === "pending") return "secondary"
   return "outline"
+}
+
+// Distinct styling per role tier so owner, each admin tier, and vendor are all visually separated.
+// Shared with elevate-member-admin-panel — keep both in sync. Keyed by backend `tierKey`.
+export const ROLE_BADGE_CLASS: Record<string, string> = {
+  owner: "bg-primary text-primary-foreground hover:bg-primary/90",
+  sub_admin: "bg-violet-100 text-violet-800 border-violet-200 hover:bg-violet-100 dark:bg-violet-950/40 dark:text-violet-300 dark:border-violet-900",
+  venue_partner: "bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-100 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900",
+  events_manager: "bg-teal-100 text-teal-800 border-teal-200 hover:bg-teal-100 dark:bg-teal-950/40 dark:text-teal-300 dark:border-teal-900",
+  vendor: "bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900",
+  admin: "bg-slate-100 text-slate-800 border-slate-200 hover:bg-slate-100 dark:bg-slate-800/40 dark:text-slate-300 dark:border-slate-700",
+}
+
+export function roleBadgeClass(tierKey: string): string {
+  return ROLE_BADGE_CLASS[tierKey] || ROLE_BADGE_CLASS.admin
 }
 
 export function ClubAdminRoster() {
@@ -94,11 +112,12 @@ export function ClubAdminRoster() {
       <div>
         <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
           <Users className="h-7 w-7 text-primary" />
-          Team admins
+          Team members
         </h2>
         <p className="text-muted-foreground mt-1 max-w-2xl">
-          Invitation emails are sent automatically when you elevate a member. Track delivery status
-          below.
+          Everyone you have elevated for this club — owner, admins, and match-day vendors — each
+          shown with their assigned role. Admin invitation emails are sent automatically; vendors
+          get scan-only access with no invitation email.
         </p>
       </div>
 
@@ -119,15 +138,15 @@ export function ClubAdminRoster() {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Current admins</CardTitle>
+          <CardTitle className="text-lg">Current team</CardTitle>
           <CardDescription>
-            The owner cannot be revoked. Invitation status shows whether the welcome email was
-            delivered.
+            The owner cannot be revoked. Invitation status shows whether the admin welcome email was
+            delivered. Vendors are scan-only match-day crew.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           {admins.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-6 text-center">No admins found.</p>
+            <p className="text-sm text-muted-foreground py-6 text-center">No team members found.</p>
           ) : (
             admins.map((admin) => (
               <div
@@ -149,7 +168,7 @@ export function ClubAdminRoster() {
                   <div className="min-w-0">
                     <p className="font-medium truncate">{admin.name}</p>
                     <p className="text-xs text-muted-foreground truncate">{admin.email}</p>
-                    {admin.invitationEmail && !admin.isOwner && (
+                    {admin.invitationEmail && admin.roleType === "admin" && (
                       <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                         <Mail className="h-3 w-3" />
                         Invite: {admin.invitationEmail.label}
@@ -158,15 +177,13 @@ export function ClubAdminRoster() {
                   </div>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 shrink-0">
-                  <Badge variant={admin.isOwner ? "default" : "secondary"}>
-                    {admin.isOwner ? "Owner" : admin.roleLabel}
-                  </Badge>
-                  {admin.invitationEmail && !admin.isOwner && (
+                  <Badge className={roleBadgeClass(admin.tierKey)}>{admin.roleLabel}</Badge>
+                  {admin.invitationEmail && admin.roleType === "admin" && (
                     <Badge variant={invitationBadgeVariant(admin.invitationEmail.status)}>
                       {admin.invitationEmail.label}
                     </Badge>
                   )}
-                  {!admin.isOwner && (
+                  {admin.roleType === "admin" && (
                     <Button
                       variant="ghost"
                       size="sm"

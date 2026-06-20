@@ -4,6 +4,7 @@ const DB_NAME = 'rallyup-vendor-scan';
 const DB_VERSION = 1;
 const PASS_STORE = 'passes';
 const QUEUE_STORE = 'pendingAttendance';
+const SESSION_COUNT_KEY = 'rallyup-vendor-scan-count';
 
 function openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {

@@ -15,10 +15,20 @@ type AssignmentEvent = {
   isActive: boolean;
 };
 
+type AssignmentGate = {
+  venueId?: string;
+  venueName?: string;
+  tierId?: string;
+  tierName?: string;
+  label: string;
+  gateType?: 'general' | 'vip' | 'all';
+};
+
 type AssignmentGroup = {
   assignmentId: string;
   clubId: string;
   gateZone: string;
+  gates?: AssignmentGate[];
   gateType?: 'general' | 'vip' | 'all';
   venueId?: string;
   venueName?: string;
@@ -178,8 +188,28 @@ export function VendorAssignmentsHome({ onSelect, revokedAssignmentIds = [] }: V
                     </p>
                     <p className="mt-0.5 flex items-center gap-1.5 text-sm text-zinc-500">
                       <MapPin className="h-3.5 w-3.5 shrink-0" />
-                      {event.venue || group.gateZone}
+                      {event.venue || group.venueName || group.gateZone}
                     </p>
+                    {(group.gates && group.gates.length
+                      ? group.gates.map((g) => g.label)
+                      : group.gateZone
+                        ? [group.gateZone]
+                        : []
+                    ).length > 0 && (
+                      <div className="mt-1.5 flex flex-wrap gap-1.5">
+                        {(group.gates && group.gates.length
+                          ? group.gates.map((g) => g.label)
+                          : [group.gateZone]
+                        ).map((label) => (
+                          <span
+                            key={label}
+                            className="rounded-full border border-emerald-500/40 bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-300"
+                          >
+                            {label}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     {!event.isActive && (
                       <p className="mt-2 text-xs font-medium uppercase tracking-wide text-amber-400/90">
                         Opens {formatTime(event.activatesAt)}

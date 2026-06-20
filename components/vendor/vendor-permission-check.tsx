@@ -25,7 +25,7 @@ function statusLabel(state: DevicePermissionState): string {
 }
 
 function StatusIcon({ state }: { state: DevicePermissionState }) {
-  if (state === 'granted') return <CheckCircle2 className="h-5 w-5 text-emerald-400" />;
+  if (state === 'granted') return <CheckCircle2 className="h-5 w-5 text-primary" />;
   if (state === 'denied') return <AlertTriangle className="h-5 w-5 text-amber-400" />;
   return null;
 }
@@ -77,7 +77,7 @@ export function VendorPermissionCheck({ onReady }: VendorPermissionCheckProps) {
       <div className="space-y-3 rounded-xl border border-zinc-800 bg-zinc-900/60 p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3">
-            <Camera className="mt-0.5 h-5 w-5 text-emerald-400" />
+            <Camera className="mt-0.5 h-5 w-5 text-primary" />
             <div>
               <p className="font-medium text-white">Camera</p>
               <p className="text-xs text-zinc-500">{statusLabel(status.camera)}</p>
@@ -89,7 +89,7 @@ export function VendorPermissionCheck({ onReady }: VendorPermissionCheckProps) {
           <Button
             type="button"
             size="sm"
-            className="w-full bg-emerald-600 hover:bg-emerald-500"
+            className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
             disabled={requesting === 'camera'}
             onClick={handleRequestCamera}
           >
@@ -99,7 +99,7 @@ export function VendorPermissionCheck({ onReady }: VendorPermissionCheckProps) {
 
         <div className="flex items-start justify-between gap-3 pt-2">
           <div className="flex items-start gap-3">
-            <MapPin className="mt-0.5 h-5 w-5 text-emerald-400" />
+            <MapPin className="mt-0.5 h-5 w-5 text-primary" />
             <div>
               <p className="font-medium text-white">Location</p>
               <p className="text-xs text-zinc-500">{statusLabel(status.location)}</p>
@@ -111,7 +111,7 @@ export function VendorPermissionCheck({ onReady }: VendorPermissionCheckProps) {
           <Button
             type="button"
             size="sm"
-            className="w-full bg-emerald-600 hover:bg-emerald-500"
+            className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
             disabled={requesting === 'location'}
             onClick={handleRequestLocation}
           >
@@ -139,7 +139,7 @@ export function VendorPermissionCheck({ onReady }: VendorPermissionCheckProps) {
 
       <Button
         type="button"
-        className="w-full bg-white text-black hover:bg-zinc-200"
+        className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
         disabled={checking || requesting !== null}
         onClick={onReady}
       >
