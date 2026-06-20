@@ -464,7 +464,7 @@ export function QuickScannerView({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-black text-white select-none touch-manipulation">
+    <div className="flex h-[82dvh] min-h-[600px] flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-black text-white shadow-sm select-none touch-manipulation">
       {/* Top bar */}
       <VenueLockBanner
         assignment={activeAssignment}

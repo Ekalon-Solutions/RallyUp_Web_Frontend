@@ -58,6 +58,12 @@ export function reloadForNewBuild(): void {
 }
 
 export async function checkForAppUpdate(): Promise<boolean> {
+  // In development the page build id comes from NEXT_PUBLIC_APP_BUILD_ID
+  // (set to Date.now() at dev-server start) while public/version.json holds a
+  // static id from the last real build. These never match, so this check would
+  // reload the page endlessly — recompiling the route on every reload. Only run
+  // the version check against the deployed build in production.
+  if (process.env.NODE_ENV !== "production") return false;
   const latest = await fetchLatestBuildId();
   if (!latest) return false;
   const current = readCurrentBuildId();

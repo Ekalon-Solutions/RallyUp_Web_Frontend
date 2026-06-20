@@ -28,6 +28,8 @@ type AdminRow = {
   adminId: string
   name: string
   email: string
+  roleType?: "owner" | "admin" | "vendor"
+  roleLabel?: string
 }
 
 type Preflight = {
@@ -95,7 +97,9 @@ export function RevokeAdminDialog({ clubId, admin, open, onOpenChange, onRevoked
     }
   }, [open, clubId, admin, onOpenChange])
 
-  const needsReplacement = preflight?.requiresReplacement === true
+  const isVendor = admin?.roleType === "vendor"
+  // Vendors never require an admin replacement — the backend skips that gate for them.
+  const needsReplacement = !isVendor && preflight?.requiresReplacement === true
   const hasReplacementOptions = (preflight?.eligibleReplacements?.length ?? 0) > 0
   const replacementBlocked = needsReplacement && !hasReplacementOptions
 
@@ -116,7 +120,7 @@ export function RevokeAdminDialog({ clubId, admin, open, onOpenChange, onRevoked
 
       if (res.success) {
         const sessions = res.data?.sessionsTerminated
-        toast.success(`${admin.name} no longer has admin access`, {
+        toast.success(`${admin.name} no longer has ${isVendor ? "vendor" : "admin"} access`, {
           description:
             sessions != null
               ? `Signed out on all devices (${sessions} session${sessions === 1 ? "" : "s"} ended).`
@@ -126,7 +130,7 @@ export function RevokeAdminDialog({ clubId, admin, open, onOpenChange, onRevoked
         onRevoked()
       } else if ((res.data as any)?.code === "REPLACEMENT_REQUIRED" || res.status === 409) {
         toast.error(res.error || res.message || "A replacement admin is required")
-        if (res.data) setPreflight(res.data as Preflight)
+        if (res.data) setPreflight(res.data as unknown as Preflight)
       } else {
         toast.error(res.error || res.message || "Failed to revoke access")
       }
@@ -143,16 +147,17 @@ export function RevokeAdminDialog({ clubId, admin, open, onOpenChange, onRevoked
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center gap-2 text-destructive">
             <AlertTriangle className="h-5 w-5 shrink-0" />
-            Revoke admin access?
+            {isVendor ? "Revoke vendor access?" : "Revoke admin access?"}
           </AlertDialogTitle>
           <AlertDialogDescription asChild>
             <div className="space-y-3 text-sm text-muted-foreground">
               <p className="font-medium text-foreground border border-destructive/30 bg-destructive/5 rounded-md px-3 py-2.5">
-                Warning: {admin?.name} will lose all management access immediately.
+                Warning: {admin?.name} will lose all {isVendor ? "match-day scan" : "management"}{" "}
+                access immediately.
               </p>
               <p>
-                Their role reverts to member and all admin permissions for this club are removed.
-                Active sessions are terminated on all devices.
+                Their role reverts to member and all {isVendor ? "vendor" : "admin"} permissions for
+                this club are removed. Active sessions are terminated on all devices.
               </p>
             </div>
           </AlertDialogDescription>

@@ -32,12 +32,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { Loader2, Search, Shield, UserPlus, ArrowUpCircle, History } from "lucide-react"
+import { Loader2, Search, UserPlus, ArrowUpCircle } from "lucide-react"
 import { toast } from "sonner"
-import { AdminActivityLogDialog } from "@/components/admin/admin-activity-log-dialog"
-import { AdminPermissionMatrix } from "@/components/admin/admin-permission-matrix"
-import { ClubAdminRoster } from "@/components/admin/club-admin-roster"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { roleBadgeClass } from "@/components/admin/club-admin-roster"
 
 type ElevationMember = {
   _id: string
@@ -48,6 +45,9 @@ type ElevationMember = {
   profilePicture?: string
   membershipStatus: string
   isAlreadyAdmin: boolean
+  existingRoleType?: "owner" | "admin" | "vendor" | null
+  existingRoleLabel?: string | null
+  existingTierKey?: string | null
   canElevate: boolean
   elevateDisabledReason: string | null
 }
@@ -70,7 +70,6 @@ export function ElevateMemberAdminPanel() {
   const [startingRole, setStartingRole] = useState("")
   const [acknowledged, setAcknowledged] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  const [activityLogOpen, setActivityLogOpen] = useState(false)
 
   const runSearch = useCallback(
     async (q: string) => {
@@ -121,14 +120,24 @@ export function ElevateMemberAdminPanel() {
           res.data?.admin?.startingRoleLabel ||
           startingRoles.find((r) => r.value === startingRole)?.label ||
           "Admin"
-        toast.success(`${selectedMember.name} is now an admin`, {
-          description: `Starting role: ${roleLabel}. A welcome email with getting started instructions was sent.`,
-          classNames: {
-            toast: "bg-emerald-600 text-white border-emerald-700",
-            title: "text-white font-bold",
-            description: "text-emerald-50",
-          },
-        })
+        const isVendor = startingRole === "vendor"
+        const roleType = (res.data?.member?.existingRoleType ||
+          (isVendor ? "vendor" : "admin")) as "owner" | "admin" | "vendor"
+        toast.success(
+          isVendor
+            ? `${selectedMember.name} is now a vendor`
+            : `${selectedMember.name} is now ${roleLabel}`,
+          {
+            description: isVendor
+              ? "Scan-only match-day access granted. No admin invitation email is sent for vendors."
+              : `Role: ${roleLabel}. A welcome email with getting started instructions was sent.`,
+            classNames: {
+              toast: "bg-emerald-600 text-white border-emerald-700",
+              title: "text-white font-bold",
+              description: "text-emerald-50",
+            },
+          }
+        )
         setMembers((prev) =>
           prev.map((m) =>
             m._id === selectedMember._id
@@ -136,7 +145,12 @@ export function ElevateMemberAdminPanel() {
                   ...m,
                   isAlreadyAdmin: true,
                   canElevate: false,
-                  elevateDisabledReason: "This member is already an admin for this club",
+                  existingRoleType: roleType,
+                  existingRoleLabel: res.data?.member?.existingRoleLabel || roleLabel,
+                  existingTierKey: res.data?.member?.existingTierKey || startingRole,
+                  elevateDisabledReason: isVendor
+                    ? "This member is already a vendor for this club"
+                    : `This member already has ${roleLabel} access for this club`,
                 }
               : m
           )
@@ -177,46 +191,6 @@ export function ElevateMemberAdminPanel() {
   return (
     <TooltipProvider>
       <div className="space-y-6">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-              <Shield className="h-8 w-8 text-primary" />
-              Admin Management
-            </h1>
-            <p className="text-muted-foreground mt-2 max-w-2xl">
-              Elevate members, customize the permission matrix, and audit all leadership changes.
-            </p>
-          </div>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => setActivityLogOpen(true)}
-            className="shrink-0"
-          >
-            <History className="h-4 w-4 mr-2" />
-            View Activity Log
-          </Button>
-        </div>
-
-        <AdminActivityLogDialog
-          clubId={clubId}
-          open={activityLogOpen}
-          onOpenChange={setActivityLogOpen}
-        />
-
-        <Tabs defaultValue="elevate" className="w-full">
-          <TabsList className="grid w-full max-w-lg grid-cols-3">
-            <TabsTrigger value="elevate">Elevate Members</TabsTrigger>
-            <TabsTrigger value="team">Manage Team</TabsTrigger>
-            <TabsTrigger value="matrix">Permission Matrix</TabsTrigger>
-          </TabsList>
-          <TabsContent value="team" className="mt-6">
-            <ClubAdminRoster />
-          </TabsContent>
-          <TabsContent value="matrix" className="mt-6">
-            <AdminPermissionMatrix />
-          </TabsContent>
-          <TabsContent value="elevate" className="mt-6 space-y-6">
         {quota && (
           <Card>
             <CardContent className="pt-6 flex flex-wrap items-center justify-between gap-3">
@@ -225,6 +199,9 @@ export function ElevateMemberAdminPanel() {
                 <span>
                   {quota.current}
                   {quota.max != null ? ` / ${quota.max}` : " (unlimited)"}
+                </span>
+                <span className="text-muted-foreground ml-2">
+                  Vendors don&apos;t count toward admin seats.
                 </span>
               </div>
               {atLimit && (
@@ -238,9 +215,10 @@ export function ElevateMemberAdminPanel() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Member Search</CardTitle>
+            <CardTitle className="text-lg">Elevate a member</CardTitle>
             <CardDescription>
-              Search by name or phone (min. 2 characters). Only members with an Active membership can be
+              Search by name or phone (min. 2 characters), then choose a role — Sub-Admin, Venue
+              Partner, Events Manager, or Vendor. Only members with an Active membership can be
               elevated; Pending or cancelled memberships appear disabled.
             </CardDescription>
           </CardHeader>
@@ -287,7 +265,9 @@ export function ElevateMemberAdminPanel() {
                       <div className="flex items-center gap-2 flex-wrap">
                         <p className="font-semibold truncate">{member.name}</p>
                         {member.isAlreadyAdmin && (
-                          <Badge className="bg-primary text-primary-foreground">Admin</Badge>
+                          <Badge className={roleBadgeClass(member.existingTierKey || "admin")}>
+                            {member.existingRoleLabel || "Admin"}
+                          </Badge>
                         )}
                         {member.membershipStatus !== "active" && !member.isAlreadyAdmin && (
                           <Badge variant="secondary" className="capitalize">
@@ -310,7 +290,7 @@ export function ElevateMemberAdminPanel() {
                       ) : member.canElevate ? (
                         <Button size="sm" onClick={() => openConfirm(member)} className="gap-1.5">
                           <UserPlus className="h-4 w-4" />
-                          Elevate to Admin
+                          Elevate
                         </Button>
                       ) : (
                         <Tooltip>
@@ -318,7 +298,7 @@ export function ElevateMemberAdminPanel() {
                             <span tabIndex={0}>
                               <Button size="sm" variant="secondary" disabled className="gap-1.5">
                                 <ArrowUpCircle className="h-4 w-4" />
-                                Elevate to Admin
+                                Elevate
                               </Button>
                             </span>
                           </TooltipTrigger>
@@ -340,8 +320,9 @@ export function ElevateMemberAdminPanel() {
             <DialogHeader>
               <DialogTitle>Elevate {selectedMember?.name}?</DialogTitle>
               <DialogDescription>
-                You are granting dashboard admin access for this club. They will be able to manage
-                club data according to their role.
+                {startingRole === "vendor"
+                  ? "You are granting scan-only match-day access for this club. Vendors can use the event scanner and view vendor reports — no finance, settings, or member directory."
+                  : "You are granting dashboard admin access for this club. They will be able to manage club data according to their role."}
               </DialogDescription>
             </DialogHeader>
             {selectedMember && (
@@ -405,8 +386,6 @@ export function ElevateMemberAdminPanel() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-          </TabsContent>
-        </Tabs>
       </div>
     </TooltipProvider>
   )

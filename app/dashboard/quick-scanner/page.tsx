@@ -8,7 +8,7 @@ export default function QuickScannerPage() {
   return (
     <Suspense
       fallback={
-        <div className="fixed inset-0 flex items-center justify-center bg-black">
+        <div className="flex items-center justify-center py-20">
           <Loader2 className="h-10 w-10 animate-spin text-emerald-400" />
         </div>
       }

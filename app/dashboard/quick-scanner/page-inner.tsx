@@ -129,7 +129,7 @@ export default function QuickScannerPageInner() {
 
   if (isLoading || !isAuthenticated) {
     return (
-      <div className="fixed inset-0 flex items-center justify-center bg-black">
+      <div className="flex items-center justify-center py-20">
         <Loader2 className="h-10 w-10 animate-spin text-emerald-400" />
       </div>
     );
@@ -139,7 +139,7 @@ export default function QuickScannerPageInner() {
 
   if (isVendorUser && !activeAssignment) {
     return (
-      <div className="fixed inset-0 z-50 flex flex-col bg-black">
+      <div className="flex h-[78dvh] min-h-[560px] flex-col overflow-hidden rounded-2xl border border-zinc-800 bg-black text-white shadow-sm">
         {startingSession ? (
           <div className="flex flex-1 flex-col items-center justify-center gap-3">
             <Loader2 className="h-10 w-10 animate-spin text-emerald-400" />

@@ -1,16 +1,10 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
 import { DashboardLayout } from '@/components/dashboard-layout';
 
 export default function DashboardRootLayout({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
-  const isQuickScanner =
-    pathname === '/dashboard/quick-scanner' || pathname?.startsWith('/dashboard/quick-scanner/');
-
-  if (isQuickScanner) {
-    return <>{children}</>;
-  }
-
+  // Every dashboard route — including the vendor quick-scanner — renders inside
+  // the standard sidebar + header chrome so vendors get the same shell as
+  // members, admins, super-admins, and system owners.
   return <DashboardLayout>{children}</DashboardLayout>;
 }

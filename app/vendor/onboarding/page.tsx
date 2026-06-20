@@ -41,15 +41,15 @@ export default function VendorOnboardingPage() {
 
   if (isLoading || !isAuthenticated || user?.role !== 'vendor') {
     return (
-      <div className="flex min-h-[100dvh] items-center justify-center bg-zinc-950">
-        <Loader2 className="h-8 w-8 animate-spin text-emerald-400" />
+      <div className="public-theme flex min-h-[100dvh] items-center justify-center bg-zinc-950">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-[100dvh] flex-col bg-zinc-950 px-6 py-8 text-white">
-      <div className="mx-auto w-full max-w-md flex-1">
+    <div className="public-theme flex min-h-[100dvh] flex-col items-center justify-center bg-zinc-950 px-6 py-8 text-white">
+      <div className="w-full max-w-md">
         {step === 'permissions' ? (
           <VendorPermissionCheck onReady={() => setStep('guide')} />
         ) : null}
@@ -60,7 +60,7 @@ export default function VendorOnboardingPage() {
 
         {step === 'syncing' ? (
           <div className="flex min-h-[60vh] flex-col items-center justify-center text-center">
-            <Loader2 className="h-10 w-10 animate-spin text-emerald-400" />
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
             <p className="mt-4 text-sm text-zinc-400">Preparing offline guest list…</p>
           </div>
         ) : null}

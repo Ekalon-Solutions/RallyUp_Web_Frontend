@@ -11,7 +11,7 @@ type VendorNotAuthorizedProps = {
 
 export function VendorNotAuthorized({ phoneLabel, onTryDifferentNumber }: VendorNotAuthorizedProps) {
   return (
-    <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-zinc-950 px-6 text-center text-white">
+    <div className="public-theme flex min-h-[100dvh] flex-col items-center justify-center bg-zinc-950 px-6 text-center text-white">
       <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-red-500/15">
         <ShieldX className="h-8 w-8 text-red-400" />
       </div>
@@ -19,11 +19,11 @@ export function VendorNotAuthorized({ phoneLabel, onTryDifferentNumber }: Vendor
       <p className="mt-3 max-w-sm text-sm leading-relaxed text-zinc-400">
         {phoneLabel
           ? `${phoneLabel} is not on the pre-approved vendor list for this club.`
-          : 'This phone number is not on the pre-approved vendor list.'}
+          : 'This account is not on the pre-approved vendor list.'}
       </p>
       <p className="mt-2 max-w-sm text-sm leading-relaxed text-zinc-500">
         Ask your Club Admin to add you as a vendor with your name, email, and mobile number. Once
-        approved, return here and sign in with the same number.
+        approved, return here and sign in with the same email or number.
       </p>
 
       <div className="mt-8 flex w-full max-w-xs flex-col gap-3">
@@ -35,12 +35,12 @@ export function VendorNotAuthorized({ phoneLabel, onTryDifferentNumber }: Vendor
             onClick={onTryDifferentNumber}
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
-            Try a different number
+            Try again
           </Button>
         ) : null}
         <Button
           type="button"
-          className="w-full bg-emerald-600 hover:bg-emerald-500"
+          className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
           onClick={() => openVendorSupportWhatsApp({ issue: 'Not authorized — need vendor access' })}
         >
           <MessageCircle className="mr-2 h-4 w-4" />
