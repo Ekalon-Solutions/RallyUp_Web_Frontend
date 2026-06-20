@@ -320,11 +320,13 @@ export default function UserProfilePage() {
           availability: {
             weekdays: preferences.availability?.weekdays || false,
             weekends: preferences.availability?.weekends || false,
-            evenings: preferences.availability?.evenings || false
+            evenings: preferences.availability?.evenings || false,
+            flexible: preferences.availability?.flexible || false
           },
-          notes: preferences.notes || ''
+          notes: preferences.notes || '',
+          clubId: activeClubId || undefined,
         });
-        
+
         if (createResponse.success) {
           const updatedProfileResponse = await apiClient.getVolunteerProfile()
           if (updatedProfileResponse.success && updatedProfileResponse.data) {
@@ -347,7 +349,8 @@ export default function UserProfilePage() {
             weekends: preferences.availability?.weekends || false,
             evenings: preferences.availability?.evenings || false
           },
-          notes: preferences.notes || ''
+          notes: preferences.notes || '',
+          clubId: activeClubId || undefined,
         });
         
         if (updateResponse.success) {

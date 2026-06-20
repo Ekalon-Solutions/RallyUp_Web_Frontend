@@ -2482,6 +2482,8 @@ class ApiClient {
     };
     skills: string[];
     notes?: string;
+    // clubId is required so the backend feature gate can resolve the club context.
+    clubId?: string;
   }): Promise<ApiResponse<VolunteerProfile>> {
     return this.request('/volunteer/volunteer-profile', {
       method: 'POST',
@@ -2499,6 +2501,8 @@ class ApiClient {
     };
     skills?: string[];
     notes?: string;
+    // clubId is required so the backend feature gate can resolve the club context.
+    clubId?: string;
   }): Promise<ApiResponse<VolunteerProfile>> {
     return this.request('/volunteer/volunteer-profile', {
       method: 'PUT',

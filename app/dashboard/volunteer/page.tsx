@@ -294,7 +294,7 @@ export default function VolunteerDashboard() {
         };
         // // console.log('📤 Sending volunteer profile data:', profileData);
 
-        const createResponse = await apiClient.createVolunteerProfile(profileData);
+        const createResponse = await apiClient.createVolunteerProfile({ ...profileData, clubId });
         // // console.log('📥 Create volunteer profile response:', {
 //           success: createResponse.success,
 //           data: createResponse.data,
@@ -325,9 +325,10 @@ export default function VolunteerDashboard() {
             evenings: preferences.availability?.evenings || false,
             flexible: preferences.availability?.flexible || false,
           },
-          notes: preferences.notes || ''
+          notes: preferences.notes || '',
+          clubId: clubId || undefined,
         });
-        
+
         if (updateResponse.success) {
           // // console.log('✅ Successfully updated volunteer profile');
           // Refresh volunteer profile from API
