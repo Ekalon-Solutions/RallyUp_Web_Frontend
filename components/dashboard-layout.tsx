@@ -74,6 +74,7 @@ import { LockedFeaturePage } from "@/components/feature-gate/locked-feature-page
 import { ClubFeaturesProvider } from "@/contexts/club-features-context"
 import { useFcmRegistration } from "@/hooks/useFcmRegistration"
 import { ChevronDown, ChevronRight } from "lucide-react"
+import { MessageSquare } from "lucide-react"
 
 const ROLE_LABELS: Record<string, string> = {
   member: 'Member',
@@ -163,6 +164,10 @@ const systemOwnerNavigation = [
   { name: "Service Matrix", href: "/dashboard/feature-matrix", icon: Grid3X3 },
   { name: "Audit Logs", href: "/dashboard/admin-audit", icon: Shield },
   { name: "Billing Auditor", href: "/dashboard/billing-auditor", icon: Receipt },
+  { name: "WhatsApp / AiSensy", href: "/dashboard/whatsapp-config", icon: MessageSquare },
+  { name: "WhatsApp Opt-in Log", href: "/dashboard/whatsapp-marketing-logs", icon: MessageSquare },
+  { name: "WhatsApp Billing", href: "/dashboard/whatsapp-billing", icon: Receipt },
+  { name: "WhatsApp Safety Log", href: "/dashboard/whatsapp-safety", icon: Shield },
   { name: "Logistics", href: "/dashboard/logistics", icon: Truck },
   // { name: "Browse Clubs", href: "/dashboard/user/clubs", icon: Building2 },
   { name: "Onboarding & Promotions", href: "/dashboard/onboarding", icon: GraduationCap },

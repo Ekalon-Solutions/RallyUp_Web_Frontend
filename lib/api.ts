@@ -21,6 +21,230 @@ export interface ApiResponse<T = any> {
   status?: number;
 }
 
+export interface WhatsAppMarketingTerms {
+  version: string;
+  title: string;
+  ratePerMessage: number;
+  gstPercent: number;
+  paragraphs: string[];
+}
+
+export interface WhatsAppBulkPreview {
+  audienceRequested: number;
+  eligible: number;
+  excluded: { optedOut: number; blocked: number; cooldown: number; invalidPhone: number };
+  ratePerMessage: number;
+  gstPercent: number;
+  baseCost: number;
+  gstAmount: number;
+  totalCost: number;
+}
+
+export interface WhatsAppBulkSendResult {
+  result: 'sent' | 'partial' | 'rejected';
+  eligible: number;
+  sent: number;
+  failed: number;
+  queued: number;
+  suppressed: { optedOut: number; blocked: number; cooldown: number; invalidPhone: number };
+  estimatedCostInr: number;
+}
+
+export interface WhatsAppMarketingTemplate {
+  name: string;
+  status: string;
+  category: string;
+  bodyPreview?: string;
+  variableIndexes: number[];
+}
+
+export interface WhatsAppSafetyLogEntry {
+  _id: string;
+  clubId: string;
+  clubName?: string;
+  triggeredByName?: string;
+  triggeredByRole?: string;
+  templateName: string;
+  result: 'sent' | 'partial' | 'rejected';
+  rejectionReason?: string;
+  audienceRequested: number;
+  eligible: number;
+  sent: number;
+  failed: number;
+  suppressed: { optedOut: number; blockedMember: number; cooldown: number; invalidPhone: number };
+  estimatedCostInr: number;
+  userBlocksReported: number;
+  spamReports: number;
+  createdAt: string;
+}
+
+export interface WhatsAppBillingRunStatus {
+  periodLabel: string;
+  status: 'running' | 'completed' | 'failed';
+  totalClubs: number;
+  processedClubs: number;
+  totalMessages: number;
+  totalRevenue: number;
+  currency: string;
+  progressPercent: number;
+  error?: string;
+  startedAt: string;
+  completedAt?: string;
+}
+
+export interface WhatsAppBillingInvoice {
+  _id: string;
+  clubId: string;
+  clubName?: string;
+  invoiceNumber: string;
+  periodLabel: string;
+  marketingMessageCount: number;
+  ratePerMessage: number;
+  baseAmount: number;
+  gstPercent: number;
+  gstAmount: number;
+  totalAmount: number;
+  currency: string;
+  zeroBill: boolean;
+  proratedFrom?: string;
+  prorationNote?: string;
+  settlementNote: string;
+  status: 'draft' | 'issued';
+  locked: boolean;
+  createdAt: string;
+}
+
+export interface WhatsAppCreditDebitNote {
+  _id: string;
+  invoiceId: string;
+  type: 'credit' | 'debit';
+  amount: number;
+  reason: string;
+  createdByName?: string;
+  createdAt: string;
+}
+
+export interface WhatsAppStatusCardWarning {
+  type: 'low_tier' | 'billing' | 'api_disconnected' | 'not_configured';
+  severity: 'warning' | 'error';
+  message: string;
+}
+
+export interface WhatsAppStatusCard {
+  serviceActive: boolean;
+  tcAccepted: boolean;
+  enabled: boolean;
+  apiConnected: boolean;
+  connectionStatus: 'active' | 'error' | 'unconfigured';
+  ratePerMessage: number;
+  gstPercent: number;
+  usage: { marketing: number; utility: number; authentication: number; month: string };
+  approvedTemplates: number | null;
+  totalTemplates: number | null;
+  metaTier: string;
+  tierLimit: number;
+  warnings: WhatsAppStatusCardWarning[];
+  sparkline: number[];
+  supportUrl: string;
+  messagingUrl: string;
+}
+
+export interface WhatsAppMarketingStatus {
+  enabled: boolean;
+  tcAccepted: boolean;
+  currentVersion: string;
+  acceptedVersion: string | null;
+  needsAcceptance: boolean;
+  ratePerMessage: number;
+  gstPercent: number;
+  lastAcceptedByName: string | null;
+  lastAcceptedAt: string | null;
+}
+
+export interface WhatsAppServiceEmailRecipient {
+  email: string;
+  role: 'primary_owner' | 'sub_admin';
+  delivered: boolean;
+  openedAt?: string;
+  openCount: number;
+}
+
+export interface WhatsAppServiceEmailEntry {
+  _id: string;
+  clubId: string;
+  type: 'activation' | 'deactivation';
+  ticketId: string;
+  recipients: WhatsAppServiceEmailRecipient[];
+  status: 'sent' | 'partial' | 'failed';
+  attempts: number;
+  maxAttempts: number;
+  lastError?: string;
+  createdAt: string;
+}
+
+export type WhatsAppOptInAction =
+  | 'enabled'
+  | 'disabled'
+  | 're_enabled'
+  | 'system_override_disabled'
+  | 'reset_role_change'
+  | 'communication_error';
+
+export interface WhatsAppOptInLogEntry {
+  _id: string;
+  clubId: string;
+  clubName?: string;
+  action: WhatsAppOptInAction;
+  previousEnabled: boolean;
+  newEnabled: boolean;
+  actorId?: string;
+  actorName?: string;
+  actorModel: 'Admin' | 'SystemOwner' | 'User';
+  source: 'mobile_app' | 'web_dashboard' | 'system';
+  tcVersion?: string;
+  ipAddress?: string;
+  note?: string;
+  createdAt: string;
+}
+
+export interface WhatsAppOptInCurrentStatus {
+  enabled: boolean;
+  activeSince: string | null;
+  consecutiveDaysActive: number;
+  lastAction: WhatsAppOptInAction | null;
+  lastChangeAt: string | null;
+  lastChangeBy: string | null;
+}
+
+export type WhatsAppMetaTier = 'TIER_250' | 'TIER_1K' | 'TIER_10K' | 'TIER_100K' | 'UNLIMITED';
+
+export interface WhatsAppConfig {
+  channelId: string;
+  namespace: string;
+  apiKeyMasked: string;
+  envConfigured: boolean;
+  metaTier: WhatsAppMetaTier;
+  tierLimit: number;
+  marketingRatePerMessage: number;
+  connectionStatus: 'active' | 'error' | 'unconfigured';
+  lastError?: { code?: string; message?: string; at?: string } | null;
+  lastCheckedAt?: string | null;
+  sentInWindow: number;
+  updatedByName?: string | null;
+  updatedAt?: string;
+}
+
+export interface WhatsAppMessageLogEntry {
+  _id: string;
+  messageId: string;
+  templateName: string;
+  recipientPhone: string;
+  status: 'queued' | 'sent' | 'delivered' | 'read' | 'failed' | 'suppressed';
+  metaErrorCode?: string;
+  metaErrorMessage?: string;
+  createdAt: string;
+}
+
 export type ResendTicketCode =
   | 'OK'
   | 'INVALID_ID'
@@ -874,9 +1098,9 @@ class ApiClient {
     }
 
     const config: RequestInit = {
-      headers,
       credentials: 'include',
       ...options,
+      headers,
     };
 
     try {
@@ -5884,6 +6108,183 @@ class ApiClient {
 
   async rateOrder(orderId: string, rating: number, feedback?: string): Promise<ApiResponse<any>> {
     return this.post(`/orders/my-orders/${orderId}/rate`, { rating, feedback });
+  }
+
+  // ── WhatsApp / AiSensy configuration (System Owner only) ──────────────────
+  async getWhatsAppConfig(): Promise<ApiResponse<{ config: WhatsAppConfig }>> {
+    return this.get('/system-owner/whatsapp-config');
+  }
+
+  async updateWhatsAppConfig(
+    data: { metaTier?: WhatsAppConfig['metaTier']; marketingRatePerMessage?: number }
+  ): Promise<ApiResponse<{ config: WhatsAppConfig }>> {
+    return this.put('/system-owner/whatsapp-config', data);
+  }
+
+  async testWhatsAppConnection(): Promise<
+    ApiResponse<{ connectionStatus: string; metaErrorCode?: string; error?: string }>
+  > {
+    return this.post('/system-owner/whatsapp-config/test', {});
+  }
+
+  async listWhatsAppMessages(params?: { status?: string; limit?: number }): Promise<
+    ApiResponse<{ messages: WhatsAppMessageLogEntry[] }>
+  > {
+    return this.get('/system-owner/whatsapp-config/messages', { params });
+  }
+
+  // ── WhatsApp Marketing T&C / toggle (Admin) ──────────────────────────────
+  async getWhatsAppMarketingStatus(clubId: string): Promise<
+    ApiResponse<{ status: WhatsAppMarketingStatus; terms: WhatsAppMarketingTerms }>
+  > {
+    return this.get(`/clubs/${clubId}/whatsapp-marketing/status`);
+  }
+
+  async acceptWhatsAppMarketingTerms(
+    clubId: string
+  ): Promise<ApiResponse<{ status: WhatsAppMarketingStatus }>> {
+    return this.post(`/clubs/${clubId}/whatsapp-marketing/accept`, {}, {
+      headers: { 'X-Client-Source': 'web_dashboard' },
+    });
+  }
+
+  async getWhatsAppStatusCard(
+    clubId: string
+  ): Promise<ApiResponse<{ card: WhatsAppStatusCard }>> {
+    return this.get(`/clubs/${clubId}/whatsapp-marketing/status-card`);
+  }
+
+  async listBulkMarketingTemplates(
+    clubId: string
+  ): Promise<ApiResponse<{ templates: WhatsAppMarketingTemplate[] }>> {
+    return this.get(`/clubs/${clubId}/whatsapp-marketing/bulk/templates`);
+  }
+
+  async previewBulkMarketing(
+    clubId: string,
+    data: { templateName: string; variables: Record<string, string>; audience?: any }
+  ): Promise<ApiResponse<{ preview: WhatsAppBulkPreview }>> {
+    return this.post(`/clubs/${clubId}/whatsapp-marketing/bulk/preview`, data);
+  }
+
+  async sendBulkMarketing(
+    clubId: string,
+    data: { templateName: string; variables: Record<string, string>; audience?: any }
+  ): Promise<ApiResponse<{ result: WhatsAppBulkSendResult }>> {
+    return this.post(`/clubs/${clubId}/whatsapp-marketing/bulk/send`, data);
+  }
+
+  // System Owner safety
+  async listWhatsAppSafetyLogs(params?: {
+    clubId?: string;
+    limit?: number;
+  }): Promise<ApiResponse<{ logs: WhatsAppSafetyLogEntry[] }>> {
+    return this.get('/system-owner/whatsapp-safety/logs', { params });
+  }
+
+  async getWhatsAppTrustedStatus(
+    clubId: string
+  ): Promise<ApiResponse<{ trustedStatus: boolean }>> {
+    return this.get(`/system-owner/whatsapp-safety/${clubId}/trusted-status`);
+  }
+
+  async setWhatsAppTrustedStatus(
+    clubId: string,
+    trusted: boolean
+  ): Promise<ApiResponse<{ trustedStatus: boolean }>> {
+    return this.post(`/system-owner/whatsapp-safety/${clubId}/trusted-status`, { trusted });
+  }
+
+  async setWhatsAppMarketingEnabled(
+    clubId: string,
+    enabled: boolean
+  ): Promise<ApiResponse<{ status: WhatsAppMarketingStatus }>> {
+    return this.put(`/clubs/${clubId}/whatsapp-marketing/toggle`, { enabled }, {
+      headers: { 'X-Client-Source': 'web_dashboard' },
+    });
+  }
+
+  /** Public URL of the downloadable T&C PDF (no auth required). */
+  getWhatsAppMarketingTermsPdfUrl(clubId: string): string {
+    return `${this.baseURL}/clubs/${clubId}/whatsapp-marketing/terms.pdf`.replace(
+      /([^:]\/)\/+/g,
+      '$1'
+    );
+  }
+
+  // ── WhatsApp Marketing opt-in logs (System Owner) ────────────────────────
+  async listMarketingOptInLogs(params?: {
+    clubId?: string;
+    action?: string;
+    search?: string;
+    limit?: number;
+    skip?: number;
+  }): Promise<ApiResponse<{ logs: WhatsAppOptInLogEntry[]; total: number }>> {
+    return this.get('/system-owner/whatsapp-marketing-logs', { params });
+  }
+
+  async getMarketingOptInStatus(
+    clubId: string
+  ): Promise<ApiResponse<{ status: WhatsAppOptInCurrentStatus }>> {
+    return this.get(`/system-owner/whatsapp-marketing-logs/status/${clubId}`);
+  }
+
+  async listMarketingServiceEmails(params?: {
+    clubId?: string;
+    limit?: number;
+  }): Promise<ApiResponse<{ emails: WhatsAppServiceEmailEntry[] }>> {
+    return this.get('/system-owner/whatsapp-marketing-logs/emails', { params });
+  }
+
+  async systemOverrideDisableMarketing(
+    clubId: string,
+    note: string
+  ): Promise<ApiResponse<any>> {
+    return this.post(`/system-owner/whatsapp-marketing-logs/${clubId}/override-disable`, { note });
+  }
+
+  // ── WhatsApp monthly billing (System Owner) ──────────────────────────────
+  async runWhatsAppBilling(periodLabel?: string): Promise<ApiResponse<any>> {
+    return this.post('/system-owner/whatsapp-billing/run', { periodLabel });
+  }
+
+  async getWhatsAppBillingRunStatus(
+    period?: string
+  ): Promise<ApiResponse<{ status: WhatsAppBillingRunStatus | null }>> {
+    return this.get('/system-owner/whatsapp-billing/run-status', {
+      params: period ? { period } : undefined,
+    });
+  }
+
+  async listWhatsAppBillingInvoices(params?: {
+    period?: string;
+    clubId?: string;
+  }): Promise<ApiResponse<{ invoices: WhatsAppBillingInvoice[] }>> {
+    return this.get('/system-owner/whatsapp-billing/invoices', { params });
+  }
+
+  async getWhatsAppInvoiceNotes(invoiceId: string): Promise<
+    ApiResponse<{ invoice: WhatsAppBillingInvoice; notes: WhatsAppCreditDebitNote[]; adjustedTotal: number }>
+  > {
+    return this.get(`/system-owner/whatsapp-billing/invoices/${invoiceId}/notes`);
+  }
+
+  async createWhatsAppInvoiceNote(
+    invoiceId: string,
+    data: { type: 'credit' | 'debit'; amount: number; reason: string }
+  ): Promise<ApiResponse<{ note: WhatsAppCreditDebitNote }>> {
+    return this.post(`/system-owner/whatsapp-billing/invoices/${invoiceId}/notes`, data);
+  }
+
+  marketingOptInLogCsvUrl(params?: { clubId?: string; search?: string }): string {
+    const qs = new URLSearchParams();
+    if (params?.clubId) qs.set('clubId', params.clubId);
+    if (params?.search) qs.set('search', params.search);
+    const q = qs.toString();
+    return `${this.baseURL}/system-owner/whatsapp-marketing-logs/export.csv${q ? `?${q}` : ''}`.replace(
+      /([^:]\/)\/+/g,
+      '$1'
+    );
   }
 }
 
