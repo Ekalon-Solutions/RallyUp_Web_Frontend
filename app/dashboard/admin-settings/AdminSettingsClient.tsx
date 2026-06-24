@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Settings, Globe, Palette, Bell, BookOpen, MapPin, Zap, CircleHelp, ShieldCheck } from "lucide-react"
+import { Settings, Globe, Palette, Bell, BookOpen, MapPin, Zap, CircleHelp, ShieldCheck, MessageSquare } from "lucide-react"
 import { WebsiteSetupTab } from "@/components/admin/settings/website-setup-tab"
 import { DesignSettingsTab } from "@/components/admin/settings/design-settings-tab"
 import { NotificationTemplatesPanel } from "@/components/admin/notification-templates/notification-templates-panel"
@@ -13,6 +13,7 @@ import { GetStartedTab } from "@/components/admin/settings/get-started-tab"
 import { ClubAddressTab } from "@/components/admin/settings/club-address-tab"
 import { FeatureLimitsTab } from "@/components/admin/settings/feature-limits-tab"
 import { RefundPolicySettingsTab } from "@/components/admin/settings/refund-policy-settings-tab"
+import { WhatsAppMarketingTab } from "@/components/admin/settings/whatsapp-marketing-tab"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 
@@ -29,7 +30,7 @@ export default function AdminSettingsClient() {
     if (raw === "app-settings") return "app"
     if (raw === "get-started") return "guide"
 
-    const allowedTabs = new Set(["website", "design", "app", "address", "limits", "help", "guide", "refund"])
+    const allowedTabs = new Set(["website", "design", "app", "address", "limits", "help", "guide", "refund", "marketing"])
     return allowedTabs.has(raw) ? raw : null
   }
 
@@ -98,6 +99,10 @@ export default function AdminSettingsClient() {
                 <ShieldCheck className="h-4 w-4" />
                 Refund Policy
               </TabsTrigger>
+              <TabsTrigger value="marketing" className="flex items-center gap-2">
+                <MessageSquare className="h-4 w-4" />
+                WhatsApp Marketing
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="website" className="space-y-4">
@@ -130,6 +135,10 @@ export default function AdminSettingsClient() {
 
             <TabsContent value="refund" className="space-y-4">
               <RefundPolicySettingsTab key={clubId ?? "no-club"} />
+            </TabsContent>
+
+            <TabsContent value="marketing" className="space-y-4">
+              <WhatsAppMarketingTab key={clubId ?? "no-club"} />
             </TabsContent>
           </Tabs>
         </div>
