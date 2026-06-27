@@ -66,7 +66,7 @@ export function EventImageUploader({
   const shownImage = previewUrl ?? existingImageUrl ?? null;
 
   return (
-    <div className="grid gap-2">
+    <div className="grid gap-2 min-w-0">
       <input
         ref={inputRef}
         type="file"

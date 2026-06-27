@@ -798,8 +798,8 @@ function CreateEventForm() {
                 Optional. Upload a 400px-wide image for the events feed and a 1080px-wide image for
                 the event detail page. If you upload only one, it's used for both. Saved after the event.
               </p>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="grid gap-2">
+              <div className="flex flex-col sm:flex-row gap-4 w-full">
+                <div className="flex-1 min-w-0 space-y-2">
                   <Label>List image — 400px wide</Label>
                   <EventImageUploader
                     value={imageFile400}
@@ -810,7 +810,7 @@ function CreateEventForm() {
                     disabled={loading}
                   />
                 </div>
-                <div className="grid gap-2">
+                <div className="flex-1 min-w-0 space-y-2">
                   <Label>Detail image — 1080px wide</Label>
                   <EventImageUploader
                     value={imageFile1080}

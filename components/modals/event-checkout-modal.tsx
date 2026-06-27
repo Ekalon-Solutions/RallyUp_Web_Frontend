@@ -245,9 +245,10 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
         const startTime = new Date(eb.startTime ?? 0)
         const endTime = new Date(eb.endTime ?? 0)
         if (now >= startTime && now <= endTime) {
-          earlyBirdDiscountTotal = eb.type === 'percentage' 
+          const perTicket = eb.type === 'percentage' 
             ? (ticketPrice * (eb.value ?? 0)) / 100 
             : (eb.value ?? 0)
+          earlyBirdDiscountTotal = perTicket * count
         }
       }
     }

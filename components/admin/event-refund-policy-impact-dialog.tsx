@@ -35,22 +35,22 @@ export function EventRefundPolicyImpactDialog({
             <AlertTriangle className="h-5 w-5 text-amber-600" />
             Warning: This will impact existing ticket holders
           </AlertDialogTitle>
-          <AlertDialogDescription className="space-y-2 text-left">
-            <p>
+          <AlertDialogDescription className="text-left flex flex-col gap-2">
+            <span>
               This event is live and already has confirmed registrations. Changing the refund policy
               will affect how members see cancellation options in the app.
-            </p>
+            </span>
             {changingToNonRefundable ? (
-              <p>
+              <span>
                 Members who purchased while refunds were allowed may still qualify under your
                 club&apos;s grandfathering setting. A policy change timestamp will be recorded for
                 audit purposes.
-              </p>
+              </span>
             ) : (
-              <p>
+              <span>
                 Enabling refunds will show the Cancel/Refund action to members who are still within
                 the cancellation window.
-              </p>
+              </span>
             )}
           </AlertDialogDescription>
         </AlertDialogHeader>

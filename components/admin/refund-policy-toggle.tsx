@@ -13,20 +13,31 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { AlertTriangle, ShieldCheck, ShieldOff, History } from "lucide-react";
+import { ShieldCheck, ShieldOff, History } from "lucide-react";
 import { apiClient, Event } from "@/lib/api";
 import { toast } from "sonner";
 
-const LIVE_POLICY_CHANGE_REQUIRES_ACK = "LIVE_POLICY_CHANGE_REQUIRES_ACK";
 const CANNOT_MODIFY_HISTORICAL_POLICIES_CODE = "CANNOT_MODIFY_HISTORICAL_POLICIES";
+
+function isLiveEventWithTicketHolders(event: Event): boolean {
+  if (event.isActive === false) return false;
+  const now = Date.now();
+  const end = event.endTime ? new Date(event.endTime).getTime() : null;
+  const start = event.startTime ? new Date(event.startTime).getTime() : null;
+  if (end != null && !Number.isNaN(end) && end < now) return false;
+  if (start != null && !Number.isNaN(start) && start < now && (end == null || Number.isNaN(end))) return false;
+  const regs = event.registrations;
+  if (!Array.isArray(regs) || regs.length === 0) return false;
+  return regs.some((r) => r?.status === "confirmed");
+}
 
 interface RefundPolicyToggleProps {
   event: Event;
   open: boolean;
   onClose: () => void;
   onSuccess: (updatedEvent: Event) => void;
+  onNeedAck: (newPolicy: boolean, reason: string) => void;
 }
 
 export function RefundPolicyToggle({
@@ -34,24 +45,19 @@ export function RefundPolicyToggle({
   open,
   onClose,
   onSuccess,
+  onNeedAck,
 }: RefundPolicyToggleProps) {
   const currentPolicy = event.isRefundAllowed !== false && event.is_refund_allowed !== false;
 
   const [newPolicy, setNewPolicy] = useState(currentPolicy);
   const [reason, setReason] = useState("");
   const [loading, setLoading] = useState(false);
-  const [needsAck, setNeedsAck] = useState(false);
-  const [acknowledged, setAcknowledged] = useState(false);
-  const [warningMessage, setWarningMessage] = useState<string | null>(null);
 
   const policyChanged = newPolicy !== currentPolicy;
 
   const handleClose = () => {
     setNewPolicy(currentPolicy);
     setReason("");
-    setNeedsAck(false);
-    setAcknowledged(false);
-    setWarningMessage(null);
     onClose();
   };
 
@@ -61,41 +67,35 @@ export function RefundPolicyToggle({
       return;
     }
 
+    if (isLiveEventWithTicketHolders(event)) {
+      onNeedAck(newPolicy, reason);
+      handleClose();
+      return;
+    }
+
+    setLoading(true);
     try {
-      setLoading(true);
-      const res = await apiClient.patchEventRefundPolicy(event._id, {
+      const res = await apiClient.updateEvent(event._id, {
         isRefundAllowed: newPolicy,
-        reason: reason.trim() || undefined,
-        acknowledgeLivePolicyImpact: needsAck && acknowledged ? true : undefined,
+        is_refund_allowed: newPolicy,
+        refund_policy_change_reason: reason.trim() || undefined,
       });
 
       if (res.success && res.data) {
-        const label = newPolicy ? "Refundable" : "Non-Refundable";
-        toast.success(`Refund policy updated to ${label}.`);
+        toast.success(`Refund policy updated to ${newPolicy ? "Refundable" : "Non-Refundable"}.`);
         onSuccess(res.data.event);
         handleClose();
         return;
       }
 
-      const code = (res as any).code;
-      const message = (res as any).error || "Failed to update refund policy";
-
-      if (code === LIVE_POLICY_CHANGE_REQUIRES_ACK) {
-        setNeedsAck(true);
-        setWarningMessage(message);
-        setLoading(false);
-        return;
-      }
-
+      const code = (res as any).data?.code;
       if (code === CANNOT_MODIFY_HISTORICAL_POLICIES_CODE) {
         toast.error("Cannot Modify Historical Policies", {
           description: "This event has already completed. Refund policy cannot be changed.",
         });
-        setLoading(false);
-        return;
+      } else {
+        toast.error((res as any).error || "Failed to update refund policy");
       }
-
-      toast.error(message);
     } catch {
       toast.error("Failed to update refund policy");
     } finally {
@@ -121,7 +121,6 @@ export function RefundPolicyToggle({
         </DialogHeader>
 
         <div className="space-y-5">
-          {/* Current vs New */}
           <div className="flex items-center justify-between rounded-lg border p-4">
             <div className="space-y-1">
               <p className="text-sm font-medium">Allow Refunds</p>
@@ -138,46 +137,11 @@ export function RefundPolicyToggle({
             </div>
             <Switch
               checked={newPolicy}
-              onCheckedChange={(v) => {
-                setNewPolicy(v);
-                setNeedsAck(false);
-                setAcknowledged(false);
-                setWarningMessage(null);
-              }}
+              onCheckedChange={setNewPolicy}
               disabled={loading}
             />
           </div>
 
-          {/* Warning: live event with ticket holders */}
-          {needsAck && warningMessage && (
-            <div className="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-700 p-4 space-y-3">
-              <div className="flex gap-2 items-start">
-                <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
-                <div className="space-y-1">
-                  <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">
-                    Warning: This will impact existing ticket holders
-                  </p>
-                  <p className="text-xs text-amber-700 dark:text-amber-400">
-                    Members who purchased tickets under the previous policy will retain their
-                    grandfathered rights. A Policy Change Timestamp is recorded to protect them.
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="ack"
-                  checked={acknowledged}
-                  onCheckedChange={(v) => setAcknowledged(Boolean(v))}
-                  disabled={loading}
-                />
-                <Label htmlFor="ack" className="text-sm cursor-pointer">
-                  I understand this affects live event ticket holders
-                </Label>
-              </div>
-            </div>
-          )}
-
-          {/* Reason (required when toggling) */}
           {policyChanged && (
             <div className="space-y-2">
               <Label htmlFor="reason">
@@ -211,7 +175,7 @@ export function RefundPolicyToggle({
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={loading || !policyChanged || (needsAck && !acknowledged)}
+            disabled={loading || !policyChanged}
           >
             {loading ? "Saving..." : "Save Policy"}
           </Button>

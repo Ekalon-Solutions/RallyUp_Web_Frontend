@@ -357,8 +357,8 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
       const endTime = new Date(eb.endTime ?? 0)
       if (now >= startTime && now <= endTime) {
         simpleEarlyBirdDiscountTotal = eb.type === 'percentage'
-          ? (simpleTicketPrice * (eb.value ?? 0)) / 100
-          : (eb.value ?? 0)
+          ? (simpleTicketPrice * (eb.value ?? 0)) / 100 * ticketCount
+          : (eb.value ?? 0) * ticketCount
       }
     }
     const md = (event as any).memberDiscount
@@ -380,9 +380,26 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
     simpleTotalBasePrice - simpleEarlyBirdDiscountTotal - simpleMemberDiscountTotal - simpleGroupDiscountTotal, 0
   )
 
-  const subtotal = isSimpleEvent
+  const subtotalBase = isSimpleEvent
     ? simpleOrderTotalBeforeCoupon
     : cartItems.reduce((sum, i) => sum + i.price * i.quantity, 0)
+
+  let earlyBirdDiscountTotal = 0
+  if (!isSimpleEvent && event) {
+    const eb = (event as any).earlyBirdDiscount
+    if (eb?.enabled && (!eb.membersOnly || isMember)) {
+      const now = new Date()
+      const startTime = new Date(eb.startTime ?? 0)
+      const endTime = new Date(eb.endTime ?? 0)
+      if (now >= startTime && now <= endTime) {
+        earlyBirdDiscountTotal = eb.type === 'percentage'
+          ? (subtotalBase * (eb.value ?? 0)) / 100
+          : Math.min(eb.value ?? 0, subtotalBase)
+      }
+    }
+  }
+
+  const subtotal = Math.max(subtotalBase - earlyBirdDiscountTotal, 0)
   const afterCoupon = Math.max(subtotal - couponDiscount, 0)
   const payableBeforePoints = afterCoupon
   const showPointsRedemption = canShowPointsRedemption(availablePoints, payableBeforePoints)
@@ -1249,6 +1266,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
           reservationToken: reservationToken ?? undefined,
           couponCode: localCouponCode || undefined,
           couponDiscount: couponDiscount || undefined,
+          earlyBirdDiscountAmt: earlyBirdDiscountTotal || simpleEarlyBirdDiscountTotal || undefined,
           pointsDiscount: reservedDiscount || undefined,
           amountPaid: 0,
           attributed_club: attributedClub || undefined,
@@ -1289,6 +1307,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         reservationToken: reservationToken ?? undefined,
         couponCode: localCouponCode || undefined,
         couponDiscount: couponDiscount || undefined,
+        earlyBirdDiscountAmt: earlyBirdDiscountTotal || simpleEarlyBirdDiscountTotal || undefined,
         pointsDiscount: reservedDiscount || undefined,
         attributed_club: attributedClub || undefined,
       }).catch((err) => console.warn("[VenueTierCart] Guest pending booking failed:", err))
@@ -1328,6 +1347,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
               reservationToken: reservationToken ?? undefined,
               couponCode: localCouponCode || undefined,
               couponDiscount: couponDiscount || undefined,
+              earlyBirdDiscountAmt: earlyBirdDiscountTotal || simpleEarlyBirdDiscountTotal || undefined,
               pointsDiscount: reservedDiscount || undefined,
               attributed_club: attributedClub || undefined,
             })
@@ -1449,6 +1469,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
           reservationToken: reservationToken ?? undefined,
           couponCode: localCouponCode || undefined,
           couponDiscount: couponDiscount || undefined,
+          earlyBirdDiscountAmt: earlyBirdDiscountTotal || simpleEarlyBirdDiscountTotal || undefined,
           pointsDiscount: reservedDiscount || undefined,
           amountPaid: 0,
           attributed_club: attributedClub || undefined,
@@ -1487,6 +1508,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         reservationToken: reservationToken ?? undefined,
         couponCode: localCouponCode || undefined,
         couponDiscount: couponDiscount || undefined,
+        earlyBirdDiscountAmt: earlyBirdDiscountTotal || simpleEarlyBirdDiscountTotal || undefined,
         pointsDiscount: reservedDiscount || undefined,
         attributed_club: attributedClub || undefined,
       }).catch((err) => console.warn("[VenueTierCart] Pending booking failed:", err))
@@ -1525,6 +1547,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
               reservationToken: reservationToken ?? undefined,
               couponCode: localCouponCode || undefined,
               couponDiscount: couponDiscount || undefined,
+              earlyBirdDiscountAmt: earlyBirdDiscountTotal || simpleEarlyBirdDiscountTotal || undefined,
               pointsDiscount: reservedDiscount || undefined,
               attributed_club: attributedClub || undefined,
             })
@@ -2165,12 +2188,20 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
                         )}
                       </>
                     ) : (
-                      cartItems.map((item, i) => (
-                        <div key={i} className="flex justify-between">
-                          <span>{item.venueName} — {item.tierName} × {item.quantity}</span>
-                          <span>{fmt(item.price * item.quantity, currency)}</span>
-                        </div>
-                      ))
+                      <>
+                        {cartItems.map((item, i) => (
+                          <div key={i} className="flex justify-between">
+                            <span>{item.venueName} — {item.tierName} × {item.quantity}</span>
+                            <span>{fmt(item.price * item.quantity, currency)}</span>
+                          </div>
+                        ))}
+                        {earlyBirdDiscountTotal > 0 && (
+                          <div className="flex justify-between text-green-600">
+                            <span>Early bird discount</span>
+                            <span>-{fmt(earlyBirdDiscountTotal, currency)}</span>
+                          </div>
+                        )}
+                      </>
                     )}
                     <Separator />
                     <div className="flex justify-between font-medium">
