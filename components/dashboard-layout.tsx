@@ -153,6 +153,7 @@ const adminNavigation = [
   { name: "Volunteer Management", href: "/dashboard/volunteer-management", icon: Heart },
   { name: "Membership Plans", href: "/dashboard/membership-plans", icon: CreditCard },
   { name: "Membership Cards", href: "/dashboard/membership-cards", icon: CreditCard },
+  { name: "Guess The Score", href: "/dashboard/user/guess-the-score", icon: Trophy },
   { name: "Help", href: "/dashboard/help", icon: HelpCircle },
   { name: "Admin Settings", href: "/dashboard/admin-settings", icon: Settings },
   { name: "Onboarding & Promotions", href: "/dashboard/onboarding", icon: GraduationCap },
@@ -191,6 +192,7 @@ const superAdminNavigation = [
   { name: "Volunteer Management", href: "/dashboard/volunteer-management", icon: Heart },
   { name: "Membership Plans", href: "/dashboard/membership-plans", icon: CreditCard },
   { name: "Membership Cards", href: "/dashboard/membership-cards", icon: CreditCard },
+  { name: "Guess The Score", href: "/dashboard/user/guess-the-score", icon: Trophy },
   { name: "Admin Settings", href: "/dashboard/admin-settings", icon: Settings },
   { name: "Onboarding & Promotions", href: "/dashboard/onboarding", icon: GraduationCap },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
@@ -209,12 +211,12 @@ const userNavigation = [
   { name: "Polls", href: "/dashboard/user/polls", icon: Vote },
   { name: "Volunteer", href: "/dashboard/volunteer", icon: Heart },
   { name: "My Orders", href: "/dashboard/user/orders", icon: ShoppingCart },
+  { name: "My Profile", href: "/dashboard/user/profile", icon: User },
   { name: "Browse Plans", href: "/dashboard/user/browse-plans", icon: CreditCard },
   { name: "My Clubs", href: "/dashboard/user/my-clubs", icon: UserCheck },
   { name: "My Settings", href: "/dashboard/user-settings", icon: Settings },
   { name: "Members", href: "/dashboard/user/members", icon: Users },
   { name: "Membership Card", href: "/dashboard/user/membership-card", icon: CreditCard },
-  { name: "My Profile", href: "/dashboard/user/profile", icon: User },
 ]
 
 interface DashboardLayoutProps {
