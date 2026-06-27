@@ -209,12 +209,12 @@ const userNavigation = [
   { name: "Polls", href: "/dashboard/user/polls", icon: Vote },
   { name: "Volunteer", href: "/dashboard/volunteer", icon: Heart },
   { name: "My Orders", href: "/dashboard/user/orders", icon: ShoppingCart },
+  { name: "My Profile", href: "/dashboard/user/profile", icon: User },
   { name: "Browse Plans", href: "/dashboard/user/browse-plans", icon: CreditCard },
   { name: "My Clubs", href: "/dashboard/user/my-clubs", icon: UserCheck },
   { name: "My Settings", href: "/dashboard/user-settings", icon: Settings },
   { name: "Members", href: "/dashboard/user/members", icon: Users },
   { name: "Membership Card", href: "/dashboard/user/membership-card", icon: CreditCard },
-  { name: "My Profile", href: "/dashboard/user/profile", icon: User },
 ]
 
 interface DashboardLayoutProps {
