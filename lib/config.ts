@@ -1,3 +1,18 @@
+type AppEnv = 'development' | 'production' | 'staging';
+
+function resolveCurrentEnv(): AppEnv {
+  const raw = (
+    process.env.NEXT_PUBLIC_APP_ENV ||
+    process.env.NEXT_PUBLIC_ENV ||
+    process.env.ENV ||
+    (process.env.NODE_ENV === 'production' ? 'production' : 'development')
+  ).toLowerCase();
+
+  if (raw === 'production' || raw === 'prod') return 'production';
+  if (raw === 'staging') return 'staging';
+  return 'development';
+}
+
 const getApiBaseUrl = () => {
   if (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL) {
     return process.env.NEXT_PUBLIC_API_URL;
@@ -13,7 +28,7 @@ const getWsBaseUrl = () => {
 };
 
 export const ENV = {
-  CURRENT: 'development' as 'development' | 'production' | 'staging',
+  CURRENT: resolveCurrentEnv(),
   
   development: {
     apiBaseUrl: getApiBaseUrl(),
@@ -160,9 +175,20 @@ export const getApiUrl = (endpoint: string) => {
   return `${currentConfig.apiBaseUrl}${endpoint}`;
 };
 
+export const getSocketBaseUrl = (): string => {
+  if (typeof window !== 'undefined') {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL
+      ? process.env.NEXT_PUBLIC_API_URL
+      : `${window.location.origin.replace(/\/$/, '')}/api`;
+    return apiUrl.replace(/\/api\/?$/, '');
+  }
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || currentConfig.apiBaseUrl;
+  return apiUrl.replace(/\/api\/?$/, '');
+};
+
 export const getWsUrl = (endpoint: string) => `${currentConfig.wsBaseUrl}${endpoint}`;
 
-export const getBaseUrl = () => currentConfig.apiBaseUrl.replace('/api', '');
+export const getBaseUrl = () => getSocketBaseUrl();
 
 export const getNewsImageUrl = (imagePath: string | undefined | null): string => {
   if (!imagePath) return '';

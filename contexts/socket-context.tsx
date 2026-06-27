@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
-import config from '@/lib/config';
+import { getSocketBaseUrl } from '@/lib/config';
 
 interface SocketContextType {
   socket: Socket | null;
@@ -39,11 +39,7 @@ export const SocketProvider: React.FC<SocketProviderProps> = ({ children, token 
       return;
     }
 
-    // Derive socket URL from NEXT_PUBLIC_API_URL (always HTTP) by stripping /api.
-    // socket.io-client needs an HTTP/HTTPS base URL — it handles the WebSocket
-    // upgrade internally. Do NOT use ws:// or wss:// here.
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || config.apiBaseUrl;
-    const socketBaseUrl = apiUrl.replace(/\/api\/?$/, '');
+    const socketBaseUrl = getSocketBaseUrl();
     const socketInstance = io(socketBaseUrl, {
       auth: {
         token: token,
