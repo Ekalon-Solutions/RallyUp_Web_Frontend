@@ -70,7 +70,6 @@ export const ADMIN_NAV_FEATURE_MAP: Record<string, ClubFeatureKey | null> = {
   '/dashboard/onboarding': 'onboarding',
   '/dashboard/help': null,
   '/dashboard/admin-settings': null,
-  '/dashboard/user/guess-the-score': 'predictions',
 };
 
 export function clubFeatureFlags(
