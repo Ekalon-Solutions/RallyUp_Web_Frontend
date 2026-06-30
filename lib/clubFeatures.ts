@@ -126,7 +126,7 @@ export function getFeatureConstraint(
   constraintKey: string
 ): number | null {
   if (!config) return null;
-  const val = config.feature_constraints[constraintKey];
+  const val = (config.feature_constraints ?? {})[constraintKey];
   return typeof val === 'number' ? val : null;
 }
 

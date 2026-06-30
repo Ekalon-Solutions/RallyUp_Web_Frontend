@@ -71,7 +71,8 @@ export function StorageAlertBanner({
   alertLevel,
   onDismiss,
 }: StorageAlertBannerProps) {
-  const config = LEVEL_CONFIG[alertLevel]
+  const config = LEVEL_CONFIG[alertLevel] ?? LEVEL_CONFIG.warning
+  const message = LEVEL_MESSAGES[alertLevel] ?? LEVEL_MESSAGES.warning
 
   return (
     <Alert className={`${config.borderColor} ${config.bgColor} ${config.textColor} mb-4`}>
@@ -87,7 +88,7 @@ export function StorageAlertBanner({
             </span>
           </div>
           <AlertDescription className="mt-1 font-medium text-sm">
-            {LEVEL_MESSAGES[alertLevel]}
+            {message}
           </AlertDescription>
           <div className="flex items-center gap-3 mt-2 flex-wrap">
             <div className="flex items-center gap-1.5 text-xs opacity-75">

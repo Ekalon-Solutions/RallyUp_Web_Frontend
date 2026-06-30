@@ -617,7 +617,7 @@ export default function GalleryManagementPage() {
   }
 
   const handleSubscriptionCheckout = async (storageGb: StorageGb, plan: BillingCycle) => {
-    const priceInr = STORAGE_PRICING[storageGb][plan]
+    const priceInr = STORAGE_PRICING[storageGb]?.[plan] ?? 0
     const priceInPaise = priceInr * 100
 
     const matchedPlan = razorpayPlans.find(
@@ -709,7 +709,7 @@ export default function GalleryManagementPage() {
       setUpgradeModalOpen(false)
       setPendingSubscription({ storageGb: selectedStorageGb, plan: selectedBillingCycle })
     } else {
-      const baseAmount = STORAGE_PRICING[selectedStorageGb][selectedBillingCycle]
+      const baseAmount = STORAGE_PRICING[selectedStorageGb]?.[selectedBillingCycle] ?? 0
       const orderId = `gallery-storage-${selectedStorageGb}gb-${selectedBillingCycle}-${Date.now()}`
       const orderNumber = `STG-${Math.floor(Math.random() * 900000) + 100000}`
       setUpgradeModalOpen(false)
@@ -740,7 +740,7 @@ export default function GalleryManagementPage() {
     setPendingUpgrade(null)
   }
 
-  const selectedPrice = STORAGE_PRICING[selectedStorageGb][selectedBillingCycle]
+  const selectedPrice = STORAGE_PRICING[selectedStorageGb]?.[selectedBillingCycle] ?? 0
 
   if (!isFeatureEnabled(clubFeatureConfig, 'gallery')) {
     return (
@@ -1082,7 +1082,7 @@ export default function GalleryManagementPage() {
                   >
                     <p className="text-xl font-bold">{gb} GB</p>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      from ₹{STORAGE_PRICING[gb]["annual"].toLocaleString("en-IN")}/yr
+                      from ₹{(STORAGE_PRICING[gb]?.annual ?? 0).toLocaleString("en-IN")}/yr
                     </p>
                   </button>
                 ))}
@@ -1104,7 +1104,7 @@ export default function GalleryManagementPage() {
                             : "border-border hover:border-muted-foreground/40 hover:bg-muted/30"
                         }`}
                       >
-                        <p className="text-sm font-semibold">₹{STORAGE_PRICING[selectedStorageGb][cycle].toLocaleString("en-IN")}</p>
+                        <p className="text-sm font-semibold">₹{(STORAGE_PRICING[selectedStorageGb]?.[cycle] ?? 0).toLocaleString("en-IN")}</p>
                         <p className="text-[11px] opacity-75 mt-0.5">{BILLING_DURATION_LABEL[cycle]}</p>
                       </button>
                     )
@@ -1224,7 +1224,7 @@ export default function GalleryManagementPage() {
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Amount</span>
                   <span className="font-semibold">
-                    ₹{STORAGE_PRICING[pendingSubscription.storageGb][pendingSubscription.plan].toLocaleString("en-IN")}
+                    ₹{(STORAGE_PRICING[pendingSubscription.storageGb]?.[pendingSubscription.plan] ?? 0).toLocaleString("en-IN")}
                     <span className="text-xs text-muted-foreground font-normal ml-1">
                       {BILLING_DURATION_LABEL[pendingSubscription.plan]}
                     </span>

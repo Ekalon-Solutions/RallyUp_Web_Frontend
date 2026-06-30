@@ -730,7 +730,7 @@ function MembershipCardsPage() {
     setEditingCard(prev => {
       if (!prev) return null
       const styleValue = value as 'default' | 'premium' | 'vintage' | 'modern' | 'elite' | 'emerald'
-      const styleColors = CARD_STYLE_COLORS[styleValue]
+      const styleColors = CARD_STYLE_COLORS[styleValue] ?? CARD_STYLE_COLORS.default
       const existingCustomization = normalizeCustomization(prev.card.customization)
       return {
         ...prev,
@@ -997,8 +997,8 @@ function MembershipCardsPage() {
                             onValueChange={(v) => setCustomization(prev => ({
                               ...prev,
                               cardStyle: v as typeof prev.cardStyle,
-                              primaryColor: CARD_STYLE_COLORS[v as keyof typeof CARD_STYLE_COLORS].primaryColor,
-                              secondaryColor: CARD_STYLE_COLORS[v as keyof typeof CARD_STYLE_COLORS].secondaryColor,
+                              primaryColor: (CARD_STYLE_COLORS[v as keyof typeof CARD_STYLE_COLORS] ?? CARD_STYLE_COLORS.default).primaryColor,
+                              secondaryColor: (CARD_STYLE_COLORS[v as keyof typeof CARD_STYLE_COLORS] ?? CARD_STYLE_COLORS.default).secondaryColor,
                               fontFamily: prev.fontFamily,
                               logoSize: prev.logoSize,
                               showLogo: prev.showLogo,

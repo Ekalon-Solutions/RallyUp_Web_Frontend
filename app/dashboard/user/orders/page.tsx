@@ -736,7 +736,8 @@ export default function UserOrdersPage() {
             ) : (
               <div className="space-y-4">
                 {orders.map((order) => {
-                  const StatusIcon = statusConfig[order.status].icon
+                  const sc = statusConfig[order.status] ?? statusConfig.pending
+                  const StatusIcon = sc.icon
                   const canContinuePayment = order.status === 'pending' && order.paymentStatus === 'pending'
                   return (
                     <div key={order._id} className="border rounded-lg p-4 hover:shadow-md transition-shadow bg-card">
@@ -750,12 +751,12 @@ export default function UserOrdersPage() {
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Badge className={statusConfig[order.status].color}>
+                          <Badge className={sc.color}>
                             <StatusIcon className="w-3 h-3 mr-1" />
-                            {statusConfig[order.status].label}
+                            {sc.label}
                           </Badge>
-                          <Badge className={paymentStatusConfig[order.paymentStatus].color}>
-                            {paymentStatusConfig[order.paymentStatus].label}
+                          <Badge className={(paymentStatusConfig[order.paymentStatus] ?? paymentStatusConfig.pending).color}>
+                            {(paymentStatusConfig[order.paymentStatus] ?? paymentStatusConfig.pending).label}
                           </Badge>
                         </div>
                       </div>
@@ -879,8 +880,8 @@ export default function UserOrdersPage() {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Status:</span>
-                        <Badge className={statusConfig[selectedOrder.status].color}>
-                          {statusConfig[selectedOrder.status].label}
+                        <Badge className={(statusConfig[selectedOrder.status] ?? statusConfig.pending).color}>
+                          {(statusConfig[selectedOrder.status] ?? statusConfig.pending).label}
                         </Badge>
                       </div>
                       <div className="flex justify-between">
@@ -889,8 +890,8 @@ export default function UserOrdersPage() {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Payment Status:</span>
-                        <Badge className={paymentStatusConfig[selectedOrder.paymentStatus].color}>
-                          {paymentStatusConfig[selectedOrder.paymentStatus].label}
+                        <Badge className={(paymentStatusConfig[selectedOrder.paymentStatus] ?? paymentStatusConfig.pending).color}>
+                          {(paymentStatusConfig[selectedOrder.paymentStatus] ?? paymentStatusConfig.pending).label}
                         </Badge>
                       </div>
                       <div className="flex justify-between">

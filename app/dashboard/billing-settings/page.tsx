@@ -132,8 +132,13 @@ export default function BillingSettingsPage() {
     try {
       const res = await apiClient.getBillingSettings()
       if (res.success && res.data) {
-        setOriginal(res.data as Settings)
-        setSettings(structuredClone(res.data as Settings))
+        const raw = res.data as Settings
+        raw.tier_prices      ??= {}
+        raw.tier_presets     ??= {}
+        raw.tier_constraints ??= {}
+        raw.addon_pricing    ??= {}
+        setOriginal(raw)
+        setSettings(structuredClone(raw))
       }
     } catch {
       toast.error("Failed to load billing settings")
@@ -316,7 +321,7 @@ export default function BillingSettingsPage() {
                                 min={0}
                                 step={1}
                                 className="h-7 text-sm w-24"
-                                value={settings.tier_prices[tier] ?? 0}
+                                value={settings.tier_prices?.[tier] ?? 0}
                                 onChange={(e) => setTierPrice(tier, Math.max(0, parseInt(e.target.value) || 0))}
                               />
                               <span className="text-xs text-muted-foreground">/mo</span>
@@ -388,7 +393,7 @@ export default function BillingSettingsPage() {
                                 min={0}
                                 step={1}
                                 className="h-7 text-sm w-24"
-                                value={settings.addon_pricing[key] ?? 0}
+                                value={settings.addon_pricing?.[key] ?? 0}
                                 onChange={(e) => setAddonPrice(key, Math.max(0, parseInt(e.target.value) || 0))}
                               />
                               <span className="text-xs text-muted-foreground">/mo</span>
@@ -453,7 +458,7 @@ export default function BillingSettingsPage() {
                           <td key={tier} className="px-3 py-2.5 text-center">
                             <div className="flex justify-center">
                               <Checkbox
-                                checked={Boolean(settings.tier_presets[tier]?.[key])}
+                                checked={Boolean(settings.tier_presets?.[tier]?.[key])}
                                 onCheckedChange={(v) => toggleBundle(tier, key, Boolean(v))}
                                 className="h-4 w-4"
                               />
@@ -512,7 +517,7 @@ export default function BillingSettingsPage() {
                           <code className="text-[10px] text-muted-foreground font-mono">{cKey}</code>
                         </td>
                         {TIERS.map((tier) => {
-                          const val = settings.tier_constraints[tier]?.[cKey]
+                          const val = settings.tier_constraints?.[tier]?.[cKey]
                           return (
                             <td key={tier} className="px-3 py-2.5 text-center">
                               <Input
