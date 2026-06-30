@@ -26,6 +26,7 @@ import { WaitlistDisplay } from "@/components/events/waitlist-display"
 import { formatEventPriceDisplay, isEventPaid, getEventVenueDisplay, hasVenueTierMatrix } from "@/lib/event-display-price"
 import { isUserRegisteredForEvent as isUserRegisteredOnEvent, getUserRegistrationStatus } from "@/lib/event-registration"
 import { RefundPolicyToggle } from "@/components/admin/refund-policy-toggle"
+import { EventRefundPolicyImpactDialog } from "@/components/admin/event-refund-policy-impact-dialog"
 import { useClubFeatures } from "@/hooks/useClubFeatures"
 import { isFeatureEnabled } from "@/lib/clubFeatures"
 import { LockedFeaturePage, FeatureUnavailableOverlay } from "@/components/feature-gate"
@@ -48,6 +49,9 @@ export default function EventsPage() {
   const [userRegistrations, setUserRegistrations] = useState<Map<string, any>>(new Map())
   const [refundPolicyEvent, setRefundPolicyEvent] = useState<Event | null>(null)
   const [refundPolicyModalOpen, setRefundPolicyModalOpen] = useState(false)
+  const [showPolicyImpactDialog, setShowPolicyImpactDialog] = useState(false)
+  const [pendingPolicyChange, setPendingPolicyChange] = useState<{ eventId: string; newPolicy: boolean; reason: string } | null>(null)
+  const [policyChangeLoading, setPolicyChangeLoading] = useState(false)
 
   useEffect(() => {
     fetchEvents()
@@ -226,8 +230,50 @@ export default function EventsPage() {
                 setRefundPolicyModalOpen(false)
                 setRefundPolicyEvent(null)
               }}
+              onNeedAck={(newPolicy, reason) => {
+                setPendingPolicyChange({ eventId: refundPolicyEvent!._id, newPolicy, reason })
+                setShowPolicyImpactDialog(true)
+              }}
             />
           )}
+
+          <EventRefundPolicyImpactDialog
+            open={showPolicyImpactDialog}
+            onOpenChange={setShowPolicyImpactDialog}
+            changingToNonRefundable={!pendingPolicyChange?.newPolicy}
+            loading={policyChangeLoading}
+            onConfirm={async () => {
+              if (!pendingPolicyChange) return
+              setPolicyChangeLoading(true)
+              try {
+                const res = await apiClient.updateEvent(pendingPolicyChange.eventId, {
+                  isRefundAllowed: pendingPolicyChange.newPolicy,
+                  is_refund_allowed: pendingPolicyChange.newPolicy,
+                  refund_policy_change_reason: pendingPolicyChange.reason.trim() || undefined,
+                  acknowledgeLivePolicyImpact: true,
+                })
+                if (res.success && res.data) {
+                  toast.success(`Refund policy updated to ${pendingPolicyChange.newPolicy ? "Refundable" : "Non-Refundable"}.`)
+                  setEvents(prev => prev.map(e => e._id === res.data.event._id ? res.data.event : e))
+                  setShowPolicyImpactDialog(false)
+                  setPendingPolicyChange(null)
+                } else {
+                  const code = (res as any).data?.code
+                  if (code === "CANNOT_MODIFY_HISTORICAL_POLICIES_CODE") {
+                    toast.error("Cannot Modify Historical Policies", {
+                      description: "This event has already completed. Refund policy cannot be changed.",
+                    })
+                  } else {
+                    toast.error((res as any).error || "Failed to update refund policy")
+                  }
+                }
+              } catch {
+                toast.error("Failed to update refund policy")
+              } finally {
+                setPolicyChangeLoading(false)
+              }
+            }}
+          />
 
           {/* Event Registration Modal (member-facing) */}
           <EventRegistrationModal

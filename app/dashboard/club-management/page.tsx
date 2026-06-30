@@ -5,15 +5,7 @@ import { useAuth } from '@/contexts/auth-context'
 import { apiClient, Club, Admin } from '@/lib/api'
 // getApiUrl removed (cron trigger moved to admin dashboard)
 import { toast } from 'sonner'
-import { RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth"
-import { auth } from "@/lib/firebase/config"
 
-declare global {
-  interface Window {
-    recaptchaVerifier: any;
-    confirmationResult: any;
-  }
-}
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -121,16 +113,6 @@ interface CreateClubForm {
   superAdminCountryCode: string
 }
 
-const setupRecaptcha = (phoneNumber: string) => {
-  if (!window.recaptchaVerifier) {
-    window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container-club-delete', {
-      'size': 'invisible',
-      'callback': () => {}
-    });
-  }
-  return window.recaptchaVerifier
-}
-
 export default function ClubManagementPage() {
   const { user } = useAuth()
   const [clubs, setClubs] = useState<ClubWithDetails[]>([])
@@ -140,6 +122,7 @@ export default function ClubManagementPage() {
   const [selectedClubName, setSelectedClubName] = useState<string>("")
   const [otpSent, setOtpSent] = useState(false)
   const [otp, setOtp] = useState("")
+  const [sessionInfo, setSessionInfo] = useState<string | null>(null)
   const [resendCountdown, setResendCountdown] = useState(0)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
@@ -320,7 +303,7 @@ export default function ClubManagementPage() {
     }
   }, [resendCountdown])
 
-  const handleSendOTP = async () => {
+  const handleSendOTP = async (channel?: "whatsapp" | "sms") => {
     if (!user || !selectedClubId) return
 
     const phoneNumber = (user as any).phoneNumber || (user as any).phoneNumber
@@ -340,13 +323,19 @@ export default function ClubManagementPage() {
     const fullPhoneNumber = `${countryCode}${phoneNumber}`
 
     try {
-      const recaptchaVerifier = setupRecaptcha(fullPhoneNumber)
-      const confirmationResult = await signInWithPhoneNumber(auth, fullPhoneNumber, recaptchaVerifier)
+      const res = channel
+        ? await apiClient.resendOTP({ phoneNumber, countryCode, role: "system_owner", channel })
+        : await apiClient.sendOtp({ phoneNumber, countryCode, role: "system_owner" })
 
-      window.confirmationResult = confirmationResult
-      toast.success(`OTP sent to ${fullPhoneNumber}`)
-      setOtpSent(true)
-      setResendCountdown(10)
+      if (res.success) {
+        if (res.data?.sessionInfo) setSessionInfo(res.data.sessionInfo)
+        const deliveryChannel = (res.data as any)?.deliveryChannel || "WhatsApp"
+        toast.success(`OTP sent via ${deliveryChannel} to ${fullPhoneNumber}`)
+        setOtpSent(true)
+        setResendCountdown(30)
+      } else {
+        toast.error(res.message || res.error || "Failed to send OTP. Please try again.")
+      }
     } catch (error) {
       toast.error("Failed to send OTP. Please try again.")
     }
@@ -360,23 +349,33 @@ export default function ClubManagementPage() {
 
     try {
       setLoading(true)
-      const confirmationResult = window.confirmationResult
-      const firebaseResult = await confirmationResult.confirm(otp)
+      const userData = user as any
+      const verifyRes = await apiClient.verifyOTP({
+        phoneNumber: userData.phoneNumber,
+        countryCode: userData.countryCode || '+1',
+        otp,
+        role: "system_owner",
+        sessionInfo: sessionInfo || undefined,
+      })
 
-      if (firebaseResult.user) {
-        const response = await apiClient.deleteClub(selectedClubId)
+      if (!verifyRes.success) {
+        toast.error(verifyRes.message || verifyRes.error || "Invalid OTP. Please try again.")
+        return
+      }
 
-        if (response.success) {
-          toast.success('Club deleted successfully!')
-          setIsDeleteDialogOpen(false)
-          setOtpSent(false)
-          setOtp("")
-          setSelectedClubId(null)
-          setSelectedClubName("")
-          fetchClubs()
-        } else {
-          toast.error(response.error || 'Failed to delete club')
-        }
+      const response = await apiClient.deleteClub(selectedClubId)
+
+      if (response.success) {
+        toast.success('Club deleted successfully!')
+        setIsDeleteDialogOpen(false)
+        setOtpSent(false)
+        setOtp("")
+        setSessionInfo(null)
+        setSelectedClubId(null)
+        setSelectedClubName("")
+        fetchClubs()
+      } else {
+        toast.error(response.error || 'Failed to delete club')
       }
     } catch (error) {
       toast.error("Invalid OTP. Please try again.")
@@ -389,11 +388,10 @@ export default function ClubManagementPage() {
     setSelectedClubId(clubId)
     setSelectedClubName(clubName)
     setIsDeleteDialogOpen(true)
-    handleSendOTP()
   }
 
-  const handleResendOTP = () => {
-    handleSendOTP()
+  const handleResendOTP = (channel?: "whatsapp" | "sms") => {
+    handleSendOTP(channel)
   }
 
   const formatAddress = (address: any) => {
@@ -994,14 +992,24 @@ export default function ClubManagementPage() {
                       Resend OTP in {resendCountdown} seconds
                     </p>
                   ) : (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleResendOTP}
-                      className="w-full"
-                    >
-                      Resend OTP
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => handleResendOTP("whatsapp")}
+                        className="flex-1"
+                      >
+                        Resend via WhatsApp
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => handleResendOTP("sms")}
+                        className="flex-1"
+                      >
+                        Resend via SMS
+                      </Button>
+                    </div>
                   )}
                 </>
               ) : (
@@ -1011,7 +1019,7 @@ export default function ClubManagementPage() {
                   </p>
                   <Button
                     type="button"
-                    onClick={handleSendOTP}
+                    onClick={() => handleSendOTP()}
                     disabled={loading}
                     className="w-full"
                   >
@@ -1020,7 +1028,6 @@ export default function ClubManagementPage() {
                 </div>
               )}
             </div>
-            <div id="recaptcha-container-club-delete"></div>
             <DialogFooter>
               <Button
                 type="button"
@@ -1029,6 +1036,7 @@ export default function ClubManagementPage() {
                   setIsDeleteDialogOpen(false)
                   setOtpSent(false)
                   setOtp("")
+                  setSessionInfo(null)
                   setSelectedClubId(null)
                   setSelectedClubName("")
                 }}
