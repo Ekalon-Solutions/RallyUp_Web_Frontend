@@ -146,6 +146,8 @@ export function JoinMembershipModal({
     referralPhone?: string
     isUpgrade?: boolean
     isRegistration?: boolean
+    prefillPhone?: string
+    prefillEmail?: string
   } | null>(null)
   const [pendingRegistrationData, setPendingRegistrationData] = useState<typeof registrationData | null>(null)
 
@@ -361,6 +363,13 @@ export function JoinMembershipModal({
       setPendingRegistrationData({ ...registrationSnapshot })
     }
 
+    const prefillPhone = isRegistration && registrationSnapshot 
+      ? `${registrationSnapshot.countryCode || "+91"}${registrationSnapshot.phoneNumber}`
+      : user?.phoneNumber || ""
+    const prefillEmail = isRegistration && registrationSnapshot
+      ? registrationSnapshot.email
+      : user?.email || ""
+
     setPendingPayment({
       planId: plan._id,
       planName: plan.name,
@@ -375,6 +384,8 @@ export function JoinMembershipModal({
       referralPhone: validReferral,
       isUpgrade,
       isRegistration,
+      prefillPhone,
+      prefillEmail,
     })
   }
 
@@ -418,7 +429,11 @@ export function JoinMembershipModal({
               JSON.stringify({ clubId, membershipPlanId: selectedPlan._id, returnPath: returnPath || window.location.pathname })
             )
           } catch (_) {}
-          router.push(`/login?next=${encodeURIComponent(returnPath || window.location.pathname)}`)
+          const utm = typeof window !== "undefined" ? sessionStorage.getItem("utm_source") : null
+          const nextUrl = utm
+            ? `/login?next=${encodeURIComponent(returnPath || window.location.pathname)}&utm_source=${encodeURIComponent(utm)}`
+            : `/login?next=${encodeURIComponent(returnPath || window.location.pathname)}`
+          router.push(nextUrl)
           return
         }
         startPayment({ plan: selectedPlan, baseAmount: selectedPlan.price, isRegistration: true, registrationSnapshot: registrationData })
@@ -441,7 +456,11 @@ export function JoinMembershipModal({
           toast.success("Successfully joined the club!")
           onOpenChange(false)
           await checkAuth()
-          router.push("/dashboard/user/my-clubs")
+          const utm = typeof window !== "undefined" ? sessionStorage.getItem("utm_source") : null
+          const dest = utm
+            ? `/dashboard/user/my-clubs?utm_source=${encodeURIComponent(utm)}`
+            : "/dashboard/user/my-clubs"
+          router.push(dest)
         } else {
           toast.error(subscribeRes.error || "Failed to join club after registration")
         }
@@ -492,7 +511,11 @@ export function JoinMembershipModal({
         toast.success(upgraded ? "Membership upgraded successfully!" : "Membership activated successfully!")
         onOpenChange(false)
         await checkAuth()
-        router.push("/dashboard/user/my-clubs")
+        const utm = typeof window !== "undefined" ? sessionStorage.getItem("utm_source") : null
+        const dest = utm
+          ? `/dashboard/user/my-clubs?utm_source=${encodeURIComponent(utm)}`
+          : "/dashboard/user/my-clubs"
+        router.push(dest)
       } else {
         toast.error(response.error || "Failed to activate membership")
       }
@@ -540,7 +563,11 @@ export function JoinMembershipModal({
         setPendingRegistrationData(null)
         onOpenChange(false)
         await checkAuth()
-        router.push("/dashboard/user/my-clubs")
+        const utm = typeof window !== "undefined" ? sessionStorage.getItem("utm_source") : null
+        const dest = utm
+          ? `/dashboard/user/my-clubs?utm_source=${encodeURIComponent(utm)}`
+          : "/dashboard/user/my-clubs"
+        router.push(dest)
       } else {
         toast.error(response.error || "Failed to activate membership after payment")
       }
@@ -565,20 +592,20 @@ export function JoinMembershipModal({
     return (
     <div className="rounded-xl border border-secondary/20 bg-slate-50/50 p-4 space-y-2 text-slate-800">
       <div className="flex items-center gap-1.5">
-        <Label htmlFor="join-referralPhone" className="text-sm font-medium">
+        <Label htmlFor="join-referralPhone" className="text-secondary text-[10px] font-bold tracking-widest uppercase">
           Referral Mobile Number
         </Label>
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+              <Info className="h-3.5 w-3.5 text-secondary cursor-help" />
             </TooltipTrigger>
-            <TooltipContent className="max-w-xs">
+            <TooltipContent className="max-w-xs bg-secondary text-white border-none rounded-xl">
               Enter the registered mobile number of the member who referred you to earn them points!
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
-        <span className="text-xs text-muted-foreground">(Optional)</span>
+        <span className="text-xs text-slate-500">(Optional)</span>
       </div>
       <div className="relative">
         <Input
@@ -588,7 +615,7 @@ export function JoinMembershipModal({
           value={referralPhone}
           onChange={(e) => setReferralPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
           className={cn(
-            "h-12 pr-10",
+            "h-12 pr-10 rounded-xl border-secondary bg-white text-black placeholder:text-slate-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary",
             referralStatus === "found" && "border-green-500",
             (referralStatus === "not-found" || referralStatus === "not-member" || referralStatus === "self") && "border-amber-400"
           )}
@@ -596,7 +623,7 @@ export function JoinMembershipModal({
           inputMode="numeric"
         />
         <div className="absolute right-3 top-1/2 -translate-y-1/2">
-          {referralStatus === "checking" && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+          {referralStatus === "checking" && <Loader2 className="h-4 w-4 animate-spin text-slate-500" />}
           {referralStatus === "found" && <UserCheck className="h-4 w-4 text-green-600" />}
           {(referralStatus === "not-found" || referralStatus === "not-member" || referralStatus === "self") && (
             <AlertTriangle className="h-4 w-4 text-amber-500" />
@@ -627,26 +654,26 @@ export function JoinMembershipModal({
   const renderCurrentMembershipBanner = () => {
     if (mode !== "upgrade" || !currentMembership || !currentPlanDetails) return null
     return (
-      <div className="shrink-0 px-6 pb-4">
-        <Card className="border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/40">
+      <div className="shrink-0 px-6 pb-4 pt-4 bg-white">
+        <Card className="border-green-200 bg-green-50 text-green-900 rounded-xl">
           <CardContent className="pt-4 pb-4 space-y-2">
             <div className="flex items-center gap-2 text-sm">
               <Check className="w-4 h-4 text-green-600 shrink-0" />
-              <span className="font-semibold text-green-900 dark:text-green-100">
+              <span className="font-semibold text-green-900">
                 Current Plan: {currentPlanDetails.name} — {formatPrice(currentPlanDetails.price, currentPlanDetails.currency)}
               </span>
             </div>
             {getMembershipStartDate(currentMembership) && (
-              <p className="text-xs text-green-800 dark:text-green-300 ml-6">
+              <p className="text-xs text-green-800 ml-6">
                 Member since {formatDisplayDate(getMembershipStartDate(currentMembership))}
               </p>
             )}
             {getMembershipEndDate(currentMembership) ? (
-              <p className="text-xs text-green-800 dark:text-green-300 ml-6">
+              <p className="text-xs text-green-800 ml-6">
                 Active until {formatDisplayDate(getMembershipEndDate(currentMembership))}. Choose a higher-tier plan below to upgrade.
               </p>
             ) : (
-              <p className="text-xs text-green-800 dark:text-green-300 ml-6">
+              <p className="text-xs text-green-800 ml-6">
                 Active (lifetime). Choose a higher-tier plan below to upgrade.
               </p>
             )}
@@ -662,19 +689,19 @@ export function JoinMembershipModal({
 
     return (
     <div className="space-y-2">
-      <Label htmlFor="membership-plan">
+      <Label htmlFor="membership-plan" className="text-secondary text-[10px] font-bold tracking-widest uppercase">
         {mode === "upgrade" ? "Upgrade To" : "Membership Plan"}
       </Label>
       {mode === "upgrade" && selectablePlans.length === 0 ? (
-        <p className="text-sm text-muted-foreground rounded-lg border border-dashed p-4 text-center">
+        <p className="text-sm text-slate-500 rounded-xl border border-dashed border-secondary/30 p-4 text-center">
           No higher-tier plans are available right now. You are already on the best available plan.
         </p>
       ) : (
       <Select value={selectedPlanId} onValueChange={setSelectedPlanId}>
-        <SelectTrigger id="membership-plan">
+        <SelectTrigger id="membership-plan" className="border-secondary rounded-xl bg-white text-black focus:ring-0 focus:ring-offset-0 focus:border-primary focus-visible:ring-0 focus-visible:ring-offset-0">
           <SelectValue placeholder="Select a plan" />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="bg-white text-black border-secondary">
           {selectablePlans.map((plan) => {
             const disabled = isPlanDisabled(plan)
             const salesState = getPlanSalesState(plan)
@@ -694,21 +721,21 @@ export function JoinMembershipModal({
   const renderPlanSummary = () => {
     if (!selectedPlan || (mode === "upgrade" && isCurrentPlan(selectedPlan))) return null
     return (
-      <div className="rounded-lg border-2 border-primary/30 bg-muted/70 p-4 shadow-sm space-y-2">
-        <h4 className="flex items-center gap-2 text-sm font-semibold">
-          <Award className="h-4 w-4 shrink-0" style={{ color: primaryColor }} />
-          Selected Plan: <span style={{ color: primaryColor }}>{selectedPlan.name}</span>
+      <div className="rounded-xl border border-secondary/20 bg-slate-50/50 p-4 shadow-sm space-y-2 text-slate-800">
+        <h4 className="flex items-center gap-2 text-sm font-semibold text-secondary">
+          <Award className="h-4 w-4 shrink-0 text-primary" />
+          Selected Plan: <span className="text-primary">{selectedPlan.name}</span>
         </h4>
         <div className="space-y-1 text-sm">
           <div className="flex justify-between gap-4">
-            <span className="text-muted-foreground">Price:</span>
-            <span className="font-semibold" style={{ color: primaryColor }}>
+            <span className="text-slate-500">Price:</span>
+            <span className="font-semibold text-primary">
               {formatPrice(selectedPlan.price, selectedPlan.currency)}
             </span>
           </div>
           <div className="flex justify-between gap-4">
-            <span className="text-muted-foreground">Duration:</span>
-            <span className="font-medium">{formatPlanPeriod(selectedPlan)}</span>
+            <span className="text-slate-500">Duration:</span>
+            <span className="font-medium text-slate-700">{formatPlanPeriod(selectedPlan)}</span>
           </div>
         </div>
       </div>
@@ -741,15 +768,15 @@ export function JoinMembershipModal({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="flex max-h-[90vh] max-w-full flex-col overflow-hidden p-0 sm:max-w-2xl">
-          <DialogHeader className="shrink-0 px-6 pt-6">
-            <DialogTitle className="flex items-center gap-2">
-              <div className="rounded-lg p-2" style={{ backgroundColor: primaryColor }}>
+        <DialogContent className="flex max-h-[90vh] w-[92vw] max-w-[360px] sm:w-full sm:max-w-2xl flex-col overflow-hidden p-0 !rounded-2xl sm:!rounded-2xl border-0 shadow-2xl bg-white public-theme">
+          <DialogHeader className="shrink-0 px-6 py-6 bg-secondary text-white relative rounded-t-2xl">
+            <DialogTitle className="flex items-center gap-2 text-white font-black text-2xl">
+              <div className="rounded-lg p-2 bg-white/10">
                 <Users className="w-5 h-5 text-white" />
               </div>
               {dialogTitle}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-white/80 text-sm mt-1">
               {mode === "register" ? (
                 selectedPlan.price > 0
                   ? "Fill your details, then complete payment to create your account and activate membership."
@@ -764,77 +791,77 @@ export function JoinMembershipModal({
 
           {renderCurrentMembershipBanner()}
 
-          <div className="flex-1 overflow-y-auto px-6 pb-6">
+          <div className="flex-1 overflow-y-auto px-6 pb-6 pt-6 bg-white space-y-5 text-slate-800">
             {mode === "register" ? (
               <form onSubmit={handleRegistration} className="space-y-4">
                 {renderPlanSelector()}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="username">Username</Label>
-                    <Input id="username" value={registrationData.username} onChange={(e) => setRegistrationData({ ...registrationData, username: e.target.value })} required className="h-12" />
+                    <Label htmlFor="username" className="text-secondary text-[10px] font-bold tracking-widest uppercase">Username <span className="text-primary ml-0.5">*</span></Label>
+                    <Input id="username" value={registrationData.username} onChange={(e) => setRegistrationData({ ...registrationData, username: e.target.value })} required className="h-12 rounded-xl border-secondary bg-white text-black placeholder:text-slate-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="first_name">First Name</Label>
-                    <Input id="first_name" value={registrationData.first_name} onChange={(e) => setRegistrationData({ ...registrationData, first_name: e.target.value })} required className="h-12" />
+                    <Label htmlFor="first_name" className="text-secondary text-[10px] font-bold tracking-widest uppercase">First Name <span className="text-primary ml-0.5">*</span></Label>
+                    <Input id="first_name" value={registrationData.first_name} onChange={(e) => setRegistrationData({ ...registrationData, first_name: e.target.value })} required className="h-12 rounded-xl border-secondary bg-white text-black placeholder:text-slate-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="last_name">Last Name</Label>
-                    <Input id="last_name" value={registrationData.last_name} onChange={(e) => setRegistrationData({ ...registrationData, last_name: e.target.value })} required className="h-12" />
+                    <Label htmlFor="last_name" className="text-secondary text-[10px] font-bold tracking-widest uppercase">Last Name <span className="text-primary ml-0.5">*</span></Label>
+                    <Input id="last_name" value={registrationData.last_name} onChange={(e) => setRegistrationData({ ...registrationData, last_name: e.target.value })} required className="h-12 rounded-xl border-secondary bg-white text-black placeholder:text-slate-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="date_of_birth">Date of Birth</Label>
-                    <Input id="date_of_birth" type="date" value={registrationData.date_of_birth} onChange={(e) => setRegistrationData({ ...registrationData, date_of_birth: e.target.value })} className="h-12" />
+                    <Label htmlFor="date_of_birth" className="text-secondary text-[10px] font-bold tracking-widest uppercase">Date of Birth <span className="text-primary ml-0.5">*</span></Label>
+                    <Input id="date_of_birth" type="date" value={registrationData.date_of_birth} onChange={(e) => setRegistrationData({ ...registrationData, date_of_birth: e.target.value })} required className="h-12 rounded-xl border-secondary bg-white text-black placeholder:text-slate-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="gender">Gender</Label>
-                    <select id="gender" value={registrationData.gender} onChange={(e) => setRegistrationData({ ...registrationData, gender: e.target.value })} className="w-full h-12 rounded-md border px-3 bg-background">
+                    <Label htmlFor="gender" className="text-secondary text-[10px] font-bold tracking-widest uppercase">Gender <span className="text-primary ml-0.5">*</span></Label>
+                    <select id="gender" value={registrationData.gender} onChange={(e) => setRegistrationData({ ...registrationData, gender: e.target.value })} required className="w-full h-12 rounded-xl border border-secondary px-3 bg-white text-black focus:outline-none focus:border-primary">
                       <option value="male">Male</option>
                       <option value="female">Female</option>
                       <option value="non-binary">Non-binary</option>
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email Address</Label>
-                    <Input id="email" type="email" value={registrationData.email} onChange={(e) => setRegistrationData({ ...registrationData, email: e.target.value })} required className="h-12" />
+                    <Label htmlFor="email" className="text-secondary text-[10px] font-bold tracking-widest uppercase">Email Address <span className="text-primary ml-0.5">*</span></Label>
+                    <Input id="email" type="email" value={registrationData.email} onChange={(e) => setRegistrationData({ ...registrationData, email: e.target.value })} required className="h-12 rounded-xl border-secondary bg-white text-black placeholder:text-slate-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary" />
                   </div>
                   <div className="sm:col-span-2 grid grid-cols-[7rem_1fr] gap-3">
                     <div className="space-y-2">
-                      <Label htmlFor="countryCode">Country Code</Label>
-                      <Input id="countryCode" value={registrationData.countryCode} onChange={(e) => setRegistrationData({ ...registrationData, countryCode: e.target.value })} required className="h-12" />
+                      <Label htmlFor="countryCode" className="text-secondary text-[10px] font-bold tracking-widest uppercase">Country Code <span className="text-primary ml-0.5">*</span></Label>
+                      <Input id="countryCode" value={registrationData.countryCode} onChange={(e) => setRegistrationData({ ...registrationData, countryCode: e.target.value })} required className="h-12 rounded-xl border-secondary bg-white text-black placeholder:text-slate-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary" />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="phoneNumber">Phone Number</Label>
-                      <Input id="phoneNumber" type="tel" value={registrationData.phoneNumber} onChange={(e) => setRegistrationData({ ...registrationData, phoneNumber: e.target.value })} required className="h-12" />
+                      <Label htmlFor="phoneNumber" className="text-secondary text-[10px] font-bold tracking-widest uppercase">Phone Number <span className="text-primary ml-0.5">*</span></Label>
+                      <Input id="phoneNumber" type="tel" value={registrationData.phoneNumber} onChange={(e) => setRegistrationData({ ...registrationData, phoneNumber: e.target.value })} required className="h-12 rounded-xl border-secondary bg-white text-black placeholder:text-slate-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary" />
                       {registrationErrors.phoneNumber && <p className="text-destructive text-sm">{registrationErrors.phoneNumber}</p>}
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="address_line1">Address Line 1</Label>
-                    <Input id="address_line1" value={registrationData.address_line1} onChange={(e) => setRegistrationData({ ...registrationData, address_line1: e.target.value })} className="h-12" />
+                    <Label htmlFor="address_line1" className="text-secondary text-[10px] font-bold tracking-widest uppercase">Address Line 1 <span className="text-primary ml-0.5">*</span></Label>
+                    <Input id="address_line1" value={registrationData.address_line1} onChange={(e) => setRegistrationData({ ...registrationData, address_line1: e.target.value })} required className="h-12 rounded-xl border-secondary bg-white text-black placeholder:text-slate-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="address_line2">Address Line 2</Label>
-                    <Input id="address_line2" value={registrationData.address_line2} onChange={(e) => setRegistrationData({ ...registrationData, address_line2: e.target.value })} className="h-12" />
+                    <Label htmlFor="address_line2" className="text-secondary text-[10px] font-bold tracking-widest uppercase">Address Line 2</Label>
+                    <Input id="address_line2" value={registrationData.address_line2} onChange={(e) => setRegistrationData({ ...registrationData, address_line2: e.target.value })} className="h-12 rounded-xl border-secondary bg-white text-black placeholder:text-slate-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="city">City</Label>
-                    <Input id="city" value={registrationData.city} onChange={(e) => setRegistrationData({ ...registrationData, city: e.target.value })} className="h-12" />
+                    <Label htmlFor="city" className="text-secondary text-[10px] font-bold tracking-widest uppercase">City <span className="text-primary ml-0.5">*</span></Label>
+                    <Input id="city" value={registrationData.city} onChange={(e) => setRegistrationData({ ...registrationData, city: e.target.value })} required className="h-12 rounded-xl border-secondary bg-white text-black placeholder:text-slate-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="state_province">State / Province</Label>
-                    <Input id="state_province" value={registrationData.state_province} onChange={(e) => setRegistrationData({ ...registrationData, state_province: e.target.value })} className="h-12" />
+                    <Label htmlFor="state_province" className="text-secondary text-[10px] font-bold tracking-widest uppercase">State / Province <span className="text-primary ml-0.5">*</span></Label>
+                    <Input id="state_province" value={registrationData.state_province} onChange={(e) => setRegistrationData({ ...registrationData, state_province: e.target.value })} required className="h-12 rounded-xl border-secondary bg-white text-black placeholder:text-slate-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="zip_code">ZIP / Postal Code</Label>
-                    <Input id="zip_code" value={registrationData.zip_code} onChange={(e) => setRegistrationData({ ...registrationData, zip_code: e.target.value })} className="h-12" />
+                    <Label htmlFor="zip_code" className="text-secondary text-[10px] font-bold tracking-widest uppercase">ZIP / Postal Code <span className="text-primary ml-0.5">*</span></Label>
+                    <Input id="zip_code" value={registrationData.zip_code} onChange={(e) => setRegistrationData({ ...registrationData, zip_code: e.target.value })} required className="h-12 rounded-xl border-secondary bg-white text-black placeholder:text-slate-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="country">Country</Label>
-                    <Input id="country" value={registrationData.country} onChange={(e) => setRegistrationData({ ...registrationData, country: e.target.value })} className="h-12" />
+                    <Label htmlFor="country" className="text-secondary text-[10px] font-bold tracking-widest uppercase">Country <span className="text-primary ml-0.5">*</span></Label>
+                    <Input id="country" value={registrationData.country} onChange={(e) => setRegistrationData({ ...registrationData, country: e.target.value })} required className="h-12 rounded-xl border-secondary bg-white text-black placeholder:text-slate-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="id_proof_type">ID Proof Type</Label>
-                    <select id="id_proof_type" value={registrationData.id_proof_type} onChange={(e) => setRegistrationData({ ...registrationData, id_proof_type: e.target.value })} className="w-full h-12 rounded-md border px-3 bg-background">
+                    <Label htmlFor="id_proof_type" className="text-secondary text-[10px] font-bold tracking-widest uppercase">ID Proof Type <span className="text-primary ml-0.5">*</span></Label>
+                    <select id="id_proof_type" value={registrationData.id_proof_type} onChange={(e) => setRegistrationData({ ...registrationData, id_proof_type: e.target.value })} required className="w-full h-12 rounded-xl border border-secondary px-3 bg-white text-black focus:outline-none focus:border-primary">
                       <option value="Aadhar">Aadhar</option>
                       <option value="Voter ID">Voter ID</option>
                       <option value="Passport">Passport</option>
@@ -843,13 +870,13 @@ export function JoinMembershipModal({
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="id_proof_number">ID Proof Number</Label>
-                    <Input id="id_proof_number" value={registrationData.id_proof_number} onChange={(e) => setRegistrationData({ ...registrationData, id_proof_number: e.target.value })} className="h-12" />
+                    <Label htmlFor="id_proof_number" className="text-secondary text-[10px] font-bold tracking-widest uppercase">ID Proof Number <span className="text-primary ml-0.5">*</span></Label>
+                    <Input id="id_proof_number" value={registrationData.id_proof_number} onChange={(e) => setRegistrationData({ ...registrationData, id_proof_number: e.target.value })} required className="h-12 rounded-xl border-secondary bg-white text-black placeholder:text-slate-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary" />
                   </div>
                 </div>
                 {renderReferralField()}
                 {renderPlanSummary()}
-                <Button type="submit" disabled={isProcessing} className="w-full h-12 font-bold" style={{ backgroundColor: primaryColor, color: "white" }}>
+                <Button type="submit" disabled={isProcessing} className="w-full h-12 font-bold bg-primary hover:bg-[#FF7E4A] hover:shadow-[0_8px_20px_#FF5C1A6B] text-white rounded-xl transition-all duration-300 active:scale-95 mt-4">
                   {isProcessing ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Processing...</> : getActionLabel()}
                 </Button>
               </form>
@@ -859,8 +886,7 @@ export function JoinMembershipModal({
                 {renderPlanSummary()}
                 {renderReferralField()}
                 <Button
-                  className="w-full h-12 font-bold"
-                  style={{ backgroundColor: primaryColor, color: "white" }}
+                  className="w-full h-12 font-bold bg-primary hover:bg-[#FF7E4A] hover:shadow-[0_8px_20px_#FF5C1A6B] text-white rounded-xl transition-all duration-300 active:scale-95"
                   onClick={handleSubscribeOrUpgrade}
                   disabled={actionDisabled}
                 >
@@ -906,6 +932,8 @@ export function JoinMembershipModal({
                 : `Complete payment for ${pendingPayment.planName}`
           }
           payButtonLabel="Pay & activate"
+          prefillPhone={pendingPayment.prefillPhone}
+          prefillEmail={pendingPayment.prefillEmail}
         />
       )}
     </>

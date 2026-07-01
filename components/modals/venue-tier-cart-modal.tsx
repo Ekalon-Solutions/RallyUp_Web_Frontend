@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
@@ -148,6 +148,8 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
   const [couponDiscount, setCouponDiscount] = useState(0)
   const [couponName, setCouponName] = useState("")
   const [validatingCoupon, setValidatingCoupon] = useState(false)
+  const [isAutoApplied, setIsAutoApplied] = useState(false)
+  const [autoCouponRemoved, setAutoCouponRemoved] = useState(false)
   const [redeemPoints, setRedeemPoints] = useState<number | string>("")
   const [reservationToken, setReservationToken] = useState<string | null>(null)
   const [reservedDiscount, setReservedDiscount] = useState(0)
@@ -208,6 +210,8 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
       setCouponApplied(false)
       setCouponDiscount(0)
       setCouponName("")
+      setIsAutoApplied(false)
+      setAutoCouponRemoved(false)
       setRedeemPoints("")
       setReservationToken(null)
       setReservedDiscount(0)
@@ -411,6 +415,73 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
   const isPaidCheckout = event ? isEventPaid(event) : false
   const refundPolicy = useCheckoutRefundPolicy(checkoutEventId, isOpen, isPaidCheckout)
 
+  const triggerAutoCouponApply = useCallback(async (currentSubtotal: number, phoneNumber?: string, emailAddress?: string) => {
+    if (autoCouponRemoved) return
+
+    const searchPhone = phoneNumber || primaryPhone || user?.phoneNumber || localStorage.getItem("rallyup_verified_guest_phone") || ""
+    const searchEmail = emailAddress || guestEmail || user?.email || ""
+    const clubId = event?.clubId || (event as any)?.club?._id
+
+    if (!clubId || (!searchPhone && !searchEmail)) return
+    if (currentSubtotal <= 0) return
+
+    try {
+      const res = await apiClient.getHighestEligibleAutoCoupon({
+        clubId,
+        phone: searchPhone || undefined,
+        email: searchEmail || undefined,
+        cartSubtotal: currentSubtotal,
+        eventId: event?._id || undefined
+      })
+
+      if (res.success && res.data?.coupon) {
+        const autoC = res.data.coupon
+        setCouponDiscount(autoC.discount)
+        setCouponName(autoC.name)
+        setLocalCouponCode(autoC.code)
+        setCouponApplied(true)
+        setIsAutoApplied(true)
+      } else {
+        if (isAutoApplied) {
+          setLocalCouponCode("")
+          setCouponApplied(false)
+          setCouponDiscount(0)
+          setCouponName("")
+          setIsAutoApplied(false)
+        }
+      }
+    } catch (err) {
+      console.error("Auto coupon fetch error:", err)
+    }
+  }, [autoCouponRemoved, user, primaryPhone, guestEmail, event, isAutoApplied])
+
+  useEffect(() => {
+    if (isOpen) {
+      const storedPhone = localStorage.getItem("rallyup_verified_guest_phone") || ""
+      triggerAutoCouponApply(subtotal, storedPhone)
+    }
+  }, [isOpen, triggerAutoCouponApply])
+
+  useEffect(() => {
+    if (isOpen && (primaryPhone || guestEmail || subtotal)) {
+      const delayDebounceFn = setTimeout(() => {
+        triggerAutoCouponApply(subtotal)
+      }, 500)
+      return () => clearTimeout(delayDebounceFn)
+    }
+  }, [primaryPhone, guestEmail, subtotal, isOpen, triggerAutoCouponApply])
+
+  const handleRemoveCoupon = () => {
+    setCouponApplied(false)
+    setLocalCouponCode("")
+    setCouponDiscount(0)
+    setCouponName("")
+    setIsAutoApplied(false)
+    setAutoCouponRemoved(true)
+    toast.info("Coupon removed")
+  }
+
+
   if (!event || !isOpen) return null
   if (!isSimpleEvent && !venues.length) return null
 
@@ -552,7 +623,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         countryCode,
         otp: memberLoginOtp,
         role: 'user',
-        sessionInfo: memberLoginSessionInfo,
+        sessionInfo: memberLoginSessionInfo || undefined,
       })
       if (!res.success) {
         toast.error(res.message || res.error || 'Invalid or expired code')
@@ -710,7 +781,10 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
       })
       if (res.success && res.data?.verified) {
         setOtpVerified(true)
+        localStorage.setItem("rallyup_verified_guest_phone", digits)
+        localStorage.setItem("rallyup_verified_guest_country_code", countryCode)
         toast.success('Phone number verified')
+        void triggerAutoCouponApply(subtotal, digits)
 
         const prefillName = (guestMemberInfo?.isMember && guestMemberInfo?.memberName)
           ? guestMemberInfo.memberName
@@ -2211,12 +2285,28 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
                     </div>
 
                     {couponApplied && couponDiscount > 0 && (
-                      <div className="flex justify-between text-green-600">
-                        <span className="flex items-center gap-1">
-                          <Tag className="w-3.5 h-3.5" />
-                          Coupon ({couponName || localCouponCode})
-                        </span>
-                        <span>-{fmt(couponDiscount, currency)}</span>
+                      <div className="flex justify-between items-start text-green-600">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-1.5 font-medium">
+                            <Tag className="w-3.5 h-3.5" />
+                            <span>Coupon ({couponName || localCouponCode})</span>
+                          </div>
+                          {isAutoApplied && (
+                            <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                              <span className="bg-green-100 text-green-800 text-[10px] leading-4 px-1.5 py-0.5 rounded font-medium border border-green-200">
+                                Member Discount Auto-Applied
+                              </span>
+                              <button
+                                type="button"
+                                onClick={handleRemoveCoupon}
+                                className="text-[10px] leading-4 text-red-600 hover:text-red-800 font-semibold underline"
+                              >
+                                Remove/Change Code
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                        <span className="font-medium shrink-0">-{fmt(couponDiscount, currency)}</span>
                       </div>
                     )}
 
@@ -2310,7 +2400,14 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
                       <input
                         type="text"
                         value={localCouponCode}
-                        onChange={(e) => setLocalCouponCode(e.target.value.toUpperCase())}
+                        onChange={(e) => {
+                          const val = e.target.value.toUpperCase()
+                          setLocalCouponCode(val)
+                          if (!val && autoCouponRemoved) {
+                            setAutoCouponRemoved(false)
+                            triggerAutoCouponApply(subtotal)
+                          }
+                        }}
                         placeholder="Enter coupon code"
                         className="flex-1 h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
                         disabled={validatingCoupon}
@@ -2323,12 +2420,29 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
                   ) : (
                     <div className="flex items-center justify-between p-2.5 bg-green-500/10 border border-green-500 rounded-lg">
                       <div>
-                        <p className="font-semibold text-sm">{couponName}</p>
+                        <div className="font-semibold text-sm flex items-center gap-2 flex-wrap">
+                          <span>{couponName}</span>
+                          {isAutoApplied && (
+                            <span className="bg-green-100 text-green-800 text-[10px] leading-4 px-1.5 py-0.5 rounded font-medium border border-green-200">
+                              Member Discount Auto-Applied
+                            </span>
+                          )}
+                        </div>
                         <p className="text-muted-foreground text-xs">Code: {localCouponCode}</p>
                       </div>
-                      <Button variant="ghost" size="sm" onClick={() => { setCouponApplied(false); setLocalCouponCode(""); setCouponDiscount(0); setCouponName("") }} className="text-destructive hover:text-destructive">
-                        <X className="w-4 h-4" />
-                      </Button>
+                      {!isAutoApplied ? (
+                        <Button variant="ghost" size="sm" onClick={handleRemoveCoupon} className="text-destructive hover:text-destructive">
+                          <X className="w-4 h-4" />
+                        </Button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={handleRemoveCoupon}
+                          className="text-xs text-red-600 hover:text-red-800 font-semibold underline ml-2 shrink-0"
+                        >
+                          Remove/Change Code
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
