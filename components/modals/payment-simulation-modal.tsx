@@ -42,6 +42,8 @@ interface PaymentSimulationModalProps {
   dialogTitle?: string
   dialogDescription?: string
   payButtonLabel?: string
+  prefillPhone?: string
+  prefillEmail?: string
 }
 
 export function PaymentSimulationModal({ 
@@ -65,6 +67,8 @@ export function PaymentSimulationModal({
   dialogDescription,
   payButtonLabel,
   pointsDiscount,
+  prefillPhone,
+  prefillEmail,
 }: PaymentSimulationModalProps) {
   const { toast } = useToast()
   const [processing, setProcessing] = useState(false)
@@ -210,8 +214,8 @@ export function PaymentSimulationModal({
         },
         prefill: {
           name: '',
-          email: '',
-          contact: '',
+          email: prefillEmail || '',
+          contact: prefillPhone || '',
         },
         theme: {
           color: '#3b82f6',
