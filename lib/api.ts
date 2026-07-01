@@ -5118,27 +5118,6 @@ class ApiClient {
     });
   }
 
-  async getHighestEligibleAutoCoupon(data: {
-    clubId: string;
-    phone?: string;
-    email?: string;
-    cartSubtotal: number;
-    eventId?: string;
-  }): Promise<ApiResponse<{
-    coupon: {
-      code: string;
-      name: string;
-      discountType: 'flat' | 'percentage';
-      discountValue: number;
-      discount: number;
-    } | null;
-  }>> {
-    return this.request('/coupons/highest-eligible', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  }
-
   async getCouponStats(id: string, clubId?: string): Promise<ApiResponse<any>> {
     return this.get(`/coupons/${id}/stats`, { params: clubId ? { clubId } : undefined });
   }

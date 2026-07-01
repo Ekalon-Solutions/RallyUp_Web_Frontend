@@ -30,7 +30,6 @@ interface Coupon {
   applicableEvents?: string[]
   minPurchaseAmount?: number
   isActive: boolean
-  isAutoApply: boolean
   createdAt: string
   updatedAt: string
   createdBy?: {
@@ -398,16 +397,9 @@ export function CouponsTab({ clubId }: CouponsTabProps) {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <div className="flex flex-col gap-1 items-start">
-                            <Badge className={eligibility.color}>
-                              {eligibility.label}
-                            </Badge>
-                            {coupon.isAutoApply && (
-                              <Badge className="bg-purple-100 text-purple-800 border-purple-200 text-[10px] leading-3 font-normal mt-1">
-                                Auto-Apply
-                              </Badge>
-                            )}
-                          </div>
+                          <Badge className={eligibility.color}>
+                            {eligibility.label}
+                          </Badge>
                         </TableCell>
                         <TableCell>
                           <div className="text-xs">

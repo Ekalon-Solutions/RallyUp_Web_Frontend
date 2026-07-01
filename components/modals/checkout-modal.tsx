@@ -160,8 +160,6 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
   const [couponCode, setCouponCode] = useState("")
   const [validatingCoupon, setValidatingCoupon] = useState(false)
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null)
-  const [isAutoApplied, setIsAutoApplied] = useState(false)
-  const [autoCouponRemoved, setAutoCouponRemoved] = useState(false)
 
   const currency = items.length > 0 ? (items[0].currency || 'INR') : 'INR'
 
@@ -185,70 +183,6 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
     }).format(amount)
   }
 
-  const triggerAutoCouponApply = useCallback(async (phoneNumber?: string, emailAddress?: string) => {
-    if (autoCouponRemoved) return
-
-    const searchPhone = phoneNumber || orderForm.phone || user?.phoneNumber || localStorage.getItem("rallyup_verified_guest_phone") || ""
-    const searchEmail = emailAddress || orderForm.email || user?.email || ""
-    const clubId = items.length > 0 ? (typeof items[0]?.club === 'string' ? items[0].club : items[0]?.club?._id) : null
-
-    if (!clubId || (!searchPhone && !searchEmail)) return
-
-    try {
-      const res = await apiClient.getHighestEligibleAutoCoupon({
-        clubId,
-        phone: searchPhone || undefined,
-        email: searchEmail || undefined,
-        cartSubtotal: totalPrice,
-      })
-
-      if (res.success && res.data?.coupon) {
-        const autoC = res.data.coupon
-        setAppliedCoupon({
-          code: autoC.code,
-          name: autoC.name,
-          discountType: autoC.discountType,
-          discountValue: autoC.discountValue,
-          discount: autoC.discount,
-          originalPrice: totalPrice,
-          finalPrice: Math.max(0, totalPrice - autoC.discount)
-        })
-        setIsAutoApplied(true)
-      } else {
-        if (isAutoApplied) {
-          setAppliedCoupon(null)
-          setIsAutoApplied(false)
-        }
-      }
-    } catch (err) {
-      console.error("Auto coupon fetch error:", err)
-    }
-  }, [autoCouponRemoved, orderForm.phone, orderForm.email, user, items, totalPrice, isAutoApplied])
-
-  useEffect(() => {
-    if (isOpen) {
-      const storedPhone = localStorage.getItem("rallyup_verified_guest_phone") || ""
-      const storedCountry = localStorage.getItem("rallyup_verified_guest_country_code") || "+91"
-      if (storedPhone && !orderForm.phone) {
-        setOrderForm(prev => ({
-          ...prev,
-          phone: prev.phone || `${storedCountry} ${storedPhone}`.trim()
-        }))
-      }
-      triggerAutoCouponApply(storedPhone)
-    }
-  }, [isOpen, triggerAutoCouponApply])
-
-  useEffect(() => {
-    if (isOpen && (orderForm.phone || orderForm.email)) {
-      const delayDebounceFn = setTimeout(() => {
-        triggerAutoCouponApply()
-      }, 500)
-      return () => clearTimeout(delayDebounceFn)
-    }
-  }, [orderForm.phone, orderForm.email, isOpen, triggerAutoCouponApply])
-
-
   useEffect(() => {
     if (!isOpen) {
       if (reservationToken) {
@@ -259,8 +193,6 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
       setRedeemPoints(0)
       setReservationToken(null)
       setReservedDiscount(0)
-      setIsAutoApplied(false)
-      setAutoCouponRemoved(false)
     }
   }, [isOpen])
 
@@ -436,8 +368,6 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
   const handleRemoveCoupon = () => {
     setAppliedCoupon(null)
     setCouponCode("")
-    setIsAutoApplied(false)
-    setAutoCouponRemoved(true)
     toast.info("Coupon removed")
   }
 
@@ -1199,14 +1129,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                         <Input
                           placeholder="Enter coupon code"
                           value={couponCode}
-                          onChange={(e) => {
-                            const val = e.target.value.toUpperCase()
-                            setCouponCode(val)
-                            if (!val && autoCouponRemoved) {
-                              setAutoCouponRemoved(false)
-                              triggerAutoCouponApply()
-                            }
-                          }}
+                          onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
                           disabled={validatingCoupon}
                           className="font-mono flex-1"
                           onKeyDown={(e) => {
@@ -1234,38 +1157,21 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                         <div className="flex items-center gap-2">
                           <CheckCircle className="w-5 h-5 text-green-600" />
                           <div>
-                            <div className="font-medium text-green-900 flex items-center gap-2 flex-wrap">
-                              <span>{appliedCoupon.name}</span>
-                              {isAutoApplied && (
-                                <span className="bg-green-100 text-green-800 text-[10px] leading-4 px-1.5 py-0.5 rounded font-medium border border-green-200">
-                                  Member Discount Auto-Applied
-                                </span>
-                              )}
-                            </div>
+                            <div className="font-medium text-green-900">{appliedCoupon.name}</div>
                             <div className="text-sm text-green-700">
                               Code: <code className="font-mono font-semibold">{appliedCoupon.code}</code>
                             </div>
                           </div>
                         </div>
-                        {!isAutoApplied ? (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleRemoveCoupon}
-                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={handleRemoveCoupon}
-                            className="text-xs text-red-600 hover:text-red-800 font-semibold underline ml-2 shrink-0"
-                          >
-                            Remove/Change Code
-                          </button>
-                        )}
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleRemoveCoupon}
+                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
                       </div>
                     )}
                   </CardContent>
@@ -1365,28 +1271,12 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                       </span>
                     </div>
                     {appliedCoupon && couponDiscount > 0 && (
-                      <div className="flex justify-between items-start text-green-600">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-1.5 font-medium">
-                            <Tag className="w-4 h-4" />
-                            <span>Coupon ({appliedCoupon.code})</span>
-                          </div>
-                          {isAutoApplied && (
-                            <div className="flex items-center gap-2 flex-wrap mt-0.5">
-                              <span className="bg-green-100 text-green-800 text-[10px] leading-4 px-1.5 py-0.5 rounded font-medium border border-green-200">
-                                Member Discount Auto-Applied
-                              </span>
-                              <button
-                                type="button"
-                                onClick={handleRemoveCoupon}
-                                className="text-[10px] leading-4 text-red-600 hover:text-red-800 font-semibold underline"
-                              >
-                                Remove/Change Code
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                        <span className="font-medium shrink-0">-{formatCurrency(couponDiscount, currency)}</span>
+                      <div className="flex justify-between text-green-600">
+                        <span className="flex items-center gap-1">
+                          <Tag className="w-4 h-4" />
+                          Coupon ({appliedCoupon.code})
+                        </span>
+                        <span>-{formatCurrency(couponDiscount, currency)}</span>
                       </div>
                     )}
                     {reservedDiscount > 0 && (
