@@ -5401,6 +5401,7 @@ class ApiClient {
     isInGlobalLeague: boolean;
     hasOptedOutGlobalLeagueSeason: boolean;
     season: string;
+    scoring?: { exact: number; close: number; correctOutcome: number; wrong: number };
   }>> {
     return this.request(`/gts/preferences?clubId=${encodeURIComponent(clubId)}`);
   }

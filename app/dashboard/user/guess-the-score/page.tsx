@@ -56,12 +56,22 @@ import { isPredictionDeadlinePassed, formatMatchDateTime, getMatchDeadline } fro
 /** Fallback fixture refresh (when socket is disconnected) – 10 minutes */
 const FIXTURE_REFRESH_MS = 10 * 60 * 1000
 
+interface GTSScoring {
+  exact: number
+  close: number
+  correctOutcome: number
+  wrong: number
+}
+
+const DEFAULT_SCORING: GTSScoring = { exact: 3, close: 1.5, correctOutcome: 1, wrong: 0 }
+
 interface GTSPreferences {
   hasAcceptedConsent: boolean
   isInClubLeague: boolean
   isInGlobalLeague: boolean
   hasOptedOutGlobalLeagueSeason: boolean
   season: string
+  scoring?: GTSScoring
 }
 
 const RESULT_META: Record<string, { label: string; pts: string; color: string; bg: string }> = {
@@ -846,14 +856,17 @@ export default function GuessTheScorePage() {
                       </div>
                     </div>
 
-                    {/* Scoring legend */}
+                    {/* Scoring legend — this season's point values */}
                     <div className="grid grid-cols-4 gap-1.5 mt-3">
-                      {[
-                        { pts: "3", label: "Exact", color: "text-green-600 dark:text-green-400" },
-                        { pts: "1.5", label: "Close", color: "text-blue-600 dark:text-blue-400" },
-                        { pts: "1", label: "Result", color: "text-yellow-600 dark:text-yellow-400" },
-                        { pts: "0", label: "Wrong", color: "text-muted-foreground" },
-                      ].map((s) => (
+                      {(() => {
+                        const sc = prefs.scoring ?? DEFAULT_SCORING
+                        return [
+                          { pts: String(sc.exact), label: "Exact", color: "text-green-600 dark:text-green-400" },
+                          { pts: String(sc.close), label: "Close", color: "text-blue-600 dark:text-blue-400" },
+                          { pts: String(sc.correctOutcome), label: "Result", color: "text-yellow-600 dark:text-yellow-400" },
+                          { pts: String(sc.wrong), label: "Wrong", color: "text-muted-foreground" },
+                        ]
+                      })().map((s) => (
                         <div key={s.label} className="rounded border p-1.5 text-center">
                           <p className={`text-sm font-bold ${s.color}`}>{s.pts}</p>
                           <p className="text-[10px] text-muted-foreground">{s.label}</p>
