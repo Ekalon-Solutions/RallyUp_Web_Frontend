@@ -71,78 +71,8 @@ export default function PPSAPage(): React.JSX.Element {
  and marketing, utilizing the tools provided by the Vendor.</li>
  </ul>
 
- <h2 className="text-xl font-semibold text-secondary">2. Subscription Tiers &amp; Commercials</h2>
- <p>
- The Club may select one of the following tiers based on their operational needs. All plans include the core
- Wingman Pro Dashboard (Member Database, Event Ticketing, Finance Module).
- </p>
 
- <div className="overflow-x-auto my-6">
- <table className="min-w-full border-collapse border border-border">
- <thead>
- <tr className="bg-secondary/30 /30">
- <th className="border border-border px-4 py-2 text-left">Plan Name</th>
- <th className="border border-border px-4 py-2 text-left">Monthly Subscription</th>
- <th className="border border-border px-4 py-2 text-left">Features Included</th>
- <th className="border border-border px-4 py-2 text-left">Best For</th>
- </tr>
- </thead>
- <tbody>
- <tr>
- <td className="border border-border px-4 py-2 font-medium">BASIC</td>
- <td className="border border-border px-4 py-2">FREE (₹0)</td>
- <td className="border border-border px-4 py-2">
- Full Dashboard Access, Core Member Management, Event Ticketing, Standard Support
- </td>
- <td className="border border-border px-4 py-2">New clubs starting their digital journey.</td>
- </tr>
- <tr>
- <td className="border border-border px-4 py-2 font-medium">PLUS</td>
- <td className="border border-border px-4 py-2">₹499 / month</td>
- <td className="border border-border px-4 py-2">Everything in Basic, Dedicated Group Website (SEO optimized landing page for your club)</td>
- <td className="border border-border px-4 py-2">Clubs wanting a professional web presence.</td>
- </tr>
- <tr>
- <td className="border border-border px-4 py-2 font-medium">SILVER</td>
- <td className="border border-border px-4 py-2">₹1,499 / month</td>
- <td className="border border-border px-4 py-2">Everything in Plus, Priority Managed Support*</td>
- <td className="border border-border px-4 py-2">Clubs that need hands-on help running operations.</td>
- </tr>
- <tr>
- <td className="border border-border px-4 py-2 font-medium">GOLD</td>
- <td className="border border-border px-4 py-2">₹1,699 / month</td>
- <td className="border border-border px-4 py-2">Everything in Plus, AI Chatbot Integration (Auto-answers member queries)</td>
- <td className="border border-border px-4 py-2">Clubs with high volume of member questions.</td>
- </tr>
- <tr>
- <td className="border border-border px-4 py-2 font-medium">PLATINUM</td>
- <td className="border border-border px-4 py-2">₹1,999 / month</td>
- <td className="border border-border px-4 py-2">Everything in Gold, Priority Managed Support*, AI Chatbot Integration</td>
- <td className="border border-border px-4 py-2">Large clubs wanting full automation and support.</td>
- </tr>
- </tbody>
- </table>
- </div>
-
- <p className="text-sm italic">
- *Definition of Priority Managed Support: Unlike standard support (technical fixes only), Priority Managed
- Support means we do the work for you. You do not need to create events or news posts manually. Send the
- details to your dedicated account manager, and RallyUp Solutions will handle the data entry, formatting, and
- publishing on your behalf.
- </p>
-
- <h2 className="text-xl font-semibold text-secondary">3. Transaction &amp; Processing Fees</h2>
- <p>
- Regardless of the Subscription Tier selected, the following &quot;Success Fees&quot; apply only when a transaction
- occurs (e.g., a member buys a ticket or pays a membership fee).
- </p>
- <ul className="list-disc pl-5 space-y-2">
- <li><strong>Platform Fee:</strong> 4.5% of the transaction value + GST.</li>
- <li><strong>Payment Gateway Fee:</strong> 2% of the transaction value + GST.</li>
- <li>Note: These fees are automatically deducted from the gross amount collected before settlement.</li>
- </ul>
-
- <h2 className="text-xl font-semibold text-secondary">4. Financial Settlement Terms</h2>
+ <h2 className="text-xl font-semibold text-secondary">2. Financial Settlement Terms</h2>
  <p>
  We understand that cash flow is critical for supporter clubs. The Partner may choose their preferred Payout
  Cycle for funds collected via the platform:
@@ -157,9 +87,9 @@ export default function PPSAPage(): React.JSX.Element {
  To change your settlement cycle, a written request to the Finance Team is required with 7 days&apos; notice.
  </p>
 
- <h2 className="text-xl font-semibold text-secondary">5. Operational Inclusions</h2>
+ <h2 className="text-xl font-semibold text-secondary">3. Operational Inclusions</h2>
 
- <h3 className="text-lg font-semibold text-secondary mt-4">5.1 Onboarding &amp; Training</h3>
+ <h3 className="text-lg font-semibold text-secondary mt-4">3.1 Onboarding &amp; Training</h3>
  <p>
  Every new Partner Club, regardless of Tier, is entitled to:
  </p>
@@ -168,19 +98,9 @@ export default function PPSAPage(): React.JSX.Element {
  <li><strong>Admin Training:</strong> A 60-minute virtual training session for the Club Committee (President, Treasurer, Admin) to master the dashboard.</li>
  </ul>
 
- <h3 className="text-lg font-semibold text-secondary mt-4">5.2 Subscription Billing Cycle</h3>
- <p>
- The Partner may choose to pay their Subscription Fee (Plus/Silver/Gold/Platinum) via:
- </p>
- <ul className="list-disc pl-5 space-y-2">
- <li><strong>Monthly:</strong> Billed via auto-debit on the 1st of the month.</li>
- <li><strong>Quarterly:</strong> Pre-paid every 3 months.</li>
- <li><strong>Annually:</strong> Pre-paid for 12 months (Eligible for 1 month free discount).</li>
- </ul>
+ <h2 className="text-xl font-semibold text-secondary">4. Cancellation &amp; Termination</h2>
 
- <h2 className="text-xl font-semibold text-secondary">6. Cancellation &amp; Termination</h2>
-
- <h3 className="text-lg font-semibold text-secondary mt-4">6.1 Notice Period</h3>
+ <h3 className="text-lg font-semibold text-secondary mt-4">4.1 Notice Period</h3>
  <p>
  The Partner implies a &quot;Vendor-Partner&quot; relationship that can be terminated by either party.
  </p>
@@ -189,13 +109,13 @@ export default function PPSAPage(): React.JSX.Element {
  <li><strong>Data Handover:</strong> Upon termination, RallyUp Solutions guarantees a full export of all Club Member Data (CSV/Excel) and financial transaction logs to the Club within 7 working days.</li>
  </ul>
 
- <h3 className="text-lg font-semibold text-secondary mt-4">6.2 Refund of Subscription</h3>
+ <h3 className="text-lg font-semibold text-secondary mt-4">4.2 Refund of Subscription</h3>
  <p>
  Subscription fees are non-refundable. If a cancellation request is made mid-month, the service will remain
  active until the end of the current billing cycle, after which no further charges will be levied.
  </p>
 
- <h2 className="text-xl font-semibold text-secondary">7. Acceptance of Terms</h2>
+ <h2 className="text-xl font-semibold text-secondary">5. Acceptance of Terms</h2>
  <p>
  By selecting a Plan on the Wingman Pro Dashboard, the Club agrees to the commercials and terms defined above
  and as agreed in the Master Service Agreement signed.
