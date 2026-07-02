@@ -3,7 +3,12 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { apiClient, User, Admin, SystemOwner } from '../lib/api';
 import { buildAccessibleClubs, reconcileActiveClubId } from '../lib/clubContext';
-import { clearFeatureCache, clearAllFeatureCaches } from '../lib/featureCacheStore';
+import { clearAllFeatureCaches } from '../lib/featureCacheStore';
+import {
+  clearAuthSessionCookie,
+  setAuthSessionCookie,
+  syncAuthSessionCookieFromStorage,
+} from '../lib/auth-session-cookie';
 
 interface AuthContextType {
   user: User | Admin | SystemOwner | null;
@@ -40,6 +45,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const token = localStorage.getItem('token');
     const userType = localStorage.getItem('userType');
     const savedClubId = localStorage.getItem('activeClubId');
+    syncAuthSessionCookieFromStorage();
     if (savedClubId && savedClubId !== activeClubId) {
       setActiveClubIdState(savedClubId);
       if (typeof window !== 'undefined') {
@@ -153,9 +159,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // console.log('Checking auth with token:', token ? 'exists' : 'missing', 'UserType:', userType);
 
       if (!token) {
+        clearAuthSessionCookie();
         setIsLoading(false);
         return;
       }
+
+      setAuthSessionCookie();
 
       let profileResponse = null;
 
@@ -239,11 +248,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       localStorage.removeItem('token');
       localStorage.removeItem('userType');
+      clearAuthSessionCookie();
       setUser(null);
     } catch (error) {
       // console.error('Auth check failed:', error);
       localStorage.removeItem('token');
       localStorage.removeItem('userType');
+      clearAuthSessionCookie();
       setUser(null);
     } finally {
       setIsLoading(false);
@@ -275,6 +286,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (response.success && response.data) {
         localStorage.setItem('token', (response.data as any).token);
+        setAuthSessionCookie();
         let userData: any;
 
         if (isSystemOwner) {
@@ -289,8 +301,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         setUser(userData);
-        // State reconciliation: bust the feature cache so the next render
-        // fetches fresh flags aligned with the current system configuration.
         clearAllFeatureCaches();
         const hydrated = await hydrateUserProfile({
           isAdmin,
@@ -323,6 +333,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (response.success && response.data) {
         const { token, accountType: switchedType, ...accountData } = response.data as any;
         localStorage.setItem('token', token);
+        setAuthSessionCookie();
 
         const isAdmin = switchedType === 'admin';
         const isSystemOwner = switchedType === 'system_owner';
@@ -366,6 +377,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (response.success && response.data) {
         localStorage.setItem('token', (response.data as any).token);
+        setAuthSessionCookie();
         let createdUserData;
 
         let userType: string;
@@ -407,7 +419,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem('activeClubId');
     localStorage.removeItem('hasSeenDashboardLogo');
     localStorage.removeItem('hasSeenUserDashboardLogo');
-    // Clear all signed feature caches so no stale data persists across sessions
+    clearAuthSessionCookie();
     clearAllFeatureCaches();
     setUser(null);
     setActiveClubIdState(null);

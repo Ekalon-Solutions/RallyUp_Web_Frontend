@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { AUTH_SESSION_COOKIE } from '@/lib/auth-session-cookie'
 
 const BLOCKED_USER_AGENTS = [
   'wget',
@@ -36,10 +37,16 @@ const ALLOWED_BOTS = [
 
 const requestCounts = new Map<string, { count: number; resetTime: number }>()
 
-const RATE_LIMIT = {
-  windowMs: 60 * 1000,
-  maxRequests: 100,
-}
+const RATE_LIMITS = {
+  default: {
+    windowMs: 60 * 1000,
+    maxRequests: 100,
+  },
+  dashboard: {
+    windowMs: 60 * 1000,
+    maxRequests: 400,
+  },
+} as const
 
 function isBlockedUserAgent(userAgent: string): boolean {
   const ua = userAgent.toLowerCase()
@@ -51,19 +58,32 @@ function isBlockedUserAgent(userAgent: string): boolean {
   return BLOCKED_USER_AGENTS.some(blocked => ua.includes(blocked))
 }
 
-function checkRateLimit(ip: string): boolean {
+function getClientIp(request: NextRequest): string {
+  const forwarded = request.headers.get('x-forwarded-for')
+  if (forwarded) {
+    return forwarded.split(',')[0]?.trim() || 'unknown'
+  }
+  return request.headers.get('x-real-ip') || 'unknown'
+}
+
+function checkRateLimit(
+  ip: string,
+  bucket: keyof typeof RATE_LIMITS,
+): boolean {
+  const { windowMs, maxRequests } = RATE_LIMITS[bucket]
+  const key = `${bucket}:${ip}`
   const now = Date.now()
-  const record = requestCounts.get(ip)
+  const record = requestCounts.get(key)
   
   if (!record || now > record.resetTime) {
-    requestCounts.set(ip, {
+    requestCounts.set(key, {
       count: 1,
-      resetTime: now + RATE_LIMIT.windowMs,
+      resetTime: now + windowMs,
     })
     return true
   }
   
-  if (record.count >= RATE_LIMIT.maxRequests) {
+  if (record.count >= maxRequests) {
     return false
   }
   
@@ -77,7 +97,6 @@ function hasValidBrowserHeaders(request: NextRequest): boolean {
   const hasAcceptLanguage = headers.has('accept-language')
   const hasAcceptEncoding = headers.has('accept-encoding')
   const hasAccept = headers.has('accept')
-  const hasDnt = headers.has('dnt') || headers.has('sec-fetch-site')
   
   return hasAcceptLanguage && hasAcceptEncoding && hasAccept
 }
@@ -104,13 +123,28 @@ function isSuspiciousRequest(request: NextRequest): boolean {
   return false
 }
 
-/** Only apply challenge redirect on authenticated/app areas — not the public marketing site. */
+function isAuthenticatedSession(request: NextRequest): boolean {
+  return request.cookies.get(AUTH_SESSION_COOKIE)?.value === '1'
+}
+
+function isNextJsNavigationRequest(request: NextRequest): boolean {
+  return (
+    request.headers.has('rsc') ||
+    request.headers.has('next-router-prefetch') ||
+    request.headers.get('purpose') === 'prefetch'
+  )
+}
+
 function isProtectedPath(pathname: string): boolean {
   return (
     pathname.startsWith('/dashboard') ||
     pathname.startsWith('/system-owner-login') ||
     pathname.startsWith('/admin')
   )
+}
+
+function isDashboardPath(pathname: string): boolean {
+  return pathname.startsWith('/dashboard')
 }
 
 const PUBLIC_BYPASS_PATHS = new Set([
@@ -139,7 +173,10 @@ export function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  if (request.cookies.get('verified')?.value === 'true') {
+  if (
+    request.cookies.get('verified')?.value === 'true' ||
+    isAuthenticatedSession(request)
+  ) {
     return applySecurityHeaders(NextResponse.next(), pathname)
   }
   
@@ -153,9 +190,7 @@ export function middleware(request: NextRequest) {
   }
   
   const userAgent = request.headers.get('user-agent') || ''
-  const ip = request.headers.get('x-forwarded-for') || 
-             request.headers.get('x-real-ip') || 
-             'unknown'
+  const ip = getClientIp(request)
   
   if (isBlockedUserAgent(userAgent)) {
     return new NextResponse('Access Denied', { status: 403 })
@@ -164,14 +199,18 @@ export function middleware(request: NextRequest) {
   if (isProtectedPath(pathname) && isSuspiciousRequest(request)) {
     return NextResponse.redirect(new URL('/challenge', request.url))
   }
-  
-  if (!checkRateLimit(ip)) {
-    return new NextResponse('Too Many Requests', { 
-      status: 429,
-      headers: {
-        'Retry-After': '60',
-      }
-    })
+
+  if (!isNextJsNavigationRequest(request)) {
+    const bucket = isDashboardPath(pathname) ? 'dashboard' : 'default'
+    if (!checkRateLimit(ip, bucket)) {
+      const retryAfterSec = Math.ceil(RATE_LIMITS[bucket].windowMs / 1000)
+      return new NextResponse('Too Many Requests', { 
+        status: 429,
+        headers: {
+          'Retry-After': String(retryAfterSec),
+        }
+      })
+    }
   }
   
   return applySecurityHeaders(NextResponse.next(), pathname)
