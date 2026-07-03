@@ -41,7 +41,7 @@ function renderRenewalStatusBadge(status: string) {
   return <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-0 font-medium">{status}</Badge>
 }
 
-interface MembershipRenewalRow extends Record<string, unknown> {
+interface MembershipExpiryRow extends Record<string, unknown> {
   id: string
   memberName: string
   email: string
@@ -57,13 +57,13 @@ interface PlanOption {
   name: string
 }
 
-export default function MembershipRenewalReportPage() {
-  const auth = useReportAuthorization("membership-renewals")
+export default function MembershipExpiryReportPage() {
+  const auth = useReportAuthorization("membership-expiry")
   const clubId = useRequiredClubId()
   const { selectedClubId, setSelectedClubId, isSystemOwner } = useSystemOwnerReportScope()
 
   const [loading, setLoading] = useState(true)
-  const [data, setData] = useState<MembershipRenewalRow[]>([])
+  const [data, setData] = useState<MembershipExpiryRow[]>([])
   const [pagination, setPagination] = useState<ReportPaginationMeta | undefined>()
   const [summaryData, setSummaryData] = useState({
     expiringSoon: 0,
@@ -107,7 +107,7 @@ export default function MembershipRenewalReportPage() {
 
       const res = await apiClient.getMembershipRenewalReport(queryParams)
       if (res.success && res.data) {
-        // Mandatory Pattern v1.2 data mapping
+        // Mandatory Pattern v1.2 data extraction
         const rawRows = Array.isArray(res.data.data) ? res.data.data : []
         setData(rawRows)
 
@@ -127,11 +127,11 @@ export default function MembershipRenewalReportPage() {
           }
         }
       } else {
-        toast.error(res.message || "Failed to load renewal report")
+        toast.error(res.message || "Failed to load membership expiry report")
         setData([])
       }
     } catch {
-      toast.error("Error loading membership renewal report")
+      toast.error("Error loading membership expiry report")
       setData([])
     } finally {
       setLoading(false)
@@ -164,7 +164,7 @@ export default function MembershipRenewalReportPage() {
       if (!res.success) {
         toast.error(res.error || "Export failed")
       } else {
-        toast.success(`Exported Membership Renewals as ${format.toUpperCase()}`)
+        toast.success(`Exported Membership Expiry as ${format.toUpperCase()}`)
       }
     } catch {
       toast.error("Export failed")
@@ -179,7 +179,7 @@ export default function MembershipRenewalReportPage() {
     )
   }
 
-  const columns: ReportColumn<MembershipRenewalRow>[] = [
+  const columns: ReportColumn<MembershipExpiryRow>[] = [
     {
       key: "memberName",
       header: "Member",
@@ -230,7 +230,7 @@ export default function MembershipRenewalReportPage() {
     },
     {
       key: "renewalStatus",
-      header: "Renewal Status",
+      header: "Status",
       accessor: (row) => renderRenewalStatusBadge(row.renewalStatus),
       width: "w-40",
     },
@@ -273,8 +273,8 @@ export default function MembershipRenewalReportPage() {
   return (
     <DashboardLayout>
       <ReportShell
-        title="Membership Expiry & Renewal Report"
-        description="Tracks upcoming membership expirations, recent renewals, churn risks, and overall renewal rates."
+        title="Membership Expiry Report"
+        description="Tracks upcoming membership expirations, days remaining, renewal rates, and churn risk levels."
         category="Lifecycle"
         actions={<ExportButton onExport={handleExport} disabled={loading || data.length === 0} />}
         filters={
@@ -326,7 +326,7 @@ export default function MembershipRenewalReportPage() {
           sort={sort}
           onSortChange={setSort}
           onPageChange={setPage}
-          emptyMessage="No membership renewal records found for the selected criteria."
+          emptyMessage="No membership expiry records found for the selected criteria."
         />
       </ReportShell>
     </DashboardLayout>
