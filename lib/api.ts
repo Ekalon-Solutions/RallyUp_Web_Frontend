@@ -3047,6 +3047,240 @@ class ApiClient {
     }
   }
 
+  async getEventTicketRefundsReport(params: Record<string, any>): Promise<ApiResponse> {
+    return this.get('/reports/revenue/event-ticket-refunds', { params });
+  }
+
+  async downloadEventTicketRefundsReport(params: Record<string, any>): Promise<{ success: boolean; error?: string }> {
+    try {
+      const format = params?.format === 'csv' ? 'csv' : 'xlsx';
+      const result = await this.downloadFile('/reports/revenue/event-ticket-refunds/export', { params });
+      if (!result.success) return { success: false, error: result.error };
+      const blob = result.blob as Blob;
+      const filename = result.filename || `event_ticket_refunds_${Date.now()}.${format}`;
+      triggerBlobDownload(blob, filename);
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error?.message || 'Failed to download Event Ticket Refunds report' };
+    }
+  }
+
+  async getExternalTicketReport(params: Record<string, any>): Promise<ApiResponse> {
+    return this.get('/reports/revenue/external-tickets', { params });
+  }
+
+  async downloadExternalTicketReport(params: Record<string, any>): Promise<{ success: boolean; error?: string }> {
+    try {
+      const format = params?.format === 'csv' ? 'csv' : 'xlsx';
+      const result = await this.downloadFile('/reports/revenue/external-tickets/export', { params });
+      if (!result.success) return { success: false, error: result.error };
+      const blob = result.blob as Blob;
+      const filename = result.filename || `external_tickets_${Date.now()}.${format}`;
+      triggerBlobDownload(blob, filename);
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error?.message || 'Failed to download External Ticket report' };
+    }
+  }
+
+  async getPickupDeliveryReport(params: Record<string, any>): Promise<ApiResponse> {
+    return this.get('/reports/logistics/pickup-delivery', { params });
+  }
+
+  async downloadPickupDeliveryReport(params: Record<string, any>): Promise<{ success: boolean; error?: string }> {
+    try {
+      const format = params?.format === 'csv' ? 'csv' : 'xlsx';
+      const result = await this.downloadFile('/reports/logistics/pickup-delivery/export', { params });
+      if (!result.success) return { success: false, error: result.error };
+      const blob = result.blob as Blob;
+      const filename = result.filename || `pickup_delivery_${Date.now()}.${format}`;
+      triggerBlobDownload(blob, filename);
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error?.message || 'Failed to download Pickup & Delivery report' };
+    }
+  }
+
+  async getFeatureSelectorReport(params: Record<string, any>): Promise<ApiResponse> {
+    return this.get('/reports/governance/feature-selector', { params });
+  }
+
+  async downloadFeatureSelectorReport(params: Record<string, any>): Promise<{ success: boolean; error?: string }> {
+    try {
+      const format = params?.format === 'csv' ? 'csv' : 'xlsx';
+      const result = await this.downloadFile('/reports/governance/feature-selector/export', { params });
+      if (!result.success) return { success: false, error: result.error };
+      const blob = result.blob as Blob;
+      const filename = result.filename || `feature_selector_${Date.now()}.${format}`;
+      triggerBlobDownload(blob, filename);
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error?.message || 'Failed to download Feature Selector report' };
+    }
+  }
+
+  async getElevateDemoteLogReport(params: Record<string, any>): Promise<ApiResponse> {
+    return this.get('/reports/governance/elevate-demote', { params });
+  }
+
+  async downloadElevateDemoteLogReport(params: Record<string, any>): Promise<{ success: boolean; error?: string }> {
+    try {
+      const format = params?.format === 'csv' ? 'csv' : 'xlsx';
+      const result = await this.downloadFile('/reports/governance/elevate-demote/export', { params });
+      if (!result.success) return { success: false, error: result.error };
+      const blob = result.blob as Blob;
+      const filename = result.filename || `elevate_demote_${Date.now()}.${format}`;
+      triggerBlobDownload(blob, filename);
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error?.message || 'Failed to download Elevate/Demote report' };
+    }
+  }
+
+  async getSubscriptionBillingReport(params: Record<string, any>): Promise<ApiResponse> {
+    return this.get('/reports/billing/subscription', { params });
+  }
+
+  async downloadSubscriptionBillingReport(params: Record<string, any>): Promise<{ success: boolean; error?: string }> {
+    try {
+      const format = params?.format === 'csv' ? 'csv' : 'xlsx';
+      const result = await this.downloadFile('/reports/billing/subscription/export', { params });
+      if (!result.success) return { success: false, error: result.error };
+      const blob = result.blob as Blob;
+      const filename = result.filename || `subscription_billing_${Date.now()}.${format}`;
+      triggerBlobDownload(blob, filename);
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error?.message || 'Failed to download Subscription Billing report' };
+    }
+  }
+
+  async getWhatsAppBillingReport(params: Record<string, any>): Promise<ApiResponse> {
+    return this.get('/reports/billing/whatsapp', { params });
+  }
+
+  async downloadWhatsAppBillingReport(params: Record<string, any>): Promise<{ success: boolean; error?: string }> {
+    try {
+      const format = params?.format === 'csv' ? 'csv' : 'xlsx';
+      const result = await this.downloadFile('/reports/billing/whatsapp/export', { params });
+      if (!result.success) return { success: false, error: result.error };
+      const blob = result.blob as Blob;
+      const filename = result.filename || `whatsapp_billing_${Date.now()}.${format}`;
+      triggerBlobDownload(blob, filename);
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error?.message || 'Failed to download WhatsApp Billing report' };
+    }
+  }
+
+  async getEventTicketSalesReport(params: Record<string, any>): Promise<ApiResponse> {
+    return this.get('/reports/revenue/event-ticket-sales', { params });
+  }
+
+  async downloadEventTicketSalesReport(params: Record<string, any>): Promise<{ success: boolean; error?: string }> {
+    try {
+      const format = params?.format === 'csv' ? 'csv' : 'xlsx';
+      const result = await this.downloadFile('/reports/revenue/event-ticket-sales/export', { params });
+      if (!result.success) return { success: false, error: result.error };
+      const blob = result.blob as Blob;
+      const filename = result.filename || `event_ticket_sales_${Date.now()}.${format}`;
+      triggerBlobDownload(blob, filename);
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error?.message || 'Failed to download Event Ticket Sales report' };
+    }
+  }
+
+  async getEventPassesScannedReport(params: Record<string, any>): Promise<ApiResponse> {
+    return this.get('/reports/events/passes-scanned', { params });
+  }
+
+  async downloadEventPassesScannedReport(params: Record<string, any>): Promise<{ success: boolean; error?: string }> {
+    try {
+      const format = params?.format === 'csv' ? 'csv' : 'xlsx';
+      const result = await this.downloadFile('/reports/events/passes-scanned/export', { params });
+      if (!result.success) return { success: false, error: result.error };
+      const blob = result.blob as Blob;
+      const filename = result.filename || `event_passes_scanned_${Date.now()}.${format}`;
+      triggerBlobDownload(blob, filename);
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error?.message || 'Failed to download Event Passes Scanned report' };
+    }
+  }
+
+  async getMerchandiseSalesReport(params: Record<string, any>): Promise<ApiResponse> {
+    return this.get('/reports/revenue/merchandise-sales', { params });
+  }
+
+  async downloadMerchandiseSalesReport(params: Record<string, any>): Promise<{ success: boolean; error?: string }> {
+    try {
+      const format = params?.format === 'csv' ? 'csv' : 'xlsx';
+      const result = await this.downloadFile('/reports/revenue/merchandise-sales/export', { params });
+      if (!result.success) return { success: false, error: result.error };
+      const blob = result.blob as Blob;
+      const filename = result.filename || `merchandise_sales_${Date.now()}.${format}`;
+      triggerBlobDownload(blob, filename);
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error?.message || 'Failed to download Merchandise Sales report' };
+    }
+  }
+
+  async getMerchandiseRefundsReport(params: Record<string, any>): Promise<ApiResponse> {
+    return this.get('/reports/revenue/merchandise-refunds', { params });
+  }
+
+  async downloadMerchandiseRefundsReport(params: Record<string, any>): Promise<{ success: boolean; error?: string }> {
+    try {
+      const format = params?.format === 'csv' ? 'csv' : 'xlsx';
+      const result = await this.downloadFile('/reports/revenue/merchandise-refunds/export', { params });
+      if (!result.success) return { success: false, error: result.error };
+      const blob = result.blob as Blob;
+      const filename = result.filename || `merchandise_refunds_${Date.now()}.${format}`;
+      triggerBlobDownload(blob, filename);
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error?.message || 'Failed to download Merchandise Refunds report' };
+    }
+  }
+
+  async getBestSellerReport(params: Record<string, any>): Promise<ApiResponse> {
+    return this.get('/reports/revenue/best-seller', { params });
+  }
+
+  async downloadBestSellerReport(params: Record<string, any>): Promise<{ success: boolean; error?: string }> {
+    try {
+      const format = params?.format === 'csv' ? 'csv' : 'xlsx';
+      const result = await this.downloadFile('/reports/revenue/best-seller/export', { params });
+      if (!result.success) return { success: false, error: result.error };
+      const blob = result.blob as Blob;
+      const filename = result.filename || `best_seller_${Date.now()}.${format}`;
+      triggerBlobDownload(blob, filename);
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error?.message || 'Failed to download Best Seller report' };
+    }
+  }
+
+  async getInventoryReport(params: Record<string, any>): Promise<ApiResponse> {
+    return this.get('/reports/revenue/inventory', { params });
+  }
+
+  async downloadInventoryReport(params: Record<string, any>): Promise<{ success: boolean; error?: string }> {
+    try {
+      const format = params?.format === 'csv' ? 'csv' : 'xlsx';
+      const result = await this.downloadFile('/reports/revenue/inventory/export', { params });
+      if (!result.success) return { success: false, error: result.error };
+      const blob = result.blob as Blob;
+      const filename = result.filename || `inventory_${Date.now()}.${format}`;
+      triggerBlobDownload(blob, filename);
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error?.message || 'Failed to download Inventory report' };
+    }
+  }
+
   async getAdminAuditLogReport(params: Record<string, any>): Promise<ApiResponse> {
     return this.get('/reports/governance/admin-audit-log', { params });
   }
@@ -6419,6 +6653,80 @@ class ApiClient {
       /([^:]\/)\/+/g,
       '$1'
     );
+  }
+
+  // ─── Platform Analytics Reports ───────────────────────────────────────────────
+
+  async getRewardPointsGrantedReport(params: Record<string, any>): Promise<ApiResponse> {
+    return this.get('/reports/platform/reward-points-granted', { params });
+  }
+
+  async downloadRewardPointsGrantedReport(params: Record<string, any>): Promise<{ success: boolean; error?: string }> {
+    try {
+      const format = params?.format === 'csv' ? 'csv' : 'xlsx';
+      const result = await this.downloadFile('/reports/platform/reward-points-granted/export', { params });
+      if (!result.success) return { success: false, error: result.error };
+      const blob = result.blob as Blob;
+      const filename = result.filename || `reward_points_granted_${Date.now()}.${format}`;
+      triggerBlobDownload(blob, filename);
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error?.message || 'Failed to download Reward Points Granted report' };
+    }
+  }
+
+  async getRewardPointsRedemptionReport(params: Record<string, any>): Promise<ApiResponse> {
+    return this.get('/reports/platform/reward-points-redemption', { params });
+  }
+
+  async downloadRewardPointsRedemptionReport(params: Record<string, any>): Promise<{ success: boolean; error?: string }> {
+    try {
+      const format = params?.format === 'csv' ? 'csv' : 'xlsx';
+      const result = await this.downloadFile('/reports/platform/reward-points-redemption/export', { params });
+      if (!result.success) return { success: false, error: result.error };
+      const blob = result.blob as Blob;
+      const filename = result.filename || `reward_points_redemption_${Date.now()}.${format}`;
+      triggerBlobDownload(blob, filename);
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error?.message || 'Failed to download Reward Points Redemption report' };
+    }
+  }
+
+  async getRTOReport(params: Record<string, any>): Promise<ApiResponse> {
+    return this.get('/reports/platform/rto', { params });
+  }
+
+  async downloadRTOReport(params: Record<string, any>): Promise<{ success: boolean; error?: string }> {
+    try {
+      const format = params?.format === 'csv' ? 'csv' : 'xlsx';
+      const result = await this.downloadFile('/reports/platform/rto/export', { params });
+      if (!result.success) return { success: false, error: result.error };
+      const blob = result.blob as Blob;
+      const filename = result.filename || `rto_report_${Date.now()}.${format}`;
+      triggerBlobDownload(blob, filename);
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error?.message || 'Failed to download RTO report' };
+    }
+  }
+
+  async getSuperAdminAuditLogReport(params: Record<string, any>): Promise<ApiResponse> {
+    return this.get('/reports/governance/super-admin-audit-log', { params });
+  }
+
+  async downloadSuperAdminAuditLogReport(params: Record<string, any>): Promise<{ success: boolean; error?: string }> {
+    try {
+      const format = params?.format === 'csv' ? 'csv' : 'xlsx';
+      const result = await this.downloadFile('/reports/governance/super-admin-audit-log/export', { params });
+      if (!result.success) return { success: false, error: result.error };
+      const blob = result.blob as Blob;
+      const filename = result.filename || `super_admin_audit_log_${Date.now()}.${format}`;
+      triggerBlobDownload(blob, filename);
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error?.message || 'Failed to download Super Admin Audit Log report' };
+    }
   }
 }
 

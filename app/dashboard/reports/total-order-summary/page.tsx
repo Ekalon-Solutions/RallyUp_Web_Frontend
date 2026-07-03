@@ -27,8 +27,6 @@ import {
   SystemOwnerClubFilter,
 } from "@/components/reports"
 
-// ─── Status Badge Renderers ──────────────────────────────────────────────────
-
 function renderPaymentStatusBadge(status: string) {
   const s = (status || "").toLowerCase()
   switch (s) {
@@ -71,8 +69,6 @@ function formatCurrency(amount: number, currency: string = "INR") {
   }).format(amount)
 }
 
-// ─── Row Interface ────────────────────────────────────────────────────────────
-
 interface TotalOrderSummaryRow extends Record<string, unknown> {
   id: string
   orderNumber: string
@@ -84,14 +80,12 @@ interface TotalOrderSummaryRow extends Record<string, unknown> {
   currency: string
   paymentStatus: string
   orderStatus: string
-  itemsCount: number;
+  itemsCount: number
   paymentMethod: string
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
-
-export default function TotalOrderSummaryReportPage() {
-  const auth = useReportAuthorization("order-summary")
+export default function TotalOrderSummaryPage() {
+  const auth = useReportAuthorization("total-order-summary")
   const clubId = useRequiredClubId()
   const { selectedClubId, setSelectedClubId, isSystemOwner } = useSystemOwnerReportScope()
 
@@ -110,9 +104,7 @@ export default function TotalOrderSummaryReportPage() {
     endDate: undefined,
     search: undefined,
     status: undefined,
-    extras: {
-      paymentStatus: "all",
-    },
+    extras: { paymentStatus: "all" },
   })
 
   const [sort, setSort] = useState<{ field: string; direction: "asc" | "desc" }>({
@@ -121,8 +113,6 @@ export default function TotalOrderSummaryReportPage() {
   })
 
   const [page, setPage] = useState(1)
-
-  // ── Fetch Report Data ───────────────────────────────────────────────────────
 
   const fetchReport = useCallback(async () => {
     if (!shouldFetchReport({ authorized: auth.authorized, clubId, isSystemOwner })) return
@@ -143,10 +133,11 @@ export default function TotalOrderSummaryReportPage() {
 
       const res = await apiClient.getTotalOrderSummaryReport(queryParams)
       if (res.success && res.data) {
-        setData(res.data.data)
-        if (res.data.meta?.pagination) {
-          setPagination(res.data.meta.pagination)
-        }
+        // Mandatory Pattern v1.2 data extraction
+        const rawRows = Array.isArray(res.data.data) ? res.data.data : []
+        setData(rawRows)
+
+        if (res.data.meta?.pagination) setPagination(res.data.meta.pagination)
         if (res.data.summary) {
           setSummaryData({
             totalOrders: Number(res.data.summary.totalOrders) || 0,
@@ -171,8 +162,6 @@ export default function TotalOrderSummaryReportPage() {
     fetchReport()
   }, [fetchReport])
 
-  // ── Handlers ────────────────────────────────────────────────────────────────
-
   const handleApplyFilters = (newFilters: ReportFiltersState) => {
     setFilters(newFilters)
     setPage(1)
@@ -186,10 +175,7 @@ export default function TotalOrderSummaryReportPage() {
   const handleExport = async (format: ExportFormat) => {
     if (!shouldFetchReport({ authorized: auth.authorized, clubId, isSystemOwner })) return
     try {
-      const queryParams: Record<string, any> = {
-        clubId,
-        format,
-      }
+      const queryParams: Record<string, any> = { clubId, format }
       if (filters.extras?.paymentStatus && filters.extras.paymentStatus !== "all") {
         queryParams.paymentStatus = filters.extras.paymentStatus
       }
@@ -205,8 +191,6 @@ export default function TotalOrderSummaryReportPage() {
     }
   }
 
-  // ── Access & Feature Guards ─────────────────────────────────────────────────
-
   if (!auth.authorized) {
     return (
       <DashboardLayout>
@@ -214,8 +198,6 @@ export default function TotalOrderSummaryReportPage() {
       </DashboardLayout>
     )
   }
-
-  // ── Column Definitions ──────────────────────────────────────────────────────
 
   const columns: ReportColumn<TotalOrderSummaryRow>[] = [
     {
@@ -287,8 +269,6 @@ export default function TotalOrderSummaryReportPage() {
     },
   ]
 
-  // ── Summary Cards Config ────────────────────────────────────────────────────
-
   const summaryCards: SummaryCard[] = [
     {
       label: "Total Orders",
@@ -339,12 +319,7 @@ export default function TotalOrderSummaryReportPage() {
         title="Total Order Summary"
         description="Comprehensive financial overview of merchandise and store orders, payment statuses, and fulfillment states."
         category="Revenue"
-        actions={
-          <ExportButton
-            onExport={handleExport}
-            disabled={loading || data.length === 0}
-          />
-        }
+        actions={<ExportButton onExport={handleExport} disabled={loading || data.length === 0} />}
         filters={
           <>
             {isSystemOwner && (
@@ -357,22 +332,16 @@ export default function TotalOrderSummaryReportPage() {
               initialFilters={filters}
             statusOptions={orderStatusOptions}
             statusLabel="Order Status"
-            searchPlaceholder="Search by Order ID, customer name, email, phone..."
+            searchPlaceholder="Search by Order ID, customer name, email..."
             onApplyFilters={handleApplyFilters}
             onResetFilters={handleResetFilters}
             loading={loading}
           >
-            {/* Custom Extra Filter: Payment Status Dropdown */}
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Payment Status</Label>
               <Select
                 value={filters.extras?.paymentStatus || "all"}
-                onValueChange={(val) =>
-                  setFilters((prev) => ({
-                    ...prev,
-                    extras: { ...prev.extras, paymentStatus: val },
-                  }))
-                }
+                onValueChange={(val) => setFilters((prev) => ({ ...prev, extras: { ...prev.extras, paymentStatus: val } }))}
               >
                 <SelectTrigger className="w-38">
                   <SelectValue placeholder="All Payments" />
@@ -380,9 +349,7 @@ export default function TotalOrderSummaryReportPage() {
                 <SelectContent>
                   <SelectItem value="all">All Payments</SelectItem>
                   {paymentStatusOptions.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
+                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

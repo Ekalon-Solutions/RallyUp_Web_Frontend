@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { ShoppingCart, DollarSign, TrendingUp, CheckCircle } from "lucide-react"
+import { Ticket, DollarSign, Tag, TrendingUp } from "lucide-react"
 import { toast } from "sonner"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { useSystemOwnerReportScope } from "@/hooks/useSystemOwnerReportScope"
@@ -27,17 +27,17 @@ import {
   SystemOwnerClubFilter,
 } from "@/components/reports"
 
-function renderStatusBadge(status: string) {
+function renderPaymentStatusBadge(status: string) {
   const s = (status || "").toLowerCase()
   switch (s) {
-    case "active":
+    case "confirmed":
     case "paid":
-      return <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-0 font-medium">{status}</Badge>
-    case "expired":
+      return <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-0 font-medium">Confirmed</Badge>
     case "pending":
-      return <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border-0 font-medium">{status}</Badge>
+      return <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border-0 font-medium">Pending</Badge>
     case "cancelled":
-      return <Badge className="bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border-0 font-medium">Cancelled</Badge>
+    case "refunded":
+      return <Badge className="bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border-0 font-medium">{status}</Badge>
     default:
       return <Badge variant="outline">{status}</Badge>
   }
@@ -51,50 +51,52 @@ function formatCurrency(amount: number, currency: string = "INR") {
   }).format(amount)
 }
 
-interface MembershipPurchaseRow extends Record<string, unknown> {
+interface EventTicketSalesRow extends Record<string, unknown> {
   id: string
-  purchaseId: string
+  eventTitle: string
+  eventId: string
   memberName: string
-  email: string
-  planName: string
-  purchaseDate: string | null
-  amount: number
-  currency: string
+  memberEmail: string
+  registrationDate: string
+  tierName: string
+  amountPaid: number
+  discountApplied: number
+  netRevenue: number
   paymentStatus: string
-  membershipStatus: string
+  currency: string
 }
 
-interface PlanOption {
-  id: string
-  name: string
+interface EventOption {
+  value: string
+  label: string
 }
 
-export default function MembershipPurchaseReportPage() {
-  const auth = useReportAuthorization("membership-purchases")
+export default function EventTicketSalesReportPage() {
+  const auth = useReportAuthorization("event-ticket-sales")
   const clubId = useRequiredClubId()
   const { selectedClubId, setSelectedClubId, isSystemOwner } = useSystemOwnerReportScope()
 
   const [loading, setLoading] = useState(true)
-  const [data, setData] = useState<MembershipPurchaseRow[]>([])
+  const [data, setData] = useState<EventTicketSalesRow[]>([])
   const [pagination, setPagination] = useState<ReportPaginationMeta | undefined>()
   const [summaryData, setSummaryData] = useState({
-    membershipPurchases: 0,
-    membershipRevenue: 0,
-    averageMembershipValue: 0,
-    activeMembershipPurchases: 0,
+    ticketsSold: 0,
+    grossRevenue: 0,
+    totalDiscounts: 0,
+    netRevenue: 0,
   })
-  const [plans, setPlans] = useState<PlanOption[]>([])
+  const [eventOptions, setEventOptions] = useState<EventOption[]>([])
 
   const [filters, setFilters] = useState<ReportFiltersState>({
     startDate: undefined,
     endDate: undefined,
     search: undefined,
     status: undefined,
-    extras: { membershipPlanId: "all" },
+    extras: { eventId: "all" },
   })
 
   const [sort, setSort] = useState<{ field: string; direction: "asc" | "desc" }>({
-    field: "createdAt",
+    field: "registrations.registrationDate",
     direction: "desc",
   })
 
@@ -113,37 +115,39 @@ export default function MembershipPurchaseReportPage() {
         filters,
       })
 
-      if (filters.extras?.membershipPlanId && filters.extras.membershipPlanId !== "all") {
-        queryParams.membershipPlanId = filters.extras.membershipPlanId
+      if (filters.extras?.eventId && filters.extras.eventId !== "all") {
+        queryParams.eventId = filters.extras.eventId
       }
 
-      const res = await apiClient.getMembershipPurchaseReport(queryParams)
+      const res = await apiClient.getEventTicketSalesReport(queryParams)
       if (res.success && res.data) {
-        // Mandatory Pattern v1.2 data mapping
+        // Mandatory Pattern v1.2 data extraction
         const rawRows = Array.isArray(res.data.data) ? res.data.data : []
         setData(rawRows)
 
         if (res.data.meta?.pagination) setPagination(res.data.meta.pagination)
         if (res.data.summary) {
           setSummaryData({
-            membershipPurchases: Number(res.data.summary.membershipPurchases) || 0,
-            membershipRevenue: Number(res.data.summary.membershipRevenue) || 0,
-            averageMembershipValue: Number(res.data.summary.averageMembershipValue) || 0,
-            activeMembershipPurchases: Number(res.data.summary.activeMembershipPurchases) || 0,
+            ticketsSold: Number(res.data.summary.ticketsSold) || 0,
+            grossRevenue: Number(res.data.summary.grossRevenue) || 0,
+            totalDiscounts: Number(res.data.summary.totalDiscounts) || 0,
+            netRevenue: Number(res.data.summary.netRevenue) || 0,
           })
-          if (res.data.summary.plans) {
+          if (res.data.summary.eventOptions) {
             try {
-              const parsed = typeof res.data.summary.plans === "string" ? JSON.parse(res.data.summary.plans) : res.data.summary.plans
-              if (Array.isArray(parsed)) setPlans(parsed)
+              const parsed = typeof res.data.summary.eventOptions === "string"
+                ? JSON.parse(res.data.summary.eventOptions)
+                : res.data.summary.eventOptions
+              if (Array.isArray(parsed)) setEventOptions(parsed)
             } catch {}
           }
         }
       } else {
-        toast.error(res.message || "Failed to load purchase report")
+        toast.error(res.message || "Failed to load event ticket sales report")
         setData([])
       }
     } catch {
-      toast.error("Error loading membership purchase report")
+      toast.error("Error loading event ticket sales report")
       setData([])
     } finally {
       setLoading(false)
@@ -160,7 +164,7 @@ export default function MembershipPurchaseReportPage() {
   }
 
   const handleResetFilters = () => {
-    setFilters({ extras: { membershipPlanId: "all" } })
+    setFilters({ extras: { eventId: "all" } })
     setPage(1)
   }
 
@@ -168,15 +172,15 @@ export default function MembershipPurchaseReportPage() {
     if (!shouldFetchReport({ authorized: auth.authorized, clubId, isSystemOwner })) return
     try {
       const queryParams: Record<string, any> = { clubId, format }
-      if (filters.extras?.membershipPlanId && filters.extras.membershipPlanId !== "all") {
-        queryParams.membershipPlanId = filters.extras.membershipPlanId
+      if (filters.extras?.eventId && filters.extras.eventId !== "all") {
+        queryParams.eventId = filters.extras.eventId
       }
 
-      const res = await apiClient.downloadMembershipPurchaseReport(queryParams)
+      const res = await apiClient.downloadEventTicketSalesReport(queryParams)
       if (!res.success) {
         toast.error(res.error || "Export failed")
       } else {
-        toast.success(`Exported Membership Purchases as ${format.toUpperCase()}`)
+        toast.success(`Exported Event Ticket Sales as ${format.toUpperCase()}`)
       }
     } catch {
       toast.error("Export failed")
@@ -191,103 +195,122 @@ export default function MembershipPurchaseReportPage() {
     )
   }
 
-  const columns: ReportColumn<MembershipPurchaseRow>[] = [
+  const columns: ReportColumn<EventTicketSalesRow>[] = [
     {
-      key: "purchaseId",
-      header: "Purchase ID",
-      accessor: (row) => <span className="font-mono text-xs font-medium">{row.purchaseId}</span>,
-      width: "w-36",
+      key: "title",
+      header: "Event Title",
+      accessor: "eventTitle",
+      sortable: true,
+      width: "w-52",
     },
     {
       key: "memberName",
-      header: "Member",
+      header: "Member / Attendee",
       accessor: (row) => (
         <div>
           <div className="font-medium text-xs">{row.memberName}</div>
-          <div className="text-[11px] text-muted-foreground">{row.email}</div>
+          <div className="text-[11px] text-muted-foreground">{row.memberEmail}</div>
         </div>
       ),
       width: "w-48",
     },
     {
-      key: "planName",
-      header: "Membership Plan",
-      accessor: "planName",
-      width: "w-44",
+      key: "registrationDate",
+      header: "Registration Date",
+      accessor: (row) => (
+        <span className="font-mono text-xs">
+          {row.registrationDate ? row.registrationDate.replace("T", " ").slice(0, 16) : "—"}
+        </span>
+      ),
+      sortable: true,
+      width: "w-40",
     },
     {
-      key: "createdAt",
-      header: "Purchase Date",
-      accessor: (row) => (row.purchaseDate ? row.purchaseDate.slice(0, 10) : "—"),
-      sortable: true,
+      key: "tierName",
+      header: "Ticket Tier",
+      accessor: "tierName",
       width: "w-36",
     },
     {
-      key: "amount",
-      header: "Amount",
+      key: "amountPaid",
+      header: "Gross Amount",
       accessor: (row) => (
-        <span className="font-mono font-semibold">
-          {formatCurrency(row.amount, row.currency)}
+        <span className="font-mono text-xs">
+          {formatCurrency(row.amountPaid + row.discountApplied, row.currency)}
         </span>
       ),
       align: "right",
       width: "w-32",
     },
     {
-      key: "paymentStatus",
-      header: "Payment Status",
-      accessor: (row) => renderStatusBadge(row.paymentStatus),
-      width: "w-32",
+      key: "discountApplied",
+      header: "Discount",
+      accessor: (row) => (
+        <span className="font-mono text-xs text-rose-600 dark:text-rose-400">
+          {formatCurrency(row.discountApplied, row.currency)}
+        </span>
+      ),
+      align: "right",
+      width: "w-28",
     },
     {
-      key: "status",
-      header: "Membership Status",
-      accessor: (row) => renderStatusBadge(row.membershipStatus),
-      sortable: true,
+      key: "netRevenue",
+      header: "Net Revenue",
+      accessor: (row) => (
+        <span className="font-mono font-semibold text-emerald-600 dark:text-emerald-400">
+          {formatCurrency(row.netRevenue, row.currency)}
+        </span>
+      ),
+      align: "right",
       width: "w-36",
+    },
+    {
+      key: "paymentStatus",
+      header: "Status",
+      accessor: (row) => renderPaymentStatusBadge(row.paymentStatus),
+      width: "w-32",
     },
   ]
 
   const summaryCards: SummaryCard[] = [
     {
-      label: "Membership Purchases",
-      value: summaryData.membershipPurchases.toLocaleString(),
-      icon: ShoppingCart,
+      label: "Tickets Sold",
+      value: summaryData.ticketsSold.toLocaleString(),
+      icon: Ticket,
       iconColor: "bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400",
     },
     {
-      label: "Membership Revenue",
-      value: formatCurrency(summaryData.membershipRevenue),
+      label: "Gross Revenue",
+      value: formatCurrency(summaryData.grossRevenue),
       icon: DollarSign,
       iconColor: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400",
     },
     {
-      label: "Average Value",
-      value: formatCurrency(summaryData.averageMembershipValue),
-      icon: TrendingUp,
-      iconColor: "bg-purple-100 text-purple-600 dark:bg-purple-950 dark:text-purple-400",
+      label: "Total Discounts",
+      value: formatCurrency(summaryData.totalDiscounts),
+      icon: Tag,
+      iconColor: "bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400",
     },
     {
-      label: "Active Purchases",
-      value: summaryData.activeMembershipPurchases.toLocaleString(),
-      icon: CheckCircle,
-      iconColor: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400",
+      label: "Net Revenue",
+      value: formatCurrency(summaryData.netRevenue),
+      icon: TrendingUp,
+      iconColor: "bg-purple-100 text-purple-600 dark:bg-purple-950 dark:text-purple-400",
     },
   ]
 
   const statusOptions = [
-    { value: "active", label: "Active" },
-    { value: "expired", label: "Expired" },
-    { value: "cancelled", label: "Cancelled" },
+    { value: "confirmed", label: "Confirmed" },
     { value: "pending", label: "Pending" },
+    { value: "cancelled", label: "Cancelled" },
   ]
 
   return (
     <DashboardLayout>
       <ReportShell
-        title="Membership Purchase Report"
-        description="Detailed record of membership plan purchases, gross revenue, average plan values, and payment statuses."
-        category="Lifecycle"
+        title="Event Ticket Sales Report"
+        description="Event-by-event breakdown of ticket sales, gross revenue, promotional discounts, and net earnings."
+        category="Revenue"
         actions={<ExportButton onExport={handleExport} disabled={loading || data.length === 0} />}
         filters={
           <>
@@ -300,26 +323,26 @@ export default function MembershipPurchaseReportPage() {
               <ReportFilters
               initialFilters={filters}
             statusOptions={statusOptions}
-            statusLabel="Payment / Status"
-            searchPlaceholder="Search purchase ID, member name, email..."
+            statusLabel="Status"
+            searchPlaceholder="Search event title, member name, email, payment ID..."
             onApplyFilters={handleApplyFilters}
             onResetFilters={handleResetFilters}
             loading={loading}
           >
-            {plans.length > 0 && (
+            {eventOptions.length > 0 && (
               <div className="space-y-1.5">
-                <Label className="text-xs text-muted-foreground">Membership Plan</Label>
+                <Label className="text-xs text-muted-foreground">Event</Label>
                 <Select
-                  value={filters.extras?.membershipPlanId || "all"}
-                  onValueChange={(val) => setFilters((prev) => ({ ...prev, extras: { ...prev.extras, membershipPlanId: val } }))}
+                  value={filters.extras?.eventId || "all"}
+                  onValueChange={(val) => setFilters((prev) => ({ ...prev, extras: { ...prev.extras, eventId: val } }))}
                 >
                   <SelectTrigger className="w-44">
-                    <SelectValue placeholder="All Plans" />
+                    <SelectValue placeholder="All Events" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Plans</SelectItem>
-                    {plans.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                    <SelectItem value="all">All Events</SelectItem>
+                    {eventOptions.map((evt) => (
+                      <SelectItem key={evt.value} value={evt.value}>{evt.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -338,7 +361,7 @@ export default function MembershipPurchaseReportPage() {
           sort={sort}
           onSortChange={setSort}
           onPageChange={setPage}
-          emptyMessage="No membership purchase records found for the selected criteria."
+          emptyMessage="No event ticket sales records found for the selected criteria."
         />
       </ReportShell>
     </DashboardLayout>
