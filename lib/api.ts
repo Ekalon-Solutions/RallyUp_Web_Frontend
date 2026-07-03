@@ -2972,6 +2972,27 @@ class ApiClient {
     }
   }
 
+  async getMemberDirectoryReport(params: Record<string, any>): Promise<ApiResponse> {
+    return this.get('/reports/lifecycle/member-directory', { params });
+  }
+
+  async downloadMemberDirectoryReport(params: Record<string, any>): Promise<{ success: boolean; error?: string }> {
+    try {
+      const format = params?.format === 'csv' ? 'csv' : 'xlsx';
+      const result = await this.downloadFile('/reports/lifecycle/member-directory/export', { params });
+      if (!result.success) {
+        return { success: false, error: result.error };
+      }
+      const blob = result.blob as Blob;
+      const filename = result.filename || `member_directory_${Date.now()}.${format}`;
+      triggerBlobDownload(blob, filename);
+
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error?.message || 'Failed to download Member Directory report' };
+    }
+  }
+
   async updatePendingOrderPayment(orderId: string, data: {
     couponCode?: string;
     clearCoupon?: boolean;
