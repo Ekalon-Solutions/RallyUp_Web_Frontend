@@ -1,6 +1,6 @@
 import type { Metadata } from "next"
 import Link from "next/link"
-import { Search, ArrowLeft, Home } from "lucide-react"
+import { Search, ArrowLeft, Home, UserCheck } from "lucide-react"
 import {
   Card,
   CardContent,
@@ -128,9 +128,21 @@ export async function generateMetadata({
 interface NotFoundCardProps {
   title: string
   description: string
+  secondaryAction?: "guest" | "browse_clubs"
+  club?: Club
 }
 
-function NotFoundCard({ title, description }: NotFoundCardProps) {
+function NotFoundCard({ title, description, secondaryAction = "browse_clubs", club }: NotFoundCardProps) {
+  if (secondaryAction === "guest" && club) {
+    return (
+      <CheckoutLanding
+        club={club}
+        planId=""
+        isInvalidPlan={true}
+      />
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#EBF3FF] via-[#F4F8FF] to-white public-theme">
       <SiteNavbar brandName="Wingman Pro" />
@@ -155,6 +167,7 @@ function NotFoundCard({ title, description }: NotFoundCardProps) {
                   Go Back to Home
                 </Button>
               </Link>
+
               <Link href="/clubs" className="w-full">
                 <Button variant="outline" className="w-full border-2 border-secondary bg-white text-secondary hover:bg-secondary/5 hover:text-secondary h-12 rounded-xl font-bold uppercase tracking-wider transition-all duration-300 gap-2 active:scale-95">
                   <Home className="h-4 w-4" />
@@ -225,8 +238,10 @@ export default async function MembershipCheckoutPage({
   if (validPlanIds.length > 0 && !validPlanIds.includes(planId)) {
     return (
       <NotFoundCard
-        title="Plan Not Found"
-        description="The membership plan you're looking for doesn't exist or is no longer available. Please go back and select a valid plan."
+        title="Incorrect Plan"
+        description="The membership plan you're looking for doesn't exist or is no longer available."
+        secondaryAction="guest"
+        club={club}
       />
     )
   }
@@ -234,8 +249,10 @@ export default async function MembershipCheckoutPage({
   if (!isValidObjectId(planId)) {
     return (
       <NotFoundCard
-        title="Plan Not Found"
-        description="The membership plan you're looking for doesn't exist or is no longer available. Please go back and select a valid plan."
+        title="Incorrect Plan"
+        description="The membership plan you're looking for doesn't exist or is no longer available."
+        secondaryAction="guest"
+        club={club}
       />
     )
   }
@@ -246,8 +263,10 @@ export default async function MembershipCheckoutPage({
     // Server confirmed 404 — plan genuinely does not exist
     return (
       <NotFoundCard
-        title="Plan Not Found"
-        description="The membership plan you're looking for doesn't exist or is no longer available. Please go back and select a valid plan."
+        title="Incorrect Plan"
+        description="The membership plan you're looking for doesn't exist or is no longer available."
+        secondaryAction="guest"
+        club={club}
       />
     )
   }
@@ -266,8 +285,10 @@ export default async function MembershipCheckoutPage({
     if (planClubId && planClubId !== clubId) {
       return (
         <NotFoundCard
-          title="Plan Not Found"
-          description="This membership plan doesn't belong to the selected club. Please go back and select a valid plan."
+          title="Incorrect Plan"
+          description="This membership plan doesn't belong to the selected club."
+          secondaryAction="guest"
+          club={club}
         />
       )
     }

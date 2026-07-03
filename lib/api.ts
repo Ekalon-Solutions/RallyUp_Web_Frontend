@@ -3223,7 +3223,8 @@ class ApiClient {
   async subscribeMembershipPlan(
     planId: string,
     payment?: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string },
-    referralPhone?: string
+    referralPhone?: string,
+    couponCode?: string
   ): Promise<ApiResponse<{
     message: string;
     data: {
@@ -3234,6 +3235,7 @@ class ApiClient {
     const body: any = {};
     if (payment) body.payment = payment;
     if (referralPhone) body.referralPhone = referralPhone;
+    if (couponCode) body.couponCode = couponCode;
     return this.request(`/membership-plans/${planId}/subscribe`, {
       method: 'POST',
       body: Object.keys(body).length > 0 ? JSON.stringify(body) : undefined,

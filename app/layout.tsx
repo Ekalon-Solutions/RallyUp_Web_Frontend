@@ -118,10 +118,14 @@ export default function RootLayout({
         <meta name="app-build-id" content={process.env.NEXT_PUBLIC_APP_BUILD_ID || ""} />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
         <Script
-          async
-          src="https://www.googletagmanager.com/gtag/js?id=G-SDPCKFH4E2"
+          src={`https://www.googletagmanager.com/gtag/js?id=G-SDPCKFH4E2`}
+          strategy="lazyOnload"
         />
-        <Script id="google-analytics">
+        <Script
+          id="google-analytics"
+          strategy="lazyOnload"
+          defer
+        >
           {`
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}

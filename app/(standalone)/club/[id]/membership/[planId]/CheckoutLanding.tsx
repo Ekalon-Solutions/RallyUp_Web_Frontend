@@ -2,13 +2,15 @@
 
 import { useState, useCallback, useMemo, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { LogIn, UserCheck, CreditCard, Clock, Calendar } from "lucide-react"
+import Link from "next/link"
+import { LogIn, UserCheck, CreditCard, Clock, Calendar, Search, ArrowLeft } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
@@ -49,6 +51,7 @@ interface CheckoutLandingProps {
   club: CheckoutClub
   planId: string
   plan?: CheckoutPlan
+  isInvalidPlan?: boolean
 }
 
 // ---------------------------------------------------------------------------
@@ -59,32 +62,23 @@ function formatPrice(price: number, currency: string): string {
   try {
     return new Intl.NumberFormat("en-IN", {
       style: "currency",
-      currency,
+      currency: currency || "INR",
       maximumFractionDigits: 0,
     }).format(price)
   } catch {
-    return `${currency} ${price}`
+    return `${currency || "₹"}${price}`
   }
 }
 
 function formatDuration(plan: CheckoutPlan): string {
   if (plan.planStartDate && plan.planEndDate) {
-    const fmt = (d: string) =>
-      new Date(d).toLocaleDateString(undefined, {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      })
-    return `${fmt(plan.planStartDate)} – ${fmt(plan.planEndDate)}`
+    const opts: Intl.DateTimeFormatOptions = { month: "short", day: "numeric", year: "numeric" }
+    return `${new Date(plan.planStartDate).toLocaleDateString(undefined, opts)} – ${new Date(plan.planEndDate).toLocaleDateString(undefined, opts)}`
   }
   const months = plan.duration ?? 0
-  if (months === 0) return "Lifetime"
-  if (months === 1) return "1 month"
-  if (months < 12) return `${months} months`
-  const years = Math.floor(months / 12)
-  const rem = months % 12
-  const yearStr = `${years} year${years > 1 ? "s" : ""}`
-  return rem === 0 ? yearStr : `${yearStr} ${rem} month${rem > 1 ? "s" : ""}`
+  if (months === 0) return "Lifetime membership"
+  if (months === 12) return "1 year membership"
+  return `${months} month${months > 1 ? "s" : ""} membership`
 }
 
 // ---------------------------------------------------------------------------
@@ -103,15 +97,19 @@ function PlanSummaryCard({ club, plan, planId }: { club: CheckoutClub; plan?: Ch
         {plan ? (
           <>
             <CardTitle className="text-3xl font-black text-white">{plan.name}</CardTitle>
-            <CardDescription className="text-white/80 text-sm mt-1">{plan.description}</CardDescription>
+            {plan.description && (
+              <CardDescription className="text-white/80 text-sm mt-1">
+                {plan.description}
+              </CardDescription>
+            )}
           </>
         ) : (
           <>
             <CardTitle className="text-3xl font-black text-white">
               Membership Plan
             </CardTitle>
-            <CardDescription className="text-white/80 text-xs font-mono mt-1 break-all">
-              {planId}
+            <CardDescription className="text-white/80 text-sm mt-1">
+              {planId ? `Plan ID: ${planId}` : "Select a plan to get started."}
             </CardDescription>
           </>
         )}
@@ -155,8 +153,9 @@ function PlanSummaryCard({ club, plan, planId }: { club: CheckoutClub; plan?: Ch
 // Main component
 // ---------------------------------------------------------------------------
 
-export function CheckoutLanding({ club, planId, plan }: CheckoutLandingProps) {
+export function CheckoutLanding({ club, planId, plan, isInvalidPlan }: CheckoutLandingProps) {
   const router = useRouter()
+  const { isAuthenticated } = useAuth()
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -164,6 +163,9 @@ export function CheckoutLanding({ club, planId, plan }: CheckoutLandingProps) {
       const utm = params.get("utm_source")
       if (utm) {
         sessionStorage.setItem("utm_source", utm)
+      }
+      if (params.get("guest") === "true") {
+        setGuestFormOpen(true)
       }
     }
   }, [])
@@ -207,12 +209,19 @@ export function CheckoutLanding({ club, planId, plan }: CheckoutLandingProps) {
             duration: p.duration,
             planStartDate: p.planStartDate,
             planEndDate: p.planEndDate,
+            isActive: p.isActive,
           }))
 
         if (active) {
           setAllClubPlans(plans)
           
           if (!localPlan) {
+            const matchingPlan = plans.find((p: any) => p._id === planId)
+            if (matchingPlan) {
+              setLocalPlan(matchingPlan)
+            }
+          } else {
+            // Sync active state from fetched public club data if matching
             const matchingPlan = plans.find((p: any) => p._id === planId)
             if (matchingPlan) {
               setLocalPlan(matchingPlan)
@@ -241,7 +250,77 @@ export function CheckoutLanding({ club, planId, plan }: CheckoutLandingProps) {
     setGuestFormOpen(true)
   }, [allClubPlans.length])
 
-  const { isAuthenticated } = useAuth()
+  if (isInvalidPlan) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-[#EBF3FF] via-[#F4F8FF] to-white public-theme">
+        <SiteNavbar brandName="Wingman Pro" />
+        
+        <div className="relative flex flex-col items-center justify-center px-4 py-16 bg-transparent">
+          <Card className="max-w-md w-full bg-white rounded-[2.5rem] shadow-2xl border-none overflow-hidden">
+            <CardHeader className="text-center pb-5 bg-secondary px-6 pt-6 text-white rounded-t-[2.5rem]">
+              <div className="mx-auto w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center mb-3">
+                <Search className="h-6 w-6 text-white" />
+              </div>
+              <CardTitle className="text-3xl font-black text-white">Incorrect Plan</CardTitle>
+              <CardDescription className="text-white/80 text-sm mt-1">
+                The membership plan you&apos;re looking for doesn&apos;t exist or is no longer available.
+              </CardDescription>
+            </CardHeader>
+
+            <CardContent className="space-y-4 pt-6 pb-6 bg-white px-6 border-x border-b border-secondary/20 rounded-b-[2.5rem]">
+              <div className="grid gap-3">
+                <Link href="/" className="w-full">
+                  <Button className="w-full bg-primary hover:bg-[#FF7E4A] hover:shadow-[0_8px_20px_#FF5C1A6B] text-white h-12 rounded-xl font-bold uppercase tracking-wider transition-all duration-300 gap-2 active:scale-95">
+                    <ArrowLeft className="h-4 w-4" />
+                    Go Back to Home
+                  </Button>
+                </Link>
+
+                <Button
+                  variant="outline"
+                  className="w-full border-2 border-secondary bg-white text-secondary hover:bg-secondary/5 hover:text-secondary h-12 rounded-xl font-bold uppercase tracking-wider transition-all duration-300 gap-2 active:scale-95"
+                  onClick={() => setGuestFormOpen(true)}
+                >
+                  <UserCheck className="h-4 w-4" />
+                  Join the Club
+                </Button>
+              </div>
+            </CardContent>
+
+            <CardFooter className="justify-center border-t border-slate-100 bg-white py-4 border-x border-b border-secondary/20 rounded-b-[2.5rem]">
+              <p className="text-xs text-secondary/80 font-medium">
+                Need help?{" "}
+                <Link
+                  href="/contact"
+                  className="text-primary hover:underline font-bold"
+                >
+                  Contact Support
+                </Link>
+              </p>
+            </CardFooter>
+          </Card>
+        </div>
+
+        <LoginModal
+          open={loginOpen}
+          onOpenChange={setLoginOpen}
+          onSuccess={handleLoginSuccess}
+        />
+
+        <JoinMembershipModal
+          open={guestFormOpen}
+          onOpenChange={setGuestFormOpen}
+          clubId={club._id}
+          clubName={club.name}
+          plans={allClubPlans}
+          initialPlanId={planId}
+          forceRegister={true}
+          returnPath={typeof window !== "undefined" ? window.location.pathname : "/clubs"}
+        />
+        <SiteFooter brandName="Wingman Pro" />
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#EBF3FF] via-[#F4F8FF] to-white public-theme">
@@ -324,17 +403,16 @@ export function CheckoutLanding({ club, planId, plan }: CheckoutLandingProps) {
       />
 
       {/* ── Guest registration form (reuses pre‑existing JoinMembershipModal containing all plans of the club) ──── */}
-      {allClubPlans.length > 0 && (
-        <JoinMembershipModal
-          open={guestFormOpen}
-          onOpenChange={setGuestFormOpen}
-          clubId={club._id}
-          clubName={club.name}
-          plans={allClubPlans}
-          initialPlanId={planId}
-          returnPath={typeof window !== "undefined" ? window.location.pathname : "/clubs"}
-        />
-      )}
+      <JoinMembershipModal
+        open={guestFormOpen}
+        onOpenChange={setGuestFormOpen}
+        clubId={club._id}
+        clubName={club.name}
+        plans={allClubPlans}
+        initialPlanId={planId}
+        forceRegister={!planId}
+        returnPath={typeof window !== "undefined" ? window.location.pathname : "/clubs"}
+      />
       <SiteFooter brandName="Wingman Pro" />
     </div>
   )
