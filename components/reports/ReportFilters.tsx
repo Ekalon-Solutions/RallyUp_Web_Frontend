@@ -1,13 +1,17 @@
 "use client"
 
 /**
- * ReportFilters — Reusable filter bar component for reports.
+ * ReportFilters — Reusable filter bar component for reports (Pattern v1.1).
  *
- * Provides standard date range controls (start/end date or month picker),
- * search input, status dropdown, custom extra filter slots, and apply/reset actions.
+ * Pattern v1.1 Rules:
+ *   1. Search: Auto-filters while typing with 400ms debounce. Pressing Enter searches immediately.
+ *      Does not require clicking Apply Filters.
+ *   2. Date Filters: Changing From Date or To Date immediately refreshes the report.
+ *   3. Dropdown Filters: Use Apply Filters button so multiple dropdown changes can be executed together.
+ *   4. Reset: Clears search, dates, dropdowns, and triggers an immediate report refresh.
  */
 
-import { useState, ReactNode } from "react"
+import { useState, useEffect, useRef, ReactNode } from "react"
 import { Search, RotateCcw, Filter } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -57,15 +61,67 @@ export function ReportFilters({
   loading = false,
 }: ReportFiltersProps) {
   const [filters, setFilters] = useState<ReportFiltersState>(initialFilters)
+  const [searchValue, setSearchValue] = useState<string>(initialFilters.search || "")
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const isFirstRender = useRef(true)
 
+  // Sync initialFilters search value if updated externally
+  useEffect(() => {
+    if (initialFilters.search !== undefined && initialFilters.search !== searchValue) {
+      setSearchValue(initialFilters.search || "")
+    }
+  }, [initialFilters.search])
+
+  // Debounced search trigger (400ms)
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
+
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
+    }
+
+    debounceTimerRef.current = setTimeout(() => {
+      const updatedSearch = searchValue.trim() || undefined
+      if (updatedSearch !== filters.search) {
+        const nextFilters = { ...filters, search: updatedSearch }
+        setFilters(nextFilters)
+        onApplyFilters(nextFilters)
+      }
+    }, 400)
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+      }
+    }
+  }, [searchValue])
+
+  // Immediate search on Enter keypress
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault()
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+      }
+      const updatedSearch = searchValue.trim() || undefined
+      const nextFilters = { ...filters, search: updatedSearch }
+      setFilters(nextFilters)
+      onApplyFilters(nextFilters)
+    }
+  }
+
+  // Immediate Date change handler
   const handleDateChange = (field: "startDate" | "endDate", value: string) => {
-    setFilters((prev) => ({ ...prev, [field]: value || undefined }))
+    const nextValue = value || undefined
+    const nextFilters = { ...filters, [field]: nextValue }
+    setFilters(nextFilters)
+    onApplyFilters(nextFilters)
   }
 
-  const handleSearchChange = (value: string) => {
-    setFilters((prev) => ({ ...prev, search: value || undefined }))
-  }
-
+  // Status change handler
   const handleStatusChange = (value: string) => {
     setFilters((prev) => ({
       ...prev,
@@ -75,10 +131,20 @@ export function ReportFilters({
 
   const handleApply = (e: React.FormEvent) => {
     e.preventDefault()
-    onApplyFilters(filters)
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
+    }
+    const updatedSearch = searchValue.trim() || undefined
+    const nextFilters = { ...filters, search: updatedSearch }
+    setFilters(nextFilters)
+    onApplyFilters(nextFilters)
   }
 
   const handleReset = () => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
+    }
+    setSearchValue("")
     const emptyState: ReportFiltersState = {}
     setFilters(emptyState)
     if (onResetFilters) {
@@ -90,7 +156,7 @@ export function ReportFilters({
 
   return (
     <form onSubmit={handleApply} className="flex flex-wrap items-end gap-4 text-sm">
-      {/* Date Range Filters */}
+      {/* Date Range Filters (Immediate refresh on selection) */}
       {showDateRange && (
         <>
           <div className="space-y-1.5">
@@ -137,7 +203,7 @@ export function ReportFilters({
         </div>
       )}
 
-      {/* Search Input */}
+      {/* Search Input (Debounced auto-search + immediate Enter search) */}
       {showSearch && (
         <div className="space-y-1.5 flex-1 min-w-[200px]">
           <Label className="text-xs text-muted-foreground">Search</Label>
@@ -146,8 +212,9 @@ export function ReportFilters({
             <Input
               type="search"
               placeholder={searchPlaceholder}
-              value={filters.search || ""}
-              onChange={(e) => handleSearchChange(e.target.value)}
+              value={searchValue}
+              onChange={(e) => setSearchValue(e.target.value)}
+              onKeyDown={handleSearchKeyDown}
               className="pl-9"
             />
           </div>

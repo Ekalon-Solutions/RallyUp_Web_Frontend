@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { Users, UserCheck, UserX, UserMinus, Clock } from "lucide-react"
+import { ShoppingCart, DollarSign, TrendingUp, CheckCircle } from "lucide-react"
 import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
@@ -26,39 +26,41 @@ import {
   type ExportFormat,
 } from "@/components/reports"
 
-// ─── Status Badge Variant Helper ──────────────────────────────────────────────
-
 function renderStatusBadge(status: string) {
   const s = (status || "").toLowerCase()
   switch (s) {
     case "active":
-      return <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-0">Active</Badge>
+    case "paid":
+      return <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-0 font-medium">{status}</Badge>
     case "expired":
-      return <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border-0">Expired</Badge>
-    case "cancelled":
-      return <Badge className="bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border-0">Cancelled</Badge>
     case "pending":
-    case "suspended":
-      return <Badge className="bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-300 border-0">{status}</Badge>
+      return <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border-0 font-medium">{status}</Badge>
+    case "cancelled":
+      return <Badge className="bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border-0 font-medium">Cancelled</Badge>
     default:
       return <Badge variant="outline">{status}</Badge>
   }
 }
 
-// ─── Row Interface ────────────────────────────────────────────────────────────
+function formatCurrency(amount: number, currency: string = "INR") {
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: currency === "USD" ? "USD" : "INR",
+    maximumFractionDigits: 2,
+  }).format(amount)
+}
 
-interface MemberDirectoryRow extends Record<string, unknown> {
+interface MembershipPurchaseRow extends Record<string, unknown> {
   id: string
-  userMembershipId: string
+  purchaseId: string
   memberName: string
   email: string
-  phoneNumber: string
-  city: string
   planName: string
-  status: string
-  startDate: string | null
-  endDate: string | null
-  registrationDate: string | null
+  purchaseDate: string | null
+  amount: number
+  currency: string
+  paymentStatus: string
+  membershipStatus: string
 }
 
 interface PlanOption {
@@ -66,22 +68,19 @@ interface PlanOption {
   name: string
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
-
-export default function MemberDirectoryReportPage() {
+export default function MembershipPurchaseReportPage() {
   const { user } = useAuth()
   const clubId = useRequiredClubId()
   const { config: clubFeatureConfig } = useClubFeatures(clubId ?? null)
 
   const [loading, setLoading] = useState(true)
-  const [data, setData] = useState<MemberDirectoryRow[]>([])
+  const [data, setData] = useState<MembershipPurchaseRow[]>([])
   const [pagination, setPagination] = useState<ReportPaginationMeta | undefined>()
   const [summaryData, setSummaryData] = useState({
-    totalMembers: 0,
-    activeMembers: 0,
-    expiredMembers: 0,
-    cancelledMembers: 0,
-    pendingMembers: 0,
+    membershipPurchases: 0,
+    membershipRevenue: 0,
+    averageMembershipValue: 0,
+    activeMembershipPurchases: 0,
   })
   const [plans, setPlans] = useState<PlanOption[]>([])
 
@@ -94,13 +93,11 @@ export default function MemberDirectoryReportPage() {
   })
 
   const [sort, setSort] = useState<{ field: string; direction: "asc" | "desc" }>({
-    field: "start_date",
+    field: "createdAt",
     direction: "desc",
   })
 
   const [page, setPage] = useState(1)
-
-  // ── Fetch Report Data ───────────────────────────────────────────────────────
 
   const fetchReport = useCallback(async () => {
     if (!clubId) return
@@ -117,40 +114,38 @@ export default function MemberDirectoryReportPage() {
       if (filters.startDate) queryParams.startDate = filters.startDate
       if (filters.endDate) queryParams.endDate = filters.endDate
       if (filters.search) queryParams.search = filters.search
-      if (filters.status) queryParams.status = filters.status
+      if (filters.status && filters.status !== "all") queryParams.status = filters.status
       if (filters.extras?.membershipPlanId && filters.extras.membershipPlanId !== "all") {
         queryParams.membershipPlanId = filters.extras.membershipPlanId
       }
 
-      const res = await apiClient.getMemberDirectoryReport(queryParams)
+      const res = await apiClient.getMembershipPurchaseReport(queryParams)
       if (res.success && res.data) {
-        setData(res.data.data)
-        if (res.data.meta?.pagination) {
-          setPagination(res.data.meta.pagination)
-        }
+        // Mandatory Pattern v1.2 data mapping
+        const rawRows = Array.isArray(res.data.data) ? res.data.data : []
+        setData(rawRows)
+
+        if (res.data.meta?.pagination) setPagination(res.data.meta.pagination)
         if (res.data.summary) {
           setSummaryData({
-            totalMembers: Number(res.data.summary.totalMembers) || 0,
-            activeMembers: Number(res.data.summary.activeMembers) || 0,
-            expiredMembers: Number(res.data.summary.expiredMembers) || 0,
-            cancelledMembers: Number(res.data.summary.cancelledMembers) || 0,
-            pendingMembers: Number(res.data.summary.pendingMembers) || 0,
+            membershipPurchases: Number(res.data.summary.membershipPurchases) || 0,
+            membershipRevenue: Number(res.data.summary.membershipRevenue) || 0,
+            averageMembershipValue: Number(res.data.summary.averageMembershipValue) || 0,
+            activeMembershipPurchases: Number(res.data.summary.activeMembershipPurchases) || 0,
           })
           if (res.data.summary.plans) {
             try {
-              const parsedPlans = typeof res.data.summary.plans === "string" ? JSON.parse(res.data.summary.plans) : res.data.summary.plans
-              if (Array.isArray(parsedPlans)) setPlans(parsedPlans)
-            } catch {
-              // Ignore plan parse errors
-            }
+              const parsed = typeof res.data.summary.plans === "string" ? JSON.parse(res.data.summary.plans) : res.data.summary.plans
+              if (Array.isArray(parsed)) setPlans(parsed)
+            } catch {}
           }
         }
       } else {
-        toast.error(res.message || "Failed to load member directory")
+        toast.error(res.message || "Failed to load purchase report")
         setData([])
       }
     } catch {
-      toast.error("Error loading member directory report")
+      toast.error("Error loading membership purchase report")
       setData([])
     } finally {
       setLoading(false)
@@ -160,8 +155,6 @@ export default function MemberDirectoryReportPage() {
   useEffect(() => {
     fetchReport()
   }, [fetchReport])
-
-  // ── Handlers ────────────────────────────────────────────────────────────────
 
   const handleApplyFilters = (newFilters: ReportFiltersState) => {
     setFilters(newFilters)
@@ -176,30 +169,25 @@ export default function MemberDirectoryReportPage() {
   const handleExport = async (format: ExportFormat) => {
     if (!clubId) return
     try {
-      const queryParams: Record<string, any> = {
-        clubId,
-        format,
-      }
+      const queryParams: Record<string, any> = { clubId, format }
       if (filters.startDate) queryParams.startDate = filters.startDate
       if (filters.endDate) queryParams.endDate = filters.endDate
       if (filters.search) queryParams.search = filters.search
-      if (filters.status) queryParams.status = filters.status
+      if (filters.status && filters.status !== "all") queryParams.status = filters.status
       if (filters.extras?.membershipPlanId && filters.extras.membershipPlanId !== "all") {
         queryParams.membershipPlanId = filters.extras.membershipPlanId
       }
 
-      const res = await apiClient.downloadMemberDirectoryReport(queryParams)
+      const res = await apiClient.downloadMembershipPurchaseReport(queryParams)
       if (!res.success) {
         toast.error(res.error || "Export failed")
       } else {
-        toast.success(`Exported Member Directory as ${format.toUpperCase()}`)
+        toast.success(`Exported Membership Purchases as ${format.toUpperCase()}`)
       }
     } catch {
       toast.error("Export failed")
     }
   }
-
-  // ── Access & Feature Guards ─────────────────────────────────────────────────
 
   if (user?.role !== "admin" && user?.role !== "super_admin") {
     return (
@@ -219,7 +207,7 @@ export default function MemberDirectoryReportPage() {
       <DashboardLayout>
         <LockedFeaturePage
           featureKey="reporting"
-          featureLabel="Member Directory Report"
+          featureLabel="Membership Purchase Report"
           clubId={clubId ?? ""}
           currentTier={clubFeatureConfig?.billing_tier}
         />
@@ -227,96 +215,87 @@ export default function MemberDirectoryReportPage() {
     )
   }
 
-  // ── Column Definitions ──────────────────────────────────────────────────────
-
-  const columns: ReportColumn<MemberDirectoryRow>[] = [
+  const columns: ReportColumn<MembershipPurchaseRow>[] = [
     {
-      key: "userMembershipId",
-      header: "Member ID",
-      accessor: "userMembershipId",
-      sortable: true,
+      key: "purchaseId",
+      header: "Purchase ID",
+      accessor: (row) => <span className="font-mono text-xs font-medium">{row.purchaseId}</span>,
       width: "w-36",
     },
     {
-      key: "user.first_name",
-      header: "Member Name",
-      accessor: "memberName",
-      sortable: true,
+      key: "memberName",
+      header: "Member",
+      accessor: (row) => (
+        <div>
+          <div className="font-medium text-xs">{row.memberName}</div>
+          <div className="text-[11px] text-muted-foreground">{row.email}</div>
+        </div>
+      ),
       width: "w-48",
     },
     {
-      key: "user.email",
-      header: "Email",
-      accessor: "email",
-      sortable: true,
-      width: "w-56",
+      key: "planName",
+      header: "Membership Plan",
+      accessor: "planName",
+      width: "w-44",
     },
     {
-      key: "phoneNumber",
-      header: "Phone Number",
-      accessor: "phoneNumber",
+      key: "createdAt",
+      header: "Purchase Date",
+      accessor: (row) => (row.purchaseDate ? row.purchaseDate.slice(0, 10) : "—"),
+      sortable: true,
       width: "w-36",
     },
     {
-      key: "city",
-      header: "City",
-      accessor: "city",
+      key: "amount",
+      header: "Amount",
+      accessor: (row) => (
+        <span className="font-mono font-semibold">
+          {formatCurrency(row.amount, row.currency)}
+        </span>
+      ),
+      align: "right",
       width: "w-32",
     },
     {
-      key: "planName",
-      header: "Plan",
-      accessor: "planName",
-      width: "w-36",
+      key: "paymentStatus",
+      header: "Payment Status",
+      accessor: (row) => renderStatusBadge(row.paymentStatus),
+      width: "w-32",
     },
     {
       key: "status",
-      header: "Status",
-      accessor: (row) => renderStatusBadge(row.status),
+      header: "Membership Status",
+      accessor: (row) => renderStatusBadge(row.membershipStatus),
       sortable: true,
-      width: "w-28",
-    },
-    {
-      key: "start_date",
-      header: "Start Date",
-      accessor: (row) => (row.startDate ? row.startDate.slice(0, 10) : "—"),
-      sortable: true,
-      width: "w-32",
-    },
-    {
-      key: "endDate",
-      header: "End Date",
-      accessor: (row) => (row.endDate ? row.endDate.slice(0, 10) : "Lifelong"),
-      width: "w-32",
+      width: "w-36",
     },
   ]
 
-  // ── Summary Cards Config ────────────────────────────────────────────────────
-
   const summaryCards: SummaryCard[] = [
     {
-      label: "Total Members",
-      value: summaryData.totalMembers.toLocaleString(),
-      icon: Users,
+      label: "Membership Purchases",
+      value: summaryData.membershipPurchases.toLocaleString(),
+      icon: ShoppingCart,
       iconColor: "bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400",
     },
     {
-      label: "Active Members",
-      value: summaryData.activeMembers.toLocaleString(),
-      icon: UserCheck,
+      label: "Membership Revenue",
+      value: formatCurrency(summaryData.membershipRevenue),
+      icon: DollarSign,
       iconColor: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400",
     },
     {
-      label: "Expired Members",
-      value: summaryData.expiredMembers.toLocaleString(),
-      icon: UserX,
-      iconColor: "bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400",
+      label: "Average Value",
+      value: formatCurrency(summaryData.averageMembershipValue),
+      icon: TrendingUp,
+      iconColor: "bg-purple-100 text-purple-600 dark:bg-purple-950 dark:text-purple-400",
     },
     {
-      label: "Cancelled Members",
-      value: summaryData.cancelledMembers.toLocaleString(),
-      icon: UserMinus,
-      iconColor: "bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400",
+      label: "Active Purchases",
+      value: summaryData.activeMembershipPurchases.toLocaleString(),
+      icon: CheckCircle,
+      iconColor: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400",
     },
   ]
 
@@ -325,43 +304,31 @@ export default function MemberDirectoryReportPage() {
     { value: "expired", label: "Expired" },
     { value: "cancelled", label: "Cancelled" },
     { value: "pending", label: "Pending" },
-    { value: "suspended", label: "Suspended" },
   ]
 
   return (
     <DashboardLayout>
       <ReportShell
-        title="Member Directory"
-        description="Comprehensive directory of club members, active plans, membership IDs, and statuses."
+        title="Membership Purchase Report"
+        description="Detailed record of membership plan purchases, gross revenue, average plan values, and payment statuses."
         category="Lifecycle"
-        actions={
-          <ExportButton
-            onExport={handleExport}
-            disabled={loading || data.length === 0}
-          />
-        }
+        actions={<ExportButton onExport={handleExport} disabled={loading || data.length === 0} />}
         filters={
           <ReportFilters
             initialFilters={filters}
             statusOptions={statusOptions}
-            statusLabel="Status"
-            searchPlaceholder="Search by name, email, phone, or member ID..."
+            statusLabel="Payment / Status"
+            searchPlaceholder="Search purchase ID, member name, email..."
             onApplyFilters={handleApplyFilters}
             onResetFilters={handleResetFilters}
             loading={loading}
           >
-            {/* Custom Extra Filter: Membership Plan Dropdown */}
             {plans.length > 0 && (
               <div className="space-y-1.5">
                 <Label className="text-xs text-muted-foreground">Membership Plan</Label>
                 <Select
                   value={filters.extras?.membershipPlanId || "all"}
-                  onValueChange={(val) =>
-                    setFilters((prev) => ({
-                      ...prev,
-                      extras: { ...prev.extras, membershipPlanId: val },
-                    }))
-                  }
+                  onValueChange={(val) => setFilters((prev) => ({ ...prev, extras: { ...prev.extras, membershipPlanId: val } }))}
                 >
                   <SelectTrigger className="w-44">
                     <SelectValue placeholder="All Plans" />
@@ -369,9 +336,7 @@ export default function MemberDirectoryReportPage() {
                   <SelectContent>
                     <SelectItem value="all">All Plans</SelectItem>
                     {plans.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.name}
-                      </SelectItem>
+                      <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -389,7 +354,7 @@ export default function MemberDirectoryReportPage() {
           sort={sort}
           onSortChange={setSort}
           onPageChange={setPage}
-          emptyMessage="No members match the selected criteria."
+          emptyMessage="No membership purchase records found for the selected criteria."
         />
       </ReportShell>
     </DashboardLayout>
