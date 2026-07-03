@@ -27,8 +27,6 @@ import {
   SystemOwnerClubFilter,
 } from "@/components/reports"
 
-// ─── Status Badge Renderers ──────────────────────────────────────────────────
-
 function renderRefundStatusBadge(status: string) {
   const s = (status || "").toLowerCase()
   switch (s) {
@@ -52,9 +50,7 @@ function formatCurrency(amount: number, currency: string = "INR") {
   }).format(amount)
 }
 
-// ─── Row Interface ────────────────────────────────────────────────────────────
-
-interface RefundLogRow extends Record<string, unknown> {
+interface EventTicketRefundRow extends Record<string, unknown> {
   id: string
   refundId: string
   eventTitle: string
@@ -64,7 +60,6 @@ interface RefundLogRow extends Record<string, unknown> {
   refundAmount: number
   currency: string
   status: string
-  paymentMethod: string
   requestedDate: string
   processedDate: string | null
   processedBy: string | null
@@ -75,15 +70,13 @@ interface EventOption {
   label: string
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
-
-export default function RefundLogReportPage() {
-  const auth = useReportAuthorization("refund-log")
+export default function EventTicketRefundsReportPage() {
+  const auth = useReportAuthorization("event-ticket-refunds")
   const clubId = useRequiredClubId()
   const { selectedClubId, setSelectedClubId, isSystemOwner } = useSystemOwnerReportScope()
 
   const [loading, setLoading] = useState(true)
-  const [data, setData] = useState<RefundLogRow[]>([])
+  const [data, setData] = useState<EventTicketRefundRow[]>([])
   const [pagination, setPagination] = useState<ReportPaginationMeta | undefined>()
   const [summaryData, setSummaryData] = useState({
     totalRefunds: 0,
@@ -98,10 +91,7 @@ export default function RefundLogReportPage() {
     endDate: undefined,
     search: undefined,
     status: undefined,
-    extras: {
-      sourceType: "all",
-      eventId: "all",
-    },
+    extras: { eventId: "all" },
   })
 
   const [sort, setSort] = useState<{ field: string; direction: "asc" | "desc" }>({
@@ -110,8 +100,6 @@ export default function RefundLogReportPage() {
   })
 
   const [page, setPage] = useState(1)
-
-  // ── Fetch Report Data ───────────────────────────────────────────────────────
 
   const fetchReport = useCallback(async () => {
     if (!shouldFetchReport({ authorized: auth.authorized, clubId, isSystemOwner })) return
@@ -126,22 +114,17 @@ export default function RefundLogReportPage() {
         filters,
       })
 
-      if (filters.extras?.sourceType && filters.extras.sourceType !== "all") {
-        queryParams.sourceType = filters.extras.sourceType
-      }
       if (filters.extras?.eventId && filters.extras.eventId !== "all") {
         queryParams.eventId = filters.extras.eventId
       }
 
-      const res = await apiClient.getRefundLogReport(queryParams)
+      const res = await apiClient.getEventTicketRefundsReport(queryParams)
       if (res.success && res.data) {
         // Mandatory Pattern v1.2 data extraction
         const rawRows = Array.isArray(res.data.data) ? res.data.data : []
         setData(rawRows)
 
-        if (res.data.meta?.pagination) {
-          setPagination(res.data.meta.pagination)
-        }
+        if (res.data.meta?.pagination) setPagination(res.data.meta.pagination)
         if (res.data.summary) {
           setSummaryData({
             totalRefunds: Number(res.data.summary.totalRefunds) || 0,
@@ -155,17 +138,15 @@ export default function RefundLogReportPage() {
                 ? JSON.parse(res.data.summary.eventOptions)
                 : res.data.summary.eventOptions
               if (Array.isArray(parsed)) setEventOptions(parsed)
-            } catch {
-              // Ignore parse errors
-            }
+            } catch {}
           }
         }
       } else {
-        toast.error(res.message || "Failed to load refund log")
+        toast.error(res.message || "Failed to load event ticket refunds")
         setData([])
       }
     } catch {
-      toast.error("Error loading refund log report")
+      toast.error("Error loading event ticket refunds report")
       setData([])
     } finally {
       setLoading(false)
@@ -176,44 +157,34 @@ export default function RefundLogReportPage() {
     fetchReport()
   }, [fetchReport])
 
-  // ── Handlers ────────────────────────────────────────────────────────────────
-
   const handleApplyFilters = (newFilters: ReportFiltersState) => {
     setFilters(newFilters)
     setPage(1)
   }
 
   const handleResetFilters = () => {
-    setFilters({ extras: { sourceType: "all", eventId: "all" } })
+    setFilters({ extras: { eventId: "all" } })
     setPage(1)
   }
 
   const handleExport = async (format: ExportFormat) => {
     if (!shouldFetchReport({ authorized: auth.authorized, clubId, isSystemOwner })) return
     try {
-      const queryParams: Record<string, any> = {
-        clubId,
-        format,
-      }
-      if (filters.extras?.sourceType && filters.extras.sourceType !== "all") {
-        queryParams.sourceType = filters.extras.sourceType
-      }
+      const queryParams: Record<string, any> = { clubId, format }
       if (filters.extras?.eventId && filters.extras.eventId !== "all") {
         queryParams.eventId = filters.extras.eventId
       }
 
-      const res = await apiClient.downloadRefundLogReport(queryParams)
+      const res = await apiClient.downloadEventTicketRefundsReport(queryParams)
       if (!res.success) {
         toast.error(res.error || "Export failed")
       } else {
-        toast.success(`Exported Refund Log as ${format.toUpperCase()}`)
+        toast.success(`Exported Event Ticket Refunds as ${format.toUpperCase()}`)
       }
     } catch {
       toast.error("Export failed")
     }
   }
-
-  // ── Access & Feature Guards ─────────────────────────────────────────────────
 
   if (!auth.authorized) {
     return (
@@ -223,9 +194,7 @@ export default function RefundLogReportPage() {
     )
   }
 
-  // ── Column Definitions ──────────────────────────────────────────────────────
-
-  const columns: ReportColumn<RefundLogRow>[] = [
+  const columns: ReportColumn<EventTicketRefundRow>[] = [
     {
       key: "refundId",
       header: "Refund ID",
@@ -234,7 +203,7 @@ export default function RefundLogReportPage() {
     },
     {
       key: "event.title",
-      header: "Event / Source",
+      header: "Event",
       accessor: "eventTitle",
       sortable: true,
       width: "w-48",
@@ -270,12 +239,6 @@ export default function RefundLogReportPage() {
       width: "w-36",
     },
     {
-      key: "paymentMethod",
-      header: "Payment Method",
-      accessor: (row) => <span className="text-xs uppercase font-medium">{row.paymentMethod}</span>,
-      width: "w-32",
-    },
-    {
       key: "requestedAt",
       header: "Requested Date",
       accessor: (row) => (
@@ -299,18 +262,14 @@ export default function RefundLogReportPage() {
     {
       key: "processedBy",
       header: "Processed By",
-      accessor: (row) => (
-        <span className="text-xs text-muted-foreground">{row.processedBy || "N/A"}</span>
-      ),
+      accessor: (row) => <span className="text-xs text-muted-foreground">{row.processedBy || "N/A"}</span>,
       width: "w-36",
     },
   ]
 
-  // ── Summary Cards Config ────────────────────────────────────────────────────
-
   const summaryCards: SummaryCard[] = [
     {
-      label: "Total Refunds",
+      label: "Total Ticket Refunds",
       value: summaryData.totalRefunds.toLocaleString(),
       icon: RotateCcw,
       iconColor: "bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400",
@@ -341,23 +300,13 @@ export default function RefundLogReportPage() {
     { value: "rejected", label: "Rejected" },
   ]
 
-  const sourceTypeOptions = [
-    { value: "event_ticket", label: "Event Ticket" },
-    { value: "store_order", label: "Store Order" },
-  ]
-
   return (
     <DashboardLayout>
       <ReportShell
-        title="Refund Log Report"
-        description="Audit log of all requested, processed, and rejected refund applications across events and store orders."
+        title="Event Ticket Refund Log"
+        description="Audit log of all event ticket refund requests, approval statuses, processed amounts, and processing admins."
         category="Revenue"
-        actions={
-          <ExportButton
-            onExport={handleExport}
-            disabled={loading || data.length === 0}
-          />
-        }
+        actions={<ExportButton onExport={handleExport} disabled={loading || data.length === 0} />}
         filters={
           <>
             {isSystemOwner && (
@@ -370,49 +319,17 @@ export default function RefundLogReportPage() {
               initialFilters={filters}
             statusOptions={refundStatusOptions}
             statusLabel="Refund Status"
-            searchPlaceholder="Search by Refund ID, event, member name, email..."
+            searchPlaceholder="Search Refund ID, event, member name, email..."
             onApplyFilters={handleApplyFilters}
             onResetFilters={handleResetFilters}
             loading={loading}
           >
-            {/* Custom Extra Filter: Source Type Dropdown */}
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">Type</Label>
-              <Select
-                value={filters.extras?.sourceType || "all"}
-                onValueChange={(val) =>
-                  setFilters((prev) => ({
-                    ...prev,
-                    extras: { ...prev.extras, sourceType: val },
-                  }))
-                }
-              >
-                <SelectTrigger className="w-36">
-                  <SelectValue placeholder="All Types" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Types</SelectItem>
-                  {sourceTypeOptions.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Custom Extra Filter: Event Dropdown */}
             {eventOptions.length > 0 && (
               <div className="space-y-1.5">
                 <Label className="text-xs text-muted-foreground">Event</Label>
                 <Select
                   value={filters.extras?.eventId || "all"}
-                  onValueChange={(val) =>
-                    setFilters((prev) => ({
-                      ...prev,
-                      extras: { ...prev.extras, eventId: val },
-                    }))
-                  }
+                  onValueChange={(val) => setFilters((prev) => ({ ...prev, extras: { ...prev.extras, eventId: val } }))}
                 >
                   <SelectTrigger className="w-44">
                     <SelectValue placeholder="All Events" />
@@ -420,9 +337,7 @@ export default function RefundLogReportPage() {
                   <SelectContent>
                     <SelectItem value="all">All Events</SelectItem>
                     {eventOptions.map((evt) => (
-                      <SelectItem key={evt.value} value={evt.value}>
-                        {evt.label}
-                      </SelectItem>
+                      <SelectItem key={evt.value} value={evt.value}>{evt.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -441,7 +356,7 @@ export default function RefundLogReportPage() {
           sort={sort}
           onSortChange={setSort}
           onPageChange={setPage}
-          emptyMessage="No refund records found for the selected criteria."
+          emptyMessage="No event ticket refund records found for the selected criteria."
         />
       </ReportShell>
     </DashboardLayout>

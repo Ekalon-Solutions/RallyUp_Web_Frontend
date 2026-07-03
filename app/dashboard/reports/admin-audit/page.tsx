@@ -3,17 +3,17 @@
 import { useCallback, useEffect, useState } from "react"
 import { ShieldCheck, ShieldAlert, AlertTriangle, UserCheck } from "lucide-react"
 import { toast } from "sonner"
-import { useAuth } from "@/contexts/auth-context"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
-import { useClubFeatures } from "@/hooks/useClubFeatures"
-import { isFeatureEnabled } from "@/lib/clubFeatures"
+import { useSystemOwnerReportScope } from "@/hooks/useSystemOwnerReportScope"
+import { buildReportQueryParams, shouldFetchReport } from "@/lib/reportHelpers"
+import { useReportAuthorization } from "@/hooks/useReportAuthorization"
 import { apiClient } from "@/lib/api"
 import { DashboardLayout } from "@/components/dashboard-layout"
-import { LockedFeaturePage } from "@/components/feature-gate"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import {
+  AccessDeniedPage,
   ReportShell,
   ReportTable,
   ReportSummaryCards,
@@ -24,6 +24,7 @@ import {
   type ReportFiltersState,
   type ReportPaginationMeta,
   type ExportFormat,
+  SystemOwnerClubFilter,
 } from "@/components/reports"
 
 // ─── Risk Level Badge Component ───────────────────────────────────────────────
@@ -66,9 +67,9 @@ interface ActionOption {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function AdminAuditLogReportPage() {
-  const { user } = useAuth()
+  const auth = useReportAuthorization("admin-audit")
   const clubId = useRequiredClubId()
-  const { config: clubFeatureConfig } = useClubFeatures(clubId ?? null)
+  const { selectedClubId, setSelectedClubId, isSystemOwner } = useSystemOwnerReportScope()
 
   const [loading, setLoading] = useState(true)
   const [data, setData] = useState<AdminAuditLogRow[]>([])
@@ -103,20 +104,18 @@ export default function AdminAuditLogReportPage() {
   // ── Fetch Report Data ───────────────────────────────────────────────────────
 
   const fetchReport = useCallback(async () => {
-    if (!clubId) return
+    if (!shouldFetchReport({ authorized: auth.authorized, clubId, isSystemOwner })) return
     setLoading(true)
     try {
-      const queryParams: Record<string, any> = {
+      const queryParams = buildReportQueryParams({
         clubId,
+        selectedClubId,
+        isSystemOwner,
         page,
-        limit: 20,
-        sortBy: sort.field,
-        sortDir: sort.direction,
-      }
+        sort,
+        filters,
+      })
 
-      if (filters.startDate) queryParams.startDate = filters.startDate
-      if (filters.endDate) queryParams.endDate = filters.endDate
-      if (filters.search) queryParams.search = filters.search
       if (filters.extras?.actorType && filters.extras.actorType !== "all") {
         queryParams.actorType = filters.extras.actorType
       }
@@ -161,7 +160,7 @@ export default function AdminAuditLogReportPage() {
     } finally {
       setLoading(false)
     }
-  }, [clubId, page, sort, filters])
+  }, [clubId, selectedClubId, isSystemOwner, page, sort, filters, auth.authorized])
 
   useEffect(() => {
     fetchReport()
@@ -186,15 +185,12 @@ export default function AdminAuditLogReportPage() {
   }
 
   const handleExport = async (format: ExportFormat) => {
-    if (!clubId) return
+    if (!shouldFetchReport({ authorized: auth.authorized, clubId, isSystemOwner })) return
     try {
       const queryParams: Record<string, any> = {
         clubId,
         format,
       }
-      if (filters.startDate) queryParams.startDate = filters.startDate
-      if (filters.endDate) queryParams.endDate = filters.endDate
-      if (filters.search) queryParams.search = filters.search
       if (filters.extras?.actorType && filters.extras.actorType !== "all") {
         queryParams.actorType = filters.extras.actorType
       }
@@ -218,28 +214,10 @@ export default function AdminAuditLogReportPage() {
 
   // ── Access & Feature Guards ─────────────────────────────────────────────────
 
-  if (user?.role !== "admin" && user?.role !== "super_admin") {
+  if (!auth.authorized) {
     return (
       <DashboardLayout>
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold text-gray-900">Access Denied</h2>
-            <p className="text-gray-600">You don't have permission to view this page.</p>
-          </div>
-        </div>
-      </DashboardLayout>
-    )
-  }
-
-  if (!isFeatureEnabled(clubFeatureConfig, "reporting")) {
-    return (
-      <DashboardLayout>
-        <LockedFeaturePage
-          featureKey="reporting"
-          featureLabel="Admin Audit Log Report"
-          clubId={clubId ?? ""}
-          currentTier={clubFeatureConfig?.billing_tier}
-        />
+        <AccessDeniedPage reason={auth.reason} message={auth.message} />
       </DashboardLayout>
     )
   }
@@ -383,8 +361,15 @@ export default function AdminAuditLogReportPage() {
           />
         }
         filters={
-          <ReportFilters
-            initialFilters={filters}
+          <>
+            {isSystemOwner && (
+              <SystemOwnerClubFilter
+                selectedClubId={selectedClubId}
+                onChange={setSelectedClubId}
+              />
+            )}
+              <ReportFilters
+              initialFilters={filters}
             searchPlaceholder="Search by admin name, action, IP, summary..."
             onApplyFilters={handleApplyFilters}
             onResetFilters={handleResetFilters}
@@ -470,6 +455,7 @@ export default function AdminAuditLogReportPage() {
               </div>
             )}
           </ReportFilters>
+          </>
         }
         summary={<ReportSummaryCards cards={summaryCards} loading={loading} />}
       >
