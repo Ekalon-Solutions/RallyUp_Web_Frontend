@@ -40,6 +40,7 @@ export interface JoinablePlan {
   planEndDate?: string
   bookingStartDate?: string
   bookingEndDate?: string
+  referralReward?: { enabled: boolean; points: number }
 }
 
 interface JoinMembershipModalProps {
@@ -237,7 +238,7 @@ export function JoinMembershipModal({
     if (plans.length > 0 && !plans.some((p) => p._id === selectedPlanId)) {
       setSelectedPlanId(plans[0]._id)
     }
-  }, [open, plans, selectedPlanId, initialPlanId, mode, currentPlanId, currentPlanDetails?.price])
+  }, [open, plans, initialPlanId, mode, currentPlanId, currentPlanDetails?.price])
 
   useEffect(() => {
     if (!open) {
@@ -558,8 +559,11 @@ export function JoinMembershipModal({
     setPendingRegistrationData(null)
   }
 
-  const renderReferralField = () => (
-    <div className="rounded-lg border border-border bg-muted/50 p-4 space-y-2">
+  const renderReferralField = () => {
+    const selectedPlan = plans.find(p => p._id === selectedPlanId)
+    if (!selectedPlan?.referralReward?.enabled) return null
+    return (
+    <div className="rounded-xl border border-secondary/20 bg-slate-50/50 p-4 space-y-2 text-slate-800">
       <div className="flex items-center gap-1.5">
         <Label htmlFor="join-referralPhone" className="text-sm font-medium">
           Referral Mobile Number
@@ -617,7 +621,8 @@ export function JoinMembershipModal({
         <p className="text-xs font-medium text-destructive">You cannot refer yourself.</p>
       )}
     </div>
-  )
+    )
+  }
 
   const renderCurrentMembershipBanner = () => {
     if (mode !== "upgrade" || !currentMembership || !currentPlanDetails) return null

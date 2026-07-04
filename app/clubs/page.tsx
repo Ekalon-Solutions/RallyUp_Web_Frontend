@@ -1574,7 +1574,7 @@ function ClubsPageContent() {
                 </div>
               </div>
 
-              {selectedPlan && (
+              {selectedPlan?.referralReward?.enabled && (
                 <div className="rounded-lg border border-border bg-muted/50 p-4 space-y-2">
                   <div className="flex items-center gap-1.5">
                     <Label htmlFor="referralPhone" className="text-sm font-medium">
