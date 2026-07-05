@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useCallback, useEffect, useState } from "react"
 import { ShoppingBag, DollarSign, TrendingUp, XCircle } from "lucide-react"
@@ -222,7 +222,7 @@ export default function TotalOrderSummaryPage() {
       header: "Order Date",
       accessor: (row) => (
         <span className="font-mono text-xs">
-          {row.orderDate ? row.orderDate.replace("T", " ").slice(0, 16) : "—"}
+          {row.orderDate ? row.orderDate.replace("T", " ").slice(0, 16) : "â€”"}
         </span>
       ),
       sortable: true,
@@ -243,7 +243,10 @@ export default function TotalOrderSummaryPage() {
     {
       key: "paymentStatus",
       header: "Payment Status",
-      accessor: (row) => renderPaymentStatusBadge(row.paymentStatus),
+      accessor: (row) =>
+        row.totalAmount === 0
+          ? <Badge className="bg-slate-100 text-slate-800 dark:bg-slate-950 dark:text-slate-300 border-0 font-medium">Free</Badge>
+          : renderPaymentStatusBadge(row.paymentStatus),
       sortable: true,
       width: "w-32",
     },
@@ -368,6 +371,7 @@ export default function TotalOrderSummaryPage() {
           onSortChange={setSort}
           onPageChange={setPage}
           emptyMessage="No store orders found for the selected criteria."
+          showClubColumn={isSystemOwner && !selectedClubId}
         />
       </ReportShell>
     </DashboardLayout>

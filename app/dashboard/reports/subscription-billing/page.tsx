@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { CreditCard, DollarSign, CheckCircle, Clock } from "lucide-react"
+import { CreditCard, CheckCircle, Clock } from "lucide-react"
 import { toast } from "sonner"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { useSystemOwnerReportScope } from "@/hooks/useSystemOwnerReportScope"
@@ -43,10 +43,10 @@ function renderBillingStatusBadge(status: string) {
   }
 }
 
-function formatCurrency(amount: number, currency: string = "USD") {
-  return new Intl.NumberFormat("en-US", {
+function formatCurrency(amount: number) {
+  return new Intl.NumberFormat("en-IN", {
     style: "currency",
-    currency: currency === "INR" ? "INR" : "USD",
+    currency: "INR",
     maximumFractionDigits: 2,
   }).format(amount)
 }
@@ -213,21 +213,21 @@ export default function SubscriptionBillingReportPage() {
     {
       key: "baseTierAmount",
       header: "Base Amount",
-      accessor: (row) => <span className="font-mono text-xs">{formatCurrency(row.baseTierAmount, row.currency)}</span>,
+      accessor: (row) => <span className="font-mono text-xs">{formatCurrency(row.baseTierAmount)}</span>,
       align: "right",
       width: "w-32",
     },
     {
       key: "addonsAmount",
       header: "Addons",
-      accessor: (row) => <span className="font-mono text-xs">{formatCurrency(row.addonsAmount, row.currency)}</span>,
+      accessor: (row) => <span className="font-mono text-xs">{formatCurrency(row.addonsAmount)}</span>,
       align: "right",
       width: "w-28",
     },
     {
       key: "totalAmount",
       header: "Total Amount",
-      accessor: (row) => <span className="font-mono font-semibold">{formatCurrency(row.totalAmount, row.currency)}</span>,
+      accessor: (row) => <span className="font-mono font-semibold">{formatCurrency(row.totalAmount)}</span>,
       sortable: true,
       align: "right",
       width: "w-36",
@@ -245,26 +245,18 @@ export default function SubscriptionBillingReportPage() {
     {
       label: "Total Invoices",
       value: summaryData.totalInvoices.toLocaleString(),
-      icon: CreditCard,
-      iconColor: "bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400",
     },
     {
       label: "Total Billed Amount",
       value: formatCurrency(summaryData.totalBilledAmount),
-      icon: DollarSign,
-      iconColor: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400",
     },
     {
       label: "Paid Invoices",
       value: summaryData.paidInvoices.toLocaleString(),
-      icon: CheckCircle,
-      iconColor: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400",
     },
     {
       label: "Pending / Draft Amount",
       value: formatCurrency(summaryData.pendingAmount),
-      icon: Clock,
-      iconColor: "bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400",
     },
   ]
 
@@ -337,6 +329,7 @@ export default function SubscriptionBillingReportPage() {
           onSortChange={setSort}
           onPageChange={setPage}
           emptyMessage="No subscription billing records found for the selected criteria."
+          showClubColumn={isSystemOwner && !selectedClubId}
         />
       </ReportShell>
     </DashboardLayout>

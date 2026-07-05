@@ -230,28 +230,18 @@ export default function MembershipGrowthReportPage() {
     {
       label: "New Members",
       value: summaryData.newMembers.toLocaleString(),
-      icon: UserPlus,
-      iconColor: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400",
     },
     {
       label: "Renewed Members",
       value: summaryData.renewedMembers.toLocaleString(),
-      icon: RefreshCw,
-      iconColor: "bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400",
     },
     {
       label: "Expired Memberships",
       value: summaryData.expiredMemberships.toLocaleString(),
-      icon: UserX,
-      iconColor: "bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400",
     },
     {
       label: "Net Growth",
       value: (summaryData.netGrowth >= 0 ? "+" : "") + summaryData.netGrowth.toLocaleString(),
-      icon: TrendingUp,
-      iconColor: summaryData.netGrowth >= 0
-        ? "bg-purple-100 text-purple-600 dark:bg-purple-950 dark:text-purple-400"
-        : "bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400",
     },
   ]
 
@@ -319,6 +309,7 @@ export default function MembershipGrowthReportPage() {
           onSortChange={setSort}
           onPageChange={setPage}
           emptyMessage="No membership growth records found for the selected criteria."
+          showClubColumn={isSystemOwner && !selectedClubId}
         />
       </ReportShell>
     </DashboardLayout>

@@ -17,6 +17,7 @@
  *   - Column alignment (left / center / right)
  */
 
+import { useEffect, useRef, useState } from "react"
 import { ChevronDown, ChevronUp, ChevronsUpDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -51,6 +52,8 @@ interface ReportTableProps<T extends Record<string, unknown>> {
   rowKey?: keyof T | ((row: T, index: number) => string)
   /** Optional row click handler */
   onRowClick?: (row: T) => void
+  /** Show a Club column for system owners viewing all clubs */
+  showClubColumn?: boolean
 }
 
 // ─── Sort Icon ────────────────────────────────────────────────────────────────
@@ -98,10 +101,63 @@ export function ReportTable<T extends Record<string, unknown>>({
   emptyMessage = "No data found for the selected filters.",
   rowKey,
   onRowClick,
+  showClubColumn,
 }: ReportTableProps<T>) {
 
   // Only display columns not marked as exportOnly
-  const visibleColumns = columns.filter((c) => !c.exportOnly)
+  let visibleColumns = columns.filter((c) => !c.exportOnly)
+
+  // Prepend Club column for system owners viewing all clubs
+  if (showClubColumn) {
+    const clubCol: ReportColumn<T> = {
+      key: "_club",
+      header: "Club",
+      accessor: (row) => {
+        const name = (row as Record<string, unknown>)["clubName"]
+        return name ? String(name) : "—"
+      },
+      width: "w-36",
+    }
+    visibleColumns = [clubCol, ...visibleColumns]
+  }
+
+  // ── Column Resize State ────────────────────────────────────────────────
+  const [columnWidths, setColumnWidths] = useState<Record<string, number>>({})
+  const [resizing, setResizing] = useState<{ key: string; startX: number; startWidth: number } | null>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!resizing) return
+    const handleMouseMove = (e: MouseEvent) => {
+      const diff = e.clientX - resizing.startX
+      setColumnWidths((prev) => ({
+        ...prev,
+        [resizing.key]: Math.max(60, resizing.startWidth + diff),
+      }))
+      autoScroll(e)
+    }
+    const handleMouseUp = () => setResizing(null)
+    document.addEventListener("mousemove", handleMouseMove)
+    document.addEventListener("mouseup", handleMouseUp)
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove)
+      document.removeEventListener("mouseup", handleMouseUp)
+    }
+  }, [resizing])
+
+  function autoScroll(e: MouseEvent) {
+    const el = scrollRef.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    const threshold = 40
+    const speed = 12
+    if (e.clientX > rect.right - threshold) {
+      el.scrollLeft += speed
+    }
+    if (e.clientX < rect.left + threshold) {
+      el.scrollLeft -= speed
+    }
+  }
 
   const handleSortClick = (col: ReportColumn<T>) => {
     if (!col.sortable || !onSortChange) return
@@ -133,31 +189,45 @@ export function ReportTable<T extends Record<string, unknown>>({
     <div className="flex flex-col">
 
       {/* ── Table ──────────────────────────────────────────────────────── */}
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+      <div className="overflow-x-auto" ref={scrollRef}>
+        <table className="w-full text-sm table-fixed">
 
           {/* Header */}
           <thead>
             <tr className="border-b border-border bg-muted/40">
-              {visibleColumns.map((col) => (
-                <th
-                  key={col.key}
-                  className={cn(
-                    "px-4 py-3 font-medium text-muted-foreground whitespace-nowrap select-none",
-                    alignClass(col.align),
-                    col.width,
-                    col.sortable && onSortChange && "cursor-pointer hover:text-foreground transition-colors",
-                  )}
-                  onClick={() => handleSortClick(col)}
-                >
-                  <span className="inline-flex items-center">
-                    {col.header}
-                    {col.sortable && onSortChange && (
-                      <SortIcon columnKey={col.key} sort={sort} />
+              {visibleColumns.map((col) => {
+                const overrideWidth = columnWidths[col.key]
+                return (
+                  <th
+                    key={col.key}
+                    className={cn(
+                      "px-4 py-3 font-medium text-muted-foreground whitespace-nowrap select-none relative overflow-hidden",
+                      alignClass(col.align),
+                      !overrideWidth && col.width,
+                      col.sortable && onSortChange && "cursor-pointer hover:text-foreground transition-colors",
                     )}
-                  </span>
-                </th>
-              ))}
+                    style={overrideWidth ? { width: overrideWidth, minWidth: overrideWidth, maxWidth: overrideWidth } : undefined}
+                    onClick={() => handleSortClick(col)}
+                  >
+                    <span className="inline-flex items-center">
+                      {col.header}
+                      {col.sortable && onSortChange && (
+                        <SortIcon columnKey={col.key} sort={sort} />
+                      )}
+                    </span>
+                    <div
+                      className="absolute right-0 top-0 bottom-0 w-1 cursor-ew-resize hover:bg-border active:bg-foreground/20 select-none"
+                      onMouseDown={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        const th = (e.target as HTMLElement).closest("th")
+                        const startWidth = th?.offsetWidth ?? 200
+                        setResizing({ key: col.key, startX: e.clientX, startWidth })
+                      }}
+                    />
+                  </th>
+                )
+              })}
             </tr>
           </thead>
 
@@ -188,18 +258,22 @@ export function ReportTable<T extends Record<string, unknown>>({
                   )}
                   onClick={() => onRowClick?.(row)}
                 >
-                  {visibleColumns.map((col) => (
-                    <td
-                      key={col.key}
+                  {visibleColumns.map((col) => {
+                    const overrideWidth = columnWidths[col.key]
+                    return (
+                      <td
+                        key={col.key}
                       className={cn(
-                        "px-4 py-3 whitespace-nowrap",
+                        "px-4 py-3 whitespace-nowrap overflow-hidden",
                         alignClass(col.align),
-                        col.width,
+                        !overrideWidth && col.width,
                       )}
-                    >
-                      {getCellValue(row, col, index)}
-                    </td>
-                  ))}
+                      style={overrideWidth ? { width: overrideWidth, minWidth: overrideWidth, maxWidth: overrideWidth } : undefined}
+                      >
+                        {getCellValue(row, col, index)}
+                      </td>
+                    )
+                  })}
                 </tr>
               ))
             )}

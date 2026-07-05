@@ -25,6 +25,29 @@ import {
   SystemOwnerClubFilter,
 } from "@/components/reports"
 
+function formatRoleState(state: string): string {
+  const rolePrefix = state.match(/^(Member|Admin|Vendor):/)
+  if (rolePrefix) {
+    const role = rolePrefix[1]
+    const titleMatch = state.match(/Role:\s*([^|]+)/)
+    if (titleMatch) {
+      const title = titleMatch[1].trim()
+      return title === 'Admin (no sub-role)' ? role : `${role} (${title})`
+    }
+    return role
+  }
+  const titleMatch = state.match(/^Role:\s*([^|]+)/)
+  if (titleMatch) return titleMatch[1].trim()
+  if (/Active:\s*true/i.test(state)) return "Active"
+  if (/Active:\s*false/i.test(state)) return "Inactive"
+  const adminMatch = state.match(/^Admin\s*\(([^)]+)\)/)
+  if (adminMatch) return `Admin (${adminMatch[1]})`
+  if (state.includes("Not an admin")) return "Member"
+  if (state.includes("Removed") || state.includes("Declined")) return "None"
+  if (state.includes("Vendor") || state.includes("scan-only")) return "Vendor"
+  return state
+}
+
 function renderActionBadge(action: string) {
   const a = (action || "").toUpperCase()
   if (a.includes("PROMOTE")) {
@@ -202,13 +225,13 @@ export default function ElevateDemoteReportPage() {
       key: "oldState",
       header: "Role Shift",
       accessor: (row) => (
-        <div className="flex items-center gap-1 text-xs">
-          <span className="font-mono text-muted-foreground">{row.oldState || "None"}</span>
-          <span>â†’</span>
-          <span className="font-mono font-medium">{row.newState || "Updated"}</span>
+        <div className="flex items-center gap-1.5 text-xs">
+          <span className="font-medium">{formatRoleState(row.oldState) || "None"}</span>
+          <span className="text-muted-foreground">→</span>
+          <span className="font-medium">{formatRoleState(row.newState) || "Updated"}</span>
         </div>
       ),
-      width: "w-48",
+      width: "w-36",
     },
     {
       key: "actorName",
@@ -225,7 +248,7 @@ export default function ElevateDemoteReportPage() {
     {
       key: "summary",
       header: "Summary",
-      accessor: (row) => <span className="text-xs text-muted-foreground truncate max-w-[240px] block" title={row.summary}>{row.summary}</span>,
+      accessor: (row) => <span className="text-xs text-muted-foreground truncate max-w-full block" title={row.summary}>{row.summary}</span>,
       width: "w-56",
     },
   ]
@@ -234,26 +257,18 @@ export default function ElevateDemoteReportPage() {
     {
       label: "Total Role Changes",
       value: summaryData.totalChanges.toLocaleString(),
-      icon: ShieldAlert,
-      iconColor: "bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400",
     },
     {
       label: "Promotions",
       value: summaryData.promotions.toLocaleString(),
-      icon: ArrowUpRight,
-      iconColor: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400",
     },
     {
       label: "Demotions",
       value: summaryData.demotions.toLocaleString(),
-      icon: ArrowDownRight,
-      iconColor: "bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400",
     },
     {
       label: "Permission Changes",
       value: summaryData.permissionChanges.toLocaleString(),
-      icon: Key,
-      iconColor: "bg-purple-100 text-purple-600 dark:bg-purple-950 dark:text-purple-400",
     },
   ]
 
@@ -303,6 +318,7 @@ export default function ElevateDemoteReportPage() {
           onSortChange={setSort}
           onPageChange={setPage}
           emptyMessage="No elevate / demote audit records found for the selected criteria."
+          showClubColumn={isSystemOwner && !selectedClubId}
         />
       </ReportShell>
     </DashboardLayout>

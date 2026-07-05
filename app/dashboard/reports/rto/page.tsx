@@ -1,7 +1,7 @@
-"use client"
+﻿"use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { PackageX, TrendingUp, DollarSign, Truck } from "lucide-react"
+import { PackageX, TrendingUp, Truck } from "lucide-react"
 import { toast } from "sonner"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { useSystemOwnerReportScope } from "@/hooks/useSystemOwnerReportScope"
@@ -37,6 +37,14 @@ function renderDeliveryStatusBadge(status: string) {
     return <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border-0 font-medium">In Transit</Badge>
   }
   return <Badge variant="outline">{status}</Badge>
+}
+
+function formatCurrency(amount: number) {
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 2,
+  }).format(amount)
 }
 
 interface RTORow extends Record<string, unknown> {
@@ -177,7 +185,7 @@ export default function RTOReportPage() {
         <div>
           <div className="font-mono text-xs font-medium">{row.orderNumber}</div>
           <div className="text-[10px] text-muted-foreground">
-            {row.orderDate ? row.orderDate.slice(0, 10) : "â€”"}
+            {row.orderDate ? row.orderDate.slice(0, 10) : "Ã¢â‚¬â€"}
           </div>
         </div>
       ),
@@ -204,8 +212,8 @@ export default function RTOReportPage() {
       header: "Courier",
       accessor: (row) => (
         <div>
-          <div className="text-xs font-medium">{row.courierName || "â€”"}</div>
-          <div className="text-[10px] text-muted-foreground font-mono">{row.awbCode || "â€”"}</div>
+          <div className="text-xs font-medium">{row.courierName || "Ã¢â‚¬â€"}</div>
+          <div className="text-[10px] text-muted-foreground font-mono">{row.awbCode || "Ã¢â‚¬â€"}</div>
         </div>
       ),
       width: "w-36",
@@ -215,7 +223,7 @@ export default function RTOReportPage() {
       header: "RTO Charge",
       accessor: (row) => (
         <span className="font-semibold text-rose-600 dark:text-rose-400">
-          {row.rtoCharge > 0 ? `â‚¹${row.rtoCharge.toLocaleString()}` : "â€”"}
+          {row.rtoCharge > 0 ? formatCurrency(row.rtoCharge) : "â€”"}
         </span>
       ),
       sortable: true,
@@ -225,7 +233,7 @@ export default function RTOReportPage() {
       key: "orderTotal",
       header: "Order Value",
       accessor: (row) => (
-        <span className="font-mono text-xs">â‚¹{row.orderTotal.toLocaleString()}</span>
+        <span className="font-mono text-xs">{formatCurrency(row.orderTotal)}</span>
       ),
       width: "w-28",
     },
@@ -246,7 +254,7 @@ export default function RTOReportPage() {
               <span className="font-mono">{row.rtoDeliveredAt.slice(0, 10)}</span>
             </div>
           )}
-          {!row.rtoInitiatedAt && !row.rtoDeliveredAt && <span className="text-muted-foreground">â€”</span>}
+          {!row.rtoInitiatedAt && !row.rtoDeliveredAt && <span className="text-muted-foreground">Ã¢â‚¬â€</span>}
         </div>
       ),
       width: "w-40",
@@ -257,26 +265,18 @@ export default function RTOReportPage() {
     {
       label: "Total RTOs",
       value: summaryData.totalRTOs.toLocaleString(),
-      icon: PackageX,
-      iconColor: "bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400",
     },
     {
       label: "Total RTO Charges",
-      value: `â‚¹${summaryData.totalRTOCharges.toLocaleString()}`,
-      icon: DollarSign,
-      iconColor: "bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400",
+      value: formatCurrency(summaryData.totalRTOCharges),
     },
     {
       label: "Average RTO Charge",
-      value: `â‚¹${Math.round(summaryData.averageRTOCharge).toLocaleString()}`,
-      icon: TrendingUp,
-      iconColor: "bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400",
+      value: formatCurrency(Math.round(summaryData.averageRTOCharge)),
     },
     {
       label: "RTO Initiated",
       value: summaryData.rtoInitiated.toLocaleString(),
-      icon: Truck,
-      iconColor: "bg-purple-100 text-purple-600 dark:bg-purple-950 dark:text-purple-400",
     },
   ]
 
@@ -323,6 +323,7 @@ export default function RTOReportPage() {
           onSortChange={setSort}
           onPageChange={setPage}
           emptyMessage="No RTO (Return to Origin) records found for the selected criteria."
+          showClubColumn={isSystemOwner && !selectedClubId}
         />
       </ReportShell>
     </DashboardLayout>

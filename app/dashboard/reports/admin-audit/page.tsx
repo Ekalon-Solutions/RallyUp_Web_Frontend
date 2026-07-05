@@ -299,7 +299,7 @@ export default function AdminAuditLogReportPage() {
       key: "summary",
       header: "Summary / Details",
       accessor: (row) => (
-        <span className="text-xs text-muted-foreground truncate max-w-[280px] block" title={row.summary}>
+        <span className="text-xs text-muted-foreground truncate max-w-full block" title={row.summary}>
           {row.summary}
         </span>
       ),
@@ -313,26 +313,18 @@ export default function AdminAuditLogReportPage() {
     {
       label: "Total Actions",
       value: summaryData.totalActions.toLocaleString(),
-      icon: ShieldCheck,
-      iconColor: "bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400",
     },
     {
       label: "High Risk Actions",
       value: summaryData.highRiskActions.toLocaleString(),
-      icon: AlertTriangle,
-      iconColor: "bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400",
     },
     {
       label: "Critical Events",
       value: summaryData.criticalActions.toLocaleString(),
-      icon: ShieldAlert,
-      iconColor: "bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400",
     },
     {
       label: "Active Admins",
       value: summaryData.uniqueAdmins.toLocaleString(),
-      icon: UserCheck,
-      iconColor: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400",
     },
   ]
 
@@ -468,6 +460,7 @@ export default function AdminAuditLogReportPage() {
           onSortChange={setSort}
           onPageChange={setPage}
           emptyMessage="No admin action audit logs found for the selected criteria."
+          showClubColumn={isSystemOwner && !selectedClubId}
         />
       </ReportShell>
     </DashboardLayout>
