@@ -231,26 +231,18 @@ export default function EventPassesScannedReportPage() {
     {
       label: "Total Tickets Sold",
       value: summaryData.totalSold.toLocaleString(),
-      icon: Ticket,
-      iconColor: "bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400",
     },
     {
       label: "Total Passes Scanned",
       value: summaryData.totalScanned.toLocaleString(),
-      icon: QrCode,
-      iconColor: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400",
     },
     {
       label: "Attendance Rate",
       value: `${summaryData.attendanceRate.toFixed(1)}%`,
-      icon: CheckCircle,
-      iconColor: "bg-purple-100 text-purple-600 dark:bg-purple-950 dark:text-purple-400",
     },
     {
       label: "No-show Rate",
       value: `${summaryData.noShowRate.toFixed(1)}%`,
-      icon: UserX,
-      iconColor: "bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400",
     },
   ]
 
@@ -309,6 +301,7 @@ export default function EventPassesScannedReportPage() {
           onSortChange={setSort}
           onPageChange={setPage}
           emptyMessage="No event attendance scan records found for the selected criteria."
+          showClubColumn={isSystemOwner && !selectedClubId}
         />
       </ReportShell>
     </DashboardLayout>

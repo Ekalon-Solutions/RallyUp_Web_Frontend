@@ -137,10 +137,10 @@ export default function InventoryReportPage() {
   ]
 
   const summaryCards: SummaryCard[] = [
-    { label: "Current Stock", value: summaryData.currentStock.toLocaleString(), icon: Package, iconColor: "bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400" },
-    { label: "Reserved Stock", value: summaryData.reservedStock.toLocaleString(), icon: Archive, iconColor: "bg-purple-100 text-purple-600 dark:bg-purple-950 dark:text-purple-400" },
-    { label: "Available Stock", value: summaryData.availableStock.toLocaleString(), icon: CheckCircle, iconColor: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400" },
-    { label: "Stock Alerts", value: (summaryData.lowStockProducts + summaryData.outOfStockProducts).toLocaleString(), icon: AlertTriangle, iconColor: "bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400" },
+    { label: "Current Stock", value: summaryData.currentStock.toLocaleString() },
+    { label: "Reserved Stock", value: summaryData.reservedStock.toLocaleString() },
+    { label: "Available Stock", value: summaryData.availableStock.toLocaleString() },
+    { label: "Stock Alerts", value: (summaryData.lowStockProducts + summaryData.outOfStockProducts).toLocaleString() },
   ]
 
   return (
@@ -176,7 +176,7 @@ export default function InventoryReportPage() {
         }
         summary={<ReportSummaryCards cards={summaryCards} loading={loading} />}
       >
-        <ReportTable columns={columns} data={data} loading={loading} pagination={pagination} sort={sort} onSortChange={setSort} onPageChange={setPage} emptyMessage="No inventory records found for the selected criteria." />
+        <ReportTable columns={columns} data={data} loading={loading} pagination={pagination} sort={sort} onSortChange={setSort} onPageChange={setPage} emptyMessage="No inventory records found for the selected criteria." showClubColumn={isSystemOwner && !selectedClubId} />
       </ReportShell>
     </DashboardLayout>
   )

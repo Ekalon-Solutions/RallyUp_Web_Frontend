@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { RotateCcw, DollarSign, CheckCircle, Clock } from "lucide-react"
+import { RotateCcw, CheckCircle, Clock } from "lucide-react"
 import { toast } from "sonner"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { useSystemOwnerReportScope } from "@/hooks/useSystemOwnerReportScope"
@@ -312,26 +312,18 @@ export default function RefundLogReportPage() {
     {
       label: "Total Refunds",
       value: summaryData.totalRefunds.toLocaleString(),
-      icon: RotateCcw,
-      iconColor: "bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400",
     },
     {
       label: "Total Refunded Amount",
       value: formatCurrency(summaryData.totalRefundedAmount),
-      icon: DollarSign,
-      iconColor: "bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400",
     },
     {
       label: "Approved Refunds",
       value: summaryData.approvedRefunds.toLocaleString(),
-      icon: CheckCircle,
-      iconColor: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400",
     },
     {
       label: "Pending Refunds",
       value: summaryData.pendingRefunds.toLocaleString(),
-      icon: Clock,
-      iconColor: "bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400",
     },
   ]
 
@@ -442,6 +434,7 @@ export default function RefundLogReportPage() {
           onSortChange={setSort}
           onPageChange={setPage}
           emptyMessage="No refund records found for the selected criteria."
+          showClubColumn={isSystemOwner && !selectedClubId}
         />
       </ReportShell>
     </DashboardLayout>

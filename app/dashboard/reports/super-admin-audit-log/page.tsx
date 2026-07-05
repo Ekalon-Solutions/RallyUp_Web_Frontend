@@ -237,7 +237,7 @@ export default function SuperAdminAuditLogReportPage() {
       accessor: (row) => (
         <div>
           <div className="font-mono text-[10px]">{row.ipAddress}</div>
-          <div className="text-[9px] text-muted-foreground truncate max-w-[120px]" title={row.device}>
+          <div className="text-[9px] text-muted-foreground truncate max-w-full" title={row.device}>
             {row.device}
           </div>
         </div>
@@ -248,7 +248,7 @@ export default function SuperAdminAuditLogReportPage() {
       key: "summary",
       header: "Summary",
       accessor: (row) => (
-        <span className="text-xs text-muted-foreground truncate max-w-[240px] block" title={row.summary}>
+        <span className="text-xs text-muted-foreground truncate max-w-full block" title={row.summary}>
           {row.summary}
         </span>
       ),
@@ -260,26 +260,18 @@ export default function SuperAdminAuditLogReportPage() {
     {
       label: "Total Actions",
       value: summaryData.totalActions.toLocaleString(),
-      icon: Shield,
-      iconColor: "bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400",
     },
     {
       label: "Critical Actions",
       value: summaryData.criticalActions.toLocaleString(),
-      icon: AlertTriangle,
-      iconColor: "bg-red-100 text-red-600 dark:bg-red-950 dark:text-red-400",
     },
     {
       label: "Unique System Owners",
       value: summaryData.uniqueActors.toLocaleString(),
-      icon: Users,
-      iconColor: "bg-purple-100 text-purple-600 dark:bg-purple-950 dark:text-purple-400",
     },
     {
       label: "Affected Clubs",
       value: summaryData.affectedClubs.toLocaleString(),
-      icon: Building2,
-      iconColor: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400",
     },
   ]
 

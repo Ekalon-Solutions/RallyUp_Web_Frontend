@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useCallback, useEffect, useState } from "react"
 import { Gift, Users, Calendar, TrendingUp } from "lucide-react"
@@ -170,7 +170,7 @@ export default function RewardPointsGrantedReportPage() {
       header: "Timestamp",
       accessor: (row) => (
         <span className="font-mono text-xs">
-          {row.timestamp ? row.timestamp.replace("T", " ").slice(0, 19) : "â€”"}
+          {row.timestamp ? row.timestamp.replace("T", " ").slice(0, 19) : "Ã¢â‚¬â€"}
         </span>
       ),
       sortable: true,
@@ -202,14 +202,9 @@ export default function RewardPointsGrantedReportPage() {
     {
       key: "sourceType",
       header: "Source",
-      accessor: (row) => (
-        <div>
-          {renderSourceTypeBadge(row.sourceType)}
-          <div className="text-[10px] text-muted-foreground mt-1">{row.sourceDescription}</div>
-        </div>
-      ),
+      accessor: (row) => renderSourceTypeBadge(row.sourceType),
       sortable: true,
-      width: "w-36",
+      width: "w-28",
     },
     {
       key: "expiresAt",
@@ -229,8 +224,8 @@ export default function RewardPointsGrantedReportPage() {
       key: "notes",
       header: "Notes",
       accessor: (row) => (
-        <span className="text-xs text-muted-foreground truncate max-w-[200px] block" title={row.notes}>
-          {row.notes || "â€”"}
+        <span className="text-xs text-muted-foreground truncate max-w-full block" title={row.notes}>
+          {row.notes || "Ã¢â‚¬â€"}
         </span>
       ),
       width: "w-48",
@@ -241,26 +236,18 @@ export default function RewardPointsGrantedReportPage() {
     {
       label: "Total Points Granted",
       value: summaryData.totalPointsGranted.toLocaleString(),
-      icon: Gift,
-      iconColor: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400",
     },
     {
       label: "Total Transactions",
       value: summaryData.totalTransactions.toLocaleString(),
-      icon: TrendingUp,
-      iconColor: "bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400",
     },
     {
       label: "Unique Members",
       value: summaryData.uniqueMembers.toLocaleString(),
-      icon: Users,
-      iconColor: "bg-purple-100 text-purple-600 dark:bg-purple-950 dark:text-purple-400",
     },
     {
       label: "Attendance Points",
       value: summaryData.pointsByAttendance.toLocaleString(),
-      icon: Calendar,
-      iconColor: "bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400",
     },
   ]
 
@@ -307,6 +294,7 @@ export default function RewardPointsGrantedReportPage() {
           onSortChange={setSort}
           onPageChange={setPage}
           emptyMessage="No reward points granted records found for the selected criteria."
+          showClubColumn={isSystemOwner && !selectedClubId}
         />
       </ReportShell>
     </DashboardLayout>

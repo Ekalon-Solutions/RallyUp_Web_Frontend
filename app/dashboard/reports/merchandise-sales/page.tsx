@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { Package, DollarSign, Tag, TrendingUp } from "lucide-react"
+import { Package, Tag, TrendingUp } from "lucide-react"
 import { toast } from "sonner"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { useSystemOwnerReportScope } from "@/hooks/useSystemOwnerReportScope"
@@ -254,26 +254,18 @@ export default function MerchandiseSalesReportPage() {
     {
       label: "Total Units Sold",
       value: summaryData.totalUnits.toLocaleString(),
-      icon: Package,
-      iconColor: "bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400",
     },
     {
       label: "Gross Sales",
       value: formatCurrency(summaryData.grossSales),
-      icon: DollarSign,
-      iconColor: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400",
     },
     {
       label: "Total Discounts",
       value: formatCurrency(summaryData.totalDiscounts),
-      icon: Tag,
-      iconColor: "bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400",
     },
     {
       label: "Net Merchandise Sales",
       value: formatCurrency(summaryData.netSales),
-      icon: TrendingUp,
-      iconColor: "bg-purple-100 text-purple-600 dark:bg-purple-950 dark:text-purple-400",
     },
   ]
 
@@ -346,6 +338,7 @@ export default function MerchandiseSalesReportPage() {
           onSortChange={setSort}
           onPageChange={setPage}
           emptyMessage="No merchandise sales records found for the selected criteria."
+          showClubColumn={isSystemOwner && !selectedClubId}
         />
       </ReportShell>
     </DashboardLayout>

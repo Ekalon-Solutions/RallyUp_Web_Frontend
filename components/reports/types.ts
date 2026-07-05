@@ -68,10 +68,6 @@ export interface SummaryCard {
   subLabel?: string;
   /** Optional percentage change (positive = green, negative = red) */
   change?: number;
-  /** Lucide icon component */
-  icon?: React.ElementType;
-  /** Tailwind colour class for the icon bg — defaults to blue */
-  iconColor?: string;
 }
 
 // ─── Filters ─────────────────────────────────────────────────────────────────

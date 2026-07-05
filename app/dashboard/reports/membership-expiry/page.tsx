@@ -240,26 +240,18 @@ export default function MembershipExpiryReportPage() {
     {
       label: "Expiring Soon (30d)",
       value: summaryData.expiringSoon.toLocaleString(),
-      icon: Clock,
-      iconColor: "bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400",
     },
     {
       label: "Renewed Members",
       value: summaryData.renewed.toLocaleString(),
-      icon: RefreshCw,
-      iconColor: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400",
     },
     {
       label: "Expired Memberships",
       value: summaryData.expired.toLocaleString(),
-      icon: AlertTriangle,
-      iconColor: "bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400",
     },
     {
       label: "Renewal Rate",
       value: `${summaryData.renewalRate.toFixed(1)}%`,
-      icon: TrendingUp,
-      iconColor: "bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400",
     },
   ]
 
@@ -327,6 +319,7 @@ export default function MembershipExpiryReportPage() {
           onSortChange={setSort}
           onPageChange={setPage}
           emptyMessage="No membership expiry records found for the selected criteria."
+          showClubColumn={isSystemOwner && !selectedClubId}
         />
       </ReportShell>
     </DashboardLayout>

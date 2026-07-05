@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { ShoppingCart, DollarSign, TrendingUp, CheckCircle } from "lucide-react"
+import { ShoppingCart, TrendingUp, CheckCircle } from "lucide-react"
 import { toast } from "sonner"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { useSystemOwnerReportScope } from "@/hooks/useSystemOwnerReportScope"
@@ -252,26 +252,18 @@ export default function MembershipPurchaseReportPage() {
     {
       label: "Membership Purchases",
       value: summaryData.membershipPurchases.toLocaleString(),
-      icon: ShoppingCart,
-      iconColor: "bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400",
     },
     {
       label: "Membership Revenue",
       value: formatCurrency(summaryData.membershipRevenue),
-      icon: DollarSign,
-      iconColor: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400",
     },
     {
       label: "Average Value",
       value: formatCurrency(summaryData.averageMembershipValue),
-      icon: TrendingUp,
-      iconColor: "bg-purple-100 text-purple-600 dark:bg-purple-950 dark:text-purple-400",
     },
     {
       label: "Active Purchases",
       value: summaryData.activeMembershipPurchases.toLocaleString(),
-      icon: CheckCircle,
-      iconColor: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400",
     },
   ]
 
@@ -339,6 +331,7 @@ export default function MembershipPurchaseReportPage() {
           onSortChange={setSort}
           onPageChange={setPage}
           emptyMessage="No membership purchase records found for the selected criteria."
+          showClubColumn={isSystemOwner && !selectedClubId}
         />
       </ReportShell>
     </DashboardLayout>
