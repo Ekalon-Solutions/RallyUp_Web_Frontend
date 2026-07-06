@@ -42,7 +42,7 @@ function renderValueBadge(val: string) {
   if (v === "false" || v === "disabled" || v === "inactive") {
     return <Badge className="bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border-0 font-medium">Disabled</Badge>
   }
-  return <Badge variant="outline">{val}</Badge>
+  return <Badge variant="outline">{val.charAt(0).toUpperCase() + val.slice(1)}</Badge>
 }
 
 interface FeatureSelectorRow extends Record<string, unknown> {

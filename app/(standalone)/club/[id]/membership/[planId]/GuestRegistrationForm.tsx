@@ -193,6 +193,7 @@ export function GuestRegistrationForm({
               duration: d.duration,
               planStartDate: d.planStartDate,
               planEndDate: d.planEndDate,
+              referralReward: d.referralReward,
             })
           }
         }).catch(() => {
@@ -288,6 +289,7 @@ export function GuestRegistrationForm({
           duration: d.duration,
           planStartDate: d.planStartDate,
           planEndDate: d.planEndDate,
+          referralReward: d.referralReward,
         }
         setPlan(p)
         return p
@@ -853,7 +855,6 @@ export function GuestRegistrationForm({
                 </div>
               </div>
 
-              {/* Referral */}
               {plan?.referralReward?.enabled && (
               <div className="rounded-lg border border-border bg-muted/50 p-4 space-y-2">
                 <div className="flex items-center gap-1.5">

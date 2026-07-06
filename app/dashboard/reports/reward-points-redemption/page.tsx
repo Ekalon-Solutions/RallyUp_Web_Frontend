@@ -36,7 +36,7 @@ function renderStatusBadge(status: string) {
   if (s === "expired") {
     return <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border-0 font-medium">Expired</Badge>
   }
-  return <Badge variant="outline">{status}</Badge>
+  return <Badge variant="outline">{status.charAt(0).toUpperCase() + status.slice(1)}</Badge>
 }
 
 function formatCurrency(amount: number) {
@@ -179,7 +179,7 @@ export default function RewardPointsRedemptionReportPage() {
       header: "Timestamp",
       accessor: (row) => (
         <span className="font-mono text-xs">
-          {row.timestamp ? row.timestamp.replace("T", " ").slice(0, 19) : "â€”"}
+          {row.timestamp ? row.timestamp.replace("T", " ").slice(0, 19) : "—"}
         </span>
       ),
       sortable: true,
@@ -229,7 +229,7 @@ export default function RewardPointsRedemptionReportPage() {
       header: "Reason",
       accessor: (row) => (
         <span className="text-xs text-muted-foreground truncate max-w-full block" title={row.reason}>
-          {row.reason || "â€”"}
+          {row.reason || "—"}
         </span>
       ),
       width: "w-40",
@@ -241,7 +241,7 @@ export default function RewardPointsRedemptionReportPage() {
         row.orderId ? (
           <span className="font-mono text-xs">{row.orderId.slice(0, 12)}...</span>
         ) : (
-          <span className="text-xs text-muted-foreground">â€”</span>
+          <span className="text-xs text-muted-foreground">—</span>
         )
       ),
       width: "w-32",

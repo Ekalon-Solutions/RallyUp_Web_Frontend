@@ -40,7 +40,10 @@ export interface JoinablePlan {
   planEndDate?: string
   bookingStartDate?: string
   bookingEndDate?: string
-  referralReward?: { enabled: boolean; points: number }
+  referralReward?: {
+    enabled: boolean
+    points: number
+  }
 }
 
 interface JoinMembershipModalProps {
@@ -874,7 +877,7 @@ export function JoinMembershipModal({
                     <Input id="id_proof_number" value={registrationData.id_proof_number} onChange={(e) => setRegistrationData({ ...registrationData, id_proof_number: e.target.value })} required className="h-12 rounded-xl border-secondary bg-white text-black placeholder:text-slate-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary" />
                   </div>
                 </div>
-                {renderReferralField()}
+                {selectedPlan?.referralReward?.enabled && renderReferralField()}
                 {renderPlanSummary()}
                 <Button type="submit" disabled={isProcessing} className="w-full h-12 font-bold bg-primary hover:bg-[#FF7E4A] hover:shadow-[0_8px_20px_#FF5C1A6B] text-white rounded-xl transition-all duration-300 active:scale-95 mt-4">
                   {isProcessing ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Processing...</> : getActionLabel()}
@@ -884,7 +887,7 @@ export function JoinMembershipModal({
               <div className="space-y-4">
                 {renderPlanSelector()}
                 {renderPlanSummary()}
-                {renderReferralField()}
+                {selectedPlan?.referralReward?.enabled && renderReferralField()}
                 <Button
                   className="w-full h-12 font-bold bg-primary hover:bg-[#FF7E4A] hover:shadow-[0_8px_20px_#FF5C1A6B] text-white rounded-xl transition-all duration-300 active:scale-95"
                   onClick={handleSubscribeOrUpgrade}
