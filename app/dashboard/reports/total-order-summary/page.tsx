@@ -36,9 +36,9 @@ function renderPaymentStatusBadge(status: string) {
       return <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border-0 font-medium">Pending</Badge>
     case "failed":
     case "refunded":
-      return <Badge className="bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border-0 font-medium">{status}</Badge>
+      return <Badge className="bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border-0 font-medium">{status.charAt(0).toUpperCase() + status.slice(1)}</Badge>
     default:
-      return <Badge variant="outline">{status}</Badge>
+      return <Badge variant="outline">{status.charAt(0).toUpperCase() + status.slice(1)}</Badge>
   }
 }
 
@@ -48,16 +48,16 @@ function renderOrderStatusBadge(status: string) {
     case "completed":
     case "shipped":
     case "delivered":
-      return <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-0 font-medium">{status}</Badge>
+      return <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-0 font-medium">{status.charAt(0).toUpperCase() + status.slice(1)}</Badge>
     case "ready_to_ship":
     case "fulfillment_in_progress":
     case "pending":
-      return <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border-0 font-medium">{status.replace(/_/g, ' ')}</Badge>
+      return <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border-0 font-medium">{(status.charAt(0).toUpperCase() + status.slice(1)).replace(/_/g, ' ')}</Badge>
     case "cancelled":
     case "refunded":
-      return <Badge className="bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border-0 font-medium">{status}</Badge>
+      return <Badge className="bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border-0 font-medium">{status.charAt(0).toUpperCase() + status.slice(1)}</Badge>
     default:
-      return <Badge variant="outline">{status}</Badge>
+      return <Badge variant="outline">{status.charAt(0).toUpperCase() + status.slice(1)}</Badge>
   }
 }
 
@@ -222,7 +222,7 @@ export default function TotalOrderSummaryPage() {
       header: "Order Date",
       accessor: (row) => (
         <span className="font-mono text-xs">
-          {row.orderDate ? row.orderDate.replace("T", " ").slice(0, 16) : "â€”"}
+          {row.orderDate ? row.orderDate.replace("T", " ").slice(0, 16) : "—"}
         </span>
       ),
       sortable: true,

@@ -33,18 +33,18 @@ function renderFulfillmentStatusBadge(status: string) {
     case "delivered":
     case "completed":
     case "shipped":
-      return <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-0 font-medium">{status}</Badge>
+      return <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-0 font-medium">{status.charAt(0).toUpperCase() + status.slice(1)}</Badge>
     case "out_for_delivery":
     case "in_transit":
     case "ready_to_ship":
     case "pending":
-      return <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border-0 font-medium">{status.replace(/_/g, ' ')}</Badge>
+      return <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border-0 font-medium">{(status.charAt(0).toUpperCase() + status.slice(1)).replace(/_/g, ' ')}</Badge>
     case "cancelled":
     case "refunded":
     case "rto_initiated":
-      return <Badge className="bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border-0 font-medium">{status.replace(/_/g, ' ')}</Badge>
+      return <Badge className="bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border-0 font-medium">{(status.charAt(0).toUpperCase() + status.slice(1)).replace(/_/g, ' ')}</Badge>
     default:
-      return <Badge variant="outline">{status}</Badge>
+      return <Badge variant="outline">{status.charAt(0).toUpperCase() + status.slice(1)}</Badge>
   }
 }
 

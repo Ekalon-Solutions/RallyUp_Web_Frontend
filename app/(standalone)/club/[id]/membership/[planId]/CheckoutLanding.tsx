@@ -43,7 +43,10 @@ export interface CheckoutPlan {
   duration?: number
   planStartDate?: string
   planEndDate?: string
-  referralReward?: { enabled: boolean; points: number }
+  referralReward?: {
+    enabled: boolean
+    points: number
+  }
 }
 
 interface CheckoutLandingProps {
@@ -208,6 +211,7 @@ export function CheckoutLanding({ club, planId, plan }: CheckoutLandingProps) {
             duration: p.duration,
             planStartDate: p.planStartDate,
             planEndDate: p.planEndDate,
+            referralReward: p.referralReward,
           }))
 
         if (active) {

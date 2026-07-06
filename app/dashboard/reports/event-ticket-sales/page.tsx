@@ -37,9 +37,9 @@ function renderPaymentStatusBadge(status: string) {
       return <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border-0 font-medium">Pending</Badge>
     case "cancelled":
     case "refunded":
-      return <Badge className="bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border-0 font-medium">{status}</Badge>
+      return <Badge className="bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border-0 font-medium">{status.charAt(0).toUpperCase() + status.slice(1)}</Badge>
     default:
-      return <Badge variant="outline">{status}</Badge>
+      return <Badge variant="outline">{status.charAt(0).toUpperCase() + status.slice(1)}</Badge>
   }
 }
 
@@ -219,7 +219,7 @@ export default function EventTicketSalesReportPage() {
       header: "Registration Date",
       accessor: (row) => (
         <span className="font-mono text-xs">
-          {row.registrationDate ? row.registrationDate.replace("T", " ").slice(0, 16) : "â€”"}
+          {row.registrationDate ? row.registrationDate.replace("T", " ").slice(0, 16) : "—"}
         </span>
       ),
       sortable: true,

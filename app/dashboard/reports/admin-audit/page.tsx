@@ -57,6 +57,8 @@ interface AdminAuditLogRow extends Record<string, unknown> {
   ipAddress: string
   device: string
   summary: string
+  clubId: string
+  clubName: string
 }
 
 interface ActionOption {

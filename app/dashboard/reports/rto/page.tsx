@@ -36,7 +36,7 @@ function renderDeliveryStatusBadge(status: string) {
   if (s === "in_transit") {
     return <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border-0 font-medium">In Transit</Badge>
   }
-  return <Badge variant="outline">{status}</Badge>
+  return <Badge variant="outline">{status.charAt(0).toUpperCase() + status.slice(1)}</Badge>
 }
 
 function formatCurrency(amount: number) {
@@ -185,7 +185,7 @@ export default function RTOReportPage() {
         <div>
           <div className="font-mono text-xs font-medium">{row.orderNumber}</div>
           <div className="text-[10px] text-muted-foreground">
-            {row.orderDate ? row.orderDate.slice(0, 10) : "Ã¢â‚¬â€"}
+            {row.orderDate ? row.orderDate.slice(0, 10) : "—"}
           </div>
         </div>
       ),
@@ -212,8 +212,8 @@ export default function RTOReportPage() {
       header: "Courier",
       accessor: (row) => (
         <div>
-          <div className="text-xs font-medium">{row.courierName || "Ã¢â‚¬â€"}</div>
-          <div className="text-[10px] text-muted-foreground font-mono">{row.awbCode || "Ã¢â‚¬â€"}</div>
+          <div className="text-xs font-medium">{row.courierName || "—"}</div>
+          <div className="text-[10px] text-muted-foreground font-mono">{row.awbCode || "—"}</div>
         </div>
       ),
       width: "w-36",
@@ -223,7 +223,7 @@ export default function RTOReportPage() {
       header: "RTO Charge",
       accessor: (row) => (
         <span className="font-semibold text-rose-600 dark:text-rose-400">
-          {row.rtoCharge > 0 ? formatCurrency(row.rtoCharge) : "â€”"}
+          {row.rtoCharge > 0 ? formatCurrency(row.rtoCharge) : "—"}
         </span>
       ),
       sortable: true,
@@ -254,7 +254,7 @@ export default function RTOReportPage() {
               <span className="font-mono">{row.rtoDeliveredAt.slice(0, 10)}</span>
             </div>
           )}
-          {!row.rtoInitiatedAt && !row.rtoDeliveredAt && <span className="text-muted-foreground">Ã¢â‚¬â€</span>}
+          {!row.rtoInitiatedAt && !row.rtoDeliveredAt && <span className="text-muted-foreground">—</span>}
         </div>
       ),
       width: "w-40",

@@ -31,7 +31,7 @@ function renderRefundStatusBadge(status: string) {
   if (s === "processed") return <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-0 font-medium">Processed</Badge>
   if (s === "requested" || s === "pending") return <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border-0 font-medium">Pending</Badge>
   if (s === "rejected") return <Badge className="bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border-0 font-medium">Rejected</Badge>
-  return <Badge variant="outline">{status}</Badge>
+  return <Badge variant="outline">{status.charAt(0).toUpperCase() + status.slice(1)}</Badge>
 }
 
 function formatCurrency(amount: number, currency: string = "INR") {
