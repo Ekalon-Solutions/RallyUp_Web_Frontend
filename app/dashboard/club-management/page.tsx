@@ -111,6 +111,7 @@ interface CreateClubForm {
   superAdminEmail: string
   superAdminPhone: string
   superAdminCountryCode: string
+  platformFeePercent: number
 }
 
 export default function ClubManagementPage() {
@@ -149,7 +150,8 @@ export default function ClubManagementPage() {
     },
     superAdminEmail: '',
     superAdminPhone: '',
-    superAdminCountryCode: '+1'
+    superAdminCountryCode: '+1',
+    platformFeePercent: 5
   })
   const [creating, setCreating] = useState(false)
   const [createErrors, setCreateErrors] = useState<{ slug?: string }>({})
@@ -255,7 +257,7 @@ export default function ClubManagementPage() {
         return
       }
 
-      const response = await apiClient.createClub(createForm)
+      const response = await apiClient.createClub({ ...createForm, platformFeePercent: createForm.platformFeePercent ?? 5 })
       
       if (response.success) {
         toast.success('Club created successfully!')
@@ -282,7 +284,8 @@ export default function ClubManagementPage() {
             },
             superAdminEmail: '',
             superAdminPhone: '',
-            superAdminCountryCode: '+1'
+            superAdminCountryCode: '+1',
+            platformFeePercent: 5
           })
         fetchClubs()
       } else {
@@ -752,6 +755,25 @@ export default function ClubManagementPage() {
                           placeholder="1000"
                         />
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Platform Fee */}
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold">Platform Fees</h3>
+                    <div className="space-y-2">
+                      <Label htmlFor="platformFeePercent">Platform Fee (%)</Label>
+                      <Input
+                        id="platformFeePercent"
+                        type="number"
+                        value={createForm.platformFeePercent}
+                        onChange={(e) => setCreateForm({ ...createForm, platformFeePercent: parseFloat(e.target.value) || 5 })}
+                        placeholder="5"
+                        min="0"
+                        max="100"
+                        step="0.5"
+                      />
+                      <p className="text-xs text-muted-foreground">Percentage charged on transactions (default: 5%)</p>
                     </div>
                   </div>
                 </div>

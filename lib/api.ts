@@ -450,6 +450,7 @@ export interface Event {
     full1080?: { url: string; key: string };
   };
   clubId?: string;
+  platformFeePercent?: number;
   awayDayEvent: boolean;
   isActive: boolean;
   registrations?: Array<{
@@ -2778,6 +2779,7 @@ class ApiClient {
     superAdminEmail: string;
     superAdminPhone: string;
     superAdminCountryCode: string;
+    platformFeePercent?: number;
   }): Promise<ApiResponse<{ message: string; club: Club }>> {
     return this.request('/clubs', {
       method: 'POST',
@@ -3896,6 +3898,7 @@ class ApiClient {
       feature_constraints: Record<string, number>;
       features_schema_version: number;
       experimental_flags: Record<string, { enabled: boolean; state: string }>;
+      platformFeePercent: number;
     }>;
   }>> {
     const q = search ? `?search=${encodeURIComponent(search)}` : '';
@@ -3911,6 +3914,7 @@ class ApiClient {
       billing_tier?: string;
       billing_status?: string;
       feature_constraints?: Record<string, number>;
+      platformFeePercent?: number;
       reasonCode?: string;
     }
   ): Promise<ApiResponse<unknown>> {

@@ -39,6 +39,7 @@ export type ResolvedClubFeatures = {
   feature_constraints: Record<string, number>;
   flags: ResolvedFeatureFlag[];
   experimental_flags: Record<string, { enabled: boolean; state: string }>;
+  platformFeePercent: number;
   estimated_monthly_usd: number;
   synced_at: string;
 };
@@ -92,6 +93,7 @@ export function normalizeResolvedClubFeatures(
     feature_constraints: raw.feature_constraints ?? {},
     flags: Array.isArray(raw.flags) ? raw.flags : [],
     experimental_flags: raw.experimental_flags ?? {},
+    platformFeePercent: raw.platformFeePercent ?? 5,
     estimated_monthly_usd: raw.estimated_monthly_usd ?? 0,
     synced_at: raw.synced_at ?? new Date().toISOString(),
   };

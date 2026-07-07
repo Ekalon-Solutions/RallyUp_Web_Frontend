@@ -148,6 +148,7 @@ export function lockedSafeConfig(clubId: string): ResolvedClubFeatures {
       label: key,
     })),
     experimental_flags: {},
+    platformFeePercent: 5,
     estimated_monthly_usd: 0,
     synced_at: new Date().toISOString(),
   };

@@ -40,6 +40,7 @@ interface EventCheckoutModalProps {
     price: number
   clubId?: string
     ticketPrice?: number
+    platformFeePercent?: number
     earlyBirdDiscount?: {
       enabled?: boolean
       type?: 'percentage' | 'fixed'
@@ -449,7 +450,8 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
       const paymentTax = displayTax
       const paymentNet = Math.max(paymentSubtotal + paymentShipping + paymentTax - (reservedDiscount || 0), 0)
       // When the club absorbs fees, the buyer is charged the base net only.
-      const { amountToCharge } = resolveCheckoutCharge(paymentNet, event?.feeHandlingType)
+      const clubFeePercent = event?.platformFeePercent ?? eventData?.platformFeePercent ?? 5
+      const { amountToCharge } = resolveCheckoutCharge(paymentNet, event?.feeHandlingType, clubFeePercent)
 
       const response = await fetch('/api/razorpay/create-order', {
         method: 'POST',
@@ -682,9 +684,10 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
   const finalPrice = Math.max(orderTotalBeforeCoupon - couponDiscount, 0);
   const showPointsRedemption = canShowPointsRedemption(availablePoints, finalPrice)
   const netSubtotal = Math.max(finalPrice - (reservedDiscount || 0), 0);
+  const clubFeePercent = event?.platformFeePercent ?? eventData?.platformFeePercent ?? 5
   // Fees are calculated on the final net amount (after all discounts). When the
   // club absorbs fees, the buyer pays the base net and fees are not appended.
-  const { feeBreakdown, amountToCharge, feesAbsorbed } = resolveCheckoutCharge(netSubtotal, event?.feeHandlingType);
+  const { feeBreakdown, amountToCharge, feesAbsorbed } = resolveCheckoutCharge(netSubtotal, event?.feeHandlingType, clubFeePercent);
 
   const currencySymbols: Record<string, string> = {
     INR: '₹',

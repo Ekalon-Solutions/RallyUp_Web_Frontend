@@ -65,7 +65,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!user || (user as any).role === 'system_owner') return;
+    if (!user) return;
+    if ((user as any).role === 'system_owner') {
+      // System owners only get activeClubId from localStorage (explicit sidebar selection)
+      const existingClubId = localStorage.getItem('activeClubId');
+      if (existingClubId && !activeClubId) {
+        setActiveClubId(existingClubId);
+      }
+      return;
+    }
     const existingClubId = localStorage.getItem('activeClubId');
     if (existingClubId) return; // already set – don't override an explicit selection
     const clubId = deriveActiveClubIdFromUser(user as any);
@@ -134,6 +142,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const reconciled = reconcileActiveClubId(storedClubId, accessible);
         if (reconciled) {
           setActiveClubId(reconciled);
+        } else if (storedClubId) {
+          // Preserve a previously stored selection even when accessible clubs are
+          // empty (e.g. system_owner whose user profile lacks a clubs field).
+          setActiveClubId(storedClubId);
         } else {
           const fallback = deriveActiveClubIdFromUser(profile);
           if (fallback) {

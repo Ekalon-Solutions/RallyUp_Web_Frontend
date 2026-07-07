@@ -6,7 +6,8 @@ export function useSelectedClubId(): string | null {
   const { user, activeClubId } = useAuth()
 
   return useMemo(() => {
-    if (!user || user.role === "system_owner") return null
+    if (!user) return null
+    if (user.role === "system_owner") return activeClubId ?? null
     const accessible = buildAccessibleClubs(user)
     return reconcileActiveClubId(activeClubId, accessible)
   }, [user, activeClubId])

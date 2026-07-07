@@ -31,12 +31,13 @@ export type MatrixClub = {
   /** Schema version; increments when new experimental flags are added without a migration. */
   features_schema_version: number
   experimental_flags: Record<string, { enabled: boolean; state: string }>
+  platformFeePercent: number
 }
 
 // ── Layout constants ──────────────────────────────────────────────────────────
 // Shared grid-template-columns used by both the sticky header and every virtual row.
 // Changing this one constant keeps header and body columns in sync.
-const COL_TEMPLATE = "40px 230px 100px 90px minmax(140px,1fr) 88px 76px"
+const COL_TEMPLATE = "40px 1.5fr 1fr 1fr 1.5fr 1fr 0.8fr 76px"
 const ROW_H        = 58   // px — must match the estimateSize below
 
 // ── Style maps ────────────────────────────────────────────────────────────────
@@ -208,8 +209,11 @@ export function MatrixTable({
                         >
                           {club.billing_status}
                         </span>
+                        <span className="text-xs font-mono">
+                          {club.platformFeePercent ?? 5}% fee
+                        </span>
                         <span className="text-xs font-mono ml-auto">
-                          ${club.estimated_monthly_usd.toLocaleString()}/mo
+                          ₹{club.estimated_monthly_usd.toLocaleString()}/mo
                         </span>
                       </div>
                       <div className="flex items-center gap-2 mt-2">
@@ -276,7 +280,8 @@ export function MatrixTable({
             Features
             <ArrowUpDown className="h-2.5 w-2.5 opacity-40" />
           </ColHeader>
-          <ColHeader className="justify-end pr-4">$/mo</ColHeader>
+          <ColHeader className="justify-center">Platform Fees</ColHeader>
+          <ColHeader className="justify-end pr-4">₹/mo</ColHeader>
           <div />
         </div>
 
@@ -439,9 +444,14 @@ export function MatrixTable({
                       )}
                     </div>
 
+                    {/* Platform fee */}
+                    <div className="text-center text-xs font-mono">
+                      {club.platformFeePercent ?? 5}%
+                    </div>
+
                     {/* MRR */}
                     <div className="text-right text-xs font-mono pr-4">
-                      ${club.estimated_monthly_usd.toLocaleString()}
+                      ₹{club.estimated_monthly_usd.toLocaleString()}
                     </div>
 
                     {/* Edit action */}

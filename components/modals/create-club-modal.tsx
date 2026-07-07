@@ -47,6 +47,7 @@ export function CreateClubModal({ isOpen, onClose, onSuccess }: CreateClubModalP
       requireApproval: false,
       maxMembers: 1000
     },
+    platformFeePercent: 5,
     superAdminEmail: "",
     superAdminPhone: "",
     superAdminCountryCode: "+1"
@@ -74,7 +75,10 @@ export function CreateClubModal({ isOpen, onClose, onSuccess }: CreateClubModalP
     formData.slug = slugValue
 
     try {
-      const response = await apiClient.createClub(formData)
+      const response = await apiClient.createClub({
+        ...formData,
+        platformFeePercent: formData.platformFeePercent ?? 5,
+      })
       
       if (response.success) {
         toast.success("Club created successfully!")
@@ -103,6 +107,7 @@ export function CreateClubModal({ isOpen, onClose, onSuccess }: CreateClubModalP
             requireApproval: false,
             maxMembers: 1000
           },
+          platformFeePercent: 5,
           superAdminEmail: "",
           superAdminPhone: "",
           superAdminCountryCode: "+1"
@@ -372,6 +377,7 @@ export function CreateClubModal({ isOpen, onClose, onSuccess }: CreateClubModalP
                   min="1"
                 />
               </div>
+
             </div>
           </div>
 
@@ -419,6 +425,28 @@ export function CreateClubModal({ isOpen, onClose, onSuccess }: CreateClubModalP
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Platform Fee */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold flex items-center gap-2">
+              <Building2 className="w-4 h-4" />
+              Platform Fees
+            </h3>
+            <div className="space-y-2">
+              <Label htmlFor="platformFeePercent">Platform Fee (%)</Label>
+              <Input
+                id="platformFeePercent"
+                type="number"
+                value={formData.platformFeePercent}
+                onChange={(e) => setFormData(prev => ({ ...prev, platformFeePercent: parseFloat(e.target.value) || 5 }))}
+                placeholder="5"
+                min="0"
+                max="100"
+                step="0.5"
+              />
+              <p className="text-xs text-muted-foreground">Percentage charged on transactions (default: 5%)</p>
             </div>
           </div>
 

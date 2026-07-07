@@ -101,6 +101,7 @@ type SheetState = {
   /** Numeric usage caps for constrained features */
   constraints: Record<string, number>
   experimental: Record<string, { enabled: boolean; state: string }>
+  platformFeePercent: number
 }
 
 // ── Props ────────────────────────────────────────────────────────────────────
@@ -135,6 +136,7 @@ export function ClubFeatureSheet({ club, labels, tooltips, onClose, onSaved }: P
       flags,
       constraints: { ...(club.feature_constraints ?? {}) },
       experimental: { ...(club.experimental_flags ?? {}) },
+      platformFeePercent: club.platformFeePercent ?? 5,
     })
   }, [club])
 
@@ -159,7 +161,8 @@ export function ClubFeatureSheet({ club, labels, tooltips, onClose, onSaved }: P
     for (const key of Object.keys(state.experimental)) {
       if ((state.experimental[key]?.enabled ?? false) !== (origExp[key]?.enabled ?? false)) expCount++
     }
-    return { flagCount, billing, constraints, expCount, any: flagCount > 0 || billing || constraints || expCount > 0 }
+    const platformFee = (state.platformFeePercent ?? 5) !== (club.platformFeePercent ?? 5)
+    return { flagCount, billing, constraints, expCount, platformFee, any: flagCount > 0 || billing || constraints || expCount > 0 || platformFee }
   }, [club, state])
 
   // ── Handlers ────────────────────────────────────────────────────────────
@@ -234,6 +237,7 @@ export function ClubFeatureSheet({ club, labels, tooltips, onClose, onSaved }: P
         ...(Object.keys(experimental_updates).length > 0 && { experimental_updates }),
         ...(state.billing_tier   !== club.billing_tier   && { billing_tier:   state.billing_tier }),
         ...(state.billing_status !== club.billing_status && { billing_status: state.billing_status }),
+        ...((state.platformFeePercent ?? 5) !== (club.platformFeePercent ?? 5) && { platformFeePercent: state.platformFeePercent }),
         feature_constraints: state.constraints,
         reasonCode: "service_matrix_edit",
       })
@@ -264,6 +268,7 @@ export function ClubFeatureSheet({ club, labels, tooltips, onClose, onSaved }: P
     if ((diff.expCount ?? 0) > 0) parts.push(`${diff.expCount} experimental`)
     if (diff.billing)       parts.push("billing")
     if (diff.constraints)   parts.push("limits")
+    if (diff.platformFee)   parts.push("platform fee")
     return parts.length > 0 ? parts.join(" · ") + " changed" : null
   })()
 
@@ -360,6 +365,29 @@ export function ClubFeatureSheet({ club, labels, tooltips, onClose, onSaved }: P
                           ))}
                         </SelectContent>
                       </Select>
+                    </div>
+                  </div>
+                  <div className="mt-3">
+                    <Label className="text-xs text-muted-foreground">Platform fee (%)</Label>
+                    <div className="flex items-center gap-2 mt-1.5">
+                      <Input
+                        type="number"
+                        min={0}
+                        max={100}
+                        step={0.5}
+                        className="h-8 text-xs w-24 font-mono"
+                        value={state.platformFeePercent}
+                        onChange={(e) => {
+                          const v = parseFloat(e.target.value)
+                          setState((s) => s ? { ...s, platformFeePercent: isNaN(v) ? 0 : Math.max(0, Math.min(100, v)) } : s)
+                        }}
+                      />
+                      <span className="text-xs text-muted-foreground">%</span>
+                      {(state.platformFeePercent ?? 5) !== (club?.platformFeePercent ?? 5) && (
+                        <span className="text-[10px] text-amber-600 dark:text-amber-400 font-medium">
+                          Changed
+                        </span>
+                      )}
                     </div>
                   </div>
                 </section>
