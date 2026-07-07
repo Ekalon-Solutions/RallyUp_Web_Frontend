@@ -14,6 +14,7 @@ import {
 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { apiClient } from "@/lib/api"
+import { PLATFORM_FEE_PERCENT } from "@/lib/transactionFees"
 
 declare global {
   interface Window {
@@ -412,7 +413,7 @@ export function PaymentSimulationModal({
               })()}
               {platformFeeTotal !== undefined && platformFeeTotal > 0 && (
                 <div className="flex justify-between items-center text-sm text-muted-foreground">
-                  <span>Platform fee (4.5% + GST):</span>
+                  <span>Platform fee ({PLATFORM_FEE_PERCENT}% + GST):</span>
                   <span>{formatCurrency(platformFeeTotal, currency)}</span>
                 </div>
               )}

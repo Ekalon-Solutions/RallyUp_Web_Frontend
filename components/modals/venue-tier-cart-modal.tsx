@@ -405,7 +405,8 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
   const showPointsRedemption = canShowPointsRedemption(availablePoints, payableBeforePoints)
   const netAmount = Math.max(afterCoupon - (reservedDiscount || 0), 0)
   // When the club absorbs fees, the buyer pays the base net and fees are not appended.
-  const { feeBreakdown, amountToCharge, feesAbsorbed } = resolveCheckoutCharge(netAmount, event?.feeHandlingType)
+  const clubFeePercent = (event as any)?.platformFeePercent ?? 5
+  const { feeBreakdown, amountToCharge, feesAbsorbed } = resolveCheckoutCharge(netAmount, event?.feeHandlingType, clubFeePercent)
   const checkoutEventId = event?._id ? String(event._id) : undefined
   const isPaidCheckout = event ? isEventPaid(event) : false
   const refundPolicy = useCheckoutRefundPolicy(checkoutEventId, isOpen, isPaidCheckout)

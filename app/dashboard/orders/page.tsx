@@ -2078,8 +2078,18 @@ export default function OrdersPage() {
                   const couponDiscount = meta?.couponDiscount ?? 0
                   const earlyBirdAmt = meta?.earlyBirdDiscountAmt ?? 0
                   const pointsDiscount = meta?.pointsDiscount ?? 0
-                  const base = Math.max(originalTotal - earlyBirdAmt - couponDiscount - pointsDiscount, 0)
-                  const fees = base > 0 ? calculateTransactionFees(base) : null
+                  const hasStoredFees = meta?.platformFee != null
+                  const fees = hasStoredFees
+                    ? {
+                        platformFee: meta.platformFee,
+                        platformFeeGst: meta.platformFeeGst,
+                        razorpayFee: meta.razorpayFee,
+                        razorpayFeeGst: meta.razorpayFeeGst,
+                      }
+                    : (() => {
+                        const base = Math.max(originalTotal - earlyBirdAmt - couponDiscount - pointsDiscount, 0)
+                        return base > 0 ? calculateTransactionFees(base) : null
+                      })()
 
                   return (
                     <div>

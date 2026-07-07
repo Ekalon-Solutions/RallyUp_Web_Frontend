@@ -96,6 +96,7 @@ export default function FeatureMatrixPage() {
             feature_constraints:      club.feature_constraints      ?? {},
             features_schema_version:  club.features_schema_version  ?? 0,
             experimental_flags:       club.experimental_flags       ?? {},
+            platformFeePercent:       club.platformFeePercent       ?? 5,
           }))
         )
         setTooltips(res.data.tooltips || {})

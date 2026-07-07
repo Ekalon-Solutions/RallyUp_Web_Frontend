@@ -1,4 +1,4 @@
-export const PLATFORM_FEE_PERCENT = 4.5
+export const PLATFORM_FEE_PERCENT = 5
 export const RAZORPAY_FEE_PERCENT = 2
 export const GST_PERCENT = 18
 
@@ -41,9 +41,10 @@ export interface CheckoutChargeResult {
  */
 export function resolveCheckoutCharge(
   netAmount: number,
-  feeHandlingType: FeeHandlingType | undefined | null
+  feeHandlingType: FeeHandlingType | undefined | null,
+  platformFeePercent?: number
 ): CheckoutChargeResult {
-  const feeBreakdown = netAmount > 0 ? calculateTransactionFees(netAmount) : null
+  const feeBreakdown = netAmount > 0 ? calculateTransactionFees(netAmount, platformFeePercent) : null
   const feesAbsorbed = feeHandlingType === "absorb"
   const amountToCharge = feesAbsorbed
     ? netAmount
@@ -57,15 +58,19 @@ export function resolveCheckoutCharge(
  * Estimated net the club keeps per ticket when fees are absorbed:
  * gross − platform fee (incl. GST) − PG fee (incl. GST).
  */
-export function estimateNetPerTicket(grossPrice: number): number {
-  const { totalFees, baseAmount } = calculateTransactionFees(grossPrice)
+export function estimateNetPerTicket(grossPrice: number, platformFeePercent?: number): number {
+  const { totalFees, baseAmount } = calculateTransactionFees(grossPrice, platformFeePercent)
   return roundMoney(Math.max(0, baseAmount - totalFees))
 }
 
-export function calculateTransactionFees(baseAmount: number): TransactionFeesBreakdown {
+export function calculateTransactionFees(
+  baseAmount: number,
+  platformFeePercent?: number
+): TransactionFeesBreakdown {
   const base = Math.max(0, baseAmount)
+  const feePercent = platformFeePercent ?? PLATFORM_FEE_PERCENT
 
-  const platformFee = roundMoney((base * PLATFORM_FEE_PERCENT) / 100)
+  const platformFee = roundMoney((base * feePercent) / 100)
   const platformFeeGst = roundMoney((platformFee * GST_PERCENT) / 100)
 
   const razorpayFee = roundMoney((base * RAZORPAY_FEE_PERCENT) / 100)

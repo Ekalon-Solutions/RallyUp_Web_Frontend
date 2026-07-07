@@ -1216,6 +1216,7 @@ function UserEventsPageInner() {
               groupDiscount: (eventForPayment as any).groupDiscount,
               currency: (eventForPayment as any).currency,
               feeHandlingType: (eventForPayment as any).feeHandlingType,
+              platformFeePercent: (eventForPayment as any).platformFeePercent,
             }
             : undefined
         }

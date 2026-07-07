@@ -1055,6 +1055,7 @@ function CreateEventForm() {
                   currency={form.currency}
                   canManage={canManageFees}
                   locked={isEditMode && eventEditMeta.ticketsSold}
+                  clubId={clubId}
                 />
               )}
 
