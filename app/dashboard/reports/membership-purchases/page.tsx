@@ -236,7 +236,10 @@ export default function MembershipPurchaseReportPage() {
     {
       key: "paymentStatus",
       header: "Payment Status",
-      accessor: (row) => renderStatusBadge(row.paymentStatus),
+      accessor: (row) =>
+        row.amount === 0
+          ? <Badge className="bg-slate-100 text-slate-800 dark:bg-slate-950 dark:text-slate-300 border-0 font-medium">Free</Badge>
+          : renderStatusBadge(row.paymentStatus),
       width: "w-32",
     },
     {

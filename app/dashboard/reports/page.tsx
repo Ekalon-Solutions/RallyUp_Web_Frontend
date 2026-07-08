@@ -408,7 +408,7 @@ export default function ReportsHubPage() {
     return groups
   }, [filteredReports])
 
-  const categories = Object.keys(reportsByCategory).sort()
+  const categories = Object.keys(reportsByCategory).filter((cat) => cat !== "Ads").sort()
 
   if (!canViewReportsHub) {
     return (
