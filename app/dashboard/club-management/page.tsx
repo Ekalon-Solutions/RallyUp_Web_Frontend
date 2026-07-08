@@ -767,11 +767,15 @@ export default function ClubManagementPage() {
                         id="platformFeePercent"
                         type="number"
                         value={createForm.platformFeePercent}
-                        onChange={(e) => setCreateForm({ ...createForm, platformFeePercent: parseFloat(e.target.value) || 5 })}
+                        onChange={(e) => {
+                          const v = parseFloat(e.target.value)
+                          const clamped = isNaN(v) ? 0 : Math.max(0, Math.min(100, v))
+                          setCreateForm({ ...createForm, platformFeePercent: Math.round(clamped * 100) / 100 })
+                        }}
                         placeholder="5"
                         min="0"
                         max="100"
-                        step="0.5"
+                        step="0.01"
                       />
                       <p className="text-xs text-muted-foreground">Percentage charged on transactions (default: 5%)</p>
                     </div>

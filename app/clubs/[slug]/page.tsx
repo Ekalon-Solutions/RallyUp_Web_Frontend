@@ -1433,6 +1433,7 @@ export default function PublicClubPage() {
                 name: eventForRegistration.title,
                 price: eventForRegistration.ticketPrice || 0,
                 ticketPrice: eventForRegistration.ticketPrice || 0,
+                category: (eventForRegistration as any).category,
                 earlyBirdDiscount: (eventForRegistration as any).earlyBirdDiscount,
                 memberDiscount: (eventForRegistration as any).memberDiscount,
                 groupDiscount: (eventForRegistration as any).groupDiscount,

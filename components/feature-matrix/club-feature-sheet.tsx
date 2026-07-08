@@ -374,12 +374,13 @@ export function ClubFeatureSheet({ club, labels, tooltips, onClose, onSaved }: P
                         type="number"
                         min={0}
                         max={100}
-                        step={0.5}
+                        step={0.01}
                         className="h-8 text-xs w-24 font-mono"
                         value={state.platformFeePercent}
                         onChange={(e) => {
                           const v = parseFloat(e.target.value)
-                          setState((s) => s ? { ...s, platformFeePercent: isNaN(v) ? 0 : Math.max(0, Math.min(100, v)) } : s)
+                          const clamped = isNaN(v) ? 0 : Math.max(0, Math.min(100, v))
+                          setState((s) => s ? { ...s, platformFeePercent: Math.round(clamped * 100) / 100 } : s)
                         }}
                       />
                       <span className="text-xs text-muted-foreground">%</span>

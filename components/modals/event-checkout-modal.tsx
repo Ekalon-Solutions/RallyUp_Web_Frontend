@@ -41,6 +41,7 @@ interface EventCheckoutModalProps {
   clubId?: string
     ticketPrice?: number
     platformFeePercent?: number
+    category?: string
     earlyBirdDiscount?: {
       enabled?: boolean
       type?: 'percentage' | 'fixed'
@@ -1142,7 +1143,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
 
         <div className="flex-shrink-0 pt-4 pb-2 sm:pb-0 mt-4 border-t bg-background shadow-[0_-15px_15px_-15px_rgba(0,0,0,0.1)] z-10">
           <div className="flex justify-between items-center font-bold text-lg px-1 mb-3">
-            <span>Total to Pay:</span>
+            <span>{event?.category === 'csr-events' ? 'Total to Donate:' : 'Total to Pay:'}</span>
             <span className="text-primary">{formatCurrency(amountToCharge, event.currency)}</span>
           </div>
           <Button
@@ -1157,7 +1158,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
                 Processing...
               </div>
             ) : (
-              "Pay Now"
+              event?.category === 'csr-events' ? 'Donate Now' : 'Pay Now'
             )}
           </Button>
         </div>

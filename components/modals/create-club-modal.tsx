@@ -440,11 +440,15 @@ export function CreateClubModal({ isOpen, onClose, onSuccess }: CreateClubModalP
                 id="platformFeePercent"
                 type="number"
                 value={formData.platformFeePercent}
-                onChange={(e) => setFormData(prev => ({ ...prev, platformFeePercent: parseFloat(e.target.value) || 5 }))}
+                onChange={(e) => {
+                  const v = parseFloat(e.target.value)
+                  const clamped = isNaN(v) ? 0 : Math.max(0, Math.min(100, v))
+                  setFormData(prev => ({ ...prev, platformFeePercent: Math.round(clamped * 100) / 100 }))
+                }}
                 placeholder="5"
                 min="0"
                 max="100"
-                step="0.5"
+                step="0.01"
               />
               <p className="text-xs text-muted-foreground">Percentage charged on transactions (default: 5%)</p>
             </div>
