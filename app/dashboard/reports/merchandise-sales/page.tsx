@@ -5,7 +5,7 @@ import { Package, Tag, TrendingUp } from "lucide-react"
 import { toast } from "sonner"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { useSystemOwnerReportScope } from "@/hooks/useSystemOwnerReportScope"
-import { buildReportQueryParams, shouldFetchReport } from "@/lib/reportHelpers"
+import { buildReportQueryParams, shouldFetchReport, resolveExportClubId } from "@/lib/reportHelpers"
 import { useReportAuthorization } from "@/hooks/useReportAuthorization"
 import { apiClient } from "@/lib/api"
 import { DashboardLayout } from "@/components/dashboard-layout"
@@ -164,7 +164,7 @@ export default function MerchandiseSalesReportPage() {
   const handleExport = async (format: ExportFormat) => {
     if (!shouldFetchReport({ authorized: auth.authorized, clubId, isSystemOwner })) return
     try {
-      const queryParams: Record<string, any> = { clubId, format }
+      const queryParams: Record<string, any> = { format, ...resolveExportClubId({ clubId, selectedClubId, isSystemOwner }) }
       if (filters.extras?.paymentStatus && filters.extras.paymentStatus !== "all") {
         queryParams.paymentStatus = filters.extras.paymentStatus
       }

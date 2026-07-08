@@ -1689,8 +1689,9 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
   const currency = event.currency ?? "INR"
   const hasSelection = isSimpleEvent ? ticketCount > 0 : cartItems.length > 0
 
+  const isCSREvent = event.category === 'csr-events'
   const titleByStep: Record<GuestStep, string> = {
-    identify: 'Register for Event',
+    identify: isCSREvent ? 'Donate for Event' : 'Register for Event',
     'member-found': 'Existing member found',
     'guest-or-signup': 'Continue as guest or sign up',
     otp: 'Verify your WhatsApp number',
@@ -2519,7 +2520,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
               ) : (
                 <>
                   <CreditCard className="w-4 h-4 mr-2" />
-                  {amountToCharge <= 0 ? "Confirm Booking" : `Pay ${fmt(amountToCharge, currency)}`}
+                  {amountToCharge <= 0 ? "Confirm Booking" : `${isCSREvent ? 'Donate' : 'Pay'} ${fmt(amountToCharge, currency)}`}
                 </>
               )}
             </Button>

@@ -438,7 +438,7 @@ export default function PublicEventsPage() {
                                 className="w-full"
                                 onClick={() => handleRegisterForEvent(event)}
                               >
-                                Register for Event
+                                {event.category === 'csr-events' ? 'Donate for Event' : 'Register for Event'}
                               </Button>
                             ) : isEventFull && (event as any).waitlist?.enabled ? (
                               waitlistStatus.has(event._id) ? (

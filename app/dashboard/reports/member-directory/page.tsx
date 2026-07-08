@@ -5,7 +5,7 @@ import { Users, UserCheck, UserX, UserMinus, Clock } from "lucide-react"
 import { toast } from "sonner"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { useSystemOwnerReportScope } from "@/hooks/useSystemOwnerReportScope"
-import { buildReportQueryParams, shouldFetchReport } from "@/lib/reportHelpers"
+import { buildReportQueryParams, shouldFetchReport, resolveExportClubId } from "@/lib/reportHelpers"
 import { useReportAuthorization } from "@/hooks/useReportAuthorization"
 import { apiClient } from "@/lib/api"
 import { DashboardLayout } from "@/components/dashboard-layout"
@@ -176,8 +176,8 @@ export default function MemberDirectoryReportPage() {
     if (!shouldFetchReport({ authorized: auth.authorized, clubId, isSystemOwner })) return
     try {
       const queryParams: Record<string, any> = {
-        clubId,
         format,
+        ...resolveExportClubId({ clubId, selectedClubId, isSystemOwner }),
       }
       if (filters.status) queryParams.status = filters.status
       if (filters.extras?.membershipPlanId && filters.extras.membershipPlanId !== "all") {

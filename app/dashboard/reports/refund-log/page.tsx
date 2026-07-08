@@ -5,7 +5,7 @@ import { RotateCcw, CheckCircle, Clock } from "lucide-react"
 import { toast } from "sonner"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { useSystemOwnerReportScope } from "@/hooks/useSystemOwnerReportScope"
-import { buildReportQueryParams, shouldFetchReport } from "@/lib/reportHelpers"
+import { buildReportQueryParams, shouldFetchReport, resolveExportClubId } from "@/lib/reportHelpers"
 import { useReportAuthorization } from "@/hooks/useReportAuthorization"
 import { apiClient } from "@/lib/api"
 import { DashboardLayout } from "@/components/dashboard-layout"
@@ -192,8 +192,8 @@ export default function RefundLogReportPage() {
     if (!shouldFetchReport({ authorized: auth.authorized, clubId, isSystemOwner })) return
     try {
       const queryParams: Record<string, any> = {
-        clubId,
         format,
+        ...resolveExportClubId({ clubId, selectedClubId, isSystemOwner }),
       }
       if (filters.extras?.sourceType && filters.extras.sourceType !== "all") {
         queryParams.sourceType = filters.extras.sourceType
