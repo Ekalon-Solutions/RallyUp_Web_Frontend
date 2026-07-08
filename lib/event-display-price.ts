@@ -67,6 +67,10 @@ export function isEventPaid(event: EventLike): boolean {
   return getEventPaidTierPrices(event).length > 0
 }
 
+export function getEventBuyCtaLabel(event: Pick<Event, "category">): string {
+  return event.category === "csr-events" ? "Donate Tickets" : "Buy Tickets"
+}
+
 export function getEventCurrencySymbol(currency?: string): string {
   const code = currency ?? "INR"
   return CURRENCY_SYMBOLS[code] ?? `${code} `

@@ -12,6 +12,7 @@ import { formatDisplayDate, slugify } from "@/lib/utils"
 import { getNewsImageUrl } from "@/lib/config"
 import {
   formatEventPriceDisplay,
+  getEventBuyCtaLabel,
   getEventCapacity,
   getEventVenueDisplay,
   hasVenueTierMatrix,
@@ -948,7 +949,7 @@ export default function PublicClubPage() {
                                     {(() => {
                                       const { count, max } = getEventCapacity(event)
                                       const isEventFull = max != null && count >= max
-                                      const label = isEventFull ? "Event Full" : isEventPaid(event) ? "Buy Tickets" : "Register"
+                                      const label = isEventFull ? "Event Full" : isEventPaid(event) ? getEventBuyCtaLabel(event) : "Register"
                                       return (
                                         <Button
                                           className="w-full mt-auto"
