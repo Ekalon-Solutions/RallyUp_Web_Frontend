@@ -16,7 +16,8 @@ const CURRENCY_SYMBOLS: Record<string, string> = {
 type EventLike = Pick<Event, "venues" | "ticketPrice" | "venue" | "currency" | "currentAttendees" | "maxAttendees">
 
 function getVenueTiers(venue: { tiers?: Array<{ price?: number; allocation?: number; sold?: number; name?: string }> } | null | undefined) {
-  return Array.isArray(venue?.tiers) ? venue.tiers : []
+  // ponytail: drop null tier entries from partial/legacy payloads — every price/capacity helper routes through here
+  return Array.isArray(venue?.tiers) ? venue.tiers.filter(Boolean) : []
 }
 
 export function normalizeEventVenues<T extends Pick<Event, "venues">>(event: T): T {
