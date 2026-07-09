@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { CountryCodeSelect } from "@/components/country-code-select"
 import {
   CreditCard,
   Info,
@@ -834,7 +835,7 @@ export function JoinMembershipModal({
                   <div className="sm:col-span-2 grid grid-cols-[7rem_1fr] gap-3">
                     <div className="space-y-2">
                       <Label htmlFor="countryCode" className="text-secondary text-[10px] font-bold tracking-widest uppercase">Country Code <span className="text-primary ml-0.5">*</span></Label>
-                      <Input id="countryCode" value={registrationData.countryCode} onChange={(e) => setRegistrationData({ ...registrationData, countryCode: e.target.value })} required className="h-12 rounded-xl border-secondary bg-white text-black placeholder:text-slate-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary" />
+                      <CountryCodeSelect id="countryCode" value={registrationData.countryCode} onValueChange={(value) => setRegistrationData({ ...registrationData, countryCode: value })} className="h-12 rounded-xl border-secondary bg-white text-black focus:ring-0 focus:ring-offset-0 focus:border-primary" />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="phoneNumber" className="text-secondary text-[10px] font-bold tracking-widest uppercase">Phone Number <span className="text-primary ml-0.5">*</span></Label>

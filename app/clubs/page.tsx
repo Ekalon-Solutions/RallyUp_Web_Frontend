@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { CountryCodeSelect } from "@/components/country-code-select"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
@@ -1463,11 +1464,10 @@ function ClubsPageContent() {
                 <div className="sm:col-span-2 grid grid-cols-[7rem_1fr] gap-3">
                   <div className="space-y-2">
                     <Label htmlFor="countryCode">Country Code</Label>
-                    <Input
+                    <CountryCodeSelect
                       id="countryCode"
                       value={registrationData.countryCode}
-                      onChange={(e) => setRegistrationData({ ...registrationData, countryCode: e.target.value })}
-                      required
+                      onValueChange={(value) => setRegistrationData({ ...registrationData, countryCode: value })}
                       className="h-12 w-full"
                     />
                   </div>

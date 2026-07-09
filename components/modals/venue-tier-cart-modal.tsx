@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { CountryCodeSelect } from "@/components/country-code-select"
 import {
   CreditCard, Loader2, Plus, Minus, MapPin, Tag, X, User, Phone, Users,
   ChevronDown, ChevronRight, CheckCircle, CheckCircle2, MessageCircle,
@@ -1753,12 +1754,11 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
                   <div className="grid grid-cols-[auto_1fr] gap-2 items-end">
                     <div className="space-y-2">
                       <Label htmlFor="vtcPrimaryCountryCode">Code</Label>
-                      <Input
+                      <CountryCodeSelect
                         id="vtcPrimaryCountryCode"
-                        placeholder="+91"
                         value={primaryCountryCode}
-                        onChange={(e) => { setPrimaryCountryCode(e.target.value); setIdentifyError(null) }}
-                        className="w-20"
+                        onValueChange={(value) => { setPrimaryCountryCode(value); setIdentifyError(null) }}
+                        className="w-24"
                       />
                     </div>
                     <div className="space-y-2">
@@ -2110,7 +2110,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
                           <div className="mt-3 space-y-2">
                             <Input placeholder={`Name for attendee ${i + 1}`} value={att.name} onChange={(e) => updateSimpleAttendee(i, 'name', e.target.value)} />
                             <div className="flex gap-2">
-                              <Input placeholder="+91" value={att.phoneCode || ''} onChange={(e) => updateSimpleAttendee(i, 'phoneCode', e.target.value)} className="w-20 flex-shrink-0" />
+                              <CountryCodeSelect value={att.phoneCode || ''} onValueChange={(value) => updateSimpleAttendee(i, 'phoneCode', value)} className="w-24 flex-shrink-0" />
                               <Input placeholder={`Phone for attendee ${i + 1}`} value={att.phone} onChange={(e) => updateSimpleAttendee(i, 'phone', e.target.value)} className="flex-1 min-w-0" />
                             </div>
                           </div>

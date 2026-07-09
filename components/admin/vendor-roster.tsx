@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { CountryCodeSelect } from "@/components/country-code-select"
 import {
   Dialog,
   DialogContent,
@@ -306,12 +307,10 @@ export function VendorRoster({ onChanged }: VendorRosterProps) {
             <div className="space-y-1.5">
               <Label>Phone number</Label>
               <div className="flex gap-2">
-                <Input
-                  aria-label="Country code"
+                <CountryCodeSelect
                   value={createForm.countryCode}
-                  onChange={(e) => setCreateForm((p) => ({ ...p, countryCode: e.target.value }))}
-                  placeholder="+1"
-                  className="w-20 shrink-0"
+                  onValueChange={(value) => setCreateForm((p) => ({ ...p, countryCode: value }))}
+                  className="w-24 shrink-0"
                 />
                 <Input
                   aria-label="Phone number"
@@ -363,11 +362,10 @@ export function VendorRoster({ onChanged }: VendorRosterProps) {
             <div className="space-y-1.5">
               <Label>Phone number</Label>
               <div className="flex gap-2">
-                <Input
-                  aria-label="Country code"
+                <CountryCodeSelect
                   value={editForm.countryCode}
-                  onChange={(e) => setEditForm((p) => ({ ...p, countryCode: e.target.value }))}
-                  className="w-20 shrink-0"
+                  onValueChange={(value) => setEditForm((p) => ({ ...p, countryCode: value }))}
+                  className="w-24 shrink-0"
                 />
                 <Input
                   aria-label="Phone number"

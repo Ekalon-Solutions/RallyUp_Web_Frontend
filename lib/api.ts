@@ -2941,6 +2941,22 @@ class ApiClient {
     }
   }
 
+  async downloadEventRegistrationsReport(params?: Record<string, any>): Promise<{ success: boolean; error?: string }> {
+    try {
+      const result = await this.downloadFile('/events/club/registrations/export', { params });
+      if (!result.success) {
+        return { success: false, error: result.error };
+      }
+      const blob = result.blob as Blob;
+      const filename = result.filename || `event_registrations_report_${Date.now()}.csv`;
+      triggerBlobDownload(blob, filename);
+
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, error: error?.message || 'Failed to download event registrations report' };
+    }
+  }
+
   async downloadLogisticsReport(params: Record<string, any>): Promise<{ success: boolean; error?: string }> {
     try {
       const result = await this.downloadFile('/orders/admin/logistics-report/export', { params });

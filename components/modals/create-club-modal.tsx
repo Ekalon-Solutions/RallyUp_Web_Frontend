@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { CountryCodeSelect } from "@/components/country-code-select"
 import { Switch } from "@/components/ui/switch"
 import {
   Dialog,
@@ -258,11 +259,10 @@ export function CreateClubModal({ isOpen, onClose, onSuccess }: CreateClubModalP
                 <div className="flex items-center gap-2">
                   <Phone className="w-4 h-4 text-muted-foreground" />
                   <div className="flex gap-2">
-                    <Input
+                    <CountryCodeSelect
                       value={formData.countryCode}
-                      onChange={(e) => handleInputChange("countryCode", e.target.value)}
-                      className="w-20"
-                      placeholder="+1"
+                      onValueChange={(value) => handleInputChange("countryCode", value)}
+                      className="w-24"
                     />
                     <Input
                       id="contactPhone"

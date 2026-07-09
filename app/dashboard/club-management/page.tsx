@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
+import { CountryCodeSelect } from '@/components/country-code-select'
 import { 
   Building2, 
   Users, 
@@ -564,11 +565,10 @@ export default function ClubManagementPage() {
                         <div className="flex items-center gap-2">
                           <Phone className="w-4 h-4 text-muted-foreground" />
                           <div className="flex gap-2">
-                            <Input
+                            <CountryCodeSelect
                               value={createForm.countryCode}
-                              onChange={(e) => setCreateForm({ ...createForm, countryCode: e.target.value })}
-                              className="w-20"
-                              placeholder="+1"
+                              onValueChange={(value) => setCreateForm({ ...createForm, countryCode: value })}
+                              className="w-24"
                             />
                             <Input
                               id="contactPhone"

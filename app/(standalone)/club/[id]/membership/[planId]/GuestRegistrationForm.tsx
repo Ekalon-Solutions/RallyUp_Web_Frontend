@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
+import { CountryCodeSelect } from "@/components/country-code-select"
 import {
   Award,
   Users,
@@ -690,16 +691,15 @@ export function GuestRegistrationForm({
                 <div className="sm:col-span-2 grid grid-cols-[7rem_1fr] gap-3">
                   <div className="space-y-2">
                     <Label htmlFor="countryCode">Country Code</Label>
-                    <Input
+                    <CountryCodeSelect
                       id="countryCode"
                       value={registrationData.countryCode}
-                      onChange={(e) =>
+                      onValueChange={(value) =>
                         setRegistrationData({
                           ...registrationData,
-                          countryCode: e.target.value,
+                          countryCode: value,
                         })
                       }
-                      required
                       className="h-12 w-full"
                     />
                   </div>
