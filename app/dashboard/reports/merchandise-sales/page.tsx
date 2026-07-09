@@ -1,11 +1,11 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { Package, DollarSign, Tag, TrendingUp } from "lucide-react"
+import { Package, Tag, TrendingUp } from "lucide-react"
 import { toast } from "sonner"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { useSystemOwnerReportScope } from "@/hooks/useSystemOwnerReportScope"
-import { buildReportQueryParams, shouldFetchReport } from "@/lib/reportHelpers"
+import { buildReportQueryParams, shouldFetchReport, resolveExportClubId } from "@/lib/reportHelpers"
 import { useReportAuthorization } from "@/hooks/useReportAuthorization"
 import { apiClient } from "@/lib/api"
 import { DashboardLayout } from "@/components/dashboard-layout"
@@ -33,18 +33,18 @@ function renderFulfillmentStatusBadge(status: string) {
     case "delivered":
     case "completed":
     case "shipped":
-      return <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-0 font-medium">{status}</Badge>
+      return <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-0 font-medium">{status.charAt(0).toUpperCase() + status.slice(1)}</Badge>
     case "out_for_delivery":
     case "in_transit":
     case "ready_to_ship":
     case "pending":
-      return <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border-0 font-medium">{status.replace(/_/g, ' ')}</Badge>
+      return <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border-0 font-medium">{(status.charAt(0).toUpperCase() + status.slice(1)).replace(/_/g, ' ')}</Badge>
     case "cancelled":
     case "refunded":
     case "rto_initiated":
-      return <Badge className="bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border-0 font-medium">{status.replace(/_/g, ' ')}</Badge>
+      return <Badge className="bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border-0 font-medium">{(status.charAt(0).toUpperCase() + status.slice(1)).replace(/_/g, ' ')}</Badge>
     default:
-      return <Badge variant="outline">{status}</Badge>
+      return <Badge variant="outline">{status.charAt(0).toUpperCase() + status.slice(1)}</Badge>
   }
 }
 
@@ -164,7 +164,7 @@ export default function MerchandiseSalesReportPage() {
   const handleExport = async (format: ExportFormat) => {
     if (!shouldFetchReport({ authorized: auth.authorized, clubId, isSystemOwner })) return
     try {
-      const queryParams: Record<string, any> = { clubId, format }
+      const queryParams: Record<string, any> = { format, ...resolveExportClubId({ clubId, selectedClubId, isSystemOwner }) }
       if (filters.extras?.paymentStatus && filters.extras.paymentStatus !== "all") {
         queryParams.paymentStatus = filters.extras.paymentStatus
       }
@@ -254,26 +254,18 @@ export default function MerchandiseSalesReportPage() {
     {
       label: "Total Units Sold",
       value: summaryData.totalUnits.toLocaleString(),
-      icon: Package,
-      iconColor: "bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400",
     },
     {
       label: "Gross Sales",
       value: formatCurrency(summaryData.grossSales),
-      icon: DollarSign,
-      iconColor: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400",
     },
     {
       label: "Total Discounts",
       value: formatCurrency(summaryData.totalDiscounts),
-      icon: Tag,
-      iconColor: "bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400",
     },
     {
       label: "Net Merchandise Sales",
       value: formatCurrency(summaryData.netSales),
-      icon: TrendingUp,
-      iconColor: "bg-purple-100 text-purple-600 dark:bg-purple-950 dark:text-purple-400",
     },
   ]
 
@@ -346,6 +338,7 @@ export default function MerchandiseSalesReportPage() {
           onSortChange={setSort}
           onPageChange={setPage}
           emptyMessage="No merchandise sales records found for the selected criteria."
+          showClubColumn={isSystemOwner && !selectedClubId}
         />
       </ReportShell>
     </DashboardLayout>

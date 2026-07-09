@@ -84,6 +84,27 @@ export function buildReportQueryParams({
 }
 
 /**
+ * resolveExportClubId
+ *
+ * Resolves clubId for export requests respecting System Owner scope.
+ * System Owner with selectedClubId → club-scoped export
+ * System Owner with no selectedClubId → all-clubs export (omit clubId)
+ * All other roles → uses their resolved clubId
+ */
+export function resolveExportClubId(options: {
+  clubId: string | null
+  selectedClubId: string | null
+  isSystemOwner: boolean
+}): Record<string, string> {
+  if (options.isSystemOwner) {
+    if (options.selectedClubId) return { clubId: options.selectedClubId }
+    return {}
+  }
+  if (options.clubId) return { clubId: options.clubId }
+  return {}
+}
+
+/**
  * shouldFetchReport
  *
  * Guard helper — determines whether a fetchReport call should proceed.

@@ -5,7 +5,7 @@ import { Clock, RefreshCw, AlertTriangle, TrendingUp } from "lucide-react"
 import { toast } from "sonner"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { useSystemOwnerReportScope } from "@/hooks/useSystemOwnerReportScope"
-import { buildReportQueryParams, shouldFetchReport } from "@/lib/reportHelpers"
+import { buildReportQueryParams, shouldFetchReport, resolveExportClubId } from "@/lib/reportHelpers"
 import { useReportAuthorization } from "@/hooks/useReportAuthorization"
 import { apiClient } from "@/lib/api"
 import { DashboardLayout } from "@/components/dashboard-layout"
@@ -155,7 +155,7 @@ export default function MembershipExpiryReportPage() {
   const handleExport = async (format: ExportFormat) => {
     if (!shouldFetchReport({ authorized: auth.authorized, clubId, isSystemOwner })) return
     try {
-      const queryParams: Record<string, any> = { clubId, format }
+      const queryParams: Record<string, any> = { format, ...resolveExportClubId({ clubId, selectedClubId, isSystemOwner }) }
       if (filters.extras?.membershipPlanId && filters.extras.membershipPlanId !== "all") {
         queryParams.membershipPlanId = filters.extras.membershipPlanId
       }
@@ -240,26 +240,18 @@ export default function MembershipExpiryReportPage() {
     {
       label: "Expiring Soon (30d)",
       value: summaryData.expiringSoon.toLocaleString(),
-      icon: Clock,
-      iconColor: "bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400",
     },
     {
       label: "Renewed Members",
       value: summaryData.renewed.toLocaleString(),
-      icon: RefreshCw,
-      iconColor: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400",
     },
     {
       label: "Expired Memberships",
       value: summaryData.expired.toLocaleString(),
-      icon: AlertTriangle,
-      iconColor: "bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400",
     },
     {
       label: "Renewal Rate",
       value: `${summaryData.renewalRate.toFixed(1)}%`,
-      icon: TrendingUp,
-      iconColor: "bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400",
     },
   ]
 
@@ -327,6 +319,7 @@ export default function MembershipExpiryReportPage() {
           onSortChange={setSort}
           onPageChange={setPage}
           emptyMessage="No membership expiry records found for the selected criteria."
+          showClubColumn={isSystemOwner && !selectedClubId}
         />
       </ReportShell>
     </DashboardLayout>

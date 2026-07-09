@@ -5,7 +5,7 @@ import { Package, Archive, CheckCircle, AlertTriangle } from "lucide-react"
 import { toast } from "sonner"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { useSystemOwnerReportScope } from "@/hooks/useSystemOwnerReportScope"
-import { buildReportQueryParams, shouldFetchReport } from "@/lib/reportHelpers"
+import { buildReportQueryParams, shouldFetchReport, resolveExportClubId } from "@/lib/reportHelpers"
 import { useReportAuthorization } from "@/hooks/useReportAuthorization"
 import { apiClient } from "@/lib/api"
 import { DashboardLayout } from "@/components/dashboard-layout"
@@ -108,7 +108,7 @@ export default function InventoryReportPage() {
   const handleExport = async (format: ExportFormat) => {
     if (!shouldFetchReport({ authorized: auth.authorized, clubId, isSystemOwner })) return
     try {
-      const queryParams: Record<string, any> = { clubId, format }
+      const queryParams: Record<string, any> = { format, ...resolveExportClubId({ clubId, selectedClubId, isSystemOwner }) }
       if (filters.extras?.stockStatus && filters.extras.stockStatus !== "all") queryParams.stockStatus = filters.extras.stockStatus
       const res = await apiClient.downloadInventoryReport(queryParams)
       if (!res.success) toast.error(res.error || "Export failed")
@@ -137,10 +137,10 @@ export default function InventoryReportPage() {
   ]
 
   const summaryCards: SummaryCard[] = [
-    { label: "Current Stock", value: summaryData.currentStock.toLocaleString(), icon: Package, iconColor: "bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400" },
-    { label: "Reserved Stock", value: summaryData.reservedStock.toLocaleString(), icon: Archive, iconColor: "bg-purple-100 text-purple-600 dark:bg-purple-950 dark:text-purple-400" },
-    { label: "Available Stock", value: summaryData.availableStock.toLocaleString(), icon: CheckCircle, iconColor: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400" },
-    { label: "Stock Alerts", value: (summaryData.lowStockProducts + summaryData.outOfStockProducts).toLocaleString(), icon: AlertTriangle, iconColor: "bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400" },
+    { label: "Current Stock", value: summaryData.currentStock.toLocaleString() },
+    { label: "Reserved Stock", value: summaryData.reservedStock.toLocaleString() },
+    { label: "Available Stock", value: summaryData.availableStock.toLocaleString() },
+    { label: "Stock Alerts", value: (summaryData.lowStockProducts + summaryData.outOfStockProducts).toLocaleString() },
   ]
 
   return (
@@ -176,7 +176,7 @@ export default function InventoryReportPage() {
         }
         summary={<ReportSummaryCards cards={summaryCards} loading={loading} />}
       >
-        <ReportTable columns={columns} data={data} loading={loading} pagination={pagination} sort={sort} onSortChange={setSort} onPageChange={setPage} emptyMessage="No inventory records found for the selected criteria." />
+        <ReportTable columns={columns} data={data} loading={loading} pagination={pagination} sort={sort} onSortChange={setSort} onPageChange={setPage} emptyMessage="No inventory records found for the selected criteria." showClubColumn={isSystemOwner && !selectedClubId} />
       </ReportShell>
     </DashboardLayout>
   )

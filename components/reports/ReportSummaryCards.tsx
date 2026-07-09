@@ -8,7 +8,6 @@
  * but generalised to accept any metric set.
  *
  * Each card shows:
- *   - An icon (optional)
  *   - A metric label
  *   - A formatted value
  *   - An optional sub-label (e.g. "vs last month")
@@ -74,62 +73,45 @@ export function ReportSummaryCards({
   return (
     <div className={cn("grid gap-4", gridClass)}>
       {cards.map((card, index) => {
-        const Icon = card.icon
         const hasChange = card.change !== undefined && card.change !== null
         const isPositive = (card.change ?? 0) >= 0
 
         return (
           <Card key={index} className="overflow-hidden">
             <CardContent className="p-5">
-              <div className="flex items-start gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-muted-foreground truncate">
+                  {card.label}
+                </p>
+                <p className="mt-1 text-2xl font-semibold tracking-tight leading-none">
+                  {card.value}
+                </p>
 
-                {/* Icon */}
-                {Icon && (
-                  <div
-                    className={cn(
-                      "flex h-9 w-9 items-center justify-center rounded-lg shrink-0",
-                      card.iconColor ?? "bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400",
+                {/* Sub-label or change indicator */}
+                {(card.subLabel || hasChange) && (
+                  <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+                    {hasChange && (
+                      <span
+                        className={cn(
+                          "inline-flex items-center gap-0.5 text-xs font-medium",
+                          isPositive
+                            ? "text-emerald-600 dark:text-emerald-400"
+                            : "text-red-500 dark:text-red-400",
+                        )}
+                      >
+                        {isPositive
+                          ? <TrendingUp className="h-3 w-3" />
+                          : <TrendingDown className="h-3 w-3" />}
+                        {Math.abs(card.change!).toFixed(1)}%
+                      </span>
                     )}
-                  >
-                    <Icon className="h-4.5 w-4.5" />
+                    {card.subLabel && (
+                      <span className="text-xs text-muted-foreground">
+                        {card.subLabel}
+                      </span>
+                    )}
                   </div>
                 )}
-
-                {/* Text */}
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-muted-foreground truncate">
-                    {card.label}
-                  </p>
-                  <p className="mt-1 text-2xl font-semibold tracking-tight leading-none">
-                    {card.value}
-                  </p>
-
-                  {/* Sub-label or change indicator */}
-                  {(card.subLabel || hasChange) && (
-                    <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
-                      {hasChange && (
-                        <span
-                          className={cn(
-                            "inline-flex items-center gap-0.5 text-xs font-medium",
-                            isPositive
-                              ? "text-emerald-600 dark:text-emerald-400"
-                              : "text-red-500 dark:text-red-400",
-                          )}
-                        >
-                          {isPositive
-                            ? <TrendingUp className="h-3 w-3" />
-                            : <TrendingDown className="h-3 w-3" />}
-                          {Math.abs(card.change!).toFixed(1)}%
-                        </span>
-                      )}
-                      {card.subLabel && (
-                        <span className="text-xs text-muted-foreground">
-                          {card.subLabel}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
               </div>
             </CardContent>
           </Card>

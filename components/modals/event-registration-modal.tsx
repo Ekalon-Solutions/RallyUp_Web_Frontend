@@ -268,7 +268,7 @@ export function EventRegistrationModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Calendar className="w-5 h-5" />
-            {isRegistered ? "Event Registration Details" : "Register for Event"}
+            {isRegistered ? "Event Registration Details" : event?.category === 'csr-events' ? 'Donate for Event' : 'Register for Event'}
           </DialogTitle>
           <DialogDescription>
             {isRegistered 
@@ -576,7 +576,7 @@ export function EventRegistrationModal({
           
           {!isRegistered && canRegister && (
             <Button onClick={handleRegister} disabled={loading || hasErrors}>
-              {loading ? "Registering..." : "Register for Event"}
+              {loading ? "Registering..." : event?.category === 'csr-events' ? 'Donate for Event' : 'Register for Event'}
             </Button>
           )}
         </DialogFooter>

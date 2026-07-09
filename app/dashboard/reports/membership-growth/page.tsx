@@ -5,7 +5,7 @@ import { UserPlus, RefreshCw, UserX, TrendingUp } from "lucide-react"
 import { toast } from "sonner"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { useSystemOwnerReportScope } from "@/hooks/useSystemOwnerReportScope"
-import { buildReportQueryParams, shouldFetchReport } from "@/lib/reportHelpers"
+import { buildReportQueryParams, shouldFetchReport, resolveExportClubId } from "@/lib/reportHelpers"
 import { useReportAuthorization } from "@/hooks/useReportAuthorization"
 import { apiClient } from "@/lib/api"
 import { DashboardLayout } from "@/components/dashboard-layout"
@@ -156,7 +156,7 @@ export default function MembershipGrowthReportPage() {
   const handleExport = async (format: ExportFormat) => {
     if (!shouldFetchReport({ authorized: auth.authorized, clubId, isSystemOwner })) return
     try {
-      const queryParams: Record<string, any> = { clubId, format }
+      const queryParams: Record<string, any> = { format, ...resolveExportClubId({ clubId, selectedClubId, isSystemOwner }) }
       if (filters.extras?.membershipPlanId && filters.extras.membershipPlanId !== "all") {
         queryParams.membershipPlanId = filters.extras.membershipPlanId
       }
@@ -230,28 +230,18 @@ export default function MembershipGrowthReportPage() {
     {
       label: "New Members",
       value: summaryData.newMembers.toLocaleString(),
-      icon: UserPlus,
-      iconColor: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400",
     },
     {
       label: "Renewed Members",
       value: summaryData.renewedMembers.toLocaleString(),
-      icon: RefreshCw,
-      iconColor: "bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400",
     },
     {
       label: "Expired Memberships",
       value: summaryData.expiredMemberships.toLocaleString(),
-      icon: UserX,
-      iconColor: "bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400",
     },
     {
       label: "Net Growth",
       value: (summaryData.netGrowth >= 0 ? "+" : "") + summaryData.netGrowth.toLocaleString(),
-      icon: TrendingUp,
-      iconColor: summaryData.netGrowth >= 0
-        ? "bg-purple-100 text-purple-600 dark:bg-purple-950 dark:text-purple-400"
-        : "bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400",
     },
   ]
 
@@ -319,6 +309,7 @@ export default function MembershipGrowthReportPage() {
           onSortChange={setSort}
           onPageChange={setPage}
           emptyMessage="No membership growth records found for the selected criteria."
+          showClubColumn={isSystemOwner && !selectedClubId}
         />
       </ReportShell>
     </DashboardLayout>

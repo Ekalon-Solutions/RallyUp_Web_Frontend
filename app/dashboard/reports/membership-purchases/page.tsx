@@ -1,11 +1,11 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { ShoppingCart, DollarSign, TrendingUp, CheckCircle } from "lucide-react"
+import { ShoppingCart, TrendingUp, CheckCircle } from "lucide-react"
 import { toast } from "sonner"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { useSystemOwnerReportScope } from "@/hooks/useSystemOwnerReportScope"
-import { buildReportQueryParams, shouldFetchReport } from "@/lib/reportHelpers"
+import { buildReportQueryParams, shouldFetchReport, resolveExportClubId } from "@/lib/reportHelpers"
 import { useReportAuthorization } from "@/hooks/useReportAuthorization"
 import { apiClient } from "@/lib/api"
 import { DashboardLayout } from "@/components/dashboard-layout"
@@ -32,14 +32,14 @@ function renderStatusBadge(status: string) {
   switch (s) {
     case "active":
     case "paid":
-      return <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-0 font-medium">{status}</Badge>
+      return <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-0 font-medium">{status.charAt(0).toUpperCase() + status.slice(1)}</Badge>
     case "expired":
     case "pending":
-      return <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border-0 font-medium">{status}</Badge>
+      return <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border-0 font-medium">{status.charAt(0).toUpperCase() + status.slice(1)}</Badge>
     case "cancelled":
       return <Badge className="bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border-0 font-medium">Cancelled</Badge>
     default:
-      return <Badge variant="outline">{status}</Badge>
+      return <Badge variant="outline">{status.charAt(0).toUpperCase() + status.slice(1)}</Badge>
   }
 }
 
@@ -167,7 +167,7 @@ export default function MembershipPurchaseReportPage() {
   const handleExport = async (format: ExportFormat) => {
     if (!shouldFetchReport({ authorized: auth.authorized, clubId, isSystemOwner })) return
     try {
-      const queryParams: Record<string, any> = { clubId, format }
+      const queryParams: Record<string, any> = { format, ...resolveExportClubId({ clubId, selectedClubId, isSystemOwner }) }
       if (filters.extras?.membershipPlanId && filters.extras.membershipPlanId !== "all") {
         queryParams.membershipPlanId = filters.extras.membershipPlanId
       }
@@ -236,7 +236,10 @@ export default function MembershipPurchaseReportPage() {
     {
       key: "paymentStatus",
       header: "Payment Status",
-      accessor: (row) => renderStatusBadge(row.paymentStatus),
+      accessor: (row) =>
+        row.amount === 0
+          ? <Badge className="bg-slate-100 text-slate-800 dark:bg-slate-950 dark:text-slate-300 border-0 font-medium">Free</Badge>
+          : renderStatusBadge(row.paymentStatus),
       width: "w-32",
     },
     {
@@ -252,26 +255,18 @@ export default function MembershipPurchaseReportPage() {
     {
       label: "Membership Purchases",
       value: summaryData.membershipPurchases.toLocaleString(),
-      icon: ShoppingCart,
-      iconColor: "bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400",
     },
     {
       label: "Membership Revenue",
       value: formatCurrency(summaryData.membershipRevenue),
-      icon: DollarSign,
-      iconColor: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400",
     },
     {
       label: "Average Value",
       value: formatCurrency(summaryData.averageMembershipValue),
-      icon: TrendingUp,
-      iconColor: "bg-purple-100 text-purple-600 dark:bg-purple-950 dark:text-purple-400",
     },
     {
       label: "Active Purchases",
       value: summaryData.activeMembershipPurchases.toLocaleString(),
-      icon: CheckCircle,
-      iconColor: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400",
     },
   ]
 
@@ -339,6 +334,7 @@ export default function MembershipPurchaseReportPage() {
           onSortChange={setSort}
           onPageChange={setPage}
           emptyMessage="No membership purchase records found for the selected criteria."
+          showClubColumn={isSystemOwner && !selectedClubId}
         />
       </ReportShell>
     </DashboardLayout>

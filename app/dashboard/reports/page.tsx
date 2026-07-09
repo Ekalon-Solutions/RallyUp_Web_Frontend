@@ -376,30 +376,12 @@ export default function ReportsHubPage() {
   const effectiveRole = getEffectiveAdminRole(user, activeClubId)
   const canViewReportsHub = ["admin", "super_admin", "system_owner"].includes(effectiveRole)
 
-  // ─── Unimplemented Reports (hidden from UI until ready) ────────────────────
-  const UNIMPLEMENTED_REPORT_IDS = new Set([
-    'ads-generated-vs-money',
-    'ads-performance',
-    'ads-config',
-  ])
-
   // Filter reports based on user permissions
   const accessibleReports = useMemo(() => {
-    // For System Owner: Use null clubId for authorization filtering
-    // This ensures System Owners see all reports they have access to, regardless of selected club
-    // The selected club only affects data scope within reports, not report visibility
-    const authClubId = isSystemOwner ? null : activeClubId
-    
-    return ALL_REPORTS.filter((report) => {
-      // Hide unimplemented reports from UI
-      if (UNIMPLEMENTED_REPORT_IDS.has(report.id)) {
-        return false
-      }
-      
-      // Apply RBAC authorization
-      return authorizeReportAccess(report.id, user, authClubId, clubFeatureConfig).authorized
-    })
-  }, [user, activeClubId, isSystemOwner, clubFeatureConfig])
+    return ALL_REPORTS.filter(
+      (report) => authorizeReportAccess(report.id, user, activeClubId, clubFeatureConfig).authorized
+    )
+  }, [user, activeClubId, clubFeatureConfig])
 
   // Filter reports based on search query
   const filteredReports = useMemo(() => {
@@ -423,18 +405,10 @@ export default function ReportsHubPage() {
       }
       groups[report.category].push(report)
     })
-    
-    // Remove empty categories (e.g., Ads category when all its reports are hidden)
-    Object.keys(groups).forEach((category) => {
-      if (groups[category].length === 0) {
-        delete groups[category]
-      }
-    })
-    
     return groups
   }, [filteredReports])
 
-  const categories = Object.keys(reportsByCategory).sort()
+  const categories = Object.keys(reportsByCategory).filter((cat) => cat !== "Ads").sort()
 
   if (!canViewReportsHub) {
     return (

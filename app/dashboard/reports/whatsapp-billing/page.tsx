@@ -1,11 +1,11 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { MessageSquare, DollarSign, Receipt, Clock } from "lucide-react"
+import { MessageSquare, Receipt, Clock } from "lucide-react"
 import { toast } from "sonner"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { useSystemOwnerReportScope } from "@/hooks/useSystemOwnerReportScope"
-import { buildReportQueryParams, shouldFetchReport } from "@/lib/reportHelpers"
+import { buildReportQueryParams, shouldFetchReport, resolveExportClubId } from "@/lib/reportHelpers"
 import { useReportAuthorization } from "@/hooks/useReportAuthorization"
 import { apiClient } from "@/lib/api"
 import { DashboardLayout } from "@/components/dashboard-layout"
@@ -150,7 +150,7 @@ export default function WhatsAppBillingReportPage() {
   const handleExport = async (format: ExportFormat) => {
     if (!shouldFetchReport({ authorized: auth.authorized, clubId, isSystemOwner })) return
     try {
-      const queryParams: Record<string, any> = { clubId, format }
+      const queryParams: Record<string, any> = { format, ...resolveExportClubId({ clubId, selectedClubId, isSystemOwner }) }
 
       const res = await apiClient.downloadWhatsAppBillingReport(queryParams)
       if (!res.success) {
@@ -234,26 +234,18 @@ export default function WhatsAppBillingReportPage() {
     {
       label: "Total Invoices",
       value: summaryData.totalInvoices.toLocaleString(),
-      icon: Receipt,
-      iconColor: "bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400",
     },
     {
       label: "Messages Sent",
       value: summaryData.totalMessagesSent.toLocaleString(),
-      icon: MessageSquare,
-      iconColor: "bg-purple-100 text-purple-600 dark:bg-purple-950 dark:text-purple-400",
     },
     {
       label: "Base Charges Amount",
       value: formatCurrency(summaryData.baseAmount),
-      icon: DollarSign,
-      iconColor: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400",
     },
     {
       label: "Total Amount (Inc. GST)",
       value: formatCurrency(summaryData.totalAmount),
-      icon: Clock,
-      iconColor: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400",
     },
   ]
 
@@ -299,6 +291,7 @@ export default function WhatsAppBillingReportPage() {
           onSortChange={setSort}
           onPageChange={setPage}
           emptyMessage="No WhatsApp billing records found for the selected criteria."
+          showClubColumn={isSystemOwner && !selectedClubId}
         />
       </ReportShell>
     </DashboardLayout>

@@ -1,11 +1,11 @@
-"use client"
+﻿"use client"
 
 import { useCallback, useEffect, useState } from "react"
 import { ShoppingBag, DollarSign, TrendingUp, XCircle } from "lucide-react"
 import { toast } from "sonner"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { useSystemOwnerReportScope } from "@/hooks/useSystemOwnerReportScope"
-import { buildReportQueryParams, shouldFetchReport } from "@/lib/reportHelpers"
+import { buildReportQueryParams, shouldFetchReport, resolveExportClubId } from "@/lib/reportHelpers"
 import { useReportAuthorization } from "@/hooks/useReportAuthorization"
 import { apiClient } from "@/lib/api"
 import { DashboardLayout } from "@/components/dashboard-layout"
@@ -36,9 +36,9 @@ function renderPaymentStatusBadge(status: string) {
       return <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border-0 font-medium">Pending</Badge>
     case "failed":
     case "refunded":
-      return <Badge className="bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border-0 font-medium">{status}</Badge>
+      return <Badge className="bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border-0 font-medium">{status.charAt(0).toUpperCase() + status.slice(1)}</Badge>
     default:
-      return <Badge variant="outline">{status}</Badge>
+      return <Badge variant="outline">{status.charAt(0).toUpperCase() + status.slice(1)}</Badge>
   }
 }
 
@@ -48,16 +48,16 @@ function renderOrderStatusBadge(status: string) {
     case "completed":
     case "shipped":
     case "delivered":
-      return <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-0 font-medium">{status}</Badge>
+      return <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-0 font-medium">{status.charAt(0).toUpperCase() + status.slice(1)}</Badge>
     case "ready_to_ship":
     case "fulfillment_in_progress":
     case "pending":
-      return <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border-0 font-medium">{status.replace(/_/g, ' ')}</Badge>
+      return <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border-0 font-medium">{(status.charAt(0).toUpperCase() + status.slice(1)).replace(/_/g, ' ')}</Badge>
     case "cancelled":
     case "refunded":
-      return <Badge className="bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border-0 font-medium">{status}</Badge>
+      return <Badge className="bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border-0 font-medium">{status.charAt(0).toUpperCase() + status.slice(1)}</Badge>
     default:
-      return <Badge variant="outline">{status}</Badge>
+      return <Badge variant="outline">{status.charAt(0).toUpperCase() + status.slice(1)}</Badge>
   }
 }
 
@@ -175,7 +175,7 @@ export default function TotalOrderSummaryPage() {
   const handleExport = async (format: ExportFormat) => {
     if (!shouldFetchReport({ authorized: auth.authorized, clubId, isSystemOwner })) return
     try {
-      const queryParams: Record<string, any> = { clubId, format }
+      const queryParams: Record<string, any> = { format, ...resolveExportClubId({ clubId, selectedClubId, isSystemOwner }) }
       if (filters.extras?.paymentStatus && filters.extras.paymentStatus !== "all") {
         queryParams.paymentStatus = filters.extras.paymentStatus
       }
@@ -243,7 +243,10 @@ export default function TotalOrderSummaryPage() {
     {
       key: "paymentStatus",
       header: "Payment Status",
-      accessor: (row) => renderPaymentStatusBadge(row.paymentStatus),
+      accessor: (row) =>
+        row.totalAmount === 0
+          ? <Badge className="bg-slate-100 text-slate-800 dark:bg-slate-950 dark:text-slate-300 border-0 font-medium">Free</Badge>
+          : renderPaymentStatusBadge(row.paymentStatus),
       sortable: true,
       width: "w-32",
     },
@@ -368,6 +371,7 @@ export default function TotalOrderSummaryPage() {
           onSortChange={setSort}
           onPageChange={setPage}
           emptyMessage="No store orders found for the selected criteria."
+          showClubColumn={isSystemOwner && !selectedClubId}
         />
       </ReportShell>
     </DashboardLayout>

@@ -1,18 +1,17 @@
 "use client"
 
 /**
- * ReportFilters — Reusable filter bar component for reports (Pattern v1.1).
+ * ReportFilters — Reusable filter bar component for reports (Pattern v2.0).
  *
- * Pattern v1.1 Rules:
+ * Pattern v2.0 Rules:
  *   1. Search: Auto-filters while typing with 400ms debounce. Pressing Enter searches immediately.
- *      Does not require clicking Apply Filters.
  *   2. Date Filters: Changing From Date or To Date immediately refreshes the report.
- *   3. Dropdown Filters: Use Apply Filters button so multiple dropdown changes can be executed together.
+ *   3. Dropdown Filters: Changing a dropdown immediately refreshes the report.
  *   4. Reset: Clears search, dates, dropdowns, and triggers an immediate report refresh.
  */
 
 import { useState, useEffect, useRef, ReactNode } from "react"
-import { Search, RotateCcw, Filter } from "lucide-react"
+import { Search, RotateCcw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -121,21 +120,10 @@ export function ReportFilters({
     onApplyFilters(nextFilters)
   }
 
-  // Status change handler
+  // Status change handler — auto-applies immediately
   const handleStatusChange = (value: string) => {
-    setFilters((prev) => ({
-      ...prev,
-      status: value === "all" ? undefined : value,
-    }))
-  }
-
-  const handleApply = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current)
-    }
-    const updatedSearch = searchValue.trim() || undefined
-    const nextFilters = { ...filters, search: updatedSearch }
+    const newStatus = value === "all" ? undefined : value
+    const nextFilters = { ...filters, status: newStatus }
     setFilters(nextFilters)
     onApplyFilters(nextFilters)
   }
@@ -155,7 +143,7 @@ export function ReportFilters({
   }
 
   return (
-    <form onSubmit={handleApply} className="flex flex-wrap items-end gap-4 text-sm">
+    <div className="flex flex-wrap items-end gap-4 text-sm">
       {/* Date Range Filters (Immediate refresh on selection) */}
       {showDateRange && (
         <>
@@ -230,11 +218,7 @@ export function ReportFilters({
           <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
           Reset
         </Button>
-        <Button type="submit" size="sm" disabled={loading}>
-          <Filter className="w-3.5 h-3.5 mr-1.5" />
-          Apply Filters
-        </Button>
       </div>
-    </form>
+    </div>
   )
 }

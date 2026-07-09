@@ -5,7 +5,7 @@ import { Users, UserCheck, UserX, UserMinus, Clock } from "lucide-react"
 import { toast } from "sonner"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { useSystemOwnerReportScope } from "@/hooks/useSystemOwnerReportScope"
-import { buildReportQueryParams, shouldFetchReport } from "@/lib/reportHelpers"
+import { buildReportQueryParams, shouldFetchReport, resolveExportClubId } from "@/lib/reportHelpers"
 import { useReportAuthorization } from "@/hooks/useReportAuthorization"
 import { apiClient } from "@/lib/api"
 import { DashboardLayout } from "@/components/dashboard-layout"
@@ -176,8 +176,8 @@ export default function MemberDirectoryReportPage() {
     if (!shouldFetchReport({ authorized: auth.authorized, clubId, isSystemOwner })) return
     try {
       const queryParams: Record<string, any> = {
-        clubId,
         format,
+        ...resolveExportClubId({ clubId, selectedClubId, isSystemOwner }),
       }
       if (filters.status) queryParams.status = filters.status
       if (filters.extras?.membershipPlanId && filters.extras.membershipPlanId !== "all") {
@@ -275,26 +275,18 @@ export default function MemberDirectoryReportPage() {
     {
       label: "Total Members",
       value: summaryData.totalMembers.toLocaleString(),
-      icon: Users,
-      iconColor: "bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400",
     },
     {
       label: "Active Members",
       value: summaryData.activeMembers.toLocaleString(),
-      icon: UserCheck,
-      iconColor: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400",
     },
     {
       label: "Expired Members",
       value: summaryData.expiredMembers.toLocaleString(),
-      icon: UserX,
-      iconColor: "bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400",
     },
     {
       label: "Cancelled Members",
       value: summaryData.cancelledMembers.toLocaleString(),
-      icon: UserMinus,
-      iconColor: "bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400",
     },
   ]
 
@@ -376,6 +368,7 @@ export default function MemberDirectoryReportPage() {
           onSortChange={setSort}
           onPageChange={setPage}
           emptyMessage="No members match the selected criteria."
+          showClubColumn={isSystemOwner && !selectedClubId}
         />
       </ReportShell>
     </DashboardLayout>

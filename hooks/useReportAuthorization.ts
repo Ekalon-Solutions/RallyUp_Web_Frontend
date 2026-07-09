@@ -47,7 +47,7 @@ export function authorizeReportAccess(
     }
   }
 
-  if (isSystemOwner(user) && !clubId) {
+  if (isSystemOwner(user)) {
     return { authorized: true }
   }
 

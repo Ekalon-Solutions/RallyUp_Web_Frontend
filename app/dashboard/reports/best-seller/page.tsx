@@ -1,11 +1,11 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { Trophy, CalendarDays, Package, DollarSign } from "lucide-react"
+import { Trophy, CalendarDays, Package } from "lucide-react"
 import { toast } from "sonner"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { useSystemOwnerReportScope } from "@/hooks/useSystemOwnerReportScope"
-import { buildReportQueryParams, shouldFetchReport } from "@/lib/reportHelpers"
+import { buildReportQueryParams, shouldFetchReport, resolveExportClubId } from "@/lib/reportHelpers"
 import { useReportAuthorization } from "@/hooks/useReportAuthorization"
 import { apiClient } from "@/lib/api"
 import { DashboardLayout } from "@/components/dashboard-layout"
@@ -101,7 +101,7 @@ export default function BestSellerReportPage() {
   const handleExport = async (format: ExportFormat) => {
     if (!shouldFetchReport({ authorized: auth.authorized, clubId, isSystemOwner })) return
     try {
-      const queryParams: Record<string, any> = { clubId, format }
+      const queryParams: Record<string, any> = { format, ...resolveExportClubId({ clubId, selectedClubId, isSystemOwner }) }
       if (filters.extras?.itemType && filters.extras.itemType !== "all") queryParams.itemType = filters.extras.itemType
       const res = await apiClient.downloadBestSellerReport(queryParams)
       if (!res.success) toast.error(res.error || "Export failed")
@@ -128,10 +128,10 @@ export default function BestSellerReportPage() {
   ]
 
   const summaryCards: SummaryCard[] = [
-    { label: "Ranked Items", value: (summaryData.bestSellingProducts + summaryData.bestSellingEvents).toLocaleString(), icon: Trophy, iconColor: "bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400" },
-    { label: "Best Selling Products", value: summaryData.bestSellingProducts.toLocaleString(), icon: Package, iconColor: "bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400" },
-    { label: "Best Selling Events", value: summaryData.bestSellingEvents.toLocaleString(), icon: CalendarDays, iconColor: "bg-purple-100 text-purple-600 dark:bg-purple-950 dark:text-purple-400" },
-    { label: "Revenue Generated", value: formatCurrency(summaryData.revenueGenerated), icon: DollarSign, iconColor: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400" },
+    { label: "Ranked Items", value: (summaryData.bestSellingProducts + summaryData.bestSellingEvents).toLocaleString() },
+    { label: "Best Selling Products", value: summaryData.bestSellingProducts.toLocaleString() },
+    { label: "Best Selling Events", value: summaryData.bestSellingEvents.toLocaleString() },
+    { label: "Revenue Generated", value: formatCurrency(summaryData.revenueGenerated) },
   ]
 
   return (
@@ -166,7 +166,7 @@ export default function BestSellerReportPage() {
         }
         summary={<ReportSummaryCards cards={summaryCards} loading={loading} />}
       >
-        <ReportTable columns={columns} data={data} loading={loading} pagination={pagination} sort={sort} onSortChange={setSort} onPageChange={setPage} emptyMessage="No best seller records found for the selected criteria." />
+        <ReportTable columns={columns} data={data} loading={loading} pagination={pagination} sort={sort} onSortChange={setSort} onPageChange={setPage} emptyMessage="No best seller records found for the selected criteria." showClubColumn={isSystemOwner && !selectedClubId} />
       </ReportShell>
     </DashboardLayout>
   )

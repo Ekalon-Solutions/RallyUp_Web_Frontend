@@ -5,7 +5,7 @@ import { Sliders, Shield, Zap, User } from "lucide-react"
 import { toast } from "sonner"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { useSystemOwnerReportScope } from "@/hooks/useSystemOwnerReportScope"
-import { buildReportQueryParams, shouldFetchReport } from "@/lib/reportHelpers"
+import { buildReportQueryParams, shouldFetchReport, resolveExportClubId } from "@/lib/reportHelpers"
 import { useReportAuthorization } from "@/hooks/useReportAuthorization"
 import { apiClient } from "@/lib/api"
 import { DashboardLayout } from "@/components/dashboard-layout"
@@ -28,14 +28,21 @@ import {
 } from "@/components/reports"
 
 function renderValueBadge(val: string) {
-  const v = (val || "").toLowerCase()
+  let v = (val || "").toLowerCase()
+  try {
+    const parsed = JSON.parse(v)
+    if (typeof parsed === "object" && parsed !== null) {
+      if ("enabled" in parsed) v = String(parsed.enabled)
+      else if ("state" in parsed) v = parsed.state
+    }
+  } catch {}
   if (v === "true" || v === "enabled" || v === "active") {
     return <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-0 font-medium">Enabled</Badge>
   }
   if (v === "false" || v === "disabled" || v === "inactive") {
     return <Badge className="bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border-0 font-medium">Disabled</Badge>
   }
-  return <Badge variant="outline">{val}</Badge>
+  return <Badge variant="outline">{val.charAt(0).toUpperCase() + val.slice(1)}</Badge>
 }
 
 interface FeatureSelectorRow extends Record<string, unknown> {
@@ -156,7 +163,7 @@ export default function FeatureSelectorReportPage() {
   const handleExport = async (format: ExportFormat) => {
     if (!shouldFetchReport({ authorized: auth.authorized, clubId, isSystemOwner })) return
     try {
-      const queryParams: Record<string, any> = { clubId, format }
+      const queryParams: Record<string, any> = { format, ...resolveExportClubId({ clubId, selectedClubId, isSystemOwner }) }
       if (filters.status && filters.status !== "all") queryParams.actorType = filters.status
       if (filters.extras?.featureKey && filters.extras.featureKey !== "all") {
         queryParams.featureKey = filters.extras.featureKey
@@ -215,7 +222,7 @@ export default function FeatureSelectorReportPage() {
     {
       key: "summary",
       header: "Summary",
-      accessor: (row) => <span className="text-xs truncate max-w-[240px] block" title={row.summary}>{row.summary}</span>,
+      accessor: (row) => <span className="text-xs truncate max-w-full block" title={row.summary}>{row.summary}</span>,
       width: "w-56",
     },
     {
@@ -242,26 +249,18 @@ export default function FeatureSelectorReportPage() {
     {
       label: "Total Configuration Changes",
       value: summaryData.totalChanges.toLocaleString(),
-      icon: Sliders,
-      iconColor: "bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400",
     },
     {
       label: "Tier Updates",
       value: summaryData.tierUpdates.toLocaleString(),
-      icon: Shield,
-      iconColor: "bg-purple-100 text-purple-600 dark:bg-purple-950 dark:text-purple-400",
     },
     {
       label: "Add-on Activations",
       value: summaryData.addonActivations.toLocaleString(),
-      icon: Zap,
-      iconColor: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400",
     },
     {
       label: "Unique Change Actors",
       value: summaryData.uniqueActors.toLocaleString(),
-      icon: User,
-      iconColor: "bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400",
     },
   ]
 
@@ -327,6 +326,7 @@ export default function FeatureSelectorReportPage() {
           onSortChange={setSort}
           onPageChange={setPage}
           emptyMessage="No feature configuration audit records found for the selected criteria."
+          showClubColumn={isSystemOwner && !selectedClubId}
         />
       </ReportShell>
     </DashboardLayout>

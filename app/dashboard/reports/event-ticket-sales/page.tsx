@@ -1,11 +1,11 @@
-"use client"
+﻿"use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { Ticket, DollarSign, Tag, TrendingUp } from "lucide-react"
+import { Ticket, Tag, TrendingUp } from "lucide-react"
 import { toast } from "sonner"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { useSystemOwnerReportScope } from "@/hooks/useSystemOwnerReportScope"
-import { buildReportQueryParams, shouldFetchReport } from "@/lib/reportHelpers"
+import { buildReportQueryParams, shouldFetchReport, resolveExportClubId } from "@/lib/reportHelpers"
 import { useReportAuthorization } from "@/hooks/useReportAuthorization"
 import { apiClient } from "@/lib/api"
 import { DashboardLayout } from "@/components/dashboard-layout"
@@ -37,9 +37,9 @@ function renderPaymentStatusBadge(status: string) {
       return <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border-0 font-medium">Pending</Badge>
     case "cancelled":
     case "refunded":
-      return <Badge className="bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border-0 font-medium">{status}</Badge>
+      return <Badge className="bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border-0 font-medium">{status.charAt(0).toUpperCase() + status.slice(1)}</Badge>
     default:
-      return <Badge variant="outline">{status}</Badge>
+      return <Badge variant="outline">{status.charAt(0).toUpperCase() + status.slice(1)}</Badge>
   }
 }
 
@@ -171,7 +171,7 @@ export default function EventTicketSalesReportPage() {
   const handleExport = async (format: ExportFormat) => {
     if (!shouldFetchReport({ authorized: auth.authorized, clubId, isSystemOwner })) return
     try {
-      const queryParams: Record<string, any> = { clubId, format }
+      const queryParams: Record<string, any> = { format, ...resolveExportClubId({ clubId, selectedClubId, isSystemOwner }) }
       if (filters.extras?.eventId && filters.extras.eventId !== "all") {
         queryParams.eventId = filters.extras.eventId
       }
@@ -267,35 +267,30 @@ export default function EventTicketSalesReportPage() {
     {
       key: "paymentStatus",
       header: "Status",
-      accessor: (row) => renderPaymentStatusBadge(row.paymentStatus),
+      accessor: (row) =>
+        row.netRevenue === 0
+          ? <Badge className="bg-slate-100 text-slate-800 dark:bg-slate-950 dark:text-slate-300 border-0 font-medium">Free</Badge>
+          : renderPaymentStatusBadge(row.paymentStatus),
       width: "w-32",
     },
   ]
 
-  const summaryCards: SummaryCard[] = [
+const summaryCards: SummaryCard[] = [
     {
       label: "Tickets Sold",
       value: summaryData.ticketsSold.toLocaleString(),
-      icon: Ticket,
-      iconColor: "bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400",
     },
     {
       label: "Gross Revenue",
       value: formatCurrency(summaryData.grossRevenue),
-      icon: DollarSign,
-      iconColor: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400",
     },
     {
       label: "Total Discounts",
       value: formatCurrency(summaryData.totalDiscounts),
-      icon: Tag,
-      iconColor: "bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400",
     },
     {
       label: "Net Revenue",
       value: formatCurrency(summaryData.netRevenue),
-      icon: TrendingUp,
-      iconColor: "bg-purple-100 text-purple-600 dark:bg-purple-950 dark:text-purple-400",
     },
   ]
 
@@ -362,6 +357,7 @@ export default function EventTicketSalesReportPage() {
           onSortChange={setSort}
           onPageChange={setPage}
           emptyMessage="No event ticket sales records found for the selected criteria."
+          showClubColumn={isSystemOwner && !selectedClubId}
         />
       </ReportShell>
     </DashboardLayout>

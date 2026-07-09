@@ -1,11 +1,11 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { CreditCard, DollarSign, CheckCircle, Clock } from "lucide-react"
+import { CreditCard, CheckCircle, Clock } from "lucide-react"
 import { toast } from "sonner"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { useSystemOwnerReportScope } from "@/hooks/useSystemOwnerReportScope"
-import { buildReportQueryParams, shouldFetchReport } from "@/lib/reportHelpers"
+import { buildReportQueryParams, shouldFetchReport, resolveExportClubId } from "@/lib/reportHelpers"
 import { useReportAuthorization } from "@/hooks/useReportAuthorization"
 import { apiClient } from "@/lib/api"
 import { DashboardLayout } from "@/components/dashboard-layout"
@@ -34,19 +34,19 @@ function renderBillingStatusBadge(status: string) {
       return <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-0 font-medium">Paid</Badge>
     case "pending":
     case "draft":
-      return <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border-0 font-medium">{status}</Badge>
+      return <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border-0 font-medium">{status.charAt(0).toUpperCase() + status.slice(1)}</Badge>
     case "void":
     case "overdue":
-      return <Badge className="bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border-0 font-medium">{status}</Badge>
+      return <Badge className="bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border-0 font-medium">{status.charAt(0).toUpperCase() + status.slice(1)}</Badge>
     default:
-      return <Badge variant="outline">{status}</Badge>
+      return <Badge variant="outline">{status.charAt(0).toUpperCase() + status.slice(1)}</Badge>
   }
 }
 
-function formatCurrency(amount: number, currency: string = "USD") {
-  return new Intl.NumberFormat("en-US", {
+function formatCurrency(amount: number) {
+  return new Intl.NumberFormat("en-IN", {
     style: "currency",
-    currency: currency === "INR" ? "INR" : "USD",
+    currency: "INR",
     maximumFractionDigits: 2,
   }).format(amount)
 }
@@ -157,7 +157,7 @@ export default function SubscriptionBillingReportPage() {
   const handleExport = async (format: ExportFormat) => {
     if (!shouldFetchReport({ authorized: auth.authorized, clubId, isSystemOwner })) return
     try {
-      const queryParams: Record<string, any> = { clubId, format }
+      const queryParams: Record<string, any> = { format, ...resolveExportClubId({ clubId, selectedClubId, isSystemOwner }) }
       if (filters.extras?.invoiceType && filters.extras.invoiceType !== "all") {
         queryParams.invoiceType = filters.extras.invoiceType
       }
@@ -213,21 +213,21 @@ export default function SubscriptionBillingReportPage() {
     {
       key: "baseTierAmount",
       header: "Base Amount",
-      accessor: (row) => <span className="font-mono text-xs">{formatCurrency(row.baseTierAmount, row.currency)}</span>,
+      accessor: (row) => <span className="font-mono text-xs">{formatCurrency(row.baseTierAmount)}</span>,
       align: "right",
       width: "w-32",
     },
     {
       key: "addonsAmount",
       header: "Addons",
-      accessor: (row) => <span className="font-mono text-xs">{formatCurrency(row.addonsAmount, row.currency)}</span>,
+      accessor: (row) => <span className="font-mono text-xs">{formatCurrency(row.addonsAmount)}</span>,
       align: "right",
       width: "w-28",
     },
     {
       key: "totalAmount",
       header: "Total Amount",
-      accessor: (row) => <span className="font-mono font-semibold">{formatCurrency(row.totalAmount, row.currency)}</span>,
+      accessor: (row) => <span className="font-mono font-semibold">{formatCurrency(row.totalAmount)}</span>,
       sortable: true,
       align: "right",
       width: "w-36",
@@ -245,26 +245,18 @@ export default function SubscriptionBillingReportPage() {
     {
       label: "Total Invoices",
       value: summaryData.totalInvoices.toLocaleString(),
-      icon: CreditCard,
-      iconColor: "bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400",
     },
     {
       label: "Total Billed Amount",
       value: formatCurrency(summaryData.totalBilledAmount),
-      icon: DollarSign,
-      iconColor: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400",
     },
     {
       label: "Paid Invoices",
       value: summaryData.paidInvoices.toLocaleString(),
-      icon: CheckCircle,
-      iconColor: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400",
     },
     {
       label: "Pending / Draft Amount",
       value: formatCurrency(summaryData.pendingAmount),
-      icon: Clock,
-      iconColor: "bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400",
     },
   ]
 
@@ -337,6 +329,7 @@ export default function SubscriptionBillingReportPage() {
           onSortChange={setSort}
           onPageChange={setPage}
           emptyMessage="No subscription billing records found for the selected criteria."
+          showClubColumn={isSystemOwner && !selectedClubId}
         />
       </ReportShell>
     </DashboardLayout>

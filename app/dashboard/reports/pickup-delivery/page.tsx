@@ -1,11 +1,10 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { ShoppingBag, Truck, CheckCircle, RotateCcw } from "lucide-react"
 import { toast } from "sonner"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { useSystemOwnerReportScope } from "@/hooks/useSystemOwnerReportScope"
-import { buildReportQueryParams, shouldFetchReport } from "@/lib/reportHelpers"
+import { buildReportQueryParams, shouldFetchReport, resolveExportClubId } from "@/lib/reportHelpers"
 import { useReportAuthorization } from "@/hooks/useReportAuthorization"
 import { apiClient } from "@/lib/api"
 import { DashboardLayout } from "@/components/dashboard-layout"
@@ -39,6 +38,21 @@ function renderDeliveryStatusBadge(status: string) {
     case "rto_initiated":
     case "rto_delivered":
       return <Badge className="bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border-0 font-medium">{status.replace(/_/g, ' ')}</Badge>
+    case "damaged":
+      return <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300 border-0 font-medium">Damaged</Badge>
+    case "lost":
+      return <Badge className="bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300 border-0 font-medium">Lost</Badge>
+    case "ready_to_ship":
+    case "fulfillment_in_progress":
+      return <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 border-0 font-medium">{status.replace(/_/g, ' ')}</Badge>
+    case "completed":
+      return <Badge className="bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-300 border-0 font-medium">Completed</Badge>
+    case "cancelled":
+      return <Badge className="bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border-0 font-medium">Cancelled</Badge>
+    case "refunded":
+      return <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border-0 font-medium">Refunded</Badge>
+    case "pending":
+      return <Badge className="bg-slate-100 text-slate-800 dark:bg-slate-950 dark:text-slate-300 border-0 font-medium">Pending</Badge>
     default:
       return <Badge variant="outline">{status}</Badge>
   }
@@ -141,9 +155,19 @@ export default function PickupDeliveryReportPage() {
     }
   }, [clubId, selectedClubId, isSystemOwner, page, sort, filters, auth.authorized])
 
+  const [courierOptions, setCourierOptions] = useState<{ value: string; label: string }[]>([])
+
   useEffect(() => {
     fetchReport()
   }, [fetchReport])
+
+  useEffect(() => {
+    if (data.length > 0) {
+      const unique = [...new Set(data.map((r) => r.courierName).filter(Boolean))]
+      unique.sort()
+      setCourierOptions(unique.map((c) => ({ value: c, label: c })))
+    }
+  }, [data])
 
   const handleApplyFilters = (newFilters: ReportFiltersState) => {
     setFilters(newFilters)
@@ -158,7 +182,7 @@ export default function PickupDeliveryReportPage() {
   const handleExport = async (format: ExportFormat) => {
     if (!shouldFetchReport({ authorized: auth.authorized, clubId, isSystemOwner })) return
     try {
-      const queryParams: Record<string, any> = { clubId, format }
+      const queryParams: Record<string, any> = { format, ...resolveExportClubId({ clubId, selectedClubId, isSystemOwner }) }
       if (filters.status && filters.status !== "all") queryParams.deliveryStatus = filters.status
       if (filters.extras?.courierName && filters.extras.courierName !== "all") {
         queryParams.courierName = filters.extras.courierName
@@ -253,26 +277,18 @@ export default function PickupDeliveryReportPage() {
     {
       label: "Total Orders",
       value: summaryData.totalOrders.toLocaleString(),
-      icon: ShoppingBag,
-      iconColor: "bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400",
     },
     {
       label: "Out for Delivery",
       value: summaryData.outForDeliveryCount.toLocaleString(),
-      icon: Truck,
-      iconColor: "bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400",
     },
     {
       label: "Delivered Orders",
       value: summaryData.deliveredCount.toLocaleString(),
-      icon: CheckCircle,
-      iconColor: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400",
     },
     {
       label: "RTO Orders",
       value: summaryData.rtoCount.toLocaleString(),
-      icon: RotateCcw,
-      iconColor: "bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400",
     },
   ]
 
@@ -308,7 +324,34 @@ export default function PickupDeliveryReportPage() {
             onApplyFilters={handleApplyFilters}
             onResetFilters={handleResetFilters}
             loading={loading}
-          />
+          >
+            {courierOptions.length > 0 && (
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Courier</Label>
+                <Select
+                  value={filters.extras?.courierName || "all"}
+                  onValueChange={(val) =>
+                    setFilters((prev) => ({
+                      ...prev,
+                      extras: { ...prev.extras, courierName: val },
+                    }))
+                  }
+                >
+                  <SelectTrigger className="w-44">
+                    <SelectValue placeholder="All Couriers" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Couriers</SelectItem>
+                    {courierOptions.map((c) => (
+                      <SelectItem key={c.value} value={c.value}>
+                        {c.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </ReportFilters>
           </>
         }
         summary={<ReportSummaryCards cards={summaryCards} loading={loading} />}
@@ -322,6 +365,7 @@ export default function PickupDeliveryReportPage() {
           onSortChange={setSort}
           onPageChange={setPage}
           emptyMessage="No logistics shipment records found for the selected criteria."
+          showClubColumn={isSystemOwner && !selectedClubId}
         />
       </ReportShell>
     </DashboardLayout>

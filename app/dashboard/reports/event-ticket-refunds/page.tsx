@@ -1,11 +1,11 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { RotateCcw, DollarSign, CheckCircle, Clock } from "lucide-react"
+import { RotateCcw, CheckCircle, Clock } from "lucide-react"
 import { toast } from "sonner"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { useSystemOwnerReportScope } from "@/hooks/useSystemOwnerReportScope"
-import { buildReportQueryParams, shouldFetchReport } from "@/lib/reportHelpers"
+import { buildReportQueryParams, shouldFetchReport, resolveExportClubId } from "@/lib/reportHelpers"
 import { useReportAuthorization } from "@/hooks/useReportAuthorization"
 import { apiClient } from "@/lib/api"
 import { DashboardLayout } from "@/components/dashboard-layout"
@@ -170,7 +170,7 @@ export default function EventTicketRefundsReportPage() {
   const handleExport = async (format: ExportFormat) => {
     if (!shouldFetchReport({ authorized: auth.authorized, clubId, isSystemOwner })) return
     try {
-      const queryParams: Record<string, any> = { clubId, format }
+      const queryParams: Record<string, any> = { format, ...resolveExportClubId({ clubId, selectedClubId, isSystemOwner }) }
       if (filters.extras?.eventId && filters.extras.eventId !== "all") {
         queryParams.eventId = filters.extras.eventId
       }
@@ -271,26 +271,18 @@ export default function EventTicketRefundsReportPage() {
     {
       label: "Total Ticket Refunds",
       value: summaryData.totalRefunds.toLocaleString(),
-      icon: RotateCcw,
-      iconColor: "bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400",
     },
     {
       label: "Total Refunded Amount",
       value: formatCurrency(summaryData.totalRefundedAmount),
-      icon: DollarSign,
-      iconColor: "bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400",
     },
     {
       label: "Approved Refunds",
       value: summaryData.approvedRefunds.toLocaleString(),
-      icon: CheckCircle,
-      iconColor: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400",
     },
     {
       label: "Pending Refunds",
       value: summaryData.pendingRefunds.toLocaleString(),
-      icon: Clock,
-      iconColor: "bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400",
     },
   ]
 
@@ -357,6 +349,7 @@ export default function EventTicketRefundsReportPage() {
           onSortChange={setSort}
           onPageChange={setPage}
           emptyMessage="No event ticket refund records found for the selected criteria."
+          showClubColumn={isSystemOwner && !selectedClubId}
         />
       </ReportShell>
     </DashboardLayout>

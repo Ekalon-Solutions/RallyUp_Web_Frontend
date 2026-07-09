@@ -497,7 +497,7 @@ export default function BrowseMembershipPlansPage() {
           )}
 
           {/* Referral field */}
-          {clubId && plans.some(p => p.referralReward?.enabled) && (
+          {clubId && plans.some((p) => p.referralReward?.enabled) && (
             <Card>
               <CardContent className="pt-5 pb-5">
                 <div className="flex flex-col sm:flex-row sm:items-end gap-3">

@@ -5,7 +5,7 @@ import { ShieldCheck, ShieldAlert, AlertTriangle, UserCheck } from "lucide-react
 import { toast } from "sonner"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { useSystemOwnerReportScope } from "@/hooks/useSystemOwnerReportScope"
-import { buildReportQueryParams, shouldFetchReport } from "@/lib/reportHelpers"
+import { buildReportQueryParams, shouldFetchReport, resolveExportClubId } from "@/lib/reportHelpers"
 import { useReportAuthorization } from "@/hooks/useReportAuthorization"
 import { apiClient } from "@/lib/api"
 import { DashboardLayout } from "@/components/dashboard-layout"
@@ -57,6 +57,8 @@ interface AdminAuditLogRow extends Record<string, unknown> {
   ipAddress: string
   device: string
   summary: string
+  clubId: string
+  clubName: string
 }
 
 interface ActionOption {
@@ -188,8 +190,8 @@ export default function AdminAuditLogReportPage() {
     if (!shouldFetchReport({ authorized: auth.authorized, clubId, isSystemOwner })) return
     try {
       const queryParams: Record<string, any> = {
-        clubId,
         format,
+        ...resolveExportClubId({ clubId, selectedClubId, isSystemOwner }),
       }
       if (filters.extras?.actorType && filters.extras.actorType !== "all") {
         queryParams.actorType = filters.extras.actorType
@@ -299,7 +301,7 @@ export default function AdminAuditLogReportPage() {
       key: "summary",
       header: "Summary / Details",
       accessor: (row) => (
-        <span className="text-xs text-muted-foreground truncate max-w-[280px] block" title={row.summary}>
+        <span className="text-xs text-muted-foreground truncate max-w-full block" title={row.summary}>
           {row.summary}
         </span>
       ),
@@ -313,26 +315,18 @@ export default function AdminAuditLogReportPage() {
     {
       label: "Total Actions",
       value: summaryData.totalActions.toLocaleString(),
-      icon: ShieldCheck,
-      iconColor: "bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400",
     },
     {
       label: "High Risk Actions",
       value: summaryData.highRiskActions.toLocaleString(),
-      icon: AlertTriangle,
-      iconColor: "bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400",
     },
     {
       label: "Critical Events",
       value: summaryData.criticalActions.toLocaleString(),
-      icon: ShieldAlert,
-      iconColor: "bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400",
     },
     {
       label: "Active Admins",
       value: summaryData.uniqueAdmins.toLocaleString(),
-      icon: UserCheck,
-      iconColor: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400",
     },
   ]
 
@@ -468,6 +462,7 @@ export default function AdminAuditLogReportPage() {
           onSortChange={setSort}
           onPageChange={setPage}
           emptyMessage="No admin action audit logs found for the selected criteria."
+          showClubColumn={isSystemOwner && !selectedClubId}
         />
       </ReportShell>
     </DashboardLayout>

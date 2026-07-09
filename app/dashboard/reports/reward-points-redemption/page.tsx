@@ -1,11 +1,11 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { Coins, CheckCircle, XCircle, Clock, DollarSign } from "lucide-react"
+import { Coins, CheckCircle, XCircle, Clock } from "lucide-react"
 import { toast } from "sonner"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { useSystemOwnerReportScope } from "@/hooks/useSystemOwnerReportScope"
-import { buildReportQueryParams, shouldFetchReport } from "@/lib/reportHelpers"
+import { buildReportQueryParams, shouldFetchReport, resolveExportClubId } from "@/lib/reportHelpers"
 import { useReportAuthorization } from "@/hooks/useReportAuthorization"
 import { apiClient } from "@/lib/api"
 import { DashboardLayout } from "@/components/dashboard-layout"
@@ -36,7 +36,15 @@ function renderStatusBadge(status: string) {
   if (s === "expired") {
     return <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border-0 font-medium">Expired</Badge>
   }
-  return <Badge variant="outline">{status}</Badge>
+  return <Badge variant="outline">{status.charAt(0).toUpperCase() + status.slice(1)}</Badge>
+}
+
+function formatCurrency(amount: number) {
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 2,
+  }).format(amount)
 }
 
 interface RewardPointsRedemptionRow extends Record<string, unknown> {
@@ -144,7 +152,7 @@ export default function RewardPointsRedemptionReportPage() {
   const handleExport = async (format: ExportFormat) => {
     if (!shouldFetchReport({ authorized: auth.authorized, clubId, isSystemOwner })) return
     try {
-      const queryParams: Record<string, any> = { clubId, format }
+      const queryParams: Record<string, any> = { format, ...resolveExportClubId({ clubId, selectedClubId, isSystemOwner }) }
 
       const res = await apiClient.downloadRewardPointsRedemptionReport(queryParams)
       if (!res.success) {
@@ -171,7 +179,7 @@ export default function RewardPointsRedemptionReportPage() {
       header: "Timestamp",
       accessor: (row) => (
         <span className="font-mono text-xs">
-          {row.timestamp ? row.timestamp.replace("T", " ").slice(0, 19) : "â€”"}
+          {row.timestamp ? row.timestamp.replace("T", " ").slice(0, 19) : "—"}
         </span>
       ),
       sortable: true,
@@ -204,7 +212,7 @@ export default function RewardPointsRedemptionReportPage() {
       header: "Discount",
       accessor: (row) => (
         <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-          â‚¹{row.discountAmount.toLocaleString()}
+          {formatCurrency(row.discountAmount)}
         </span>
       ),
       width: "w-28",
@@ -220,8 +228,8 @@ export default function RewardPointsRedemptionReportPage() {
       key: "reason",
       header: "Reason",
       accessor: (row) => (
-        <span className="text-xs text-muted-foreground truncate max-w-[160px] block" title={row.reason}>
-          {row.reason || "â€”"}
+        <span className="text-xs text-muted-foreground truncate max-w-full block" title={row.reason}>
+          {row.reason || "—"}
         </span>
       ),
       width: "w-40",
@@ -233,7 +241,7 @@ export default function RewardPointsRedemptionReportPage() {
         row.orderId ? (
           <span className="font-mono text-xs">{row.orderId.slice(0, 12)}...</span>
         ) : (
-          <span className="text-xs text-muted-foreground">â€”</span>
+          <span className="text-xs text-muted-foreground">—</span>
         )
       ),
       width: "w-32",
@@ -244,26 +252,18 @@ export default function RewardPointsRedemptionReportPage() {
     {
       label: "Total Points Redeemed",
       value: summaryData.totalPointsRedeemed.toLocaleString(),
-      icon: Coins,
-      iconColor: "bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400",
     },
     {
       label: "Total Discount Value",
-      value: `â‚¹${summaryData.totalDiscountValue.toLocaleString()}`,
-      icon: DollarSign,
-      iconColor: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400",
+      value: formatCurrency(summaryData.totalDiscountValue),
     },
     {
       label: "Active Reservations",
       value: summaryData.activeReservations.toLocaleString(),
-      icon: Clock,
-      iconColor: "bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400",
     },
     {
       label: "Released",
       value: summaryData.releasedReservations.toLocaleString(),
-      icon: CheckCircle,
-      iconColor: "bg-purple-100 text-purple-600 dark:bg-purple-950 dark:text-purple-400",
     },
   ]
 
@@ -310,6 +310,7 @@ export default function RewardPointsRedemptionReportPage() {
           onSortChange={setSort}
           onPageChange={setPage}
           emptyMessage="No reward points redemption records found for the selected criteria."
+          showClubColumn={isSystemOwner && !selectedClubId}
         />
       </ReportShell>
     </DashboardLayout>

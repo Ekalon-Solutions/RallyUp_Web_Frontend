@@ -1,11 +1,11 @@
 "use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { RotateCcw, DollarSign, PackageX, Clock } from "lucide-react"
+import { RotateCcw, PackageX, Clock } from "lucide-react"
 import { toast } from "sonner"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { useSystemOwnerReportScope } from "@/hooks/useSystemOwnerReportScope"
-import { buildReportQueryParams, shouldFetchReport } from "@/lib/reportHelpers"
+import { buildReportQueryParams, shouldFetchReport, resolveExportClubId } from "@/lib/reportHelpers"
 import { useReportAuthorization } from "@/hooks/useReportAuthorization"
 import { apiClient } from "@/lib/api"
 import { DashboardLayout } from "@/components/dashboard-layout"
@@ -23,6 +23,7 @@ import {
   type ReportPaginationMeta,
   type ExportFormat,
   SystemOwnerClubFilter,
+  type ExportFormat,
 } from "@/components/reports"
 
 function renderRefundStatusBadge(status: string) {
@@ -30,7 +31,7 @@ function renderRefundStatusBadge(status: string) {
   if (s === "processed") return <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-0 font-medium">Processed</Badge>
   if (s === "requested" || s === "pending") return <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border-0 font-medium">Pending</Badge>
   if (s === "rejected") return <Badge className="bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border-0 font-medium">Rejected</Badge>
-  return <Badge variant="outline">{status}</Badge>
+  return <Badge variant="outline">{status.charAt(0).toUpperCase() + status.slice(1)}</Badge>
 }
 
 function formatCurrency(amount: number, currency: string = "INR") {
@@ -112,7 +113,7 @@ export default function MerchandiseRefundsReportPage() {
   const handleExport = async (format: ExportFormat) => {
     if (!shouldFetchReport({ authorized: auth.authorized, clubId, isSystemOwner })) return
     try {
-      const queryParams: Record<string, any> = { clubId, format }
+      const queryParams: Record<string, any> = { format, ...resolveExportClubId({ clubId, selectedClubId, isSystemOwner }) }
       const res = await apiClient.downloadMerchandiseRefundsReport(queryParams)
       if (!res.success) toast.error(res.error || "Export failed")
       else toast.success(`Exported Merchandise Refunds as ${format.toUpperCase()}`)
@@ -142,10 +143,10 @@ export default function MerchandiseRefundsReportPage() {
   ]
 
   const summaryCards: SummaryCard[] = [
-    { label: "Total Refunds", value: summaryData.totalRefunds.toLocaleString(), icon: RotateCcw, iconColor: "bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400" },
-    { label: "Refund Amount", value: formatCurrency(summaryData.refundAmount), icon: DollarSign, iconColor: "bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400" },
-    { label: "Returned Quantity", value: summaryData.returnedQuantity.toLocaleString(), icon: PackageX, iconColor: "bg-purple-100 text-purple-600 dark:bg-purple-950 dark:text-purple-400" },
-    { label: "Pending Refunds", value: summaryData.pendingRefunds.toLocaleString(), icon: Clock, iconColor: "bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400" },
+    { label: "Total Refunds", value: summaryData.totalRefunds.toLocaleString() },
+    { label: "Refund Amount", value: formatCurrency(summaryData.refundAmount) },
+    { label: "Returned Quantity", value: summaryData.returnedQuantity.toLocaleString() },
+    { label: "Pending Refunds", value: summaryData.pendingRefunds.toLocaleString() },
   ]
 
   const refundStatusOptions = [
@@ -164,7 +165,7 @@ export default function MerchandiseRefundsReportPage() {
         filters={<ReportFilters initialFilters={filters} statusOptions={refundStatusOptions} statusLabel="Refund Status" searchPlaceholder="Search refund ID, order, product, customer, reason..." onApplyFilters={handleApplyFilters} onResetFilters={handleResetFilters} loading={loading} />}
         summary={<ReportSummaryCards cards={summaryCards} loading={loading} />}
       >
-        <ReportTable columns={columns} data={data} loading={loading} pagination={pagination} sort={sort} onSortChange={setSort} onPageChange={setPage} emptyMessage="No merchandise refund records found for the selected criteria." />
+        <ReportTable columns={columns} data={data} loading={loading} pagination={pagination} sort={sort} onSortChange={setSort} onPageChange={setPage} emptyMessage="No merchandise refund records found for the selected criteria." showClubColumn={isSystemOwner && !selectedClubId} />
       </ReportShell>
     </DashboardLayout>
   )

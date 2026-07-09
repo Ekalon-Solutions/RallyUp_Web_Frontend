@@ -5,7 +5,7 @@ import { Ticket, QrCode, CheckCircle, UserX } from "lucide-react"
 import { toast } from "sonner"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { useSystemOwnerReportScope } from "@/hooks/useSystemOwnerReportScope"
-import { buildReportQueryParams, shouldFetchReport } from "@/lib/reportHelpers"
+import { buildReportQueryParams, shouldFetchReport, resolveExportClubId } from "@/lib/reportHelpers"
 import { useReportAuthorization } from "@/hooks/useReportAuthorization"
 import { apiClient } from "@/lib/api"
 import { DashboardLayout } from "@/components/dashboard-layout"
@@ -144,7 +144,7 @@ export default function EventPassesScannedReportPage() {
   const handleExport = async (format: ExportFormat) => {
     if (!shouldFetchReport({ authorized: auth.authorized, clubId, isSystemOwner })) return
     try {
-      const queryParams: Record<string, any> = { clubId, format }
+      const queryParams: Record<string, any> = { format, ...resolveExportClubId({ clubId, selectedClubId, isSystemOwner }) }
       if (filters.extras?.eventId && filters.extras.eventId !== "all") {
         queryParams.eventId = filters.extras.eventId
       }
@@ -231,26 +231,18 @@ export default function EventPassesScannedReportPage() {
     {
       label: "Total Tickets Sold",
       value: summaryData.totalSold.toLocaleString(),
-      icon: Ticket,
-      iconColor: "bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400",
     },
     {
       label: "Total Passes Scanned",
       value: summaryData.totalScanned.toLocaleString(),
-      icon: QrCode,
-      iconColor: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400",
     },
     {
       label: "Attendance Rate",
       value: `${summaryData.attendanceRate.toFixed(1)}%`,
-      icon: CheckCircle,
-      iconColor: "bg-purple-100 text-purple-600 dark:bg-purple-950 dark:text-purple-400",
     },
     {
       label: "No-show Rate",
       value: `${summaryData.noShowRate.toFixed(1)}%`,
-      icon: UserX,
-      iconColor: "bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400",
     },
   ]
 
@@ -309,6 +301,7 @@ export default function EventPassesScannedReportPage() {
           onSortChange={setSort}
           onPageChange={setPage}
           emptyMessage="No event attendance scan records found for the selected criteria."
+          showClubColumn={isSystemOwner && !selectedClubId}
         />
       </ReportShell>
     </DashboardLayout>

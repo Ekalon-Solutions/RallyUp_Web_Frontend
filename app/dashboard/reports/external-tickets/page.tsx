@@ -5,7 +5,7 @@ import { Ticket, CheckCircle, Clock, FileText } from "lucide-react"
 import { toast } from "sonner"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { useSystemOwnerReportScope } from "@/hooks/useSystemOwnerReportScope"
-import { buildReportQueryParams, shouldFetchReport } from "@/lib/reportHelpers"
+import { buildReportQueryParams, shouldFetchReport, resolveExportClubId } from "@/lib/reportHelpers"
 import { useReportAuthorization } from "@/hooks/useReportAuthorization"
 import { apiClient } from "@/lib/api"
 import { DashboardLayout } from "@/components/dashboard-layout"
@@ -147,7 +147,7 @@ export default function ExternalTicketReportPage() {
   const handleExport = async (format: ExportFormat) => {
     if (!shouldFetchReport({ authorized: auth.authorized, clubId, isSystemOwner })) return
     try {
-      const queryParams: Record<string, any> = { clubId, format }
+      const queryParams: Record<string, any> = { format, ...resolveExportClubId({ clubId, selectedClubId, isSystemOwner }) }
       if (filters.extras?.competition && filters.extras.competition !== "all") {
         queryParams.competition = filters.extras.competition
       }
@@ -228,7 +228,7 @@ export default function ExternalTicketReportPage() {
       key: "comments",
       header: "Comments",
       accessor: (row) => (
-        <span className="text-xs text-muted-foreground truncate max-w-[200px] block" title={row.comments}>
+        <span className="text-xs text-muted-foreground truncate max-w-full block" title={row.comments}>
           {row.comments || "â€”"}
         </span>
       ),
@@ -240,26 +240,18 @@ export default function ExternalTicketReportPage() {
     {
       label: "Total Requests",
       value: summaryData.totalRequests.toLocaleString(),
-      icon: FileText,
-      iconColor: "bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400",
     },
     {
       label: "Total Tickets Requested",
       value: summaryData.totalTickets.toLocaleString(),
-      icon: Ticket,
-      iconColor: "bg-purple-100 text-purple-600 dark:bg-purple-950 dark:text-purple-400",
     },
     {
       label: "Fulfilled Requests",
       value: summaryData.fulfilledRequests.toLocaleString(),
-      icon: CheckCircle,
-      iconColor: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400",
     },
     {
       label: "Pending Requests",
       value: summaryData.pendingRequests.toLocaleString(),
-      icon: Clock,
-      iconColor: "bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400",
     },
   ]
 
@@ -308,6 +300,7 @@ export default function ExternalTicketReportPage() {
           onSortChange={setSort}
           onPageChange={setPage}
           emptyMessage="No external ticket requests found for the selected criteria."
+          showClubColumn={isSystemOwner && !selectedClubId}
         />
       </ReportShell>
     </DashboardLayout>

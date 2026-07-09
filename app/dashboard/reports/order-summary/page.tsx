@@ -1,11 +1,11 @@
-"use client"
+﻿"use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { ShoppingBag, DollarSign, TrendingUp, XCircle } from "lucide-react"
+import { ShoppingBag, TrendingUp, XCircle } from "lucide-react"
 import { toast } from "sonner"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { useSystemOwnerReportScope } from "@/hooks/useSystemOwnerReportScope"
-import { buildReportQueryParams, shouldFetchReport } from "@/lib/reportHelpers"
+import { buildReportQueryParams, shouldFetchReport, resolveExportClubId } from "@/lib/reportHelpers"
 import { useReportAuthorization } from "@/hooks/useReportAuthorization"
 import { apiClient } from "@/lib/api"
 import { DashboardLayout } from "@/components/dashboard-layout"
@@ -27,7 +27,7 @@ import {
   SystemOwnerClubFilter,
 } from "@/components/reports"
 
-// ─── Status Badge Renderers ──────────────────────────────────────────────────
+// â”€â”€â”€ Status Badge Renderers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function renderPaymentStatusBadge(status: string) {
   const s = (status || "").toLowerCase()
@@ -71,7 +71,7 @@ function formatCurrency(amount: number, currency: string = "INR") {
   }).format(amount)
 }
 
-// ─── Row Interface ────────────────────────────────────────────────────────────
+// â”€â”€â”€ Row Interface â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface TotalOrderSummaryRow extends Record<string, unknown> {
   id: string
@@ -88,7 +88,7 @@ interface TotalOrderSummaryRow extends Record<string, unknown> {
   paymentMethod: string
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export default function TotalOrderSummaryReportPage() {
   const auth = useReportAuthorization("order-summary")
@@ -122,7 +122,7 @@ export default function TotalOrderSummaryReportPage() {
 
   const [page, setPage] = useState(1)
 
-  // ── Fetch Report Data ───────────────────────────────────────────────────────
+  // â”€â”€ Fetch Report Data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   const fetchReport = useCallback(async () => {
     if (!shouldFetchReport({ authorized: auth.authorized, clubId, isSystemOwner })) return
@@ -171,7 +171,7 @@ export default function TotalOrderSummaryReportPage() {
     fetchReport()
   }, [fetchReport])
 
-  // ── Handlers ────────────────────────────────────────────────────────────────
+  // â”€â”€ Handlers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   const handleApplyFilters = (newFilters: ReportFiltersState) => {
     setFilters(newFilters)
@@ -187,8 +187,8 @@ export default function TotalOrderSummaryReportPage() {
     if (!shouldFetchReport({ authorized: auth.authorized, clubId, isSystemOwner })) return
     try {
       const queryParams: Record<string, any> = {
-        clubId,
         format,
+        ...resolveExportClubId({ clubId, selectedClubId, isSystemOwner }),
       }
       if (filters.extras?.paymentStatus && filters.extras.paymentStatus !== "all") {
         queryParams.paymentStatus = filters.extras.paymentStatus
@@ -205,7 +205,7 @@ export default function TotalOrderSummaryReportPage() {
     }
   }
 
-  // ── Access & Feature Guards ─────────────────────────────────────────────────
+  // â”€â”€ Access & Feature Guards â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   if (!auth.authorized) {
     return (
@@ -215,7 +215,7 @@ export default function TotalOrderSummaryReportPage() {
     )
   }
 
-  // ── Column Definitions ──────────────────────────────────────────────────────
+  // â”€â”€ Column Definitions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   const columns: ReportColumn<TotalOrderSummaryRow>[] = [
     {
@@ -240,7 +240,7 @@ export default function TotalOrderSummaryReportPage() {
       header: "Order Date",
       accessor: (row) => (
         <span className="font-mono text-xs">
-          {row.orderDate ? row.orderDate.replace("T", " ").slice(0, 16) : "—"}
+          {row.orderDate ? row.orderDate.replace("T", " ").slice(0, 16) : "â€”"}
         </span>
       ),
       sortable: true,
@@ -261,7 +261,10 @@ export default function TotalOrderSummaryReportPage() {
     {
       key: "paymentStatus",
       header: "Payment Status",
-      accessor: (row) => renderPaymentStatusBadge(row.paymentStatus),
+      accessor: (row) =>
+        row.totalAmount === 0
+          ? <Badge className="bg-slate-100 text-slate-800 dark:bg-slate-950 dark:text-slate-300 border-0 font-medium">Free</Badge>
+          : renderPaymentStatusBadge(row.paymentStatus),
       sortable: true,
       width: "w-32",
     },
@@ -287,32 +290,24 @@ export default function TotalOrderSummaryReportPage() {
     },
   ]
 
-  // ── Summary Cards Config ────────────────────────────────────────────────────
+  // â”€â”€ Summary Cards Config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   const summaryCards: SummaryCard[] = [
     {
       label: "Total Orders",
       value: summaryData.totalOrders.toLocaleString(),
-      icon: ShoppingBag,
-      iconColor: "bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400",
     },
     {
       label: "Gross Revenue",
       value: formatCurrency(summaryData.grossRevenue),
-      icon: DollarSign,
-      iconColor: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400",
     },
     {
       label: "Average Order Value",
       value: formatCurrency(summaryData.averageOrderValue),
-      icon: TrendingUp,
-      iconColor: "bg-purple-100 text-purple-600 dark:bg-purple-950 dark:text-purple-400",
     },
     {
       label: "Cancelled Orders",
       value: summaryData.cancelledOrders.toLocaleString(),
-      icon: XCircle,
-      iconColor: "bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400",
     },
   ]
 
@@ -401,6 +396,7 @@ export default function TotalOrderSummaryReportPage() {
           onSortChange={setSort}
           onPageChange={setPage}
           emptyMessage="No store orders found for the selected criteria."
+          showClubColumn={isSystemOwner && !selectedClubId}
         />
       </ReportShell>
     </DashboardLayout>
