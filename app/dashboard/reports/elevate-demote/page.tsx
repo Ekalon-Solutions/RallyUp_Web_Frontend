@@ -197,7 +197,7 @@ export default function ElevateDemoteReportPage() {
       header: "Timestamp",
       accessor: (row) => (
         <span className="font-mono text-xs">
-          {row.timestamp ? row.timestamp.replace("T", " ").slice(0, 19) : "â€”"}
+          {row.timestamp ? row.timestamp.replace("T", " ").slice(0, 19) : "—"}
         </span>
       ),
       sortable: true,

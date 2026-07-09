@@ -220,7 +220,7 @@ export default function ExternalTicketReportPage() {
     {
       key: "createdAt",
       header: "Requested Date",
-      accessor: (row) => (row.requestedDate ? row.requestedDate.replace("T", " ").slice(0, 16) : "â€”"),
+      accessor: (row) => (row.requestedDate ? row.requestedDate.replace("T", " ").slice(0, 16) : "—"),
       sortable: true,
       width: "w-40",
     },
@@ -229,7 +229,7 @@ export default function ExternalTicketReportPage() {
       header: "Comments",
       accessor: (row) => (
         <span className="text-xs text-muted-foreground truncate max-w-full block" title={row.comments}>
-          {row.comments || "â€”"}
+          {row.comments || "—"}
         </span>
       ),
       width: "w-48",

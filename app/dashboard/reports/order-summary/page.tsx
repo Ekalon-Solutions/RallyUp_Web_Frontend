@@ -240,7 +240,7 @@ export default function TotalOrderSummaryReportPage() {
       header: "Order Date",
       accessor: (row) => (
         <span className="font-mono text-xs">
-          {row.orderDate ? row.orderDate.replace("T", " ").slice(0, 16) : "â€”"}
+          {row.orderDate ? row.orderDate.replace("T", " ").slice(0, 16) : "—"}
         </span>
       ),
       sortable: true,
