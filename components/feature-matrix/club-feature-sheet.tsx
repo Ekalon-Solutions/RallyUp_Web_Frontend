@@ -367,20 +367,18 @@ export function ClubFeatureSheet({ club, labels, tooltips, onClose, onSaved }: P
                       </Select>
                     </div>
                   </div>
-                  <div className="mt-3">
+                    <div className="mt-3">
                     <Label className="text-xs text-muted-foreground">Platform fee (%)</Label>
                     <div className="flex items-center gap-2 mt-1.5">
                       <Input
                         type="number"
                         min={0}
-                        max={100}
                         step={0.01}
                         className="h-8 text-xs w-24 font-mono"
                         value={state.platformFeePercent}
                         onChange={(e) => {
                           const v = parseFloat(e.target.value)
-                          const clamped = isNaN(v) ? 0 : Math.max(0, Math.min(100, v))
-                          setState((s) => s ? { ...s, platformFeePercent: Math.round(clamped * 100) / 100 } : s)
+                          setState((s) => s ? { ...s, platformFeePercent: isNaN(v) ? 0 : Math.round(v * 100) / 100 } : s)
                         }}
                       />
                       <span className="text-xs text-muted-foreground">%</span>
@@ -390,6 +388,9 @@ export function ClubFeatureSheet({ club, labels, tooltips, onClose, onSaved }: P
                         </span>
                       )}
                     </div>
+                    {(state.platformFeePercent ?? 0) > 100 && (
+                      <p className="text-xs text-red-500 mt-1">Platform fee (%) cannot be greater than 100</p>
+                    )}
                   </div>
                 </section>
 

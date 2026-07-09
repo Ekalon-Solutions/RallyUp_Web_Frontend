@@ -53,6 +53,7 @@ export function CreateClubModal({ isOpen, onClose, onSuccess }: CreateClubModalP
     superAdminCountryCode: "+1"
   })
   const [errors, setErrors] = useState<{ slug?: string }>({})
+  const [platformFeeWarning, setPlatformFeeWarning] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -73,6 +74,12 @@ export function CreateClubModal({ isOpen, onClose, onSuccess }: CreateClubModalP
     }
     // keep normalized slug
     formData.slug = slugValue
+
+    if (formData.platformFeePercent > 100) {
+      toast.error("Platform fee should be less than 100%")
+      setIsLoading(false)
+      return
+    }
 
     try {
       const response = await apiClient.createClub({
@@ -442,15 +449,19 @@ export function CreateClubModal({ isOpen, onClose, onSuccess }: CreateClubModalP
                 value={formData.platformFeePercent}
                 onChange={(e) => {
                   const v = parseFloat(e.target.value)
-                  const clamped = isNaN(v) ? 0 : Math.max(0, Math.min(100, v))
-                  setFormData(prev => ({ ...prev, platformFeePercent: Math.round(clamped * 100) / 100 }))
+                  setFormData(prev => ({ ...prev, platformFeePercent: isNaN(v) ? 0 : Math.round(v * 100) / 100 }))
+                  setPlatformFeeWarning(v > 100)
                 }}
                 placeholder="5"
                 min="0"
-                max="100"
                 step="0.01"
               />
-              <p className="text-xs text-muted-foreground">Percentage charged on transactions (default: 5%)</p>
+              {platformFeeWarning && (
+                <p className="text-xs text-red-500">Platform fee (%) cannot be greater than 100</p>
+              )}
+              {!platformFeeWarning && (
+                <p className="text-xs text-muted-foreground">Percentage charged on transactions (default: 5%)</p>
+              )}
             </div>
           </div>
 
