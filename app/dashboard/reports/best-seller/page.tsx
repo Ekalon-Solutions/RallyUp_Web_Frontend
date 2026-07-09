@@ -28,7 +28,7 @@ import {
 } from "@/components/reports"
 
 function formatCurrency(amount: number, currency: string = "INR") {
-  return new Intl.NumberFormat("en-IN", { style: "currency", currency: currency === "USD" ? "USD" : "INR", maximumFractionDigits: 2 }).format(amount)
+  return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 2 }).format(amount)
 }
 
 interface BestSellerRow extends Record<string, unknown> {

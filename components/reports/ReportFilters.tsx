@@ -180,7 +180,7 @@ export function ReportFilters({
               <SelectValue placeholder={`All ${statusLabel}`} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All {statusLabel}s</SelectItem>
+              <SelectItem value="all">All {statusLabel}</SelectItem>
               {statusOptions.map((opt) => (
                 <SelectItem key={opt.value} value={opt.value}>
                   {opt.label}
