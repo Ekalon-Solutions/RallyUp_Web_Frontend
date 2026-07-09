@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { useAuth } from "@/contexts/auth-context"
+import { useClubFeaturesCtxSafe } from "@/contexts/club-features-context"
 import { apiClient, WhatsAppStatusCard as CardData } from "@/lib/api"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -56,11 +57,17 @@ interface Props {
 
 export function WhatsAppStatusCard({ clubId }: Props) {
   const { user } = useAuth()
+  const clubFeatures = useClubFeaturesCtxSafe()
   const [card, setCard] = useState<CardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [faqOpen, setFaqOpen] = useState(false)
 
   const isVendor = (user as any)?.role === "vendor" || (user as any)?.isVendor === true
+  // Awaiting a definitive answer from the feature-flag config (not yet loaded) is
+  // treated as "unknown", never as enabled — avoids briefly fetching/flashing the
+  // card before we know the club actually has the wa_marketing entitlement.
+  const waMarketingUnknown = Boolean(clubFeatures?.isLoading && !clubFeatures.config)
+  const waMarketingEnabled = clubFeatures ? clubFeatures.isEnabled("wa_marketing") : true
 
   const load = useCallback(async () => {
     if (!clubId) return
@@ -70,15 +77,15 @@ export function WhatsAppStatusCard({ clubId }: Props) {
   }, [clubId])
 
   useEffect(() => {
-    if (isVendor) {
-      setLoading(false)
+    if (isVendor || waMarketingUnknown || !waMarketingEnabled) {
       return
     }
     load()
-  }, [isVendor, load])
+  }, [isVendor, waMarketingUnknown, waMarketingEnabled, load])
 
-  // Vendor / Bouncer: pricing details are hidden.
-  if (isVendor) return null
+  // Vendor / Bouncer: pricing details are hidden. Club without the wa_marketing
+  // feature entitlement never sees the card (or its config/billing warnings).
+  if (isVendor || !waMarketingEnabled) return null
   if (loading || !card) return null
 
   const disconnected = card.connectionStatus === "error"
