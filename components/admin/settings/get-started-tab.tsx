@@ -85,7 +85,7 @@ export function GetStartedTab() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <BookOpen className="h-5 w-5" />
-            Welcome to RallyUp Admin!
+            Welcome to WingmanPro Admin!
           </CardTitle>
           <CardDescription>
             Follow these steps to set up your club and get started
