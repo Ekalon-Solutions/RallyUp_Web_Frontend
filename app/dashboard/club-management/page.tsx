@@ -155,6 +155,7 @@ export default function ClubManagementPage() {
   })
   const [creating, setCreating] = useState(false)
   const [createErrors, setCreateErrors] = useState<{ slug?: string }>({})
+  const [platformFeeWarning, setPlatformFeeWarning] = useState(false)
 
   useEffect(() => {
     if (user?.role === 'system_owner') {
@@ -257,11 +258,18 @@ export default function ClubManagementPage() {
         return
       }
 
+      if (createForm.platformFeePercent > 100) {
+        toast.error('Platform fee should be less than 100%')
+        setCreating(false)
+        return
+      }
+
       const response = await apiClient.createClub({ ...createForm, platformFeePercent: createForm.platformFeePercent ?? 5 })
       
       if (response.success) {
         toast.success('Club created successfully!')
         setShowCreateDialog(false)
+        setPlatformFeeWarning(false)
           setCreateForm({
             name: '',
             slug: '',
@@ -469,7 +477,7 @@ export default function ClubManagementPage() {
               <h1 className="text-3xl font-bold">Club Management</h1>
               <p className="text-muted-foreground">Manage all clubs and their administrators</p>
             </div>
-            <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+            <Dialog open={showCreateDialog} onOpenChange={(open) => { setShowCreateDialog(open); if (!open) setPlatformFeeWarning(false) }}>
               <DialogTrigger asChild>
                 <Button>
                   <Plus className="w-4 h-4 mr-2" />
@@ -769,15 +777,19 @@ export default function ClubManagementPage() {
                         value={createForm.platformFeePercent}
                         onChange={(e) => {
                           const v = parseFloat(e.target.value)
-                          const clamped = isNaN(v) ? 0 : Math.max(0, Math.min(100, v))
-                          setCreateForm({ ...createForm, platformFeePercent: Math.round(clamped * 100) / 100 })
+                          setCreateForm({ ...createForm, platformFeePercent: isNaN(v) ? 0 : Math.round(v * 100) / 100 })
+                          setPlatformFeeWarning(v > 100)
                         }}
                         placeholder="5"
                         min="0"
-                        max="100"
                         step="0.01"
                       />
-                      <p className="text-xs text-muted-foreground">Percentage charged on transactions (default: 5%)</p>
+                      {platformFeeWarning && (
+                        <p className="text-xs text-red-500">Platform fee (%) cannot be greater than 100</p>
+                      )}
+                      {!platformFeeWarning && (
+                        <p className="text-xs text-muted-foreground">Percentage charged on transactions (default: 5%)</p>
+                      )}
                     </div>
                   </div>
                 </div>
