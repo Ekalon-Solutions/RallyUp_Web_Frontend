@@ -119,7 +119,7 @@ export function ProductViewModal({ isOpen, onClose, product, onBuyNow }: Product
         _id: product._id,
         name: product.name,
         price: product.price,
-        currency: product.currency,
+        currency: product.currency || 'INR',
         featuredImage: product.featuredImage,
         stockQuantity: product.stockQuantity,
         tags: product.tags,

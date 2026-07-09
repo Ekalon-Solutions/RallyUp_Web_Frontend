@@ -405,7 +405,7 @@ export default function MembershipPlansPage() {
       name: plan.name,
       description: plan.description,
       price: plan.price,
-      currency: plan.currency,
+      currency: plan.currency || 'INR',
       planStartDate: toDateInputValue(plan.planStartDate),
       planEndDate: toDateInputValue(plan.planEndDate),
       bookingStartDate: toDateInputValue(plan.bookingStartDate),

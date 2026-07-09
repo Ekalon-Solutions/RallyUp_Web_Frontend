@@ -183,7 +183,7 @@ export function CheckoutLanding({ club, planId, plan }: CheckoutLandingProps) {
             name: plan.name,
             description: plan.description,
             price: plan.price,
-            currency: plan.currency,
+            currency: plan.currency || 'INR',
             duration: plan.duration,
             planStartDate: plan.planStartDate,
             planEndDate: plan.planEndDate,

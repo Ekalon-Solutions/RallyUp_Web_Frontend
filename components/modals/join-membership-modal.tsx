@@ -192,7 +192,7 @@ export function JoinMembershipModal({
         _id: fromList._id,
         name: fromList.name,
         price: fromList.price,
-        currency: fromList.currency,
+        currency: fromList.currency || "INR",
       }
     }
     return currentPlanId

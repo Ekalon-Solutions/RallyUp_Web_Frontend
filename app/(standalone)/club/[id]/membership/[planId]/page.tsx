@@ -284,7 +284,7 @@ export default async function MembershipCheckoutPage({
           name: planResult.name,
           description: planResult.description,
           price: planResult.price,
-          currency: planResult.currency,
+          currency: planResult.currency || 'INR',
           isActive: planResult.isActive,
           duration: (planResult as any).duration,
           planStartDate: (planResult as any).planStartDate,
