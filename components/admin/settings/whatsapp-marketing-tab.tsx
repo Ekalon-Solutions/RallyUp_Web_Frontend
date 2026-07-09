@@ -11,17 +11,18 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { MessageSquare, Info, Lock } from "lucide-react"
+import { MessageSquare, Info } from "lucide-react"
 import { toast } from "sonner"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { useClubFeatures } from "@/hooks/useClubFeatures"
 import { apiClient, WhatsAppMarketingStatus, WhatsAppMarketingTerms } from "@/lib/api"
 import { WhatsAppMarketingTermsModal } from "@/components/modals/whatsapp-marketing-terms-modal"
 import { WhatsAppBulkSend } from "@/components/admin/whatsapp-bulk-send"
+import { LockedFeaturePage, FeatureUnavailableOverlay } from "@/components/feature-gate"
 
 export function WhatsAppMarketingTab() {
   const clubId = useRequiredClubId()
-  const { isEnabled, loading: featuresLoading } = useClubFeatures(clubId)
+  const { isEnabled, loading: featuresLoading, config } = useClubFeatures(clubId)
   const [status, setStatus] = useState<WhatsAppMarketingStatus | null>(null)
   const [terms, setTerms] = useState<WhatsAppMarketingTerms | null>(null)
   const [loading, setLoading] = useState(true)
@@ -35,6 +36,8 @@ export function WhatsAppMarketingTab() {
     if (res.success && res.data) {
       setStatus(res.data.status)
       setTerms(res.data.terms)
+    } else {
+      toast.error(res.error || "Failed to load WhatsApp Marketing status")
     }
     setLoading(false)
   }, [clubId])
@@ -47,7 +50,11 @@ export function WhatsAppMarketingTab() {
   }, [load, featuresLoading, featureEnabled])
 
   const handleToggle = async (next: boolean) => {
-    if (!clubId || !status) return
+    if (!clubId) return
+    if (!status) {
+      toast.error("Still loading WhatsApp Marketing status — try again in a moment.")
+      return
+    }
 
     // Enabling for the first time (or after a Terms reset) → mandatory T&C modal.
     if (next && status.needsAcceptance) {
@@ -93,23 +100,20 @@ export function WhatsAppMarketingTab() {
 
   if (!featuresLoading && !featureEnabled) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Lock className="w-5 h-5 text-muted-foreground" />
-            WhatsApp Marketing
-          </CardTitle>
-          <CardDescription>
-            This is an add-on feature not included in your current plan. Contact support to enable
-            WhatsApp Marketing broadcasts for your club.
-          </CardDescription>
-        </CardHeader>
-      </Card>
+      <LockedFeaturePage
+        featureKey="wa_marketing"
+        featureLabel="WhatsApp Marketing"
+        clubId={clubId ?? ""}
+        currentTier={config?.billing_tier}
+      />
     )
   }
 
   return (
-    <>
+    <div className="relative space-y-4">
+      {clubId && (
+        <FeatureUnavailableOverlay featureKey="wa_marketing" featureLabel="WhatsApp Marketing" clubId={clubId} />
+      )}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -173,6 +177,6 @@ export function WhatsAppMarketingTab() {
         onAccept={handleAccept}
         onCancel={handleCancel}
       />
-    </>
+    </div>
   )
 }

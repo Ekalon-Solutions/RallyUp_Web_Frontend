@@ -23,7 +23,7 @@ interface AuthContextType {
   setActiveClubId: (clubId: string | null) => void;
   login: (email: string, phoneNumber: string, countryCode: string, isAdmin?: boolean, isSystemOwner?: boolean) => Promise<{ success: boolean; error?: string }>;
   switchRole: (accountType: 'user' | 'admin' | 'system_owner', accountId: string) => Promise<{ success: boolean; error?: string }>;
-  register: (userData: any, isAdmin?: boolean, isSystemOwner?: boolean) => Promise<{ success: boolean; error?: string }>;
+  register: (userData: any, isSystemOwner?: boolean) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   updateProfile: (data: any) => Promise<{ success: boolean; error?: string }>;
   checkAuth: () => Promise<void>;
@@ -376,13 +376,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const register = async (userData: any, isAdmin = false, isSystemOwner = false): Promise<{ success: boolean; error?: string }> => {
+  const register = async (userData: any, isSystemOwner = false): Promise<{ success: boolean; error?: string }> => {
     try {
       let response;
       if (isSystemOwner) {
         response = await apiClient.systemOwnerRegister(userData);
-      } else if (isAdmin) {
-        response = await apiClient.adminRegister(userData);
       } else {
         response = await apiClient.userRegister(userData);
       }
@@ -397,9 +395,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (isSystemOwner) {
           createdUserData = (response.data as any).systemOwner || response.data;
           userType = 'system_owner';
-        } else if (isAdmin) {
-          createdUserData = (response.data as any).admin || response.data;
-          userType = createdUserData.role;
         } else {
           createdUserData = (response.data as any).user || response.data;
           userType = 'member';
@@ -409,7 +404,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         setUser(createdUserData);
         const hydrated = await hydrateUserProfile({
-          isAdmin,
+          isAdmin: false,
           isSystemOwner,
           fallbackUserData: createdUserData
         });

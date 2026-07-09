@@ -157,14 +157,6 @@ function AuthPageContent() {
   })
 
   const [adminLoginData, setAdminLoginData] = useState({ email: "", phoneNumber: "", countryCode: "+91" })
-  const [adminRegisterData, setAdminRegisterData] = useState({
-    first_name: "",
-    last_name: "",
-    email: "",
-    phoneNumber: "",
-    countryCode: "+91",
-    adminCode: ""
-  })
 
   const [systemOwnerLoginData, setSystemOwnerLoginData] = useState({ email: "", phoneNumber: "", countryCode: "+91" })
   const [systemOwnerRegisterData, setSystemOwnerRegisterData] = useState({
@@ -177,10 +169,8 @@ function AuthPageContent() {
   })
 
   const [userOtpSent, setUserOtpSent] = useState(false)
-  const [adminOtpSent, setAdminOtpSent] = useState(false)
   const [systemOwnerOtpSent, setSystemOwnerOtpSent] = useState(false)
   const [userOtp, setUserOtp] = useState("")
-  const [adminOtp, setAdminOtp] = useState("")
   const [systemOwnerOtp, setSystemOwnerOtp] = useState("")
   const [generatedOtp, setGeneratedOtp] = useState("")
 
@@ -196,7 +186,6 @@ function AuthPageContent() {
   const [adminLoginResendCountdown, setAdminLoginResendCountdown] = useState(0)
   const [systemOwnerLoginResendCountdown, setSystemOwnerLoginResendCountdown] = useState(0)
   const [userRegisterResendCountdown, setUserRegisterResendCountdown] = useState(0)
-  const [adminRegisterResendCountdown, setAdminRegisterResendCountdown] = useState(0)
   const [systemOwnerRegisterResendCountdown, setSystemOwnerRegisterResendCountdown] = useState(0)
 
   const [clubFontFamily, setClubFontFamily] = useState<string | null>(null)
@@ -212,7 +201,6 @@ function AuthPageContent() {
     id_proof_number: ""
   })
   const [adminLoginErrors, setAdminLoginErrors] = useState({ email: "", phoneNumber: "" })
-  const [adminRegisterErrors, setAdminRegisterErrors] = useState({ email: "", phoneNumber: "" })
   const [systemOwnerLoginErrors, setSystemOwnerLoginErrors] = useState({ email: "", phoneNumber: "" })
   const [systemOwnerRegisterErrors, setSystemOwnerRegisterErrors] = useState({ email: "", phoneNumber: "" })
 
@@ -243,13 +231,6 @@ function AuthPageContent() {
       return () => clearTimeout(timer)
     }
   }, [userRegisterResendCountdown])
-
-  useEffect(() => {
-    if (adminRegisterResendCountdown > 0) {
-      const timer = setTimeout(() => setAdminRegisterResendCountdown(adminRegisterResendCountdown - 1), 1000)
-      return () => clearTimeout(timer)
-    }
-  }, [adminRegisterResendCountdown])
 
   useEffect(() => {
     if (systemOwnerRegisterResendCountdown > 0) {
@@ -324,7 +305,7 @@ function AuthPageContent() {
     const club = searchParams.get("club")
     const tab = searchParams.get("tab")
 
-    if (tab && ["user-login", "user-register", "admin-login", "admin-register", "system-owner-login", "system-owner-register"].includes(tab)) {
+    if (tab && ["user-login", "user-register", "admin-login", "system-owner-login", "system-owner-register"].includes(tab)) {
       setActiveTab(tab)
     }
 
@@ -693,37 +674,6 @@ function AuthPageContent() {
     }
   }
 
-  const handleAdminVerifyNumber = async () => {
-    if (!adminRegisterData.phoneNumber || !adminRegisterData.countryCode) {
-      toast.error("Please provide a valid phone number and country code.")
-      return
-    }
-
-    const phoneNumber = `${adminRegisterData.countryCode}${adminRegisterData.phoneNumber}`
-
-    /*     if (isDevelopment()) {
-          debugLog("Debug mode: Skipping Firebase OTP verification for admin registration")
-          toast.success(`[DEBUG MODE] OTP sent to ${phoneNumber}. Use code: ${DEBUG_OTP}`)
-          setAdminOtpSent(true)
-          setAdminOtp(DEBUG_OTP)
-          setAdminRegisterResendCountdown(10)
-          return
-        }
-     */
-    try {
-      const recaptchaVerifier = setupRecaptcha(phoneNumber)
-      const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier)
-
-      window.confirmationResult = confirmationResult
-      toast.success(`OTP sent to ${phoneNumber}`)
-      setAdminOtpSent(true)
-      setAdminRegisterResendCountdown(10)
-    } catch (error) {
-      // console.error("Error sending OTP:", error)
-      toast.error("Failed to send OTP. Please try again.")
-    }
-  }
-
   const handleSystemOwnerVerifyNumber = async () => {
     if (!systemOwnerRegisterData.phoneNumber || !systemOwnerRegisterData.countryCode) {
       toast.error("Please provide a valid phone number and country code.")
@@ -976,55 +926,9 @@ function AuthPageContent() {
     setUserRegisterResendCountdown(10)
   }
 
-  const handleAdminRegisterResendOTP = () => {
-    toast.success(`OTP resent to ${adminRegisterData.countryCode}${adminRegisterData.phoneNumber}.`)
-    setAdminRegisterResendCountdown(10)
-  }
-
   const handleSystemOwnerRegisterResendOTP = () => {
     toast.success(`OTP resent to ${systemOwnerRegisterData.countryCode}${systemOwnerRegisterData.phoneNumber}.`)
     setSystemOwnerRegisterResendCountdown(10)
-  }
-
-  const handleAdminRegister = async (e: React.FormEvent) => {
-    e.preventDefault()
-    /*
-    if (!adminOtpSent) {
-      toast.error("Please verify your phone number first")
-      return
-    }
-
-    const expectedOtp = isDevelopment() ? DEBUG_OTP : generatedOtp
-    if (adminOtp !== expectedOtp) {
-      toast.error(isDevelopment() ? `[DEBUG MODE] Invalid OTP. Use: ${DEBUG_OTP}` : "Invalid OTP. Please check and try again")
-      return
-    }
-    */
-
-    setIsLoading(true)
-
-    try {
-      const result = await register({
-        first_name: adminRegisterData.first_name,
-        last_name: adminRegisterData.last_name,
-        email: adminRegisterData.email,
-        phoneNumber: adminRegisterData.phoneNumber,
-        countryCode: adminRegisterData.countryCode,
-        adminCode: adminRegisterData.adminCode
-      }, true)
-
-      if (result.success) {
-        toast.success("Admin registration successful!")
-        router.push("/dashboard")
-      } else {
-        toast.error(result.error || "Admin registration failed. Please check your admin code.")
-      }
-    } catch (error) {
-      // console.error("Admin registration error:", error)
-      toast.error("An error occurred during admin registration.")
-    } finally {
-      setIsLoading(false)
-    }
   }
 
   const handleSystemOwnerLogin = async (e: React.FormEvent) => {
@@ -1117,7 +1021,7 @@ function AuthPageContent() {
         phoneNumber: systemOwnerRegisterData.phoneNumber,
         countryCode: systemOwnerRegisterData.countryCode,
         accessKey: systemOwnerRegisterData.accessKey
-      }, false, true)
+      }, true)
 
       if (result.success) {
         toast.success("System Owner registration successful!")
@@ -2078,178 +1982,6 @@ function AuthPageContent() {
                           </div>
                         )}
 
-                        <Button
-                          variant="outline"
-                          onClick={() => setActiveTab("admin-register")}
-                          className="w-full border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-11"
-                        >
-                          Create Admin Account
-                          <UserPlus className="ml-2 w-4 h-4" />
-                        </Button>
-                      </TabsContent>
-
-                      <TabsContent value="admin-register" className="space-y-4 mt-4">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="admin-first-name" className="text-white font-medium">First Name</Label>
-                            <Input
-                              id="admin-first-name"
-                              type="text"
-                              placeholder="Enter first name"
-                              value={adminRegisterData.first_name}
-                              onChange={(e) => setAdminRegisterData({ ...adminRegisterData, first_name: e.target.value })}
-                              className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400"
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="admin-last-name" className="text-white font-medium">Last Name</Label>
-                            <Input
-                              id="admin-last-name"
-                              type="text"
-                              placeholder="Enter last name"
-                              value={adminRegisterData.last_name}
-                              onChange={(e) => setAdminRegisterData({ ...adminRegisterData, last_name: e.target.value })}
-                              className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400"
-                            />
-                          </div>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="admin-register-email" className="text-white font-medium">Admin Email</Label>
-                          <div className="flex items-center gap-2">
-                            <Mail className="w-4 h-4 text-slate-300 flex-shrink-0" />
-                            <Input
-                              id="admin-register-email"
-                              type="email"
-                              placeholder="Enter admin email"
-                              value={adminRegisterData.email}
-                              onChange={(e) => {
-                                const email = e.target.value
-                                setAdminRegisterData({ ...adminRegisterData, email })
-                                setAdminRegisterErrors({ ...adminRegisterErrors, email: validateEmail(email) })
-                              }}
-                              onBlur={(e) => {
-                                setAdminRegisterErrors({ ...adminRegisterErrors, email: validateEmail(e.target.value) })
-                              }}
-                              className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 ${adminRegisterErrors.email ? "border-red-500" : ""}`}
-                            />
-                          </div>
-                          {adminRegisterErrors.email && (
-                            <p className="text-red-400 text-sm">{adminRegisterErrors.email}</p>
-                          )}
-                        </div>
-
-                        <div className="grid grid-cols-3 gap-2">
-                          <div className="space-y-2 flex flex-col justify-between">
-                            <Label htmlFor="admin-country-code" className="text-white font-medium">Country Code</Label>
-                            <div className="flex items-center gap-2 min-w-0">
-                              <Phone className="w-4 h-4 text-slate-300 flex-shrink-0" />
-                              <CountryCodeSelect
-                                id="admin-country-code"
-                                variant="login"
-                                value={adminRegisterData.countryCode}
-                                onValueChange={(countryCode) =>
-                                  setAdminRegisterData({ ...adminRegisterData, countryCode })
-                                }
-                                className="min-w-0 flex-1"
-                              />
-                            </div>
-                          </div>
-                          <div className="col-span-2 space-y-2 flex flex-col justify-between">
-                            <Label htmlFor="admin-phone" className="text-white font-medium">Phone Number</Label>
-                            <div className="flex items-center gap-2">
-                              <Phone className="w-4 h-4 text-slate-300 flex-shrink-0" />
-                              <Input
-                                id="admin-phone"
-                                type="tel"
-                                placeholder="Enter phone number"
-                                value={adminRegisterData.phoneNumber}
-                                onChange={(e) => {
-                                  const phone = e.target.value.replace(/\D/g, "")
-                                  setAdminRegisterData({ ...adminRegisterData, phoneNumber: phone })
-                                  setAdminRegisterErrors({ ...adminRegisterErrors, phoneNumber: validatePhoneNumber(phone) })
-                                }}
-                                onBlur={(e) => {
-                                  setAdminRegisterErrors({ ...adminRegisterErrors, phoneNumber: validatePhoneNumber(e.target.value) })
-                                }}
-                                className={`bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 ${adminRegisterErrors.phoneNumber ? "border-red-500" : ""}`}
-                              />
-                            </div>
-                            {adminRegisterErrors.phoneNumber && (
-                              <p className="text-red-400 text-sm">{adminRegisterErrors.phoneNumber}</p>
-                            )}
-                          </div>
-                        </div>
-
-                        {/*
-                    <div className="flex gap-2">
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        onClick={handleAdminVerifyNumber}
-                        disabled={adminOtpSent || !adminRegisterData.phoneNumber || !adminRegisterData.countryCode}
-                        className="flex-1 border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-11"
-                      >
-                        {adminOtpSent ? "OTP Sent ✓" : "Verify Number"}
-                      </Button>
-                    </div>
-                    */}
-
-                        {adminOtpSent && (
-                          <div className="space-y-2">
-                            <Label htmlFor="admin-otp" className="text-white font-medium">Enter OTP</Label>
-                            <div className="flex items-center gap-2">
-                              <Input
-                                id="admin-otp"
-                                type="password"
-                                placeholder="Enter 6-digit OTP"
-                                value={adminOtp}
-                                onChange={(e) => setAdminOtp(e.target.value)}
-                                maxLength={6}
-                                className="flex-1 bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400 h-12 text-center text-lg"
-                              />
-                              <Button
-                                type="button"
-                                variant="outline"
-                                onClick={handleAdminRegisterResendOTP}
-                                disabled={adminRegisterResendCountdown > 0}
-                                size="sm"
-                                className="border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-12 px-4"
-                              >
-                                {adminRegisterResendCountdown > 0 ? `Resend (${adminRegisterResendCountdown}s)` : "Resend"}
-                              </Button>
-                            </div>
-                          </div>
-                        )}
-
-                        <div className="space-y-2">
-                          <Label htmlFor="admin-code" className="text-white font-medium">Admin Code</Label>
-                          <div className="flex items-center gap-2">
-                            <Shield className="w-4 h-4 text-slate-300 flex-shrink-0" />
-                            <Input
-                              id="admin-code"
-                              type="text"
-                              placeholder="Enter admin registration code"
-                              value={adminRegisterData.adminCode}
-                              onChange={(e) => setAdminRegisterData({ ...adminRegisterData, adminCode: e.target.value })}
-                              className="bg-white/10 border-white/20 text-white placeholder:text-slate-400 focus:ring-2 focus:ring-sky-400"
-                            />
-                          </div>
-                        </div>
-
-                        <Button onClick={handleAdminRegister} className="w-full bg-sky-400 text-slate-900 hover:bg-sky-300 h-12 text-lg font-medium" disabled={isLoading}>
-                          {isLoading ? "Creating admin account..." : "Create Admin Account"}
-                          <Shield className="ml-2 w-4 h-4" />
-                        </Button>
-
-                        <Button
-                          variant="outline"
-                          onClick={() => setActiveTab("admin-login")}
-                          className="w-full border-slate-700 bg-slate-800 text-white hover:bg-slate-700 h-11"
-                        >
-                          Back to Admin Login
-                          <LogIn className="ml-2 w-4 h-4" />
-                        </Button>
                       </TabsContent>
 
                       <TabsContent value="system-owner-login" className="space-y-4 mt-4">

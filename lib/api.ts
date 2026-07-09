@@ -1264,19 +1264,6 @@ class ApiClient {
     return this.request<T>(endpoint, requestOptions);
   }
 
-  async adminRegister(data: {
-    name: string;
-    email: string;
-    phoneNumber: string;
-    countryCode: string;
-    adminCode: string;
-  }): Promise<ApiResponse<{ token: string; admin: Admin }>> {
-    return this.request('/admin/register', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  }
-
   async adminLogin(data: {
     email?: string;
     phoneNumber?: string;
