@@ -87,30 +87,48 @@ export function EventFeeManagementSection({
 
   useEffect(() => {
     if (platformFeePercentProp !== undefined) {
+      console.log('[EventFeeManagement] Using prop platformFeePercent:', platformFeePercentProp)
       return
     }
     if (!clubId) {
+      console.log('[EventFeeManagement] No clubId, skipping fetch')
       return
     }
     
+    console.log('[EventFeeManagement] Fetching for clubId:', clubId)
     setIsLoadingFee(true)
     apiClient.getMyClubFeatures(clubId)
       .then((res) => {
+        console.log('[EventFeeManagement] Full API response:', JSON.stringify(res, null, 2))
         if (res.success && res.data) {
           const actualData = (res.data as any).data || res.data
+          console.log('[EventFeeManagement] Actual data:', actualData)
           const fee = actualData.platformFeePercent
+          console.log('[EventFeeManagement] Extracted platformFeePercent:', fee, 'type:', typeof fee)
           setFetchedFee(fee !== undefined ? fee : PLATFORM_FEE_PERCENT)
+          console.log('[EventFeeManagement] Set fetchedFee to:', fee !== undefined ? fee : PLATFORM_FEE_PERCENT)
         } else {
+          console.log('[EventFeeManagement] API not successful, using default:', PLATFORM_FEE_PERCENT)
           setFetchedFee(PLATFORM_FEE_PERCENT)
         }
       })
       .catch((err) => {
+        console.error('[EventFeeManagement] API error:', err)
         setFetchedFee(PLATFORM_FEE_PERCENT)
       })
       .finally(() => {
         setIsLoadingFee(false)
+        console.log('[EventFeeManagement] Fetch complete')
       })
   }, [clubId, platformFeePercentProp])
+
+  console.log('[EventFeeManagement] Render:', {
+    platformFeePercentProp,
+    fetchedFee,
+    platformFeePercent,
+    isLoadingFee,
+    clubId
+  })
 
   const disabled = !canManage || locked
   const gross = Math.max(0, ticketPrice)

@@ -497,6 +497,11 @@ export function CreateCouponModal({ isOpen, onClose, onSuccess, editCoupon, club
               <p className="text-sm text-muted-foreground">
                 Automatically apply this coupon to active members' checkouts if eligible.
               </p>
+              {formData.isAutoApply && (
+                <p className="text-xs text-amber-600 font-medium mt-1">
+                  Only one coupon can have auto-apply enabled at a time. Enabling this will disable auto-apply on any other coupon in this club.
+                </p>
+              )}
             </div>
             <Switch
               id="isAutoApply"
