@@ -11,15 +11,17 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { MessageSquare, Info } from "lucide-react"
+import { MessageSquare, Info, Lock } from "lucide-react"
 import { toast } from "sonner"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
+import { useClubFeatures } from "@/hooks/useClubFeatures"
 import { apiClient, WhatsAppMarketingStatus, WhatsAppMarketingTerms } from "@/lib/api"
 import { WhatsAppMarketingTermsModal } from "@/components/modals/whatsapp-marketing-terms-modal"
 import { WhatsAppBulkSend } from "@/components/admin/whatsapp-bulk-send"
 
 export function WhatsAppMarketingTab() {
   const clubId = useRequiredClubId()
+  const { isEnabled, loading: featuresLoading } = useClubFeatures(clubId)
   const [status, setStatus] = useState<WhatsAppMarketingStatus | null>(null)
   const [terms, setTerms] = useState<WhatsAppMarketingTerms | null>(null)
   const [loading, setLoading] = useState(true)
@@ -37,9 +39,12 @@ export function WhatsAppMarketingTab() {
     setLoading(false)
   }, [clubId])
 
+  const featureEnabled = isEnabled("wa_marketing")
+
   useEffect(() => {
+    if (featuresLoading || !featureEnabled) return
     load()
-  }, [load])
+  }, [load, featuresLoading, featureEnabled])
 
   const handleToggle = async (next: boolean) => {
     if (!clubId || !status) return
@@ -85,6 +90,23 @@ export function WhatsAppMarketingTab() {
 
   const enabled = status?.enabled ?? false
   const pdfUrl = clubId ? apiClient.getWhatsAppMarketingTermsPdfUrl(clubId) : "#"
+
+  if (!featuresLoading && !featureEnabled) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Lock className="w-5 h-5 text-muted-foreground" />
+            WhatsApp Marketing
+          </CardTitle>
+          <CardDescription>
+            This is an add-on feature not included in your current plan. Contact support to enable
+            WhatsApp Marketing broadcasts for your club.
+          </CardDescription>
+        </CardHeader>
+      </Card>
+    )
+  }
 
   return (
     <>

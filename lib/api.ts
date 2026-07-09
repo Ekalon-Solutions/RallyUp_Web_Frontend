@@ -125,7 +125,7 @@ export interface WhatsAppCreditDebitNote {
 }
 
 export interface WhatsAppStatusCardWarning {
-  type: 'low_tier' | 'billing' | 'api_disconnected' | 'not_configured';
+  type: 'low_tier' | 'billing' | 'api_disconnected' | 'not_configured' | 'plan_limit';
   severity: 'warning' | 'error';
   message: string;
 }
@@ -139,6 +139,10 @@ export interface WhatsAppStatusCard {
   ratePerMessage: number;
   gstPercent: number;
   usage: { marketing: number; utility: number; authentication: number; month: string };
+  /** Total messages sent this month, across all categories — matches Club plan usage. */
+  planUsed: number;
+  /** Monthly WhatsApp message cap from the club's billing plan (null = no plan cap). */
+  planLimit: number | null;
   approvedTemplates: number | null;
   totalTemplates: number | null;
   metaTier: string;

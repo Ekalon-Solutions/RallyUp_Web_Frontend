@@ -154,7 +154,7 @@ export function WhatsAppStatusCard({ clubId }: Props) {
           </div>
 
           {/* Usage at a glance */}
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             <div className="rounded-md border p-2 text-center">
               <div className="text-lg font-bold">{card.usage.marketing}</div>
               <div className="text-[11px] text-muted-foreground">Marketing (this month)</div>
@@ -163,6 +163,34 @@ export function WhatsAppStatusCard({ clubId }: Props) {
               <div className="text-lg font-bold">{card.usage.utility}</div>
               <div className="text-[11px] text-muted-foreground">Utility (this month)</div>
             </div>
+            <div className="rounded-md border p-2 text-center">
+              <div className="text-lg font-bold">{card.usage.authentication}</div>
+              <div className="text-[11px] text-muted-foreground">Auth (this month)</div>
+            </div>
+          </div>
+
+          {/* Plan usage vs monthly limit */}
+          <div className="space-y-1">
+            <div className="flex items-baseline justify-between text-xs">
+              <span className="text-muted-foreground">Plan usage (this month)</span>
+              <span className="font-semibold">
+                {card.planUsed} {card.planLimit !== null ? `/ ${card.planLimit}` : "· Unlimited"}
+              </span>
+            </div>
+            {card.planLimit !== null && (
+              <div className="h-1.5 w-full rounded-full bg-muted overflow-hidden">
+                <div
+                  className={`h-full rounded-full ${
+                    card.planUsed >= card.planLimit
+                      ? "bg-red-600"
+                      : card.planUsed >= card.planLimit * 0.9
+                        ? "bg-amber-500"
+                        : "bg-green-600"
+                  }`}
+                  style={{ width: `${Math.min(100, (card.planUsed / card.planLimit) * 100)}%` }}
+                />
+              </div>
+            )}
           </div>
 
           {/* Templates approved + Recent activity sparkline */}
