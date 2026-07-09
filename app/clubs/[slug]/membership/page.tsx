@@ -139,21 +139,16 @@ export default function ClubMembershipPlansPage() {
     plans.find((p) => p._id === currentPlanId)?.price ??
     0
 
+  // Only show plans whose booking window is currently open — hides plans
+  // that haven't started yet AND plans whose booking has already ended.
+  const visiblePlans = plans.filter((plan) => getSalesState(plan).isOpen)
+
   const handleSelectPlan = (plan: JoinablePlan) => {
-    const state = getSalesState(plan)
-    if (!state.isOpen) {
-      toast.error(state.closed ? "Membership Closed" : "Membership sales are not open yet for this plan")
-      return
-    }
     setSelectedPlanId(plan._id)
     setShowJoinModal(true)
   }
 
   const getCardCta = (plan: JoinablePlan): { label: string; disabled: boolean } => {
-    const state = getSalesState(plan)
-    if (!state.isOpen) {
-      return { label: state.closed ? "Membership Closed" : "Opens Soon", disabled: true }
-    }
     if (!isLoggedIn) return { label: "Select Plan", disabled: false }
     if (String(plan._id) === String(currentPlanId)) return { label: "Your Current Plan", disabled: true }
     if (hasActiveMembership && plan.price <= currentPlanPrice) {
@@ -230,14 +225,13 @@ export default function ClubMembershipPlansPage() {
           </p>
         </div>
 
-        {plans.length === 0 ? (
+        {visiblePlans.length === 0 ? (
           <p className="text-center text-muted-foreground">
             No membership plans are available for this club right now.
           </p>
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {plans.map((plan) => {
-              const state = getSalesState(plan)
+            {visiblePlans.map((plan) => {
               const cta = getCardCta(plan)
               return (
                 <Card key={plan._id} className="flex flex-col overflow-hidden">
@@ -256,16 +250,10 @@ export default function ClubMembershipPlansPage() {
                       <Clock className="h-4 w-4" />
                       {formatPeriod(plan)}
                     </div>
-                    {(plan.bookingStartDate || plan.bookingEndDate) && (
+                    {plan.bookingEndDate && (
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Calendar className="h-4 w-4" />
-                        {state.notStarted && plan.bookingStartDate
-                          ? `Opens ${new Date(plan.bookingStartDate).toLocaleDateString()}`
-                          : state.closed && plan.bookingEndDate
-                          ? `Closed ${new Date(plan.bookingEndDate).toLocaleDateString()}`
-                          : plan.bookingEndDate
-                          ? `Booking closes ${new Date(plan.bookingEndDate).toLocaleDateString()}`
-                          : "Booking open"}
+                        {`Booking closes ${new Date(plan.bookingEndDate).toLocaleDateString()}`}
                       </div>
                     )}
                     {String(plan._id) === String(currentPlanId) && (
@@ -299,7 +287,7 @@ export default function ClubMembershipPlansPage() {
           }}
           clubId={club._id}
           clubName={club.name}
-          plans={plans}
+          plans={visiblePlans}
           primaryColor={primaryColor}
           returnPath={`/clubs/${slug}/membership`}
           initialPlanId={selectedPlanId}
