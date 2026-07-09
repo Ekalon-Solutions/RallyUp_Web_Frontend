@@ -551,7 +551,7 @@ export default function OrdersPage() {
           reg.eventTitle || '',
           reg.status || '',
           reg.amountPaid ?? reg.ticketPrice ?? 0,
-          reg.currency || 'USD',
+          reg.currency || 'INR',
           reg.earlyBirdDiscountAmt ?? 0,
           reg.couponCode || '',
           reg.couponDiscount ?? 0,
@@ -1434,8 +1434,8 @@ export default function OrdersPage() {
                           <TableCell>
                             <div className="font-medium">
                               {reg.amountPaid != null
-                                ? (reg.amountPaid > 0 ? formatCurrency(reg.amountPaid, reg.currency || 'USD') : 'Free')
-                                : (reg.ticketPrice ? formatCurrency(reg.ticketPrice, reg.currency || 'USD') : 'Free')}
+                                ? (reg.amountPaid > 0 ? formatCurrency(reg.amountPaid, reg.currency || 'INR') : 'Free')
+                                : (reg.ticketPrice ? formatCurrency(reg.ticketPrice, reg.currency || 'INR') : 'Free')}
                             </div>
                           </TableCell>
                           <TableCell>

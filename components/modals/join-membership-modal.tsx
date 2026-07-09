@@ -411,34 +411,38 @@ export function JoinMembershipModal({
 
     setIsProcessing(true)
     try {
+      // Guard against duplicate accounts for BOTH paid and free plans — a guest
+      // typing in an email/phone that already belongs to a registered user must
+      // be sent to log in rather than allowed to attempt registration again.
+      const checkResponse = await fetch(getApiUrl(API_ENDPOINTS.users.checkExistingUserPlan), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: registrationData.email,
+          phoneNumber: registrationData.phoneNumber,
+          countryCode: registrationData.countryCode || "+91",
+          clubId,
+          membershipPlanId: selectedPlan._id,
+        }),
+      })
+      const checkData = await checkResponse.json()
+      if (checkResponse.ok && checkData.planValid) {
+        toast.info("An account with this email or phone already exists. Please log in to continue.")
+        try {
+          sessionStorage.setItem(
+            "clubs_pending_join",
+            JSON.stringify({ clubId, membershipPlanId: selectedPlan._id, returnPath: returnPath || window.location.pathname })
+          )
+        } catch (_) {}
+        const utm = typeof window !== "undefined" ? sessionStorage.getItem("utm_source") : null
+        const nextUrl = utm
+          ? `/login?next=${encodeURIComponent(returnPath || window.location.pathname)}&utm_source=${encodeURIComponent(utm)}`
+          : `/login?next=${encodeURIComponent(returnPath || window.location.pathname)}`
+        router.push(nextUrl)
+        return
+      }
+
       if (selectedPlan.price > 0) {
-        const checkResponse = await fetch(getApiUrl(API_ENDPOINTS.users.checkExistingUserPlan), {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            email: registrationData.email,
-            phoneNumber: registrationData.phoneNumber,
-            countryCode: registrationData.countryCode || "+91",
-            clubId,
-            membershipPlanId: selectedPlan._id,
-          }),
-        })
-        const checkData = await checkResponse.json()
-        if (checkResponse.ok && checkData.planValid) {
-          toast.info("An account with this email or phone already exists. Please log in to continue.")
-          try {
-            sessionStorage.setItem(
-              "clubs_pending_join",
-              JSON.stringify({ clubId, membershipPlanId: selectedPlan._id, returnPath: returnPath || window.location.pathname })
-            )
-          } catch (_) {}
-          const utm = typeof window !== "undefined" ? sessionStorage.getItem("utm_source") : null
-          const nextUrl = utm
-            ? `/login?next=${encodeURIComponent(returnPath || window.location.pathname)}&utm_source=${encodeURIComponent(utm)}`
-            : `/login?next=${encodeURIComponent(returnPath || window.location.pathname)}`
-          router.push(nextUrl)
-          return
-        }
         startPayment({ plan: selectedPlan, baseAmount: selectedPlan.price, isRegistration: true, registrationSnapshot: registrationData })
         toast.info("Complete payment to create your account and activate membership.")
         return

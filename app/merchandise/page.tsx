@@ -76,7 +76,7 @@ export default function MerchandisePage() {
     setClubId(selectedClubId || (fromQuery ? fromQuery : null))
   }, [selectedClubId])
 
-  const formatCurrency = (amount: number, currencyCode: string = 'USD') => {
+  const formatCurrency = (amount: number, currencyCode: string = 'INR') => {
     const localeMap: Record<string, string> = {
       'USD': 'en-US',
       'INR': 'en-IN',

@@ -59,7 +59,7 @@ export function ProductViewModal({ isOpen, onClose, product, onBuyNow }: Product
 
   if (!product) return null
 
-  const formatCurrency = (amount: number, currencyCode: string = product.currency || 'USD') => {
+  const formatCurrency = (amount: number, currencyCode: string = product.currency || 'INR') => {
     const localeMap: Record<string, string> = {
       'USD': 'en-US',
       'INR': 'en-IN',

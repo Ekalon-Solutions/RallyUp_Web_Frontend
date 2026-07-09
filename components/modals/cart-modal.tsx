@@ -54,7 +54,7 @@ export function CartModal({ isOpen, onClose, onCheckout }: CartModalProps) {
   const taxAmount = calculateTax()
   const orderTotal = totalPrice + shippingCost + taxAmount
 
-  const currency = items.length > 0 ? (items[0].currency || 'USD') : 'USD'
+  const currency = items.length > 0 ? (items[0].currency || 'INR') : 'INR'
 
   const formatCurrency = (amount: number, currencyCode: string = currency) => {
     const localeMap: Record<string, string> = {
