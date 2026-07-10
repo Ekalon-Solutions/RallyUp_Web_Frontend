@@ -417,7 +417,7 @@ export default function ReportsHubPage() {
           <div>
             <h1 className="text-3xl font-black text-foreground flex items-center gap-3">
               <FileBarChart className="w-8 h-8 text-primary" />
-              Reports Hub
+              Reporting & Analytics
             </h1>
             <p className="text-muted-foreground mt-2">
               Comprehensive analytics and insights across all platform modules.
