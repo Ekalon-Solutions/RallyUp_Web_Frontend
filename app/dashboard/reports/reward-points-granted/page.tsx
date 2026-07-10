@@ -185,7 +185,7 @@ export default function RewardPointsGrantedReportPage() {
       header: "Points",
       accessor: (row) => (
         <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-          +{row.points.toLocaleString()}
+          +{(row.points ?? 0).toLocaleString()}
         </span>
       ),
       sortable: true,

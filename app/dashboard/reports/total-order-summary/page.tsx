@@ -324,7 +324,7 @@ export default function TotalOrderSummaryPage() {
     {
       key: "rewardPointsUsed",
       header: "Reward Points Used",
-      accessor: (row) => row.rewardPointsUsed.toLocaleString(),
+      accessor: (row) => (row.rewardPointsUsed ?? 0).toLocaleString(),
       align: "right",
       width: "w-28",
     },

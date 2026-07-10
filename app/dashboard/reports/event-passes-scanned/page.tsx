@@ -195,7 +195,7 @@ export default function EventPassesScannedReportPage() {
     {
       key: "ticketsSold",
       header: "Tickets Sold",
-      accessor: (row) => <span className="font-mono font-medium">{row.ticketsSold.toLocaleString()}</span>,
+      accessor: (row) => <span className="font-mono font-medium">{(row.ticketsSold ?? 0).toLocaleString()}</span>,
       sortable: true,
       align: "center",
       width: "w-32",
@@ -203,7 +203,7 @@ export default function EventPassesScannedReportPage() {
     {
       key: "passesScanned",
       header: "Passes Scanned",
-      accessor: (row) => <span className="font-mono font-semibold text-emerald-600 dark:text-emerald-400">{row.passesScanned.toLocaleString()}</span>,
+      accessor: (row) => <span className="font-mono font-semibold text-emerald-600 dark:text-emerald-400">{(row.passesScanned ?? 0).toLocaleString()}</span>,
       align: "center",
       width: "w-36",
     },
@@ -211,8 +211,8 @@ export default function EventPassesScannedReportPage() {
       key: "attendanceRate",
       header: "Attendance %",
       accessor: (row) => (
-        <Badge className={row.attendanceRate >= 75 ? "bg-emerald-100 text-emerald-800 border-0" : "bg-amber-100 text-amber-800 border-0"}>
-          {row.attendanceRate.toFixed(1)}%
+        <Badge className={(row.attendanceRate ?? 0) >= 75 ? "bg-emerald-100 text-emerald-800 border-0" : "bg-amber-100 text-amber-800 border-0"}>
+          {(row.attendanceRate ?? 0).toFixed(1)}%
         </Badge>
       ),
       align: "center",
@@ -221,7 +221,7 @@ export default function EventPassesScannedReportPage() {
     {
       key: "noShowCount",
       header: "No-show Count",
-      accessor: (row) => <span className="font-mono text-xs text-rose-600 dark:text-rose-400">{row.noShowCount.toLocaleString()}</span>,
+      accessor: (row) => <span className="font-mono text-xs text-rose-600 dark:text-rose-400">{(row.noShowCount ?? 0).toLocaleString()}</span>,
       align: "center",
       width: "w-32",
     },

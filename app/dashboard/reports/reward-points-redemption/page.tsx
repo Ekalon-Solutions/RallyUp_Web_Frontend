@@ -184,7 +184,7 @@ export default function RewardPointsRedemptionReportPage() {
       header: "Points Accumulated",
       accessor: (row) => (
         <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-          {row.pointsAccumulated.toLocaleString()}
+          {(row.pointsAccumulated ?? 0).toLocaleString()}
         </span>
       ),
       width: "w-32",
@@ -194,7 +194,7 @@ export default function RewardPointsRedemptionReportPage() {
       header: "Points Redeemed",
       accessor: (row) => (
         <span className="font-semibold text-blue-600 dark:text-blue-400">
-          {row.pointsReserved.toLocaleString()}
+          {(row.pointsReserved ?? 0).toLocaleString()}
         </span>
       ),
       sortable: true,
@@ -203,7 +203,7 @@ export default function RewardPointsRedemptionReportPage() {
     {
       key: "pointsRemaining",
       header: "Points Remaining",
-      accessor: (row) => <span className="font-mono text-xs">{row.pointsRemaining.toLocaleString()}</span>,
+      accessor: (row) => <span className="font-mono text-xs">{(row.pointsRemaining ?? 0).toLocaleString()}</span>,
       width: "w-32",
     },
     {

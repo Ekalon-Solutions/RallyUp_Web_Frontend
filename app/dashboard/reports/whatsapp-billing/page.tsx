@@ -187,7 +187,7 @@ export default function WhatsAppBillingReportPage() {
     {
       key: "marketingMessageCount",
       header: "Messages Sent",
-      accessor: (row) => <span className="font-mono font-medium">{row.marketingMessageCount.toLocaleString()}</span>,
+      accessor: (row) => <span className="font-mono font-medium">{(row.marketingMessageCount ?? 0).toLocaleString()}</span>,
       sortable: true,
       align: "center",
       width: "w-36",
