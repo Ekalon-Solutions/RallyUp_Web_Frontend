@@ -12,6 +12,8 @@
  */
 
 import { type ReactNode } from "react"
+import Link from "next/link"
+import { ArrowLeft } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
@@ -65,6 +67,15 @@ export function ReportShell({
 
   return (
     <div className={cn("space-y-5", className)}>
+
+      {/* ── Back to Reports Hub ────────────────────────────────────────── */}
+      <Link
+        href="/dashboard/reports"
+        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Back to Reports
+      </Link>
 
       {/* ── Header ─────────────────────────────────────────────────────── */}
       <div className="flex items-start justify-between gap-4">
