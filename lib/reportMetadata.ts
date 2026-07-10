@@ -23,12 +23,6 @@ export const REPORT_AUTH_METADATA: Record<string, ReportAuthMetadata> = {
     requiredFeature: 'reporting',
     financialAdminOnly: true,
   },
-  'order-summary': {
-    reportId: 'order-summary',
-    requiredRole: ['admin', 'super_admin', 'system_owner'],
-    requiredFeature: 'reporting',
-    financialAdminOnly: true,
-  },
   'event-ticket-sales': {
     reportId: 'event-ticket-sales',
     requiredRole: ['admin', 'super_admin', 'system_owner'],
@@ -39,12 +33,6 @@ export const REPORT_AUTH_METADATA: Record<string, ReportAuthMetadata> = {
     reportId: 'event-ticket-refunds',
     requiredRole: ['admin', 'super_admin', 'system_owner'],
     requiredFeature: 'reporting',
-    financialAdminOnly: true,
-  },
-  'merchandise-sales': {
-    reportId: 'merchandise-sales',
-    requiredRole: ['admin', 'super_admin', 'system_owner'],
-    requiredFeature: 'merchandise',
     financialAdminOnly: true,
   },
   'merchandise-refunds': {
@@ -97,11 +85,6 @@ export const REPORT_AUTH_METADATA: Record<string, ReportAuthMetadata> = {
   },
   'membership-renewals': {
     reportId: 'membership-renewals',
-    requiredRole: ['admin', 'super_admin', 'system_owner'],
-    requiredFeature: 'reporting',
-  },
-  'membership-expiry': {
-    reportId: 'membership-expiry',
     requiredRole: ['admin', 'super_admin', 'system_owner'],
     requiredFeature: 'reporting',
   },

@@ -51,17 +51,28 @@ function formatCurrency(amount: number, currency: string = "INR") {
   }).format(amount)
 }
 
+function renderMembershipStatusBadge(status: string) {
+  const s = (status || "").toLowerCase()
+  if (s === "renewal") {
+    return <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-0 font-medium">Renewal</Badge>
+  }
+  return <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border-0 font-medium">New</Badge>
+}
+
 interface MembershipPurchaseRow extends Record<string, unknown> {
   id: string
   purchaseId: string
   memberName: string
   email: string
+  phoneNumber: string
   planName: string
   purchaseDate: string | null
   amount: number
   currency: string
   paymentStatus: string
   membershipStatus: string
+  couponUsed: string
+  rewardPointsUsed: number
 }
 
 interface PlanOption {
@@ -168,6 +179,10 @@ export default function MembershipPurchaseReportPage() {
     if (!shouldFetchReport({ authorized: auth.authorized, clubId, isSystemOwner })) return
     try {
       const queryParams: Record<string, any> = { format, ...resolveExportClubId({ clubId, selectedClubId, isSystemOwner }) }
+      if (filters.startDate) queryParams.startDate = filters.startDate
+      if (filters.endDate) queryParams.endDate = filters.endDate
+      if (filters.search) queryParams.search = filters.search
+      if (filters.status) queryParams.status = filters.status
       if (filters.extras?.membershipPlanId && filters.extras.membershipPlanId !== "all") {
         queryParams.membershipPlanId = filters.extras.membershipPlanId
       }
@@ -210,6 +225,12 @@ export default function MembershipPurchaseReportPage() {
       width: "w-48",
     },
     {
+      key: "phoneNumber",
+      header: "Contact Number",
+      accessor: "phoneNumber",
+      width: "w-36",
+    },
+    {
       key: "planName",
       header: "Membership Plan",
       accessor: "planName",
@@ -217,10 +238,10 @@ export default function MembershipPurchaseReportPage() {
     },
     {
       key: "createdAt",
-      header: "Purchase Date",
-      accessor: (row) => (row.purchaseDate ? row.purchaseDate.slice(0, 10) : "—"),
+      header: "Purchase Date/Time",
+      accessor: (row) => (row.purchaseDate ? new Date(row.purchaseDate).toLocaleString("en-IN") : "—"),
       sortable: true,
-      width: "w-36",
+      width: "w-44",
     },
     {
       key: "amount",
@@ -244,10 +265,23 @@ export default function MembershipPurchaseReportPage() {
     },
     {
       key: "status",
-      header: "Membership Status",
-      accessor: (row) => renderStatusBadge(row.membershipStatus),
+      header: "Status (New, Renewal)",
+      accessor: (row) => renderMembershipStatusBadge(row.membershipStatus),
       sortable: true,
       width: "w-36",
+    },
+    {
+      key: "couponUsed",
+      header: "Coupon Used",
+      accessor: "couponUsed",
+      width: "w-32",
+    },
+    {
+      key: "rewardPointsUsed",
+      header: "Reward Points Used",
+      accessor: (row) => String(row.rewardPointsUsed),
+      align: "right",
+      width: "w-32",
     },
   ]
 

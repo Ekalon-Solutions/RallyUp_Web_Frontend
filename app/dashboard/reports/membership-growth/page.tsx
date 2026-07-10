@@ -27,15 +27,15 @@ import {
   SystemOwnerClubFilter,
 } from "@/components/reports"
 
-function renderStatusBadge(status: string) {
+function renderLifecycleStatusBadge(status: string) {
   const s = (status || "").toLowerCase()
   switch (s) {
-    case "active":
-      return <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-0 font-medium">Active</Badge>
+    case "new":
+      return <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border-0 font-medium">New</Badge>
+    case "renewed":
+      return <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-0 font-medium">Renewed</Badge>
     case "expired":
       return <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border-0 font-medium">Expired</Badge>
-    case "cancelled":
-      return <Badge className="bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border-0 font-medium">Cancelled</Badge>
     default:
       return <Badge variant="outline">{status}</Badge>
   }
@@ -46,6 +46,7 @@ interface MembershipGrowthRow extends Record<string, unknown> {
   userMembershipId: string
   memberName: string
   email: string
+  phoneNumber: string
   planName: string
   joinedDate: string | null
   renewalDate: string | null
@@ -157,6 +158,10 @@ export default function MembershipGrowthReportPage() {
     if (!shouldFetchReport({ authorized: auth.authorized, clubId, isSystemOwner })) return
     try {
       const queryParams: Record<string, any> = { format, ...resolveExportClubId({ clubId, selectedClubId, isSystemOwner }) }
+      if (filters.startDate) queryParams.startDate = filters.startDate
+      if (filters.endDate) queryParams.endDate = filters.endDate
+      if (filters.search) queryParams.search = filters.search
+      if (filters.status) queryParams.status = filters.status
       if (filters.extras?.membershipPlanId && filters.extras.membershipPlanId !== "all") {
         queryParams.membershipPlanId = filters.extras.membershipPlanId
       }
@@ -193,6 +198,12 @@ export default function MembershipGrowthReportPage() {
       width: "w-52",
     },
     {
+      key: "phoneNumber",
+      header: "Contact Number",
+      accessor: "phoneNumber",
+      width: "w-36",
+    },
+    {
       key: "planName",
       header: "Membership Plan",
       accessor: "planName",
@@ -220,7 +231,7 @@ export default function MembershipGrowthReportPage() {
     {
       key: "status",
       header: "Current Status",
-      accessor: (row) => renderStatusBadge(row.status),
+      accessor: (row) => renderLifecycleStatusBadge(row.status),
       sortable: true,
       width: "w-32",
     },

@@ -156,6 +156,9 @@ export default function RTOReportPage() {
     if (!shouldFetchReport({ authorized: auth.authorized, clubId, isSystemOwner })) return
     try {
       const queryParams: Record<string, any> = { format, ...resolveExportClubId({ clubId, selectedClubId, isSystemOwner }) }
+      if (filters.startDate) queryParams.startDate = filters.startDate
+      if (filters.endDate) queryParams.endDate = filters.endDate
+      if (filters.search) queryParams.search = filters.search
       if (filters.status && filters.status !== "all") queryParams.deliveryStatus = filters.status
 
       const res = await apiClient.downloadRTOReport(queryParams)
@@ -291,7 +294,7 @@ export default function RTOReportPage() {
       <ReportShell
         title="RTO (Return to Origin) Report"
         description="Failed delivery tracking with courier performance, RTO charges, timeline analysis, and shipping address details."
-        category="Platform"
+        category="Logistics"
         actions={<ExportButton onExport={handleExport} disabled={loading || data.length === 0} />}
         filters={
           <>

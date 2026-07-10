@@ -55,6 +55,14 @@ interface MemberDirectoryRow extends Record<string, unknown> {
   email: string
   phoneNumber: string
   city: string
+  country: string
+  stateProvince: string
+  pinCode: string
+  addressLine1: string
+  addressLine2: string
+  volunteeringOpted: string
+  idProofType: string
+  idProofNumber: string
   planName: string
   status: string
   startDate: string | null
@@ -179,6 +187,9 @@ export default function MemberDirectoryReportPage() {
         format,
         ...resolveExportClubId({ clubId, selectedClubId, isSystemOwner }),
       }
+      if (filters.startDate) queryParams.startDate = filters.startDate
+      if (filters.endDate) queryParams.endDate = filters.endDate
+      if (filters.search) queryParams.search = filters.search
       if (filters.status) queryParams.status = filters.status
       if (filters.extras?.membershipPlanId && filters.extras.membershipPlanId !== "all") {
         queryParams.membershipPlanId = filters.extras.membershipPlanId
@@ -242,6 +253,54 @@ export default function MemberDirectoryReportPage() {
       width: "w-32",
     },
     {
+      key: "country",
+      header: "Country",
+      accessor: "country",
+      width: "w-28",
+    },
+    {
+      key: "stateProvince",
+      header: "State",
+      accessor: "stateProvince",
+      width: "w-28",
+    },
+    {
+      key: "pinCode",
+      header: "Pin Code",
+      accessor: "pinCode",
+      width: "w-24",
+    },
+    {
+      key: "addressLine1",
+      header: "Address Line 1",
+      accessor: "addressLine1",
+      width: "w-48",
+    },
+    {
+      key: "addressLine2",
+      header: "Address Line 2",
+      accessor: "addressLine2",
+      width: "w-48",
+    },
+    {
+      key: "volunteeringOpted",
+      header: "Volunteering Opted",
+      accessor: "volunteeringOpted",
+      width: "w-32",
+    },
+    {
+      key: "idProofType",
+      header: "ID Proof Type",
+      accessor: "idProofType",
+      width: "w-32",
+    },
+    {
+      key: "idProofNumber",
+      header: "ID Proof Details",
+      accessor: "idProofNumber",
+      width: "w-40",
+    },
+    {
       key: "planName",
       header: "Plan",
       accessor: "planName",
@@ -256,14 +315,14 @@ export default function MemberDirectoryReportPage() {
     },
     {
       key: "start_date",
-      header: "Start Date",
+      header: "Current Plan Start Date",
       accessor: (row) => (row.startDate ? row.startDate.slice(0, 10) : "—"),
       sortable: true,
       width: "w-32",
     },
     {
       key: "endDate",
-      header: "End Date",
+      header: "Current Plan End Date",
       accessor: (row) => (row.endDate ? row.endDate.slice(0, 10) : "Lifelong"),
       width: "w-32",
     },

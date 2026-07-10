@@ -171,6 +171,10 @@ export default function EventTicketRefundsReportPage() {
     if (!shouldFetchReport({ authorized: auth.authorized, clubId, isSystemOwner })) return
     try {
       const queryParams: Record<string, any> = { format, ...resolveExportClubId({ clubId, selectedClubId, isSystemOwner }) }
+      if (filters.startDate) queryParams.startDate = filters.startDate
+      if (filters.endDate) queryParams.endDate = filters.endDate
+      if (filters.search) queryParams.search = filters.search
+      if (filters.status && filters.status !== "all") queryParams.status = filters.status
       if (filters.extras?.eventId && filters.extras.eventId !== "all") {
         queryParams.eventId = filters.extras.eventId
       }
@@ -297,7 +301,7 @@ export default function EventTicketRefundsReportPage() {
       <ReportShell
         title="Event Ticket Refund Log"
         description="Audit log of all event ticket refund requests, approval statuses, processed amounts, and processing admins."
-        category="Revenue"
+        category="Events"
         actions={<ExportButton onExport={handleExport} disabled={loading || data.length === 0} />}
         filters={
           <>

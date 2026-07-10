@@ -41,15 +41,25 @@ function renderRenewalStatusBadge(status: string) {
   return <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-0 font-medium">{status}</Badge>
 }
 
+function renderMembershipStatusBadge(status: string) {
+  const s = (status || "").toLowerCase()
+  if (s === "renewal") {
+    return <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-0 font-medium">Renewal</Badge>
+  }
+  return <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border-0 font-medium">New</Badge>
+}
+
 interface MembershipRenewalRow extends Record<string, unknown> {
   id: string
   memberName: string
   email: string
+  phoneNumber: string
   planName: string
   startDate: string | null
   expiryDate: string | null
   daysRemaining: number | string
   renewalStatus: string
+  membershipStatus: string
 }
 
 interface PlanOption {
@@ -156,6 +166,10 @@ export default function MembershipRenewalReportPage() {
     if (!shouldFetchReport({ authorized: auth.authorized, clubId, isSystemOwner })) return
     try {
       const queryParams: Record<string, any> = { format, ...resolveExportClubId({ clubId, selectedClubId, isSystemOwner }) }
+      if (filters.startDate) queryParams.startDate = filters.startDate
+      if (filters.endDate) queryParams.endDate = filters.endDate
+      if (filters.search) queryParams.search = filters.search
+      if (filters.status) queryParams.status = filters.status
       if (filters.extras?.membershipPlanId && filters.extras.membershipPlanId !== "all") {
         queryParams.membershipPlanId = filters.extras.membershipPlanId
       }
@@ -192,6 +206,12 @@ export default function MembershipRenewalReportPage() {
       width: "w-52",
     },
     {
+      key: "phoneNumber",
+      header: "Contact Number",
+      accessor: "phoneNumber",
+      width: "w-36",
+    },
+    {
       key: "planName",
       header: "Membership Plan",
       accessor: "planName",
@@ -214,17 +234,7 @@ export default function MembershipRenewalReportPage() {
     {
       key: "daysRemaining",
       header: "Days Remaining",
-      accessor: (row) => (
-        <span
-          className={
-            typeof row.daysRemaining === "number" && row.daysRemaining <= 30
-              ? "font-mono font-semibold text-amber-600 dark:text-amber-400"
-              : "font-mono"
-          }
-        >
-          {typeof row.daysRemaining === "number" ? `${row.daysRemaining} days` : row.daysRemaining}
-        </span>
-      ),
+      accessor: (row) => (typeof row.daysRemaining === "number" ? `${row.daysRemaining} days` : row.daysRemaining),
       align: "center",
       width: "w-36",
     },
@@ -233,6 +243,13 @@ export default function MembershipRenewalReportPage() {
       header: "Renewal Status",
       accessor: (row) => renderRenewalStatusBadge(row.renewalStatus),
       width: "w-40",
+    },
+    {
+      key: "membershipStatus",
+      header: "Current Membership Status (New, Renewal)",
+      accessor: (row) => renderMembershipStatusBadge(row.membershipStatus),
+      sortable: true,
+      width: "w-48",
     },
   ]
 

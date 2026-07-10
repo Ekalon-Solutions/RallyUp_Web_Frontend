@@ -44,6 +44,8 @@ interface InventoryRow extends Record<string, unknown> {
   availableStock: number
   lowStockIndicator: boolean
   outOfStockIndicator: boolean
+  featured: boolean
+  fastMoving: boolean
   status: string
 }
 
@@ -66,6 +68,9 @@ export default function InventoryReportPage() {
     try {
       const queryParams: Record<string, any> = { clubId, page, limit: 20, sortBy: sort.field, sortDir: sort.direction }
       if (filters.extras?.stockStatus && filters.extras.stockStatus !== "all") queryParams.stockStatus = filters.extras.stockStatus
+      if (filters.startDate) queryParams.startDate = filters.startDate
+      if (filters.endDate) queryParams.endDate = filters.endDate
+      if (filters.search) queryParams.search = filters.search
 
       const res = await apiClient.getInventoryReport(queryParams)
       if (res.success && res.data) {
@@ -110,6 +115,9 @@ export default function InventoryReportPage() {
     try {
       const queryParams: Record<string, any> = { format, ...resolveExportClubId({ clubId, selectedClubId, isSystemOwner }) }
       if (filters.extras?.stockStatus && filters.extras.stockStatus !== "all") queryParams.stockStatus = filters.extras.stockStatus
+      if (filters.startDate) queryParams.startDate = filters.startDate
+      if (filters.endDate) queryParams.endDate = filters.endDate
+      if (filters.search) queryParams.search = filters.search
       const res = await apiClient.downloadInventoryReport(queryParams)
       if (!res.success) toast.error(res.error || "Export failed")
       else toast.success(`Exported Inventory as ${format.toUpperCase()}`)
@@ -133,6 +141,8 @@ export default function InventoryReportPage() {
     { key: "stockQuantity", header: "Current Stock", accessor: "currentStock", sortable: true, align: "center", width: "w-32" },
     { key: "reservedStock", header: "Reserved Stock", accessor: "reservedStock", sortable: true, align: "center", width: "w-32" },
     { key: "availableStock", header: "Available Stock", accessor: "availableStock", sortable: true, align: "center", width: "w-32" },
+    { key: "fastMoving", header: "Fast Moving (Y/N)", accessor: (row) => (row.fastMoving ? "Y" : "N"), align: "center", width: "w-28" },
+    { key: "featured", header: "Featured (Y/N)", accessor: (row) => (row.featured ? "Y" : "N"), align: "center", width: "w-28" },
     { key: "status", header: "Indicator", accessor: (row) => renderStockBadge(row), width: "w-32" },
   ]
 

@@ -25,20 +25,6 @@ import {
   SystemOwnerClubFilter,
 } from "@/components/reports"
 
-function renderStatusBadge(status: string) {
-  const s = (status || "").toLowerCase()
-  if (s === "active") {
-    return <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 border-0 font-medium">Active</Badge>
-  }
-  if (s === "released") {
-    return <Badge className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border-0 font-medium">Released</Badge>
-  }
-  if (s === "expired") {
-    return <Badge className="bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border-0 font-medium">Expired</Badge>
-  }
-  return <Badge variant="outline">{status.charAt(0).toUpperCase() + status.slice(1)}</Badge>
-}
-
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
@@ -53,11 +39,15 @@ interface RewardPointsRedemptionRow extends Record<string, unknown> {
   memberName: string
   memberId: string
   pointsReserved: number
+  pointsAccumulated: number
+  pointsRemaining: number
   discountAmount: number
+  usedAgainst: string
   status: string
   reason: string
   releasedAt: string | null
   expiresAt: string | null
+  pointsExpireAt: string | null
   orderId: string | null
 }
 
@@ -153,6 +143,10 @@ export default function RewardPointsRedemptionReportPage() {
     if (!shouldFetchReport({ authorized: auth.authorized, clubId, isSystemOwner })) return
     try {
       const queryParams: Record<string, any> = { format, ...resolveExportClubId({ clubId, selectedClubId, isSystemOwner }) }
+      if (filters.startDate) queryParams.startDate = filters.startDate
+      if (filters.endDate) queryParams.endDate = filters.endDate
+      if (filters.search) queryParams.search = filters.search
+      if (filters.status && filters.status !== "all") queryParams.status = filters.status
 
       const res = await apiClient.downloadRewardPointsRedemptionReport(queryParams)
       if (!res.success) {
@@ -175,17 +169,6 @@ export default function RewardPointsRedemptionReportPage() {
 
   const columns: ReportColumn<RewardPointsRedemptionRow>[] = [
     {
-      key: "createdAt",
-      header: "Timestamp",
-      accessor: (row) => (
-        <span className="font-mono text-xs">
-          {row.timestamp ? row.timestamp.replace("T", " ").slice(0, 19) : "—"}
-        </span>
-      ),
-      sortable: true,
-      width: "w-44",
-    },
-    {
       key: "memberName",
       header: "Member",
       accessor: (row) => (
@@ -197,15 +180,31 @@ export default function RewardPointsRedemptionReportPage() {
       width: "w-40",
     },
     {
+      key: "pointsAccumulated",
+      header: "Points Accumulated",
+      accessor: (row) => (
+        <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+          {row.pointsAccumulated.toLocaleString()}
+        </span>
+      ),
+      width: "w-32",
+    },
+    {
       key: "pointsReserved",
-      header: "Points",
+      header: "Points Redeemed",
       accessor: (row) => (
         <span className="font-semibold text-blue-600 dark:text-blue-400">
           {row.pointsReserved.toLocaleString()}
         </span>
       ),
       sortable: true,
-      width: "w-24",
+      width: "w-32",
+    },
+    {
+      key: "pointsRemaining",
+      header: "Points Remaining",
+      accessor: (row) => <span className="font-mono text-xs">{row.pointsRemaining.toLocaleString()}</span>,
+      width: "w-32",
     },
     {
       key: "discountAmount",
@@ -218,33 +217,31 @@ export default function RewardPointsRedemptionReportPage() {
       width: "w-28",
     },
     {
-      key: "status",
-      header: "Status",
-      accessor: (row) => renderStatusBadge(row.status),
-      sortable: true,
+      key: "usedAgainst",
+      header: "Used against",
+      accessor: (row) => <Badge variant="outline">{row.usedAgainst}</Badge>,
       width: "w-28",
     },
     {
-      key: "reason",
-      header: "Reason",
+      key: "pointsExpireAt",
+      header: "Expires",
       accessor: (row) => (
-        <span className="text-xs text-muted-foreground truncate max-w-full block" title={row.reason}>
-          {row.reason || "—"}
+        <span className="font-mono text-xs">
+          {row.pointsExpireAt ? row.pointsExpireAt.replace("T", " ").slice(0, 10) : "—"}
         </span>
       ),
-      width: "w-40",
+      width: "w-28",
     },
     {
-      key: "orderId",
-      header: "Order",
+      key: "createdAt",
+      header: "Timestamp",
       accessor: (row) => (
-        row.orderId ? (
-          <span className="font-mono text-xs">{row.orderId.slice(0, 12)}...</span>
-        ) : (
-          <span className="text-xs text-muted-foreground">—</span>
-        )
+        <span className="font-mono text-xs">
+          {row.timestamp ? row.timestamp.replace("T", " ").slice(0, 19) : "—"}
+        </span>
       ),
-      width: "w-32",
+      sortable: true,
+      width: "w-44",
     },
   ]
 

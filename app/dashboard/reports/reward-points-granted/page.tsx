@@ -143,13 +143,16 @@ export default function RewardPointsGrantedReportPage() {
     if (!shouldFetchReport({ authorized: auth.authorized, clubId, isSystemOwner })) return
     try {
       const queryParams: Record<string, any> = { format, ...resolveExportClubId({ clubId, selectedClubId, isSystemOwner }) }
+      if (filters.startDate) queryParams.startDate = filters.startDate
+      if (filters.endDate) queryParams.endDate = filters.endDate
+      if (filters.search) queryParams.search = filters.search
       if (filters.status && filters.status !== "all") queryParams.sourceType = filters.status
 
       const res = await apiClient.downloadRewardPointsGrantedReport(queryParams)
       if (!res.success) {
         toast.error(res.error || "Export failed")
       } else {
-        toast.success(`Exported Reward Points Granted as ${format.toUpperCase()}`)
+        toast.success(`Exported Reward Points Accumulation as ${format.toUpperCase()}`)
       }
     } catch {
       toast.error("Export failed")
@@ -165,17 +168,6 @@ export default function RewardPointsGrantedReportPage() {
   }
 
   const columns: ReportColumn<RewardPointsGrantedRow>[] = [
-    {
-      key: "earnedAt",
-      header: "Timestamp",
-      accessor: (row) => (
-        <span className="font-mono text-xs">
-          {row.timestamp ? row.timestamp.replace("T", " ").slice(0, 19) : "Ã¢â‚¬â€"}
-        </span>
-      ),
-      sortable: true,
-      width: "w-44",
-    },
     {
       key: "memberName",
       header: "Member",
@@ -230,6 +222,17 @@ export default function RewardPointsGrantedReportPage() {
       ),
       width: "w-48",
     },
+    {
+      key: "earnedAt",
+      header: "Timestamp",
+      accessor: (row) => (
+        <span className="font-mono text-xs">
+          {row.timestamp ? row.timestamp.replace("T", " ").slice(0, 19) : "Ã¢â‚¬â€"}
+        </span>
+      ),
+      sortable: true,
+      width: "w-44",
+    },
   ]
 
   const summaryCards: SummaryCard[] = [
@@ -260,7 +263,7 @@ export default function RewardPointsGrantedReportPage() {
   return (
     <DashboardLayout>
       <ReportShell
-        title="Reward Points Granted Report"
+        title="Reward Points Accumulation Report"
         description="Member-wise breakdown of loyalty points awarded through attendance, manual adjustments, and other sources."
         category="Platform"
         actions={<ExportButton onExport={handleExport} disabled={loading || data.length === 0} />}

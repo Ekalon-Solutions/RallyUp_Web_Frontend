@@ -23,7 +23,6 @@ import {
   type ReportPaginationMeta,
   type ExportFormat,
   SystemOwnerClubFilter,
-  type ExportFormat,
 } from "@/components/reports"
 
 function renderRefundStatusBadge(status: string) {
@@ -72,6 +71,10 @@ export default function MerchandiseRefundsReportPage() {
     setLoading(true)
     try {
       const queryParams: Record<string, any> = { clubId, page, limit: 20, sortBy: sort.field, sortDir: sort.direction }
+      if (filters.status) queryParams.status = filters.status
+      if (filters.search) queryParams.search = filters.search
+      if (filters.startDate) queryParams.startDate = filters.startDate
+      if (filters.endDate) queryParams.endDate = filters.endDate
 
       const res = await apiClient.getMerchandiseRefundsReport(queryParams)
       if (res.success && res.data) {
@@ -114,6 +117,10 @@ export default function MerchandiseRefundsReportPage() {
     if (!shouldFetchReport({ authorized: auth.authorized, clubId, isSystemOwner })) return
     try {
       const queryParams: Record<string, any> = { format, ...resolveExportClubId({ clubId, selectedClubId, isSystemOwner }) }
+      if (filters.status) queryParams.status = filters.status
+      if (filters.search) queryParams.search = filters.search
+      if (filters.startDate) queryParams.startDate = filters.startDate
+      if (filters.endDate) queryParams.endDate = filters.endDate
       const res = await apiClient.downloadMerchandiseRefundsReport(queryParams)
       if (!res.success) toast.error(res.error || "Export failed")
       else toast.success(`Exported Merchandise Refunds as ${format.toUpperCase()}`)

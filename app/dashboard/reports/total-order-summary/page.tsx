@@ -1,7 +1,6 @@
 ﻿"use client"
 
 import { useCallback, useEffect, useState } from "react"
-import { ShoppingBag, DollarSign, TrendingUp, XCircle } from "lucide-react"
 import { toast } from "sonner"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { useSystemOwnerReportScope } from "@/hooks/useSystemOwnerReportScope"
@@ -75,8 +74,20 @@ interface TotalOrderSummaryRow extends Record<string, unknown> {
   customerName: string
   customerEmail: string
   customerPhone: string
+  isMember: boolean
+  membershipPlanName: string
+  billingAddress: string
+  shippingAddress: string
   orderDate: string
   totalAmount: number
+  shippingAmount: number
+  platformFeesInclGst: number
+  razorpayFeesInclGst: number
+  taxes: number
+  couponUsed: string
+  rewardPointsUsed: number
+  featured: boolean
+  fastMoving: boolean
   currency: string
   paymentStatus: string
   orderStatus: string
@@ -179,12 +190,16 @@ export default function TotalOrderSummaryPage() {
       if (filters.extras?.paymentStatus && filters.extras.paymentStatus !== "all") {
         queryParams.paymentStatus = filters.extras.paymentStatus
       }
+      if (filters.startDate) queryParams.startDate = filters.startDate
+      if (filters.endDate) queryParams.endDate = filters.endDate
+      if (filters.search) queryParams.search = filters.search
+      if (filters.status) queryParams.status = filters.status
 
       const res = await apiClient.downloadTotalOrderSummaryReport(queryParams)
       if (!res.success) {
         toast.error(res.error || "Export failed")
       } else {
-        toast.success(`Exported Total Order Summary as ${format.toUpperCase()}`)
+        toast.success(`Exported Merchandise Sales / Order Report as ${format.toUpperCase()}`)
       }
     } catch {
       toast.error("Export failed")
@@ -208,14 +223,46 @@ export default function TotalOrderSummaryPage() {
     },
     {
       key: "customerName",
-      header: "Customer",
-      accessor: (row) => (
-        <div>
-          <div className="font-medium text-xs">{row.customerName}</div>
-          <div className="text-[11px] text-muted-foreground">{row.customerEmail}</div>
-        </div>
-      ),
+      header: "Name",
+      accessor: "customerName",
+      width: "w-36",
+    },
+    {
+      key: "customerEmail",
+      header: "Email",
+      accessor: "customerEmail",
       width: "w-48",
+    },
+    {
+      key: "customerPhone",
+      header: "Contact Number",
+      accessor: "customerPhone",
+      width: "w-32",
+    },
+    {
+      key: "isMember",
+      header: "Member (Y/N)",
+      accessor: (row) => (row.isMember ? "Y" : "N"),
+      align: "center",
+      width: "w-24",
+    },
+    {
+      key: "membershipPlanName",
+      header: "Membership Plan Name",
+      accessor: (row) => row.membershipPlanName || "—",
+      width: "w-36",
+    },
+    {
+      key: "billingAddress",
+      header: "Billing Address",
+      accessor: (row) => row.billingAddress || "—",
+      width: "w-56",
+    },
+    {
+      key: "shippingAddress",
+      header: "Shipping Address",
+      accessor: (row) => row.shippingAddress || "—",
+      width: "w-56",
     },
     {
       key: "createdAt",
@@ -239,6 +286,61 @@ export default function TotalOrderSummaryPage() {
       sortable: true,
       align: "right",
       width: "w-36",
+    },
+    {
+      key: "shippingAmount",
+      header: "Shipping Amount",
+      accessor: (row) => formatCurrency(row.shippingAmount, row.currency),
+      align: "right",
+      width: "w-32",
+    },
+    {
+      key: "platformFeesInclGst",
+      header: "Platform Fees (incl GST)",
+      accessor: (row) => formatCurrency(row.platformFeesInclGst, row.currency),
+      align: "right",
+      width: "w-36",
+    },
+    {
+      key: "razorpayFeesInclGst",
+      header: "Razorpay Fees (incl. GST)",
+      accessor: (row) => formatCurrency(row.razorpayFeesInclGst, row.currency),
+      align: "right",
+      width: "w-36",
+    },
+    {
+      key: "taxes",
+      header: "Taxes",
+      accessor: (row) => formatCurrency(row.taxes, row.currency),
+      align: "right",
+      width: "w-28",
+    },
+    {
+      key: "couponUsed",
+      header: "Coupon Used",
+      accessor: (row) => row.couponUsed || "—",
+      width: "w-28",
+    },
+    {
+      key: "rewardPointsUsed",
+      header: "Reward Points Used",
+      accessor: (row) => row.rewardPointsUsed.toLocaleString(),
+      align: "right",
+      width: "w-28",
+    },
+    {
+      key: "featured",
+      header: "Featured (Y/N)",
+      accessor: (row) => (row.featured ? "Y" : "N"),
+      align: "center",
+      width: "w-24",
+    },
+    {
+      key: "fastMoving",
+      header: "Fast Moving (Y/N)",
+      accessor: (row) => (row.fastMoving ? "Y" : "N"),
+      align: "center",
+      width: "w-24",
     },
     {
       key: "paymentStatus",
@@ -276,26 +378,18 @@ export default function TotalOrderSummaryPage() {
     {
       label: "Total Orders",
       value: summaryData.totalOrders.toLocaleString(),
-      icon: ShoppingBag,
-      iconColor: "bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400",
     },
     {
       label: "Gross Revenue",
       value: formatCurrency(summaryData.grossRevenue),
-      icon: DollarSign,
-      iconColor: "bg-emerald-100 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400",
     },
     {
       label: "Average Order Value",
       value: formatCurrency(summaryData.averageOrderValue),
-      icon: TrendingUp,
-      iconColor: "bg-purple-100 text-purple-600 dark:bg-purple-950 dark:text-purple-400",
     },
     {
       label: "Cancelled Orders",
       value: summaryData.cancelledOrders.toLocaleString(),
-      icon: XCircle,
-      iconColor: "bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-400",
     },
   ]
 
@@ -319,7 +413,7 @@ export default function TotalOrderSummaryPage() {
   return (
     <DashboardLayout>
       <ReportShell
-        title="Total Order Summary"
+        title="Merchandise Sales / Order Report"
         description="Comprehensive financial overview of merchandise and store orders, payment statuses, and fulfillment states."
         category="Revenue"
         actions={<ExportButton onExport={handleExport} disabled={loading || data.length === 0} />}

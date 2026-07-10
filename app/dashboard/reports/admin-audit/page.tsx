@@ -51,11 +51,9 @@ interface AdminAuditLogRow extends Record<string, unknown> {
   actorType: string
   actorId: string
   action: string
-  targetId: string | null
   targetType: string | null
   riskLevel: "low" | "medium" | "high"
-  ipAddress: string
-  device: string
+  isCritical: boolean
   summary: string
   clubId: string
   clubName: string
@@ -193,6 +191,9 @@ export default function AdminAuditLogReportPage() {
         format,
         ...resolveExportClubId({ clubId, selectedClubId, isSystemOwner }),
       }
+      if (filters.startDate) queryParams.startDate = filters.startDate
+      if (filters.endDate) queryParams.endDate = filters.endDate
+      if (filters.search) queryParams.search = filters.search
       if (filters.extras?.actorType && filters.extras.actorType !== "all") {
         queryParams.actorType = filters.extras.actorType
       }
@@ -269,14 +270,7 @@ export default function AdminAuditLogReportPage() {
       accessor: (row) => (
         <div className="text-xs">
           {row.targetType ? (
-            <span>
-              <span className="font-medium capitalize">{row.targetType}</span>
-              {row.targetId && (
-                <span className="text-muted-foreground font-mono text-[11px] ml-1">
-                  ({row.targetId.slice(-6)})
-                </span>
-              )}
-            </span>
+            <span className="font-medium capitalize">{row.targetType}</span>
           ) : (
             <span className="text-muted-foreground/50">—</span>
           )}
@@ -292,10 +286,15 @@ export default function AdminAuditLogReportPage() {
       width: "w-28",
     },
     {
-      key: "ipAddress",
-      header: "IP Address",
-      accessor: (row) => <span className="font-mono text-xs text-muted-foreground">{row.ipAddress}</span>,
-      width: "w-32",
+      key: "isCritical",
+      header: "Critical",
+      accessor: (row) =>
+        row.isCritical ? (
+          <Badge className="bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border-0 font-medium">Yes</Badge>
+        ) : (
+          <span className="text-muted-foreground/50 text-xs">No</span>
+        ),
+      width: "w-24",
     },
     {
       key: "summary",

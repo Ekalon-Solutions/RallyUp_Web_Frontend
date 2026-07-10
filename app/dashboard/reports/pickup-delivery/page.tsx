@@ -69,8 +69,11 @@ function formatCurrency(amount: number) {
 interface PickupDeliveryRow extends Record<string, unknown> {
   id: string
   orderNumber: string
-  memberName: string
-  memberEmail: string
+  name: string
+  email: string
+  contactNumber: string
+  isMember: boolean
+  membershipPlanName: string
   city: string
   courierName: string
   deliveryStatus: string
@@ -183,6 +186,9 @@ export default function PickupDeliveryReportPage() {
     if (!shouldFetchReport({ authorized: auth.authorized, clubId, isSystemOwner })) return
     try {
       const queryParams: Record<string, any> = { format, ...resolveExportClubId({ clubId, selectedClubId, isSystemOwner }) }
+      if (filters.startDate) queryParams.startDate = filters.startDate
+      if (filters.endDate) queryParams.endDate = filters.endDate
+      if (filters.search) queryParams.search = filters.search
       if (filters.status && filters.status !== "all") queryParams.deliveryStatus = filters.status
       if (filters.extras?.courierName && filters.extras.courierName !== "all") {
         queryParams.courierName = filters.extras.courierName
@@ -215,15 +221,34 @@ export default function PickupDeliveryReportPage() {
       width: "w-36",
     },
     {
-      key: "memberName",
-      header: "Member Name",
-      accessor: (row) => (
-        <div>
-          <div className="font-medium text-xs">{row.memberName}</div>
-          <div className="text-[11px] text-muted-foreground">{row.memberEmail}</div>
-        </div>
-      ),
+      key: "name",
+      header: "Name",
+      accessor: "name",
+      width: "w-36",
+    },
+    {
+      key: "email",
+      header: "Email",
+      accessor: "email",
       width: "w-48",
+    },
+    {
+      key: "contactNumber",
+      header: "Contact Number",
+      accessor: "contactNumber",
+      width: "w-32",
+    },
+    {
+      key: "isMember",
+      header: "Member (Y/N)",
+      accessor: (row) => (row.isMember ? "Y" : "N"),
+      width: "w-24",
+    },
+    {
+      key: "membershipPlanName",
+      header: "Membership Plan Name",
+      accessor: "membershipPlanName",
+      width: "w-40",
     },
     {
       key: "city",

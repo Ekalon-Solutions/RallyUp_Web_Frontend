@@ -53,15 +53,24 @@ function formatCurrency(amount: number, currency: string = "INR") {
 
 interface EventTicketSalesRow extends Record<string, unknown> {
   id: string
+  orderId: string
   eventTitle: string
   eventId: string
   memberName: string
   memberEmail: string
+  mobileNumber: string
+  venueName: string
   registrationDate: string
   tierName: string
   amountPaid: number
   discountApplied: number
-  netRevenue: number
+  clubFees: number
+  memberOrAttendee: string
+  platformFeesInclGst: number
+  razorpayFeesInclGst: number
+  taxes: number
+  couponUsed: string
+  rewardPointsUsed: number
   paymentStatus: string
   currency: string
 }
@@ -172,6 +181,10 @@ export default function EventTicketSalesReportPage() {
     if (!shouldFetchReport({ authorized: auth.authorized, clubId, isSystemOwner })) return
     try {
       const queryParams: Record<string, any> = { format, ...resolveExportClubId({ clubId, selectedClubId, isSystemOwner }) }
+      if (filters.startDate) queryParams.startDate = filters.startDate
+      if (filters.endDate) queryParams.endDate = filters.endDate
+      if (filters.search) queryParams.search = filters.search
+      if (filters.status && filters.status !== "all") queryParams.status = filters.status
       if (filters.extras?.eventId && filters.extras.eventId !== "all") {
         queryParams.eventId = filters.extras.eventId
       }
@@ -197,26 +210,45 @@ export default function EventTicketSalesReportPage() {
 
   const columns: ReportColumn<EventTicketSalesRow>[] = [
     {
-      key: "title",
-      header: "Event Title",
-      accessor: "eventTitle",
-      sortable: true,
-      width: "w-52",
+      key: "orderId",
+      header: "Order ID",
+      accessor: (row) => <span className="font-mono text-xs">{row.orderId || "N/A"}</span>,
+      width: "w-36",
     },
     {
       key: "memberName",
-      header: "Member / Attendee",
-      accessor: (row) => (
-        <div>
-          <div className="font-medium text-xs">{row.memberName}</div>
-          <div className="text-[11px] text-muted-foreground">{row.memberEmail}</div>
-        </div>
-      ),
+      header: "Name",
+      accessor: "memberName",
+      width: "w-36",
+    },
+    {
+      key: "mobileNumber",
+      header: "Mobile Number",
+      accessor: "mobileNumber",
+      width: "w-32",
+    },
+    {
+      key: "memberEmail",
+      header: "Email",
+      accessor: "memberEmail",
+      width: "w-44",
+    },
+    {
+      key: "title",
+      header: "Event Name",
+      accessor: "eventTitle",
+      sortable: true,
       width: "w-48",
     },
     {
+      key: "venueName",
+      header: "Venue Name",
+      accessor: "venueName",
+      width: "w-36",
+    },
+    {
       key: "registrationDate",
-      header: "Registration Date",
+      header: "Ticket Purchase Date/Time",
       accessor: (row) => (
         <span className="font-mono text-xs">
           {row.registrationDate ? row.registrationDate.replace("T", " ").slice(0, 16) : "—"}
@@ -229,14 +261,14 @@ export default function EventTicketSalesReportPage() {
       key: "tierName",
       header: "Ticket Tier",
       accessor: "tierName",
-      width: "w-36",
+      width: "w-32",
     },
     {
       key: "amountPaid",
-      header: "Gross Amount",
+      header: "Amount Paid",
       accessor: (row) => (
-        <span className="font-mono text-xs">
-          {formatCurrency(row.amountPaid + row.discountApplied, row.currency)}
+        <span className="font-mono font-semibold text-emerald-600 dark:text-emerald-400">
+          {formatCurrency(row.amountPaid, row.currency)}
         </span>
       ),
       align: "right",
@@ -254,21 +286,63 @@ export default function EventTicketSalesReportPage() {
       width: "w-28",
     },
     {
-      key: "netRevenue",
-      header: "Net Revenue",
+      key: "clubFees",
+      header: "Club Fees",
       accessor: (row) => (
-        <span className="font-mono font-semibold text-emerald-600 dark:text-emerald-400">
-          {formatCurrency(row.netRevenue, row.currency)}
-        </span>
+        <span className="font-mono text-xs">{formatCurrency(row.clubFees, row.currency)}</span>
       ),
       align: "right",
-      width: "w-36",
+      width: "w-28",
+    },
+    {
+      key: "memberOrAttendee",
+      header: "Member/Attendee",
+      accessor: (row) => <Badge variant="outline">{row.memberOrAttendee}</Badge>,
+      width: "w-28",
+    },
+    {
+      key: "platformFeesInclGst",
+      header: "Platform Fees (incl GST)",
+      accessor: (row) => (
+        <span className="font-mono text-xs">{formatCurrency(row.platformFeesInclGst, row.currency)}</span>
+      ),
+      align: "right",
+      width: "w-32",
+    },
+    {
+      key: "razorpayFeesInclGst",
+      header: "Razorpay Fees (incl. GST)",
+      accessor: (row) => (
+        <span className="font-mono text-xs">{formatCurrency(row.razorpayFeesInclGst, row.currency)}</span>
+      ),
+      align: "right",
+      width: "w-32",
+    },
+    {
+      key: "taxes",
+      header: "Taxes",
+      accessor: (row) => <span className="font-mono text-xs">{formatCurrency(row.taxes, row.currency)}</span>,
+      align: "right",
+      width: "w-24",
+    },
+    {
+      key: "couponUsed",
+      header: "Coupon Used",
+      accessor: "couponUsed",
+      width: "w-28",
+    },
+    {
+      key: "rewardPointsUsed",
+      header: "Reward Points Used",
+      accessor: "rewardPointsUsed",
+      align: "center",
+      width: "w-28",
     },
     {
       key: "paymentStatus",
       header: "Status",
       accessor: (row) =>
-        row.netRevenue === 0
+        row.amountPaid === 0
           ? <Badge className="bg-slate-100 text-slate-800 dark:bg-slate-950 dark:text-slate-300 border-0 font-medium">Free</Badge>
           : renderPaymentStatusBadge(row.paymentStatus),
       width: "w-32",
@@ -304,8 +378,8 @@ const summaryCards: SummaryCard[] = [
     <DashboardLayout>
       <ReportShell
         title="Event Ticket Sales Report"
-        description="Event-by-event breakdown of ticket sales, gross revenue, promotional discounts, and net earnings."
-        category="Revenue"
+        description="Per-ticket breakdown of event registrations, revenue, fees, and discounts."
+        category="Events"
         actions={<ExportButton onExport={handleExport} disabled={loading || data.length === 0} />}
         filters={
           <>

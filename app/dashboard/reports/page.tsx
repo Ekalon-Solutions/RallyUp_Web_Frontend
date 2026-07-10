@@ -57,7 +57,7 @@ const ALL_REPORTS: ReportDefinition[] = [
   // ─── Revenue Reports ────────────────────────────────────────────────────
   {
     id: "total-order-summary",
-    name: "Total Order Summary",
+    name: "Merchandise Sales / Order Report",
     description: "Comprehensive order breakdown with revenue, order status, payment methods, and customer analytics.",
     category: "Revenue",
     href: "/dashboard/reports/total-order-summary",
@@ -67,7 +67,7 @@ const ALL_REPORTS: ReportDefinition[] = [
     id: "event-ticket-sales",
     name: "Event Ticket Sales",
     description: "Event registration revenue with ticket tiers, pricing, registrations, and capacity utilization.",
-    category: "Revenue",
+    category: "Events",
     href: "/dashboard/reports/event-ticket-sales",
     icon: Ticket,
   },
@@ -75,17 +75,9 @@ const ALL_REPORTS: ReportDefinition[] = [
     id: "event-ticket-refunds",
     name: "Event Ticket Refunds",
     description: "Event cancellation and refund tracking with refund amounts, methods, and customer details.",
-    category: "Revenue",
+    category: "Events",
     href: "/dashboard/reports/event-ticket-refunds",
     icon: RotateCcw,
-  },
-  {
-    id: "merchandise-sales",
-    name: "Merchandise Sales",
-    description: "Store product performance with units sold, revenue, SKU-level breakdown, and inventory turnover.",
-    category: "Revenue",
-    href: "/dashboard/reports/merchandise-sales",
-    icon: Package,
   },
   {
     id: "merchandise-refunds",
@@ -97,7 +89,7 @@ const ALL_REPORTS: ReportDefinition[] = [
   },
   {
     id: "best-seller",
-    name: "Best Seller Report",
+    name: "Featured Product Sales Report",
     description: "Ranking of merchandise products and ticketed events by units sold and revenue generated.",
     category: "Revenue",
     href: "/dashboard/reports/best-seller",
@@ -121,7 +113,7 @@ const ALL_REPORTS: ReportDefinition[] = [
   },
   {
     id: "refund-log",
-    name: "Refund Log",
+    name: "Overall Refund Log",
     description: "Unified refund audit trail across all revenue streams with amounts, methods, and timestamps.",
     category: "Revenue",
     href: "/dashboard/reports/refund-log",
@@ -159,14 +151,6 @@ const ALL_REPORTS: ReportDefinition[] = [
     description: "Renewal activity tracking with renewal rates, lapse rates, and retention metrics.",
     category: "Membership",
     href: "/dashboard/reports/membership-renewals",
-    icon: Calendar,
-  },
-  {
-    id: "membership-expiry",
-    name: "Membership Expiry",
-    description: "Upcoming membership expirations, days remaining, renewal rates, and churn risk levels.",
-    category: "Membership",
-    href: "/dashboard/reports/membership-expiry",
     icon: Calendar,
   },
 
@@ -228,7 +212,7 @@ const ALL_REPORTS: ReportDefinition[] = [
     id: "rto",
     name: "RTO (Return to Origin)",
     description: "Failed delivery tracking with courier performance, RTO charges, and timeline analysis.",
-    category: "Platform",
+    category: "Logistics",
     href: "/dashboard/reports/rto",
     icon: PackageX,
   },
@@ -254,7 +238,7 @@ const ALL_REPORTS: ReportDefinition[] = [
   // ─── Platform Analytics Reports ────────────────────────────────────────
   {
     id: "reward-points-granted",
-    name: "Reward Points Granted",
+    name: "Reward Points Accumulation Report",
     description: "Member-wise breakdown of loyalty points awarded through attendance, manual adjustments, and other sources.",
     category: "Platform",
     href: "/dashboard/reports/reward-points-granted",

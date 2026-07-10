@@ -61,6 +61,9 @@ interface RefundLogRow extends Record<string, unknown> {
   eventId: string | null
   memberName: string
   memberEmail: string
+  memberPhone: string
+  isMember: boolean
+  membershipPlanName: string
   refundAmount: number
   currency: string
   status: string
@@ -195,6 +198,10 @@ export default function RefundLogReportPage() {
         format,
         ...resolveExportClubId({ clubId, selectedClubId, isSystemOwner }),
       }
+      if (filters.startDate) queryParams.startDate = filters.startDate
+      if (filters.endDate) queryParams.endDate = filters.endDate
+      if (filters.search) queryParams.search = filters.search
+      if (filters.status && filters.status !== "all") queryParams.status = filters.status
       if (filters.extras?.sourceType && filters.extras.sourceType !== "all") {
         queryParams.sourceType = filters.extras.sourceType
       }
@@ -206,7 +213,7 @@ export default function RefundLogReportPage() {
       if (!res.success) {
         toast.error(res.error || "Export failed")
       } else {
-        toast.success(`Exported Refund Log as ${format.toUpperCase()}`)
+        toast.success(`Exported Overall Refund Log as ${format.toUpperCase()}`)
       }
     } catch {
       toast.error("Export failed")
@@ -241,14 +248,34 @@ export default function RefundLogReportPage() {
     },
     {
       key: "memberName",
-      header: "Member",
-      accessor: (row) => (
-        <div>
-          <div className="font-medium text-xs">{row.memberName}</div>
-          <div className="text-[11px] text-muted-foreground">{row.memberEmail}</div>
-        </div>
-      ),
-      width: "w-48",
+      header: "Name",
+      accessor: "memberName",
+      width: "w-32",
+    },
+    {
+      key: "memberEmail",
+      header: "Email",
+      accessor: "memberEmail",
+      width: "w-44",
+    },
+    {
+      key: "memberPhone",
+      header: "Contact Number",
+      accessor: "memberPhone",
+      width: "w-32",
+    },
+    {
+      key: "isMember",
+      header: "Member (Y/N)",
+      accessor: (row) => (row.isMember ? "Y" : "N"),
+      align: "center",
+      width: "w-24",
+    },
+    {
+      key: "membershipPlanName",
+      header: "Membership Plan Name",
+      accessor: (row) => row.membershipPlanName || "—",
+      width: "w-36",
     },
     {
       key: "estimatedRefund",
@@ -341,7 +368,7 @@ export default function RefundLogReportPage() {
   return (
     <DashboardLayout>
       <ReportShell
-        title="Refund Log Report"
+        title="Overall Refund Log"
         description="Audit log of all requested, processed, and rejected refund applications across events and store orders."
         category="Revenue"
         actions={
@@ -375,7 +402,7 @@ export default function RefundLogReportPage() {
                 onValueChange={(val) =>
                   setFilters((prev) => ({
                     ...prev,
-                    extras: { ...prev.extras, sourceType: val },
+                    extras: { ...prev.extras, sourceType: val, eventId: "all" },
                   }))
                 }
               >
@@ -393,8 +420,8 @@ export default function RefundLogReportPage() {
               </Select>
             </div>
 
-            {/* Custom Extra Filter: Event Dropdown */}
-            {eventOptions.length > 0 && (
+            {/* Custom Extra Filter: Event Dropdown — only relevant when Type isn't restricted to Store Order */}
+            {filters.extras?.sourceType !== "store_order" && eventOptions.length > 0 && (
               <div className="space-y-1.5">
                 <Label className="text-xs text-muted-foreground">Event</Label>
                 <Select

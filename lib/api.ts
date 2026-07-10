@@ -3217,24 +3217,6 @@ class ApiClient {
     }
   }
 
-  async getMerchandiseSalesReport(params: Record<string, any>): Promise<ApiResponse> {
-    return this.get('/reports/revenue/merchandise-sales', { params });
-  }
-
-  async downloadMerchandiseSalesReport(params: Record<string, any>): Promise<{ success: boolean; error?: string }> {
-    try {
-      const format = params?.format === 'csv' ? 'csv' : 'xlsx';
-      const result = await this.downloadFile('/reports/revenue/merchandise-sales/export', { params });
-      if (!result.success) return { success: false, error: result.error };
-      const blob = result.blob as Blob;
-      const filename = result.filename || `merchandise_sales_${Date.now()}.${format}`;
-      triggerBlobDownload(blob, filename);
-      return { success: true };
-    } catch (error: any) {
-      return { success: false, error: error?.message || 'Failed to download Merchandise Sales report' };
-    }
-  }
-
   async getMerchandiseRefundsReport(params: Record<string, any>): Promise<ApiResponse> {
     return this.get('/reports/revenue/merchandise-refunds', { params });
   }

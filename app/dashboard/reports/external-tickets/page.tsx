@@ -47,9 +47,15 @@ function renderExternalTicketStatusBadge(status: string) {
 interface ExternalTicketRow extends Record<string, unknown> {
   id: string
   userName: string
+  email: string
   phone: string
+  isMember: boolean
+  membershipPlanName: string
   competition: string
-  preferredDate: string | null
+  fixture: string
+  fixtureDate: string | null
+  approvalDate: string | null
+  approvedByAdminName: string
   tickets: number
   status: string
   requestedDate: string
@@ -151,6 +157,10 @@ export default function ExternalTicketReportPage() {
       if (filters.extras?.competition && filters.extras.competition !== "all") {
         queryParams.competition = filters.extras.competition
       }
+      if (filters.startDate) queryParams.startDate = filters.startDate
+      if (filters.endDate) queryParams.endDate = filters.endDate
+      if (filters.search) queryParams.search = filters.search
+      if (filters.status) queryParams.status = filters.status
 
       const res = await apiClient.downloadExternalTicketReport(queryParams)
       if (!res.success) {
@@ -180,26 +190,63 @@ export default function ExternalTicketReportPage() {
     },
     {
       key: "userName",
-      header: "User Name",
+      header: "Name",
       accessor: "userName",
+      width: "w-36",
+    },
+    {
+      key: "email",
+      header: "Email",
+      accessor: "email",
       width: "w-44",
     },
     {
       key: "phone",
-      header: "Phone",
+      header: "Contact Number",
       accessor: "phone",
+      width: "w-32",
+    },
+    {
+      key: "isMember",
+      header: "Member (Y/N)",
+      accessor: (row) => (row.isMember ? "Y" : "N"),
+      align: "center",
+      width: "w-24",
+    },
+    {
+      key: "membershipPlanName",
+      header: "Membership Plan Name",
+      accessor: (row) => row.membershipPlanName || "—",
       width: "w-36",
     },
     {
       key: "competition",
-      header: "Competition / Fixture",
+      header: "Competition",
       accessor: "competition",
-      width: "w-48",
+      width: "w-40",
     },
     {
-      key: "preferredDate",
-      header: "Preferred Date",
-      accessor: (row) => (row.preferredDate ? row.preferredDate.slice(0, 10) : "N/A"),
+      key: "fixture",
+      header: "Fixture",
+      accessor: "fixture",
+      width: "w-44",
+    },
+    {
+      key: "fixtureDate",
+      header: "Fixture Date",
+      accessor: (row) => (row.fixtureDate ? row.fixtureDate.slice(0, 10) : "N/A"),
+      width: "w-32",
+    },
+    {
+      key: "approvalDate",
+      header: "Approval Date/Time",
+      accessor: (row) => (row.approvalDate ? row.approvalDate.replace("T", " ").slice(0, 16) : "N/A"),
+      width: "w-40",
+    },
+    {
+      key: "approvedByAdminName",
+      header: "Approved by (Admin Name)",
+      accessor: (row) => row.approvedByAdminName || "N/A",
       width: "w-36",
     },
     {

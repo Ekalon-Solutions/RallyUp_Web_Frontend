@@ -75,7 +75,7 @@ interface ElevateDemoteRow extends Record<string, unknown> {
   actorType: string
   action: string
   targetType: string
-  targetId: string
+  targetName: string
   oldState: string
   newState: string
   summary: string
@@ -170,6 +170,9 @@ export default function ElevateDemoteReportPage() {
     if (!shouldFetchReport({ authorized: auth.authorized, clubId, isSystemOwner })) return
     try {
       const queryParams: Record<string, any> = { format, ...resolveExportClubId({ clubId, selectedClubId, isSystemOwner }) }
+      if (filters.startDate) queryParams.startDate = filters.startDate
+      if (filters.endDate) queryParams.endDate = filters.endDate
+      if (filters.search) queryParams.search = filters.search
       if (filters.status && filters.status !== "all") queryParams.action = filters.status
 
       const res = await apiClient.downloadElevateDemoteLogReport(queryParams)
@@ -204,11 +207,11 @@ export default function ElevateDemoteReportPage() {
       width: "w-44",
     },
     {
-      key: "targetId",
-      header: "Target ID / User",
+      key: "targetName",
+      header: "Change For",
       accessor: (row) => (
         <div>
-          <div className="font-mono text-xs font-medium">{row.targetId}</div>
+          <div className="font-medium text-xs">{row.targetName}</div>
           <div className="text-[10px] text-muted-foreground uppercase">{row.targetType}</div>
         </div>
       ),
