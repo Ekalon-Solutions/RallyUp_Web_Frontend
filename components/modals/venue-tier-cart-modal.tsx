@@ -113,7 +113,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
 
   // Simple-event ticket state
   const [ticketCount, setTicketCount] = useState<number>(1)
-  const [simpleAttendees, setSimpleAttendees] = useState<SimpleAttendee[]>([{ name: '', phone: '', phoneCode: '', open: true }])
+  const [simpleAttendees, setSimpleAttendees] = useState<SimpleAttendee[]>([{ name: '', phone: '', phoneCode: '+91', open: true }])
   const [remainingSeats, setRemainingSeats] = useState<number | null>(null)
   const [guestEmail, setGuestEmail] = useState("")
   const [guestEmailError, setGuestEmailError] = useState("")
@@ -285,7 +285,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
     setSimpleAttendees(prev => {
       const copy = [...prev]
       if (ticketCount > copy.length) {
-        for (let i = copy.length; i < ticketCount; i++) copy.push({ name: '', phone: '', phoneCode: '', open: false })
+        for (let i = copy.length; i < ticketCount; i++) copy.push({ name: '', phone: '', phoneCode: '+91', open: false })
       } else if (ticketCount < copy.length) {
         copy.length = ticketCount
       }
