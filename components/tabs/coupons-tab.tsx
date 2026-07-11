@@ -78,6 +78,15 @@ export function CouponsTab({ clubId }: CouponsTabProps) {
   useEffect(() => {
     if (clubId) fetchCoupons()
   }, [clubId])
+  useEffect(() => {
+    if (!clubId) return
+    
+    const intervalId = setInterval(() => {
+      fetchCoupons()
+    }, 30000)
+
+    return () => clearInterval(intervalId)
+  }, [clubId])
 
   const fetchCoupons = async () => {
     if (!clubId) return
@@ -265,10 +274,18 @@ export function CouponsTab({ clubId }: CouponsTabProps) {
               <CardTitle>Manage Coupons</CardTitle>
               <CardDescription>Create and manage discount coupons for events and merchandise</CardDescription>
             </div>
-            <Button onClick={handleCreateCoupon}>
-              <Plus className="w-4 h-4 mr-2" />
-              Create Coupon
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={fetchCoupons} variant="outline" size="sm" disabled={loading}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={loading ? "animate-spin" : ""}>
+                  <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+                  <path d="M21 3v5h-5" />
+                </svg>
+              </Button>
+              <Button onClick={handleCreateCoupon}>
+                <Plus className="w-4 h-4 mr-2" />
+                Create Coupon
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
