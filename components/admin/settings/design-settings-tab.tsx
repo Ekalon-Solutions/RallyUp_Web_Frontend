@@ -198,7 +198,7 @@ export function DesignSettingsTab() {
         <CardContent className="space-y-4">
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="primaryColor">Secondary Color</Label>
+              <Label htmlFor="primaryColor">Primary Color</Label>
               <div className="flex gap-2">
                 <Input
                   id="primaryColor"
@@ -218,7 +218,7 @@ export function DesignSettingsTab() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="secondaryColor">Primary Color</Label>
+              <Label htmlFor="secondaryColor">Secondary Color</Label>
               <div className="flex gap-2">
                 <Input
                   id="secondaryColor"
@@ -243,10 +243,10 @@ export function DesignSettingsTab() {
             borderColor: settings.primaryColor
           }}>
             <p className="font-medium" style={{ color: settings.primaryColor }}>
-              Preview of secondary color
+              Preview of primary color
             </p>
             <p className="text-sm mt-1" style={{ color: settings.secondaryColor }}>
-              Preview of primary color
+              Preview of secondary color
             </p>
           </div>
         </CardContent>
