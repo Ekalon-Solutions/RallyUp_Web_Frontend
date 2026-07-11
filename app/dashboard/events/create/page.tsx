@@ -589,7 +589,8 @@ function CreateEventForm() {
           full1080: imageFile1080,
         })
         if (!imgRes.success) {
-          toast.error((imgRes as any).message ?? imgRes.error ?? "Event saved, but the poster failed to upload")
+          toast.error((imgRes as any).message ?? imgRes.error ?? "Event saved, but the poster failed to upload — try saving again")
+          return
         }
       }
 
@@ -1427,6 +1428,15 @@ function CreateEventForm() {
   )
 }
 
+function CreateEventFormRoute() {
+  const searchParams = useSearchParams()
+  // Remount the whole form (and reset all its state, incl. picked poster
+  // images) whenever the target event changes — otherwise leftover state
+  // from a previous create/edit/duplicate leaks into the next one.
+  const formKey = searchParams.get("edit") ?? searchParams.get("duplicate") ?? "new"
+  return <CreateEventForm key={formKey} />
+}
+
 export default function CreateEventPage() {
   return (
     <Suspense fallback={
@@ -1436,7 +1446,7 @@ export default function CreateEventPage() {
         </div>
       </DashboardLayout>
     }>
-      <CreateEventForm />
+      <CreateEventFormRoute />
     </Suspense>
   )
 }

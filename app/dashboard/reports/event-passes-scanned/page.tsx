@@ -29,14 +29,19 @@ import {
 
 interface EventPassesScannedRow extends Record<string, unknown> {
   id: string
+  orderId: string
+  memberName: string
+  mobileNumber: string
+  memberEmail: string
   eventTitle: string
-  eventDate: string
-  venue: string
-  ticketsSold: number
-  passesScanned: number
-  attendanceRate: number
-  noShowCount: number
-  status: string
+  venueName: string
+  tierName: string
+  amountPaid: number
+  registrationDate: string
+  scanStatus: string
+  scannedAt: string | null
+  noShow: string
+  scannedBy: string
 }
 
 interface EventOption {
@@ -69,7 +74,7 @@ export default function EventPassesScannedReportPage() {
   })
 
   const [sort, setSort] = useState<{ field: string; direction: "asc" | "desc" }>({
-    field: "startTime",
+    field: "registrations.registrationDate",
     direction: "desc",
   })
 
@@ -145,6 +150,9 @@ export default function EventPassesScannedReportPage() {
     if (!shouldFetchReport({ authorized: auth.authorized, clubId, isSystemOwner })) return
     try {
       const queryParams: Record<string, any> = { format, ...resolveExportClubId({ clubId, selectedClubId, isSystemOwner }) }
+      if (filters.startDate) queryParams.startDate = filters.startDate
+      if (filters.endDate) queryParams.endDate = filters.endDate
+      if (filters.search) queryParams.search = filters.search
       if (filters.extras?.eventId && filters.extras.eventId !== "all") {
         queryParams.eventId = filters.extras.eventId
       }
@@ -170,60 +178,103 @@ export default function EventPassesScannedReportPage() {
 
   const columns: ReportColumn<EventPassesScannedRow>[] = [
     {
-      key: "startTime",
-      header: "Event Title",
-      accessor: "eventTitle",
-      sortable: true,
-      width: "w-56",
-    },
-    {
-      key: "eventDate",
-      header: "Event Date",
-      accessor: (row) => (
-        <span className="font-mono text-xs">
-          {row.eventDate ? row.eventDate.replace("T", " ").slice(0, 16) : "—"}
-        </span>
-      ),
+      key: "orderId",
+      header: "Order ID",
+      accessor: "orderId",
       width: "w-40",
     },
     {
-      key: "venue",
-      header: "Venue",
-      accessor: "venue",
-      width: "w-44",
+      key: "memberName",
+      header: "Name",
+      accessor: "memberName",
+      width: "w-40",
     },
     {
-      key: "ticketsSold",
-      header: "Tickets Sold",
-      accessor: (row) => <span className="font-mono font-medium">{(row.ticketsSold ?? 0).toLocaleString()}</span>,
-      sortable: true,
-      align: "center",
+      key: "mobileNumber",
+      header: "Mobile Number",
+      accessor: "mobileNumber",
       width: "w-32",
     },
     {
-      key: "passesScanned",
-      header: "Passes Scanned",
-      accessor: (row) => <span className="font-mono font-semibold text-emerald-600 dark:text-emerald-400">{(row.passesScanned ?? 0).toLocaleString()}</span>,
-      align: "center",
-      width: "w-36",
+      key: "memberEmail",
+      header: "Email",
+      accessor: "memberEmail",
+      width: "w-52",
     },
     {
-      key: "attendanceRate",
-      header: "Attendance %",
+      key: "title",
+      header: "Event Name",
+      accessor: "eventTitle",
+      sortable: true,
+      width: "w-52",
+    },
+    {
+      key: "venueName",
+      header: "Venue Name",
+      accessor: "venueName",
+      width: "w-40",
+    },
+    {
+      key: "tierName",
+      header: "Tier Name",
+      accessor: "tierName",
+      width: "w-32",
+    },
+    {
+      key: "amountPaid",
+      header: "Amount Paid",
+      accessor: (row) => <span className="font-mono">{(row.amountPaid ?? 0).toFixed(2)}</span>,
+      align: "right",
+      width: "w-28",
+    },
+    {
+      key: "registrations.registrationDate",
+      header: "Ticket Purchase Date/Time",
       accessor: (row) => (
-        <Badge className={(row.attendanceRate ?? 0) >= 75 ? "bg-emerald-100 text-emerald-800 border-0" : "bg-amber-100 text-amber-800 border-0"}>
-          {(row.attendanceRate ?? 0).toFixed(1)}%
+        <span className="font-mono text-xs">
+          {row.registrationDate ? row.registrationDate.replace("T", " ").slice(0, 19) : "—"}
+        </span>
+      ),
+      sortable: true,
+      width: "w-44",
+    },
+    {
+      key: "scanStatus",
+      header: "Ticket Scan Status",
+      accessor: (row) => (
+        <Badge className={row.scanStatus === "Scanned" ? "bg-emerald-100 text-emerald-800 border-0" : "bg-amber-100 text-amber-800 border-0"}>
+          {row.scanStatus}
         </Badge>
       ),
       align: "center",
       width: "w-36",
     },
     {
-      key: "noShowCount",
-      header: "No-show Count",
-      accessor: (row) => <span className="font-mono text-xs text-rose-600 dark:text-rose-400">{(row.noShowCount ?? 0).toLocaleString()}</span>,
+      key: "scannedAt",
+      header: "Ticket Scan Date/Time",
+      accessor: (row) => (
+        <span className="font-mono text-xs">
+          {row.scannedAt ? row.scannedAt.replace("T", " ").slice(0, 19) : "—"}
+        </span>
+      ),
+      width: "w-44",
+    },
+    {
+      key: "noShow",
+      header: "No Show (Y/N)",
+      accessor: (row) => (
+        <span className={row.noShow === "Y" ? "font-mono text-xs text-rose-600 dark:text-rose-400" : "font-mono text-xs"}>
+          {row.noShow}
+        </span>
+      ),
       align: "center",
-      width: "w-32",
+      width: "w-28",
+    },
+    {
+      key: "scannedBy",
+      header: "Scanned By",
+      accessor: (row) => row.scannedBy || "—",
+      width: "w-36",
     },
   ]
 
@@ -250,7 +301,7 @@ export default function EventPassesScannedReportPage() {
     <DashboardLayout>
       <ReportShell
         title="Event Passes Sold vs Scanned Report"
-        description="Tracks ticket turnout, vendor QR scan counts, real-time venue check-ins, and no-show percentages across events."
+        description="Per-ticket breakdown of scan status, check-in time, and no-show flag across events."
         category="Events"
         actions={<ExportButton onExport={handleExport} disabled={loading || data.length === 0} />}
         filters={
@@ -263,7 +314,7 @@ export default function EventPassesScannedReportPage() {
             )}
               <ReportFilters
               initialFilters={filters}
-            searchPlaceholder="Search event title, venue..."
+            searchPlaceholder="Search event title, name, email, order ID..."
             onApplyFilters={handleApplyFilters}
             onResetFilters={handleResetFilters}
             loading={loading}
@@ -300,7 +351,7 @@ export default function EventPassesScannedReportPage() {
           sort={sort}
           onSortChange={setSort}
           onPageChange={setPage}
-          emptyMessage="No event attendance scan records found for the selected criteria."
+          emptyMessage="No tickets found for the selected criteria."
           showClubColumn={isSystemOwner && !selectedClubId}
         />
       </ReportShell>
