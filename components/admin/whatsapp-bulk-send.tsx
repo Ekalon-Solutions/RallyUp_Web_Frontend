@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { apiClient, WhatsAppBulkPreview, WhatsAppMarketingTemplate } from "@/lib/api"
-import { usePrimaryClubOwner } from "@/hooks/usePrimaryClubOwner"
+import { useAuth } from "@/contexts/auth-context"
 import { toast } from "sonner"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -42,7 +42,8 @@ interface Props {
 }
 
 export function WhatsAppBulkSend({ clubId }: Props) {
-  const { isPrimaryOwner } = usePrimaryClubOwner()
+  const { user } = useAuth()
+  const isSuperAdmin = user?.role === "super_admin"
   const [templateName, setTemplateName] = useState("")
   const [templates, setTemplates] = useState<WhatsAppMarketingTemplate[]>([])
   const [templatesLoading, setTemplatesLoading] = useState(true)
@@ -276,9 +277,9 @@ export function WhatsAppBulkSend({ clubId }: Props) {
                 Fill {missingVariableIndexes.map((index) => `{{${index}}}`).join(", ")} to continue.
               </span>
             )}
-            {!isPrimaryOwner && (
+            {!isSuperAdmin && (
               <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
-                <Lock className="w-3 h-3" /> Sub-Admins can draft &amp; preview; only the Primary Admin can send.
+                <Lock className="w-3 h-3" /> Admins can draft &amp; preview; only a Super-Admin can send.
               </span>
             )}
           </div>
@@ -325,7 +326,7 @@ export function WhatsAppBulkSend({ clubId }: Props) {
             <Button variant="outline" onClick={() => setConfirmOpen(false)} disabled={sending}>
               Cancel
             </Button>
-            {isPrimaryOwner ? (
+            {isSuperAdmin ? (
               <Button onClick={handleSend} disabled={sending || !preview || preview.eligible === 0}>
                 {sending ? "Sending…" : "Confirm & Send Blast"}
               </Button>
@@ -338,7 +339,7 @@ export function WhatsAppBulkSend({ clubId }: Props) {
                     </span>
                   </TooltipTrigger>
                   <TooltipContent>
-                    Only the Primary Admin can trigger the final blast.
+                    Only a Super-Admin can trigger the final blast.
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>

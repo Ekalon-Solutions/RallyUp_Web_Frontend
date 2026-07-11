@@ -129,11 +129,11 @@ export function WhatsAppMarketingTab() {
           <div className="flex items-center justify-between rounded-md border p-4">
             <div className="space-y-0.5">
               <Label className="text-base">Enable WhatsApp Marketing</Label>
-              <p className="text-sm text-muted-foreground">
-                {status?.tcAccepted
-                  ? `Terms accepted${status.lastAcceptedByName ? ` by ${status.lastAcceptedByName}` : ""}.`
-                  : "Terms not yet accepted for this club."}
-              </p>
+              {status?.enabled && (
+                <p className="text-sm text-muted-foreground">
+                  {`Terms accepted${status.lastAcceptedByName ? ` by ${status.lastAcceptedByName}` : ""}.`}
+                </p>
+              )}
             </div>
 
             <TooltipProvider>
@@ -155,12 +155,10 @@ export function WhatsAppMarketingTab() {
             </TooltipProvider>
           </div>
 
-          {status && (
+          {status?.enabled && (
             <div className="flex items-center gap-2">
-              <Badge variant={status.tcAccepted ? "default" : "secondary"}>
-                {status.tcAccepted ? "T&C Accepted" : "T&C Pending"}
-              </Badge>
-              {enabled && <Badge className="bg-green-600">Active</Badge>}
+              <Badge>T&C Accepted</Badge>
+              <Badge className="bg-green-600">Active</Badge>
             </div>
           )}
         </CardContent>
