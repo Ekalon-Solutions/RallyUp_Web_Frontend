@@ -181,7 +181,7 @@ const systemOwnerNavigation = [
 const superAdminNavigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Members", href: "/dashboard/members", icon: Users },
-  { name: "Elevate Admin", href: "/dashboard/elevate-admin", icon: UserPlus },
+  { name: "Team & Access", href: "/dashboard/elevate-admin", icon: Shield },
   { name: "Events & Tickets", href: "/dashboard/events", icon: Ticket },
   { name: "Gallery", href: "/dashboard/gallery", icon: Images },
   { name: "News & Updates", href: "/dashboard/content", icon: Newspaper },
