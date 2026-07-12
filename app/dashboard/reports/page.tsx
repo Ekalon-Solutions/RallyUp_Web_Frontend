@@ -172,6 +172,7 @@ const ALL_REPORTS: ReportDefinition[] = [
     category: "Governance",
     href: "/dashboard/reports/admin-audit",
     icon: Shield,
+    badge: "Super Admin",
   },
   {
     id: "feature-selector",
@@ -188,6 +189,7 @@ const ALL_REPORTS: ReportDefinition[] = [
     category: "Governance",
     href: "/dashboard/reports/elevate-demote",
     icon: UserPlus,
+    badge: "Super Admin",
   },
   {
     id: "super-admin-audit-log",

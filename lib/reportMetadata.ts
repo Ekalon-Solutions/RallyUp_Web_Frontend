@@ -99,8 +99,9 @@ export const REPORT_AUTH_METADATA: Record<string, ReportAuthMetadata> = {
   // ─── Governance Reports ─────────────────────────────────────────────────────
   'admin-audit': {
     reportId: 'admin-audit',
-    requiredRole: ['admin', 'super_admin', 'system_owner'],
+    requiredRole: ['super_admin', 'system_owner'],
     requiredFeature: 'reporting',
+    superAdminPlusOnly: true,
   },
   'feature-selector': {
     reportId: 'feature-selector',
@@ -110,8 +111,9 @@ export const REPORT_AUTH_METADATA: Record<string, ReportAuthMetadata> = {
   },
   'elevate-demote': {
     reportId: 'elevate-demote',
-    requiredRole: ['admin', 'super_admin', 'system_owner'],
+    requiredRole: ['super_admin', 'system_owner'],
     requiredFeature: 'reporting',
+    superAdminPlusOnly: true,
   },
   'super-admin-audit-log': {
     reportId: 'super-admin-audit-log',

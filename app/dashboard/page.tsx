@@ -10,7 +10,6 @@ import { useAuth } from "@/contexts/auth-context"
 import { PollsWidget } from "@/components/polls-widget"
 import { LatestEventsWidget } from "@/components/latest-events-widget"
 import { LatestNewsWidget } from "@/components/latest-news-widget"
-import { WhatsAppStatusCard } from "@/components/admin/whatsapp-status-card"
 
 import { apiClient } from "@/lib/api"
 import { useClubSettings } from "@/hooks/useClubSettings"
@@ -252,11 +251,6 @@ export default function DashboardPage() {
               <h1 className="text-2xl sm:text-3xl font-bold">Dashboard</h1>
               <p className="text-muted-foreground text-sm sm:text-base">Welcome back! Here's what's happening with your supporter group.</p>
             </div>
-          </div>
-
-          {/* WhatsApp service status (hidden for vendor/bouncer roles) */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <WhatsAppStatusCard clubId={activeClubId} />
           </div>
 
           {/* Stats Grid */}

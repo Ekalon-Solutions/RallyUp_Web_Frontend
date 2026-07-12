@@ -18,11 +18,14 @@ import { useClubFeatures } from "@/hooks/useClubFeatures"
 import { apiClient, WhatsAppMarketingStatus, WhatsAppMarketingTerms } from "@/lib/api"
 import { WhatsAppMarketingTermsModal } from "@/components/modals/whatsapp-marketing-terms-modal"
 import { WhatsAppBulkSend } from "@/components/admin/whatsapp-bulk-send"
+import { WhatsAppStatusCard } from "@/components/admin/whatsapp-status-card"
 import { LockedFeaturePage, FeatureUnavailableOverlay } from "@/components/feature-gate"
+import { useCanManageFees } from "@/hooks/useCanManageFees"
 
 export function WhatsAppMarketingTab() {
   const clubId = useRequiredClubId()
   const { isEnabled, loading: featuresLoading, config } = useClubFeatures(clubId)
+  const canManageFees = useCanManageFees()
   const [status, setStatus] = useState<WhatsAppMarketingStatus | null>(null)
   const [terms, setTerms] = useState<WhatsAppMarketingTerms | null>(null)
   const [loading, setLoading] = useState(true)
@@ -114,6 +117,10 @@ export function WhatsAppMarketingTab() {
       {clubId && (
         <FeatureUnavailableOverlay featureKey="wa_marketing" featureLabel="WhatsApp Marketing" clubId={clubId} />
       )}
+
+      {/* Service status + billing usage — financial admins only */}
+      {canManageFees && <WhatsAppStatusCard clubId={clubId} />}
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">

@@ -34,7 +34,6 @@ interface BestSellerRow extends Record<string, unknown> {
   name: string
   unitsSold: number
   revenueGenerated: number
-  fastMoving: boolean
   currency: string
 }
 
@@ -124,7 +123,6 @@ export default function BestSellerReportPage() {
     { key: "name", header: "Product", accessor: "name", sortable: true, width: "w-64" },
     { key: "unitsSold", header: "Units Sold", accessor: "unitsSold", sortable: true, align: "center", width: "w-28" },
     { key: "revenueGenerated", header: "Revenue Generated", accessor: (row) => <span className="font-mono font-semibold text-emerald-600 dark:text-emerald-400">{formatCurrency(row.revenueGenerated, row.currency)}</span>, sortable: true, align: "right", width: "w-40" },
-    { key: "fastMoving", header: "Fast Moving (Y/N)", accessor: (row) => (row.fastMoving ? "Y" : "N"), align: "center", width: "w-28" },
   ]
 
   const summaryCards: SummaryCard[] = [

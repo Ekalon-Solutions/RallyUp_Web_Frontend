@@ -87,7 +87,6 @@ interface TotalOrderSummaryRow extends Record<string, unknown> {
   couponUsed: string
   rewardPointsUsed: number
   featured: boolean
-  fastMoving: boolean
   currency: string
   paymentStatus: string
   orderStatus: string
@@ -332,13 +331,6 @@ export default function TotalOrderSummaryPage() {
       key: "featured",
       header: "Featured (Y/N)",
       accessor: (row) => (row.featured ? "Y" : "N"),
-      align: "center",
-      width: "w-24",
-    },
-    {
-      key: "fastMoving",
-      header: "Fast Moving (Y/N)",
-      accessor: (row) => (row.fastMoving ? "Y" : "N"),
       align: "center",
       width: "w-24",
     },

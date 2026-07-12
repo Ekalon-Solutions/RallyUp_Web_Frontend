@@ -45,7 +45,6 @@ interface InventoryRow extends Record<string, unknown> {
   lowStockIndicator: boolean
   outOfStockIndicator: boolean
   featured: boolean
-  fastMoving: boolean
   status: string
 }
 
@@ -141,7 +140,6 @@ export default function InventoryReportPage() {
     { key: "stockQuantity", header: "Current Stock", accessor: "currentStock", sortable: true, align: "center", width: "w-32" },
     { key: "reservedStock", header: "Reserved Stock", accessor: "reservedStock", sortable: true, align: "center", width: "w-32" },
     { key: "availableStock", header: "Available Stock", accessor: "availableStock", sortable: true, align: "center", width: "w-32" },
-    { key: "fastMoving", header: "Fast Moving (Y/N)", accessor: (row) => (row.fastMoving ? "Y" : "N"), align: "center", width: "w-28" },
     { key: "featured", header: "Featured (Y/N)", accessor: (row) => (row.featured ? "Y" : "N"), align: "center", width: "w-28" },
     { key: "status", header: "Indicator", accessor: (row) => renderStockBadge(row), width: "w-32" },
   ]
