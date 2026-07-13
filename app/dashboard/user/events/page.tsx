@@ -1069,7 +1069,7 @@ function UserEventsPageInner() {
                                     handleEventRegistration(event._id)
                                   }
                                   className="w-full">
-                                  Register for Event
+                                  {event.category === 'csr-events' ? 'Donate for Event' : 'Register for Event'}
                                 </Button>
                               );
                             }
@@ -1211,6 +1211,7 @@ function UserEventsPageInner() {
               name: (eventForPayment as any).title || (eventForPayment as any).name || "Event",
               price: (eventForPayment as any).ticketPrice ?? (eventForPayment as any).price ?? 0,
               ticketPrice: (eventForPayment as any).ticketPrice,
+              category: (eventForPayment as any).category,
               earlyBirdDiscount: (eventForPayment as any).earlyBirdDiscount,
               memberDiscount: (eventForPayment as any).memberDiscount,
               groupDiscount: (eventForPayment as any).groupDiscount,

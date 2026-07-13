@@ -138,7 +138,7 @@ export default function ExternalTicketingPage() {
     }
   }
 
-  const formatPrice = (price: number, currency: string = 'USD') => {
+  const formatPrice = (price: number, currency: string = 'INR') => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: currency,
@@ -375,7 +375,7 @@ export default function ExternalTicketingPage() {
                                  <TableCell className="font-semibold">
                                    {formatPrice(
                                      membership.membership_level_id?.price ?? 0, 
-                                     membership.membership_level_id?.currency ?? 'USD'
+                                     membership.membership_level_id?.currency ?? 'INR'
                                    )}
                                 </TableCell>
                                 <TableCell>

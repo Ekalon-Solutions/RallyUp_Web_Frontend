@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { CountryCodeSelect } from "@/components/country-code-select"
 import { Loader2, Phone, CheckCircle2, Info, MessageCircle } from "lucide-react"
 import { apiClient } from "@/lib/api"
 import { toast } from "sonner"
@@ -260,6 +261,8 @@ export function PurchaseFlowModal({
 
       if (res.success && res.data?.verified) {
         setPhoneVerified(true)
+        localStorage.setItem("rallyup_verified_guest_phone", digits)
+        localStorage.setItem("rallyup_verified_guest_country_code", countryCode.trim() || "+91")
         toast.success("Phone number verified")
       } else {
         toast.error(res.message || res.error || "Invalid or expired code")
@@ -380,6 +383,11 @@ export function PurchaseFlowModal({
   }
 
   const handleContinue = () => {
+    const digits = mobileNumber.replace(/\D/g, "")
+    if (digits) {
+      localStorage.setItem("rallyup_verified_guest_phone", digits)
+      localStorage.setItem("rallyup_verified_guest_country_code", countryCode.trim() || "+91")
+    }
     onClose()
     onContinueToPayment()
   }
@@ -444,12 +452,10 @@ export function PurchaseFlowModal({
               <div className="grid grid-cols-[auto_1fr] gap-2 items-end">
                 <div className="space-y-2">
                   <Label htmlFor="countryCode">Code</Label>
-                  <Input
+                  <CountryCodeSelect
                     id="countryCode"
-                    type="text"
-                    placeholder="+91"
                     value={countryCode}
-                    onChange={(e) => setCountryCode(e.target.value)}
+                    onValueChange={setCountryCode}
                     className="w-24"
                   />
                 </div>

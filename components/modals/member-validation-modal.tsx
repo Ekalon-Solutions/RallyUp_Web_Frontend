@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { CountryCodeSelect } from "@/components/country-code-select"
 import { Loader2, Mail, Phone, CheckCircle2, Info } from "lucide-react"
 import { apiClient } from "@/lib/api"
 import { toast } from "sonner"
@@ -130,12 +131,10 @@ export function MemberValidationModal({
 
             <div className="space-y-2">
               <Label htmlFor="countryCode">Country Code</Label>
-              <Input
+              <CountryCodeSelect
                 id="countryCode"
-                type="text"
-                placeholder="+1"
                 value={countryCode}
-                onChange={(e) => setCountryCode(e.target.value)}
+                onValueChange={setCountryCode}
                 className="mb-2"
               />
             </div>

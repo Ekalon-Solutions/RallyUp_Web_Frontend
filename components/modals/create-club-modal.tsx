@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
+import { CountryCodeSelect } from "@/components/country-code-select"
 import { Switch } from "@/components/ui/switch"
 import {
   Dialog,
@@ -53,6 +54,7 @@ export function CreateClubModal({ isOpen, onClose, onSuccess }: CreateClubModalP
     superAdminCountryCode: "+1"
   })
   const [errors, setErrors] = useState<{ slug?: string }>({})
+  const [platformFeeWarning, setPlatformFeeWarning] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -73,6 +75,12 @@ export function CreateClubModal({ isOpen, onClose, onSuccess }: CreateClubModalP
     }
     // keep normalized slug
     formData.slug = slugValue
+
+    if (formData.platformFeePercent > 100) {
+      toast.error("Platform fee should be less than 100%")
+      setIsLoading(false)
+      return
+    }
 
     try {
       const response = await apiClient.createClub({
@@ -251,11 +259,10 @@ export function CreateClubModal({ isOpen, onClose, onSuccess }: CreateClubModalP
                 <div className="flex items-center gap-2">
                   <Phone className="w-4 h-4 text-muted-foreground" />
                   <div className="flex gap-2">
-                    <Input
+                    <CountryCodeSelect
                       value={formData.countryCode}
-                      onChange={(e) => handleInputChange("countryCode", e.target.value)}
-                      className="w-20"
-                      placeholder="+1"
+                      onValueChange={(value) => handleInputChange("countryCode", value)}
+                      className="w-24"
                     />
                     <Input
                       id="contactPhone"
@@ -440,13 +447,21 @@ export function CreateClubModal({ isOpen, onClose, onSuccess }: CreateClubModalP
                 id="platformFeePercent"
                 type="number"
                 value={formData.platformFeePercent}
-                onChange={(e) => setFormData(prev => ({ ...prev, platformFeePercent: parseFloat(e.target.value) || 5 }))}
+                onChange={(e) => {
+                  const v = parseFloat(e.target.value)
+                  setFormData(prev => ({ ...prev, platformFeePercent: isNaN(v) ? 0 : Math.round(v * 100) / 100 }))
+                  setPlatformFeeWarning(v > 100)
+                }}
                 placeholder="5"
                 min="0"
-                max="100"
-                step="0.5"
+                step="0.01"
               />
-              <p className="text-xs text-muted-foreground">Percentage charged on transactions (default: 5%)</p>
+              {platformFeeWarning && (
+                <p className="text-xs text-red-500">Platform fee (%) cannot be greater than 100</p>
+              )}
+              {!platformFeeWarning && (
+                <p className="text-xs text-muted-foreground">Percentage charged on transactions (default: 5%)</p>
+              )}
             </div>
           </div>
 

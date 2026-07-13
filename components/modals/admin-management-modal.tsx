@@ -7,6 +7,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { CountryCodeSelect } from '@/components/country-code-select'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { 
@@ -480,11 +481,10 @@ export function AdminManagementModal({ clubId, clubName, trigger }: AdminManagem
                      </div>
                     <div className="space-y-2">
                       <Label htmlFor="adminCountryCode">Country Code</Label>
-                      <Input
+                      <CountryCodeSelect
                         id="adminCountryCode"
                         value={createForm.countryCode}
-                        onChange={(e) => setCreateForm({ ...createForm, countryCode: e.target.value })}
-                        placeholder="+1"
+                        onValueChange={(value) => setCreateForm({ ...createForm, countryCode: value })}
                       />
                     </div>
                   </div>

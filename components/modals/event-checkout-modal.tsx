@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
@@ -41,6 +41,7 @@ interface EventCheckoutModalProps {
   clubId?: string
     ticketPrice?: number
     platformFeePercent?: number
+    category?: string
     earlyBirdDiscount?: {
       enabled?: boolean
       type?: 'percentage' | 'fixed'
@@ -99,6 +100,8 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
   const [localCouponCode, setLocalCouponCode] = useState("")
   const [validatingCoupon, setValidatingCoupon] = useState(false)
   const [couponApplied, setCouponApplied] = useState(false)
+  const [isAutoApplied, setIsAutoApplied] = useState(false)
+  const [autoCouponRemoved, setAutoCouponRemoved] = useState(false)
   const [attributedClub, setAttributedClub] = useState("")
   const [attributedClubError, setAttributedClubError] = useState("")
   const [showClubAlert, setShowClubAlert] = useState(false)
@@ -139,13 +142,17 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
       setReservedDiscount(0)
       return
     }
+    setReserving(true)
     try {
       await apiClient.cancelReservation(reservationToken)
+      setReservationToken(null)
+      setRedeemPoints("")
+      setReservedDiscount(0)
     } catch (e) {
+      toast.error('Failed to clear reserved points')
+    } finally {
+      setReserving(false)
     }
-    setReservationToken(null)
-    setRedeemPoints("")
-    setReservedDiscount(0)
   }
 
   useEffect(() => {
@@ -155,6 +162,8 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
       setCouponApplied(false)
       setCouponDiscount(0)
       setCouponName("")
+      setIsAutoApplied(false)
+      setAutoCouponRemoved(false)
       setAttributedClub("")
       setAttributedClubError("")
       setShowClubAlert(false)
@@ -286,6 +295,65 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
     }
   }
 
+  const triggerAutoCouponApply = useCallback(async (phoneNumber?: string, emailAddress?: string) => {
+    if (autoCouponRemoved) return
+
+    const searchPhone = phoneNumber || user?.phoneNumber || attendees?.[0]?.phone || localStorage.getItem("rallyup_verified_guest_phone") || ""
+    const searchEmail = emailAddress || guestEmail || user?.email || ""
+    const clubId = eventData?.clubId || event?.clubId || (event as any)?.club?._id
+
+    if (!clubId || (!searchPhone && !searchEmail)) return
+
+    const { orderTotalBeforeCoupon } = getOrderPricing()
+    if (orderTotalBeforeCoupon <= 0) return
+
+    try {
+      const res = await apiClient.getHighestEligibleAutoCoupon({
+        clubId,
+        phone: searchPhone || undefined,
+        email: searchEmail || undefined,
+        cartSubtotal: orderTotalBeforeCoupon,
+        eventId: event?._id || undefined
+      })
+
+      if (res.success && res.data?.coupon) {
+        const autoC = res.data.coupon
+        setCouponDiscount(autoC.discount)
+        setCouponName(autoC.name)
+        setLocalCouponCode(autoC.code)
+        setCouponApplied(true)
+        setIsAutoApplied(true)
+      } else {
+        if (isAutoApplied) {
+          setLocalCouponCode("")
+          setCouponApplied(false)
+          setCouponDiscount(0)
+          setCouponName("")
+          setIsAutoApplied(false)
+        }
+      }
+    } catch (err) {
+      console.error("Auto coupon fetch error:", err)
+    }
+  }, [autoCouponRemoved, user, attendees, guestEmail, eventData, event, isAutoApplied])
+
+  useEffect(() => {
+    if (isOpen) {
+      const storedPhone = localStorage.getItem("rallyup_verified_guest_phone") || ""
+      triggerAutoCouponApply(storedPhone)
+    }
+  }, [isOpen, triggerAutoCouponApply])
+
+  useEffect(() => {
+    if (isOpen && (attendees?.[0]?.phone || guestEmail)) {
+      const delayDebounceFn = setTimeout(() => {
+        triggerAutoCouponApply()
+      }, 500)
+      return () => clearTimeout(delayDebounceFn)
+    }
+  }, [attendees, guestEmail, isOpen, triggerAutoCouponApply])
+
+
   const checkoutEventId = event?._id ? String(event._id) : undefined
   const isPaidCheckout = (event?.ticketPrice ?? event?.price ?? 0) > 0
   const refundPolicy = useCheckoutRefundPolicy(checkoutEventId, isOpen, isPaidCheckout)
@@ -329,6 +397,8 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
     setLocalCouponCode("")
     setCouponDiscount(0)
     setCouponName("")
+    setIsAutoApplied(false)
+    setAutoCouponRemoved(true)
     toast.info("Coupon removed")
   }
 
@@ -837,12 +907,28 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
 
                 {couponApplied && couponDiscount > 0 && (
                   <>
-                    <div className="flex justify-between items-center text-green-600 text-sm">
-                      <span className="flex items-center gap-1">
-                        <Tag className="w-4 h-4" />
-                        Coupon ({localCouponCode}){couponName ? ` — ${couponName}` : ''}
-                      </span>
-                      <span>-{formatCurrency(couponDiscount, event.currency)}</span>
+                    <div className="flex justify-between items-start text-green-600 text-sm">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-1.5 font-medium">
+                          <Tag className="w-4 h-4" />
+                          <span>Coupon ({localCouponCode}){couponName ? ` — ${couponName}` : ''}</span>
+                        </div>
+                        {isAutoApplied && (
+                          <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                            <span className="bg-green-100 text-green-800 text-[10px] leading-4 px-1.5 py-0.5 rounded font-medium border border-green-200">
+                              Member Discount Auto-Applied
+                            </span>
+                            <button
+                              type="button"
+                              onClick={handleRemoveCoupon}
+                              className="text-[10px] leading-4 text-red-600 hover:text-red-800 font-semibold underline"
+                            >
+                              Remove/Change Code
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      <span className="font-medium shrink-0">-{formatCurrency(couponDiscount, event.currency)}</span>
                     </div>
                     <Separator />
                   </>
@@ -936,7 +1022,14 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
                       <input
                         type="text"
                         value={localCouponCode}
-                        onChange={(e) => setLocalCouponCode(e.target.value.toUpperCase())}
+                        onChange={(e) => {
+                          const val = e.target.value.toUpperCase()
+                          setLocalCouponCode(val)
+                          if (!val && autoCouponRemoved) {
+                            setAutoCouponRemoved(false)
+                            triggerAutoCouponApply()
+                          }
+                        }}
                         placeholder="Enter coupon code"
                         className="flex-1 h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
                         disabled={validatingCoupon}
@@ -954,12 +1047,29 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
                   ) : (
                     <div className="flex items-center justify-between p-2.5 bg-green-500/10 border border-green-500 rounded-lg">
                       <div>
-                        <p className="font-semibold text-sm">{couponName}</p>
+                        <div className="font-semibold text-sm flex items-center gap-2 flex-wrap">
+                          <span>{couponName}</span>
+                          {isAutoApplied && (
+                            <span className="bg-green-100 text-green-800 text-[10px] leading-4 px-1.5 py-0.5 rounded font-medium border border-green-200">
+                              Member Discount Auto-Applied
+                            </span>
+                          )}
+                        </div>
                         <p className="text-muted-foreground text-xs">Code: {localCouponCode}</p>
                       </div>
-                      <Button variant="ghost" size="sm" onClick={handleRemoveCoupon} className="text-destructive hover:text-destructive">
-                        <X className="w-4 h-4" />
-                      </Button>
+                      {!isAutoApplied ? (
+                        <Button variant="ghost" size="sm" onClick={handleRemoveCoupon} className="text-destructive hover:text-destructive">
+                          <X className="w-4 h-4" />
+                        </Button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={handleRemoveCoupon}
+                          className="text-xs text-red-600 hover:text-red-800 font-semibold underline ml-2 shrink-0"
+                        >
+                          Remove/Change Code
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>
@@ -1033,7 +1143,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
 
         <div className="flex-shrink-0 pt-4 pb-2 sm:pb-0 mt-4 border-t bg-background shadow-[0_-15px_15px_-15px_rgba(0,0,0,0.1)] z-10">
           <div className="flex justify-between items-center font-bold text-lg px-1 mb-3">
-            <span>Total to Pay:</span>
+            <span>{event?.category === 'csr-events' ? 'Total to Donate:' : 'Total to Pay:'}</span>
             <span className="text-primary">{formatCurrency(amountToCharge, event.currency)}</span>
           </div>
           <Button
@@ -1048,7 +1158,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
                 Processing...
               </div>
             ) : (
-              "Pay Now"
+              event?.category === 'csr-events' ? 'Donate Now' : 'Pay Now'
             )}
           </Button>
         </div>

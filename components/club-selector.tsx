@@ -120,7 +120,7 @@ export const ClubSelector: React.FC<ClubSelectorProps> = ({ onClubSelect, select
   const formatPrice = (price: number, currency: string) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: currency || 'USD'
+      currency: currency || 'INR'
     }).format(price)
   }
 

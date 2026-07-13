@@ -74,6 +74,7 @@ import { LockedFeaturePage } from "@/components/feature-gate/locked-feature-page
 import { ClubFeaturesProvider } from "@/contexts/club-features-context"
 import { useFcmRegistration } from "@/hooks/useFcmRegistration"
 import { ChevronDown, ChevronRight } from "lucide-react"
+import { MessageSquare } from "lucide-react"
 
 const ROLE_LABELS: Record<string, string> = {
   member: 'Member',
@@ -153,6 +154,7 @@ const adminNavigation = [
   { name: "Volunteer Management", href: "/dashboard/volunteer-management", icon: Heart },
   { name: "Membership Plans", href: "/dashboard/membership-plans", icon: CreditCard },
   { name: "Membership Cards", href: "/dashboard/membership-cards", icon: CreditCard },
+  { name: "Reporting & Analytics", href: "/dashboard/reports", icon: FileBarChart },
   { name: "Help", href: "/dashboard/help", icon: HelpCircle },
   { name: "Admin Settings", href: "/dashboard/admin-settings", icon: Settings },
   { name: "Onboarding & Promotions", href: "/dashboard/onboarding", icon: GraduationCap },
@@ -161,8 +163,13 @@ const adminNavigation = [
 const systemOwnerNavigation = [
   { name: "Club Management", href: "/dashboard/club-management", icon: Building },
   { name: "Service Matrix", href: "/dashboard/feature-matrix", icon: Grid3X3 },
+  { name: "Reporting & Analytics", href: "/dashboard/reports", icon: FileBarChart },
   { name: "Audit Logs", href: "/dashboard/admin-audit", icon: Shield },
   { name: "Billing Auditor", href: "/dashboard/billing-auditor", icon: Receipt },
+  { name: "WhatsApp / AiSensy", href: "/dashboard/whatsapp-config", icon: MessageSquare },
+  { name: "WhatsApp Opt-in Log", href: "/dashboard/whatsapp-marketing-logs", icon: MessageSquare },
+  { name: "WhatsApp Billing", href: "/dashboard/whatsapp-billing", icon: Receipt },
+  { name: "WhatsApp Safety Log", href: "/dashboard/whatsapp-safety", icon: Shield },
   { name: "Logistics", href: "/dashboard/logistics", icon: Truck },
   // { name: "Browse Clubs", href: "/dashboard/user/clubs", icon: Building2 },
   { name: "Onboarding & Promotions", href: "/dashboard/onboarding", icon: GraduationCap },
@@ -174,7 +181,7 @@ const systemOwnerNavigation = [
 const superAdminNavigation = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Members", href: "/dashboard/members", icon: Users },
-  { name: "Elevate Admin", href: "/dashboard/elevate-admin", icon: UserPlus },
+  { name: "Team & Access", href: "/dashboard/elevate-admin", icon: Shield },
   { name: "Events & Tickets", href: "/dashboard/events", icon: Ticket },
   { name: "Gallery", href: "/dashboard/gallery", icon: Images },
   { name: "News & Updates", href: "/dashboard/content", icon: Newspaper },
@@ -191,6 +198,7 @@ const superAdminNavigation = [
   { name: "Volunteer Management", href: "/dashboard/volunteer-management", icon: Heart },
   { name: "Membership Plans", href: "/dashboard/membership-plans", icon: CreditCard },
   { name: "Membership Cards", href: "/dashboard/membership-cards", icon: CreditCard },
+  { name: "Reporting & Analytics", href: "/dashboard/reports", icon: FileBarChart },
   { name: "Admin Settings", href: "/dashboard/admin-settings", icon: Settings },
   { name: "Onboarding & Promotions", href: "/dashboard/onboarding", icon: GraduationCap },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },

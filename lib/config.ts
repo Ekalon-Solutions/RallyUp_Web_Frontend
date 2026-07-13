@@ -13,18 +13,18 @@ function resolveCurrentEnv(): AppEnv {
   return 'development';
 }
 
-const getApiBaseUrl = () => {
+const getApiBaseUrl = (fallback: string = 'http://localhost:5000/api') => {
   if (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL) {
     return process.env.NEXT_PUBLIC_API_URL;
   }
-  return 'http://localhost:5000/api';
+  return fallback;
 };
 
-const getWsBaseUrl = () => {
+const getWsBaseUrl = (fallback: string = 'ws://localhost:5000') => {
   if (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_WS_URL) {
     return process.env.NEXT_PUBLIC_WS_URL;
   }
-  return 'ws://localhost:5000';
+  return fallback;
 };
 
 export const ENV = {
@@ -38,15 +38,15 @@ export const ENV = {
   },
   
   production: {
-    apiBaseUrl: 'https://wingmanpro.tech/api',
-    wsBaseUrl: 'wss://teplworkspace.com/rallyApi',
+    apiBaseUrl: getApiBaseUrl('https://wingmanpro.tech/api'),
+    wsBaseUrl: getWsBaseUrl('wss://teplworkspace.com/rallyApi'),
     environment: 'production',
     debug: false,
   },
-  
+
   staging: {
-    apiBaseUrl: 'https://wingmanpro.tech/api',
-    wsBaseUrl: 'wss://teplworkspace.com/rallyApi',
+    apiBaseUrl: getApiBaseUrl('https://wingmanpro.tech/api'),
+    wsBaseUrl: getWsBaseUrl('wss://teplworkspace.com/rallyApi'),
     environment: 'staging',
     debug: true,
   }

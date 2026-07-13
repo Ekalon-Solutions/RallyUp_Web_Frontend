@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Switch } from "@/components/ui/switch"
 import { Ticket, AlertCircle } from "lucide-react"
 import { toast } from "sonner"
 import config from "@/lib/config"
@@ -29,6 +30,7 @@ interface Coupon {
   applicableEvents?: string[]
   minPurchaseAmount?: number
   isActive: boolean
+  isAutoApply: boolean
   createdAt: string
   updatedAt: string
 }
@@ -55,6 +57,7 @@ export function CreateCouponModal({ isOpen, onClose, onSuccess, editCoupon, club
     endTime: "",
     eligibility: "all" as "all" | "members-only" | "new-users" | "specific-events",
     minPurchaseAmount: "",
+    isAutoApply: false,
   })
 
   // Reset form when modal opens/closes or when editing
@@ -73,6 +76,7 @@ export function CreateCouponModal({ isOpen, onClose, onSuccess, editCoupon, club
           endTime: editCoupon.endTime.slice(0, 16),
           eligibility: editCoupon.eligibility,
           minPurchaseAmount: editCoupon.minPurchaseAmount?.toString() || "",
+          isAutoApply: editCoupon.isAutoApply || false,
         })
       } else {
         // Set default values for new coupon
@@ -90,6 +94,7 @@ export function CreateCouponModal({ isOpen, onClose, onSuccess, editCoupon, club
           endTime: toDatetimeLocalString(endDate),
           eligibility: "all",
           minPurchaseAmount: "",
+          isAutoApply: false,
         })
       }
     }
@@ -172,6 +177,7 @@ export function CreateCouponModal({ isOpen, onClose, onSuccess, editCoupon, club
         endTime: new Date(formData.endTime).toISOString(),
         eligibility: formData.eligibility,
         minPurchaseAmount: formData.minPurchaseAmount ? parseFloat(formData.minPurchaseAmount) : undefined,
+        isAutoApply: formData.isAutoApply,
       }
       if (!editCoupon && clubId) {
         couponData.clubId = clubId
@@ -225,6 +231,7 @@ export function CreateCouponModal({ isOpen, onClose, onSuccess, editCoupon, club
       endTime: toDatetimeLocalString(endDate),
       eligibility: "all",
       minPurchaseAmount: "",
+      isAutoApply: false,
     })
   }
 
@@ -483,6 +490,26 @@ export function CreateCouponModal({ isOpen, onClose, onSuccess, editCoupon, club
             </p>
           </div>
 
+          {/* Auto Apply Coupon Option */}
+          <div className="flex items-center justify-between space-x-2 border rounded-lg p-3 bg-muted/30">
+            <div className="space-y-0.5">
+              <Label htmlFor="isAutoApply" className="text-base font-medium">Auto Apply Discount</Label>
+              <p className="text-sm text-muted-foreground">
+                Automatically apply this coupon to active members' checkouts if eligible.
+              </p>
+              {formData.isAutoApply && (
+                <p className="text-xs text-amber-600 font-medium mt-1">
+                  Only one coupon can have auto-apply enabled at a time. Enabling this will disable auto-apply on any other coupon in this club.
+                </p>
+              )}
+            </div>
+            <Switch
+              id="isAutoApply"
+              checked={formData.isAutoApply}
+              onCheckedChange={(checked) => setFormData({ ...formData, isAutoApply: checked })}
+            />
+          </div>
+
           {/* Preview */}
           <div className="border rounded-lg p-4 bg-muted/50">
             <h4 className="font-semibold mb-3">Coupon Preview</h4>
@@ -500,6 +527,10 @@ export function CreateCouponModal({ isOpen, onClose, onSuccess, editCoupon, club
                     ? `${formData.discountValue || "0"}% off`
                     : `₹${formData.discountValue || "0"} off`}
                 </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="font-medium">Auto-Apply:</span>
+                <span>{formData.isAutoApply ? "Yes (Members Only)" : "No"}</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="font-medium">Valid:</span>

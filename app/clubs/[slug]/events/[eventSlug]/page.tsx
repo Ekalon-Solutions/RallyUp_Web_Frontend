@@ -30,6 +30,7 @@ import Link from "next/link"
 import {
   formatEventPriceDisplay,
   formatTierPrice,
+  getEventBuyCtaLabel,
   getEventCapacity,
   getEventTicketRows,
   getEventVenueDisplay,
@@ -463,7 +464,7 @@ export default function EventDetailPage() {
                   disabled={isEventFull}
                   onClick={handleBuyTickets}
                 >
-                  {isEventFull ? "Event Full" : isPaid ? "Buy Tickets" : "Register Now"}
+                  {isEventFull ? "Event Full" : isPaid ? getEventBuyCtaLabel(event) : "Register Now"}
                 </Button>
               </CardContent>
             </Card>

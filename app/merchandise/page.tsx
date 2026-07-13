@@ -76,7 +76,7 @@ export default function MerchandisePage() {
     setClubId(selectedClubId || (fromQuery ? fromQuery : null))
   }, [selectedClubId])
 
-  const formatCurrency = (amount: number, currencyCode: string = 'USD') => {
+  const formatCurrency = (amount: number, currencyCode: string = 'INR') => {
     const localeMap: Record<string, string> = {
       'USD': 'en-US',
       'INR': 'en-IN',
@@ -185,7 +185,7 @@ export default function MerchandisePage() {
       _id: item._id,
       name: item.name,
       price: item.price,
-      currency: item.currency,
+      currency: item.currency || 'INR',
       featuredImage: item.featuredImage,
       stockQuantity: item.stockQuantity,
       tags: item.tags,
@@ -204,7 +204,7 @@ export default function MerchandisePage() {
       _id: item._id,
       name: item.name,
       price: item.price,
-      currency: item.currency,
+      currency: item.currency || 'INR',
       quantity: quantity,
       featuredImage: item.featuredImage,
       stockQuantity: item.stockQuantity,

@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
+import { CountryCodeSelect } from "@/components/country-code-select"
 import {
   Award,
   Users,
@@ -188,11 +189,12 @@ export function GuestRegistrationForm({
               name: d.name,
               description: d.description || "",
               price: d.price,
-              currency: d.currency,
+              currency: d.currency || 'INR',
               isActive: d.isActive,
               duration: d.duration,
               planStartDate: d.planStartDate,
               planEndDate: d.planEndDate,
+              referralReward: d.referralReward,
             })
           }
         }).catch(() => {
@@ -283,11 +285,12 @@ export function GuestRegistrationForm({
           name: d.name,
           description: d.description || "",
           price: d.price,
-          currency: d.currency,
+          currency: d.currency || 'INR',
           isActive: d.isActive,
           duration: d.duration,
           planStartDate: d.planStartDate,
           planEndDate: d.planEndDate,
+          referralReward: d.referralReward,
         }
         setPlan(p)
         return p
@@ -688,16 +691,15 @@ export function GuestRegistrationForm({
                 <div className="sm:col-span-2 grid grid-cols-[7rem_1fr] gap-3">
                   <div className="space-y-2">
                     <Label htmlFor="countryCode">Country Code</Label>
-                    <Input
+                    <CountryCodeSelect
                       id="countryCode"
                       value={registrationData.countryCode}
-                      onChange={(e) =>
+                      onValueChange={(value) =>
                         setRegistrationData({
                           ...registrationData,
-                          countryCode: e.target.value,
+                          countryCode: value,
                         })
                       }
-                      required
                       className="h-12 w-full"
                     />
                   </div>
@@ -853,7 +855,6 @@ export function GuestRegistrationForm({
                 </div>
               </div>
 
-              {/* Referral */}
               {plan?.referralReward?.enabled && (
               <div className="rounded-lg border border-border bg-muted/50 p-4 space-y-2">
                 <div className="flex items-center gap-1.5">

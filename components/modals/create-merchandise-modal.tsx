@@ -109,7 +109,7 @@ export function CreateMerchandiseModal({
         setName(editMerchandise.name)
         setDescription(editMerchandise.description)
         setPrice(editMerchandise.price.toString())
-        setCurrency(editMerchandise.currency)
+        setCurrency(editMerchandise.currency || "INR")
         setCategory(editMerchandise.category)
         setStockQuantity(editMerchandise.stockQuantity.toString())
         setWeight(editMerchandise.weight != null ? String(editMerchandise.weight) : "")

@@ -124,7 +124,7 @@ export default function MyClubsPage() {
     }
   }
 
-  const formatPrice = (price: number, currency: string = 'USD') => {
+  const formatPrice = (price: number, currency: string = 'INR') => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: currency,
@@ -262,7 +262,7 @@ export default function MyClubsPage() {
                     const levelName = level?.name ?? membership?.level_name ?? 'Unknown Plan'
                     const levelDescription = level?.description ?? 'No description available'
                     const levelPrice = level?.price ?? 0
-                    const levelCurrency = level?.currency ?? 'USD'
+                    const levelCurrency = level?.currency ?? 'INR'
 
                     return (
                     <Card key={membership._id} className="hover:shadow-lg transition-shadow">

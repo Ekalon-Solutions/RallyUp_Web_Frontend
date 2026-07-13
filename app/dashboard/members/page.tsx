@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { CountryCodeSelect } from '@/components/country-code-select'
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { DashboardLayout } from '@/components/dashboard-layout'
@@ -110,6 +111,7 @@ export default function MembersPage() {
   })
   const [metadata, setMetadata] = useState({ total: 0, active: 0, verified: 0, thisMonth: 0 })
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+  const [addCountryCode, setAddCountryCode] = useState('+91')
   const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
@@ -1194,7 +1196,7 @@ export default function MembersPage() {
                       name: formData.get('name') as string,
                       email: formData.get('email') as string,
                       phoneNumber: formData.get('phoneNumber') as string,
-                      countryCode: formData.get('countryCode') as string
+                      countryCode: addCountryCode
                     })
                   }}>
                     <div className="space-y-4">
@@ -1209,7 +1211,7 @@ export default function MembersPage() {
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <Label htmlFor="countryCode">Country Code</Label>
-                          <Input id="countryCode" name="countryCode" placeholder="+1" required />
+                          <CountryCodeSelect id="countryCode" value={addCountryCode} onValueChange={setAddCountryCode} />
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="phoneNumber">Phone Number</Label>
@@ -1501,11 +1503,10 @@ export default function MembersPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="edit-countryCode">Country Code</Label>
-                      <Input 
-                        id="edit-countryCode" 
+                      <CountryCodeSelect
+                        id="edit-countryCode"
                         value={editFormData.countryCode}
-                        onChange={(e: ChangeEvent<HTMLInputElement>) => setEditFormData({ ...editFormData, countryCode: e.target.value })}
-                        required 
+                        onValueChange={(value) => setEditFormData({ ...editFormData, countryCode: value })}
                       />
                     </div>
                     <div className="space-y-2">

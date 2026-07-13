@@ -50,6 +50,7 @@ export const NAV_HREF_TO_PERMISSION_MODULE: Record<string, string> = {
   '/dashboard/onboarding': 'onboarding',
   '/dashboard/events/scanner': 'eventScanner',
   '/dashboard/quick-scanner': 'eventScanner',
+  '/dashboard/reports': 'reporting',
   '/dashboard/vendor-reports': 'vendorReports',
 };
 

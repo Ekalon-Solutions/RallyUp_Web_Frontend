@@ -6,6 +6,7 @@ import { Loader2, Mail, MessageCircle, ScanLine, Smartphone } from 'lucide-react
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { CountryCodeSelect } from '@/components/country-code-select';
 import { VendorNotAuthorized } from '@/components/vendor/vendor-not-authorized';
 import { useAuth } from '@/contexts/auth-context';
 import { apiClient } from '@/lib/api';
@@ -321,11 +322,11 @@ export default function VendorLoginPage() {
           method === 'phone' ? (
             <div className="space-y-4">
               <div className="flex gap-2">
-                <Input
+                <CountryCodeSelect
                   value={countryCode}
-                  onChange={(e) => setCountryCode(e.target.value)}
-                  className="w-24 border-zinc-800 bg-zinc-900 text-white"
-                  aria-label="Country code"
+                  onValueChange={setCountryCode}
+                  variant="login"
+                  className="w-24 border-zinc-800 bg-zinc-900"
                 />
                 <Input
                   value={phoneNumber}

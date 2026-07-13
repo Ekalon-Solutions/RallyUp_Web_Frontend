@@ -12,6 +12,7 @@ import { formatDisplayDate, slugify } from "@/lib/utils"
 import { getNewsImageUrl } from "@/lib/config"
 import {
   formatEventPriceDisplay,
+  getEventBuyCtaLabel,
   getEventCapacity,
   getEventVenueDisplay,
   hasVenueTierMatrix,
@@ -32,7 +33,7 @@ import NewsReadMoreModal from "@/components/modals/news-readmore-modal"
 import { SocialBrandButton } from "@/components/club-public/social-platform-icons"
 import { EkalonAttribution } from "@/components/ekalon-attribution"
 import { ClubGallerySection } from "@/components/club-public/club-gallery-section"
-import { JoinMembershipModal, JoinablePlan } from "@/components/modals/join-membership-modal"
+import type { JoinablePlan } from "@/components/modals/join-membership-modal"
 import { useAuth } from "@/contexts/auth-context"
 import { toast } from "sonner"
 import { normalizeAlbums } from "@/lib/album-utils"
@@ -222,22 +223,6 @@ export default function PublicClubPage() {
   const [showReadMoreModal, setShowReadMoreModal] = useState(false)
   const [selectedNewsForReadMore, setSelectedNewsForReadMore] = useState<News | null>(null)
   const [clubPlans, setClubPlans] = useState<JoinablePlan[]>([])
-  const [showJoinModal, setShowJoinModal] = useState(false)
-  const [pendingJoinPlanId, setPendingJoinPlanId] = useState<string | undefined>(undefined)
-
-  useEffect(() => {
-    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null
-    let pending: { clubId: string; membershipPlanId: string; returnPath?: string } | null = null
-    try {
-      const raw = typeof window !== "undefined" ? sessionStorage.getItem("clubs_pending_join") : null
-      if (raw) pending = JSON.parse(raw) as { clubId: string; membershipPlanId: string; returnPath?: string }
-    } catch (_) {}
-    if (!token || !pending || !club?._id || pending.clubId !== club._id) return
-
-    sessionStorage.removeItem("clubs_pending_join")
-    setPendingJoinPlanId(pending.membershipPlanId)
-    setShowJoinModal(true)
-  }, [club?._id, clubPlans])
 
   useEffect(() => {
     const resume = searchParams.get("resumePurchase")
@@ -296,7 +281,7 @@ export default function PublicClubPage() {
       toast.error("No memberships are currently available for joining")
       return
     }
-    setShowJoinModal(true)
+    router.push(`/clubs/${slug}/membership`)
   }
 
   const hasActiveMembership = Boolean(
@@ -948,7 +933,7 @@ export default function PublicClubPage() {
                                     {(() => {
                                       const { count, max } = getEventCapacity(event)
                                       const isEventFull = max != null && count >= max
-                                      const label = isEventFull ? "Event Full" : isEventPaid(event) ? "Buy Tickets" : "Register"
+                                      const label = isEventFull ? "Event Full" : isEventPaid(event) ? getEventBuyCtaLabel(event) : "Register"
                                       return (
                                         <Button
                                           className="w-full mt-auto"
@@ -1010,7 +995,7 @@ export default function PublicClubPage() {
                                         <CardTitle className="text-lg line-clamp-2 break-words">{item.name}</CardTitle>
                                         {typeof item.price === "number" && (
                                           <Badge variant="outline" className="text-xs font-bold shrink-0">
-                                            {item.currency || "USD"} {item.price}
+                                            {item.currency || "INR"} {item.price}
                                           </Badge>
                                         )}
                                       </div>
@@ -1432,6 +1417,7 @@ export default function PublicClubPage() {
                 name: eventForRegistration.title,
                 price: eventForRegistration.ticketPrice || 0,
                 ticketPrice: eventForRegistration.ticketPrice || 0,
+                category: (eventForRegistration as any).category,
                 earlyBirdDiscount: (eventForRegistration as any).earlyBirdDiscount,
                 memberDiscount: (eventForRegistration as any).memberDiscount,
                 groupDiscount: (eventForRegistration as any).groupDiscount,
@@ -1454,22 +1440,6 @@ export default function PublicClubPage() {
         onOpenChange={setLoginOpen}
         onSuccess={() => {}}
       />
-
-      {club?._id && (
-        <JoinMembershipModal
-          open={showJoinModal}
-          onOpenChange={(open) => {
-            setShowJoinModal(open)
-            if (!open) setPendingJoinPlanId(undefined)
-          }}
-          clubId={club._id}
-          clubName={club.name}
-          plans={getJoinablePlans()}
-          primaryColor={primaryColor}
-          returnPath={`/clubs/${slug}`}
-          initialPlanId={pendingJoinPlanId}
-        />
-      )}
 
       <NewsReadMoreModal
         news={selectedNewsForReadMore}

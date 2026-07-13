@@ -464,7 +464,7 @@ export default function BrowseMembershipPlansPage() {
                       <span className="font-semibold">
                         {isMembershipExpired() ? 'Expired Plan: ' : 'Current Plan: '}
                       </span>
-                      {currentMembership.membership_level_id?.name} - {formatPrice(currentMembership.membership_level_id?.price || 0, currentMembership.membership_level_id?.currency || 'USD')}
+                      {currentMembership.membership_level_id?.name} - {formatPrice(currentMembership.membership_level_id?.price || 0, currentMembership.membership_level_id?.currency || 'INR')}
                     </p>
                   </div>
                   <div className="text-center text-sm space-y-1">
@@ -497,7 +497,7 @@ export default function BrowseMembershipPlansPage() {
           )}
 
           {/* Referral field */}
-          {clubId && plans.some(p => p.referralReward?.enabled) && (
+          {clubId && plans.some((p) => p.referralReward?.enabled) && (
             <Card>
               <CardContent className="pt-5 pb-5">
                 <div className="flex flex-col sm:flex-row sm:items-end gap-3">

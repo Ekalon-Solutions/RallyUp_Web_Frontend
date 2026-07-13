@@ -168,7 +168,7 @@ export function WebsiteSetupTab() {
     try {
       setSaving(true)
 
-      const [websiteRes, memberVisRes] = await Promise.all([
+      const [websiteRes, memberVisRes, designRes] = await Promise.all([
         apiClient.updateWebsiteSetup(clubId, {
           title: websiteInfo.title,
           description: websiteInfo.description,
@@ -180,7 +180,7 @@ export function WebsiteSetupTab() {
         apiClient.updateDesignSettings(clubId, { ...savedDesignSettings, heroImage } as any),
       ])
 
-      if (websiteRes.success && memberVisRes.success) {
+      if (websiteRes.success && memberVisRes.success && designRes.success) {
         toast.success("Website and member visibility settings saved successfully!")
         if (typeof window !== "undefined") {
           try {
@@ -190,7 +190,7 @@ export function WebsiteSetupTab() {
         }
         await loadSettings()
       } else {
-        toast.error(websiteRes.message || memberVisRes.message || "Failed to save settings")
+        toast.error(websiteRes.message || memberVisRes.message || designRes.message || "Failed to save settings")
       }
     } catch (error) {
       toast.error("Failed to save settings")

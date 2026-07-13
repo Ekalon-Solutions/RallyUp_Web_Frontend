@@ -43,7 +43,10 @@ export interface CheckoutPlan {
   duration?: number
   planStartDate?: string
   planEndDate?: string
-  referralReward?: { enabled: boolean; points: number }
+  referralReward?: {
+    enabled: boolean
+    points: number
+  }
 }
 
 interface CheckoutLandingProps {
@@ -92,7 +95,7 @@ function formatDuration(plan: CheckoutPlan): string {
 // Plan summary card (shown above the action buttons)
 // ---------------------------------------------------------------------------
 
-function PlanSummaryCard({ club, plan, planId }: { club: CheckoutClub; plan?: CheckoutPlan; planId: string }) {
+function PlanSummaryCard({ club, plan, planId, isUserCurrentPlan }: { club: CheckoutClub; plan?: CheckoutPlan; planId: string; isUserCurrentPlan?: boolean }) {
   return (
     <Card className="w-full bg-white rounded-[2.5rem] shadow-2xl border-none overflow-hidden">
       <CardHeader className="text-center pb-5 bg-secondary px-6 pt-6 text-white rounded-t-[2.5rem]">
@@ -140,8 +143,8 @@ function PlanSummaryCard({ club, plan, planId }: { club: CheckoutClub; plan?: Ch
             <span>{formatDuration(plan)}</span>
           </div>
 
-          {/* Active badge */}
-          {!plan.isActive && (
+          {/* Active badge — hide if it's the user's current plan */}
+          {!plan.isActive && !isUserCurrentPlan && (
             <div className="flex justify-center">
               <Badge variant="secondary" className="bg-slate-100 text-slate-700 hover:bg-slate-200 border-none">Currently Inactive</Badge>
             </div>
@@ -180,7 +183,7 @@ export function CheckoutLanding({ club, planId, plan }: CheckoutLandingProps) {
             name: plan.name,
             description: plan.description,
             price: plan.price,
-            currency: plan.currency,
+            currency: plan.currency || 'INR',
             duration: plan.duration,
             planStartDate: plan.planStartDate,
             planEndDate: plan.planEndDate,
@@ -208,6 +211,7 @@ export function CheckoutLanding({ club, planId, plan }: CheckoutLandingProps) {
             duration: p.duration,
             planStartDate: p.planStartDate,
             planEndDate: p.planEndDate,
+            referralReward: p.referralReward,
           }))
 
         if (active) {
@@ -242,7 +246,19 @@ export function CheckoutLanding({ club, planId, plan }: CheckoutLandingProps) {
     setGuestFormOpen(true)
   }, [allClubPlans.length])
 
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, user } = useAuth()
+
+  const isCurrentPlan = useMemo(() => {
+    if (!user || !localPlan) return false
+    const clubMemberships = (user as any).memberships
+      ?.filter?.((m: any) => (m.club_id?._id === club._id || m.club_id === club._id) && m.status === "active")
+    if (!clubMemberships || clubMemberships.length === 0) return false
+    return clubMemberships.some((m: any) => {
+      const level = m.membership_level_id
+      const mPlanId = typeof level === "string" ? level : level?._id
+      return String(mPlanId) === localPlan._id
+    })
+  }, [user, localPlan, club._id])
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#EBF3FF] via-[#F4F8FF] to-white public-theme">
@@ -254,7 +270,7 @@ export function CheckoutLanding({ club, planId, plan }: CheckoutLandingProps) {
           {isAuthenticated ? (
             <>
               {/* ── Plan summary ─────────────────────────────────────────── */}
-              <PlanSummaryCard club={club} plan={localPlan} planId={planId} />
+              <PlanSummaryCard club={club} plan={localPlan} planId={planId} isUserCurrentPlan={isCurrentPlan} />
 
               {/* ── Action area ──────────────────────────────────────────── */}
               <div className="space-y-3">

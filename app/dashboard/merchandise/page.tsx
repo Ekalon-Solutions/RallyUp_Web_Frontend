@@ -125,7 +125,7 @@ export default function MerchandiseManagementPage() {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [editingMerchandise, setEditingMerchandise] = useState<Merchandise | null>(null)
 
-  const formatCurrency = (amount: number, currencyCode: string = 'USD') => {
+  const formatCurrency = (amount: number, currencyCode: string = 'INR') => {
     const localeMap: Record<string, string> = {
       'USD': 'en-US',
       'INR': 'en-IN',

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
+import { CountryCodeSelect } from "@/components/country-code-select"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
 import { useAuth } from "@/contexts/auth-context"
@@ -498,11 +499,10 @@ export default function UserProfilePage() {
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="countryCode">Country Code</Label>
-                          <Input
+                          <CountryCodeSelect
                             id="countryCode"
                             value={profileForm.countryCode}
-                            onChange={(e) => setProfileForm({ ...profileForm, countryCode: e.target.value })}
-                            required
+                            onValueChange={(value) => setProfileForm({ ...profileForm, countryCode: value })}
                           />
                         </div>
                       </div>
