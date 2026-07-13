@@ -23,7 +23,7 @@ import { useRouter } from "next/navigation"
 import { JointScreeningDisplay } from "@/components/events/joint-screening-display"
 import { EventScheduleMeta } from "@/components/events/event-schedule-meta"
 import { WaitlistDisplay } from "@/components/events/waitlist-display"
-import { formatEventPriceDisplay, isEventPaid, getEventVenueDisplay, hasVenueTierMatrix } from "@/lib/event-display-price"
+import { formatEventPriceDisplay, isEventPaid, getEventVenueDisplay, hasVenueTierMatrix, getEventCapacity } from "@/lib/event-display-price"
 import { isUserRegisteredForEvent as isUserRegisteredOnEvent, getUserRegistrationStatus } from "@/lib/event-registration"
 import { RefundPolicyToggle } from "@/components/admin/refund-policy-toggle"
 import { EventRefundPolicyImpactDialog } from "@/components/admin/event-refund-policy-impact-dialog"
@@ -384,7 +384,9 @@ export default function EventsPage() {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      events.map((event) => (
+                      events.map((event) => {
+                        const capacity = getEventCapacity(event)
+                        return (
                         <TableRow key={event._id}>
                           <TableCell>
                             <div className="flex items-start gap-3">
@@ -454,9 +456,9 @@ export default function EventsPage() {
                             <div className="flex items-center gap-1">
                               <Users className="w-3 h-3" />
                               <span className="text-sm">
-                                {event.currentAttendees}
-                                {event.maxAttendees ? ` / ${event.maxAttendees}` : ""}
-                                {event.maxAttendees != null && event.currentAttendees >= event.maxAttendees && (
+                                {capacity.count}
+                                {capacity.max ? ` / ${capacity.max}` : ""}
+                                {capacity.max != null && capacity.count >= capacity.max && (
                                   <span className="text-red-600 font-medium"> (FULL)</span>
                                 )}
                               </span>
@@ -496,7 +498,7 @@ export default function EventsPage() {
                                   size="sm"
                                   variant={isUserRegistered(event._id) ? "outline" : "default"}
                                   onClick={() => { setSelectedEvent(event); setRegistrationModalOpen(true) }}
-                                  disabled={event.maxAttendees != null && event.currentAttendees >= event.maxAttendees}
+                                  disabled={capacity.max != null && capacity.count >= capacity.max}
                                 >
                                   {isUserRegistered(event._id) ? "Registered" : "Register"}
                                 </Button>
@@ -572,7 +574,8 @@ export default function EventsPage() {
                             </div>
                           </TableCell>
                         </TableRow>
-                      ))
+                        )
+                      })
                     )}
                   </TableBody>
                 </Table>

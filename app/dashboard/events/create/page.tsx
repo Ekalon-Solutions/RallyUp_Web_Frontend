@@ -935,10 +935,13 @@ function CreateEventForm() {
                 <div>
                   <Label>Multi-ticket event</Label>
                   <p className="text-xs text-muted-foreground">
-                    Enable venue x ticket-tier matrix allocation (works for single or multiple venues) and multi-combo checkout.
+                    {isEditMode
+                      ? "Locked after creation — switching between single-venue and multi-ticket isn't allowed once an event exists. You can still edit the venue location."
+                      : "Enable venue x ticket-tier matrix allocation (works for single or multiple venues) and multi-combo checkout."}
                   </p>
                 </div>
                 <Switch
+                  disabled={isEditMode}
                   checked={form.multiTicketEnabled}
                   onCheckedChange={(v) => {
                     set("multiTicketEnabled", v)
