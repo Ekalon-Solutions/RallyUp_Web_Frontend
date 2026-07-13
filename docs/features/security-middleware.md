@@ -15,13 +15,15 @@ RallyUp employs an edge-level middleware that inspects each incoming HTTP reques
   - `app/challenge/page.tsx`: Redirect target if headers are missing or suspicious. Prompts a user interaction verification. Saves a `verified: "true"` cookie.
 
 ## 3. Middleware Handlers & Validation Flows
-1. **Public Paths Bypass**: Bypasses files/assets and marketing paths (e.g., `/`, `/login`, `/privacy`, `/sitemap.xml`).
-2. **Cookie Inspection**: If `verified === "true"` cookie is active, the middleware proceeds directly, skipping bot challenge redirects.
-3. **User Agent Audit**: Runs regex check using `isBlockedUserAgent(...)`. Rejects scrapers with `403 Access Denied`.
-4. **Header Validation (`hasValidBrowserHeaders`)**: Checks for standard browser request metadata (`accept-language`, `accept-encoding`, `accept`). Refusing requests from customized scripted headers to `/dashboard`.
-5. **IP Rate Limiter (`checkRateLimit`)**: Uses an in-memory `requestCounts` map. Enforces a maximum threshold of $100$ requests per $60$ seconds window, responding with `429 Too Many Requests`.
-6. **Device Policy Injection**: Sets custom security frame headers, XSS protections, and dynamically adjusts the browser `Permissions-Policy` (e.g. restricts camera access to `/dashboard/events/scanner` only).
+1. **Public Paths Bypass**: Bypasses marketing/legal pages and static probes (e.g., `/`, `/about`, `/login`, `/privacy`, `/site.webmanifest`, `/sitemap.xml`) before any bot or rate-limit logic.
+2. **Static Asset Bypass**: Paths under `/api/`, `/_next/`, `/static/`, and common static extensions (including `.json`, `.webmanifest`, fonts, images) skip middleware checks entirely.
+3. **Cookie Inspection**: If `verified === "true"` cookie is active, the middleware proceeds directly, skipping bot challenge redirects.
+4. **User Agent Audit**: Runs regex check using `isBlockedUserAgent(...)`. Rejects scrapers with `403 Access Denied`.
+5. **Header Validation (`hasValidBrowserHeaders`)**: Checks for standard browser request metadata (`accept-language`, `accept-encoding`, `accept`). Refusing requests from customized scripted headers to `/dashboard`.
+6. **IP Rate Limiter (`checkRateLimit`)**: Uses an in-memory `requestCounts` map. Enforces a maximum threshold of $100$ requests per $60$ seconds window (non-navigation), responding with `429 Too Many Requests`. Next.js RSC/prefetch navigations are excluded.
+7. **Device Policy Injection**: Sets custom security frame headers, XSS protections, and dynamically adjusts the browser `Permissions-Policy` (e.g. restricts camera access to `/dashboard/events/scanner` only).
 
 ## 4. Gotchas & Edge Cases
 - **In-Memory Rate Limiting**: The rate limiter is in-memory inside the Edge runtime context. Serverless functions or scale-up containers can have individual memory spaces, meaning request counts are isolated to specific runtime instances.
+- **Static probes must stay bypassed**: Assets like `/site.webmanifest` should remain outside the rate-limit bucket to avoid browser `429`s during normal page loads.
 - **Suspicious Request Redirects**: Legitimate developer testing using `curl` or automated testing scripts (Playwright) will trigger a `/challenge` redirect or `403` status. When performing E2E manual runs, ensure the cookie/headers simulate real browser clients.

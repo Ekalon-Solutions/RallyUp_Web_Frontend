@@ -149,11 +149,14 @@ function isDashboardPath(pathname: string): boolean {
 
 const PUBLIC_BYPASS_PATHS = new Set([
   '/',
+  '/about',
+  '/affiliations',
   '/delete-account',
   '/challenge',
   '/privacy',
   '/terms',
   '/contact',
+  '/faqs',
   '/refund',
   '/child-safety',
   '/login',
@@ -162,14 +165,30 @@ const PUBLIC_BYPASS_PATHS = new Set([
   '/clubs',
   '/merchandise',
   '/membership-plans',
+  '/events',
+  '/ppsa',
   '/robots.txt',
   '/sitemap.xml',
+  '/site.webmanifest',
 ])
+
+const STATIC_ASSET_RE =
+  /\.(ico|png|jpg|jpeg|svg|gif|webp|css|js|json|webmanifest|xml|txt|map|woff|woff2|ttf)$/i
+
+function isStaticOrInternalPath(pathname: string): boolean {
+  return (
+    pathname.startsWith('/api/') ||
+    pathname.startsWith('/_next/') ||
+    pathname.startsWith('/static/') ||
+    STATIC_ASSET_RE.test(pathname)
+  )
+}
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  if (PUBLIC_BYPASS_PATHS.has(pathname)) {
+  // Public pages + static assets skip bot checks and rate limiting entirely
+  if (PUBLIC_BYPASS_PATHS.has(pathname) || isStaticOrInternalPath(pathname)) {
     return NextResponse.next()
   }
 
@@ -178,15 +197,6 @@ export function middleware(request: NextRequest) {
     isAuthenticatedSession(request)
   ) {
     return applySecurityHeaders(NextResponse.next(), pathname)
-  }
-  
-  if (
-    pathname.startsWith('/api/') ||
-    pathname.startsWith('/_next/') ||
-    pathname.startsWith('/static/') ||
-    pathname.match(/\.(ico|png|jpg|jpeg|svg|gif|webp|css|js|woff|woff2|ttf)$/)
-  ) {
-    return NextResponse.next()
   }
   
   const userAgent = request.headers.get('user-agent') || ''

@@ -18,33 +18,11 @@ export function isChunkLoadError(error: unknown): boolean {
   );
 }
 
-export function readCurrentBuildId(): string {
-  if (typeof window !== "undefined") {
-    const meta = document.querySelector('meta[name="app-build-id"]')?.getAttribute("content");
-    if (meta) return meta;
-  }
-  return process.env.NEXT_PUBLIC_APP_BUILD_ID || "";
-}
-
-export async function fetchLatestBuildId(): Promise<string | null> {
-  try {
-    const response = await fetch(`/version.json?_=${Date.now()}`, {
-      cache: "no-store",
-      headers: { Accept: "application/json" },
-    });
-    if (!response.ok) return null;
-    const data = (await response.json()) as { buildId?: string };
-    return data.buildId ?? null;
-  } catch {
-    return null;
-  }
-}
-
-export function clearStaleBuildReloadAttempt(): void {
+function clearStaleBuildReloadAttempt(): void {
   sessionStorage.removeItem(RELOAD_ATTEMPT_KEY);
 }
 
-export function reloadOnceOnChunkFailure(): boolean {
+function reloadOnceOnChunkFailure(): boolean {
   if (sessionStorage.getItem(RELOAD_ATTEMPT_KEY)) {
     return false;
   }
@@ -53,25 +31,7 @@ export function reloadOnceOnChunkFailure(): boolean {
   return true;
 }
 
-export function reloadForNewBuild(): void {
-  window.location.reload();
-}
-
-export async function checkForAppUpdate(): Promise<boolean> {
-  // In development the page build id comes from NEXT_PUBLIC_APP_BUILD_ID
-  // (set to Date.now() at dev-server start) while public/version.json holds a
-  // static id from the last real build. These never match, so this check would
-  // reload the page endlessly — recompiling the route on every reload. Only run
-  // the version check against the deployed build in production.
-  if (process.env.NODE_ENV !== "production") return false;
-  const latest = await fetchLatestBuildId();
-  if (!latest) return false;
-  const current = readCurrentBuildId();
-  if (!current || latest === current) return false;
-  reloadForNewBuild();
-  return true;
-}
-
+/** Reloads once when a stale JS/CSS chunk fails after a deployment. */
 export function setupStaleBuildRecovery(): void {
   clearStaleBuildReloadAttempt();
 
