@@ -117,8 +117,8 @@ export const REPORT_AUTH_METADATA: Record<string, ReportAuthMetadata> = {
   },
   'super-admin-audit-log': {
     reportId: 'super-admin-audit-log',
-    requiredRole: ['super_admin', 'system_owner'],
-    superAdminPlusOnly: true,
+    requiredRole: ['system_owner'],
+    systemOwnerOnly: true,
   },
 
   // ─── Logistics Reports ──────────────────────────────────────────────────────

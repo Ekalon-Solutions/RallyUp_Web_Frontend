@@ -198,7 +198,7 @@ const ALL_REPORTS: ReportDefinition[] = [
     category: "Governance",
     href: "/dashboard/reports/super-admin-audit-log",
     icon: ShieldAlert,
-    badge: "Super Admin",
+    badge: "System Owner",
   },
 
   // ─── Logistics Reports ──────────────────────────────────────────────────
