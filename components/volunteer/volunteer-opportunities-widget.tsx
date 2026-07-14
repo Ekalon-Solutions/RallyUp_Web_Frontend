@@ -11,12 +11,14 @@ interface VolunteerOpportunitiesWidgetProps {
   onSignUp: (opportunityId: string, timeSlotId: string) => void;
 }
 
-export function VolunteerOpportunitiesWidget({ 
-  opportunities, 
-  onViewAll, 
-  onSignUp 
+export function VolunteerOpportunitiesWidget({
+  opportunities,
+  onViewAll,
+  onSignUp
 }: VolunteerOpportunitiesWidgetProps) {
   const openOpportunities = opportunities.filter(opp => opp.status === 'open').slice(0, 3);
+  const approvedCount = (slot: any) =>
+    (slot.volunteersAssigned ?? []).filter((entry: any) => entry.status === 'approved').length;
 
   if (openOpportunities.length === 0) {
     return (
@@ -73,17 +75,17 @@ export function VolunteerOpportunitiesWidget({
                       <span>{slot.startTime} - {slot.endTime}</span>
                       <div className="flex items-center gap-1">
                         <Users className="w-3 h-3" />
-                        <span>{slot.volunteersAssigned.length}/{slot.volunteersNeeded}</span>
+                        <span>{approvedCount(slot)}/{slot.volunteersNeeded}</span>
                       </div>
                     </div>
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => onSignUp(opportunity._id, slot._id)}
-                      disabled={slot.volunteersAssigned.length >= slot.volunteersNeeded}
+                      disabled={approvedCount(slot) >= slot.volunteersNeeded}
                       className="h-6 px-2 text-xs"
                     >
-                      {slot.volunteersAssigned.length >= slot.volunteersNeeded ? 'Full' : 'Sign Up'}
+                      {approvedCount(slot) >= slot.volunteersNeeded ? 'Full' : 'Request to Volunteer'}
                     </Button>
                   </div>
                 ))}

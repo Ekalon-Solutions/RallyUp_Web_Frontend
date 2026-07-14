@@ -33,21 +33,28 @@ export function VolunteerOpportunityCard({
   currentVolunteerId,
   signingUp,
 }: VolunteerOpportunityCardProps) {
+  const approvedCount = (slot: any) =>
+    (slot.volunteersAssigned ?? []).filter((entry: any) => entry.status === 'approved').length;
+
   const totalVolunteersNeeded = opportunity.timeSlots.reduce(
     (sum, slot) => sum + slot.volunteersNeeded,
     0
   );
 
   const totalVolunteersAssigned = opportunity.timeSlots.reduce(
-    (sum, slot) => sum + slot.volunteersAssigned.length,
+    (sum, slot) => sum + approvedCount(slot),
     0
   );
 
-  const isSignedUpForTimeSlot = (slot: any) => {
-    if (!currentVolunteerId) return false;
+  const getSignupStatus = (slot: any): 'approved' | 'pending' | null => {
+    if (!currentVolunteerId) return null;
     const assigned = slot.volunteersAssigned ?? [];
-    return assigned.some((id: any) => String(id) === String(currentVolunteerId));
+    const entry = assigned.find((e: any) => String(e.volunteer) === String(currentVolunteerId));
+    if (!entry || entry.status === 'rejected') return null;
+    return entry.status;
   };
+
+  const isSignedUpForTimeSlot = (slot: any) => getSignupStatus(slot) !== null;
 
   return (
     <Card className="w-full">
@@ -74,8 +81,10 @@ export function VolunteerOpportunityCard({
               <div
                 key={slot._id}
                 className={`flex items-center justify-between rounded-lg border p-3 transition-colors ${
-                  isSignedUpForTimeSlot(slot) 
-                    ? 'border-green-500/50 bg-green-500/10 dark:bg-green-500/20' 
+                  getSignupStatus(slot) === 'approved'
+                    ? 'border-green-500/50 bg-green-500/10 dark:bg-green-500/20'
+                    : getSignupStatus(slot) === 'pending'
+                    ? 'border-amber-500/50 bg-amber-500/10 dark:bg-amber-500/20'
                     : 'border-border hover:bg-muted/50'
                 }`}
               >
@@ -87,9 +96,9 @@ export function VolunteerOpportunityCard({
                   <div className="flex items-center space-x-1">
                     <UsersIcon className="h-4 w-4 text-muted-foreground" />
                     <span className="text-foreground">
-                      {slot.volunteersAssigned.length} / {slot.volunteersNeeded}
+                      {approvedCount(slot)} / {slot.volunteersNeeded}
                     </span>
-                    {isSignedUpForTimeSlot(slot) && (
+                    {getSignupStatus(slot) === 'approved' && (
                       <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400 ml-1" />
                     )}
                   </div>
@@ -104,15 +113,37 @@ export function VolunteerOpportunityCard({
                       // console.log('Sign up button clicked for opportunity:', opportunity._id, 'timeSlot:', slot._id);
                       onSignUp(opportunity._id, slot._id);
                     }}
-                    disabled={slot.volunteersAssigned.length >= slot.volunteersNeeded || signingUp === `${opportunity._id}-${slot._id}`}
-                    className={`${slot.volunteersAssigned.length >= slot.volunteersNeeded ? 'opacity-50 cursor-not-allowed' : 'hover:bg-primary hover:text-primary-foreground'} transition-colors`}
+                    disabled={approvedCount(slot) >= slot.volunteersNeeded || signingUp === `${opportunity._id}-${slot._id}`}
+                    className={`${approvedCount(slot) >= slot.volunteersNeeded ? 'opacity-50 cursor-not-allowed' : 'hover:bg-primary hover:text-primary-foreground'} transition-colors`}
                   >
-                    {signingUp === `${opportunity._id}-${slot._id}` ? 'Signing Up...' : 
-                     slot.volunteersAssigned.length >= slot.volunteersNeeded ? 'Full' : 'Sign Up'}
+                    {signingUp === `${opportunity._id}-${slot._id}` ? 'Requesting...' :
+                     approvedCount(slot) >= slot.volunteersNeeded ? 'Full' : 'Request to Volunteer'}
                   </Button>
                 )}
-                
-                {isSignedUpForTimeSlot(slot) && (
+
+                {getSignupStatus(slot) === 'pending' && (
+                  <div className="flex items-center gap-2">
+                    <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200">
+                      Request Pending
+                    </Badge>
+                    {onWithdraw && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          onWithdraw(opportunity._id, slot._id);
+                        }}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-950 transition-colors"
+                      >
+                        Cancel Request
+                      </Button>
+                    )}
+                  </div>
+                )}
+
+                {getSignupStatus(slot) === 'approved' && (
                   <div className="flex items-center gap-2">
                     <Badge variant="secondary" className="text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
                       Signed Up

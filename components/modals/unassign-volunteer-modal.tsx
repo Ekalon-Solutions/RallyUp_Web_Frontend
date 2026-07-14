@@ -42,23 +42,24 @@ export function UnassignVolunteerModal({
   const { toast } = useToast();
 
   const timeSlot = opportunity?.timeSlots.find(slot => slot._id === timeSlotId);
+  const approvedEntries = timeSlot?.volunteersAssigned.filter((e) => e.status === 'approved') ?? [];
 
   const fetchAssignedVolunteers = React.useCallback(async () => {
-    if (!timeSlot || timeSlot.volunteersAssigned.length === 0) {
+    if (!timeSlot || approvedEntries.length === 0) {
       setAssignedVolunteers([]);
       return;
     }
 
     try {
       setLoading(true);
-      
-      const response = await apiClient.getVolunteers({ 
-        club: opportunity?.club 
+
+      const response = await apiClient.getVolunteers({
+        club: opportunity?.club
       });
-      
+
       if (response.success && response.data) {
-        const volunteers = response.data.filter(volunteer => 
-          timeSlot.volunteersAssigned.includes(volunteer._id)
+        const volunteers = response.data.filter(volunteer =>
+          approvedEntries.some((e) => e.volunteer === volunteer._id)
         );
         
         const validVolunteers = volunteers.filter(volunteer => volunteer.user);
@@ -145,7 +146,7 @@ export function UnassignVolunteerModal({
                 <span className="font-medium">Time:</span> {timeSlot.startTime} - {timeSlot.endTime}
               </div>
               <div>
-                <span className="font-medium">Volunteers:</span> {timeSlot.volunteersAssigned.length} / {timeSlot.volunteersNeeded}
+                <span className="font-medium">Volunteers:</span> {approvedEntries.length} / {timeSlot.volunteersNeeded}
               </div>
             </div>
           </div>
@@ -169,7 +170,7 @@ export function UnassignVolunteerModal({
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-3"></div>
                 <p className="text-muted-foreground">Loading assigned volunteers...</p>
               </div>
-            ) : timeSlot.volunteersAssigned.length === 0 ? (
+            ) : approvedEntries.length === 0 ? (
               <div className="text-center py-6">
                 <Users className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
                 <p className="text-muted-foreground">No volunteers currently assigned to this time slot.</p>
@@ -241,7 +242,7 @@ export function UnassignVolunteerModal({
             )}
           </div>
 
-          {timeSlot.volunteersAssigned.length > 0 && (
+          {approvedEntries.length > 0 && (
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
               <div className="flex items-start gap-3">
                 <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5" />

@@ -730,6 +730,16 @@ export interface Event {
   updatedAt: string;
 }
 
+export interface VolunteerSignupEntry {
+  _id: string;
+  volunteer: string;
+  status: 'pending' | 'approved' | 'rejected';
+  requestedAt: string;
+  reviewedBy?: string;
+  reviewedAt?: string;
+  rejectionReason?: string;
+}
+
 export interface VolunteerOpportunity {
   _id: string;
   title: string;
@@ -742,7 +752,7 @@ export interface VolunteerOpportunity {
     startTime: string;
     endTime: string;
     volunteersNeeded: number;
-    volunteersAssigned: string[];
+    volunteersAssigned: VolunteerSignupEntry[];
   }[];
   status: 'draft' | 'open' | 'filled' | 'completed' | 'cancelled';
   notes?: string;
@@ -2639,6 +2649,7 @@ class ApiClient {
   }
 
   async getVolunteerSignupsForOpportunity(opportunityId: string): Promise<ApiResponse<{
+    signupId: string;
     opportunityId: string;
     opportunityTitle: string;
     timeSlotId: string;
@@ -2646,7 +2657,10 @@ class ApiClient {
     endTime: string;
     date: string;
     volunteer: User;
-    status: string;
+    status: 'pending' | 'approved' | 'rejected';
+    requestedAt: string;
+    reviewedAt?: string;
+    rejectionReason?: string;
   }[]>> {
     return this.request(`/volunteer/opportunities/${opportunityId}/signups`);
   }
@@ -2689,10 +2703,15 @@ class ApiClient {
     return this.request(`/volunteer/opportunities/available-volunteers?${queryParams.toString()}`);
   }
 
-  async updateVolunteerSignupStatus(opportunityId: string, signupId: string, status: 'confirmed' | 'pending' | 'cancelled'): Promise<ApiResponse<{ message: string }>> {
+  async updateVolunteerSignupStatus(
+    opportunityId: string,
+    signupId: string,
+    status: 'approved' | 'rejected',
+    rejectionReason?: string
+  ): Promise<ApiResponse<{ message: string; signupId: string; status: string }>> {
     return this.request(`/volunteer/opportunities/${opportunityId}/signups/${signupId}/status`, {
       method: 'PATCH',
-      body: JSON.stringify({ status }),
+      body: JSON.stringify({ status, ...(rejectionReason ? { rejectionReason } : {}) }),
     });
   }
 

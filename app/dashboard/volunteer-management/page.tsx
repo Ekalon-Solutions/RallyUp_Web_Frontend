@@ -314,16 +314,21 @@ export default function VolunteerManagementPage() {
         if (opportunity.timeSlots) {
           for (const timeSlot of opportunity.timeSlots) {
             if (timeSlot.volunteersAssigned && timeSlot.volunteersAssigned.length > 0) {
-              for (const volunteerId of timeSlot.volunteersAssigned) {
+              for (const entry of timeSlot.volunteersAssigned) {
+                // Rejected requests are excluded from this list — they're removed once reviewed.
+                if (entry.status === 'rejected') continue;
+                // Guard against legacy, not-yet-migrated entries that don't have a `volunteer` field yet.
+                if (!entry.volunteer) continue;
                 allSignups.push({
+                  signupId: entry._id,
                   opportunityId: opportunity._id,
                   opportunityTitle: opportunity.title,
                   timeSlotId: timeSlot._id,
                   startTime: timeSlot.startTime,
                   endTime: timeSlot.endTime,
                   date: opportunity.createdAt,
-                  volunteerId: volunteerId,
-                  status: 'confirmed'
+                  volunteerId: entry.volunteer,
+                  status: entry.status
                 });
               }
             }
@@ -356,6 +361,56 @@ export default function VolunteerManagementPage() {
     fetchOpportunitySignups(opportunity._id);
     setShowSignupsModal(true);
   }, [fetchOpportunitySignups]);
+
+  const [updatingSignupId, setUpdatingSignupId] = React.useState<string | null>(null);
+  const [rejectingSignup, setRejectingSignup] = React.useState<{ opportunityId: string; signupId: string } | null>(null);
+  const [rejectionReason, setRejectionReason] = React.useState('');
+
+  const refreshSignupsAfterReview = React.useCallback(() => {
+    fetchVolunteerSignups();
+    fetchOpportunities();
+    if (showSignupsModal && selectedOpportunity) {
+      fetchOpportunitySignups(selectedOpportunity._id);
+    }
+  }, [fetchVolunteerSignups, fetchOpportunities, showSignupsModal, selectedOpportunity, fetchOpportunitySignups]);
+
+  const handleApproveSignup = React.useCallback(async (opportunityId: string, signupId: string) => {
+    setUpdatingSignupId(signupId);
+    try {
+      const response = await apiClient.updateVolunteerSignupStatus(opportunityId, signupId, 'approved');
+      if (response.success) {
+        toast({ title: 'Approved', description: 'Volunteer signup request approved.' });
+        refreshSignupsAfterReview();
+      } else {
+        toast({ title: 'Error', description: response.error || 'Failed to approve signup request.', variant: 'destructive' });
+      }
+    } finally {
+      setUpdatingSignupId(null);
+    }
+  }, [toast, refreshSignupsAfterReview]);
+
+  const handleConfirmReject = React.useCallback(async () => {
+    if (!rejectingSignup) return;
+    setUpdatingSignupId(rejectingSignup.signupId);
+    try {
+      const response = await apiClient.updateVolunteerSignupStatus(
+        rejectingSignup.opportunityId,
+        rejectingSignup.signupId,
+        'rejected',
+        rejectionReason.trim() || undefined
+      );
+      if (response.success) {
+        toast({ title: 'Rejected', description: 'Volunteer signup request rejected.' });
+        setRejectingSignup(null);
+        setRejectionReason('');
+        refreshSignupsAfterReview();
+      } else {
+        toast({ title: 'Error', description: response.error || 'Failed to reject signup request.', variant: 'destructive' });
+      }
+    } finally {
+      setUpdatingSignupId(null);
+    }
+  }, [rejectingSignup, rejectionReason, toast, refreshSignupsAfterReview]);
 
   React.useEffect(() => {
     fetchOpportunities();
@@ -645,7 +700,9 @@ export default function VolunteerManagementPage() {
                       <div className="space-y-3">
                         <h5 className="text-sm font-medium">Time Slots & Signups</h5>
                         {opportunity.timeSlots.map((timeSlot) => {
-                          const signupCount = timeSlot.volunteersAssigned.length;
+                          const approvedEntries = timeSlot.volunteersAssigned.filter((e) => e.status === 'approved');
+                          const pendingCount = timeSlot.volunteersAssigned.filter((e) => e.status === 'pending').length;
+                          const signupCount = approvedEntries.length;
                           const isFilled = signupCount >= timeSlot.volunteersNeeded;
                           
                           return (
@@ -668,18 +725,23 @@ export default function VolunteerManagementPage() {
                                       {signupCount} signed up
                                     </span>
                                   )}
+                                  {pendingCount > 0 && (
+                                    <span className="text-xs text-amber-700">
+                                      {pendingCount} pending
+                                    </span>
+                                  )}
                                 </div>
                               </div>
-                              
+
                               {signupCount > 0 && (
                                 <div className="mt-2">
                                   <p className="text-xs text-muted-foreground mb-1">Volunteers:</p>
                                   <div className="flex flex-wrap gap-1">
-                                    {timeSlot.volunteersAssigned.map((volunteerId) => {
-                                      const volunteer = volunteers.find(v => v._id === volunteerId);
+                                    {approvedEntries.map((entry) => {
+                                      const volunteer = volunteers.find(v => v._id === entry.volunteer);
                                       return volunteer && volunteer.user ? (
                                         <span
-                                          key={volunteerId}
+                                          key={entry._id}
                                           className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded flex items-center gap-1"
                                           title={`${getVolunteerDisplayName(volunteer)} - ${volunteer.user.email || 'No email'}`}
                                         >
@@ -688,7 +750,7 @@ export default function VolunteerManagementPage() {
                                         </span>
                                       ) : (
                                         <span
-                                          key={volunteerId}
+                                          key={entry._id}
                                           className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded"
                                         >
                                           {volunteer ? 'User data missing' : 'Loading...'}
@@ -895,9 +957,15 @@ export default function VolunteerManagementPage() {
                     </div>
                     <div className="rounded-lg border p-4">
                       <div className="text-2xl font-bold text-green-600">
-                        {volunteerSignups.filter(s => s.status === 'confirmed').length}
+                        {volunteerSignups.filter(s => s.status === 'approved').length}
                       </div>
-                      <div className="text-sm text-muted-foreground">Confirmed</div>
+                      <div className="text-sm text-muted-foreground">Approved</div>
+                    </div>
+                    <div className="rounded-lg border p-4">
+                      <div className="text-2xl font-bold text-amber-600">
+                        {volunteerSignups.filter(s => s.status === 'pending').length}
+                      </div>
+                      <div className="text-sm text-muted-foreground">Pending</div>
                     </div>
                     <div className="rounded-lg border p-4">
                       <div className="text-2xl font-bold text-blue-600">
@@ -934,9 +1002,11 @@ export default function VolunteerManagementPage() {
                                 </>
                               ) : (
                                 <>
-                                  <h5 className="font-medium text-lg">Volunteer ID: {signup.volunteerId.substring(0, 8)}...</h5>
+                                  <h5 className="font-medium text-lg">
+                                    {signup.volunteerId ? `Volunteer ID: ${signup.volunteerId.substring(0, 8)}...` : 'Unknown volunteer'}
+                                  </h5>
                                   <p className="text-sm text-muted-foreground">
-                                    Loading volunteer details...
+                                    {signup.volunteerId ? 'Loading volunteer details...' : 'This signup entry is missing volunteer data (likely legacy, unmigrated data).'}
                                   </p>
                                 </>
                               );
@@ -946,7 +1016,10 @@ export default function VolunteerManagementPage() {
                             </p>
                           </div>
                           <div className="text-right">
-                            <Badge variant="default" className="mb-2">
+                            <Badge
+                              variant={signup.status === 'approved' ? 'default' : 'secondary'}
+                              className={`mb-2 ${signup.status === 'pending' ? 'bg-amber-100 text-amber-800 hover:bg-amber-100' : ''}`}
+                            >
                               {signup.status}
                             </Badge>
                             <p className="text-xs text-muted-foreground">
@@ -954,7 +1027,7 @@ export default function VolunteerManagementPage() {
                             </p>
                           </div>
                         </div>
-                        
+
                         <div className="grid gap-4 md:grid-cols-2">
                           <div>
                             <h6 className="text-sm font-medium mb-2">Opportunity Details</h6>
@@ -963,7 +1036,7 @@ export default function VolunteerManagementPage() {
                               {signup.startTime} - {signup.endTime}
                             </p>
                           </div>
-                          
+
                           <div>
                             <h6 className="text-sm font-medium mb-2">Volunteer Skills</h6>
                             {(() => {
@@ -990,6 +1063,26 @@ export default function VolunteerManagementPage() {
                             })()}
                           </div>
                         </div>
+
+                        {signup.status === 'pending' && (
+                          <div className="flex gap-2 mt-3 pt-3 border-t">
+                            <Button
+                              size="sm"
+                              onClick={() => handleApproveSignup(signup.opportunityId, signup.signupId)}
+                              disabled={updatingSignupId === signup.signupId}
+                            >
+                              Approve
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => setRejectingSignup({ opportunityId: signup.opportunityId, signupId: signup.signupId })}
+                              disabled={updatingSignupId === signup.signupId}
+                            >
+                              Reject
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -1074,9 +1167,15 @@ export default function VolunteerManagementPage() {
                       </div>
                       <div className="rounded-lg border p-3">
                         <div className="text-xl font-bold text-green-600">
-                          {opportunitySignups.filter(s => s.status === 'confirmed').length}
+                          {opportunitySignups.filter(s => s.status === 'approved').length}
                         </div>
-                        <div className="text-sm text-muted-foreground">Confirmed</div>
+                        <div className="text-sm text-muted-foreground">Approved</div>
+                      </div>
+                      <div className="rounded-lg border p-3">
+                        <div className="text-xl font-bold text-amber-600">
+                          {opportunitySignups.filter(s => s.status === 'pending').length}
+                        </div>
+                        <div className="text-sm text-muted-foreground">Pending</div>
                       </div>
                       <div className="rounded-lg border p-3">
                         <div className="text-xl font-bold text-blue-600">
@@ -1111,7 +1210,10 @@ export default function VolunteerManagementPage() {
                               })()}
                             </div>
                             <div className="text-right">
-                              <Badge variant="default" className="mb-2">
+                              <Badge
+                                variant={signup.status === 'approved' ? 'default' : 'secondary'}
+                                className={`mb-2 ${signup.status === 'pending' ? 'bg-amber-100 text-amber-800 hover:bg-amber-100' : ''}`}
+                              >
                                 {signup.status}
                               </Badge>
                               <p className="text-xs text-muted-foreground">
@@ -1119,7 +1221,7 @@ export default function VolunteerManagementPage() {
                               </p>
                             </div>
                           </div>
-                          
+
                           <div className="grid gap-4 md:grid-cols-2">
                             <div>
                               <h6 className="text-sm font-medium mb-2">Time Slot</h6>
@@ -1127,7 +1229,7 @@ export default function VolunteerManagementPage() {
                                 {signup.startTime} - {signup.endTime}
                               </p>
                             </div>
-                            
+
                             <div>
                               <h6 className="text-sm font-medium mb-2">Volunteer Skills</h6>
                               {signup.volunteer.volunteering?.skills && signup.volunteer.volunteering.skills.length > 0 ? (
@@ -1148,6 +1250,26 @@ export default function VolunteerManagementPage() {
                             <div className="mt-3">
                               <h6 className="text-sm font-medium mb-2">Volunteer Notes</h6>
                               <p className="text-sm text-muted-foreground">{signup.volunteer.volunteering.notes}</p>
+                            </div>
+                          )}
+
+                          {signup.status === 'pending' && (
+                            <div className="flex gap-2 mt-3 pt-3 border-t">
+                              <Button
+                                size="sm"
+                                onClick={() => handleApproveSignup(signup.opportunityId, (signup as any).signupId)}
+                                disabled={updatingSignupId === (signup as any).signupId}
+                              >
+                                Approve
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => setRejectingSignup({ opportunityId: signup.opportunityId, signupId: (signup as any).signupId })}
+                                disabled={updatingSignupId === (signup as any).signupId}
+                              >
+                                Reject
+                              </Button>
                             </div>
                           )}
                         </div>
@@ -1202,6 +1324,47 @@ export default function VolunteerManagementPage() {
             fetchOpportunities();
           }}
         />
+
+        <Dialog
+          open={!!rejectingSignup}
+          onOpenChange={(open) => {
+            if (!open) {
+              setRejectingSignup(null);
+              setRejectionReason('');
+            }
+          }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Reject Signup Request</DialogTitle>
+              <DialogDescription>
+                Optionally let the volunteer know why their request was rejected.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-2">
+              <Label htmlFor="rejection-reason">Reason (optional)</Label>
+              <Textarea
+                id="rejection-reason"
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                placeholder="e.g. This slot no longer matches the required skills"
+                maxLength={500}
+              />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => { setRejectingSignup(null); setRejectionReason(''); }}>
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleConfirmReject}
+                disabled={updatingSignupId === rejectingSignup?.signupId}
+              >
+                Reject Request
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );

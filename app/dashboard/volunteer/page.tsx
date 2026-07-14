@@ -25,6 +25,11 @@ export default function VolunteerDashboard() {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [signingUp, setSigningUp] = React.useState<string | null>(null); // Track which opportunity is being signed up for
+
+  // A volunteer is "assigned" (pending or approved) to a slot if they have a non-rejected
+  // signup entry there — rejected entries don't count so the member can request again.
+  const isAssignedEntry = (entries: any[] | undefined, profileId: string) =>
+    (entries ?? []).some((e: any) => String(e.volunteer) === String(profileId) && e.status !== 'rejected');
   const { toast } = useToast();
 
   const fetchVolunteerProfile = React.useCallback(async () => {
@@ -157,10 +162,10 @@ export default function VolunteerDashboard() {
       const opportunity = opportunities.find(o => o._id === opportunityId);
       if (opportunity) {
         const timeSlot = opportunity.timeSlots.find(slot => slot._id === timeSlotId);
-        if (timeSlot && timeSlot.volunteersAssigned.includes(volunteerProfile._id)) {
+        if (timeSlot && isAssignedEntry(timeSlot.volunteersAssigned, volunteerProfile._id)) {
           toast({
             title: 'Already Signed Up',
-            description: 'You are already signed up for this time slot',
+            description: 'You are already signed up (or have a pending request) for this time slot',
             variant: 'default',
           });
           return;
@@ -181,8 +186,8 @@ export default function VolunteerDashboard() {
       if (response.success) {
         // // console.log('✅ Successfully signed up for opportunity');
         toast({
-          title: 'Success',
-          description: 'Successfully signed up for the volunteer opportunity',
+          title: 'Request Sent',
+          description: 'Your request to volunteer was sent and is waiting for admin approval.',
         });
         fetchOpportunities();
         fetchVolunteerProfile(); // Refresh volunteer profile to update myOpportunities
@@ -211,8 +216,7 @@ export default function VolunteerDashboard() {
     const isAssigned = allVolunteerProfileIds.some((profileId) => {
       const opportunity = opportunities.find((o: any) => o._id === opportunityId);
       const timeSlot = opportunity?.timeSlots?.find((s: any) => s._id === timeSlotId);
-      const assigned = timeSlot?.volunteersAssigned ?? [];
-      return assigned.some((id: any) => String(id) === String(profileId));
+      return isAssignedEntry(timeSlot?.volunteersAssigned, profileId);
     });
     if (allVolunteerProfileIds.length > 0 && !isAssigned) {
       toast({
@@ -372,8 +376,8 @@ export default function VolunteerDashboard() {
   const myOpportunities = opportunities.filter((opportunity: VolunteerOpportunity) => {
     const hasAssignment = opportunity.timeSlots.some((slot: any) => {
       // Check if ANY of the user's volunteer profiles is assigned to this time slot
-      const isAssigned = allVolunteerProfileIds.some(profileId => 
-        slot.volunteersAssigned.includes(profileId)
+      const isAssigned = allVolunteerProfileIds.some(profileId =>
+        isAssignedEntry(slot.volunteersAssigned, profileId)
       );
       
       if (isAssigned) {
@@ -553,7 +557,7 @@ export default function VolunteerDashboard() {
                     onWithdraw={handleWithdraw}
                     currentVolunteerId={allVolunteerProfileIds.find(profileId =>
                       opportunity.timeSlots.some((slot: any) =>
-                        (slot.volunteersAssigned ?? []).some((id: any) => String(id) === String(profileId))
+                        isAssignedEntry(slot.volunteersAssigned, profileId)
                       )
                     )}
                     signingUp={signingUp}
@@ -580,7 +584,7 @@ export default function VolunteerDashboard() {
                     onWithdraw={handleWithdraw}
                     currentVolunteerId={allVolunteerProfileIds.find(profileId =>
                       opportunity.timeSlots.some((slot: any) =>
-                        (slot.volunteersAssigned ?? []).some((id: any) => String(id) === String(profileId))
+                        isAssignedEntry(slot.volunteersAssigned, profileId)
                       )
                     )}
                     signingUp={signingUp}

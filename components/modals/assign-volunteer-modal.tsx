@@ -72,9 +72,11 @@ export function AssignVolunteerModal({
         const allVolunteers = response.data || [];
         // // console.log('🔍 Frontend: Received all volunteers:', allVolunteers.length, allVolunteers);
         
-        // Filter out volunteers already assigned to this time slot
-        const availableVolunteers = allVolunteers.filter(volunteer => 
-          !timeSlot?.volunteersAssigned.includes(volunteer._id)
+        // Filter out volunteers already assigned (pending or approved) to this time slot
+        const availableVolunteers = allVolunteers.filter(volunteer =>
+          !(timeSlot?.volunteersAssigned ?? []).some(
+            (entry) => entry.volunteer === volunteer._id && entry.status !== 'rejected'
+          )
         );
         
         // // console.log('🔍 Frontend: Available volunteers after filtering assigned:', availableVolunteers.length);
@@ -221,12 +223,12 @@ export function AssignVolunteerModal({
                 <span className="font-medium">Time:</span> {timeSlot.startTime} - {timeSlot.endTime}
               </div>
               <div>
-                <span className="font-medium">Volunteers:</span> {timeSlot.volunteersAssigned.length} / {timeSlot.volunteersNeeded}
+                <span className="font-medium">Volunteers:</span> {timeSlot.volunteersAssigned.filter((e) => e.status === 'approved').length} / {timeSlot.volunteersNeeded}
               </div>
               <div>
-                <span className="font-medium">Status:</span> 
-                <Badge variant={timeSlot.volunteersAssigned.length >= timeSlot.volunteersNeeded ? "default" : "secondary"} className="ml-2">
-                  {timeSlot.volunteersAssigned.length >= timeSlot.volunteersNeeded ? "Filled" : "Open"}
+                <span className="font-medium">Status:</span>
+                <Badge variant={timeSlot.volunteersAssigned.filter((e) => e.status === 'approved').length >= timeSlot.volunteersNeeded ? "default" : "secondary"} className="ml-2">
+                  {timeSlot.volunteersAssigned.filter((e) => e.status === 'approved').length >= timeSlot.volunteersNeeded ? "Filled" : "Open"}
                 </Badge>
               </div>
             </div>
