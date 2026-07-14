@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useCallback, useEffect, useState } from "react"
 import { Ticket, Tag, TrendingUp } from "lucide-react"
@@ -61,7 +61,7 @@ interface EventTicketSalesRow extends Record<string, unknown> {
   mobileNumber: string
   venueName: string
   registrationDate: string
-  tierName: string
+  tickets: number
   amountPaid: number
   discountApplied: number
   clubFees: number
@@ -258,10 +258,10 @@ export default function EventTicketSalesReportPage() {
       width: "w-40",
     },
     {
-      key: "tierName",
-      header: "Ticket Tier",
-      accessor: "tierName",
-      width: "w-32",
+      key: "tickets",
+      header: "Tickets",
+      accessor: "tickets",
+      width: "w-20",
     },
     {
       key: "amountPaid",
