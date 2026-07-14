@@ -536,8 +536,10 @@ function CreateEventForm() {
         },
         venues: form.multiTicketEnabled && venues.length > 0
           ? venues.map((v, i) => ({
+              _id: v.id,
               name: (i === 0 ? v.name.trim() || form.venue.trim() : v.name.trim()) || v.name,
               tiers: v.tiers.map((t) => ({
+                _id: t.id,
                 name: t.name,
                 price: t.price,
                 allocation: t.allocation,
