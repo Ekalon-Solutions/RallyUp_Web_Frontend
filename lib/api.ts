@@ -2140,7 +2140,7 @@ class ApiClient {
     bookingEndTime?: string;
     attendancePoints?: number;
     waitlist?: { enabled?: boolean; percentage?: number; purchaseWindowHours?: number };
-    venues?: Array<{ name: string; tiers: Array<{ name: string; price: number; allocation: number; clubAllocations?: Array<{ clubName: string; allocation: number }> }> }>;
+    venues?: Array<{ _id?: string; name: string; tiers: Array<{ _id?: string; name: string; price: number; allocation: number; clubAllocations?: Array<{ clubName: string; allocation: number }> }> }>;
     jointScreening?: { enabled: boolean; homeTeam?: string; awayTeam?: string; partnerClubNames?: string[] };
     isRefundAllowed?: boolean;
     is_refund_allowed?: boolean;
