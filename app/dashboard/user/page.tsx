@@ -23,7 +23,7 @@ import { MemberTicketRefundAction } from "@/components/member/member-ticket-refu
 import { RefundPolicyBadge } from "@/components/refund-policy-badge"
 import { EventImage } from "@/components/events/event-image"
 import { eventVariantUrl } from "@/lib/eventImageCache"
-import { isEventPaid } from "@/lib/event-display-price"
+import { isEventPaid, getEventCapacity } from "@/lib/event-display-price"
 
 function AttendanceMarker({ event, userId }: { event: Event; userId?: string }) {
   const [registration, setRegistration] = useState<any | null>(null)
@@ -596,8 +596,8 @@ export default function UserDashboardPage() {
     return text.substring(0, maxLength) + "..."
   }
   const isEventFull = (event: Event) => {
-    if (typeof event.maxAttendees !== "number" || event.maxAttendees <= 0) return false
-    return (event.currentAttendees ?? 0) >= event.maxAttendees
+    const { count, max } = getEventCapacity(event)
+    return max !== null ? count >= max : false
   }
 
   const isEventPast = (event: Event) => {
@@ -708,6 +708,7 @@ export default function UserDashboardPage() {
     const registered = isUserRegisteredForEvent(event)
     const registrationStatus = getRegistrationStatusForEvent(event)
     const eventFull = isEventFull(event)
+    const eventCapacity = getEventCapacity(event)
 
     return (
       <Card
@@ -771,44 +772,32 @@ export default function UserDashboardPage() {
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4 text-muted-foreground" />
               <span className="text-xs">
-                {event.currentAttendees}
-                {event.maxAttendees ? `/${event.maxAttendees}` : ""} attendees
+                {eventCapacity.count}
+                {eventCapacity.max !== null ? `/${eventCapacity.max}` : ""} attendees
               </span>
             </div>
           </div>
 
-          {event.maxAttendees ? (
+          {eventCapacity.max !== null ? (
             <div className="space-y-1">
               <div className="flex justify-between text-xs text-muted-foreground">
                 <span>Capacity</span>
                 <span>
-                  {getAttendancePercentage(
-                    event.currentAttendees || 0,
-                    event.maxAttendees
-                  )}
+                  {getAttendancePercentage(eventCapacity.count, eventCapacity.max)}
                   %
                 </span>
               </div>
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div
-                  className={`h-2 rounded-full transition-all ${getAttendancePercentage(
-                    event.currentAttendees || 0,
-                    event.maxAttendees
-                  ) >= 90
+                  className={`h-2 rounded-full transition-all ${getAttendancePercentage(eventCapacity.count, eventCapacity.max) >= 90
                       ? "bg-red-500"
-                      : getAttendancePercentage(
-                        event.currentAttendees || 0,
-                        event.maxAttendees
-                      ) >= 75
+                      : getAttendancePercentage(eventCapacity.count, eventCapacity.max) >= 75
                         ? "bg-yellow-500"
                         : "bg-green-500"
                     }`}
                   style={{
                     width: `${Math.min(
-                      getAttendancePercentage(
-                        event.currentAttendees || 0,
-                        event.maxAttendees
-                      ),
+                      getAttendancePercentage(eventCapacity.count, eventCapacity.max),
                       100
                     )}%`,
                   }}
@@ -1102,7 +1091,9 @@ export default function UserDashboardPage() {
                             <Badge variant="outline">{pastEvents.length} events</Badge>
                           </div>
                           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                            {pastEvents.map((event) => (
+                            {pastEvents.map((event) => {
+                              const eventCapacity = getEventCapacity(event)
+                              return (
                               <Card
                                 key={event._id}
                                 className="overflow-hidden hover:shadow-md transition-shadow flex flex-col h-full"
@@ -1151,43 +1142,31 @@ export default function UserDashboardPage() {
                                     <div className="flex items-center gap-2">
                                       <Users className="w-4 h-4 text-muted-foreground" />
                                       <span className="text-xs">
-                                        {event.currentAttendees}
-                                        {event.maxAttendees ? `/${event.maxAttendees}` : ""} attendees
+                                        {eventCapacity.count}
+                                        {eventCapacity.max !== null ? `/${eventCapacity.max}` : ""} attendees
                                       </span>
                                     </div>
                                   </div>
-                                  {event.maxAttendees ? (
+                                  {eventCapacity.max !== null ? (
                                     <div className="space-y-1">
                                       <div className="flex justify-between text-xs text-muted-foreground">
                                         <span>Capacity</span>
                                         <span>
-                                          {getAttendancePercentage(
-                                            event.currentAttendees || 0,
-                                            event.maxAttendees
-                                          )}
+                                          {getAttendancePercentage(eventCapacity.count, eventCapacity.max)}
                                           %
                                         </span>
                                       </div>
                                       <div className="w-full bg-gray-200 rounded-full h-2">
                                         <div
-                                          className={`h-2 rounded-full transition-all ${getAttendancePercentage(
-                                            event.currentAttendees || 0,
-                                            event.maxAttendees
-                                          ) >= 90
+                                          className={`h-2 rounded-full transition-all ${getAttendancePercentage(eventCapacity.count, eventCapacity.max) >= 90
                                               ? "bg-red-500"
-                                              : getAttendancePercentage(
-                                                event.currentAttendees || 0,
-                                                event.maxAttendees
-                                              ) >= 75
+                                              : getAttendancePercentage(eventCapacity.count, eventCapacity.max) >= 75
                                                 ? "bg-yellow-500"
                                                 : "bg-green-500"
                                             }`}
                                           style={{
                                             width: `${Math.min(
-                                              getAttendancePercentage(
-                                                event.currentAttendees || 0,
-                                                event.maxAttendees
-                                              ),
+                                              getAttendancePercentage(eventCapacity.count, eventCapacity.max),
                                               100
                                             )}%`,
                                           }}
@@ -1207,7 +1186,8 @@ export default function UserDashboardPage() {
                                   </div>
                                 </CardContent>
                               </Card>
-                            ))}
+                              )
+                            })}
                           </div>
                         </section>
                       )}
