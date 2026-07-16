@@ -1470,7 +1470,7 @@ class ApiClient {
     countryCode: string;
     otp: string;
     sessionInfo: string;
-  }): Promise<ApiResponse<{ verified: boolean; channel?: string }>> {
+  }): Promise<ApiResponse<{ verified: boolean; channel?: string; guestToken?: string }>> {
     return this.request('/otp/verify-phone/verify', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -1482,6 +1482,42 @@ class ApiClient {
     countryCode: string;
   }): Promise<ApiResponse<{ sessionInfo?: string; deliveryChannel?: string }>> {
     return this.request('/otp/verify-phone/resend', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async listGuestRefundTickets(data: {
+    clubSlug: string;
+    phoneNumber: string;
+    countryCode: string;
+    guestToken: string;
+  }): Promise<ApiResponse<{
+    club: { id: string; name: string };
+    tickets: Array<{
+      eventId: string;
+      eventTitle: string;
+      eventStartTime?: string;
+      venue?: string;
+      attendeeId: string;
+      attendeeName: string;
+      price?: number;
+    }>;
+  }>> {
+    return this.request('/refunds/guest/tickets', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async requestGuestRefund(data: {
+    clubSlug: string;
+    phoneNumber: string;
+    countryCode: string;
+    guestToken: string;
+    items: Array<{ eventId: string; attendeeId: string }>;
+  }): Promise<ApiResponse<{ cancelledCount: number }>> {
+    return this.request('/refunds/guest/cancel', {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -3620,7 +3656,8 @@ class ApiClient {
   async subscribeMembershipPlan(
     planId: string,
     payment?: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string },
-    referralPhone?: string
+    referralPhone?: string,
+    merch?: { tshirtSize?: string; tshirtColor?: string }
   ): Promise<ApiResponse<{
     message: string;
     data: {
@@ -3631,6 +3668,8 @@ class ApiClient {
     const body: any = {};
     if (payment) body.payment = payment;
     if (referralPhone) body.referralPhone = referralPhone;
+    if (merch?.tshirtSize) body.tshirtSize = merch.tshirtSize;
+    if (merch?.tshirtColor) body.tshirtColor = merch.tshirtColor;
     return this.request(`/membership-plans/${planId}/subscribe`, {
       method: 'POST',
       body: Object.keys(body).length > 0 ? JSON.stringify(body) : undefined,
