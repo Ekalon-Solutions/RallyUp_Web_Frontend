@@ -80,7 +80,20 @@ const EMPTY_REGISTRATION = {
   id_proof_type: "Aadhar",
   id_proof_number: "",
   name: "",
+  tshirtSize: "",
+  tshirtColor: "",
 }
+
+// ponytail: name-based single-club check — swap for a clubId/feature-flag lookup if more clubs need this.
+// Substring match (not exact equality) survives curly quotes / spacing / suffix tweaks in the club name.
+const TSHIRT_FIELD_CLUB_NAME_MATCH = "arsenal hyderabad"
+const TSHIRT_SIZE_OPTIONS = ["XS", "S", "M", "L", "XL", "XXL", "3XL"]
+const TSHIRT_COLOR_OPTIONS = ["Red", "White"]
+const TSHIRT_REFERENCE_IMAGES = [
+  { src: "/arsenal-hyderabad/tshirt-white.jpeg", alt: "White T-Shirt" },
+  { src: "/arsenal-hyderabad/tshirt-red.jpeg", alt: "Red T-Shirt" },
+  { src: "/arsenal-hyderabad/tshirt-size-chart.jpeg", alt: "Size Chart" },
+]
 
 const formatPrice = (price: number, currency: string) =>
   new Intl.NumberFormat("en-US", { style: "currency", currency: currency || "INR" }).format(price)
@@ -128,6 +141,7 @@ export function JoinMembershipModal({
 }: JoinMembershipModalProps) {
   const router = useRouter()
   const { user, checkAuth } = useAuth()
+  const showTshirtFields = clubName.toLowerCase().includes(TSHIRT_FIELD_CLUB_NAME_MATCH)
   const [selectedPlanId, setSelectedPlanId] = useState<string>(plans[0]?._id ?? "")
   const [isProcessing, setIsProcessing] = useState(false)
   const [registrationData, setRegistrationData] = useState({ ...EMPTY_REGISTRATION })
@@ -459,7 +473,10 @@ export function JoinMembershipModal({
       if (registerResponse.ok && registerData.token) {
         localStorage.setItem("token", registerData.token)
         localStorage.setItem("userType", "member")
-        const subscribeRes = await apiClient.subscribeMembershipPlan(selectedPlan._id, undefined, validReferral)
+        const subscribeRes = await apiClient.subscribeMembershipPlan(selectedPlan._id, undefined, validReferral, {
+          tshirtSize: registrationData.tshirtSize,
+          tshirtColor: registrationData.tshirtColor,
+        })
         if (subscribeRes.success) {
           toast.success("Successfully joined the club!")
           onOpenChange(false)
@@ -513,7 +530,10 @@ export function JoinMembershipModal({
 
     setIsProcessing(true)
     try {
-      const response = await apiClient.subscribeMembershipPlan(selectedPlan._id, undefined, validReferral)
+      const response = await apiClient.subscribeMembershipPlan(selectedPlan._id, undefined, validReferral, {
+        tshirtSize: registrationData.tshirtSize,
+        tshirtColor: registrationData.tshirtColor,
+      })
       if (response.success) {
         const upgraded = response.data && "isUpgrade" in response.data && response.data.isUpgrade
         toast.success(upgraded ? "Membership upgraded successfully!" : "Membership activated successfully!")
@@ -562,7 +582,11 @@ export function JoinMembershipModal({
       const response = await apiClient.subscribeMembershipPlan(
         planId,
         { razorpay_payment_id: paymentId, razorpay_order_id: razorpayOrderId, razorpay_signature: razorpaySignature },
-        pendingReferral
+        pendingReferral,
+        {
+          tshirtSize: pendingRegistrationData?.tshirtSize ?? registrationData.tshirtSize,
+          tshirtColor: pendingRegistrationData?.tshirtColor ?? registrationData.tshirtColor,
+        }
       )
       if (response.success) {
         const upgraded = response.data && "isUpgrade" in response.data && response.data.isUpgrade
@@ -656,6 +680,49 @@ export function JoinMembershipModal({
         <p className="text-xs font-medium text-destructive">You cannot refer yourself.</p>
       )}
     </div>
+    )
+  }
+
+  const renderTshirtFields = () => {
+    if (!showTshirtFields) return null
+    return (
+      <>
+        <div className="space-y-2">
+          <Label htmlFor="tshirtSize" className="text-secondary text-[10px] font-bold tracking-widest uppercase">Choose T-Shirt Size:</Label>
+          <select id="tshirtSize" value={registrationData.tshirtSize} onChange={(e) => setRegistrationData({ ...registrationData, tshirtSize: e.target.value })} className="w-full h-12 rounded-xl border border-secondary px-3 bg-white text-black focus:outline-none focus:border-primary">
+            <option value="">Select size</option>
+            {TSHIRT_SIZE_OPTIONS.map((size) => (
+              <option key={size} value={size}>{size}</option>
+            ))}
+          </select>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="tshirtColor" className="text-secondary text-[10px] font-bold tracking-widest uppercase">Choose T-Shirt Colour:</Label>
+          <select id="tshirtColor" value={registrationData.tshirtColor} onChange={(e) => setRegistrationData({ ...registrationData, tshirtColor: e.target.value })} className="w-full h-12 rounded-xl border border-secondary px-3 bg-white text-black focus:outline-none focus:border-primary">
+            <option value="">Select colour</option>
+            {TSHIRT_COLOR_OPTIONS.map((color) => (
+              <option key={color} value={color}>{color}</option>
+            ))}
+          </select>
+        </div>
+      </>
+    )
+  }
+
+  const renderTshirtGallery = () => {
+    if (!showTshirtFields) return null
+    return (
+      <div className="space-y-2">
+        <Label className="text-secondary text-[10px] font-bold tracking-widest uppercase">T-Shirt Reference</Label>
+        <div className="grid grid-cols-3 gap-3">
+          {TSHIRT_REFERENCE_IMAGES.map((img) => (
+            <a key={img.src} href={img.src} target="_blank" rel="noopener noreferrer" className="block overflow-hidden rounded-xl border border-secondary/30">
+              <img src={img.src} alt={img.alt} className="h-auto w-full object-cover" />
+              <span className="block px-2 py-1 text-center text-xs text-slate-500">{img.alt}</span>
+            </a>
+          ))}
+        </div>
+      </div>
     )
   }
 
@@ -881,7 +948,9 @@ export function JoinMembershipModal({
                     <Label htmlFor="id_proof_number" className="text-secondary text-[10px] font-bold tracking-widest uppercase">ID Proof Number <span className="text-primary ml-0.5">*</span></Label>
                     <Input id="id_proof_number" value={registrationData.id_proof_number} onChange={(e) => setRegistrationData({ ...registrationData, id_proof_number: e.target.value })} required className="h-12 rounded-xl border-secondary bg-white text-black placeholder:text-slate-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary" />
                   </div>
+                  {renderTshirtFields()}
                 </div>
+                {renderTshirtGallery()}
                 {selectedPlan?.referralReward?.enabled && renderReferralField()}
                 {renderPlanSummary()}
                 <Button type="submit" disabled={isProcessing} className="w-full h-12 font-bold bg-primary hover:bg-[#FF7E4A] hover:shadow-[0_8px_20px_#FF5C1A6B] text-white rounded-xl transition-all duration-300 active:scale-95 mt-4">
@@ -892,6 +961,10 @@ export function JoinMembershipModal({
               <div className="space-y-4">
                 {renderPlanSelector()}
                 {renderPlanSummary()}
+                {showTshirtFields && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">{renderTshirtFields()}</div>
+                )}
+                {renderTshirtGallery()}
                 {selectedPlan?.referralReward?.enabled && renderReferralField()}
                 <Button
                   className="w-full h-12 font-bold bg-primary hover:bg-[#FF7E4A] hover:shadow-[0_8px_20px_#FF5C1A6B] text-white rounded-xl transition-all duration-300 active:scale-95"
