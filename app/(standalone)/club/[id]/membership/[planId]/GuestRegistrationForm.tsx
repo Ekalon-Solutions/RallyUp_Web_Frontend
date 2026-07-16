@@ -107,8 +107,10 @@ const EMPTY_REGISTRATION = {
   tshirtColor: "",
 }
 
-// ponytail: name-based single-club check — swap for a clubId/feature-flag lookup if more clubs need this
-const TSHIRT_FIELD_CLUB_NAMES = new Set(["arsenal hyderabad supporters' club"])
+// ponytail: name-based single-club check — swap for a clubId/feature-flag lookup if more clubs need this.
+// Matches by substring (not exact equality) so it survives curly quotes, extra spacing, or suffix tweaks
+// (e.g. "Arsenal Hyderabad", "Arsenal Hyderabad Supporters' Club", "Arsenal Hyderabad Supporters’ Club").
+const TSHIRT_FIELD_CLUB_NAME_MATCH = "arsenal hyderabad"
 const TSHIRT_SIZE_OPTIONS = ["XS", "S", "M", "L", "XL", "XXL", "3XL"]
 const TSHIRT_COLOR_OPTIONS = ["Red", "White"]
 const TSHIRT_REFERENCE_IMAGES = [
@@ -142,9 +144,9 @@ export function GuestRegistrationForm({
 }: GuestRegistrationFormProps) {
   const router = useRouter()
 
-  const showTshirtFields = TSHIRT_FIELD_CLUB_NAMES.has(
-    club.name?.trim().toLowerCase() ?? ""
-  )
+  const showTshirtFields = (club.name ?? "")
+    .toLowerCase()
+    .includes(TSHIRT_FIELD_CLUB_NAME_MATCH)
 
   const [plan, setPlan] = useState<CheckoutPlan | undefined>(initialPlan)
   const [planLoading, setPlanLoading] = useState(false)
