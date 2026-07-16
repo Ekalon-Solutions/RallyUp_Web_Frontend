@@ -17,12 +17,15 @@ interface RecalculatedRefund {
 interface RefundRequest {
   _id: string
   sourceType: 'event_ticket' | 'store_order'
-  user: {
+  user?: {
     first_name: string
     last_name: string
     email: string
     phoneNumber: string
   }
+  guestName?: string
+  guestPhone?: string
+  guestEmail?: string
   eventId?: {
     title: string
     startTime: string
@@ -81,10 +84,12 @@ export function RefundDetailsModal({ refund, recalculated, onClose, onMarkProces
         <div className="space-y-6">
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label className="font-semibold">User</Label>
-              <p className="text-sm">{refund.user.first_name} {refund.user.last_name}</p>
-              <p className="text-xs text-muted-foreground">{refund.user.email}</p>
-              <p className="text-xs text-muted-foreground">{refund.user.phoneNumber}</p>
+              <Label className="font-semibold">{refund.user ? 'User' : 'Guest (non-member)'}</Label>
+              <p className="text-sm">
+                {refund.user ? `${refund.user.first_name} ${refund.user.last_name}` : (refund.guestName || 'Guest')}
+              </p>
+              <p className="text-xs text-muted-foreground">{refund.user ? refund.user.email : (refund.guestEmail || '—')}</p>
+              <p className="text-xs text-muted-foreground">{refund.user ? refund.user.phoneNumber : (refund.guestPhone || '—')}</p>
             </div>
 
             <div>

@@ -26,12 +26,15 @@ import { EventRefundLogPanel } from '@/components/admin/event-refund-log-panel'
 interface RefundRequest {
   _id: string
   sourceType: 'event_ticket' | 'store_order'
-  user: {
+  user?: {
     first_name: string
     last_name: string
     email: string
     phoneNumber: string
   }
+  guestName?: string
+  guestPhone?: string
+  guestEmail?: string
   eventId?: {
     title: string
     startTime: string
@@ -481,10 +484,15 @@ function RefundsPageInner() {
                           </TableCell>
                           <TableCell>
                             <div className="text-sm">
-                              {refund.user.first_name} {refund.user.last_name}
+                              {refund.user
+                                ? `${refund.user.first_name} ${refund.user.last_name}`
+                                : (refund.guestName || 'Guest')}
+                              {!refund.user && (
+                                <Badge variant="outline" className="ml-2 text-[10px]">Guest</Badge>
+                              )}
                             </div>
                             <div className="text-xs text-muted-foreground">
-                              {refund.user.email}
+                              {refund.user ? refund.user.email : (refund.guestPhone || '')}
                             </div>
                           </TableCell>
                           <TableCell className="text-sm">

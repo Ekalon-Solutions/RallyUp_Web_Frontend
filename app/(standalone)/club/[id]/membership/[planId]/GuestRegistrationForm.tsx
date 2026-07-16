@@ -103,7 +103,19 @@ const EMPTY_REGISTRATION = {
   id_proof_type: "Aadhar",
   id_proof_number: "",
   name: "",
+  tshirtSize: "",
+  tshirtColor: "",
 }
+
+// ponytail: name-based single-club check — swap for a clubId/feature-flag lookup if more clubs need this
+const TSHIRT_FIELD_CLUB_NAMES = new Set(["arsenal hyderabad supporters' club"])
+const TSHIRT_SIZE_OPTIONS = ["XS", "S", "M", "L", "XL", "XXL", "3XL"]
+const TSHIRT_COLOR_OPTIONS = ["Red", "White"]
+const TSHIRT_REFERENCE_IMAGES = [
+  { src: "/arsenal-hyderabad/tshirt-white.jpeg", alt: "White T-Shirt" },
+  { src: "/arsenal-hyderabad/tshirt-red.jpeg", alt: "Red T-Shirt" },
+  { src: "/arsenal-hyderabad/tshirt-size-chart.jpeg", alt: "Size Chart" },
+]
 
 // ---------------------------------------------------------------------------
 // Props
@@ -129,6 +141,10 @@ export function GuestRegistrationForm({
   plan: initialPlan,
 }: GuestRegistrationFormProps) {
   const router = useRouter()
+
+  const showTshirtFields = TSHIRT_FIELD_CLUB_NAMES.has(
+    club.name?.trim().toLowerCase() ?? ""
+  )
 
   const [plan, setPlan] = useState<CheckoutPlan | undefined>(initialPlan)
   const [planLoading, setPlanLoading] = useState(false)
@@ -371,7 +387,11 @@ export function GuestRegistrationForm({
             const subscribeRes = await apiClient.subscribeMembershipPlan(
               resolvedPlan._id,
               undefined,
-              getValidReferralPhone()
+              getValidReferralPhone(),
+              {
+                tshirtSize: registrationData.tshirtSize,
+                tshirtColor: registrationData.tshirtColor,
+              }
             )
 
             if (subscribeRes.success) {
@@ -491,7 +511,11 @@ export function GuestRegistrationForm({
           razorpay_order_id: razorpayOrderId,
           razorpay_signature: razorpaySignature,
         },
-        pendingReferralPhone
+        pendingReferralPhone,
+        {
+          tshirtSize: pendingRegistrationData.tshirtSize,
+          tshirtColor: pendingRegistrationData.tshirtColor,
+        }
       )
 
       if (subscribeRes.success) {
@@ -853,7 +877,83 @@ export function GuestRegistrationForm({
                     className="h-12"
                   />
                 </div>
+
+                {showTshirtFields && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="tshirtSize">Choose T-Shirt Size:</Label>
+                      <select
+                        id="tshirtSize"
+                        value={registrationData.tshirtSize}
+                        onChange={(e) =>
+                          setRegistrationData({
+                            ...registrationData,
+                            tshirtSize: e.target.value,
+                          })
+                        }
+                        className="w-full h-12 rounded-md border px-3"
+                      >
+                        <option value="">Select size</option>
+                        {TSHIRT_SIZE_OPTIONS.map((size) => (
+                          <option key={size} value={size}>
+                            {size}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="tshirtColor">Choose T-Shirt Colour:</Label>
+                      <select
+                        id="tshirtColor"
+                        value={registrationData.tshirtColor}
+                        onChange={(e) =>
+                          setRegistrationData({
+                            ...registrationData,
+                            tshirtColor: e.target.value,
+                          })
+                        }
+                        className="w-full h-12 rounded-md border px-3"
+                      >
+                        <option value="">Select colour</option>
+                        {TSHIRT_COLOR_OPTIONS.map((color) => (
+                          <option key={color} value={color}>
+                            {color}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </>
+                )}
               </div>
+
+              {showTshirtFields && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium">
+                    T-Shirt Reference
+                  </Label>
+                  <div className="grid grid-cols-3 gap-3">
+                    {TSHIRT_REFERENCE_IMAGES.map((img) => (
+                      <a
+                        key={img.src}
+                        href={img.src}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block overflow-hidden rounded-lg border"
+                      >
+                        <img
+                          src={img.src}
+                          alt={img.alt}
+                          className="h-auto w-full object-cover"
+                        />
+                        <span className="block px-2 py-1 text-center text-xs text-muted-foreground">
+                          {img.alt}
+                        </span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {plan?.referralReward?.enabled && (
               <div className="rounded-lg border border-border bg-muted/50 p-4 space-y-2">
