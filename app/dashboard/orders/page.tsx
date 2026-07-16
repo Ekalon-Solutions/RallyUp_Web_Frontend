@@ -144,6 +144,7 @@ interface Order {
 interface OrderStats {
   totalOrders: number
   totalRevenue: number
+  completedPaidRevenue?: number
   pendingOrders: number
   completedOrders: number
   cancelledOrders: number
@@ -227,7 +228,6 @@ export default function OrdersPage() {
   const [totalPages, setTotalPages] = useState(1)
   const [eventCurrentPage, setEventCurrentPage] = useState(1)
   const [eventTotalPages, setEventTotalPages] = useState(1)
-  const [allEventRegistrations, setAllEventRegistrations] = useState<any[]>([])
   const [eventRegistrations, setEventRegistrations] = useState<any[]>([])
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [showOrderModal, setShowOrderModal] = useState(false)
@@ -252,39 +252,36 @@ export default function OrdersPage() {
   const [pendingCancelReg, setPendingCancelReg] = useState<any | null>(null)
   const [cancellingAttendeeId, setCancellingAttendeeId] = useState<string | null>(null)
 
+  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin'
+
+  // Load only the active tab's current page. Runs on mount and whenever the
+  // club, tab, page, or a filter changes — so a first load fires a single
+  // request instead of fetching both tabs (and duplicate calls) at once.
   useEffect(() => {
-    if (user?.role === 'admin' || user?.role === 'super_admin') {
+    if (!isAdmin) return
+    if (typeFilter === 'events') {
+      loadEventRegistrations(eventCurrentPage)
+    } else {
+      loadOrders()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin, clubId, typeFilter, currentPage, eventCurrentPage, searchTerm, statusFilter, earlyBirdFilter, couponFilter, paymentDateFilter, amountFilter, amountMin, amountMax])
+
+  // Product order stat cards are club-wide (filter-independent). Event stat
+  // cards come from the registrations endpoint, so only fetch stats for products.
+  useEffect(() => {
+    if (isAdmin && typeFilter === 'products') {
       loadStats()
-      if (typeFilter === 'events') {
-        loadEventRegistrations()
-      } else {
-        loadOrders()
-      }
     }
-  }, [user?.role, clubId])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin, clubId, typeFilter])
 
+  // Reset to page 1 when the tab or any filter changes.
   useEffect(() => {
-    if (user?.role === 'admin' || user?.role === 'super_admin') {
-      setCurrentPage(1)
-      setEventCurrentPage(1)
-      if (typeFilter === 'events') {
-        loadEventRegistrations()
-      } else {
-        loadOrders()
-      }
-    }
-  }, [searchTerm, statusFilter, typeFilter, earlyBirdFilter, couponFilter, paymentDateFilter, amountFilter, amountMin, amountMax, clubId])
-
-  useEffect(() => {
-    if (user?.role !== 'admin' && user?.role !== 'super_admin') return
-    loadOrders()
-  }, [currentPage, clubId])
-
-  useEffect(() => {
-    if (user?.role === 'admin' || user?.role === 'super_admin') {
-      applyEventPagination()
-    }
-  }, [eventCurrentPage, allEventRegistrations])
+    setCurrentPage(1)
+    setEventCurrentPage(1)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [typeFilter, searchTerm, statusFilter, earlyBirdFilter, couponFilter, paymentDateFilter, amountFilter, amountMin, amountMax])
 
   const loadOrders = async () => {
     try {
@@ -329,116 +326,46 @@ export default function OrdersPage() {
     }
   }
 
-  const loadEventRegistrations = async () => {
+  const loadEventRegistrations = async (page = eventCurrentPage) => {
     setEventsLoading(true)
     try {
       if (!clubId) {
-        setAllEventRegistrations([])
         setEventRegistrations([])
+        setEventTotalPages(1)
         setEventStats(null)
         return
       }
-      const response = await apiClient.getClubEventRegistrations(clubId)
+      const response = await apiClient.getClubEventRegistrations({
+        clubId,
+        page,
+        limit: 10,
+        search: searchTerm,
+        status: statusFilter,
+        earlyBird: earlyBirdFilter,
+        coupon: couponFilter,
+        paymentDate: paymentDateFilter,
+        amountFilter,
+        amountMin,
+        amountMax,
+      })
       if (response.success && response.data) {
-        const registrations: any[] = Array.isArray(response.data) ? response.data : []
-        const getDisplayStatus = (reg: any) => reg.displayStatus || reg.status || 'confirmed'
-        const isActiveRegistration = (reg: any) => {
-          const status = getDisplayStatus(reg)
-          return status === 'confirmed' || status === 'partially_cancelled'
-        }
-
-        const totalRevenue = registrations
-          .filter(reg => isActiveRegistration(reg) && reg.amountPaid && reg.paymentId)
-          .reduce((sum, reg) => sum + (reg.amountPaid || 0), 0)
-
-        setEventStats({
-          totalOrders: registrations.length,
-          totalRevenue,
-          pendingOrders: registrations.filter(reg => getDisplayStatus(reg) === 'pending').length,
-          completedOrders: registrations.filter(reg => getDisplayStatus(reg) === 'confirmed').length,
-          cancelledOrders: registrations.filter(reg => getDisplayStatus(reg) === 'cancelled').length,
-        })
-
-        setAllEventRegistrations(registrations)
-        setEventCurrentPage(1)
-        applyEventPaginationFromList(registrations, 1)
+        setEventRegistrations(response.data.registrations || [])
+        setEventTotalPages(response.data.pagination?.totalPages || 1)
+        setEventStats(response.data.stats || null)
       } else {
-        setAllEventRegistrations([])
         setEventRegistrations([])
+        setEventTotalPages(1)
         setEventStats(null)
       }
     } catch (error) {
       console.error('Error loading event registrations:', error)
-      setAllEventRegistrations([])
       setEventRegistrations([])
+      setEventTotalPages(1)
       setEventStats(null)
     } finally {
       setEventsLoading(false)
       setEventsLoaded(true)
     }
-  }
-
-  const applyEventPaginationFromList = (source: any[], page = eventCurrentPage) => {
-    let filtered = source
-    if (searchTerm) {
-      filtered = filtered.filter((reg: any) => 
-        reg.userName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        reg.userEmail?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        reg.eventTitle?.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    }
-    if (statusFilter !== 'all') {
-      filtered = filtered.filter((reg: any) => (reg.displayStatus || reg.status) === statusFilter)
-    }
-    if (earlyBirdFilter !== 'all') {
-      if (earlyBirdFilter === 'used') {
-        filtered = filtered.filter((reg: any) => (reg.earlyBirdDiscountAmt || 0) > 0)
-      } else {
-        filtered = filtered.filter((reg: any) => !((reg.earlyBirdDiscountAmt || 0) > 0))
-      }
-    }
-    if (couponFilter !== 'all') {
-      if (couponFilter === 'used') {
-        filtered = filtered.filter((reg: any) => (reg.couponDiscount || 0) > 0)
-      } else {
-        filtered = filtered.filter((reg: any) => !((reg.couponDiscount || 0) > 0))
-      }
-    }
-    if (paymentDateFilter) {
-      const filterDate = new Date(paymentDateFilter).toDateString()
-      filtered = filtered.filter((reg: any) => {
-        const regDate = new Date(reg.registrationDate || reg.createdAt).toDateString()
-        return regDate === filterDate
-      })
-    }
-    if (amountFilter !== 'all') {
-      if (amountFilter === 'free') {
-        filtered = filtered.filter((reg: any) => (reg.amountPaid || reg.ticketPrice || 0) === 0)
-      } else if (amountFilter === 'paid') {
-        filtered = filtered.filter((reg: any) => (reg.amountPaid || reg.ticketPrice || 0) > 0)
-      } else if (amountFilter === 'range') {
-        const min = parseFloat(amountMin) || 0
-        const max = parseFloat(amountMax) || Infinity
-        filtered = filtered.filter((reg: any) => {
-          const amount = reg.amountPaid || reg.ticketPrice || 0
-          return amount >= min && amount <= max
-        })
-      }
-    }
-    
-    const pageSize = 10
-    const totalPages = Math.ceil(filtered.length / pageSize)
-    setEventTotalPages(totalPages)
-    
-    const startIndex = (page - 1) * pageSize
-    const endIndex = startIndex + pageSize
-    const paginatedRegistrations = filtered.slice(startIndex, endIndex)
-    
-    setEventRegistrations(paginatedRegistrations)
-  }
-
-  const applyEventPagination = () => {
-    applyEventPaginationFromList(allEventRegistrations, eventCurrentPage)
   }
 
   const loadStats = async () => {
@@ -453,20 +380,13 @@ export default function OrdersPage() {
       if (response.success && response.data) {
         const apiStats = response.data.data?.overview || null
         if (apiStats) {
-          const allOrdersResponse = await apiClient.get(`/orders/admin/all?clubId=${clubId}&limit=1000`)
-          if (allOrdersResponse.success && allOrdersResponse.data) {
-            const allOrders = allOrdersResponse.data.data?.orders || []
-            const completedPaidRevenue = allOrders
-              .filter((order: Order) => order.status === 'completed' && order.paymentStatus === 'paid')
-              .reduce((sum: number, order: Order) => sum + (order.finalAmount || order.total || 0), 0)
-
-            setStats({
-              ...apiStats,
-              totalRevenue: completedPaidRevenue
-            })
-          } else {
-            setStats(apiStats)
-          }
+          // Revenue card shows completed + paid orders only. The stats
+          // aggregation now returns this directly, avoiding a second
+          // fetch of up to 1000 full order documents.
+          setStats({
+            ...apiStats,
+            totalRevenue: apiStats.completedPaidRevenue ?? apiStats.totalRevenue ?? 0,
+          })
         } else {
           setStats(null)
         }

@@ -1815,12 +1815,46 @@ class ApiClient {
     return this.request(endpoint);
   }
 
-  async getClubEventRegistrations(clubId?: string): Promise<ApiResponse<any[]>> {
-    const endpoint = clubId ? `/events/club/registrations?clubId=${encodeURIComponent(clubId)}` : '/events/club/registrations';
-    const res = await this.request<{ data?: any[]; success?: boolean } | any[]>(endpoint);
-    if (!res.success || res.data == null) return res as ApiResponse<any[]>;
-    const list = Array.isArray(res.data) ? res.data : (res.data as { data?: any[] }).data;
-    return { ...res, data: Array.isArray(list) ? list : [] };
+  async getClubEventRegistrations(
+    params: {
+      clubId?: string;
+      page?: number;
+      limit?: number;
+      search?: string;
+      status?: string;
+      earlyBird?: string;
+      coupon?: string;
+      paymentDate?: string;
+      amountFilter?: string;
+      amountMin?: string;
+      amountMax?: string;
+    } = {}
+  ): Promise<ApiResponse<{ registrations: any[]; pagination: { page: number; limit: number; total: number; totalPages: number }; stats: any }>> {
+    const query = new URLSearchParams();
+    if (params.clubId) query.set('clubId', params.clubId);
+    if (params.page) query.set('page', String(params.page));
+    if (params.limit) query.set('limit', String(params.limit));
+    if (params.search) query.set('search', params.search);
+    if (params.status && params.status !== 'all') query.set('status', params.status);
+    if (params.earlyBird && params.earlyBird !== 'all') query.set('earlyBird', params.earlyBird);
+    if (params.coupon && params.coupon !== 'all') query.set('coupon', params.coupon);
+    if (params.paymentDate) query.set('paymentDate', params.paymentDate);
+    if (params.amountFilter && params.amountFilter !== 'all') query.set('amountFilter', params.amountFilter);
+    if (params.amountMin) query.set('amountMin', params.amountMin);
+    if (params.amountMax) query.set('amountMax', params.amountMax);
+    const qs = query.toString();
+    const endpoint = `/events/club/registrations${qs ? `?${qs}` : ''}`;
+    const res = await this.request<{ data?: { registrations?: any[]; pagination?: any; stats?: any }; success?: boolean }>(endpoint);
+    if (!res.success || res.data == null) return res as unknown as ApiResponse<any>;
+    const body: any = (res.data as any).data ?? res.data;
+    return {
+      ...res,
+      data: {
+        registrations: Array.isArray(body?.registrations) ? body.registrations : [],
+        pagination: body?.pagination ?? { page: 1, limit: 10, total: 0, totalPages: 1 },
+        stats: body?.stats ?? null,
+      },
+    };
   }
 
   private _normalizeResendResult(res: ApiResponse<any>): ResendTicketResult {
