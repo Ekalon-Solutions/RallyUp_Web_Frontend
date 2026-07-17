@@ -9,6 +9,18 @@ import { Card } from '@/components/ui/card';
 import { apiClient } from '@/lib/api';
 import { GuestPhoneVerification, type GuestVerification } from '@/components/guest-phone-verification';
 
+type SwitchTarget = {
+  venueId?: string;
+  venueName: string;
+  tierId?: string;
+  tierName?: string;
+  price: number;
+  seatsLeft: number;
+  /** Present only for cross-event targets — same-event venue targets omit this. */
+  eventId?: string;
+  eventTitle?: string;
+};
+
 type SwitchableTicket = {
   eventId: string;
   eventTitle: string;
@@ -16,14 +28,7 @@ type SwitchableTicket = {
   attendeeId: string;
   attendeeName: string;
   currentVenueName: string;
-  targets: Array<{
-    venueId: string;
-    venueName: string;
-    tierId: string;
-    tierName: string;
-    price: number;
-    seatsLeft: number;
-  }>;
+  targets: SwitchTarget[];
 };
 
 type Step = 'verify' | 'tickets' | 'targets' | 'done';
@@ -37,9 +42,9 @@ export default function ClubGuestVenueSwitchPage() {
   const [auth, setAuth] = useState<GuestVerification | null>(null);
   const [tickets, setTickets] = useState<SwitchableTicket[]>([]);
   const [activeTicket, setActiveTicket] = useState<SwitchableTicket | null>(null);
-  const [result, setResult] = useState<{ venueName: string; tierName: string; attendeeName: string } | null>(null);
+  const [result, setResult] = useState<{ venueName?: string; tierName?: string; attendeeName: string } | null>(null);
 
-  /** Loads the caller's tickets, then keeps only the ones the club has actually opened for switching. */
+  /** Loads the caller's tickets, then keeps only the ones the club has actually opened for switching — either to another venue on the same event, or to a different event entirely. */
   const loadSwitchableTickets = async (verification: GuestVerification) => {
     setAuth(verification);
     setLoading(true);
@@ -59,20 +64,34 @@ export default function ClubGuestVenueSwitchPage() {
 
       const withOptions = await Promise.all(
         (listed.data.tickets || []).map(async (t) => {
-          const opts = await apiClient.listGuestVenueSwitchOptions({
-            ...base,
-            eventId: t.eventId,
-            attendeeId: t.attendeeId,
-          });
-          if (!opts.success || !opts.data || opts.data.targets.length === 0) return null;
+          const [venueOpts, eventOpts] = await Promise.all([
+            apiClient.listGuestVenueSwitchOptions({ ...base, eventId: t.eventId, attendeeId: t.attendeeId }),
+            apiClient.listGuestEventSwitchOptions({ ...base, eventId: t.eventId, attendeeId: t.attendeeId }),
+          ]);
+
+          const venueTargets: SwitchTarget[] =
+            venueOpts.success && venueOpts.data ? venueOpts.data.targets : [];
+          const eventTargets: SwitchTarget[] =
+            eventOpts.success && eventOpts.data
+              ? eventOpts.data.targets.map((x) => ({ ...x }))
+              : [];
+
+          const targets = [...venueTargets, ...eventTargets];
+          if (targets.length === 0) return null;
+
+          const currentVenueName =
+            (venueOpts.success && venueOpts.data?.currentVenueName) ||
+            (eventOpts.success && eventOpts.data?.currentVenueName) ||
+            '';
+
           return {
             eventId: t.eventId,
             eventTitle: t.eventTitle,
             eventStartTime: t.eventStartTime,
             attendeeId: t.attendeeId,
             attendeeName: t.attendeeName,
-            currentVenueName: opts.data.currentVenueName,
-            targets: opts.data.targets,
+            currentVenueName,
+            targets,
           } as SwitchableTicket;
         })
       );
@@ -84,20 +103,31 @@ export default function ClubGuestVenueSwitchPage() {
     }
   };
 
-  const submitSwitch = async (target: SwitchableTicket['targets'][number]) => {
+  const submitSwitch = async (target: SwitchTarget) => {
     if (!auth || !activeTicket) return;
     setLoading(true);
     try {
-      const res = await apiClient.requestGuestVenueSwitch({
+      const base = {
         clubSlug,
         phoneNumber: auth.phoneDigits,
         countryCode: auth.countryCode,
         guestToken: auth.guestToken,
         eventId: activeTicket.eventId,
         attendeeId: activeTicket.attendeeId,
-        targetVenueId: target.venueId,
-        targetTierId: target.tierId,
-      });
+      };
+
+      const res = target.eventId
+        ? await apiClient.requestGuestEventSwitch({
+            ...base,
+            targetEventId: target.eventId,
+            targetVenueId: target.venueId,
+            targetTierId: target.tierId,
+          })
+        : await apiClient.requestGuestVenueSwitch({
+            ...base,
+            targetVenueId: target.venueId!,
+            targetTierId: target.tierId!,
+          });
 
       if (res.success && res.data) {
         setResult({
@@ -108,7 +138,7 @@ export default function ClubGuestVenueSwitchPage() {
         setStep('done');
         return;
       }
-      toast.error(res.error || res.message || 'Could not switch venue');
+      toast.error(res.error || res.message || 'Could not switch');
     } finally {
       setLoading(false);
     }
@@ -143,8 +173,8 @@ export default function ClubGuestVenueSwitchPage() {
               <Loader2 className="mx-auto h-5 w-5 animate-spin text-zinc-400" />
             ) : tickets.length === 0 ? (
               <p className="text-sm text-zinc-400">
-                None of your tickets can be moved to another venue right now. If you think this is a
-                mistake, please contact the club.
+                None of your tickets can be moved right now. If you think this is a mistake, please
+                contact the club.
               </p>
             ) : (
               <div className="space-y-3">
@@ -174,7 +204,7 @@ export default function ClubGuestVenueSwitchPage() {
                         setStep('targets');
                       }}
                     >
-                      Switch venue
+                      Switch
                     </Button>
                   </Card>
                 ))}
@@ -197,12 +227,13 @@ export default function ClubGuestVenueSwitchPage() {
             <div className="space-y-3">
               {activeTicket.targets.map((target) => (
                 <Card
-                  key={`${target.venueId}:${target.tierId}`}
+                  key={`${target.eventId ?? 'venue'}:${target.venueId ?? ''}:${target.tierId ?? ''}`}
                   className="flex items-center justify-between gap-3 border-zinc-800 bg-zinc-900 p-4"
                 >
                   <div>
+                    {target.eventTitle && <p className="text-xs text-primary">{target.eventTitle}</p>}
                     <p className="font-medium">{target.venueName}</p>
-                    <p className="text-xs text-zinc-400">{target.tierName}</p>
+                    {target.tierName && <p className="text-xs text-zinc-400">{target.tierName}</p>}
                     <p className="text-xs text-zinc-500">{target.seatsLeft} seats left</p>
                   </div>
                   <Button
@@ -236,9 +267,11 @@ export default function ClubGuestVenueSwitchPage() {
             <Card className="border-zinc-800 bg-zinc-900 p-5">
               <p className="text-xs uppercase tracking-wide text-zinc-500">Your new venue</p>
               <p className="mt-1 text-2xl font-semibold text-primary">{result.venueName}</p>
-              <p className="mt-1 text-sm text-zinc-400">
-                {result.tierName} — {result.attendeeName}
-              </p>
+              {result.tierName && (
+                <p className="mt-1 text-sm text-zinc-400">
+                  {result.tierName} — {result.attendeeName}
+                </p>
+              )}
             </Card>
             {/* The club is not sending any confirmation message for switches, so this screen is the
                 attendee's only record of the new venue — say so plainly rather than implying one is coming. */}

@@ -1591,6 +1591,59 @@ class ApiClient {
     return res;
   }
 
+  async listGuestEventSwitchOptions(data: {
+    clubSlug: string;
+    phoneNumber: string;
+    countryCode: string;
+    guestToken: string;
+    eventId: string;
+    attendeeId: string;
+  }): Promise<ApiResponse<{
+    eventTitle: string;
+    currentVenueName: string;
+    targets: Array<{
+      eventId: string;
+      eventTitle: string;
+      venueName: string;
+      venueId?: string;
+      tierId?: string;
+      tierName?: string;
+      price: number;
+      seatsLeft: number;
+    }>;
+  }>> {
+    const res = await this.request<any>('/refunds/guest/event-switch-options', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    if (res.success && res.data) return { ...res, data: (res.data as any).data ?? res.data };
+    return res;
+  }
+
+  async requestGuestEventSwitch(data: {
+    clubSlug: string;
+    phoneNumber: string;
+    countryCode: string;
+    guestToken: string;
+    eventId: string;
+    attendeeId: string;
+    targetEventId: string;
+    targetVenueId?: string;
+    targetTierId?: string;
+  }): Promise<ApiResponse<{
+    eventTitle: string;
+    venueName?: string;
+    tierName?: string;
+    attendeeName: string;
+  }>> {
+    const res = await this.request<any>('/refunds/guest/event-switch', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    if (res.success && res.data) return { ...res, data: (res.data as any).data ?? res.data };
+    return res;
+  }
+
   async userProfile(): Promise<ApiResponse<User>> {
     return this.request('/users/profile');
   }
