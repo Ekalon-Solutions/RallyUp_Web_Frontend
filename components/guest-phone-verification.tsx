@@ -23,11 +23,18 @@ export type GuestVerification = {
 type Props = {
   heading: string;
   subheading: string;
+  /** Extra reassurance line shown under the subheading on the phone-entry step (e.g. "your QR won't change"). */
+  notice?: string;
+  /**
+   * Optional pre-check run before the WhatsApp OTP is sent. Return false to block the send (e.g.
+   * no ticket exists for this number) — saves sending (and paying for) an OTP nobody can use.
+   */
+  checkTicketExists?: (params: { phoneDigits: string; countryCode: string }) => Promise<boolean>;
   onVerified: (verification: GuestVerification) => void | Promise<void>;
 };
 
 /** Phone-number → WhatsApp OTP verification, shared by the guest refund and venue-switch flows. */
-export function GuestPhoneVerification({ heading, subheading, onVerified }: Props) {
+export function GuestPhoneVerification({ heading, subheading, notice, checkTicketExists, onVerified }: Props) {
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
   const [countryCode, setCountryCode] = useState('+91');
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -51,6 +58,14 @@ export function GuestPhoneVerification({ heading, subheading, onVerified }: Prop
     }
     setLoading(true);
     try {
+      if (checkTicketExists) {
+        const found = await checkTicketExists({ phoneDigits: digits, countryCode: normalizeCountryCode(countryCode) });
+        if (!found) {
+          toast.error('No ticket found for this mobile number');
+          return;
+        }
+      }
+
       const res = await apiClient.sendGuestPhoneVerificationOTP({
         phoneNumber: digits,
         countryCode: normalizeCountryCode(countryCode),
@@ -66,7 +81,7 @@ export function GuestPhoneVerification({ heading, subheading, onVerified }: Prop
     } finally {
       setLoading(false);
     }
-  }, [countryCode, digits]);
+  }, [countryCode, digits, checkTicketExists]);
 
   const verifyOtp = async () => {
     if (otp.length !== 6) {
@@ -124,6 +139,7 @@ export function GuestPhoneVerification({ heading, subheading, onVerified }: Prop
           </div>
           <h1 className="text-2xl font-semibold tracking-tight">{heading}</h1>
           <p className="mt-2 text-sm text-zinc-400">{subheading}</p>
+          {notice && <p className="mt-2 text-xs text-zinc-500">{notice}</p>}
         </div>
         <div className="flex gap-2">
           <CountryCodeSelect

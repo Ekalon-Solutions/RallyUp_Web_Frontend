@@ -126,6 +126,12 @@ export default function ClubGuestVenueSwitchPage() {
           <GuestPhoneVerification
             heading="Change your venue"
             subheading="Enter the mobile number you used to book your ticket(s)."
+            notice="Your ticket's QR code won't change — it'll keep working for entry after you switch."
+            checkTicketExists={({ phoneDigits, countryCode }) =>
+              apiClient
+                .checkGuestTicketExists({ clubSlug, phoneNumber: phoneDigits, countryCode })
+                .then((res) => Boolean(res.success && res.data?.exists))
+            }
             onVerified={loadSwitchableTickets}
           />
         )}
@@ -183,6 +189,9 @@ export default function ClubGuestVenueSwitchPage() {
               <h1 className="text-xl font-semibold">Pick a new venue</h1>
               <p className="mt-1 text-sm text-zinc-400">
                 {activeTicket.attendeeName} — currently at {activeTicket.currentVenueName}
+              </p>
+              <p className="mt-1 text-xs text-zinc-500">
+                Your ticket's QR code won't change — the same one will keep working for entry.
               </p>
             </div>
             <div className="space-y-3">

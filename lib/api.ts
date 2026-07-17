@@ -1487,6 +1487,19 @@ class ApiClient {
     });
   }
 
+  async checkGuestTicketExists(data: {
+    clubSlug: string;
+    phoneNumber: string;
+    countryCode: string;
+  }): Promise<ApiResponse<{ exists: boolean }>> {
+    const res = await this.request<any>('/refunds/guest/exists', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    if (res.success && res.data) return { ...res, data: (res.data as any).data ?? res.data };
+    return res;
+  }
+
   async listGuestRefundTickets(data: {
     clubSlug: string;
     phoneNumber: string;
