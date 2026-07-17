@@ -1504,10 +1504,12 @@ class ApiClient {
       price?: number;
     }>;
   }>> {
-    return this.request('/refunds/guest/tickets', {
+    const res = await this.request<any>('/refunds/guest/tickets', {
       method: 'POST',
       body: JSON.stringify(data),
     });
+    if (res.success && res.data) return { ...res, data: (res.data as any).data ?? res.data };
+    return res;
   }
 
   async requestGuestRefund(data: {
@@ -1517,10 +1519,12 @@ class ApiClient {
     guestToken: string;
     items: Array<{ eventId: string; attendeeId: string }>;
   }): Promise<ApiResponse<{ cancelledCount: number }>> {
-    return this.request('/refunds/guest/cancel', {
+    const res = await this.request<any>('/refunds/guest/cancel', {
       method: 'POST',
       body: JSON.stringify(data),
     });
+    if (res.success && res.data) return { ...res, data: (res.data as any).data ?? res.data };
+    return res;
   }
 
   async userProfile(): Promise<ApiResponse<User>> {
