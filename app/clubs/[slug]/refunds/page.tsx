@@ -93,7 +93,7 @@ export default function ClubGuestRefundsPage() {
         return;
       }
       const res = await apiClient.listGuestRefundTickets({
-        clubId,
+        clubSlug,
         phoneNumber: digits,
         countryCode: normalizeCountryCode(countryCode),
         guestToken: token,
@@ -179,7 +179,7 @@ export default function ClubGuestRefundsPage() {
         .map((t) => ({ eventId: t.eventId, attendeeId: t.attendeeId }));
 
       const res = await apiClient.requestGuestRefund({
-        clubId,
+        clubSlug,
         phoneNumber: digits,
         countryCode: normalizeCountryCode(countryCode),
         guestToken,
