@@ -31,7 +31,7 @@ type SwitchableTicket = {
   targets: SwitchTarget[];
 };
 
-type Step = 'verify' | 'tickets' | 'targets' | 'done';
+type Step = 'verify' | 'tickets' | 'targets' | 'done' | 'cancelled';
 
 export default function ClubGuestVenueSwitchPage() {
   const params = useParams();
@@ -42,6 +42,7 @@ export default function ClubGuestVenueSwitchPage() {
   const [auth, setAuth] = useState<GuestVerification | null>(null);
   const [tickets, setTickets] = useState<SwitchableTicket[]>([]);
   const [activeTicket, setActiveTicket] = useState<SwitchableTicket | null>(null);
+  const [pendingCancelTicket, setPendingCancelTicket] = useState<SwitchableTicket | null>(null);
   const [result, setResult] = useState<{ venueName?: string; tierName?: string; attendeeName: string } | null>(null);
 
   /** Loads the caller's tickets, then keeps only the ones the club has actually opened for switching — either to another venue on the same event, or to a different event entirely. */
@@ -144,6 +145,29 @@ export default function ClubGuestVenueSwitchPage() {
     }
   };
 
+  const submitCancel = async (t: SwitchableTicket) => {
+    if (!auth) return;
+    setLoading(true);
+    try {
+      const res = await apiClient.requestGuestRefund({
+        clubSlug,
+        phoneNumber: auth.phoneDigits,
+        countryCode: auth.countryCode,
+        guestToken: auth.guestToken,
+        items: [{ eventId: t.eventId, attendeeId: t.attendeeId }],
+      });
+
+      if (res.success && res.data) {
+        setPendingCancelTicket(null);
+        setStep('cancelled');
+        return;
+      }
+      toast.error(res.error || res.message || 'Could not cancel this ticket');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="public-theme flex min-h-[100dvh] flex-col bg-zinc-950 text-white">
       <header className="flex items-center gap-2 px-4 py-4">
@@ -178,36 +202,79 @@ export default function ClubGuestVenueSwitchPage() {
               </p>
             ) : (
               <div className="space-y-3">
-                {tickets.map((t) => (
-                  <Card
-                    key={`${t.eventId}:${t.attendeeId}`}
-                    className="border-zinc-800 bg-zinc-900 p-4"
-                  >
-                    <p className="font-medium">{t.eventTitle}</p>
-                    <p className="text-xs text-zinc-400">{t.attendeeName}</p>
-                    {t.eventStartTime && (
-                      <p className="text-xs text-zinc-500">
-                        {new Date(t.eventStartTime).toLocaleString(undefined, {
-                          dateStyle: 'medium',
-                          timeStyle: 'short',
-                        })}
+                {tickets.map((t) => {
+                  const key = `${t.eventId}:${t.attendeeId}`;
+                  const confirmingCancel = pendingCancelTicket?.attendeeId === t.attendeeId;
+                  return (
+                    <Card key={key} className="border-zinc-800 bg-zinc-900 p-4">
+                      <p className="font-medium">{t.eventTitle}</p>
+                      <p className="text-xs text-zinc-400">{t.attendeeName}</p>
+                      {t.eventStartTime && (
+                        <p className="text-xs text-zinc-500">
+                          {new Date(t.eventStartTime).toLocaleString(undefined, {
+                            dateStyle: 'medium',
+                            timeStyle: 'short',
+                          })}
+                        </p>
+                      )}
+                      <p className="mt-2 flex items-center gap-1.5 text-xs text-zinc-500">
+                        <MapPin className="h-3.5 w-3.5" /> Currently at {t.currentVenueName}
                       </p>
-                    )}
-                    <p className="mt-2 flex items-center gap-1.5 text-xs text-zinc-500">
-                      <MapPin className="h-3.5 w-3.5" /> Currently at {t.currentVenueName}
-                    </p>
-                    <Button
-                      type="button"
-                      className="mt-3 w-full bg-primary text-primary-foreground hover:bg-primary/90"
-                      onClick={() => {
-                        setActiveTicket(t);
-                        setStep('targets');
-                      }}
-                    >
-                      Switch
-                    </Button>
-                  </Card>
-                ))}
+
+                      {confirmingCancel ? (
+                        <div className="mt-3 space-y-2 rounded-md border border-red-900/50 bg-red-950/30 p-3">
+                          <p className="text-xs text-zinc-300">
+                            Cancel {t.attendeeName}&apos;s ticket and request a refund? This can&apos;t be undone.
+                          </p>
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              className="flex-1 text-zinc-400 hover:text-white"
+                              disabled={loading}
+                              onClick={() => setPendingCancelTicket(null)}
+                            >
+                              No, go back
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              className="flex-1 bg-red-600 text-white hover:bg-red-500"
+                              disabled={loading}
+                              onClick={() => submitCancel(t)}
+                            >
+                              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Yes, cancel'}
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="mt-3 flex gap-2">
+                          <Button
+                            type="button"
+                            className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
+                            disabled={loading}
+                            onClick={() => {
+                              setActiveTicket(t);
+                              setStep('targets');
+                            }}
+                          >
+                            Switch
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            className="flex-1 border-red-900/50 text-red-400 hover:bg-red-950/30 hover:text-red-300"
+                            disabled={loading}
+                            onClick={() => setPendingCancelTicket(t)}
+                          >
+                            Cancel ticket
+                          </Button>
+                        </div>
+                      )}
+                    </Card>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -257,6 +324,29 @@ export default function ClubGuestVenueSwitchPage() {
             >
               Back
             </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full border-red-900/50 text-red-400 hover:bg-red-950/30 hover:text-red-300"
+              disabled={loading}
+              onClick={() => {
+                setPendingCancelTicket(activeTicket);
+                setStep('tickets');
+              }}
+            >
+              Cancel this ticket instead
+            </Button>
+          </div>
+        )}
+
+        {step === 'cancelled' && (
+          <div className="space-y-4 text-center">
+            <CheckCircle2 className="mx-auto h-12 w-12 text-primary" />
+            <h1 className="text-xl font-semibold">Cancellation requested</h1>
+            <p className="text-sm text-zinc-400">
+              Your ticket has been cancelled. We&apos;ll email you a confirmation, and your refund
+              will be processed once our admin team confirms the cancellation.
+            </p>
           </div>
         )}
 
