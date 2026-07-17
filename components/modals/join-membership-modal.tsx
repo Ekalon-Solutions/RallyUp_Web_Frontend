@@ -872,8 +872,8 @@ export function JoinMembershipModal({
                 {renderPlanSelector()}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="username" className="text-secondary text-[10px] font-bold tracking-widest uppercase">Username <span className="text-primary ml-0.5">*</span></Label>
-                    <Input id="username" value={registrationData.username} onChange={(e) => setRegistrationData({ ...registrationData, username: e.target.value })} required className="h-12 rounded-xl border-secondary bg-white text-black placeholder:text-slate-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary" />
+                    <Label htmlFor="username" className="text-secondary text-[10px] font-bold tracking-widest uppercase">Username</Label>
+                    <Input id="username" value={registrationData.username} onChange={(e) => setRegistrationData({ ...registrationData, username: e.target.value })} className="h-12 rounded-xl border-secondary bg-white text-black placeholder:text-slate-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary" />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="first_name" className="text-secondary text-[10px] font-bold tracking-widest uppercase">First Name <span className="text-primary ml-0.5">*</span></Label>
@@ -935,8 +935,8 @@ export function JoinMembershipModal({
                     <Input id="country" value={registrationData.country} onChange={(e) => setRegistrationData({ ...registrationData, country: e.target.value })} required className="h-12 rounded-xl border-secondary bg-white text-black placeholder:text-slate-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary" />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="id_proof_type" className="text-secondary text-[10px] font-bold tracking-widest uppercase">ID Proof Type <span className="text-primary ml-0.5">*</span></Label>
-                    <select id="id_proof_type" value={registrationData.id_proof_type} onChange={(e) => setRegistrationData({ ...registrationData, id_proof_type: e.target.value })} required className="w-full h-12 rounded-xl border border-secondary px-3 bg-white text-black focus:outline-none focus:border-primary">
+                    <Label htmlFor="id_proof_type" className="text-secondary text-[10px] font-bold tracking-widest uppercase">ID Proof Type</Label>
+                    <select id="id_proof_type" value={registrationData.id_proof_type} onChange={(e) => setRegistrationData({ ...registrationData, id_proof_type: e.target.value })} className="w-full h-12 rounded-xl border border-secondary px-3 bg-white text-black focus:outline-none focus:border-primary">
                       <option value="Aadhar">Aadhar</option>
                       <option value="Voter ID">Voter ID</option>
                       <option value="Passport">Passport</option>
@@ -945,8 +945,8 @@ export function JoinMembershipModal({
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="id_proof_number" className="text-secondary text-[10px] font-bold tracking-widest uppercase">ID Proof Number <span className="text-primary ml-0.5">*</span></Label>
-                    <Input id="id_proof_number" value={registrationData.id_proof_number} onChange={(e) => setRegistrationData({ ...registrationData, id_proof_number: e.target.value })} required className="h-12 rounded-xl border-secondary bg-white text-black placeholder:text-slate-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary" />
+                    <Label htmlFor="id_proof_number" className="text-secondary text-[10px] font-bold tracking-widest uppercase">ID Proof Number</Label>
+                    <Input id="id_proof_number" value={registrationData.id_proof_number} onChange={(e) => setRegistrationData({ ...registrationData, id_proof_number: e.target.value })} className="h-12 rounded-xl border-secondary bg-white text-black placeholder:text-slate-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary" />
                   </div>
                   {renderTshirtFields()}
                 </div>
