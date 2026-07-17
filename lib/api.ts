@@ -1488,7 +1488,7 @@ class ApiClient {
   }
 
   async listGuestRefundTickets(data: {
-    clubSlug: string;
+    clubId: string;
     phoneNumber: string;
     countryCode: string;
     guestToken: string;
@@ -1511,7 +1511,7 @@ class ApiClient {
   }
 
   async requestGuestRefund(data: {
-    clubSlug: string;
+    clubId: string;
     phoneNumber: string;
     countryCode: string;
     guestToken: string;

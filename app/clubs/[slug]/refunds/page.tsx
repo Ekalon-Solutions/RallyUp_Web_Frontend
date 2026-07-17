@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { CheckCircle2, Loader2, Smartphone, Ticket } from 'lucide-react';
 import { toast } from 'sonner';
@@ -42,12 +42,25 @@ export default function ClubGuestRefundsPage() {
   const [loading, setLoading] = useState(false);
   const [resendSeconds, setResendSeconds] = useState(0);
   const [clubName, setClubName] = useState<string>('');
+  const [clubId, setClubId] = useState<string>('');
   const [tickets, setTickets] = useState<GuestTicket[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [cancelledCount, setCancelledCount] = useState(0);
 
   const digits = useMemo(() => phoneNumber.replace(/\D/g, ''), [phoneNumber]);
   const ticketKey = (t: GuestTicket) => `${t.eventId}:${t.attendeeId}`;
+
+  useEffect(() => {
+    const fetchClub = async () => {
+      const res = await apiClient.getClubById(clubSlug, true);
+      if (res.success && res.data) {
+        setClubId(res.data._id);
+      }
+    };
+    if (clubSlug) {
+      fetchClub();
+    }
+  }, [clubSlug]);
 
   const sendOtp = useCallback(async () => {
     if (digits.length < 6) {
@@ -75,8 +88,12 @@ export default function ClubGuestRefundsPage() {
 
   const loadTickets = useCallback(
     async (token: string) => {
+      if (!clubId) {
+        toast.error('Could not load club information');
+        return;
+      }
       const res = await apiClient.listGuestRefundTickets({
-        clubSlug,
+        clubId,
         phoneNumber: digits,
         countryCode: normalizeCountryCode(countryCode),
         guestToken: token,
@@ -89,7 +106,7 @@ export default function ClubGuestRefundsPage() {
       setTickets(res.data.tickets || []);
       setStep('tickets');
     },
-    [clubSlug, countryCode, digits]
+    [clubId, countryCode, digits]
   );
 
   const verifyOtp = async () => {
@@ -151,6 +168,10 @@ export default function ClubGuestRefundsPage() {
       toast.error('Select at least one ticket to cancel');
       return;
     }
+    if (!clubId) {
+      toast.error('Could not load club information');
+      return;
+    }
     setLoading(true);
     try {
       const items = tickets
@@ -158,7 +179,7 @@ export default function ClubGuestRefundsPage() {
         .map((t) => ({ eventId: t.eventId, attendeeId: t.attendeeId }));
 
       const res = await apiClient.requestGuestRefund({
-        clubSlug,
+        clubId,
         phoneNumber: digits,
         countryCode: normalizeCountryCode(countryCode),
         guestToken,
