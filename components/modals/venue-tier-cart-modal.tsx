@@ -28,7 +28,7 @@ import { RefundPolicyModal } from "@/components/modals/refund-policy-modal"
 import { useCheckoutRefundPolicy } from "@/hooks/useCheckoutRefundPolicy"
 import { getJointScreeningClubNames } from "@/lib/joint-screening-clubs"
 import { canShowPointsRedemption, validatePointsRedemptionInput } from "@/lib/points-redemption"
-import { hasVenueTierMatrix, isEventPaid } from "@/lib/event-display-price"
+import { getBookingWindowClosedLabel, hasVenueTierMatrix, isBookingWindowOpen, isEventPaid } from "@/lib/event-display-price"
 import { formatPhoneForDisplay } from "@/components/modals/purchase-flow-modal"
 
 declare global {
@@ -2507,7 +2507,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
             </div>
             <Button
               onClick={onPrimaryAction}
-              disabled={loading || !hasSelection || refundPolicy.payBlockedByPolicy || authStillLoading}
+              disabled={loading || !hasSelection || refundPolicy.payBlockedByPolicy || authStillLoading || !isBookingWindowOpen(event)}
               className="w-full"
               size="lg"
             >
@@ -2515,6 +2515,8 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
                 <><Loader2 className="w-5 h-5 animate-spin mr-2" />Loading account...</>
               ) : loading ? (
                 <><Loader2 className="w-5 h-5 animate-spin mr-2" />Processing...</>
+              ) : !isBookingWindowOpen(event) ? (
+                getBookingWindowClosedLabel(event)
               ) : !hasSelection ? (
                 "Select tickets to continue"
               ) : (

@@ -54,10 +54,12 @@ import { WaitlistDisplay } from "@/components/events/waitlist-display";
 import { VenueTierCartModal } from "@/components/modals/venue-tier-cart-modal";
 import {
   formatEventPriceDisplay,
+  getBookingWindowClosedLabel,
   getEventCapacity,
   getEventLowestTicketPrice,
   getEventVenueDisplay,
   hasVenueTierMatrix,
+  isBookingWindowOpen,
   isEventPaid,
 } from "@/lib/event-display-price";
 
@@ -1060,6 +1062,12 @@ function UserEventsPageInner() {
                                   className="w-full"
                                   variant="secondary">
                                   Event Full
+                                </Button>
+                              );
+                            } else if (!isBookingWindowOpen(event)) {
+                              return (
+                                <Button disabled className="w-full" variant="secondary">
+                                  {getBookingWindowClosedLabel(event)}
                                 </Button>
                               );
                             } else {

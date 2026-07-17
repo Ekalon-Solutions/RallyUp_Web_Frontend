@@ -23,7 +23,7 @@ import { MemberTicketRefundAction } from "@/components/member/member-ticket-refu
 import { RefundPolicyBadge } from "@/components/refund-policy-badge"
 import { EventImage } from "@/components/events/event-image"
 import { eventVariantUrl } from "@/lib/eventImageCache"
-import { isEventPaid, getEventCapacity } from "@/lib/event-display-price"
+import { isEventPaid, getEventCapacity, isBookingWindowOpen, getBookingWindowClosedLabel } from "@/lib/event-display-price"
 
 function AttendanceMarker({ event, userId }: { event: Event; userId?: string }) {
   const [registration, setRegistration] = useState<any | null>(null)
@@ -661,10 +661,10 @@ export default function UserDashboardPage() {
       )
     }
 
-    if (eventFull || !event.isActive || isEventPast(event)) {
+    if (eventFull || !event.isActive || isEventPast(event) || !isBookingWindowOpen(event)) {
       return (
         <Button variant="outline" className="w-full" disabled>
-          {eventFull ? "Event full" : "Registration closed"}
+          {eventFull ? "Event full" : !isBookingWindowOpen(event) ? getBookingWindowClosedLabel(event) : "Registration closed"}
         </Button>
       )
     }

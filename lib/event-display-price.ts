@@ -36,6 +36,32 @@ export function hasVenueTierMatrix(event: Pick<Event, "venues"> | null | undefin
   return event.venues.some((v) => getVenueTiers(v).length > 0)
 }
 
+// Mirrors the backend gate in eventController.registerForEvent — keep both in sync.
+export function isBookingWindowOpen(
+  event: Pick<Event, "bookingStartTime" | "bookingEndTime"> | null | undefined
+): boolean {
+  if (!event) return true
+  const now = Date.now()
+  if (event.bookingStartTime?.trim()) {
+    const start = new Date(event.bookingStartTime).getTime()
+    if (Number.isFinite(start) && now < start) return false
+  }
+  if (event.bookingEndTime?.trim()) {
+    const end = new Date(event.bookingEndTime).getTime()
+    if (Number.isFinite(end) && now > end) return false
+  }
+  return true
+}
+
+export function getBookingWindowClosedLabel(
+  event: Pick<Event, "bookingStartTime" | "bookingEndTime"> | null | undefined
+): string {
+  if (event?.bookingStartTime?.trim() && Date.now() < new Date(event.bookingStartTime).getTime()) {
+    return "Booking Not Open Yet"
+  }
+  return "Booking Closed"
+}
+
 export function getEventTierPrices(event: EventLike): number[] {
   if (hasVenueTierMatrix(event)) {
     return event.venues!.flatMap((v) =>
