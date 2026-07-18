@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { apiClient } from "@/lib/api"
+import { computeMembershipPlanCharge } from "@/lib/transactionFees"
 import { JoinMembershipModal, JoinablePlan } from "@/components/modals/join-membership-modal"
 import { LoginModal } from "@/components/login-modal"
 import { useAuth } from "@/contexts/auth-context"
@@ -143,6 +144,15 @@ export default function ClubMembershipPlansPage() {
   // that haven't started yet AND plans whose booking has already ended.
   const visiblePlans = plans.filter((plan) => getSalesState(plan).isOpen)
 
+  /** Single source of truth for what a plan actually costs — same calculation the
+   *  join-membership-modal checkout flow uses, so the price shown here matches Razorpay. */
+  const getPlanCharge = (plan: JoinablePlan) =>
+    computeMembershipPlanCharge({
+      planPrice: plan.price,
+      currentPlanPrice,
+      isUpgradeEligible: hasActiveMembership,
+    })
+
   const handleSelectPlan = (plan: JoinablePlan) => {
     setSelectedPlanId(plan._id)
     setShowJoinModal(true)
@@ -244,7 +254,10 @@ export default function ClubMembershipPlansPage() {
                   <CardContent className="flex flex-col gap-3 pt-6 flex-1">
                     <div className="flex items-center gap-2 text-2xl font-black">
                       <CreditCard className="h-5 w-5 text-muted-foreground" />
-                      {formatPrice(plan.price, plan.currency)}
+                      {formatPrice(getPlanCharge(plan).finalAmount, plan.currency)}
+                    </div>
+                    <div className="text-xs text-muted-foreground -mt-2">
+                      {getPlanCharge(plan).isUpgrade ? 'Upgrade price, ' : ''}all-inclusive
                     </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Clock className="h-4 w-4" />

@@ -834,7 +834,7 @@ function ClubsPageContent() {
                                 )}
                               </h5>
                               <span className="text-lg font-black text-primary">
-                                {formatPrice(plan.price, plan.currency)}
+                                {formatPrice(calculateTransactionFees(plan.price).finalAmount, plan.currency)}
                               </span>
                             </div>
                             {isJoined && getLastPurchaseDate(club._id) && (
@@ -1116,8 +1116,9 @@ function ClubsPageContent() {
                               </CardTitle>
                               <div className="text-right space-y-1">
                                 <div className="text-2xl font-bold text-primary">
-                                  {formatPrice(plan.price, plan.currency)}
+                                  {formatPrice(calculateTransactionFees(plan.price).finalAmount, plan.currency)}
                                 </div>
+                                <div className="text-xs text-muted-foreground/70">all-inclusive</div>
                                 <div className="text-sm text-muted-foreground">
                                   <span className="text-xs text-muted-foreground/70">Member time: </span>
                                   {formatPlanPeriod(plan)}
@@ -1655,7 +1656,7 @@ function ClubsPageContent() {
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between gap-4">
                         <span className="text-muted-foreground">Price:</span>
-                        <span className="font-semibold text-primary">{formatPrice(selectedPlan.price, selectedPlan.currency)}</span>
+                        <span className="font-semibold text-primary">{formatPrice(calculateTransactionFees(selectedPlan.price).finalAmount, selectedPlan.currency)}</span>
                       </div>
                       <div className="flex justify-between gap-4">
                         <span className="text-muted-foreground">Duration:</span>
