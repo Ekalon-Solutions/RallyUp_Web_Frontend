@@ -5853,6 +5853,14 @@ class ApiClient {
     return this.get(`/sports/league-table`, { params: { leagueId } });
   }
 
+  async getSportsLeagues(sport?: string): Promise<ApiResponse<{ idLeague: string; strLeague: string; strSport: string }[]>> {
+    return this.get(`/sports/leagues`, { params: sport ? { sport } : undefined });
+  }
+
+  async getSportsTeamsByLeague(leagueId: string): Promise<ApiResponse<{ idTeam: string; strTeam: string; strTeamBadge?: string }[]>> {
+    return this.get(`/sports/teams-by-league`, { params: { leagueId } });
+  }
+
   async getClubAddress(clubId: string): Promise<ApiResponse<{ street?: string; city?: string; state?: string; country?: string; zipCode?: string }>> {
     return this.get(`/club-settings/${clubId}/address`);
   }
