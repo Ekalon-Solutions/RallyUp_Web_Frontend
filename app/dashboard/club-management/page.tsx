@@ -74,7 +74,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 
-interface ClubWithDetails extends Club {
+interface ClubWithDetails extends Omit<Club, 'superAdmin' | 'createdBy'> {
   superAdmin?: Admin
   createdBy?: {
     _id: string
@@ -179,13 +179,14 @@ export default function ClubManagementPage() {
           response.data.clubs.map(async (club: Club) => {
             try {
               const statsResponse = await apiClient.getClubStats(club._id)
+              // getAllClubs populates superAdmin/createdBy, so the populated shape is the real one here.
               return {
                 ...club,
                 stats: statsResponse.success ? statsResponse.data : undefined
-              }
+              } as ClubWithDetails
             } catch (error) {
               // console.error('Error fetching club stats:', error)
-              return club
+              return { ...club, stats: undefined } as ClubWithDetails
             }
           })
         )
@@ -413,6 +414,7 @@ export default function ClubManagementPage() {
 
   const filteredClubs = clubs.filter(club => {
     const matchesSearch = club.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         club.slug?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          club.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          club.contactEmail.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = statusFilter === 'all' || club.status === statusFilter
@@ -864,6 +866,7 @@ export default function ClubManagementPage() {
                           </Avatar>
                           <div>
                             <div className="font-medium">{club.name}</div>
+                            <div className="font-mono text-xs text-muted-foreground">{club.slug}</div>
                             <div className="text-sm text-muted-foreground line-clamp-1">
                               {club.description || 'No description'}
                             </div>

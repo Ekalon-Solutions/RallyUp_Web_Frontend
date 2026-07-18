@@ -11,11 +11,18 @@ export function EditClubExample() {
     {
       _id: '1',
       name: 'Sample Club',
+      slug: 'sample-club',
       description: 'A sample club for demonstration',
       contactEmail: 'contact@sampleclub.com',
       contactPhone: '1234567890',
       website: 'https://sampleclub.com',
       status: 'active' as const,
+      settings: {
+        allowPublicRegistration: true,
+        requireApproval: false,
+        maxMembers: 100,
+        membershipPlans: [],
+      },
       address: {
         street: '123 Main St',
         city: 'New York',

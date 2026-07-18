@@ -17,13 +17,6 @@ import { auth } from "@/lib/firebase/config"
 import { apiClient } from "@/lib/api"
 import { formatDisplayDate } from "@/lib/utils"
 
-declare global {
-  interface Window {
-    recaptchaVerifier: any;
-    confirmationResult: any;
-  }
-}
-
 export default function SettingsPage() {
   const { user, updateProfile, checkAuth, activeClubId } = useAuth()
   const [loading, setLoading] = useState(false)

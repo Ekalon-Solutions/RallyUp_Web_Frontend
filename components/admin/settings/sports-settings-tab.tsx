@@ -24,6 +24,7 @@ export default function SportsSettingsTab() {
   }, [clubId])
 
   const loadCurrent = async () => {
+    if (!clubId) return
     try {
       const resp = await apiClient.getClubSettings(clubId)
       if (resp.success && resp.data) {

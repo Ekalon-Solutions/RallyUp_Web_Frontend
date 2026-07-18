@@ -16,14 +16,6 @@ import { auth } from "@/lib/firebase/config"
 import { COUNTRY_DIAL_CODES } from "@/lib/countryCodes"
 
 // Extend window object for global variables
-declare global {
-  interface Window {
-    recaptchaVerifier?: RecaptchaVerifier
-    confirmationResult?: any
-    otpSessionInfo?: string
-  }
-}
-
 type Tab = "user" | "admin"
 
 const validateEmail = (email: string) => {
@@ -200,7 +192,7 @@ export function LoginModal({ open, onOpenChange, onSuccess }: LoginModalProps) {
           // Handle successful verification based on response
           if (res.data?.token) {
             localStorage.setItem("token", res.data.token)
-            localStorage.setItem("userType", tab === "user" ? "member" : res.data.role || "admin")
+            localStorage.setItem("userType", tab === "user" ? "member" : res.data.userData?.role || "admin")
             toast.success("Signed in successfully!")
             await finishLogin()
           } else {

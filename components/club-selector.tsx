@@ -45,7 +45,7 @@ export const ClubSelector: React.FC<ClubSelectorProps> = ({ onClubSelect, select
 
   useEffect(() => {
     loadUserMemberships()
-  }, [user?.memberships]) // Watch user.memberships specifically
+  }, [(user as any)?.memberships]) // Watch user.memberships specifically
 
   const loadUserMemberships = async () => {
     try {

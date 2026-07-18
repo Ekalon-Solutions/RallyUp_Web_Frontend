@@ -46,7 +46,7 @@ export function BillingAuditorDashboard({ clubFilter }: AuditorDashboardProps) {
   const loadAlerts = async () => {
     try {
       setLoading(true);
-      const res = await apiClient.listBillingAlerts({
+      const res = await apiClient.getBillingAlerts({
         clubId: clubFilter,
         alert_type: filterType || undefined,
         severity: filterSeverity !== 'all' ? filterSeverity : undefined,
@@ -55,12 +55,12 @@ export function BillingAuditorDashboard({ clubFilter }: AuditorDashboardProps) {
       });
 
       if (res.success) {
-        setAlerts(res.data);
+        setAlerts(res.data ?? []);
       }
 
       // Also load count of unresolved
       const countRes = await apiClient.getBillingAlertCount();
-      if (countRes.success) {
+      if (countRes.success && countRes.data) {
         setUnresolvedCount(countRes.data.count);
       }
     } catch (err) {

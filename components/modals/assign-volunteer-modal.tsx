@@ -151,7 +151,7 @@ export function AssignVolunteerModal({
     // Search filter
     if (searchTerm) {
       filtered = filtered.filter(volunteer =>
-        volunteer.user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        `${volunteer.user.first_name} ${volunteer.user.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
         volunteer.user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
         volunteer.skills.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase()))
       );
@@ -326,7 +326,7 @@ export function AssignVolunteerModal({
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
-                        <h4 className="font-medium">{volunteer.user.name}</h4>
+                        <h4 className="font-medium">{volunteer.user.first_name} {volunteer.user.last_name}</h4>
                         <Badge className={getStatusColor(volunteer.status)}>
                           {volunteer.status}
                         </Badge>

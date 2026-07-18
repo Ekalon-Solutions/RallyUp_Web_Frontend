@@ -59,7 +59,7 @@ export function VolunteerDetailsModal({ volunteer, isOpen, onClose }: VolunteerD
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <User className="w-5 h-5" />
-            Volunteer Profile - {volunteer.user.name}
+            Volunteer Profile - {volunteer.user.first_name} {volunteer.user.last_name}
           </DialogTitle>
           <DialogDescription>
             Detailed information about this volunteer's skills, availability, and preferences
@@ -73,7 +73,7 @@ export function VolunteerDetailsModal({ volunteer, isOpen, onClose }: VolunteerD
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <User className="w-4 h-4 text-muted-foreground" />
-                  <span className="font-medium">{volunteer.user.name}</span>
+                  <span className="font-medium">{volunteer.user.first_name} {volunteer.user.last_name}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Mail className="w-4 h-4 text-muted-foreground" />

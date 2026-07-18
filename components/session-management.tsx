@@ -97,11 +97,11 @@ export function SessionManagement() {
 
   const forceLogoutUser = async (userId: string, userType: string) => {
     try {
-      const response = await apiClient.delete(`/sessions/admin/user/${userId}/${userType}`);
+      const response = await apiClient.delete<{ invalidatedCount?: number }>(`/sessions/admin/user/${userId}/${userType}`);
       if (response.success) {
         toast({
           title: "Success",
-          description: `Successfully invalidated ${response.invalidatedCount} sessions`,
+          description: `Successfully invalidated ${response.data?.invalidatedCount ?? 0} sessions`,
         });
         await fetchSessions(); // Refresh the list
       } else {

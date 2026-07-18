@@ -253,8 +253,9 @@ export default function EventsPage() {
                   acknowledgeLivePolicyImpact: true,
                 })
                 if (res.success && res.data) {
+                  const updatedEvent = res.data.event
                   toast.success(`Refund policy updated to ${pendingPolicyChange.newPolicy ? "Refundable" : "Non-Refundable"}.`)
-                  setEvents(prev => prev.map(e => e._id === res.data.event._id ? res.data.event : e))
+                  setEvents(prev => prev.map(e => e._id === updatedEvent._id ? updatedEvent : e))
                   setShowPolicyImpactDialog(false)
                   setPendingPolicyChange(null)
                 } else {

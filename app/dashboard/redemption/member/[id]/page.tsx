@@ -10,7 +10,7 @@ import { toast } from 'sonner'
 
 export default function MemberRedemptionPage() {
   const params = useParams()
-  const memberId = params?.id
+  const memberId = Array.isArray(params?.id) ? params.id[0] : params?.id
   const [loading, setLoading] = useState(true)
   const [batches, setBatches] = useState<any[]>([])
   const [onePointValue, setOnePointValue] = useState<number>(0)

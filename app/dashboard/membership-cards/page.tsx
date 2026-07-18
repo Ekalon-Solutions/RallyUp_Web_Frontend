@@ -209,7 +209,7 @@ function MembershipCardsPage() {
         // Fetch membership plans for selected club
         const plansResponse = await apiClient.getMembershipPlans(currentClubId)
         if (plansResponse.success && plansResponse.data) {
-          const plansData = Array.isArray(plansResponse.data) ? plansResponse.data : (plansResponse.data?.data || [])
+          const plansData = Array.isArray(plansResponse.data) ? plansResponse.data : ((plansResponse.data as any)?.data || [])
           setMembershipPlans(plansData)
           const urlPlanId = searchParams.get("planId")
           if (urlPlanId && plansData.some((p: any) => p._id === urlPlanId)) {
@@ -267,10 +267,9 @@ function MembershipCardsPage() {
         ...prev,
         card: {
           ...prev.card,
-          customization: {
-            ...prev.card.customization,
-            customLogo: undefined
-          }
+          customization: prev.card.customization
+            ? { ...prev.card.customization, customLogo: undefined }
+            : undefined
         }
       } : null)
     }
@@ -441,7 +440,7 @@ function MembershipCardsPage() {
       setLoading(true)
       const plansResponse = await apiClient.getMembershipPlans(effectiveClubId)
       if (plansResponse.success && plansResponse.data) {
-        const plansData = Array.isArray(plansResponse.data) ? plansResponse.data : (plansResponse.data?.data || [])
+        const plansData = Array.isArray(plansResponse.data) ? plansResponse.data : ((plansResponse.data as any)?.data || [])
         setMembershipPlans(plansData)
       }
 
@@ -581,10 +580,9 @@ function MembershipCardsPage() {
             ...prev,
             card: {
               ...prev.card,
-              customization: {
-                ...prev.card.customization,
-                customLogo: customLogoUrl
-              }
+              customization: prev.card.customization
+                ? { ...prev.card.customization, customLogo: customLogoUrl }
+                : undefined
             }
           } : null)
         } catch (error) {
@@ -621,11 +619,12 @@ function MembershipCardsPage() {
 
       const response = await apiClient.updateMembershipCard(editingCard.card._id, updateData)
 
-      if (response.success && response.data) {
+      const updated = response.data
+      if (response.success && updated) {
         setCards(prev => prev.map(card => {
           if (card.card._id === editingCard.card._id) {
-            if (response.data.card && response.data.membershipPlan) {
-              return response.data
+            if (updated.card && updated.membershipPlan) {
+              return updated
             }
             return {
               ...card,

@@ -98,7 +98,7 @@ export default function DashboardPage() {
         const clubStatsResponse = await apiClient.getClubStats(clubId)
 
         const eventsResponse = await apiClient.getPublicEvents(clubId)
-        const eventsList = Array.isArray(eventsResponse.data) ? eventsResponse.data : (eventsResponse.data?.events || [])
+        const eventsList = Array.isArray(eventsResponse.data) ? eventsResponse.data : ((eventsResponse.data as any)?.events || [])
         const upcomingEvents = eventsList.filter((event: any) =>
           new Date(event.startTime || event.date) >= new Date()
         ).length

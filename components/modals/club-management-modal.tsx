@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -18,11 +18,13 @@ import { useAuth } from "@/contexts/auth-context"
 import { apiClient } from "@/lib/api"
 import { formatDisplayDate } from "@/lib/utils"
 
-declare global {
-  interface Window {
-    recaptchaVerifier: any;
-    confirmationResult: any;
+const setupRecaptcha = () => {
+  if (!window.recaptchaVerifier) {
+    window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container-club-delete', {
+      'size': 'invisible',
+    });
   }
+  return window.recaptchaVerifier
 }
 
 interface Club {
@@ -159,7 +161,7 @@ export default function ClubManagementModal({ isOpen, onClose, club, onClubUpdat
     const fullPhoneNumber = `${countryCode}${phoneNumber}`
 
     try {
-      const recaptchaVerifier = setupRecaptcha(fullPhoneNumber)
+      const recaptchaVerifier = setupRecaptcha()
       const confirmationResult = await signInWithPhoneNumber(auth, fullPhoneNumber, recaptchaVerifier)
 
       window.confirmationResult = confirmationResult
@@ -180,6 +182,10 @@ export default function ClubManagementModal({ isOpen, onClose, club, onClubUpdat
     try {
       setLoading(true)
       const confirmationResult = window.confirmationResult
+      if (!confirmationResult) {
+        toast.error("Please request an OTP first")
+        return
+      }
       const firebaseResult = await confirmationResult.confirm(otp)
 
       if (firebaseResult.user) {

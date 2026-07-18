@@ -17,6 +17,8 @@ export interface ApiResponse<T = any> {
     url?: string;
     details?: any;
     type?: string;
+    errors?: string[];
+    validationErrors?: string[];
   };
   status?: number;
 }
@@ -736,6 +738,7 @@ export interface VolunteerOpportunity {
   description: string;
   club: string;
   event?: string;
+  date: string;
   requiredSkills: string[];
   timeSlots: {
     _id: string;
@@ -760,6 +763,7 @@ export interface Volunteer {
     email: string;
     phoneNumber: string;
     countryCode: string;
+    profilePicture?: string;
   };
   club: {
     _id: string;
@@ -820,6 +824,7 @@ export interface VolunteerProfile {
 export interface Club {
   _id: string;
   name: string;
+  slug: string;
   description?: string;
   logo?: string;
   website?: string;
@@ -841,8 +846,9 @@ export interface Club {
     membershipPlans: string[];
   };
   status: 'active' | 'inactive' | 'suspended';
-  createdBy: string;
-  superAdmin: string;
+  /** An id when unpopulated; the backend populates these on most club reads. */
+  createdBy?: string | { _id: string; name: string; email: string };
+  superAdmin?: string | Admin;
   createdAt: string;
   updatedAt: string;
 }
@@ -851,7 +857,7 @@ export interface MembershipCard {
   _id: string;
   cardNumber: string;
   cardStyle: 'default' | 'premium' | 'vintage' | 'modern' | 'elite' | 'emerald';
-  status: 'active' | 'expired' | 'pending' | 'suspended';
+  status: 'active' | 'expired' | 'transferred';
   issueDate: string;
   expiryDate: string;
   accessLevel: 'basic' | 'premium' | 'vip';
@@ -934,7 +940,7 @@ export interface CreateMembershipCardRequest {
 
 export interface UpdateMembershipCardRequest {
   cardStyle?: 'default' | 'premium' | 'vintage' | 'modern' | 'elite' | 'emerald';
-  status?: 'active' | 'expired' | 'pending' | 'suspended';
+  status?: 'active' | 'expired' | 'transferred';
   expiryDate?: string;
   accessLevel?: 'basic' | 'premium' | 'vip';
   features?: Partial<{
@@ -1286,7 +1292,7 @@ class ApiClient {
     assignmentId?: string;
     gateZone?: string;
     scanMode?: 'check_in' | 'check_out';
-  }): Promise<ApiResponse<any> & { code?: string; originalCheckInAt?: string }> {
+  }): Promise<ApiResponse<any> & { code?: string; originalCheckInAt?: string; redirectGate?: string }> {
     const res = await this.request<any>('/events/admin/attendance', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -1412,7 +1418,7 @@ class ApiClient {
     role: 'user' | 'admin' | 'system_owner';
     username?: string;
     recaptchaToken?: string;
-  }): Promise<ApiResponse<{ userData?: any; sessionInfo?: string }>> {
+  }): Promise<ApiResponse<{ userData?: any; sessionInfo?: string; deliveryChannel?: string; whatsAppUsed?: boolean }>> {
     return this.request('/otp/send', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -1433,7 +1439,14 @@ class ApiClient {
     otp: string; 
     role: 'user' | 'admin' | 'system_owner';
     sessionInfo?: string;
-  }): Promise<ApiResponse<{ verified: boolean; token?: string; channel?: string }>> {
+  }): Promise<ApiResponse<{
+    verified: boolean;
+    token?: string;
+    channel?: string;
+    idToken?: string;
+    /** Present only when the backend issued a token; `userData.role` is the caller's real role. */
+    userData?: { _id: string; name?: string; email?: string; phoneNumber?: string; countryCode?: string; role?: string };
+  }>> {
     return this.request('/otp/verify', {
       method: 'POST',
       body: JSON.stringify(params),
@@ -3666,7 +3679,7 @@ class ApiClient {
   }
 
   async updateClubBasicInfo(id: string, data: {
-    name: string;
+    name?: string;
     description?: string;
     contactInfo?: string;
     slug?: string;
@@ -3767,7 +3780,12 @@ class ApiClient {
     const params = new URLSearchParams({ phone });
     if (options?.clubId) params.set('clubId', options.clubId);
     if (options?.refereePhone) params.set('refereePhone', options.refereePhone);
-    const res = await this.request(`/membership-plans/referral-check?${params.toString()}`);
+    const res = await this.request<{
+      exists: boolean;
+      isSelf?: boolean;
+      isMember?: boolean;
+      name?: string;
+    }>(`/membership-plans/referral-check?${params.toString()}`);
     if (res.success && res.data) {
       return { ...res, data: (res.data as any).exists !== undefined ? res.data : (res.data as any) };
     }
@@ -4586,7 +4604,8 @@ class ApiClient {
     page?: number;
     limit?: number;
   }): Promise<ApiResponse<{
-    staff: User[];
+    /** Sourced from the Admin collection server-side, not User. */
+    staff: Admin[];
     club: {
       _id: string;
       name: string;
@@ -6068,7 +6087,7 @@ class ApiClient {
     rules: Array<{ daysBefore: number; hoursBefore?: number; unit?: 'days' | 'hours'; refundPercentage: number }>;
     platformTermsUrl: string;
   }>> {
-    const res = await this.request(`/refunds/policy/event/${encodeURIComponent(eventId)}`);
+    const res = await this.request<any>(`/refunds/policy/event/${encodeURIComponent(eventId)}`);
     if (res.success && res.data) return { ...res, data: (res.data as any).data ?? res.data };
     return res;
   }
@@ -6100,11 +6119,13 @@ class ApiClient {
 
   async getClubStats(clubId: string): Promise<ApiResponse<{
     totalMembers: number;
+    totalAdmins: number;
     activeMembers: number;
     verifiedMembers: number;
-    newMembersThisMonth: number;
     inactiveMembers: number;
     unverifiedMembers: number;
+    maxMembers: number;
+    membershipPlans: number;
   }>> {
     return this.request(`/clubs/${clubId}/stats`);
   }

@@ -7,11 +7,23 @@ import { useEffect } from "react";
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requireAdmin?: boolean;
+  /** Gate to a specific role. "admin" is satisfied by system owners too, who outrank admins. */
+  requiredRole?: "admin" | "system_owner";
+  requireSystemOwner?: boolean;
 }
 
-export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRouteProps) {
-  const { isAuthenticated, isLoading, isAdmin } = useAuth();
+export function ProtectedRoute({
+  children,
+  requireAdmin = false,
+  requiredRole,
+  requireSystemOwner = false,
+}: ProtectedRouteProps) {
+  const { isAuthenticated, isLoading, isAdmin, isSystemOwner } = useAuth();
   const router = useRouter();
+
+  const needsSystemOwner = requireSystemOwner || requiredRole === "system_owner";
+  const needsAdmin = requireAdmin || requiredRole === "admin";
+  const allowed = needsSystemOwner ? isSystemOwner : needsAdmin ? isAdmin || isSystemOwner : true;
 
   useEffect(() => {
     if (!isLoading) {
@@ -20,12 +32,12 @@ export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRout
         return;
       }
 
-      if (requireAdmin && !isAdmin) {
+      if (!allowed) {
         router.push("/dashboard");
         return;
       }
     }
-  }, [isAuthenticated, isLoading, isAdmin, requireAdmin, router]);
+  }, [isAuthenticated, isLoading, allowed, router]);
 
   if (isLoading) {
     return (
@@ -39,9 +51,9 @@ export function ProtectedRoute({ children, requireAdmin = false }: ProtectedRout
     return null;
   }
 
-  if (requireAdmin && !isAdmin) {
+  if (!allowed) {
     return null;
   }
 
   return <>{children}</>;
-} 
+}

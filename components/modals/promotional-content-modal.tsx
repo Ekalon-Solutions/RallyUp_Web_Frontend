@@ -189,7 +189,7 @@ export default function PromotionalContentModal({ isOpen, onClose, onContentCrea
           priority,
           frequency
         },
-        club: user?.club?._id
+        club: (user as any)?.club?._id
       }
 
       const url = isEditing 

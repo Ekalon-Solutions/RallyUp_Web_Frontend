@@ -55,8 +55,8 @@ export function FeatureSelector({ clubId, currentTier = 'free', onTierChange }: 
           apiClient.getAvailableAddOns(),
         ]);
 
-        if (tiersRes.success) setTiers(tiersRes.data);
-        if (addOnsRes.success) setAddOns(addOnsRes.data);
+        if (tiersRes.success) setTiers(tiersRes.data ?? []);
+        if (addOnsRes.success) setAddOns(addOnsRes.data ?? []);
       } catch (err) {
         console.error('Failed to load configs:', err);
         toast.error('Failed to load billing tiers and add-ons');

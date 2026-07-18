@@ -40,7 +40,9 @@ export default function UserSettingsPage() {
       if (response.success && response.data) {
         const userPrefs = response.data.notificationPreferences
         if (userPrefs) {
-          setPreferences(userPrefs)
+          // Preferences added after a user's record was written come back undefined — keep the
+          // component defaults for those rather than dropping them into an unchecked state.
+          setPreferences(prev => ({ ...prev, ...userPrefs }))
         }
       }
     } catch (error) {

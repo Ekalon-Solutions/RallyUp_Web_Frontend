@@ -93,11 +93,11 @@ export function UserSessionManagement() {
 
   const logoutAllSessions = async () => {
     try {
-      const response = await apiClient.delete('/sessions/all');
+      const response = await apiClient.delete<{ invalidatedCount?: number }>('/sessions/all');
       if (response.success) {
         toast({
           title: "Success",
-          description: `Successfully logged out from ${response.invalidatedCount} sessions`,
+          description: `Successfully logged out from ${response.data?.invalidatedCount ?? 0} sessions`,
         });
         // Redirect to login or refresh the page
         window.location.href = '/';
