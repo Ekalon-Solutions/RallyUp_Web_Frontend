@@ -63,6 +63,25 @@ export function estimateNetPerTicket(grossPrice: number, platformFeePercent?: nu
   return roundMoney(Math.max(0, baseAmount - totalFees))
 }
 
+/**
+ * Membership plan pricing, all-inclusive of platform + PG fees + GST — the same number a member
+ * is actually charged at Razorpay checkout, so browsing pages can show it up front instead of a
+ * bare base price. `isUpgrade` mirrors the checkout flows' own logic: when the member has an
+ * active plan cheaper than the target, only the price difference is charged/fee'd, not the full
+ * plan price again.
+ */
+export function computeMembershipPlanCharge(params: {
+  planPrice: number
+  currentPlanPrice?: number
+  isUpgradeEligible: boolean
+  platformFeePercent?: number
+}): { isUpgrade: boolean } & TransactionFeesBreakdown {
+  const currentPlanPrice = params.currentPlanPrice ?? 0
+  const isUpgrade = params.isUpgradeEligible && currentPlanPrice > 0 && params.planPrice > currentPlanPrice
+  const baseAmount = isUpgrade ? Math.max(0, params.planPrice - currentPlanPrice) : Math.max(0, params.planPrice)
+  return { isUpgrade, ...calculateTransactionFees(baseAmount, params.platformFeePercent) }
+}
+
 export function calculateTransactionFees(
   baseAmount: number,
   platformFeePercent?: number

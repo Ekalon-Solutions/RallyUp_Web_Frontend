@@ -25,7 +25,7 @@ import {
 import { apiClient } from "@/lib/api"
 import { getApiUrl, API_ENDPOINTS } from "@/lib/config"
 import { PaymentSimulationModal } from "@/components/modals/payment-simulation-modal"
-import { calculateTransactionFees } from "@/lib/transactionFees"
+import { calculateTransactionFees, computeMembershipPlanCharge } from "@/lib/transactionFees"
 import { useAuth } from "@/contexts/auth-context"
 import { formatDisplayDate } from "@/lib/utils"
 import { cn } from "@/lib/utils"
@@ -343,6 +343,14 @@ export function JoinMembershipModal({
     return false
   }
 
+  /** Single source of truth for what a plan actually costs — the same calculation feeds the
+   *  price shown in the plan selector/summary and the amount handed to Razorpay in startPayment. */
+  const getPlanCharge = (plan: JoinablePlan) => {
+    const currentPlanPrice = currentPlanDetails?.price ?? 0
+    const isUpgradeEligible = mode === "upgrade" && Boolean(currentMembership) && !isMembershipExpired()
+    return computeMembershipPlanCharge({ planPrice: plan.price, currentPlanPrice, isUpgradeEligible })
+  }
+
   const getActionLabel = () => {
     if (!selectedPlan) return "Continue"
     const salesState = getPlanSalesState(selectedPlan)
@@ -519,9 +527,7 @@ export function JoinMembershipModal({
       }
     }
 
-    const currentPlanPrice = currentPlanDetails?.price ?? 0
-    const isUpgrade = Boolean(mode === "upgrade" && currentMembership && !isMembershipExpired() && selectedPlan.price > currentPlanPrice)
-    const baseAmount = isUpgrade ? Math.max(0, selectedPlan.price - currentPlanPrice) : selectedPlan.price
+    const { isUpgrade, baseAmount } = getPlanCharge(selectedPlan)
 
     if (baseAmount > 0) {
       startPayment({ plan: selectedPlan, baseAmount, isUpgrade })
@@ -782,7 +788,7 @@ export function JoinMembershipModal({
             const salesState = getPlanSalesState(plan)
             return (
               <SelectItem key={plan._id} value={plan._id} disabled={disabled || !salesState.isOpen}>
-                {plan.name} — {formatPrice(plan.price, plan.currency)}
+                {plan.name} — {formatPrice(getPlanCharge(plan).finalAmount, plan.currency)}
                 {mode === "upgrade" && isUpgradePlan(plan) ? " (Upgrade)" : ""}
               </SelectItem>
             )
@@ -803,9 +809,9 @@ export function JoinMembershipModal({
         </h4>
         <div className="space-y-1 text-sm">
           <div className="flex justify-between gap-4">
-            <span className="text-slate-500">Price:</span>
+            <span className="text-slate-500">{getPlanCharge(selectedPlan).isUpgrade ? "Upgrade price:" : "Price:"}</span>
             <span className="font-semibold text-primary">
-              {formatPrice(selectedPlan.price, selectedPlan.currency)}
+              {formatPrice(getPlanCharge(selectedPlan).finalAmount, selectedPlan.currency)}
             </span>
           </div>
           <div className="flex justify-between gap-4">

@@ -16,7 +16,7 @@ import { ProtectedRoute } from "@/components/protected-route"
 import { useAuth } from "@/contexts/auth-context"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { PaymentSimulationModal } from "@/components/modals/payment-simulation-modal"
-import { calculateTransactionFees } from "@/lib/transactionFees"
+import { computeMembershipPlanCharge } from "@/lib/transactionFees"
 
 export default function BrowseMembershipPlansPage() {
   const [plans, setPlans] = useState<MembershipPlan[]>([])
@@ -177,10 +177,7 @@ export default function BrowseMembershipPlansPage() {
       const orderId = `membership-${planId}-${user._id}-${Date.now()}`
       const orderNumber = `ORD-${Math.floor(Math.random() * 900000) + 100000}`
       const currency = plan.currency || "INR"
-      const currentPlanPrice = currentMembership?.membership_level_id?.price ?? 0
-      const isUpgrade = Boolean(currentMembership && !isMembershipExpired() && plan.price > currentPlanPrice)
-      const baseAmount = isUpgrade ? Math.max(0, plan.price - currentPlanPrice) : plan.price
-      const feeBreakdown = calculateTransactionFees(baseAmount)
+      const { isUpgrade, ...feeBreakdown } = getPlanCharge(plan)
       const validReferral = referralStatus === "found" ? referralPhone.replace(/\D/g, "") : undefined
       setPendingPayment({
         planId,
@@ -339,6 +336,14 @@ export default function BrowseMembershipPlansPage() {
     const endDate = new Date(endDateStr)
     const now = new Date()
     return endDate <= now
+  }
+
+  /** Single source of truth for what a plan actually costs — same calculation feeds both the
+   *  card price shown here and the amount handed to Razorpay in handleSelectPlan. */
+  const getPlanCharge = (plan: MembershipPlan) => {
+    const currentPlanPrice = currentMembership?.membership_level_id?.price ?? 0
+    const isUpgradeEligible = Boolean(currentMembership && !isMembershipExpired())
+    return computeMembershipPlanCharge({ planPrice: plan.price, currentPlanPrice, isUpgradeEligible })
   }
 
   const isCurrentPlan = (plan: MembershipPlan) => {
@@ -642,14 +647,17 @@ export default function BrowseMembershipPlansPage() {
                     <CardContent className="space-y-4">
                       <div className="text-center">
                         <div className="text-3xl font-bold">
-                          {formatPrice(plan.price, plan.currency)}
+                          {formatPrice(getPlanCharge(plan).finalAmount, plan.currency)}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {getPlanCharge(plan).isUpgrade ? 'Upgrade price, ' : ''}all-inclusive
                         </div>
                         <div className="text-sm text-muted-foreground flex items-center justify-center gap-1">
                           <Calendar className="w-3 h-3" />
                           {getPlanDateRangeLabel(plan)}
                         </div>
                       </div>
-                      
+
                       <Button 
                         className="w-full" 
                         variant={isCurrent ? "outline" : isPopular ? "default" : "outline"}

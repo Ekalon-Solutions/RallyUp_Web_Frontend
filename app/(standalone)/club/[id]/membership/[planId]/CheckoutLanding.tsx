@@ -20,6 +20,7 @@ import type { JoinablePlan } from "@/components/modals/join-membership-modal"
 import { SiteNavbar } from "@/components/site-navbar"
 import { SiteFooter } from "@/components/site-footer"
 import { apiClient } from "@/lib/api"
+import { calculateTransactionFees } from "@/lib/transactionFees"
 import { useAuth } from "@/contexts/auth-context"
 
 // ---------------------------------------------------------------------------
@@ -127,9 +128,10 @@ function PlanSummaryCard({ club, plan, planId, isUserCurrentPlan }: { club: Chec
           <div className="flex items-center justify-center gap-2">
             <CreditCard className="h-5 w-5 text-secondary" />
             <span className="text-3xl font-black text-secondary">
-              {formatPrice(plan.price, plan.currency)}
+              {formatPrice(calculateTransactionFees(plan.price).finalAmount, plan.currency)}
             </span>
           </div>
+          <p className="text-center text-xs text-slate-500 -mt-2">all-inclusive</p>
 
           <Separator className="bg-slate-200" />
 

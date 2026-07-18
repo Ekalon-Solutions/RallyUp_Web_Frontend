@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { apiClient } from "@/lib/api"
+import { calculateTransactionFees } from "@/lib/transactionFees"
 import { Check, CreditCard, Building2 } from "lucide-react"
 
 type PublicMembershipPlan = {
@@ -205,8 +206,9 @@ export default function MembershipPlansClient({ clubId }: { clubId: string }) {
                       })()}
                       <div className="text-center">
                         <div className="text-3xl font-black">
-                          {formatPrice(plan.price || 0, plan.currency || "INR")}
+                          {formatPrice(calculateTransactionFees(plan.price || 0).finalAmount, plan.currency || "INR")}
                         </div>
+                        <div className="text-xs text-muted-foreground">all-inclusive</div>
                         <div className="text-sm text-muted-foreground">{formatPlanPeriod(plan)}</div>
                         {(plan.planStartDate || plan.planEndDate) && (
                           <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground mt-2 justify-center">
