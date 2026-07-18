@@ -20,19 +20,26 @@ function getActiveClubMembershipForUser(user: any, activeClubId: string | null) 
 
   const memberships: any[] = Array.isArray(user.memberships) ? user.memberships : []
 
+  const isRelevant = (m: any) => m && m.club_id && (m.status === 'active' || m.status === 'expired')
+
   if (activeClubId) {
     // Prefer the membership for the explicitly selected club
     const match = memberships.find(m => {
-      if (!m || !m.club_id) return false
+      if (!isRelevant(m)) return false
       const clubId = typeof m.club_id === 'string' ? m.club_id : m.club_id._id
-      return m.status === 'active' && clubId === activeClubId
+      return clubId === activeClubId
     })
     if (match) return match
   }
 
-  // Fallback: return the first active membership (e.g. right after signup before
-  // activeClubId has been persisted to localStorage)
-  return memberships.find(m => m && m.status === 'active' && m.club_id) || null
+  // Fallback: return the most recent membership (e.g. right after signup before
+  // activeClubId has been persisted to localStorage). Backend sorts by start_date desc.
+  return memberships.find(isRelevant) || null
+}
+
+/** Trusts the actual end_date over the stored `status` field, which only updates on save/cron. */
+function isMembershipExpired(membership: any): boolean {
+  return Boolean(membership?.end_date && new Date(membership.end_date) < new Date())
 }
 
 export function MembershipStatus() {
@@ -48,6 +55,8 @@ export function MembershipStatus() {
       userClub: (am && typeof am.club_id === 'object' && am.club_id) || null,
     }
   }, [user, activeClubId])
+
+  const isExpired = isMembershipExpired(activeMembership)
 
   const handleLeaveClub = async () => {
     if (!userClub?._id) return
@@ -139,8 +148,11 @@ export function MembershipStatus() {
             </p>
           </div>
           <div className="flex flex-col items-end gap-2">
-            <Badge variant="default" className="bg-green-100 text-green-800 hover:bg-green-200">
-              Active Member
+            <Badge
+              variant="default"
+              className={isExpired ? "bg-red-100 text-red-800 hover:bg-red-200" : "bg-green-100 text-green-800 hover:bg-green-200"}
+            >
+              {isExpired ? "Membership Expired" : "Active Member"}
             </Badge>
             {activeMembership.membership_level_id && (
               <Badge variant={getPlanBadgeVariant(activeMembership.membership_level_id.name)} className="text-xs">
@@ -175,8 +187,10 @@ export function MembershipStatus() {
                 )}
                 {activeMembership.end_date && (
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Expires:</span>
-                    <span className="font-medium">{formatDisplayDate(activeMembership.end_date)}</span>
+                    <span className="text-muted-foreground">{isExpired ? "Expired on:" : "Expires:"}</span>
+                    <span className={isExpired ? "font-medium text-red-600" : "font-medium"}>
+                      {formatDisplayDate(activeMembership.end_date)}
+                    </span>
                   </div>
                 )}
               </div>

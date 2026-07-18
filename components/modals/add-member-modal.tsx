@@ -108,7 +108,10 @@ export function AddMemberModal({ trigger, onMemberAdded, clubId: clubIdProp }: A
       
       if (response.ok) {
         const data = await response.json()
-        setMembershipPlans(data.data.filter((plan: MembershipPlan) => plan.isActive) || [])
+        const now = new Date()
+        setMembershipPlans(
+          data.data.filter((plan: MembershipPlan) => plan.isActive && (!plan.planEndDate || new Date(plan.planEndDate) >= now)) || []
+        )
       }
     } catch (error) {
     }
