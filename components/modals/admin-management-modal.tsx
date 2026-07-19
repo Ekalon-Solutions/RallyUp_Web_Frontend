@@ -82,7 +82,7 @@ export function AdminManagementModal({ clubId, clubName, trigger }: AdminManagem
     name: '',
     email: '',
     phoneNumber: '',
-    countryCode: '+1',
+    countryCode: '+91',
     role: 'admin'
   })
   const [creating, setCreating] = useState(false)
@@ -153,7 +153,7 @@ export function AdminManagementModal({ clubId, clubName, trigger }: AdminManagem
           name: '',
           email: '',
           phoneNumber: '',
-          countryCode: '+1',
+          countryCode: '+91',
           role: 'admin'
         })
         fetchAdmins()

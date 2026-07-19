@@ -44,7 +44,7 @@ type VendorRosterProps = {
   onChanged?: () => void
 }
 
-const EMPTY_FORM = { name: "", email: "", countryCode: "+1", phoneNumber: "" }
+const EMPTY_FORM = { name: "", email: "", countryCode: "+91", phoneNumber: "" }
 
 export function VendorRoster({ onChanged }: VendorRosterProps) {
   const [clubId, setClubId] = useState<string | null>(null)
@@ -56,7 +56,7 @@ export function VendorRoster({ onChanged }: VendorRosterProps) {
   const [creating, setCreating] = useState(false)
 
   const [editVendor, setEditVendor] = useState<Vendor | null>(null)
-  const [editForm, setEditForm] = useState({ name: "", countryCode: "+1", phoneNumber: "" })
+  const [editForm, setEditForm] = useState({ name: "", countryCode: "+91", phoneNumber: "" })
   const [savingEdit, setSavingEdit] = useState(false)
 
   const [deactivateTarget, setDeactivateTarget] = useState<Vendor | null>(null)
@@ -120,7 +120,7 @@ export function VendorRoster({ onChanged }: VendorRosterProps) {
     setEditVendor(vendor)
     setEditForm({
       name: vendor.name || "",
-      countryCode: vendor.countryCode || "+1",
+      countryCode: vendor.countryCode || "+91",
       phoneNumber: vendor.phoneNumber || "",
     })
   }

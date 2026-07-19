@@ -626,7 +626,7 @@ export default function ExternalTicketingPage() {
                   <div>
                     <Label>Phone</Label>
                     <div className="flex gap-2">
-                      <Input name="countryCode" placeholder="+1" style={{width: '100px'}} value={requestForm.countryCode} readOnly disabled />
+                      <Input name="countryCode" placeholder="+91" style={{width: '100px'}} value={requestForm.countryCode} readOnly disabled />
                       <Input name="phone" value={requestForm.phone} readOnly disabled />
                     </div>
                     {formErrors.phone && <div className="text-destructive text-sm mt-1">{formErrors.phone}</div>}

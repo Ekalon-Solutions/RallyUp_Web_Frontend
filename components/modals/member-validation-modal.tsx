@@ -38,7 +38,7 @@ export function MemberValidationModal({
 }: MemberValidationModalProps) {
   const [email, setEmail] = useState("")
   const [mobileNumber, setMobileNumber] = useState("")
-  const [countryCode, setCountryCode] = useState("+1")
+  const [countryCode, setCountryCode] = useState("+91")
   const [loading, setLoading] = useState(false)
   const [validationResult, setValidationResult] = useState<{
     isMember: boolean
@@ -84,7 +84,7 @@ export function MemberValidationModal({
   const handleReset = () => {
     setEmail("")
     setMobileNumber("")
-    setCountryCode("+1")
+    setCountryCode("+91")
     setValidationResult(null)
   }
 

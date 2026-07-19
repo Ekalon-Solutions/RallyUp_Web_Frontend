@@ -35,7 +35,7 @@ export function CreateClubModal({ isOpen, onClose, onSuccess }: CreateClubModalP
     website: "",
     contactEmail: "",
     contactPhone: "",
-    countryCode: "+1",
+    countryCode: "+91",
     address: {
       street: "",
       city: "",
@@ -51,7 +51,7 @@ export function CreateClubModal({ isOpen, onClose, onSuccess }: CreateClubModalP
     platformFeePercent: 5,
     superAdminEmail: "",
     superAdminPhone: "",
-    superAdminCountryCode: "+1"
+    superAdminCountryCode: "+91"
   })
   const [errors, setErrors] = useState<{ slug?: string }>({})
   const [platformFeeWarning, setPlatformFeeWarning] = useState(false)
@@ -102,7 +102,7 @@ export function CreateClubModal({ isOpen, onClose, onSuccess }: CreateClubModalP
           website: "",
           contactEmail: "",
           contactPhone: "",
-          countryCode: "+1",
+          countryCode: "+91",
           address: {
             street: "",
             city: "",
@@ -118,7 +118,7 @@ export function CreateClubModal({ isOpen, onClose, onSuccess }: CreateClubModalP
           platformFeePercent: 5,
           superAdminEmail: "",
           superAdminPhone: "",
-          superAdminCountryCode: "+1"
+          superAdminCountryCode: "+91"
         })
       } else {
         toast.error(response.error || "Failed to create club")
@@ -420,7 +420,7 @@ export function CreateClubModal({ isOpen, onClose, onSuccess }: CreateClubModalP
                       value={formData.superAdminCountryCode}
                       onChange={(e) => handleInputChange("superAdminCountryCode", e.target.value)}
                       className="w-20"
-                      placeholder="+1"
+                      placeholder="+91"
                     />
                     <Input
                       id="superAdminPhone"

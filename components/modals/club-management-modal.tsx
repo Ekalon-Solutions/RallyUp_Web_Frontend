@@ -145,7 +145,7 @@ export default function ClubManagementModal({ isOpen, onClose, club, onClubUpdat
     if (!user || !club) return
 
     const phoneNumber = (user as any).phoneNumber || (user as any).phoneNumber
-    const countryCode = (user as any).countryCode || '+1'
+    const countryCode = (user as any).countryCode || '+91'
 
     if (!phoneNumber || phoneNumber.trim() === '') {
       const userType = (user as any).role === 'system_owner' ? 'system owner' : 'admin'

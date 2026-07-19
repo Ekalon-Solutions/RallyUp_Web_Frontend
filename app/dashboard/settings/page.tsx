@@ -46,7 +46,7 @@ export default function SettingsPage() {
     name: "",
     email: "",
     phoneNumber: "",
-    countryCode: "+1"
+    countryCode: "+91"
   })
 
   // OTP related states
@@ -61,7 +61,7 @@ export default function SettingsPage() {
         name: user.name || "",
         email: user.email || "",
         phoneNumber: user.phoneNumber || "",
-        countryCode: user.countryCode || "+1"
+        countryCode: user.countryCode || "+91"
       })
     }
   }, [user])

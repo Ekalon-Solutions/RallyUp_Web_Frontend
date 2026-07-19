@@ -136,7 +136,7 @@ export default function ClubManagementPage() {
     website: '',
     contactEmail: '',
     contactPhone: '',
-    countryCode: '+1',
+    countryCode: '+91',
     address: {
       street: '',
       city: '',
@@ -151,7 +151,7 @@ export default function ClubManagementPage() {
     },
     superAdminEmail: '',
     superAdminPhone: '',
-    superAdminCountryCode: '+1',
+    superAdminCountryCode: '+91',
     platformFeePercent: 5
   })
   const [creating, setCreating] = useState(false)
@@ -279,7 +279,7 @@ export default function ClubManagementPage() {
             website: '',
             contactEmail: '',
             contactPhone: '',
-            countryCode: '+1',
+            countryCode: '+91',
             address: {
               street: '',
               city: '',
@@ -294,7 +294,7 @@ export default function ClubManagementPage() {
             },
             superAdminEmail: '',
             superAdminPhone: '',
-            superAdminCountryCode: '+1',
+            superAdminCountryCode: '+91',
             platformFeePercent: 5
           })
         fetchClubs()
@@ -320,7 +320,7 @@ export default function ClubManagementPage() {
     if (!user || !selectedClubId) return
 
     const phoneNumber = (user as any).phoneNumber || (user as any).phoneNumber
-    const countryCode = (user as any).countryCode || '+1'
+    const countryCode = (user as any).countryCode || '+91'
 
     if (!phoneNumber || phoneNumber.trim() === '') {
       const userType = (user as any).role === 'system_owner' ? 'system owner' : 'admin'
@@ -365,7 +365,7 @@ export default function ClubManagementPage() {
       const userData = user as any
       const verifyRes = await apiClient.verifyOTP({
         phoneNumber: userData.phoneNumber,
-        countryCode: userData.countryCode || '+1',
+        countryCode: userData.countryCode || '+91',
         otp,
         role: "system_owner",
         sessionInfo: sessionInfo || undefined,
@@ -691,7 +691,7 @@ export default function ClubManagementPage() {
                               value={createForm.superAdminCountryCode}
                               onChange={(e) => setCreateForm({ ...createForm, superAdminCountryCode: e.target.value })}
                               className="w-20"
-                              placeholder="+1"
+                              placeholder="+91"
                             />
                             <Input
                               id="superAdminPhone"
