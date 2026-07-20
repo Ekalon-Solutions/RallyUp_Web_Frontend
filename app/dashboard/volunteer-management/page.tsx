@@ -16,6 +16,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { apiClient, VolunteerOpportunity, Volunteer } from '@/lib/api';
+import { activeSignups, signupUserId } from '@/lib/volunteerSignup';
 import { formatDisplayDate } from '@/lib/utils';
 import { useAuth } from '@/contexts/auth-context';
 import { DashboardLayout } from '@/components/dashboard-layout';
@@ -313,19 +314,17 @@ export default function VolunteerManagementPage() {
       for (const opportunity of clubOpportunities) {
         if (opportunity.timeSlots) {
           for (const timeSlot of opportunity.timeSlots) {
-            if (timeSlot.volunteersAssigned && timeSlot.volunteersAssigned.length > 0) {
-              for (const volunteerId of timeSlot.volunteersAssigned) {
-                allSignups.push({
-                  opportunityId: opportunity._id,
-                  opportunityTitle: opportunity.title,
-                  timeSlotId: timeSlot._id,
-                  startTime: timeSlot.startTime,
-                  endTime: timeSlot.endTime,
-                  date: opportunity.createdAt,
-                  volunteerId: volunteerId,
-                  status: 'confirmed'
-                });
-              }
+            for (const entry of timeSlot.volunteersAssigned ?? []) {
+              allSignups.push({
+                opportunityId: opportunity._id,
+                opportunityTitle: opportunity.title,
+                timeSlotId: timeSlot._id,
+                startTime: timeSlot.startTime,
+                endTime: timeSlot.endTime,
+                date: entry.createdAt || opportunity.createdAt,
+                volunteerId: signupUserId(entry),
+                status: entry.status ?? 'accepted'
+              });
             }
           }
         }
@@ -572,7 +571,7 @@ export default function VolunteerManagementPage() {
                               </Badge>
                             </span>
                             <span className="text-muted-foreground">
-                              {opportunity.timeSlots.length} time slot{opportunity.timeSlots.length !== 1 ? 's' : ''}
+                              {opportunity.timeSlots?.length ?? 0} time slot{opportunity.timeSlots?.length !== 1 ? 's' : ''}
                             </span>
                             <span className="text-muted-foreground">
                               Created: {formatDisplayDate(opportunity.createdAt)}
@@ -593,10 +592,10 @@ export default function VolunteerManagementPage() {
                             size="sm"
                             onClick={() => {
                               setSelectedOpportunity(opportunity);
-                              if (opportunity.timeSlots.length === 1) {
+                              if (opportunity.timeSlots?.length === 1) {
                                 setSelectedTimeSlot(opportunity.timeSlots[0]._id);
                                 setShowAssignModal(true);
-                              } else {
+                              } else if (opportunity.timeSlots && opportunity.timeSlots.length > 0) {
                                 setSelectedTimeSlot(opportunity.timeSlots[0]._id);
                                 setShowAssignModal(true);
                               }
@@ -610,10 +609,10 @@ export default function VolunteerManagementPage() {
                             size="sm"
                             onClick={() => {
                               setSelectedOpportunity(opportunity);
-                              if (opportunity.timeSlots.length === 1) {
+                              if (opportunity.timeSlots?.length === 1) {
                                 setSelectedTimeSlot(opportunity.timeSlots[0]._id);
                                 setShowUnassignModal(true);
-                              } else {
+                              } else if (opportunity.timeSlots && opportunity.timeSlots.length > 0) {
                                 setSelectedTimeSlot(opportunity.timeSlots[0]._id);
                                 setShowUnassignModal(true);
                               }
@@ -645,7 +644,8 @@ export default function VolunteerManagementPage() {
                       <div className="space-y-3">
                         <h5 className="text-sm font-medium">Time Slots & Signups</h5>
                         {opportunity.timeSlots.map((timeSlot) => {
-                          const signupCount = timeSlot.volunteersAssigned.length;
+                          const currentSignups = activeSignups(timeSlot.volunteersAssigned);
+                          const signupCount = currentSignups.length;
                           const isFilled = signupCount >= timeSlot.volunteersNeeded;
                           
                           return (
@@ -675,8 +675,9 @@ export default function VolunteerManagementPage() {
                                 <div className="mt-2">
                                   <p className="text-xs text-muted-foreground mb-1">Volunteers:</p>
                                   <div className="flex flex-wrap gap-1">
-                                    {timeSlot.volunteersAssigned.map((volunteerId) => {
-                                      const volunteer = volunteers.find(v => v._id === volunteerId);
+                                    {currentSignups.map((signup) => {
+                                      const volunteerId = signupUserId(signup);
+                                      const volunteer = volunteers.find(v => v.user && String(v.user._id) === String(volunteerId));
                                       return volunteer && volunteer.user ? (
                                         <span
                                           key={volunteerId}
@@ -740,13 +741,13 @@ export default function VolunteerManagementPage() {
                 </div>
                 <div className="rounded-lg border p-4">
                   <div className="text-2xl font-bold text-blue-600">
-                    {volunteers.filter(v => v.availability.weekends).length}
+                    {volunteers.filter(v => v.availability?.weekends).length}
                   </div>
                   <div className="text-sm text-muted-foreground">Weekend Available</div>
                 </div>
                 <div className="rounded-lg border p-4">
                   <div className="text-2xl font-bold text-purple-600">
-                    {volunteers.filter(v => v.availability.evenings).length}
+                    {volunteers.filter(v => v.availability?.evenings).length}
                   </div>
                   <div className="text-sm text-muted-foreground">Evening Available</div>
                 </div>
@@ -895,7 +896,7 @@ export default function VolunteerManagementPage() {
                     </div>
                     <div className="rounded-lg border p-4">
                       <div className="text-2xl font-bold text-green-600">
-                        {volunteerSignups.filter(s => s.status === 'confirmed').length}
+                        {volunteerSignups.filter(s => s.status === 'accepted').length}
                       </div>
                       <div className="text-sm text-muted-foreground">Confirmed</div>
                     </div>
@@ -921,7 +922,7 @@ export default function VolunteerManagementPage() {
                         <div className="flex items-start justify-between mb-3">
                           <div className="flex-1">
                             {(() => {
-                              const volunteer = volunteers.find(v => v._id === signup.volunteerId);
+                              const volunteer = volunteers.find(v => v.user && String(v.user._id) === String(signup.volunteerId));
                               return volunteer ? (
                                 <>
                                   <h5 className="font-medium text-lg">{getVolunteerDisplayName(volunteer)}</h5>
@@ -934,7 +935,7 @@ export default function VolunteerManagementPage() {
                                 </>
                               ) : (
                                 <>
-                                  <h5 className="font-medium text-lg">Volunteer ID: {signup.volunteerId.substring(0, 8)}...</h5>
+                                  <h5 className="font-medium text-lg">Volunteer ID: {typeof signup.volunteerId === 'string' ? signup.volunteerId.substring(0, 8) : 'Unknown'}...</h5>
                                   <p className="text-sm text-muted-foreground">
                                     Loading volunteer details...
                                   </p>
@@ -967,7 +968,7 @@ export default function VolunteerManagementPage() {
                           <div>
                             <h6 className="text-sm font-medium mb-2">Volunteer Skills</h6>
                             {(() => {
-                              const volunteer = volunteers.find(v => v._id === signup.volunteerId);
+                              const volunteer = volunteers.find(v => v.user && String(v.user._id) === String(signup.volunteerId));
                               return volunteer && volunteer.skills && volunteer.skills.length > 0 ? (
                                 <div className="flex flex-wrap gap-1">
                                   {volunteer.skills.slice(0, 3).map((skill, index) => (
@@ -1074,7 +1075,7 @@ export default function VolunteerManagementPage() {
                       </div>
                       <div className="rounded-lg border p-3">
                         <div className="text-xl font-bold text-green-600">
-                          {opportunitySignups.filter(s => s.status === 'confirmed').length}
+                          {opportunitySignups.filter(s => s.status === 'accepted').length}
                         </div>
                         <div className="text-sm text-muted-foreground">Confirmed</div>
                       </div>
