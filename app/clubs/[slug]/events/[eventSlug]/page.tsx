@@ -30,11 +30,13 @@ import Link from "next/link"
 import {
   formatEventPriceDisplay,
   formatTierPrice,
+  getBookingWindowClosedLabel,
   getEventBuyCtaLabel,
   getEventCapacity,
   getEventTicketRows,
   getEventVenueDisplay,
   hasVenueTierMatrix,
+  isBookingWindowOpen,
   isEventPaid,
   normalizeEventVenues,
 } from "@/lib/event-display-price"
@@ -207,7 +209,7 @@ export default function EventDetailPage() {
     if (!event) return
     const { count, max } = getEventCapacity(event)
     const isFull = max != null && count >= max
-    if (isFull) return
+    if (isFull || !isBookingWindowOpen(event)) return
 
     try {
       const checkResult = await apiClient.checkEventRegistration(event._id)
@@ -251,6 +253,7 @@ export default function EventDetailPage() {
 
   const { count: capacityCount, max: capacityMax } = getEventCapacity(event)
   const isEventFull = capacityMax != null && capacityCount >= capacityMax
+  const bookingOpen = isBookingWindowOpen(event)
   const isPaid = isEventPaid(event)
   const multiVenue = hasVenueTierMatrix(event)
   const venueDisplay = getEventVenueDisplay(event)
@@ -459,12 +462,18 @@ export default function EventDetailPage() {
 
                 <Button
                   className="w-full h-12 sm:h-[3.25rem] text-base font-bold rounded-xl mt-1"
-                  style={isEventFull ? undefined : { backgroundColor: primaryColor, color: "white" }}
-                  variant={isEventFull ? "secondary" : "default"}
-                  disabled={isEventFull}
+                  style={isEventFull || !bookingOpen ? undefined : { backgroundColor: primaryColor, color: "white" }}
+                  variant={isEventFull || !bookingOpen ? "secondary" : "default"}
+                  disabled={isEventFull || !bookingOpen}
                   onClick={handleBuyTickets}
                 >
-                  {isEventFull ? "Event Full" : isPaid ? getEventBuyCtaLabel(event) : "Register Now"}
+                  {isEventFull
+                    ? "Event Full"
+                    : !bookingOpen
+                    ? getBookingWindowClosedLabel(event)
+                    : isPaid
+                    ? getEventBuyCtaLabel(event)
+                    : "Register Now"}
                 </Button>
               </CardContent>
             </Card>

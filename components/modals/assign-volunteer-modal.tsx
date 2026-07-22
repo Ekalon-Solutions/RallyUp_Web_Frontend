@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Volunteer, VolunteerOpportunity } from '@/lib/api';
 import { apiClient } from '@/lib/api';
+import { activeSignups } from '@/lib/volunteerSignup';
 import { useToast } from '@/components/ui/use-toast';
 import { 
   Users, 
@@ -72,9 +73,11 @@ export function AssignVolunteerModal({
         const allVolunteers = response.data || [];
         // // console.log('🔍 Frontend: Received all volunteers:', allVolunteers.length, allVolunteers);
         
-        // Filter out volunteers already assigned to this time slot
-        const availableVolunteers = allVolunteers.filter(volunteer => 
-          !timeSlot?.volunteersAssigned.includes(volunteer._id)
+        const assignedUserIds = new Set(
+          activeSignups(timeSlot?.volunteersAssigned).map((s) => (typeof s.user === 'string' ? s.user : s.user._id))
+        );
+        const availableVolunteers = allVolunteers.filter(volunteer =>
+          volunteer.user && !assignedUserIds.has(String(volunteer.user._id))
         );
         
         // // console.log('🔍 Frontend: Available volunteers after filtering assigned:', availableVolunteers.length);
@@ -151,23 +154,25 @@ export function AssignVolunteerModal({
     // Search filter
     if (searchTerm) {
       filtered = filtered.filter(volunteer =>
-        `${volunteer.user.first_name} ${volunteer.user.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        volunteer.user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        volunteer.skills.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase()))
+        volunteer.user && (
+          `${volunteer.user.first_name} ${volunteer.user.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          volunteer.user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (volunteer.skills && volunteer.skills.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase())))
+        )
       );
     }
 
     // Skill filter
     if (skillFilter !== 'all') {
       filtered = filtered.filter(volunteer =>
-        volunteer.skills.includes(skillFilter)
+        volunteer.skills && volunteer.skills.includes(skillFilter)
       );
     }
 
     // Experience filter
     if (experienceFilter !== 'all') {
       filtered = filtered.filter(volunteer =>
-        volunteer.experience.level === experienceFilter
+        volunteer.experience && volunteer.experience.level === experienceFilter
       );
     }
 
@@ -221,16 +226,16 @@ export function AssignVolunteerModal({
                 <span className="font-medium">Time:</span> {timeSlot.startTime} - {timeSlot.endTime}
               </div>
               <div>
-                <span className="font-medium">Volunteers:</span> {timeSlot.volunteersAssigned.length} / {timeSlot.volunteersNeeded}
+                <span className="font-medium">Volunteers:</span> {activeSignups(timeSlot.volunteersAssigned).length} / {timeSlot.volunteersNeeded}
               </div>
               <div>
-                <span className="font-medium">Status:</span> 
-                <Badge variant={timeSlot.volunteersAssigned.length >= timeSlot.volunteersNeeded ? "default" : "secondary"} className="ml-2">
-                  {timeSlot.volunteersAssigned.length >= timeSlot.volunteersNeeded ? "Filled" : "Open"}
+                <span className="font-medium">Status:</span>
+                <Badge variant={activeSignups(timeSlot.volunteersAssigned).length >= timeSlot.volunteersNeeded ? "default" : "secondary"} className="ml-2">
+                  {activeSignups(timeSlot.volunteersAssigned).length >= timeSlot.volunteersNeeded ? "Filled" : "Open"}
                 </Badge>
               </div>
             </div>
-            {opportunity.requiredSkills.length > 0 && (
+            {opportunity.requiredSkills && opportunity.requiredSkills.length > 0 && (
               <div className="mt-2">
                 <span className="font-medium text-sm">Required Skills:</span>
                 <div className="flex flex-wrap gap-1 mt-1">
@@ -271,7 +276,7 @@ export function AssignVolunteerModal({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All skills</SelectItem>
-                    {opportunity.requiredSkills.map((skill) => (
+                    {opportunity.requiredSkills?.map((skill) => (
                       <SelectItem key={skill} value={skill}>{skill}</SelectItem>
                     ))}
                   </SelectContent>
@@ -326,32 +331,32 @@ export function AssignVolunteerModal({
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
-                        <h4 className="font-medium">{volunteer.user.first_name} {volunteer.user.last_name}</h4>
+                        <h4 className="font-medium">{volunteer.user?.first_name ?? 'Unknown'} {volunteer.user?.last_name ?? ''}</h4>
                         <Badge className={getStatusColor(volunteer.status)}>
                           {volunteer.status}
                         </Badge>
-                        <Badge className={getExperienceColor(volunteer.experience.level)}>
-                          {volunteer.experience.level}
+                        <Badge className={getExperienceColor(volunteer.experience?.level ?? 'beginner')}>
+                          {volunteer.experience?.level ?? 'N/A'}
                         </Badge>
                       </div>
                       
                       <p className="text-sm text-muted-foreground mb-2">
-                        {volunteer.user.email} • {volunteer.user.countryCode} {volunteer.user.phoneNumber}
+                        {volunteer.user?.email ?? 'No email'} • {volunteer.user?.countryCode ?? ''} {volunteer.user?.phoneNumber ?? ''}
                       </p>
                       
                       <div className="space-y-2">
-                        {volunteer.skills.length > 0 && (
+                        {volunteer.skills && volunteer.skills.length > 0 && (
                           <div>
                             <span className="text-sm font-medium">Skills:</span>
                             <div className="flex flex-wrap gap-1 mt-1">
-                              {volunteer.skills.map((skill) => (
-                                <Badge 
+                              {volunteer.skills?.map((skill) => (
+                                  <Badge 
                                   key={skill} 
-                                  variant={opportunity.requiredSkills.includes(skill) ? "default" : "outline"}
+                                  variant={opportunity.requiredSkills?.includes(skill) ? "default" : "outline"}
                                   className="text-xs"
                                 >
                                   {skill}
-                                  {opportunity.requiredSkills.includes(skill) && (
+                                  {opportunity.requiredSkills?.includes(skill) && (
                                     <CheckCircle className="w-3 h-3 ml-1" />
                                   )}
                                 </Badge>
@@ -363,11 +368,11 @@ export function AssignVolunteerModal({
                         <div className="flex items-center gap-4 text-sm">
                           <div className="flex items-center gap-1">
                             <Clock className="w-4 h-4 text-muted-foreground" />
-                            <span>Max {volunteer.preferences.maxHoursPerWeek} hrs/week</span>
+                            <span>Max {volunteer.preferences?.maxHoursPerWeek ?? 'N/A'} hrs/week</span>
                           </div>
                           <div className="flex items-center gap-1">
                             <MapPin className="w-4 h-4 text-muted-foreground" />
-                            <span>{volunteer.preferences.locationPreference}</span>
+                            <span>{volunteer.preferences?.locationPreference ?? 'N/A'}</span>
                           </div>
                         </div>
                       </div>

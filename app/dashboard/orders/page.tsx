@@ -2052,13 +2052,14 @@ export default function OrdersPage() {
                     </h3>
                     <div className="space-y-2">
                       {selectedRegistration.attendees.map((att: any, idx: number) => {
-                        const isCancelled = att.status === 'cancelled'
+                        const isRefunded = att.status === 'refunded' || att.refundStatus === 'processed'
+                        const isCancelled = att.status === 'cancelled' && !isRefunded
                         const isCancellingAttendee = cancellingAttendeeId === String(att._id)
                         const canCancelAttendee =
                           !isCancelled &&
+                          !isRefunded &&
                           !att.attended &&
-                          att.refundStatus !== 'requested' &&
-                          att.refundStatus !== 'processed'
+                          att.refundStatus !== 'requested'
                         return (
                           <div key={att._id || idx} className="flex items-center justify-between gap-3 p-3 border rounded-lg text-sm">
                             <div className="min-w-0">
@@ -2072,14 +2073,14 @@ export default function OrdersPage() {
                             </div>
                             <div className="flex items-center gap-2 shrink-0">
                               <Badge
-                                variant={isCancelled ? 'destructive' : att.attended ? 'default' : 'secondary'}
+                                variant={isCancelled || isRefunded ? 'destructive' : att.attended ? 'default' : 'secondary'}
                               >
                                 {isCancelled
                                   ? 'Cancelled'
-                                  : att.refundStatus === 'requested'
-                                    ? 'Refund requested'
-                                    : att.refundStatus === 'processed'
-                                      ? 'Refunded'
+                                  : isRefunded
+                                    ? 'Refunded'
+                                    : att.refundStatus === 'requested'
+                                      ? 'Refund requested'
                                       : att.attended
                                         ? 'Attended'
                                         : 'Active'}

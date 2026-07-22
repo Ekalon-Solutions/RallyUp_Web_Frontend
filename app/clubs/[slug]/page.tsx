@@ -12,10 +12,12 @@ import { formatDisplayDate, slugify } from "@/lib/utils"
 import { getNewsImageUrl } from "@/lib/config"
 import {
   formatEventPriceDisplay,
+  getBookingWindowClosedLabel,
   getEventBuyCtaLabel,
   getEventCapacity,
   getEventVenueDisplay,
   hasVenueTierMatrix,
+  isBookingWindowOpen,
   isEventPaid,
 } from "@/lib/event-display-price"
 import { EventCheckoutModal } from "@/components/modals/event-checkout-modal"
@@ -933,15 +935,23 @@ export default function PublicClubPage() {
                                     {(() => {
                                       const { count, max } = getEventCapacity(event)
                                       const isEventFull = max != null && count >= max
-                                      const label = isEventFull ? "Event Full" : isEventPaid(event) ? getEventBuyCtaLabel(event) : "Register"
+                                      const bookingOpen = isBookingWindowOpen(event)
+                                      const blocked = isEventFull || !bookingOpen
+                                      const label = isEventFull
+                                        ? "Event Full"
+                                        : !bookingOpen
+                                        ? getBookingWindowClosedLabel(event)
+                                        : isEventPaid(event)
+                                        ? getEventBuyCtaLabel(event)
+                                        : "Register"
                                       return (
                                         <Button
                                           className="w-full mt-auto"
-                                          style={isEventFull ? undefined : { backgroundColor: primaryColor, color: "white" }}
-                                          variant={isEventFull ? "secondary" : "default"}
-                                          disabled={isEventFull}
+                                          style={blocked ? undefined : { backgroundColor: primaryColor, color: "white" }}
+                                          variant={blocked ? "secondary" : "default"}
+                                          disabled={blocked}
                                           onClick={() => {
-                                            if (isEventFull) return
+                                            if (blocked) return
                                             router.push(`/clubs/${slug}/events/${slugify(event.title)}`)
                                           }}
                                         >

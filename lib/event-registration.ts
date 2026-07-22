@@ -67,7 +67,7 @@ export function resolveUserEventRegistration(
 }
 
 export function getActiveAttendees(attendees: any[] | undefined | null) {
-  return (attendees || []).filter((a) => a && a.status !== 'cancelled')
+  return (attendees || []).filter((a) => a && a.status !== 'cancelled' && a.status !== 'refunded')
 }
 
 export function getRegistrationDisplayStatus(
@@ -125,6 +125,7 @@ export function getCancellableAttendees(registration: { attendees?: any[] } | nu
       (a) =>
         a &&
         a.status !== 'cancelled' &&
+        a.status !== 'refunded' &&
         !a.attended &&
         a.refundStatus !== 'requested' &&
         a.refundStatus !== 'processed'

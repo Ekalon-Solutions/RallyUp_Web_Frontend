@@ -13,6 +13,7 @@ import { toast } from "sonner"
 import { apiClient, Event } from "@/lib/api"
 import { formatLocalDate } from "@/lib/timezone"
 import { useAuth } from "@/contexts/auth-context"
+import { getBookingWindowClosedLabel, isBookingWindowOpen } from "@/lib/event-display-price"
 
 interface EventRegistrationModalProps {
   isOpen: boolean
@@ -257,7 +258,8 @@ export function EventRegistrationModal({
   }
 
   const isEventFull = event.maxAttendees && event.currentAttendees >= event.maxAttendees
-  const canRegister = event.isActive && !isEventFull && !isRegistered
+  const bookingWindowOpen = isBookingWindowOpen(event)
+  const canRegister = event.isActive && !isEventFull && !isRegistered && bookingWindowOpen
   const canCancel = isRegistered && registrationStatus === 'confirmed'
 
   const hasErrors = Object.keys(errors).length > 0
@@ -391,6 +393,20 @@ export function EventRegistrationModal({
                   <div className="text-sm text-red-800">
                     <div className="font-medium">Event is Inactive</div>
                     <div>This event is not currently accepting registrations</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {event.isActive && !isEventFull && !bookingWindowOpen && (
+            <Card className="border-orange-200 bg-orange-50">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-3">
+                  <AlertCircle className="w-5 h-5 text-orange-600 flex-shrink-0" />
+                  <div className="text-sm text-orange-800">
+                    <div className="font-medium">{getBookingWindowClosedLabel(event)}</div>
+                    <div>Registration is outside this event&apos;s booking window</div>
                   </div>
                 </div>
               </CardContent>

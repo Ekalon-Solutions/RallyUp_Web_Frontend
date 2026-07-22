@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { VolunteerOpportunity, Volunteer } from '@/lib/api';
 import { apiClient } from '@/lib/api';
+import { activeSignups } from '@/lib/volunteerSignup';
 import { useToast } from '@/components/ui/use-toast';
 import { 
   Users, 
@@ -44,21 +45,25 @@ export function UnassignVolunteerModal({
   const timeSlot = opportunity?.timeSlots.find(slot => slot._id === timeSlotId);
 
   const fetchAssignedVolunteers = React.useCallback(async () => {
-    if (!timeSlot || timeSlot.volunteersAssigned.length === 0) {
+    const currentSignups = activeSignups(timeSlot?.volunteersAssigned);
+    if (currentSignups.length === 0) {
       setAssignedVolunteers([]);
       return;
     }
 
     try {
       setLoading(true);
-      
-      const response = await apiClient.getVolunteers({ 
-        club: opportunity?.club 
+
+      const response = await apiClient.getVolunteers({
+        club: opportunity?.club
       });
-      
+
       if (response.success && response.data) {
-        const volunteers = response.data.filter(volunteer => 
-          timeSlot.volunteersAssigned.includes(volunteer._id)
+        const assignedUserIds = new Set(
+          currentSignups.map((s) => (typeof s.user === 'string' ? s.user : s.user._id))
+        );
+        const volunteers = response.data.filter(volunteer =>
+          volunteer.user && assignedUserIds.has(String(volunteer.user._id))
         );
         
         const validVolunteers = volunteers.filter(volunteer => volunteer.user);
@@ -145,7 +150,7 @@ export function UnassignVolunteerModal({
                 <span className="font-medium">Time:</span> {timeSlot.startTime} - {timeSlot.endTime}
               </div>
               <div>
-                <span className="font-medium">Volunteers:</span> {timeSlot.volunteersAssigned.length} / {timeSlot.volunteersNeeded}
+                <span className="font-medium">Volunteers:</span> {activeSignups(timeSlot.volunteersAssigned).length} / {timeSlot.volunteersNeeded}
               </div>
             </div>
           </div>
@@ -169,7 +174,7 @@ export function UnassignVolunteerModal({
                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-3"></div>
                 <p className="text-muted-foreground">Loading assigned volunteers...</p>
               </div>
-            ) : timeSlot.volunteersAssigned.length === 0 ? (
+            ) : activeSignups(timeSlot.volunteersAssigned).length === 0 ? (
               <div className="text-center py-6">
                 <Users className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
                 <p className="text-muted-foreground">No volunteers currently assigned to this time slot.</p>
@@ -241,7 +246,7 @@ export function UnassignVolunteerModal({
             )}
           </div>
 
-          {timeSlot.volunteersAssigned.length > 0 && (
+          {activeSignups(timeSlot.volunteersAssigned).length > 0 && (
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
               <div className="flex items-start gap-3">
                 <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5" />

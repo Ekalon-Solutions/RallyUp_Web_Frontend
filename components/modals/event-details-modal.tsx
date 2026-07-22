@@ -142,28 +142,34 @@ export default function EventDetailsModal({ event, isOpen, onClose }: EventDetai
                   <div className="w-full">
                     <Accordion type="single" collapsible>
                       {registration.attendees.map((att: any) => {
-                        const linkSuffix = `/dashboard/events/attendance?registrationId=${encodeURIComponent(String(registration._id))}&attendeeId=${encodeURIComponent(String(att._id))}` 
+                        const linkSuffix = `/dashboard/events/attendance?registrationId=${encodeURIComponent(String(registration._id))}&attendeeId=${encodeURIComponent(String(att._id))}`
                         const val = `${baseUrl}${linkSuffix}`
+                        const isCancelled = att.status === 'cancelled'
+                        const isRefunded = att.status === 'refunded'
                         return (
                           <AccordionItem key={String(att._id)} value={String(att._id)}>
                             <AccordionTrigger>
                               <div className="flex items-center gap-3 w-full">
                                 <div className="text-sm font-medium">{att.name || 'Attendee'}</div>
                                 <div className="text-xs text-muted-foreground">{att.phone}</div>
-                                <Badge variant={att.status === 'cancelled' ? "destructive" : att.attended ? "default" : "secondary"} className="text-xs ml-auto">
-                                  {att.status === 'cancelled'
-                                    ? 'Cancelled'
-                                    : att.refundStatus === 'requested'
-                                      ? 'Refund requested'
-                                      : att.attended
-                                        ? "Attended"
-                                        : "Not Attended"}
+                                <Badge variant={isCancelled || isRefunded ? "destructive" : att.attended ? "default" : "secondary"} className="text-xs ml-auto">
+                                  {isRefunded
+                                    ? 'Refunded'
+                                    : isCancelled
+                                      ? 'Cancelled'
+                                      : att.refundStatus === 'requested'
+                                        ? 'Refund requested'
+                                        : att.attended
+                                          ? "Attended"
+                                          : "Not Attended"}
                                 </Badge>
                               </div>
                             </AccordionTrigger>
                             <AccordionContent>
-                              {att.status === 'cancelled' ? (
-                                <p className="text-sm text-muted-foreground py-4 text-center">This ticket has been cancelled.</p>
+                              {isCancelled || isRefunded ? (
+                                <p className="text-sm text-muted-foreground py-4 text-center">
+                                  {isRefunded ? 'This ticket has been refunded.' : 'This ticket has been cancelled.'}
+                                </p>
                               ) : (
                               <div className="flex items-center justify-center">
                                 <a href={linkSuffix} target="_blank" rel="noopener noreferrer" className="w-40 h-40 bg-white rounded-md flex items-center justify-center cursor-pointer" aria-label={`Open attendance link for ${att.name}`}>

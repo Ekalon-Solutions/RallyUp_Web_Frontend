@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/components/ui/use-toast';
 import { apiClient, VolunteerOpportunity, VolunteerProfile } from '@/lib/api';
-import config from '@/lib/config';
+import { activeSignups, findSignupByUserId } from '@/lib/volunteerSignup';
 
 import { DashboardLayout } from '@/components/dashboard-layout';
 import { useAuth } from '@/contexts/auth-context';
@@ -19,7 +19,6 @@ export default function VolunteerDashboard() {
   const [opportunities, setOpportunities] = React.useState<VolunteerOpportunity[]>([]);
 
   const [volunteerProfile, setVolunteerProfile] = React.useState<any>(null);
-  const [allVolunteerProfileIds, setAllVolunteerProfileIds] = React.useState<string[]>([]); // Track all volunteer profile IDs across all clubs
   const [isModalOpen, setIsModalOpen] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState('available');
   const [loading, setLoading] = React.useState(false);
@@ -67,38 +66,6 @@ export default function VolunteerDashboard() {
       }
       setOpportunities(clubOpportunities);
       setError(null);
-      
-      // Fetch volunteer profiles for all clubs to get all profile IDs
-      // // console.log('🔍 Fetching all volunteer profiles for current user...');
-      
-      // Use fetch directly with auth header
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${config.apiBaseUrl}/volunteer/my-volunteer-profiles`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      const myProfilesData = await response.json();
-      // // console.log('🔍 My volunteer profiles response:', {
-//         status: response.status,
-//         dataLength: myProfilesData?.length,
-//         data: myProfilesData
-//       });
-      
-      const allProfileIds: string[] = [];
-      
-      if (response.ok && Array.isArray(myProfilesData)) {
-        myProfilesData.forEach((profile: any) => {
-          if (profile._id) {
-            allProfileIds.push(profile._id);
-            // // console.log(`✅ Added profile ID: ${profile._id} for club: ${profile.club?.name || 'Unknown'}`);
-          }
-        });
-      }
-      
-      // // console.log('✅ Found volunteer profile IDs across all clubs:', allProfileIds);
-      setAllVolunteerProfileIds(allProfileIds);
       
     } catch (error) {
       // // console.error('Error fetching opportunities:', error);
@@ -152,12 +119,11 @@ export default function VolunteerDashboard() {
     const userClub = activeMembership?.club_id?.name || 'No active club membership';
     // // console.log('🏢 User club:', userClub);
     
-    // Check if already signed up for this time slot (only if we have a volunteer profile)
-    if (volunteerProfile) {
+    if (user) {
       const opportunity = opportunities.find(o => o._id === opportunityId);
       if (opportunity) {
         const timeSlot = opportunity.timeSlots.find(slot => slot._id === timeSlotId);
-        if (timeSlot && timeSlot.volunteersAssigned.includes(volunteerProfile._id)) {
+        if (timeSlot && findSignupByUserId(activeSignups(timeSlot.volunteersAssigned), String(user._id))) {
           toast({
             title: 'Already Signed Up',
             description: 'You are already signed up for this time slot',
@@ -207,14 +173,12 @@ export default function VolunteerDashboard() {
   };
 
   const handleWithdraw = async (opportunityId: string, timeSlotId: string) => {
-    // Optional frontend check: ensure at least one of user's profiles is in this slot (string-safe for API ObjectIds)
-    const isAssigned = allVolunteerProfileIds.some((profileId) => {
-      const opportunity = opportunities.find((o: any) => o._id === opportunityId);
-      const timeSlot = opportunity?.timeSlots?.find((s: any) => s._id === timeSlotId);
-      const assigned = timeSlot?.volunteersAssigned ?? [];
-      return assigned.some((id: any) => String(id) === String(profileId));
-    });
-    if (allVolunteerProfileIds.length > 0 && !isAssigned) {
+    if (!user) return;
+    const timeSlot = opportunities
+      .find((o: any) => o._id === opportunityId)
+      ?.timeSlots?.find((s: any) => s._id === timeSlotId);
+    const isAssigned = !!findSignupByUserId(activeSignups(timeSlot?.volunteersAssigned), String(user._id));
+    if (!isAssigned) {
       toast({
         title: 'Not Signed Up',
         description: 'You are not signed up for this time slot',
@@ -369,28 +333,11 @@ export default function VolunteerDashboard() {
     }
   );
 
+  const userIdStr = user?._id ? String(user._id) : null;
   const myOpportunities = opportunities.filter((opportunity: VolunteerOpportunity) => {
-    const hasAssignment = opportunity.timeSlots.some((slot: any) => {
-      // Check if ANY of the user's volunteer profiles is assigned to this time slot
-      const isAssigned = allVolunteerProfileIds.some(profileId => 
-        slot.volunteersAssigned.includes(profileId)
-      );
-      
-      if (isAssigned) {
-        // // console.log(`🔍 Checking slot ${slot._id}:`, {
-//           allVolunteerProfileIds,
-//           volunteersAssigned: slot.volunteersAssigned,
-//           isAssigned
-//         });
-      }
-      return isAssigned;
-    });
-    
-    if (hasAssignment) {
-      // // console.log(`✅ Opportunity "${opportunity.title}" is in myOpportunities`);
-    }
-    
-    return hasAssignment;
+    return userIdStr && opportunity.timeSlots.some((slot: any) =>
+      !!findSignupByUserId(activeSignups(slot.volunteersAssigned), userIdStr)
+    );
   });
 
   // Debug logging
@@ -399,7 +346,6 @@ export default function VolunteerDashboard() {
     //   total: opportunities.length,
     //   available: availableOpportunities.length,
     //   myOpportunities: myOpportunities.length,
-    //   allVolunteerProfileIds,
     //   volunteerProfile: volunteerProfile ? { id: volunteerProfile._id, name: volunteerProfile.user?.name } : null,
     //   opportunities: opportunities.map(o => ({
     //     id: o._id,
@@ -551,11 +497,7 @@ export default function VolunteerDashboard() {
                     opportunity={opportunity}
                     onSignUp={handleSignUp}
                     onWithdraw={handleWithdraw}
-                    currentVolunteerId={allVolunteerProfileIds.find(profileId =>
-                      opportunity.timeSlots.some((slot: any) =>
-                        (slot.volunteersAssigned ?? []).some((id: any) => String(id) === String(profileId))
-                      )
-                    )}
+                    currentVolunteerId={user?._id}
                     signingUp={signingUp}
                   />
                 ))}
@@ -578,11 +520,7 @@ export default function VolunteerDashboard() {
                     opportunity={opportunity}
                     onSignUp={handleSignUp}
                     onWithdraw={handleWithdraw}
-                    currentVolunteerId={allVolunteerProfileIds.find(profileId =>
-                      opportunity.timeSlots.some((slot: any) =>
-                        (slot.volunteersAssigned ?? []).some((id: any) => String(id) === String(profileId))
-                      )
-                    )}
+                    currentVolunteerId={user?._id}
                     signingUp={signingUp}
                   />
                 ))}

@@ -732,6 +732,27 @@ export interface Event {
   updatedAt: string;
 }
 
+export interface VolunteerSignupUser {
+  _id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phoneNumber: string;
+  countryCode: string;
+}
+
+export interface VolunteerSlotSignup {
+  // Populated by the backend where possible; falls back to a bare id string
+  // if the user lookup failed (e.g. deleted user).
+  user: VolunteerSignupUser | string;
+  status: 'pending' | 'accepted' | 'rejected';
+  source: 'self_signup' | 'admin_assigned';
+  respondedBy?: string;
+  respondedAt?: string;
+  notes?: string;
+  createdAt: string;
+}
+
 export interface VolunteerOpportunity {
   _id: string;
   title: string;
@@ -745,7 +766,7 @@ export interface VolunteerOpportunity {
     startTime: string;
     endTime: string;
     volunteersNeeded: number;
-    volunteersAssigned: string[];
+    volunteersAssigned: VolunteerSlotSignup[];
   }[];
   status: 'draft' | 'open' | 'filled' | 'completed' | 'cancelled';
   notes?: string;
@@ -2849,8 +2870,9 @@ class ApiClient {
     startTime: string;
     endTime: string;
     date: string;
-    volunteer: User;
-    status: string;
+    volunteer: Volunteer;
+    status: 'pending' | 'accepted' | 'rejected';
+    source: 'self_signup' | 'admin_assigned';
   }[]>> {
     return this.request(`/volunteer/opportunities/${opportunityId}/signups`);
   }
@@ -5851,6 +5873,14 @@ class ApiClient {
 
   async getLeagueTable(leagueId: string): Promise<ApiResponse<any>> {
     return this.get(`/sports/league-table`, { params: { leagueId } });
+  }
+
+  async getSportsLeagues(sport?: string): Promise<ApiResponse<{ idLeague: string; strLeague: string; strSport: string }[]>> {
+    return this.get(`/sports/leagues`, { params: sport ? { sport } : undefined });
+  }
+
+  async getSportsTeamsByLeague(leagueId: string): Promise<ApiResponse<{ idTeam: string; strTeam: string; strTeamBadge?: string }[]>> {
+    return this.get(`/sports/teams-by-league`, { params: { leagueId } });
   }
 
   async getClubAddress(clubId: string): Promise<ApiResponse<{ street?: string; city?: string; state?: string; country?: string; zipCode?: string }>> {

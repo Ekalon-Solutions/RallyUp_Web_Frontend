@@ -105,6 +105,11 @@ const EMPTY_REGISTRATION = {
   name: "",
   tshirtSize: "",
   tshirtColor: "",
+  favoriteLeagueId: "",
+  favoriteLeagueName: "",
+  favoriteTeamId: "",
+  favoriteTeamName: "",
+  favoriteTeamBadge: "",
 }
 
 // ponytail: name-based single-club check — swap for a clubId/feature-flag lookup if more clubs need this.
@@ -160,6 +165,11 @@ export function GuestRegistrationForm({
     phoneNumber: "",
   })
 
+  // favorite league/team (sourced from TheSportsDB, grouped by league)
+  const [leagues, setLeagues] = useState<{ idLeague: string; strLeague: string }[]>([])
+  const [teams, setTeams] = useState<{ idTeam: string; strTeam: string; strTeamBadge?: string }[]>([])
+  const [teamsLoading, setTeamsLoading] = useState(false)
+
   // referral state
   const [referralPhone, setReferralPhone] = useState("")
   const [referralStatus, setReferralStatus] = useState<ReferralStatus>("idle")
@@ -196,6 +206,12 @@ export function GuestRegistrationForm({
       setPendingOrder(null)
       setPendingRegistrationData(null)
       setPendingReferralPhone(undefined)
+      setTeams([])
+      apiClient.getSportsLeagues("Soccer").then((res) => {
+        if (res.success && res.data) setLeagues(res.data)
+      }).catch(() => {
+        // silent — favorite team fields just won't populate
+      })
       if (!initialPlan) {
         setPlan(undefined)
         setPlanLoading(true)
@@ -268,6 +284,18 @@ export function GuestRegistrationForm({
     return () => clearTimeout(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [referralPhone, club._id, registrationData.phoneNumber])
+
+  useEffect(() => {
+    if (!registrationData.favoriteLeagueId) {
+      setTeams([])
+      return
+    }
+    setTeamsLoading(true)
+    apiClient.getSportsTeamsByLeague(registrationData.favoriteLeagueId).then((res) => {
+      setTeams(res.success && res.data ? res.data : [])
+    }).catch(() => setTeams([])).finally(() => setTeamsLoading(false))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [registrationData.favoriteLeagueId])
 
   const getValidReferralPhone = (): string | undefined => {
     if (referralStatus !== "found") return undefined
@@ -878,6 +906,67 @@ export function GuestRegistrationForm({
                     }
                     className="h-12"
                   />
+                </div>
+
+                {/* Favorite League */}
+                <div className="space-y-2">
+                  <Label htmlFor="favoriteLeague">Favorite League</Label>
+                  <select
+                    id="favoriteLeague"
+                    value={registrationData.favoriteLeagueId}
+                    onChange={(e) => {
+                      const league = leagues.find((l) => l.idLeague === e.target.value)
+                      setRegistrationData({
+                        ...registrationData,
+                        favoriteLeagueId: e.target.value,
+                        favoriteLeagueName: league?.strLeague || "",
+                        favoriteTeamId: "",
+                        favoriteTeamName: "",
+                        favoriteTeamBadge: "",
+                      })
+                    }}
+                    className="w-full h-12 rounded-md border px-3"
+                  >
+                    <option value="">Select league (optional)</option>
+                    {leagues.map((l) => (
+                      <option key={l.idLeague} value={l.idLeague}>
+                        {l.strLeague}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Favorite Team (within the selected league) */}
+                <div className="space-y-2">
+                  <Label htmlFor="favoriteTeam">Favorite Team</Label>
+                  <select
+                    id="favoriteTeam"
+                    value={registrationData.favoriteTeamId}
+                    onChange={(e) => {
+                      const team = teams.find((t) => t.idTeam === e.target.value)
+                      setRegistrationData({
+                        ...registrationData,
+                        favoriteTeamId: e.target.value,
+                        favoriteTeamName: team?.strTeam || "",
+                        favoriteTeamBadge: team?.strTeamBadge || "",
+                      })
+                    }}
+                    disabled={!registrationData.favoriteLeagueId || teamsLoading}
+                    className="w-full h-12 rounded-md border px-3"
+                  >
+                    <option value="">
+                      {teamsLoading
+                        ? "Loading teams…"
+                        : registrationData.favoriteLeagueId
+                          ? "Select team (optional)"
+                          : "Select a league first"}
+                    </option>
+                    {teams.map((t) => (
+                      <option key={t.idTeam} value={t.idTeam}>
+                        {t.strTeam}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 {showTshirtFields && (

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { CalendarIcon, ClockIcon, UsersIcon, CheckCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { VolunteerOpportunity } from '@/lib/api';
+import { activeSignups, findSignupByUserId } from '@/lib/volunteerSignup';
 
 interface VolunteerOpportunityCardProps {
   opportunity: VolunteerOpportunity;
@@ -33,20 +34,19 @@ export function VolunteerOpportunityCard({
   currentVolunteerId,
   signingUp,
 }: VolunteerOpportunityCardProps) {
-  const totalVolunteersNeeded = opportunity.timeSlots.reduce(
+  const totalVolunteersNeeded = (opportunity.timeSlots ?? []).reduce(
     (sum, slot) => sum + slot.volunteersNeeded,
     0
   );
 
-  const totalVolunteersAssigned = opportunity.timeSlots.reduce(
-    (sum, slot) => sum + slot.volunteersAssigned.length,
+  const totalVolunteersAssigned = (opportunity.timeSlots ?? []).reduce(
+    (sum, slot) => sum + activeSignups(slot.volunteersAssigned).length,
     0
   );
 
   const isSignedUpForTimeSlot = (slot: any) => {
     if (!currentVolunteerId) return false;
-    const assigned = slot.volunteersAssigned ?? [];
-    return assigned.some((id: any) => String(id) === String(currentVolunteerId));
+    return !!findSignupByUserId(activeSignups(slot.volunteersAssigned), currentVolunteerId);
   };
 
   return (
@@ -70,7 +70,9 @@ export function VolunteerOpportunityCard({
           </div>
 
           <div className="space-y-2">
-            {opportunity.timeSlots.map((slot) => (
+            {(opportunity.timeSlots ?? []).map((slot) => {
+              const filledCount = activeSignups(slot.volunteersAssigned).length;
+              return (
               <div
                 key={slot._id}
                 className={`flex items-center justify-between rounded-lg border p-3 transition-colors ${
@@ -87,7 +89,7 @@ export function VolunteerOpportunityCard({
                   <div className="flex items-center space-x-1">
                     <UsersIcon className="h-4 w-4 text-muted-foreground" />
                     <span className="text-foreground">
-                      {slot.volunteersAssigned.length} / {slot.volunteersNeeded}
+                      {filledCount} / {slot.volunteersNeeded}
                     </span>
                     {isSignedUpForTimeSlot(slot) && (
                       <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400 ml-1" />
@@ -104,14 +106,14 @@ export function VolunteerOpportunityCard({
                       // console.log('Sign up button clicked for opportunity:', opportunity._id, 'timeSlot:', slot._id);
                       onSignUp(opportunity._id, slot._id);
                     }}
-                    disabled={slot.volunteersAssigned.length >= slot.volunteersNeeded || signingUp === `${opportunity._id}-${slot._id}`}
-                    className={`${slot.volunteersAssigned.length >= slot.volunteersNeeded ? 'opacity-50 cursor-not-allowed' : 'hover:bg-primary hover:text-primary-foreground'} transition-colors`}
+                    disabled={filledCount >= slot.volunteersNeeded || signingUp === `${opportunity._id}-${slot._id}`}
+                    className={`${filledCount >= slot.volunteersNeeded ? 'opacity-50 cursor-not-allowed' : 'hover:bg-primary hover:text-primary-foreground'} transition-colors`}
                   >
-                    {signingUp === `${opportunity._id}-${slot._id}` ? 'Signing Up...' : 
-                     slot.volunteersAssigned.length >= slot.volunteersNeeded ? 'Full' : 'Sign Up'}
+                    {signingUp === `${opportunity._id}-${slot._id}` ? 'Signing Up...' :
+                     filledCount >= slot.volunteersNeeded ? 'Full' : 'Sign Up'}
                   </Button>
                 )}
-                
+
                 {isSignedUpForTimeSlot(slot) && (
                   <div className="flex items-center gap-2">
                     <Badge variant="secondary" className="text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
@@ -135,14 +137,15 @@ export function VolunteerOpportunityCard({
                   </div>
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
 
-          {opportunity.requiredSkills.length > 0 && (
+          {opportunity.requiredSkills && opportunity.requiredSkills.length > 0 && (
             <div className="space-y-2">
               <h4 className="text-sm font-medium">Required Skills</h4>
               <div className="flex flex-wrap gap-2">
-                {opportunity.requiredSkills.map((skill) => (
+                {(opportunity.requiredSkills ?? []).map((skill) => (
                   <Badge key={skill} variant="secondary">
                     {skill}
                   </Badge>

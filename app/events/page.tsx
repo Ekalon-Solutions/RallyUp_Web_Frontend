@@ -21,9 +21,11 @@ import { EventScheduleMeta } from "@/components/events/event-schedule-meta"
 import { WaitlistDisplay } from "@/components/events/waitlist-display"
 import {
   formatEventPriceDisplay,
+  getBookingWindowClosedLabel,
   getEventCapacity,
   getEventVenueDisplay,
   hasVenueTierMatrix,
+  isBookingWindowOpen,
   isEventPaid,
 } from "@/lib/event-display-price"
 
@@ -322,7 +324,7 @@ export default function PublicEventsPage() {
                     const hasVenues = hasVenueTierMatrix(event)
                     const { count: capacityCount, max: capacityMax } = getCapacity(event)
                     const isEventFull = capacityMax !== null ? capacityCount >= capacityMax : false
-                    const canRegister = event.isActive && !isEventFull && !isRegistered
+                    const canRegister = event.isActive && !isEventFull && !isRegistered && isBookingWindowOpen(event)
 
                     return (
                       <Card key={event._id} className="overflow-hidden flex flex-col h-full">
@@ -461,7 +463,7 @@ export default function PublicEventsPage() {
                                 className="w-full"
                                 disabled
                               >
-                                {isEventFull ? "Event Full" : "Registration Closed"}
+                                {isEventFull ? "Event Full" : !isBookingWindowOpen(event) ? getBookingWindowClosedLabel(event) : "Registration Closed"}
                               </Button>
                             )}
                           </div>
