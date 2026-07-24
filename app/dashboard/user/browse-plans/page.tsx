@@ -719,6 +719,15 @@ export default function BrowseMembershipPlansPage() {
                   : `Complete payment for ${pendingPayment.planName}`
               }
               payButtonLabel="Pay & activate"
+              onRazorpayOrderCreated={async (razorpayOrderId) => {
+                const result = await apiClient.createPendingMembershipPurchase(
+                  pendingPayment.planId,
+                  razorpayOrderId,
+                  pendingPayment.referralPhone
+                )
+                if (!result.success) toast.error(result.error || "Unable to prepare membership purchase")
+                return result.success
+              }}
             />
           )}
         </div>

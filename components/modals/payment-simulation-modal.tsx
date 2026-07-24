@@ -45,6 +45,8 @@ interface PaymentSimulationModalProps {
   payButtonLabel?: string
   prefillPhone?: string
   prefillEmail?: string
+  /** Optional purchase-specific persistence step that must finish before checkout opens. */
+  onRazorpayOrderCreated?: (razorpayOrderId: string) => Promise<boolean>
 }
 
 export function PaymentSimulationModal({ 
@@ -70,6 +72,7 @@ export function PaymentSimulationModal({
   pointsDiscount,
   prefillPhone,
   prefillEmail,
+  onRazorpayOrderCreated,
 }: PaymentSimulationModalProps) {
   const { toast } = useToast()
   const [processing, setProcessing] = useState(false)
@@ -146,6 +149,11 @@ export function PaymentSimulationModal({
       }
 
       const { razorpayOrderId, amount, currency: orderCurrency } = await response.json()
+
+      if (onRazorpayOrderCreated) {
+        const saved = await onRazorpayOrderCreated(razorpayOrderId)
+        if (!saved) throw new Error('Failed to save pending purchase')
+      }
 
       // Persist Razorpay order id on the merchandise order before checkout (Mongo ObjectId orders only).
       const persist = await apiClient.patch(`/orders/admin/${orderId}/razorpay-order-id`, {

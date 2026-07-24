@@ -3837,6 +3837,22 @@ class ApiClient {
     });
   }
 
+  async createPendingMembershipPurchase(
+    planId: string,
+    razorpayOrderId: string,
+    referralPhone?: string,
+    merch?: { tshirtSize?: string; tshirtColor?: string }
+  ): Promise<ApiResponse<{ userMembership: any; status: 'pending' | 'active' }>> {
+    const body: any = { razorpayOrderId }
+    if (referralPhone) body.referralPhone = referralPhone
+    if (merch?.tshirtSize) body.tshirtSize = merch.tshirtSize
+    if (merch?.tshirtColor) body.tshirtColor = merch.tshirtColor
+    return this.request(`/membership-plans/${planId}/pending-purchase`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    })
+  }
+
   async getMemberElevationContext(clubId: string): Promise<ApiResponse<{
     club: { _id: string; name: string };
     isPrimaryOwner: boolean;

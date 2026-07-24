@@ -1021,6 +1021,16 @@ export function JoinMembershipModal({
           payButtonLabel="Pay & activate"
           prefillPhone={pendingPayment.prefillPhone}
           prefillEmail={pendingPayment.prefillEmail}
+          onRazorpayOrderCreated={pendingPayment.isRegistration ? undefined : async (razorpayOrderId) => {
+            const result = await apiClient.createPendingMembershipPurchase(
+              pendingPayment.planId,
+              razorpayOrderId,
+              pendingPayment.referralPhone,
+              { tshirtSize: registrationData.tshirtSize, tshirtColor: registrationData.tshirtColor }
+            )
+            if (!result.success) toast.error(result.error || "Unable to prepare membership purchase")
+            return result.success
+          }}
         />
       )}
     </>
