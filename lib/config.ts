@@ -103,36 +103,6 @@ export const API_ENDPOINTS = {
     update: '/volunteer/profile/update',
   },
   
-  onboarding: {
-    flows: '/onboarding/flows',
-    userFlows: '/onboarding/user-flows',
-    completeStep: '/onboarding/complete-step',
-    progress: '/onboarding/progress',
-    analytics: '/onboarding/analytics',
-  },
-  
-  onboardingProgress: {
-    myProgress: '/onboarding/progress/my-progress',
-    myProgressForFlow: (flowId: string) => `/onboarding/progress/my-progress/${flowId}`,
-    updateProgress: (flowId: string) => `/onboarding/progress/my-progress/${flowId}`,
-    resetProgress: (flowId: string) => `/onboarding/progress/my-progress/${flowId}/reset`,
-    allProgress: '/onboarding/progress/all-progress',
-    flowStats: (flowId: string) => `/onboarding/progress/flow/${flowId}/stats`,
-  },
-  
-  promotions: {
-    getAll: '/promotions',
-    active: '/promotions/active',
-    getById: (id: string) => `/promotions/${id}`,
-    club: '/promotions/club',
-    create: '/promotions',
-    update: (id: string) => `/promotions/${id}`,
-    delete: (id: string) => `/promotions/${id}`,
-    status: (id: string) => `/promotions/${id}/status`,
-    view: (id: string) => `/promotions/${id}/view`,
-    click: (id: string) => `/promotions/${id}/click`,
-    conversion: (id: string) => `/promotions/${id}/conversion`,
-  },
   
   events: {
     create: '/events/create',

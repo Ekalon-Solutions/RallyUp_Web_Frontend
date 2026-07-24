@@ -73,7 +73,7 @@ const FEATURE_GROUPS: {
     label: "Commerce & Growth",
     tier: "Pro",
     tierColor: "border-violet-300 text-violet-600 dark:border-violet-800 dark:text-violet-400",
-    keys: ["merchandise", "leaderboard", "coupons", "onboarding", "reporting"],
+    keys: ["merchandise", "leaderboard", "coupons", "reporting"],
   },
   {
     id: "enterprise",

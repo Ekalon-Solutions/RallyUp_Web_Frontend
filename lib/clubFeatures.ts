@@ -16,7 +16,6 @@ export const CLUB_FEATURE_KEYS = [
   'wa_marketing',
   'ads',
   'predictions',
-  'onboarding',
 ] as const;
 
 export type ClubFeatureKey = (typeof CLUB_FEATURE_KEYS)[number];
@@ -68,7 +67,6 @@ export const ADMIN_NAV_FEATURE_MAP: Record<string, ClubFeatureKey | null> = {
   '/dashboard/volunteer-management': 'volunteer',
   '/dashboard/membership-plans': 'membership',
   '/dashboard/membership-cards': 'membership',
-  '/dashboard/onboarding': 'onboarding',
   '/dashboard/help': null,
   '/dashboard/admin-settings': null,
 };
@@ -162,7 +160,6 @@ export const FEATURE_DESCRIPTIONS: Record<ClubFeatureKey, string> = {
   wa_marketing: 'Send targeted WhatsApp broadcast campaigns to your members.',
   ads: "Run in-app ad campaigns targeted to your club's audience.",
   predictions: 'Let members predict match scores and compete for points.',
-  onboarding: 'Guide new members through a branded onboarding experience.',
 };
 
 export const FEATURE_UNLOCK_TIER: Record<ClubFeatureKey, string> = {
@@ -180,7 +177,6 @@ export const FEATURE_UNLOCK_TIER: Record<ClubFeatureKey, string> = {
   leaderboard: 'Pro',
   coupons: 'Pro',
   reporting: 'Pro',
-  onboarding: 'Pro',
   wa_marketing: 'Enterprise',
   ads: 'Enterprise',
   predictions: 'Enterprise',
@@ -215,6 +211,4 @@ export const FEATURE_LABELS: Record<ClubFeatureKey, string> = {
   wa_marketing:       'WhatsApp Marketing',
   ads:                'Ad Engine',
   predictions:        'Guess the Score',
-  onboarding:         'Onboarding & Promotions',
 };
-

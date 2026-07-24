@@ -28,7 +28,6 @@ import {
   CreditCard,
   Building2,
   Heart,
-  GraduationCap,
   Vote,
   Music,
   ShoppingCart,
@@ -157,7 +156,6 @@ const adminNavigation = [
   { name: "Reporting & Analytics", href: "/dashboard/reports", icon: FileBarChart },
   { name: "Help", href: "/dashboard/help", icon: HelpCircle },
   { name: "Admin Settings", href: "/dashboard/admin-settings", icon: Settings },
-  { name: "Onboarding & Promotions", href: "/dashboard/onboarding", icon: GraduationCap },
 ]
 
 const systemOwnerNavigation = [
@@ -172,7 +170,6 @@ const systemOwnerNavigation = [
   { name: "WhatsApp Safety Log", href: "/dashboard/whatsapp-safety", icon: Shield },
   { name: "Logistics", href: "/dashboard/logistics", icon: Truck },
   // { name: "Browse Clubs", href: "/dashboard/user/clubs", icon: Building2 },
-  { name: "Onboarding & Promotions", href: "/dashboard/onboarding", icon: GraduationCap },
   { name: "Sports", href: "/dashboard/sports", icon: Trophy },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
   { name: "Help", href: "/dashboard/help", icon: HelpCircle },
@@ -200,7 +197,6 @@ const superAdminNavigation = [
   { name: "Membership Cards", href: "/dashboard/membership-cards", icon: CreditCard },
   { name: "Reporting & Analytics", href: "/dashboard/reports", icon: FileBarChart },
   { name: "Admin Settings", href: "/dashboard/admin-settings", icon: Settings },
-  { name: "Onboarding & Promotions", href: "/dashboard/onboarding", icon: GraduationCap },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ]
 

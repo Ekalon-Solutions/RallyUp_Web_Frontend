@@ -70,7 +70,6 @@ Volunteers  → Real-Time & API → Edge Cases & Security
 | - [ ] | Logout clears session and redirects to login | Dashboard | |
 | - [ ] | Accessing `/dashboard` unauthenticated redirects to login | `/dashboard` | middleware.ts |
 | - [ ] | System Owner login works | `/system-owner-login` | |
-| - [ ] | Club Onboarding flow completes end-to-end | `/dashboard/onboarding` | |
 | - [ ] | Notification preferences saved successfully | `/notifications/preferences` | |
 | - [ ] | User profile page loads and updates | `/dashboard/user/profile` | |
 | - [ ] | User settings page saves correctly | `/dashboard/user-settings` | |

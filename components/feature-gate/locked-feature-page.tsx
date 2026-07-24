@@ -30,7 +30,6 @@ const FEATURE_ICONS: Partial<Record<ClubFeatureKey, string>> = {
   wa_marketing: "💬",
   ads: "📣",
   predictions: "⚽",
-  onboarding: "🎓",
 }
 
 const TIER_COLORS: Record<string, string> = {

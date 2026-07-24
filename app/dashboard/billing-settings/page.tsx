@@ -43,7 +43,7 @@ const TIER_COLORS: Record<string, string> = {
 const FEATURE_KEYS = [
   "events", "merchandise", "news", "gallery", "polls", "chants",
   "external_ticketing", "volunteer", "leaderboard", "coupons", "refunds",
-  "membership", "website", "reporting", "wa_marketing", "ads", "predictions", "onboarding",
+  "membership", "website", "reporting", "wa_marketing", "ads", "predictions",
 ] as const
 
 const FEATURE_LABELS: Record<string, string> = {
@@ -64,7 +64,6 @@ const FEATURE_LABELS: Record<string, string> = {
   wa_marketing:       "WhatsApp Marketing",
   ads:                "Ad Engine",
   predictions:        "Guess the Score",
-  onboarding:         "Onboarding & Promotions",
 }
 
 const ADDON_KEYS = [
@@ -90,7 +89,6 @@ const SERVICE_IDS: Record<string, string> = {
   wa_marketing:       "SVC-WAMARK-001",
   ads:                "SVC-ADS-001",
   predictions:        "SVC-PREDIC-001",
-  onboarding:         "SVC-ONBOARD-001",
 }
 
 // Hardcoded default values for the Reset button
