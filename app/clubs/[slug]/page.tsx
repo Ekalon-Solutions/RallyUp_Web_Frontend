@@ -1394,6 +1394,9 @@ export default function PublicClubPage() {
           if (club?._id) loadContent(club._id)
         }}
         onFailure={() => {}}
+        onCancellation={async () => {
+          if (club?._id) await loadContent(club._id)
+        }}
       />
       )}
 

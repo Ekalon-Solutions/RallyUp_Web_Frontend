@@ -1242,6 +1242,9 @@ function UserEventsPageInner() {
         onFailure={() => {
           toast.error("Payment failed. Please try again.");
         }}
+        onCancellation={async () => {
+          await fetchEvents();
+        }}
       />
       {refundCancelEventId && refundEstimate && (
         <RefundConfirmationModal

@@ -75,11 +75,12 @@ interface EventCheckoutModalProps {
   waitlistToken?: string | null
   onSuccess: () => void
   onFailure: () => void
+  onCancellation?: () => void | Promise<void>
   /** Skip the in-modal MemberValidationModal — use when the caller already confirmed non-member intent */
   skipMemberValidation?: boolean
 }
 
-export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCode, waitlistToken, onSuccess, onFailure, skipMemberValidation }: EventCheckoutModalProps) {
+export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCode, waitlistToken, onSuccess, onFailure, onCancellation, skipMemberValidation }: EventCheckoutModalProps) {
   const { user } = useAuth()
   const router = useRouter()
   const [loading, setLoading] = useState(false)
@@ -727,14 +728,20 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
             setRazorpayOpen(false)
             setLoading(false)
             try {
-              await apiClient.cancelPendingRegistration(
+              const cancellation = await apiClient.cancelPendingRegistration(
                 String(event._id),
                 razorpayOrderId,
                 pendingRegistrationId,
                 !user,
               )
+              if (!cancellation.success) {
+                throw new Error(cancellation.error || "Failed to cancel pending registration")
+              }
+              await onCancellation?.()
+              toast.error("Payment cancelled")
             } catch (cancelError) {
               console.error('[EventCheckoutModal] Failed to cancel pending registration:', cancelError)
+              toast.error("Payment was closed, but the pending registration could not be cancelled. Please refresh and try again.")
             }
             if (reservationToken) {
               try {
@@ -743,7 +750,6 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
                 // The reservation expiry remains a fallback if cleanup fails.
               }
             }
-            toast.error("Payment cancelled")
           }
         }
       }
