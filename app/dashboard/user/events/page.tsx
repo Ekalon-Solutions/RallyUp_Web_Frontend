@@ -1287,6 +1287,10 @@ function UserEventsPageInner() {
         onFailure={() => {
           setShowVenueTierCartModal(false);
         }}
+        onCancellation={async () => {
+          await fetchEvents();
+          await fetchUserRegistrations();
+        }}
       />
     </ProtectedRoute>
   );

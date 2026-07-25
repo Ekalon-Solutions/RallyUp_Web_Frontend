@@ -1354,6 +1354,9 @@ export default function UserDashboardPage() {
           onFailure={() => {
             setShowVenueTierCartModal(false)
           }}
+          onCancellation={async () => {
+            await fetchData()
+          }}
         />
         {refundCancelEventId && refundEstimate && (
           <RefundConfirmationModal

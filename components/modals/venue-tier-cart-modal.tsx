@@ -47,6 +47,7 @@ interface VenueTierCartModalProps {
   event: Event | null
   onSuccess: () => void
   onFailure: () => void
+  onCancellation?: () => void | Promise<void>
   onLogin?: (guest: GuestIdentity) => void
   onSignup?: (guest: GuestIdentity) => void
   waitlistToken?: string | null
@@ -96,7 +97,7 @@ const normalizeCountryCode = (code: string) => {
 
 type GuestStep = 'identify' | 'member-found' | 'guest-or-signup' | 'otp' | 'attendees'
 
-export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailure, onLogin, onSignup, waitlistToken }: VenueTierCartModalProps) {
+export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailure, onCancellation, onLogin, onSignup, waitlistToken }: VenueTierCartModalProps) {
   const { user, checkAuth, login } = useAuth()
   const router = useRouter()
 
@@ -158,6 +159,34 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
   const [reserving, setReserving] = useState(false)
   const [attributedClub, setAttributedClub] = useState("")
   const [showClubAlert, setShowClubAlert] = useState(false)
+
+  const handleCheckoutDismiss = async (
+    razorpayOrderId: string,
+    options?: { isPublic?: boolean; registrationId?: string }
+  ) => {
+    setRazorpayOpen(false)
+    setLoading(false)
+    if (!event) return
+
+    const cancellation = await apiClient.cancelPendingRegistration(
+      event._id,
+      razorpayOrderId,
+      options?.registrationId,
+      options?.isPublic ?? false,
+    )
+
+    if (!cancellation.success) {
+      console.error("[VenueTierCart] Failed to cancel pending registration:", cancellation.error)
+      toast.error("Payment was closed, but the pending ticket could not be cancelled. Please refresh and try again.")
+      return
+    }
+
+    if (reservationToken) {
+      await apiClient.cancelReservation(reservationToken).catch(() => {})
+    }
+    await onCancellation?.()
+    toast.error("Payment cancelled")
+  }
 
   const jointScreening = event?.jointScreening
   const isJointEvent = Boolean(jointScreening?.enabled && (jointScreening?.partnerClubNames?.length ?? 0) > 0)
@@ -1023,11 +1052,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         },
         theme: { color: "#3b82f6" },
         modal: {
-          ondismiss: () => {
-            setRazorpayOpen(false)
-            setLoading(false)
-            toast.error("Payment cancelled")
-          },
+          ondismiss: () => void handleCheckoutDismiss(razorpayOrderId),
         },
       }
 
@@ -1239,11 +1264,10 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         },
         theme: { color: "#3b82f6" },
         modal: {
-          ondismiss: () => {
-            setRazorpayOpen(false)
-            setLoading(false)
-            toast.error("Payment cancelled")
-          },
+          ondismiss: () => void handleCheckoutDismiss(razorpayOrderId, {
+            isPublic: true,
+            registrationId: pendingRes.data?.registrationId,
+          }),
         },
       }
 
@@ -1373,7 +1397,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
       if (!orderRes.ok) throw new Error("Failed to create payment order")
       const { razorpayOrderId, amount, currency: orderCurrency } = await orderRes.json()
 
-      await apiClient.createPendingPublicVenueTierBooking(event._id, {
+      const pendingRes = await apiClient.createPendingPublicVenueTierBooking(event._id, {
         guestEmail: guestEmail.trim(),
         guestName: bookingAttendees[0]?.name || 'Guest',
         items: apiItems,
@@ -1386,7 +1410,12 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         earlyBirdDiscountAmt: earlyBirdDiscountTotal || simpleEarlyBirdDiscountTotal || undefined,
         pointsDiscount: reservedDiscount || undefined,
         attributed_club: attributedClub || undefined,
-      }).catch((err) => console.warn("[VenueTierCart] Guest pending booking failed:", err))
+      })
+      if (!pendingRes.success) {
+        toast.error(pendingRes.error || "Unable to start checkout for this event.")
+        setLoading(false)
+        return
+      }
 
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
@@ -1451,11 +1480,10 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         },
         theme: { color: "#3b82f6" },
         modal: {
-          ondismiss: () => {
-            setRazorpayOpen(false)
-            setLoading(false)
-            toast.error("Payment cancelled")
-          },
+          ondismiss: () => void handleCheckoutDismiss(razorpayOrderId, {
+            isPublic: true,
+            registrationId: pendingRes.data?.registrationId,
+          }),
         },
       }
 
@@ -1649,11 +1677,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         },
         theme: { color: "#3b82f6" },
         modal: {
-          ondismiss: () => {
-            setRazorpayOpen(false)
-            setLoading(false)
-            toast.error("Payment cancelled")
-          },
+          ondismiss: () => void handleCheckoutDismiss(razorpayOrderId),
         },
       }
 
