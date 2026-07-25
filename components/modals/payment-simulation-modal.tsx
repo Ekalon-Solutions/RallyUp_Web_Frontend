@@ -230,9 +230,24 @@ export function PaymentSimulationModal({
           color: '#3b82f6',
         },
         modal: {
-          ondismiss: function() {
+          ondismiss: async function() {
             setRazorpayOpen(false)
             setProcessing(false)
+            const cancellationError = Object.assign(
+              new Error("Payment cancelled by user"),
+              { code: "PAYMENT_CANCELLED" }
+            )
+            try {
+              await onPaymentFailure(
+                orderId,
+                "",
+                razorpayOrderId,
+                "",
+                cancellationError
+              )
+            } catch (error) {
+              console.error("[Razorpay] Failed to persist payment cancellation:", error)
+            }
             toast({
               title: "Payment Cancelled",
               description: "You cancelled the payment process.",

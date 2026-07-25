@@ -2479,7 +2479,7 @@ class ApiClient {
     earlyBirdDiscountAmt?: number;
     pointsDiscount?: number;
     attributed_club?: string;
-  }): Promise<ApiResponse<{ pendingRegistrationId?: string }>> {
+  }): Promise<ApiResponse<{ registrationId?: string }>> {
     return this.request(`/events/${eventId}/register/pending`, {
       method: 'POST',
       body: JSON.stringify(data),
@@ -2499,10 +2499,25 @@ class ApiClient {
     earlyBirdDiscountAmt?: number;
     pointsDiscount?: number;
     attributed_club?: string;
-  }): Promise<ApiResponse<{ pendingRegistrationId?: string }>> {
+  }): Promise<ApiResponse<{ registrationId?: string }>> {
     return this.request(`/events/public/${eventId}/register/pending`, {
       method: 'POST',
       body: JSON.stringify(data),
+    });
+  }
+
+  async cancelPendingRegistration(
+    eventId: string,
+    razorpayOrderId: string,
+    registrationId?: string,
+    isPublic = false,
+  ): Promise<ApiResponse<{ status: 'cancelled' | 'already_finalized' }>> {
+    const path = isPublic
+      ? `/events/public/${eventId}/register/pending/cancel`
+      : `/events/${eventId}/register/pending/cancel`;
+    return this.request(path, {
+      method: 'POST',
+      body: JSON.stringify({ razorpayOrderId, registrationId }),
     });
   }
 

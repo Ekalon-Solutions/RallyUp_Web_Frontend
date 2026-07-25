@@ -591,6 +591,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
         setLoading(false)
         return
       }
+      const pendingRegistrationId = pendingResponse.data?.registrationId
 
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
@@ -722,9 +723,26 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
           color: '#3b82f6',
         },
         modal: {
-          ondismiss: function() {
+          ondismiss: async function() {
             setRazorpayOpen(false)
             setLoading(false)
+            try {
+              await apiClient.cancelPendingRegistration(
+                String(event._id),
+                razorpayOrderId,
+                pendingRegistrationId,
+                !user,
+              )
+            } catch (cancelError) {
+              console.error('[EventCheckoutModal] Failed to cancel pending registration:', cancelError)
+            }
+            if (reservationToken) {
+              try {
+                await apiClient.cancelReservation(reservationToken)
+              } catch {
+                // The reservation expiry remains a fallback if cleanup fails.
+              }
+            }
             toast.error("Payment cancelled")
           }
         }
