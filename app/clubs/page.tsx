@@ -424,6 +424,12 @@ function ClubsPageContent() {
           return
         }
 
+        const registerResponse = await fetch(getApiUrl(API_ENDPOINTS.users.register), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...registrationData }) })
+        const registerData = await registerResponse.json()
+        if (!registerResponse.ok || !registerData.token) { toast.error(registerData.message || 'Registration failed'); return }
+        localStorage.setItem('token', registerData.token)
+        localStorage.setItem('userType', 'member')
+
         const orderNumber = `ORD-${Math.floor(Math.random() * 900000) + 100000}`
         const orderId = `club-${Date.now()}`
         const total = selectedPlan.price
@@ -579,25 +585,6 @@ function ClubsPageContent() {
     }
     setIsRegistering(true)
     try {
-      const registerResponse = await fetch(getApiUrl(API_ENDPOINTS.users.register), {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...pendingRegistrationData,
-        }),
-      })
-      const registerData = await registerResponse.json()
-
-      if (!registerResponse.ok || !registerData.token) {
-        toast.error(registerData.message || "Payment succeeded, but account creation failed. Please contact support.")
-        return
-      }
-
-      localStorage.setItem('token', registerData.token)
-      localStorage.setItem('userType', 'member')
-
       const subscribeRes = await apiClient.subscribeMembershipPlan(
         selectedPlan._id,
         {
@@ -1710,6 +1697,16 @@ function ClubsPageContent() {
             dialogTitle="Pay Now — Complete Your Membership"
             dialogDescription="You're registered. Complete payment to activate your membership."
             payButtonLabel={`Pay ${formatPrice(amountToCharge, pendingOrder.currency)} Now`}
+            onRazorpayOrderCreated={async (razorpayOrderId) => {
+              const result = await apiClient.createPendingMembershipPurchase(
+                pendingPayment.planId,
+                razorpayOrderId,
+                pendingReferralPhone,
+                { tshirtSize: pendingRegistrationData?.tshirtSize, tshirtColor: pendingRegistrationData?.tshirtColor }
+              )
+              if (!result.success) toast.error(result.error || 'Unable to prepare membership purchase')
+              return result.success
+            }}
           />
         )
       })()}
