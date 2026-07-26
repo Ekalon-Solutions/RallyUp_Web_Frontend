@@ -104,6 +104,10 @@ interface MembershipPlan {
 
 type ReferralStatus = "idle" | "checking" | "found" | "not-found" | "not-member" | "self"
 
+const TSHIRT_FIELD_CLUB_NAME_MATCH = "arsenal hyderabad"
+const TSHIRT_SIZE_OPTIONS = ["XS", "S", "M", "L", "XL", "XXL", "3XL"]
+const TSHIRT_COLOR_OPTIONS = ["Red", "White"]
+
 const EMPTY_REGISTRATION = {
   username: "",
   first_name: "",
@@ -122,7 +126,9 @@ const EMPTY_REGISTRATION = {
   level_name: "",
   id_proof_type: "Aadhar",
   id_proof_number: "",
-  name: ""
+  name: "",
+  tshirtSize: "",
+  tshirtColor: ""
 }
 
 function ClubsPageContent() {
@@ -156,6 +162,7 @@ function ClubsPageContent() {
   const [userMemberships, setUserMemberships] = useState<Record<string, string>>({})
   const router = useRouter()
   const searchParams = useSearchParams()
+  const showTshirtFields = (selectedClub?.name ?? "").toLowerCase().includes(TSHIRT_FIELD_CLUB_NAME_MATCH)
 
   useEffect(() => {
     const initialSearch = searchParams?.get?.('search') || ''
@@ -1365,7 +1372,7 @@ function ClubsPageContent() {
                   <span className="block font-medium">Step 1: Fill your details</span>
                   <span className="block text-muted-foreground">We collect your registration details.</span>
                   <span className="block font-medium mt-2">Step 2: Pay</span>
-                  <span className="block text-muted-foreground">After Razorpay success, we create your account and activate the {selectedPlan?.name} membership.</span>
+                  <span className="block text-muted-foreground">We create your account and prepare your pending membership before opening Razorpay.</span>
                 </>
               ) : (
                 <>
@@ -1448,6 +1455,25 @@ function ClubsPageContent() {
                     className="h-12"
                   />
                 </div>
+
+                {showTshirtFields && (
+                  <>
+                    <div className="space-y-2">
+                      <Label htmlFor="tshirtSize">Choose T-Shirt Size</Label>
+                      <select id="tshirtSize" value={registrationData.tshirtSize} onChange={(e) => setRegistrationData({ ...registrationData, tshirtSize: e.target.value })} required className="w-full h-12 rounded-md border px-3">
+                        <option value="">Select size</option>
+                        {TSHIRT_SIZE_OPTIONS.map((size) => <option key={size} value={size}>{size}</option>)}
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="tshirtColor">Choose T-Shirt Colour</Label>
+                      <select id="tshirtColor" value={registrationData.tshirtColor} onChange={(e) => setRegistrationData({ ...registrationData, tshirtColor: e.target.value })} required className="w-full h-12 rounded-md border px-3">
+                        <option value="">Select colour</option>
+                        {TSHIRT_COLOR_OPTIONS.map((color) => <option key={color} value={color}>{color}</option>)}
+                      </select>
+                    </div>
+                  </>
+                )}
 
                 <div className="sm:col-span-2 grid grid-cols-[7rem_1fr] gap-3">
                   <div className="space-y-2">
@@ -1699,7 +1725,7 @@ function ClubsPageContent() {
             payButtonLabel={`Pay ${formatPrice(amountToCharge, pendingOrder.currency)} Now`}
             onRazorpayOrderCreated={async (razorpayOrderId) => {
               const result = await apiClient.createPendingMembershipPurchase(
-                pendingPayment.planId,
+                selectedPlan?._id || "",
                 razorpayOrderId,
                 pendingReferralPhone,
                 { tshirtSize: pendingRegistrationData?.tshirtSize, tshirtColor: pendingRegistrationData?.tshirtColor }
