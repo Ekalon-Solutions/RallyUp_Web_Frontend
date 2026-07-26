@@ -625,7 +625,16 @@ function ClubsPageContent() {
     }
   }
 
-  const handlePaymentFailure = () => {
+  const handlePaymentFailure = async (
+    _orderId: string,
+    _paymentId: string,
+    razorpayOrderId: string,
+    _razorpaySignature: string,
+    _error?: any,
+  ) => {
+    if (selectedPlan && razorpayOrderId) {
+      await apiClient.cancelPendingMembershipPurchase(selectedPlan._id, razorpayOrderId).catch(() => undefined)
+    }
     toast.error('Payment failed or verification failed. Please try again or contact support.')
     setIsPaymentModalOpen(false)
     setPendingOrder(null)

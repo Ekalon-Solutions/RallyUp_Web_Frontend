@@ -558,7 +558,16 @@ export function GuestRegistrationForm({
     }
   }
 
-  const handlePaymentFailure = () => {
+  const handlePaymentFailure = async (
+    _orderId: string,
+    _paymentId: string,
+    razorpayOrderId: string,
+    _razorpaySignature: string,
+    _error?: any,
+  ) => {
+    if (razorpayOrderId) {
+      await apiClient.cancelPendingMembershipPurchase(planId, razorpayOrderId).catch(() => undefined)
+    }
     toast.error(
       "Payment failed or verification failed. Please try again or contact support."
     )

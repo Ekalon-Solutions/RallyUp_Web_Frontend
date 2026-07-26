@@ -618,7 +618,16 @@ export function JoinMembershipModal({
     }
   }
 
-  const handlePaymentFailure = () => {
+  const handlePaymentFailure = async (
+    _orderId: string,
+    _paymentId: string,
+    razorpayOrderId: string,
+    _razorpaySignature: string,
+    error?: any,
+  ) => {
+    if (razorpayOrderId && pendingPayment && !pendingPayment.isRegistration) {
+      await apiClient.cancelPendingMembershipPurchase(pendingPayment.planId, razorpayOrderId).catch(() => undefined)
+    }
     toast.error("Payment failed or was cancelled. Please try again.")
     setPendingPayment(null)
     setPendingRegistrationData(null)

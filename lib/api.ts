@@ -3868,6 +3868,13 @@ class ApiClient {
     })
   }
 
+  async cancelPendingMembershipPurchase(planId: string, razorpayOrderId: string): Promise<ApiResponse<{ cancelled: boolean }>> {
+    return this.request(`/membership-plans/${planId}/cancel-purchase`, {
+      method: 'POST',
+      body: JSON.stringify({ razorpayOrderId }),
+    });
+  }
+
   async getMemberElevationContext(clubId: string): Promise<ApiResponse<{
     club: { _id: string; name: string };
     isPrimaryOwner: boolean;

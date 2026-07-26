@@ -261,10 +261,13 @@ export default function BrowseMembershipPlansPage() {
   const handlePaymentFailure = (
     _orderId: string,
     _paymentId: string,
-    _razorpayOrderId: string,
+    razorpayOrderId: string,
     _razorpaySignature: string,
     _error?: any
   ) => {
+    if (pendingPayment && razorpayOrderId) {
+      void apiClient.cancelPendingMembershipPurchase(pendingPayment.planId, razorpayOrderId).catch(() => undefined)
+    }
     toast.error("Payment failed or was cancelled. Please try again.")
     setPendingPayment(null)
   }

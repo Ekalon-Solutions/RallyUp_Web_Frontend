@@ -267,7 +267,15 @@ export function PaymentSimulationModal({
           variant: "destructive",
         })
         setRazorpayOpen(false)
-        onPaymentFailure(orderId, response.razorpay_payment_id, response.razorpay_order_id, response.razorpay_signature, response.error)
+        // Razorpay may omit razorpay_order_id on failed payments. The local
+        // order id is authoritative and is needed to cancel the pending record.
+        onPaymentFailure(
+          orderId,
+          response.razorpay_payment_id,
+          response.razorpay_order_id || razorpayOrderId,
+          response.razorpay_signature,
+          response.error
+        )
         setProcessing(false)
       })
 
