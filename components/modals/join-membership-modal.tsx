@@ -466,8 +466,21 @@ export function JoinMembershipModal({
       }
 
       if (selectedPlan.price > 0) {
+        const registerResponse = await fetch(getApiUrl(API_ENDPOINTS.users.register), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...registrationData }),
+        })
+        const registerData = await registerResponse.json()
+        if (!registerResponse.ok || !registerData.token) {
+          toast.error(registerData.message || "Registration failed")
+          return
+        }
+        localStorage.setItem("token", registerData.token)
+        localStorage.setItem("userType", "member")
+
         startPayment({ plan: selectedPlan, baseAmount: selectedPlan.price, isRegistration: true, registrationSnapshot: registrationData })
-        toast.info("Complete payment to create your account and activate membership.")
+        toast.info("Account created. Complete payment to activate your membership.")
         return
       }
 
@@ -567,24 +580,9 @@ export function JoinMembershipModal({
     razorpaySignature: string
   ) => {
     if (!pendingPayment) return
-    const { planId, referralPhone: pendingReferral, isRegistration } = pendingPayment
+    const { planId, referralPhone: pendingReferral } = pendingPayment
     setIsProcessing(true)
     try {
-      if (isRegistration && pendingRegistrationData) {
-        const registerResponse = await fetch(getApiUrl(API_ENDPOINTS.users.register), {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...pendingRegistrationData }),
-        })
-        const registerData = await registerResponse.json()
-        if (!registerResponse.ok || !registerData.token) {
-          toast.error(registerData.message || "Payment succeeded, but account creation failed. Please contact support.")
-          return
-        }
-        localStorage.setItem("token", registerData.token)
-        localStorage.setItem("userType", "member")
-      }
-
       const response = await apiClient.subscribeMembershipPlan(
         planId,
         { razorpay_payment_id: paymentId, razorpay_order_id: razorpayOrderId, razorpay_signature: razorpaySignature },
@@ -625,7 +623,7 @@ export function JoinMembershipModal({
     _razorpaySignature: string,
     error?: any,
   ) => {
-    if (razorpayOrderId && pendingPayment && !pendingPayment.isRegistration) {
+    if (razorpayOrderId && pendingPayment) {
       await apiClient.cancelPendingMembershipPurchase(pendingPayment.planId, razorpayOrderId).catch(() => undefined)
     }
     toast.error("Payment failed or was cancelled. Please try again.")
@@ -1030,7 +1028,7 @@ export function JoinMembershipModal({
           payButtonLabel="Pay & activate"
           prefillPhone={pendingPayment.prefillPhone}
           prefillEmail={pendingPayment.prefillEmail}
-          onRazorpayOrderCreated={pendingPayment.isRegistration ? undefined : async (razorpayOrderId) => {
+          onRazorpayOrderCreated={async (razorpayOrderId) => {
             const result = await apiClient.createPendingMembershipPurchase(
               pendingPayment.planId,
               razorpayOrderId,
