@@ -90,6 +90,30 @@ export default function ExternalTicketingPage() {
     }
   }, [user, clubId])
 
+  const clubHasAvailableFixtures = async (clubIdToCheck: string) => {
+    try {
+      const resp = await apiClient.listAvailableExternalTicketFixtures(clubIdToCheck)
+      if (!resp.success || !resp.data) return false
+      const payload: any = resp.data
+      const arr = Array.isArray(payload) ? payload : (payload.data || payload)
+      if (!Array.isArray(arr)) return false
+      const now = new Date()
+      return arr.some((f: ExternalTicketFixture) =>
+        f.isVisibleForMembers === true &&
+        (!f.visibilityEndsAt || new Date(f.visibilityEndsAt) > now)
+      )
+    } catch {
+      return false
+    }
+  }
+
+  const filterMembershipsWithFixtures = async (membershipList: any[]) => {
+    const clubIds = Array.from(new Set(membershipList.map((m: any) => String(m?.club_id?._id || m?.club_id)).filter(Boolean)))
+    const availability = await Promise.all(clubIds.map((id) => clubHasAvailableFixtures(id)))
+    const availableClubIds = new Set(clubIds.filter((_, idx) => availability[idx]))
+    return membershipList.filter((m: any) => availableClubIds.has(String(m?.club_id?._id || m?.club_id)))
+  }
+
   const loadUserMemberships = async () => {
     const fallbackMemberships = Array.isArray((user as any)?.memberships) ? (user as any).memberships : []
     try {
@@ -110,7 +134,7 @@ export default function ExternalTicketingPage() {
         const filtered = clubId
           ? membershipData.filter((m: any) => String(m?.club_id?._id || m?.club_id) === String(clubId))
           : membershipData
-        setMemberships(filtered as any)
+        setMemberships(await filterMembershipsWithFixtures(filtered) as any)
         return
       }
 
@@ -118,7 +142,7 @@ export default function ExternalTicketingPage() {
         const filtered = clubId
           ? fallbackMemberships.filter((m: any) => String(m?.club_id?._id || m?.club_id) === String(clubId))
           : fallbackMemberships
-        setMemberships(filtered as UserMembership[])
+        setMemberships(await filterMembershipsWithFixtures(filtered) as UserMembership[])
         return
       }
 
