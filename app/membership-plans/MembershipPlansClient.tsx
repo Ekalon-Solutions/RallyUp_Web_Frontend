@@ -206,7 +206,7 @@ export default function MembershipPlansClient({ clubId }: { clubId: string }) {
                       })()}
                       <div className="text-center">
                         <div className="text-3xl font-black">
-                          {formatPrice(calculateTransactionFees(plan.price || 0).finalAmount, plan.currency || "INR")}
+                          {formatPrice(calculateTransactionFees(plan.price || 0, Number.isFinite(Number((plan as any)?.club?.platformFeePercent)) ? Number((plan as any).club.platformFeePercent) : undefined).finalAmount, plan.currency || "INR")}
                         </div>
                         <div className="text-xs text-muted-foreground">all-inclusive</div>
                         <div className="text-sm text-muted-foreground">{formatPlanPeriod(plan)}</div>
@@ -265,4 +265,3 @@ export default function MembershipPlansClient({ clubId }: { clubId: string }) {
     </div>
   )
 }
-

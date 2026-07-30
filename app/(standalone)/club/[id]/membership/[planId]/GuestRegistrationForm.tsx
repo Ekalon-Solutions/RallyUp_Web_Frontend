@@ -1192,7 +1192,7 @@ export function GuestRegistrationForm({
         (() => {
           const feeBreakdown =
             pendingOrder.total > 0
-              ? calculateTransactionFees(pendingOrder.total)
+              ? calculateTransactionFees(pendingOrder.total, Number.isFinite(Number((plan as any)?.club?.platformFeePercent)) ? Number((plan as any).club.platformFeePercent) : undefined)
               : null
           const amountToCharge = feeBreakdown
             ? feeBreakdown.finalAmount

@@ -516,11 +516,18 @@ export default function UserOrdersPage() {
     setCpReservedDiscount(0)
   }
 
-  // Compute derived totals for Continue Payment
-  // Fees are fixed on the original order subtotal (before coupon and redeem points)
+  // Recover the club rate from the server-stored fee for pending-order recalculation.
   const cpCouponDiscount = cpAppliedCoupon?.discount ?? 0
   const cpNetSubtotal = cpOrder ? Math.max(cpOrder.subtotal - cpCouponDiscount - cpReservedDiscount, 0) : 0
-  const cpFeeBreakdown = cpOrder && cpOrder.subtotal > 0 ? calculateTransactionFees(cpOrder.subtotal) : null
+  const cpOriginalFeeBase = cpOrder
+    ? Math.max(cpOrder.subtotal - (cpOrder.couponDiscount ?? 0) - (cpOrder.redeemedDiscount ?? cpOrder.pointsDiscount ?? 0), 0)
+    : 0
+  const cpPlatformFeePercent = cpOrder?.platformFee != null && cpOriginalFeeBase > 0
+    ? (cpOrder.platformFee / cpOriginalFeeBase) * 100
+    : undefined
+  const cpFeeBreakdown = cpNetSubtotal > 0
+    ? calculateTransactionFees(cpNetSubtotal, cpPlatformFeePercent)
+    : null
   const cpFinalAmount = cpOrder
     ? cpNetSubtotal + cpOrder.shippingCost + cpOrder.tax + (cpFeeBreakdown?.totalFees ?? 0)
     : 0
@@ -772,9 +779,7 @@ export default function UserOrdersPage() {
                             {formatCurrency(
                               order.paymentStatus === 'pending'
                                 ? (() => {
-                                    const net = Math.max(order.subtotal - (order.couponDiscount ?? 0) - (order.redeemedDiscount ?? order.pointsDiscount ?? 0), 0)
-                                    const fees = order.subtotal > 0 ? calculateTransactionFees(order.subtotal) : null
-                                    return net + (order.shippingCost ?? 0) + (order.tax ?? 0) + (fees?.totalFees ?? 0)
+                                    return order.finalAmount ?? order.total
                                   })()
                                 : (order.finalAmount ?? order.total),
                               order.currency
@@ -1033,9 +1038,7 @@ export default function UserOrdersPage() {
                         {formatCurrency(
                           selectedOrder.paymentStatus === 'pending'
                             ? (() => {
-                                const net = Math.max(selectedOrder.subtotal - (selectedOrder.couponDiscount ?? 0) - (selectedOrder.redeemedDiscount ?? selectedOrder.pointsDiscount ?? 0), 0)
-                                const fees = selectedOrder.subtotal > 0 ? calculateTransactionFees(selectedOrder.subtotal) : null
-                                return net + (selectedOrder.shippingCost ?? 0) + (selectedOrder.tax ?? 0) + (fees?.totalFees ?? 0)
+                                return selectedOrder.finalAmount ?? selectedOrder.total
                               })()
                             : (selectedOrder.finalAmount ?? selectedOrder.total),
                           selectedOrder.currency
@@ -1252,7 +1255,7 @@ export default function UserOrdersPage() {
                     {cpFeeBreakdown && cpFeeBreakdown.totalFees > 0 && (
                       <>
                         <div className="flex justify-between text-muted-foreground">
-                          <span>Platform fee ({PLATFORM_FEE_PERCENT}% + GST):</span>
+                          <span>Platform fee ({cpPlatformFeePercent ?? PLATFORM_FEE_PERCENT}% + GST):</span>
                           <span>{formatCurrency(cpFeeBreakdown.platformFee + cpFeeBreakdown.platformFeeGst, cpOrder.currency)}</span>
                         </div>
                         <div className="flex justify-between text-muted-foreground">
@@ -1311,6 +1314,7 @@ export default function UserOrdersPage() {
             currency={cpOrder?.currency ?? 'INR'}
             paymentMethod={cpOrder?.paymentMethod ?? 'all'}
             platformFeeTotal={cpFeeBreakdown ? cpFeeBreakdown.platformFee + cpFeeBreakdown.platformFeeGst : undefined}
+            platformFeePercent={cpPlatformFeePercent}
             razorpayFeeTotal={cpFeeBreakdown ? cpFeeBreakdown.razorpayFee + cpFeeBreakdown.razorpayFeeGst : undefined}
             couponDiscount={cpCouponDiscount > 0 ? cpCouponDiscount : undefined}
             couponCode={cpAppliedCoupon?.code}

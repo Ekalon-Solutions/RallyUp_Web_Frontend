@@ -967,7 +967,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          amount: Math.round(amountToCharge),
+          amount: amountToCharge,
           currency: event.currency ?? "INR",
           orderId: `EVT-${Date.now()}`,
           orderNumber: `EVT-${Date.now()}`,
@@ -980,7 +980,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         items: apiItems,
         attendees: bookingAttendees,
         razorpayOrderId,
-        amountPaid: Math.round(amountToCharge),
+        amountPaid: amountToCharge,
         reservationToken: reservationToken ?? undefined,
         couponCode: localCouponCode || undefined,
         couponDiscount: couponDiscount || undefined,
@@ -1019,7 +1019,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
               attendees: bookingAttendees,
               razorpayOrderId: orderId,
               paymentId,
-              amountPaid: Math.round(amountToCharge),
+              amountPaid: amountToCharge,
               reservationToken: reservationToken ?? undefined,
               couponCode: localCouponCode || undefined,
               couponDiscount: couponDiscount || undefined,
@@ -1164,7 +1164,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          amount: Math.round(amountToCharge),
+          amount: amountToCharge,
           currency: event.currency ?? "INR",
           orderId: `EVT-${Date.now()}`,
           orderNumber: `EVT-${Date.now()}`,
@@ -1180,7 +1180,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         attendees: bookingAttendees,
         couponCode: localCouponCode || undefined,
         razorpayOrderId,
-        amountPaid: Math.round(amountToCharge),
+        amountPaid: amountToCharge,
         reservationToken: reservationToken ?? undefined,
         couponDiscount: couponDiscount || undefined,
         earlyBirdDiscountAmt: simpleEarlyBirdDiscountTotal || undefined,
@@ -1222,7 +1222,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
               await apiClient.confirmReservation(reservationToken, orderId).catch(() => {})
             }
 
-            const amountCharged = Math.round(amountToCharge)
+            const amountCharged = amountToCharge
             const res = await apiClient.registerForPublicEvent(event._id, {
               registrantName: bookingAttendees[0]?.name || 'Guest',
               registrantPhone: bookingAttendees[0]?.phone || '',
@@ -1388,7 +1388,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          amount: Math.round(amountToCharge),
+          amount: amountToCharge,
           currency: event.currency ?? "INR",
           orderId: `EVT-MTX-${Date.now()}`,
           orderNumber: `EVT-MTX-${Date.now()}`,
@@ -1403,7 +1403,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         items: apiItems,
         attendees: bookingAttendees,
         razorpayOrderId,
-        amountPaid: Math.round(amountToCharge),
+        amountPaid: amountToCharge,
         reservationToken: reservationToken ?? undefined,
         couponCode: localCouponCode || undefined,
         couponDiscount: couponDiscount || undefined,
@@ -1448,7 +1448,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
               attendees: bookingAttendees,
               razorpayOrderId: orderId,
               paymentId,
-              amountPaid: Math.round(amountToCharge),
+              amountPaid: amountToCharge,
               reservationToken: reservationToken ?? undefined,
               couponCode: localCouponCode || undefined,
               couponDiscount: couponDiscount || undefined,
@@ -1595,7 +1595,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          amount: Math.round(amountToCharge),
+          amount: amountToCharge,
           currency: event.currency ?? "INR",
           orderId: `EVT-MTX-${Date.now()}`,
           orderNumber: `EVT-MTX-${Date.now()}`,
@@ -1608,7 +1608,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         items: apiItems,
         attendees: bookingAttendees,
         razorpayOrderId,
-        amountPaid: Math.round(amountToCharge),
+        amountPaid: amountToCharge,
         reservationToken: reservationToken ?? undefined,
         couponCode: localCouponCode || undefined,
         couponDiscount: couponDiscount || undefined,
@@ -1647,7 +1647,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
               attendees: bookingAttendees,
               razorpayOrderId: orderId,
               paymentId,
-              amountPaid: Math.round(amountToCharge),
+              amountPaid: amountToCharge,
               reservationToken: reservationToken ?? undefined,
               couponCode: localCouponCode || undefined,
               couponDiscount: couponDiscount || undefined,

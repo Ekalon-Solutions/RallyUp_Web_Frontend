@@ -530,7 +530,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          amount: Math.round(amountToCharge),
+          amount: amountToCharge,
           currency: event.currency || 'INR',
           orderId: `EVT-${Date.now()}`,
           orderNumber: `EVT-${Date.now()}`,
@@ -548,7 +548,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
             attendees,
             couponCode: localCouponCode || undefined,
             razorpayOrderId,
-            amountPaid: Math.round(amountToCharge),
+            amountPaid: amountToCharge,
             waitlistToken: waitlistToken || undefined,
             reservationToken: reservationToken || undefined,
             couponDiscount: couponDiscount || undefined,
@@ -563,7 +563,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
             attendees,
             couponCode: localCouponCode || undefined,
             razorpayOrderId,
-            amountPaid: Math.round(amountToCharge),
+            amountPaid: amountToCharge,
             reservationToken: reservationToken || undefined,
             couponDiscount: couponDiscount || undefined,
             earlyBirdDiscountAmt: earlyBirdDiscountTotal || undefined,
@@ -648,8 +648,8 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
               }
             }
 
-            // Round to match what Razorpay actually charged (create-order uses Math.round)
-            const amountCharged = Math.round(amountToCharge)
+            // Match the paise amount produced by the shared Razorpay order route.
+            const amountCharged = amountToCharge
             const registerResponse = user
               ? await apiClient.registerForEvent(
                   String(event._id),

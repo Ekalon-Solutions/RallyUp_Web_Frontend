@@ -158,6 +158,7 @@ export function JoinMembershipModal({
     total: number
     subtotal?: number
     platformFeeTotal?: number
+    platformFeePercent?: number
     razorpayFeeTotal?: number
     currency: string
     paymentMethod: string
@@ -348,7 +349,13 @@ export function JoinMembershipModal({
   const getPlanCharge = (plan: JoinablePlan) => {
     const currentPlanPrice = currentPlanDetails?.price ?? 0
     const isUpgradeEligible = mode === "upgrade" && Boolean(currentMembership) && !isMembershipExpired()
-    return computeMembershipPlanCharge({ planPrice: plan.price, currentPlanPrice, isUpgradeEligible })
+    const platformFeePercent = Number((plan as any)?.club?.platformFeePercent)
+    return computeMembershipPlanCharge({
+      planPrice: plan.price,
+      currentPlanPrice,
+      isUpgradeEligible,
+      platformFeePercent: Number.isFinite(platformFeePercent) ? platformFeePercent : undefined,
+    })
   }
 
   const getActionLabel = () => {
@@ -379,7 +386,11 @@ export function JoinMembershipModal({
     registrationSnapshot?: typeof registrationData
   }) => {
     const { plan, baseAmount, isUpgrade, isRegistration, registrationSnapshot } = opts
-    const feeBreakdown = calculateTransactionFees(baseAmount)
+    const platformFeePercent = Number((plan as any)?.club?.platformFeePercent)
+    const feeBreakdown = calculateTransactionFees(
+      baseAmount,
+      Number.isFinite(platformFeePercent) ? platformFeePercent : undefined,
+    )
     const orderId = isRegistration
       ? `club-${Date.now()}`
       : `membership-${plan._id}-${user?._id ?? "guest"}-${Date.now()}`
@@ -404,6 +415,7 @@ export function JoinMembershipModal({
       total: feeBreakdown.finalAmount,
       subtotal: feeBreakdown.baseAmount,
       platformFeeTotal: feeBreakdown.platformFee + feeBreakdown.platformFeeGst,
+      platformFeePercent: Number.isFinite(platformFeePercent) ? platformFeePercent : undefined,
       razorpayFeeTotal: feeBreakdown.razorpayFee + feeBreakdown.razorpayFeeGst,
       currency: plan.currency || "INR",
       paymentMethod: "all",
@@ -1014,6 +1026,7 @@ export function JoinMembershipModal({
           total={pendingPayment.total}
           subtotal={pendingPayment.subtotal}
           platformFeeTotal={pendingPayment.platformFeeTotal}
+          platformFeePercent={pendingPayment.platformFeePercent}
           razorpayFeeTotal={pendingPayment.razorpayFeeTotal}
           currency={pendingPayment.currency}
           paymentMethod={pendingPayment.paymentMethod}

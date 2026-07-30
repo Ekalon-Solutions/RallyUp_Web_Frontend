@@ -393,7 +393,12 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
   const displayTax = orderTax ?? (createdOrder ? (createdOrder.tax ?? (estimatedTax ?? taxAmount)) : (estimatedTax ?? taxAmount))
 
   const netSubtotal = Math.max(subtotalAfterCoupon - (reservedDiscount || 0), 0)
-  const feeBreakdown = totalPrice > 0 ? calculateTransactionFees(totalPrice) : null
+  // Merchandise items carry their populated club. Use that club's configured
+  // fee percentage instead of always falling back to the global default.
+  const platformFeePercent = Number((items[0]?.club as any)?.platformFeePercent)
+  const feeBreakdown = netSubtotal > 0
+    ? calculateTransactionFees(netSubtotal, Number.isFinite(platformFeePercent) ? platformFeePercent : undefined)
+    : null
   const finalAmount = netSubtotal + resolvedShippingCost + taxAmount + (feeBreakdown ? feeBreakdown.totalFees : 0)
 
   const handleValidateCoupon = async () => {
@@ -1419,7 +1424,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                     {feeBreakdown && feeBreakdown.totalFees > 0 && (
                       <>
                         <div className="flex justify-between text-sm text-muted-foreground">
-                          <span>Platform fee ({PLATFORM_FEE_PERCENT}% + GST):</span>
+                          <span>Platform fee ({Number.isFinite(platformFeePercent) ? platformFeePercent : PLATFORM_FEE_PERCENT}% + GST):</span>
                           <span>{formatCurrency(feeBreakdown.platformFee + feeBreakdown.platformFeeGst, currency)}</span>
                         </div>
                         <div className="flex justify-between text-sm text-muted-foreground">
@@ -1523,6 +1528,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
           currency={createdOrder.currency ?? currency}
           paymentMethod={createdOrder.paymentMethod || orderForm.paymentMethod || 'all'}
           platformFeeTotal={feeBreakdown ? feeBreakdown.platformFee + feeBreakdown.platformFeeGst : undefined}
+          platformFeePercent={Number.isFinite(platformFeePercent) ? platformFeePercent : PLATFORM_FEE_PERCENT}
           razorpayFeeTotal={feeBreakdown ? feeBreakdown.razorpayFee + feeBreakdown.razorpayFeeGst : undefined}
           couponDiscount={createdOrder.couponDiscount ?? (couponDiscount > 0 ? couponDiscount : undefined)}
           couponCode={createdOrder.couponCode ?? appliedCoupon?.code}

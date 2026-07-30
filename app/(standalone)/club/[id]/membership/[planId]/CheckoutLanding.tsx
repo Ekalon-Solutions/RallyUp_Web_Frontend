@@ -128,7 +128,7 @@ function PlanSummaryCard({ club, plan, planId, isUserCurrentPlan }: { club: Chec
           <div className="flex items-center justify-center gap-2">
             <CreditCard className="h-5 w-5 text-secondary" />
             <span className="text-3xl font-black text-secondary">
-              {formatPrice(calculateTransactionFees(plan.price).finalAmount, plan.currency)}
+              {formatPrice(calculateTransactionFees(plan.price, Number.isFinite(Number((plan as any).club?.platformFeePercent)) ? Number((plan as any).club.platformFeePercent) : undefined).finalAmount, plan.currency)}
             </span>
           </div>
           <p className="text-center text-xs text-slate-500 -mt-2">all-inclusive</p>

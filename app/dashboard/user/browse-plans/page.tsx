@@ -346,7 +346,13 @@ export default function BrowseMembershipPlansPage() {
   const getPlanCharge = (plan: MembershipPlan) => {
     const currentPlanPrice = currentMembership?.membership_level_id?.price ?? 0
     const isUpgradeEligible = Boolean(currentMembership && !isMembershipExpired())
-    return computeMembershipPlanCharge({ planPrice: plan.price, currentPlanPrice, isUpgradeEligible })
+    const platformFeePercent = Number((plan as any)?.club?.platformFeePercent)
+    return computeMembershipPlanCharge({
+      planPrice: plan.price,
+      currentPlanPrice,
+      isUpgradeEligible,
+      platformFeePercent: Number.isFinite(platformFeePercent) ? platformFeePercent : undefined,
+    })
   }
 
   const isCurrentPlan = (plan: MembershipPlan) => {

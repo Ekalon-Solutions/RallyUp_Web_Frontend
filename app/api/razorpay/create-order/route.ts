@@ -1,5 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+/** Convert major currency units to the smallest unit using round-half-to-even. */
+function bankRoundToSmallestUnit(amount: number): number {
+  const scaled = amount * 100
+  const lower = Math.floor(scaled)
+  const fraction = scaled - lower
+  const tolerance = Number.EPSILON * Math.max(1, Math.abs(scaled)) * 4
+
+  if (fraction < 0.5 - tolerance) return lower
+  if (fraction > 0.5 + tolerance) return lower + 1
+  return lower % 2 === 0 ? lower : lower + 1
+}
+
 const getRazorpay = async () => {
   const Razorpay = (await import('razorpay')).default
   return Razorpay
@@ -58,7 +70,7 @@ export async function POST(request: NextRequest) {
     const receipt = receiptRaw.length > 40 ? receiptRaw.slice(0, 40) : receiptRaw
 
     const options = {
-      amount: Math.round(amount * 100),
+      amount: bankRoundToSmallestUnit(amount),
       currency: currency.toUpperCase(),
       receipt,
       notes: {

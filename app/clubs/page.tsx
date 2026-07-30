@@ -69,6 +69,7 @@ interface Club {
     zipCode: string
   }
   status: 'active' | 'inactive' | 'suspended'
+  platformFeePercent?: number
   membershipPlans: MembershipPlan[]
   memberInfo?: {
     currentCount: number
@@ -837,7 +838,7 @@ function ClubsPageContent() {
                                 )}
                               </h5>
                               <span className="text-lg font-black text-primary">
-                                {formatPrice(calculateTransactionFees(plan.price).finalAmount, plan.currency)}
+                                {formatPrice(calculateTransactionFees(plan.price, club.platformFeePercent).finalAmount, plan.currency)}
                               </span>
                             </div>
                             {isJoined && getLastPurchaseDate(club._id) && (
@@ -1119,7 +1120,7 @@ function ClubsPageContent() {
                               </CardTitle>
                               <div className="text-right space-y-1">
                                 <div className="text-2xl font-bold text-primary">
-                                  {formatPrice(calculateTransactionFees(plan.price).finalAmount, plan.currency)}
+                                  {formatPrice(calculateTransactionFees(plan.price, selectedClub.platformFeePercent).finalAmount, plan.currency)}
                                 </div>
                                 <div className="text-xs text-muted-foreground/70">all-inclusive</div>
                                 <div className="text-sm text-muted-foreground">
@@ -1678,7 +1679,7 @@ function ClubsPageContent() {
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between gap-4">
                         <span className="text-muted-foreground">Price:</span>
-                        <span className="font-semibold text-primary">{formatPrice(calculateTransactionFees(selectedPlan.price).finalAmount, selectedPlan.currency)}</span>
+                        <span className="font-semibold text-primary">{formatPrice(calculateTransactionFees(selectedPlan.price, selectedClub?.platformFeePercent).finalAmount, selectedPlan.currency)}</span>
                       </div>
                       <div className="flex justify-between gap-4">
                         <span className="text-muted-foreground">Duration:</span>
@@ -1708,7 +1709,9 @@ function ClubsPageContent() {
       </Dialog>
 
       {pendingOrder && (() => {
-        const feeBreakdown = pendingOrder.total > 0 ? calculateTransactionFees(pendingOrder.total) : null
+        const feeBreakdown = pendingOrder.total > 0
+          ? calculateTransactionFees(pendingOrder.total, selectedClub?.platformFeePercent)
+          : null
         const amountToCharge = feeBreakdown ? feeBreakdown.finalAmount : pendingOrder.total
         return (
           <PaymentSimulationModal
@@ -1728,6 +1731,7 @@ function ClubsPageContent() {
             currency={pendingOrder.currency}
             paymentMethod={pendingOrder.paymentMethod}
             platformFeeTotal={feeBreakdown ? feeBreakdown.platformFee + feeBreakdown.platformFeeGst : undefined}
+            platformFeePercent={selectedClub?.platformFeePercent}
             razorpayFeeTotal={feeBreakdown ? feeBreakdown.razorpayFee + feeBreakdown.razorpayFeeGst : undefined}
             dialogTitle="Pay Now — Complete Your Membership"
             dialogDescription="You're registered. Complete payment to activate your membership."

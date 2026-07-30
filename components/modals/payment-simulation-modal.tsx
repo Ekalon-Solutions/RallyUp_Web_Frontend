@@ -36,6 +36,7 @@ interface PaymentSimulationModalProps {
   currency: string
   paymentMethod: string
   platformFeeTotal?: number
+  platformFeePercent?: number
   razorpayFeeTotal?: number
   couponDiscount?: number
   couponCode?: string
@@ -63,6 +64,7 @@ export function PaymentSimulationModal({
   currency,
   paymentMethod,
   platformFeeTotal,
+  platformFeePercent = PLATFORM_FEE_PERCENT,
   razorpayFeeTotal,
   couponDiscount,
   couponCode,
@@ -448,7 +450,7 @@ export function PaymentSimulationModal({
               })()}
               {platformFeeTotal !== undefined && platformFeeTotal > 0 && (
                 <div className="flex justify-between items-center text-sm text-muted-foreground">
-                  <span>Platform fee ({PLATFORM_FEE_PERCENT}% + GST):</span>
+                  <span>Platform fee ({platformFeePercent}% + GST):</span>
                   <span>{formatCurrency(platformFeeTotal, currency)}</span>
                 </div>
               )}

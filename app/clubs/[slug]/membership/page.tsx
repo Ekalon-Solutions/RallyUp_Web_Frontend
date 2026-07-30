@@ -151,6 +151,9 @@ export default function ClubMembershipPlansPage() {
       planPrice: plan.price,
       currentPlanPrice,
       isUpgradeEligible: hasActiveMembership,
+      platformFeePercent: Number.isFinite(Number((plan as any)?.club?.platformFeePercent))
+        ? Number((plan as any).club.platformFeePercent)
+        : undefined,
     })
 
   const handleSelectPlan = (plan: JoinablePlan) => {
