@@ -52,6 +52,7 @@ interface JoinMembershipModalProps {
   onOpenChange: (open: boolean) => void
   clubId: string
   clubName: string
+  platformFeePercent?: number
   plans: JoinablePlan[]
   primaryColor?: string
   returnPath?: string
@@ -134,6 +135,7 @@ export function JoinMembershipModal({
   onOpenChange,
   clubId,
   clubName,
+  platformFeePercent,
   plans,
   primaryColor = "#3b82f6",
   returnPath,
@@ -349,12 +351,12 @@ export function JoinMembershipModal({
   const getPlanCharge = (plan: JoinablePlan) => {
     const currentPlanPrice = currentPlanDetails?.price ?? 0
     const isUpgradeEligible = mode === "upgrade" && Boolean(currentMembership) && !isMembershipExpired()
-    const platformFeePercent = Number((plan as any)?.club?.platformFeePercent)
+    const resolvedPlatformFeePercent = Number(platformFeePercent)
     return computeMembershipPlanCharge({
       planPrice: plan.price,
       currentPlanPrice,
       isUpgradeEligible,
-      platformFeePercent: Number.isFinite(platformFeePercent) ? platformFeePercent : undefined,
+      platformFeePercent: Number.isFinite(resolvedPlatformFeePercent) ? resolvedPlatformFeePercent : undefined,
     })
   }
 
@@ -386,10 +388,10 @@ export function JoinMembershipModal({
     registrationSnapshot?: typeof registrationData
   }) => {
     const { plan, baseAmount, isUpgrade, isRegistration, registrationSnapshot } = opts
-    const platformFeePercent = Number((plan as any)?.club?.platformFeePercent)
+    const resolvedPlatformFeePercent = Number(platformFeePercent)
     const feeBreakdown = calculateTransactionFees(
       baseAmount,
-      Number.isFinite(platformFeePercent) ? platformFeePercent : undefined,
+      Number.isFinite(resolvedPlatformFeePercent) ? resolvedPlatformFeePercent : undefined,
     )
     const orderId = isRegistration
       ? `club-${Date.now()}`
@@ -415,7 +417,7 @@ export function JoinMembershipModal({
       total: feeBreakdown.finalAmount,
       subtotal: feeBreakdown.baseAmount,
       platformFeeTotal: feeBreakdown.platformFee + feeBreakdown.platformFeeGst,
-      platformFeePercent: Number.isFinite(platformFeePercent) ? platformFeePercent : undefined,
+      platformFeePercent: Number.isFinite(resolvedPlatformFeePercent) ? resolvedPlatformFeePercent : undefined,
       razorpayFeeTotal: feeBreakdown.razorpayFee + feeBreakdown.razorpayFeeGst,
       currency: plan.currency || "INR",
       paymentMethod: "all",

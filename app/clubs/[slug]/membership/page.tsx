@@ -19,6 +19,7 @@ interface Club {
   _id: string
   name: string
   logo?: string
+  platformFeePercent?: number
 }
 
 interface ClubSettings {
@@ -151,8 +152,8 @@ export default function ClubMembershipPlansPage() {
       planPrice: plan.price,
       currentPlanPrice,
       isUpgradeEligible: hasActiveMembership,
-      platformFeePercent: Number.isFinite(Number((plan as any)?.club?.platformFeePercent))
-        ? Number((plan as any).club.platformFeePercent)
+      platformFeePercent: Number.isFinite(Number(club?.platformFeePercent))
+        ? Number(club?.platformFeePercent)
         : undefined,
     })
 
@@ -303,6 +304,7 @@ export default function ClubMembershipPlansPage() {
           }}
           clubId={club._id}
           clubName={club.name}
+          platformFeePercent={club.platformFeePercent}
           plans={visiblePlans}
           primaryColor={primaryColor}
           returnPath={`/clubs/${slug}/membership`}

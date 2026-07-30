@@ -213,7 +213,7 @@ SEO-friendly public event page showing:
 2. Real-time allocation check (`tier.allocation - tier.sold`)
 3. Joint screening club selection (for partnered events)
 4. Apply coupon code → validated server-side
-5. Calculate platform fees (4.5%) + PG fees (2%) + GST (18%)
+5. Calculate the club-specific platform fee (5% fallback) + PG fees (2%) + GST (18%)
 6. Points redemption (loyalty points capped per transaction)
 7. Create Razorpay order → launch checkout SDK
 8. Pending registration created → payment verification → registration confirmed

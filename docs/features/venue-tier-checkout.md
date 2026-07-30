@@ -19,7 +19,7 @@ Events in RallyUp can support either single-pricing tier schemas or a multi-dime
   - `contexts/cart-context.tsx`: Provides the shopping cart state (`items`, `totalPrice`, custom operations) utilizing browser `localStorage` for persistence.
   - `components/modals/venue-tier-cart-modal.tsx`: Complex modal that lets users browse, select, and combine tickets across different venues & tiers, validating available seats and per-club allotments.
 - **Checkout, Discounts & Payment**:
-  - `lib/transactionFees.ts`: Computes platform fees ($4.5\%$), PG charges ($2\%$), and GST ($18\%$) on top of fees. Handles `"pass_to_buyer"` vs `"absorb"` models.
+  - `lib/transactionFees.ts`: Computes the club-specific platform fee (5% fallback), PG charges (2%), and GST (18%) on top of fees. Handles `"pass_to_buyer"` vs `"absorb"` models.
   - `lib/points-redemption.ts`: Validates loyalty points applied at checkout.
   - `components/modals/payment-simulation-modal.tsx` & `event-checkout-modal.tsx`: Orchestrates the order submission and securely fires off Razorpay's overlay checkout handler.
 
@@ -35,3 +35,4 @@ Events in RallyUp can support either single-pricing tier schemas or a multi-dime
 ## 4. Gotchas & Edge Cases
 - **Integer Rounding**: Razorpay accepts amounts in paise (multiply by 100). The frontend must use `Math.round()` to prevent float inaccuracies when validating transactions.
 - **Joint Screening Split**: Ensure each partner club has at least 1 seat assigned if per-club allocations are enabled, and make sure home/guest clubs do not duplicate.
+- **Public Event Hydration**: When the event detail page combines the public list and detail responses, preserve list-enriched club fields such as `platformFeePercent`; checkout uses that value for the platform fee.

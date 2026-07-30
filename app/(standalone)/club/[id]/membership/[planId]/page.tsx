@@ -27,6 +27,7 @@ interface Club {
   description?: string
   status?: string
   logo?: string
+  platformFeePercent?: number
   settings?: {
     membershipPlans?: string[]
   }

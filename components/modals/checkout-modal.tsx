@@ -1521,15 +1521,27 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
           onPaymentFailure={handlePaymentFailure}
           orderId={createdOrder._id}
           orderNumber={createdOrder.orderNumber}
-          total={finalAmount}
+          total={createdOrder.finalAmount ?? finalAmount}
           subtotal={totalPrice}
           shippingCost={createdOrder.shippingCost ?? resolvedShippingCost}
           tax={createdOrder.tax ?? taxAmount}
           currency={createdOrder.currency ?? currency}
           paymentMethod={createdOrder.paymentMethod || orderForm.paymentMethod || 'all'}
-          platformFeeTotal={feeBreakdown ? feeBreakdown.platformFee + feeBreakdown.platformFeeGst : undefined}
+          platformFeeTotal={
+            Number(createdOrder.platformFee ?? 0) + Number(createdOrder.platformFeeGst ?? 0) > 0
+              ? Number(createdOrder.platformFee ?? 0) + Number(createdOrder.platformFeeGst ?? 0)
+              : feeBreakdown
+                ? feeBreakdown.platformFee + feeBreakdown.platformFeeGst
+                : undefined
+          }
           platformFeePercent={Number.isFinite(platformFeePercent) ? platformFeePercent : PLATFORM_FEE_PERCENT}
-          razorpayFeeTotal={feeBreakdown ? feeBreakdown.razorpayFee + feeBreakdown.razorpayFeeGst : undefined}
+          razorpayFeeTotal={
+            Number(createdOrder.razorpayFee ?? 0) + Number(createdOrder.razorpayFeeGst ?? 0) > 0
+              ? Number(createdOrder.razorpayFee ?? 0) + Number(createdOrder.razorpayFeeGst ?? 0)
+              : feeBreakdown
+                ? feeBreakdown.razorpayFee + feeBreakdown.razorpayFeeGst
+                : undefined
+          }
           couponDiscount={createdOrder.couponDiscount ?? (couponDiscount > 0 ? couponDiscount : undefined)}
           couponCode={createdOrder.couponCode ?? appliedCoupon?.code}
           pointsDiscount={reservedDiscount > 0 ? reservedDiscount : undefined}

@@ -194,7 +194,12 @@ export default function EventDetailPage() {
           const found = eventsList.find((e) => slugify(e.title) === eventSlug)
           if (found?._id) {
             const fullRes = await apiClient.getPublicEventById(found._id)
-            const loaded = fullRes.success && fullRes.data ? fullRes.data : found
+            // The list response includes club-derived checkout fields such as
+            // platformFeePercent. Preserve them when hydrating with event detail
+            // data so public checkout always uses the club's configured fee.
+            const loaded = fullRes.success && fullRes.data
+              ? { ...found, ...fullRes.data }
+              : found
             setEvent(normalizeEventVenues(loaded))
           }
         }

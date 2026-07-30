@@ -149,6 +149,7 @@ interface Club {
   logo?: string
   status: string
   website?: string
+  platformFeePercent?: number
 }
 
 export default function PublicClubPage() {
@@ -189,7 +190,11 @@ export default function PublicClubPage() {
       featuredImage: item.featuredImage,
       stockQuantity: item.stockQuantity ?? 0,
       tags: item.tags,
-      club: item.club || { _id: club._id, name: club.name },
+      club: item.club || {
+        _id: club._id,
+        name: club.name,
+        platformFeePercent: club.platformFeePercent,
+      },
     }
     if (isLoggedIn && user?._id) {
       setMerchandiseCheckoutItems([checkoutItem])
@@ -1304,7 +1309,11 @@ export default function PublicClubPage() {
                 featuredImage: item.featuredImage,
                 stockQuantity: item.stockQuantity ?? 0,
                 tags: item.tags,
-                club: item.club || { _id: club._id, name: club.name },
+                club: item.club || {
+                  _id: club._id,
+                  name: club.name,
+                  platformFeePercent: club.platformFeePercent,
+                },
               }])
               setShowMerchandiseCheckoutModal(true)
               setMerchandiseForQuickBuy(null)
@@ -1337,7 +1346,11 @@ export default function PublicClubPage() {
                   featuredImage: item.featuredImage,
                   stockQuantity: item.stockQuantity,
                   tags: item.tags,
-                  club: item.club || { _id: club._id, name: club.name },
+                  club: item.club || {
+                    _id: club._id,
+                    name: club.name,
+                    platformFeePercent: club.platformFeePercent,
+                  },
                 },
                 returnPath: returnUrl,
               })
@@ -1370,7 +1383,11 @@ export default function PublicClubPage() {
                   featuredImage: item.featuredImage,
                   stockQuantity: item.stockQuantity,
                   tags: item.tags,
-                  club: item.club || { _id: club._id, name: club.name },
+                  club: item.club || {
+                    _id: club._id,
+                    name: club.name,
+                    platformFeePercent: club.platformFeePercent,
+                  },
                 },
                 returnPath: registerNextUrl,
               })

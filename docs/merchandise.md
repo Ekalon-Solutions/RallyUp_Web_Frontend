@@ -30,7 +30,8 @@ Welcome to the **RallyUp** Merchandise documentation. This guide outlines the co
   * Any necessary order notes can be added.
   * Users can apply promotional coupon codes.
 * **Cost Calculation:**
-  * The system calculates the final total, including subtotal, taxes, shipping costs, and discounts.
+  * The system calculates the final total, including subtotal, taxes, shipping costs, discounts, the club-specific platform fee, payment-gateway fee, and GST on fees.
+  * Public merchandise responses include the club's `platformFeePercent`; after order creation, Razorpay uses the backend-calculated order total as the source of truth.
 * **Payment:**
   * Users pay securely via the **Razorpay** integration.
 * **Order Confirmation:**
