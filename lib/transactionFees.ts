@@ -6,6 +6,18 @@ function roundMoney(value: number): number {
   return Math.round(value * 100) / 100
 }
 
+function calculateFeeWithGst(baseAmount: number, feePercent: number) {
+  const rawFee = (baseAmount * feePercent) / 100
+  const totalWithGst = roundMoney(rawFee * (1 + GST_PERCENT / 100))
+  const fee = roundMoney(rawFee)
+
+  return {
+    fee,
+    gst: roundMoney(totalWithGst - fee),
+    totalWithGst,
+  }
+}
+
 export interface TransactionFeesBreakdown {
   baseAmount: number
   platformFee: number
@@ -89,13 +101,18 @@ export function calculateTransactionFees(
   const base = Math.max(0, baseAmount)
   const feePercent = platformFeePercent ?? PLATFORM_FEE_PERCENT
 
-  const platformFee = roundMoney((base * feePercent) / 100)
-  const platformFeeGst = roundMoney((platformFee * GST_PERCENT) / 100)
+  // Keep full precision through the GST calculation, then round each
+  // GST-inclusive fee once. Rounding the fee before calculating GST can
+  // overcharge small transactions (for example ₹1 at 5.5% becomes ₹0.07
+  // instead of ₹0.06).
+  const platform = calculateFeeWithGst(base, feePercent)
+  const razorpay = calculateFeeWithGst(base, RAZORPAY_FEE_PERCENT)
+  const platformFee = platform.fee
+  const platformFeeGst = platform.gst
+  const razorpayFee = razorpay.fee
+  const razorpayFeeGst = razorpay.gst
 
-  const razorpayFee = roundMoney((base * RAZORPAY_FEE_PERCENT) / 100)
-  const razorpayFeeGst = roundMoney((razorpayFee * GST_PERCENT) / 100)
-
-  const totalFees = roundMoney(platformFee + platformFeeGst + razorpayFee + razorpayFeeGst)
+  const totalFees = roundMoney(platform.totalWithGst + razorpay.totalWithGst)
   const finalAmount = roundMoney(base + totalFees)
 
   return {

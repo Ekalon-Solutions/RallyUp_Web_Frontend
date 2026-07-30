@@ -33,6 +33,7 @@ Events in RallyUp can support either single-pricing tier schemas or a multi-dime
 5. **Razorpay Gate**: Submits a `POST /api/razorpay/create-order`, launches Razorpay client window, and confirms the signature on `/verify-payment` before routing to `/purchase/success`.
 
 ## 4. Gotchas & Edge Cases
-- **Integer Rounding**: Razorpay accepts amounts in paise (multiply by 100). The frontend must use `Math.round()` to prevent float inaccuracies when validating transactions.
+- **Fee Rounding**: Calculate each fee and its GST at full precision, then round the GST-inclusive fee once. Rounding the fee before calculating GST can overcharge low-value transactions by ₹0.01.
+- **Integer Rounding**: Razorpay accepts amounts in paise (multiply by 100). The frontend must round to the smallest currency unit to prevent float inaccuracies when validating transactions.
 - **Joint Screening Split**: Ensure each partner club has at least 1 seat assigned if per-club allocations are enabled, and make sure home/guest clubs do not duplicate.
 - **Public Event Hydration**: When the event detail page combines the public list and detail responses, preserve list-enriched club fields such as `platformFeePercent`; checkout uses that value for the platform fee.
