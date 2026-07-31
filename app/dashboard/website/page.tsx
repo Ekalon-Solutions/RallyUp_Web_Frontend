@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/contexts/auth-context"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
+import { invalidateClubSettings } from "@/hooks/useClubSettings"
 import { apiClient } from "@/lib/api"
 import {
   WEBSITE_SECTION_OPTIONS,
@@ -203,6 +204,7 @@ export default function WebsitePage() {
 
       if (websiteResponse.success && designResponse.success) {
         toast.success("Website settings saved successfully")
+        invalidateClubSettings(clubId)
         loadSettings()
       } else {
         toast.error("Failed to save some settings")
@@ -231,6 +233,7 @@ export default function WebsitePage() {
 
       if (response.success) {
         setWebsiteSettings(prev => ({ ...prev, published: true }))
+        invalidateClubSettings(clubId)
         toast.success("Website published successfully!")
       } else {
         toast.error(response.message || "Failed to publish website")

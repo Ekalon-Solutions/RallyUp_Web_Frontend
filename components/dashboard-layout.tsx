@@ -686,7 +686,10 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
 
   const { isSectionVisible, settings, loading: settingsLoading } = useClubSettings(clubId)
   
-  useDesignSettings(clubId)
+  // Apply the same settings snapshot used by the sidebar. Keeping a second
+  // useClubSettings instance here caused duplicate requests and stale theme
+  // state after the persistent dashboard layout stopped remounting.
+  useDesignSettings(clubId, settings)
   const isRegularUser = !user?.role || user.role === "member"
   useEffect(() => {
     if (!isRegularUser || !clubId || settingsLoading || !pathname) return

@@ -16,6 +16,7 @@ import { Save, Palette, Image as ImageIcon } from "lucide-react"
 import { toast } from "sonner"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { apiClient } from "@/lib/api"
+import { invalidateClubSettings } from "@/hooks/useClubSettings"
 
 const FONT_OPTIONS = [
   "Oswald",
@@ -164,6 +165,7 @@ export function DesignSettingsTab() {
       
       if (response.success) {
         toast.success("Design settings saved successfully!")
+        invalidateClubSettings(clubId)
         await loadSettings()
       } else {
         toast.error(response.message || "Failed to save design settings")

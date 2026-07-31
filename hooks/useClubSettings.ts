@@ -5,6 +5,21 @@ import { apiClient } from "@/lib/api"
 import { DEFAULT_WEBSITE_SECTIONS, sanitizeWebsiteSections } from "@/lib/websiteSections"
 import type { WebsiteSectionKey } from "@/lib/websiteSections"
 
+const CLUB_SETTINGS_INVALIDATED_EVENT = "club-settings:invalidated"
+
+export function invalidateClubSettings(clubId: string) {
+  if (typeof window === "undefined") return
+
+  try {
+    window.sessionStorage.removeItem(`clubSettings:${clubId}`)
+  } catch {
+  }
+
+  window.dispatchEvent(new CustomEvent(CLUB_SETTINGS_INVALIDATED_EVENT, {
+    detail: { clubId },
+  }))
+}
+
 interface ClubSettings {
   websiteSetup?: {
     sections?: Record<string, any>
@@ -24,6 +39,19 @@ interface ClubSettings {
 export function useClubSettings(clubId?: string) {
   const [settings, setSettings] = useState<ClubSettings | null>(null)
   const [loading, setLoading] = useState(true)
+  const [cacheVersion, setCacheVersion] = useState(0)
+
+  useEffect(() => {
+    const handleInvalidation = (event: Event) => {
+      const invalidatedClubId = (event as CustomEvent<{ clubId?: string }>).detail?.clubId
+      if (invalidatedClubId && String(invalidatedClubId) === String(clubId)) {
+        setCacheVersion((version) => version + 1)
+      }
+    }
+
+    window.addEventListener(CLUB_SETTINGS_INVALIDATED_EVENT, handleInvalidation)
+    return () => window.removeEventListener(CLUB_SETTINGS_INVALIDATED_EVENT, handleInvalidation)
+  }, [clubId])
 
   useEffect(() => {
     if (!clubId) {
@@ -100,7 +128,7 @@ export function useClubSettings(clubId?: string) {
     return () => {
       cancelled = true
     }
-  }, [clubId])
+  }, [clubId, cacheVersion])
 
   const isSectionVisible = (section: WebsiteSectionKey) => {
     const value =

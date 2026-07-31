@@ -13,6 +13,7 @@ import { toast } from "sonner"
 import { apiClient } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
+import { invalidateClubSettings } from "@/hooks/useClubSettings"
 import {
   DEFAULT_WEBSITE_SECTIONS,
   MEMBER_DASHBOARD_SECTION_OPTIONS,
@@ -182,12 +183,7 @@ export function WebsiteSetupTab() {
 
       if (websiteRes.success && memberVisRes.success && designRes.success) {
         toast.success("Website and member visibility settings saved successfully!")
-        if (typeof window !== "undefined") {
-          try {
-            window.sessionStorage.removeItem(`clubSettings:${clubId}`)
-          } catch {
-          }
-        }
+        invalidateClubSettings(clubId)
         await loadSettings()
       } else {
         toast.error(websiteRes.message || memberVisRes.message || designRes.message || "Failed to save settings")

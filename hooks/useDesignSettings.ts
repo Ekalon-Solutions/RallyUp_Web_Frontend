@@ -56,8 +56,9 @@ function getContrastingForeground(lightness: number): string {
   return lightness > 50 ? '0 0% 9%' : '0 0% 98%'
 }
 
-export function useDesignSettings(clubId?: string) {
-  const { settings } = useClubSettings(clubId)
+export function useDesignSettings(clubId?: string, providedSettings?: any) {
+  const { settings: fetchedSettings } = useClubSettings(providedSettings === undefined ? clubId : undefined)
+  const settings = providedSettings === undefined ? fetchedSettings : providedSettings
 
   useEffect(() => {
     if (typeof document === 'undefined') return
