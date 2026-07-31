@@ -27,11 +27,13 @@ import {
   Clock,
   Zap,
   ExternalLink,
-  AlertTriangle
+  AlertTriangle,
+  Pencil,
+  Plus
 } from "lucide-react"
 import { useCart, CartItem } from "@/contexts/cart-context"
 import { useAuth } from "@/contexts/auth-context"
-import { apiClient } from "@/lib/api"
+import { apiClient, type UserAddress, type UserAddressPayload } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import { calculateTransactionFees, PLATFORM_FEE_PERCENT, RAZORPAY_FEE_PERCENT } from "@/lib/transactionFees"
 import { PaymentSimulationModal } from "./payment-simulation-modal"
@@ -92,6 +94,66 @@ interface ServiceabilityResult {
   fastest: ServiceabilityCourier | null
   fallback: boolean
   message: string
+}
+
+type AddressEditorMode = 'add' | 'edit' | null
+
+function splitFullName(fullName: string): { firstName: string; lastName: string } {
+  const parts = fullName.trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return { firstName: '', lastName: '' }
+  if (parts.length === 1) return { firstName: parts[0], lastName: '' }
+  return { firstName: parts[0], lastName: parts.slice(1).join(' ') }
+}
+
+function normalizeCountryCode(value?: string | null): string {
+  const text = String(value || '').trim()
+  if (!text) return '+91'
+  return text.startsWith('+') ? text : `+${text}`
+}
+
+function cleanPhoneDigits(value: string): string {
+  return value.replace(/[^\d]/g, '')
+}
+
+function splitPhoneForAddressBook(phone: string, fallbackCountryCode?: string | null): { countryCode: string; phoneNumber: string } {
+  const countryCode = normalizeCountryCode(fallbackCountryCode)
+  const countryDigits = cleanPhoneDigits(countryCode)
+  const digits = cleanPhoneDigits(phone)
+
+  if (phone.trim().startsWith('+') && countryDigits && digits.startsWith(countryDigits)) {
+    const localNumber = digits.slice(countryDigits.length)
+    if (localNumber.length >= 9 && localNumber.length <= 15) {
+      return { countryCode, phoneNumber: localNumber }
+    }
+  }
+
+  return { countryCode, phoneNumber: digits }
+}
+
+function formatAddressPhone(address: UserAddress): string {
+  return [address.countryCode, address.phoneNumber].filter(Boolean).join(' ')
+}
+
+function addressCardLines(address: UserAddress): string[] {
+  return [
+    [address.addressLine1, address.addressLine2].filter(Boolean).join(', '),
+    [address.city, address.stateCounty, address.pinCode].filter(Boolean).join(', '),
+    address.country,
+  ].filter(Boolean)
+}
+
+function orderFormPatchFromAddress(address: UserAddress): Partial<OrderForm> {
+  const { firstName, lastName } = splitFullName(address.fullName)
+  return {
+    firstName,
+    lastName,
+    phone: formatAddressPhone(address),
+    address: [address.addressLine1, address.addressLine2].filter(Boolean).join(', '),
+    city: address.city,
+    state: address.stateCounty,
+    zipCode: address.pinCode,
+    country: address.country || 'India',
+  }
 }
 
 function formatEstimatedDays(estimatedDays: { min: number; max: number }, titleCase = false): string {
@@ -162,7 +224,13 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null)
   const [isAutoApplied, setIsAutoApplied] = useState(false)
   const [autoCouponRemoved, setAutoCouponRemoved] = useState(false)
+  const [savedAddresses, setSavedAddresses] = useState<UserAddress[]>([])
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null)
+  const [addressBookLoading, setAddressBookLoading] = useState(false)
+  const [addressSaving, setAddressSaving] = useState(false)
+  const [addressEditorMode, setAddressEditorMode] = useState<AddressEditorMode>(null)
 
+  const canUseAddressBook = !!user && ['member', 'user'].includes(String((user as any).role || ''))
   const currency = items.length > 0 ? (items[0].currency || 'INR') : 'INR'
 
   const formatCurrency = (amount: number, currencyCode: string = currency) => {
@@ -184,6 +252,122 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
       currency: currencyCode
     }).format(amount)
   }
+
+  const applyAddressToForm = useCallback((address: UserAddress) => {
+    setSelectedAddressId(address.id)
+    setOrderForm(prev => ({
+      ...prev,
+      ...orderFormPatchFromAddress(address),
+    }))
+  }, [])
+
+  const buildAddressPayload = useCallback((): UserAddressPayload => {
+    const userAny = user as any
+    const phone = splitPhoneForAddressBook(orderForm.phone, userAny?.countryCode || '+91')
+    const existingAddress =
+      addressEditorMode === 'edit' && selectedAddressId
+        ? savedAddresses.find(address => address.id === selectedAddressId)
+        : null
+    const typedAddress = orderForm.address.trim()
+    const existingJoinedAddress = existingAddress
+      ? [existingAddress.addressLine1, existingAddress.addressLine2].filter(Boolean).join(', ')
+      : ''
+    return {
+      fullName: [orderForm.firstName, orderForm.lastName].filter(Boolean).join(' ').trim(),
+      countryCode: phone.countryCode,
+      phoneNumber: phone.phoneNumber,
+      addressLine1: existingAddress && typedAddress === existingJoinedAddress
+        ? existingAddress.addressLine1
+        : typedAddress,
+      addressLine2: existingAddress && typedAddress === existingJoinedAddress
+        ? existingAddress.addressLine2 || ''
+        : '',
+      city: orderForm.city.trim(),
+      pinCode: orderForm.zipCode.trim(),
+      stateCounty: orderForm.state.trim(),
+      country: orderForm.country.trim() || 'India',
+    }
+  }, [addressEditorMode, orderForm, savedAddresses, selectedAddressId, user])
+
+  const handleSelectSavedAddress = useCallback((address: UserAddress) => {
+    applyAddressToForm(address)
+    setAddressEditorMode(null)
+    toast.success('Shipping address selected')
+  }, [applyAddressToForm])
+
+  const handleEditSavedAddress = useCallback((address: UserAddress) => {
+    applyAddressToForm(address)
+    setAddressEditorMode('edit')
+  }, [applyAddressToForm])
+
+  const handleAddNewAddress = useCallback(() => {
+    setSelectedAddressId(null)
+    setAddressEditorMode('add')
+    setOrderForm(prev => ({
+      ...prev,
+      firstName: '',
+      lastName: '',
+      phone: '',
+      address: '',
+      city: '',
+      state: '',
+      zipCode: '',
+      country: 'India',
+    }))
+  }, [])
+
+  const handleSaveAddress = useCallback(async () => {
+    if (!canUseAddressBook) {
+      toast.error('Sign in to save addresses')
+      return
+    }
+
+    const payload = buildAddressPayload()
+    if (
+      !payload.fullName ||
+      !payload.phoneNumber ||
+      !payload.addressLine1 ||
+      !payload.city ||
+      !payload.pinCode ||
+      !payload.stateCounty ||
+      !payload.country
+    ) {
+      toast.error('Complete the address form before saving')
+      return
+    }
+
+    if (payload.phoneNumber.length < 9 || payload.phoneNumber.length > 15) {
+      toast.error('Phone number must be 9-15 digits')
+      return
+    }
+
+    if (!/^\d{6}$/.test(payload.pinCode)) {
+      toast.error('Please enter a valid 6-digit PIN code')
+      return
+    }
+
+    setAddressSaving(true)
+    try {
+      const response =
+        addressEditorMode === 'edit' && selectedAddressId
+          ? await apiClient.updateUserAddress(selectedAddressId, payload)
+          : await apiClient.createUserAddress(payload)
+
+      if (!response.success || !response.data?.address) {
+        toast.error(response.error || response.message || 'Failed to save address')
+        return
+      }
+
+      setSavedAddresses(response.data.addresses)
+      applyAddressToForm(response.data.address)
+      setAddressEditorMode(null)
+      toast.success(addressEditorMode === 'edit' ? 'Address updated' : 'Address saved')
+    } catch {
+      toast.error('Failed to save address')
+    } finally {
+      setAddressSaving(false)
+    }
+  }, [addressEditorMode, applyAddressToForm, buildAddressPayload, canUseAddressBook, selectedAddressId])
 
   const triggerAutoCouponApply = useCallback(async (phoneNumber?: string, emailAddress?: string) => {
     if (autoCouponRemoved) return
@@ -261,8 +445,53 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
       setReservedDiscount(0)
       setIsAutoApplied(false)
       setAutoCouponRemoved(false)
+      setSelectedAddressId(null)
+      setAddressEditorMode(null)
+      setAddressBookLoading(false)
     }
   }, [isOpen])
+
+  useEffect(() => {
+    let cancelled = false
+
+    if (!isOpen || !canUseAddressBook) {
+      setSavedAddresses([])
+      setAddressBookLoading(false)
+      return () => {
+        cancelled = true
+      }
+    }
+
+    setAddressBookLoading(true)
+    apiClient.getUserAddresses()
+      .then((response) => {
+        if (cancelled) return
+        const addresses = response.success ? response.data ?? [] : []
+        setSavedAddresses(addresses)
+        setSelectedAddressId(current => {
+          if (current && addresses.some(address => address.id === current)) return current
+          return addresses[0]?.id ?? null
+        })
+
+        if (addresses[0]) {
+          setOrderForm(prev => (
+            prev.address || prev.zipCode
+              ? prev
+              : { ...prev, ...orderFormPatchFromAddress(addresses[0]) }
+          ))
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setSavedAddresses([])
+      })
+      .finally(() => {
+        if (!cancelled) setAddressBookLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [canUseAddressBook, isOpen])
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -521,20 +750,28 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
   useEffect(() => {
     if (isOpen && user) {
       const userAny = user as any
+      const primarySavedAddress = Array.isArray(userAny?.addresses)
+        ? (userAny.addresses[0] as UserAddress | undefined)
+        : undefined
+      const savedAddressPatch = primarySavedAddress ? orderFormPatchFromAddress(primarySavedAddress) : null
+      if (canUseAddressBook && primarySavedAddress) {
+        setSelectedAddressId(current => current || primarySavedAddress.id)
+      }
+
       setOrderForm(prev => ({
         ...prev,
         firstName: prev.firstName || user?.name?.split(' ')[0] || '',
         lastName: prev.lastName || user?.name?.split(' ').slice(1).join(' ') || '',
         email: prev.email || user?.email || '',
-        phone: prev.phone || userAny?.phoneNumber || '',
-        address: prev.address || userAny?.address_line1 || '',
-        city: prev.city || userAny?.city || '',
-        state: prev.state || userAny?.state_province || '',
-        zipCode: prev.zipCode || userAny?.zip_code || '',
-        country: prev.country || userAny?.country || 'India',
+        phone: prev.phone || savedAddressPatch?.phone || userAny?.phoneNumber || '',
+        address: prev.address || savedAddressPatch?.address || userAny?.address_line1 || '',
+        city: prev.city || savedAddressPatch?.city || userAny?.city || '',
+        state: prev.state || savedAddressPatch?.state || userAny?.state_province || '',
+        zipCode: prev.zipCode || savedAddressPatch?.zipCode || userAny?.zip_code || '',
+        country: prev.country || savedAddressPatch?.country || userAny?.country || 'India',
       }))
     }
-  }, [isOpen, user])
+  }, [canUseAddressBook, isOpen, user])
 
   const handleInputChange = (field: keyof OrderForm, value: string) => {
     setOrderForm(prev => ({ ...prev, [field]: value }))
@@ -811,13 +1048,106 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
               </Card>
 
               <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4" />
-                    Shipping Address
-                  </CardTitle>
+                <CardHeader className="space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <CardTitle className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4" />
+                      Shipping Address
+                    </CardTitle>
+                    {canUseAddressBook && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={handleAddNewAddress}
+                        disabled={addressSaving}
+                      >
+                        <Plus className="w-4 h-4 mr-1" />
+                        Add New
+                      </Button>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {canUseAddressBook && (
+                    <div className="space-y-3">
+                      {addressBookLoading ? (
+                        <div className="flex items-center gap-2 rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Loading saved addresses...
+                        </div>
+                      ) : savedAddresses.length > 0 ? (
+                        <div className="grid grid-cols-1 gap-2">
+                          {savedAddresses.map((address) => {
+                            const selected = address.id === selectedAddressId
+                            return (
+                              <div
+                                key={address.id}
+                                className={cn(
+                                  "w-full rounded-lg border p-3 transition-colors",
+                                  selected
+                                    ? "border-primary bg-primary/5 ring-1 ring-primary"
+                                    : "border-border"
+                                )}
+                              >
+                                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-2">
+                                      {selected && <CheckCircle className="h-4 w-4 shrink-0 text-primary" />}
+                                      <p className="font-medium leading-none">{address.fullName}</p>
+                                    </div>
+                                    <div className="mt-2 space-y-0.5 text-xs text-muted-foreground">
+                                      {addressCardLines(address).map((line) => (
+                                        <p key={line}>{line}</p>
+                                      ))}
+                                      <p>{formatAddressPhone(address)}</p>
+                                    </div>
+                                  </div>
+                                  <div className="flex shrink-0 gap-2 self-start">
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant={selected ? "secondary" : "outline"}
+                                      className="h-8 px-2"
+                                      onClick={() => handleSelectSavedAddress(address)}
+                                      disabled={addressSaving}
+                                    >
+                                      <CheckCircle className="w-4 h-4 mr-1" />
+                                      {selected ? 'Selected' : 'Select'}
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-8 px-2"
+                                      onClick={() => handleEditSavedAddress(address)}
+                                      disabled={addressSaving}
+                                    >
+                                      <Pencil className="w-4 h-4 mr-1" />
+                                      Edit
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      ) : (
+                        <div className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
+                          No saved addresses yet. Add one for faster checkout next time.
+                        </div>
+                      )}
+
+                      {addressEditorMode && (
+                        <div className="rounded-lg bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
+                          {addressEditorMode === 'edit'
+                            ? 'Editing saved address. Update the fields below and save.'
+                            : 'Adding a new saved address. Fill the fields below and save.'}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <div>
                     <Label htmlFor="address">Street Address *</Label>
                     <Input
@@ -879,6 +1209,27 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                       />
                     </div>
                   </div>
+
+                  {canUseAddressBook && addressEditorMode && (
+                    <div className="flex flex-wrap justify-end gap-2">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => setAddressEditorMode(null)}
+                        disabled={addressSaving}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={handleSaveAddress}
+                        disabled={addressSaving}
+                      >
+                        {addressSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                        {addressEditorMode === 'edit' ? 'Update Address' : 'Save Address'}
+                      </Button>
+                    </div>
+                  )}
 
                   {!hasCompleteShippingAddress && (
                     <p className="text-xs text-muted-foreground">
