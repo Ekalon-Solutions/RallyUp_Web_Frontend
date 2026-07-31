@@ -276,6 +276,28 @@ export type ResendTicketResult = ApiResponse<{
   whatsapp?: ResendTicketWhatsAppInfo;
 }>;
 
+export interface UserAddress {
+  id: string;
+  fullName: string;
+  countryCode: string;
+  phoneNumber: string;
+  addressLine1: string;
+  addressLine2?: string;
+  city: string;
+  pinCode: string;
+  stateCounty: string;
+  country: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export type UserAddressPayload = Omit<UserAddress, 'id' | 'createdAt' | 'updatedAt'>;
+
+export interface UserAddressMutationResult {
+  address: UserAddress;
+  addresses: UserAddress[];
+}
+
 export interface User {
   _id: string;
   name: string;
@@ -284,6 +306,15 @@ export interface User {
   countryCode: string;
   isPhoneVerified: boolean;
   role: 'member';
+  first_name?: string;
+  last_name?: string;
+  address_line1?: string;
+  address_line2?: string;
+  city?: string;
+  state_province?: string;
+  zip_code?: string;
+  country?: string;
+  addresses?: UserAddress[];
   club?: Club;
   membershipPlan?: string;
   membershipExpiry?: string;
@@ -1680,6 +1711,47 @@ class ApiClient {
 
   async userProfile(): Promise<ApiResponse<User>> {
     return this.request('/users/profile');
+  }
+
+  async getUserAddresses(): Promise<ApiResponse<UserAddress[]>> {
+    const response = await this.get('/users/addresses');
+    if (!response.success) return response as ApiResponse<UserAddress[]>;
+
+    const body = response.data as any;
+    const addresses = body?.data?.addresses ?? body?.addresses ?? [];
+    return {
+      ...response,
+      data: Array.isArray(addresses) ? addresses : [],
+    };
+  }
+
+  async createUserAddress(payload: UserAddressPayload): Promise<ApiResponse<UserAddressMutationResult>> {
+    const response = await this.post('/users/addresses', payload);
+    if (!response.success) return response as ApiResponse<UserAddressMutationResult>;
+
+    const body = ((response.data as any)?.data ?? response.data) as Partial<UserAddressMutationResult> | undefined;
+    return {
+      ...response,
+      data: body?.address && Array.isArray(body?.addresses)
+        ? { address: body.address, addresses: body.addresses }
+        : undefined,
+    };
+  }
+
+  async updateUserAddress(
+    addressId: string,
+    payload: UserAddressPayload
+  ): Promise<ApiResponse<UserAddressMutationResult>> {
+    const response = await this.put(`/users/addresses/${addressId}`, payload);
+    if (!response.success) return response as ApiResponse<UserAddressMutationResult>;
+
+    const body = ((response.data as any)?.data ?? response.data) as Partial<UserAddressMutationResult> | undefined;
+    return {
+      ...response,
+      data: body?.address && Array.isArray(body?.addresses)
+        ? { address: body.address, addresses: body.addresses }
+        : undefined,
+    };
   }
 
   async updateUserProfile(data: {
