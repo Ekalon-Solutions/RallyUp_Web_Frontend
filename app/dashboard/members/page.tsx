@@ -73,6 +73,7 @@ interface Member {
     duration: number
   }
   membershipExpiry?: string
+  membershipStatus?: string
   isActive: boolean
   createdAt: string
   updatedAt: string
@@ -936,6 +937,11 @@ export default function MembersPage() {
                             <div className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${getVerificationColor(member.isPhoneVerified)}`}>
                               {member.isPhoneVerified ? 'Verified' : 'Unverified'}
                             </div>
+                            {member.membershipStatus === 'expired' && (
+                              <div className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold bg-amber-100 text-amber-800">
+                                Membership Expired
+                              </div>
+                            )}
                           </div>
                           <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-sm text-muted-foreground mt-1">
                             {(user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'system_owner') && (
