@@ -21,6 +21,8 @@ import {
   Check,
   ArrowUp,
   Award,
+  Tag,
+  X,
 } from "lucide-react"
 import { apiClient } from "@/lib/api"
 import { getApiUrl, API_ENDPOINTS } from "@/lib/config"
@@ -61,6 +63,14 @@ interface JoinMembershipModalProps {
 
 type ReferralStatus = "idle" | "checking" | "found" | "not-found" | "not-member" | "self"
 type ModalMode = "register" | "subscribe" | "upgrade"
+
+interface AppliedMembershipCoupon {
+  code: string
+  name: string
+  discountType: "flat" | "percentage"
+  discountValue: number
+  discount: number
+}
 
 const EMPTY_REGISTRATION = {
   username: "",
@@ -151,6 +161,11 @@ export function JoinMembershipModal({
   const [referralPhone, setReferralPhone] = useState("")
   const [referralStatus, setReferralStatus] = useState<ReferralStatus>("idle")
   const [referralName, setReferralName] = useState<string | null>(null)
+  const [couponCode, setCouponCode] = useState("")
+  const [appliedCoupon, setAppliedCoupon] = useState<AppliedMembershipCoupon | null>(null)
+  const [validatingCoupon, setValidatingCoupon] = useState(false)
+  const [isAutoAppliedCoupon, setIsAutoAppliedCoupon] = useState(false)
+  const [autoCouponRemoved, setAutoCouponRemoved] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [pendingPayment, setPendingPayment] = useState<{
     planId: string
@@ -169,6 +184,8 @@ export function JoinMembershipModal({
     isRegistration?: boolean
     prefillPhone?: string
     prefillEmail?: string
+    couponCode?: string
+    couponDiscount?: number
   } | null>(null)
   const [pendingRegistrationData, setPendingRegistrationData] = useState<typeof registrationData | null>(null)
 
@@ -360,6 +377,120 @@ export function JoinMembershipModal({
     })
   }
 
+  const getDiscountedPlanCharge = (plan: JoinablePlan) => {
+    const charge = getPlanCharge(plan)
+    const discount = plan._id === selectedPlanId
+      ? Math.min(appliedCoupon?.discount ?? 0, charge.baseAmount)
+      : 0
+    const resolvedPlatformFeePercent = Number(platformFeePercent)
+    return {
+      ...calculateTransactionFees(
+        Math.max(charge.baseAmount - discount, 0),
+        Number.isFinite(resolvedPlatformFeePercent) ? resolvedPlatformFeePercent : undefined,
+      ),
+      isUpgrade: charge.isUpgrade,
+      originalBaseAmount: charge.baseAmount,
+      couponDiscount: discount,
+    }
+  }
+
+  useEffect(() => {
+    setCouponCode("")
+    setAppliedCoupon(null)
+    setIsAutoAppliedCoupon(false)
+    setAutoCouponRemoved(false)
+  }, [selectedPlanId])
+
+  const hasAppliedCoupon = Boolean(appliedCoupon)
+  useEffect(() => {
+    if (!open || !selectedPlan || hasAppliedCoupon || autoCouponRemoved) return
+    const chargeAmount = getPlanCharge(selectedPlan).baseAmount
+    if (chargeAmount <= 0) return
+
+    const phone = mode === "register"
+      ? `${registrationData.countryCode || "+91"}${registrationData.phoneNumber || ""}`
+      : user?.phoneNumber || ""
+    const email = mode === "register" ? registrationData.email : user?.email || ""
+    const timer = setTimeout(async () => {
+      try {
+        const response = await apiClient.getHighestEligibleAutoCoupon({
+          clubId,
+          phone: phone || undefined,
+          email: email || undefined,
+          cartSubtotal: chargeAmount,
+          purchaseType: "membership",
+        })
+        const coupon = response.success ? response.data?.coupon : null
+        if (!coupon) return
+        setAppliedCoupon({ ...coupon, discount: Math.min(coupon.discount, chargeAmount) })
+        setCouponCode(coupon.code)
+        setIsAutoAppliedCoupon(true)
+      } catch {
+        // Auto-apply is best effort; manual coupon entry remains available.
+      }
+    }, mode === "register" ? 500 : 0)
+    return () => clearTimeout(timer)
+  }, [
+    open,
+    selectedPlanId,
+    mode,
+    clubId,
+    registrationData.countryCode,
+    registrationData.phoneNumber,
+    registrationData.email,
+    user?.phoneNumber,
+    user?.email,
+    hasAppliedCoupon,
+    autoCouponRemoved,
+  ])
+
+  const handleValidateCoupon = async () => {
+    if (!selectedPlan || !couponCode.trim()) {
+      toast.error("Please enter a coupon code")
+      return
+    }
+    const chargeAmount = getPlanCharge(selectedPlan).baseAmount
+    if (chargeAmount <= 0) {
+      toast.error("Coupons are not applicable to this plan")
+      return
+    }
+    setValidatingCoupon(true)
+    try {
+      const response = await apiClient.validateCoupon(
+        couponCode.trim().toUpperCase(),
+        undefined,
+        chargeAmount,
+        clubId,
+        "membership",
+      )
+      if (response.success && response.data?.coupon) {
+        setAppliedCoupon({
+          ...response.data.coupon,
+          discount: Math.min(response.data.coupon.discount, chargeAmount),
+        })
+        setCouponCode(response.data.coupon.code)
+        setIsAutoAppliedCoupon(false)
+        setAutoCouponRemoved(false)
+        toast.success("Coupon applied successfully!")
+      } else {
+        setAppliedCoupon(null)
+        toast.error(response.error || response.message || "Invalid coupon code")
+      }
+    } catch {
+      setAppliedCoupon(null)
+      toast.error("Unable to validate coupon. Please try again.")
+    } finally {
+      setValidatingCoupon(false)
+    }
+  }
+
+  const removeCoupon = () => {
+    setCouponCode("")
+    setAppliedCoupon(null)
+    setAutoCouponRemoved(true)
+    setIsAutoAppliedCoupon(false)
+  }
+
   const getActionLabel = () => {
     if (!selectedPlan) return "Continue"
     const salesState = getPlanSalesState(selectedPlan)
@@ -370,7 +501,7 @@ export function JoinMembershipModal({
       if (isUpgradePlan(selectedPlan)) return "Upgrade to This Plan"
       return "Upgrade Required"
     }
-    if (selectedPlan.price > 0) return mode === "register" ? "Pay & Create Account" : `Pay & Join — ${selectedPlan.name}`
+    if (getDiscountedPlanCharge(selectedPlan).baseAmount > 0) return mode === "register" ? "Pay & Create Account" : `Pay & Join — ${selectedPlan.name}`
     return mode === "register" ? "Register & Join" : `Join with ${selectedPlan.name}`
   }
 
@@ -389,8 +520,9 @@ export function JoinMembershipModal({
   }) => {
     const { plan, baseAmount, isUpgrade, isRegistration, registrationSnapshot } = opts
     const resolvedPlatformFeePercent = Number(platformFeePercent)
+    const couponDiscount = Math.min(appliedCoupon?.discount ?? 0, baseAmount)
     const feeBreakdown = calculateTransactionFees(
-      baseAmount,
+      Math.max(baseAmount - couponDiscount, 0),
       Number.isFinite(resolvedPlatformFeePercent) ? resolvedPlatformFeePercent : undefined,
     )
     const orderId = isRegistration
@@ -415,7 +547,7 @@ export function JoinMembershipModal({
       orderId,
       orderNumber,
       total: feeBreakdown.finalAmount,
-      subtotal: feeBreakdown.baseAmount,
+      subtotal: baseAmount,
       platformFeeTotal: feeBreakdown.platformFee + feeBreakdown.platformFeeGst,
       platformFeePercent: Number.isFinite(resolvedPlatformFeePercent) ? resolvedPlatformFeePercent : undefined,
       razorpayFeeTotal: feeBreakdown.razorpayFee + feeBreakdown.razorpayFeeGst,
@@ -426,6 +558,8 @@ export function JoinMembershipModal({
       isRegistration,
       prefillPhone,
       prefillEmail,
+      couponCode: appliedCoupon?.code,
+      couponDiscount,
     })
   }
 
@@ -493,8 +627,26 @@ export function JoinMembershipModal({
         localStorage.setItem("token", registerData.token)
         localStorage.setItem("userType", "member")
 
-        startPayment({ plan: selectedPlan, baseAmount: selectedPlan.price, isRegistration: true, registrationSnapshot: registrationData })
-        toast.info("Account created. Complete payment to activate your membership.")
+        if (getDiscountedPlanCharge(selectedPlan).baseAmount > 0) {
+          startPayment({ plan: selectedPlan, baseAmount: selectedPlan.price, isRegistration: true, registrationSnapshot: registrationData })
+          toast.info("Account created. Complete payment to activate your membership.")
+        } else {
+          const subscribeRes = await apiClient.subscribeMembershipPlan(
+            selectedPlan._id,
+            undefined,
+            validReferral,
+            { tshirtSize: registrationData.tshirtSize, tshirtColor: registrationData.tshirtColor },
+            appliedCoupon?.code,
+          )
+          if (!subscribeRes.success) {
+            toast.error(subscribeRes.error || "Failed to activate discounted membership")
+            return
+          }
+          toast.success("Coupon applied — membership activated!")
+          onOpenChange(false)
+          await checkAuth()
+          router.push("/dashboard/user/my-clubs")
+        }
         return
       }
 
@@ -511,7 +663,7 @@ export function JoinMembershipModal({
         const subscribeRes = await apiClient.subscribeMembershipPlan(selectedPlan._id, undefined, validReferral, {
           tshirtSize: registrationData.tshirtSize,
           tshirtColor: registrationData.tshirtColor,
-        })
+        }, appliedCoupon?.code)
         if (subscribeRes.success) {
           toast.success("Successfully joined the club!")
           onOpenChange(false)
@@ -556,7 +708,7 @@ export function JoinMembershipModal({
 
     const { isUpgrade, baseAmount } = getPlanCharge(selectedPlan)
 
-    if (baseAmount > 0) {
+    if (getDiscountedPlanCharge(selectedPlan).baseAmount > 0) {
       startPayment({ plan: selectedPlan, baseAmount, isUpgrade })
       return
     }
@@ -566,7 +718,7 @@ export function JoinMembershipModal({
       const response = await apiClient.subscribeMembershipPlan(selectedPlan._id, undefined, validReferral, {
         tshirtSize: registrationData.tshirtSize,
         tshirtColor: registrationData.tshirtColor,
-      })
+      }, appliedCoupon?.code)
       if (response.success) {
         const upgraded = response.data && "isUpgrade" in response.data && response.data.isUpgrade
         toast.success(upgraded ? "Membership upgraded successfully!" : "Membership activated successfully!")
@@ -604,7 +756,8 @@ export function JoinMembershipModal({
         {
           tshirtSize: pendingRegistrationData?.tshirtSize ?? registrationData.tshirtSize,
           tshirtColor: pendingRegistrationData?.tshirtColor ?? registrationData.tshirtColor,
-        }
+        },
+        pendingPayment.couponCode,
       )
       if (response.success) {
         const upgraded = response.data && "isUpgrade" in response.data && response.data.isUpgrade
@@ -822,6 +975,8 @@ export function JoinMembershipModal({
 
   const renderPlanSummary = () => {
     if (!selectedPlan || (mode === "upgrade" && isCurrentPlan(selectedPlan))) return null
+    const originalCharge = getPlanCharge(selectedPlan)
+    const discountedCharge = getDiscountedPlanCharge(selectedPlan)
     return (
       <div className="rounded-xl border border-secondary/20 bg-slate-50/50 p-4 shadow-sm space-y-2 text-slate-800">
         <h4 className="flex items-center gap-2 text-sm font-semibold text-secondary">
@@ -831,15 +986,78 @@ export function JoinMembershipModal({
         <div className="space-y-1 text-sm">
           <div className="flex justify-between gap-4">
             <span className="text-slate-500">{getPlanCharge(selectedPlan).isUpgrade ? "Upgrade price:" : "Price:"}</span>
-            <span className="font-semibold text-primary">
-              {formatPrice(getPlanCharge(selectedPlan).finalAmount, selectedPlan.currency)}
+            <span className={cn("font-semibold text-primary", appliedCoupon && "line-through text-slate-400")}>
+              {formatPrice(originalCharge.finalAmount, selectedPlan.currency)}
             </span>
           </div>
+          {appliedCoupon && (
+            <>
+              <div className="flex justify-between gap-4 text-green-700">
+                <span>Coupon ({appliedCoupon.code}):</span>
+                <span>-{formatPrice(discountedCharge.couponDiscount, selectedPlan.currency)}</span>
+              </div>
+              <div className="flex justify-between gap-4 border-t border-slate-200 pt-1 font-semibold">
+                <span>Total after discount:</span>
+                <span className="text-primary">{formatPrice(discountedCharge.finalAmount, selectedPlan.currency)}</span>
+              </div>
+            </>
+          )}
           <div className="flex justify-between gap-4">
             <span className="text-slate-500">Duration:</span>
             <span className="font-medium text-slate-700">{formatPlanPeriod(selectedPlan)}</span>
           </div>
         </div>
+      </div>
+    )
+  }
+
+  const renderCouponField = () => {
+    if (!selectedPlan || getPlanCharge(selectedPlan).baseAmount <= 0) return null
+    return (
+      <div className="rounded-xl border border-secondary/20 bg-slate-50/50 p-4 space-y-3 text-slate-800">
+        <div className="flex items-center gap-2">
+          <Tag className="h-4 w-4 text-primary" />
+          <Label htmlFor="membership-coupon" className="text-secondary text-[10px] font-bold tracking-widest uppercase">
+            Coupon or promo code
+          </Label>
+        </div>
+        {appliedCoupon ? (
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-green-200 bg-green-50 px-3 py-2">
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-green-800">{appliedCoupon.name}</p>
+              <p className="text-xs text-green-700">
+                {appliedCoupon.code}{isAutoAppliedCoupon ? " · Auto-applied" : " · Applied"}
+              </p>
+            </div>
+            <Button type="button" variant="ghost" size="icon" onClick={removeCoupon} aria-label="Remove coupon" className="h-8 w-8 shrink-0 text-green-800 hover:bg-green-100">
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        ) : (
+          <div className="flex gap-2">
+            <Input
+              id="membership-coupon"
+              value={couponCode}
+              onChange={(event) => setCouponCode(event.target.value.toUpperCase())}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault()
+                  void handleValidateCoupon()
+                }
+              }}
+              placeholder="Enter coupon code"
+              className="h-10 rounded-lg border-secondary bg-white text-black uppercase"
+            />
+            <Button
+              type="button"
+              onClick={() => void handleValidateCoupon()}
+              disabled={validatingCoupon || !couponCode.trim()}
+              className="h-10 rounded-lg bg-primary px-5 font-bold text-white transition-all duration-300 hover:bg-[#FF7E4A] hover:shadow-[0_8px_20px_#FF5C1A6B] active:scale-95 disabled:bg-primary/50 disabled:text-white"
+            >
+              {validatingCoupon ? <Loader2 className="h-4 w-4 animate-spin" /> : "Apply"}
+            </Button>
+          </div>
+        )}
       </div>
     )
   }
@@ -979,6 +1197,7 @@ export function JoinMembershipModal({
                 </div>
                 {renderTshirtGallery()}
                 {selectedPlan?.referralReward?.enabled && renderReferralField()}
+                {renderCouponField()}
                 {renderPlanSummary()}
                 <Button type="submit" disabled={isProcessing} className="w-full h-12 font-bold bg-primary hover:bg-[#FF7E4A] hover:shadow-[0_8px_20px_#FF5C1A6B] text-white rounded-xl transition-all duration-300 active:scale-95 mt-4">
                   {isProcessing ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Processing...</> : getActionLabel()}
@@ -987,6 +1206,7 @@ export function JoinMembershipModal({
             ) : (
               <div className="space-y-4">
                 {renderPlanSelector()}
+                {renderCouponField()}
                 {renderPlanSummary()}
                 {showTshirtFields && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">{renderTshirtFields()}</div>
@@ -1030,6 +1250,8 @@ export function JoinMembershipModal({
           platformFeeTotal={pendingPayment.platformFeeTotal}
           platformFeePercent={pendingPayment.platformFeePercent}
           razorpayFeeTotal={pendingPayment.razorpayFeeTotal}
+          couponDiscount={pendingPayment.couponDiscount}
+          couponCode={pendingPayment.couponCode}
           currency={pendingPayment.currency}
           paymentMethod={pendingPayment.paymentMethod}
           dialogTitle={pendingPayment.isUpgrade ? "Pay upgrade difference" : "Pay for membership"}
@@ -1048,7 +1270,8 @@ export function JoinMembershipModal({
               pendingPayment.planId,
               razorpayOrderId,
               pendingPayment.referralPhone,
-              { tshirtSize: registrationData.tshirtSize, tshirtColor: registrationData.tshirtColor }
+              { tshirtSize: registrationData.tshirtSize, tshirtColor: registrationData.tshirtColor },
+              pendingPayment.couponCode,
             )
             if (!result.success) toast.error(result.error || "Unable to prepare membership purchase")
             return result.success

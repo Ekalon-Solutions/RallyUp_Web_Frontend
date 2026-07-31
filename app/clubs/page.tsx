@@ -38,7 +38,8 @@ import {
   Loader2,
   AlertTriangle,
   UserCheck,
-  Info
+  Info,
+  X
 } from "lucide-react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { toast } from "sonner"
@@ -105,6 +106,14 @@ interface MembershipPlan {
 
 type ReferralStatus = "idle" | "checking" | "found" | "not-found" | "not-member" | "self"
 
+interface AppliedMembershipCoupon {
+  code: string
+  name: string
+  discountType: "flat" | "percentage"
+  discountValue: number
+  discount: number
+}
+
 const TSHIRT_FIELD_CLUB_NAME_MATCH = "arsenal hyderabad"
 const TSHIRT_SIZE_OPTIONS = ["XS", "S", "M", "L", "XL", "XXL", "3XL"]
 const TSHIRT_COLOR_OPTIONS = ["Red", "White"]
@@ -149,6 +158,11 @@ function ClubsPageContent() {
   const [referralStatus, setReferralStatus] = useState<ReferralStatus>("idle")
   const [referralName, setReferralName] = useState<string | null>(null)
   const [pendingReferralPhone, setPendingReferralPhone] = useState<string | undefined>(undefined)
+  const [couponCode, setCouponCode] = useState("")
+  const [appliedCoupon, setAppliedCoupon] = useState<AppliedMembershipCoupon | null>(null)
+  const [validatingCoupon, setValidatingCoupon] = useState(false)
+  const [isAutoAppliedCoupon, setIsAutoAppliedCoupon] = useState(false)
+  const [autoCouponRemoved, setAutoCouponRemoved] = useState(false)
   const [isRegistering, setIsRegistering] = useState(false)
   const [registrationErrors, setRegistrationErrors] = useState({ phoneNumber: "" })
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
@@ -156,8 +170,11 @@ function ClubsPageContent() {
     orderId: string
     orderNumber: string
     total: number
+    subtotal: number
     currency: string
     paymentMethod: string
+    couponCode?: string
+    couponDiscount?: number
   } | null>(null)
   const [pendingRegistrationData, setPendingRegistrationData] = useState<typeof registrationData | null>(null)
   const [userMemberships, setUserMemberships] = useState<Record<string, string>>({})
@@ -256,6 +273,102 @@ function ClubsPageContent() {
     return () => clearTimeout(timer)
   }, [referralPhone, selectedClub?._id, registrationData.phoneNumber])
 
+  const hasAppliedCoupon = Boolean(appliedCoupon)
+  useEffect(() => {
+    if (
+      !showRegistrationDialog ||
+      !selectedClub?._id ||
+      !selectedPlan ||
+      selectedPlan.price <= 0 ||
+      hasAppliedCoupon ||
+      autoCouponRemoved
+    ) return
+
+    const phone = `${registrationData.countryCode || "+91"}${registrationData.phoneNumber || ""}`
+    const timer = setTimeout(async () => {
+      try {
+        const response = await apiClient.getHighestEligibleAutoCoupon({
+          clubId: selectedClub._id,
+          phone: phone || undefined,
+          email: registrationData.email || undefined,
+          cartSubtotal: selectedPlan.price,
+          purchaseType: "membership",
+        })
+        const coupon = response.success ? response.data?.coupon : null
+        if (!coupon) return
+        setAppliedCoupon({
+          ...coupon,
+          discount: Math.min(coupon.discount, selectedPlan.price),
+        })
+        setCouponCode(coupon.code)
+        setIsAutoAppliedCoupon(true)
+      } catch {
+        // Manual coupon entry remains available when auto-apply is unavailable.
+      }
+    }, 500)
+
+    return () => clearTimeout(timer)
+  }, [
+    showRegistrationDialog,
+    selectedClub?._id,
+    selectedPlan?._id,
+    selectedPlan?.price,
+    registrationData.countryCode,
+    registrationData.phoneNumber,
+    registrationData.email,
+    hasAppliedCoupon,
+    autoCouponRemoved,
+  ])
+
+  const handleValidateMembershipCoupon = async () => {
+    if (!selectedClub || !selectedPlan || !couponCode.trim()) {
+      toast.error("Please enter a coupon code")
+      return
+    }
+    setValidatingCoupon(true)
+    try {
+      const response = await apiClient.validateCoupon(
+        couponCode.trim().toUpperCase(),
+        undefined,
+        selectedPlan.price,
+        selectedClub._id,
+        "membership",
+      )
+      if (response.success && response.data?.coupon) {
+        setAppliedCoupon({
+          ...response.data.coupon,
+          discount: Math.min(response.data.coupon.discount, selectedPlan.price),
+        })
+        setCouponCode(response.data.coupon.code)
+        setIsAutoAppliedCoupon(false)
+        setAutoCouponRemoved(false)
+        toast.success("Coupon applied successfully!")
+      } else {
+        setAppliedCoupon(null)
+        toast.error(response.error || response.message || "Invalid coupon code")
+      }
+    } catch {
+      setAppliedCoupon(null)
+      toast.error("Unable to validate coupon. Please try again.")
+    } finally {
+      setValidatingCoupon(false)
+    }
+  }
+
+  const resetCouponState = () => {
+    setCouponCode("")
+    setAppliedCoupon(null)
+    setIsAutoAppliedCoupon(false)
+    setAutoCouponRemoved(false)
+  }
+
+  const removeMembershipCoupon = () => {
+    setCouponCode("")
+    setAppliedCoupon(null)
+    setIsAutoAppliedCoupon(false)
+    setAutoCouponRemoved(true)
+  }
+
   const resetReferralState = () => {
     setReferralPhone("")
     setReferralStatus("idle")
@@ -272,6 +385,7 @@ function ClubsPageContent() {
   const resetRegistrationForm = () => {
     setRegistrationData({ ...EMPTY_REGISTRATION })
     resetReferralState()
+    resetCouponState()
   }
 
   const fetchClubs = async () => {
@@ -378,6 +492,7 @@ function ClubsPageContent() {
     setSelectedClub(club)
     setSelectedPlan(plan)
     resetReferralState()
+    resetCouponState()
     setShowRegistrationDialog(true)
   }
 
@@ -440,15 +555,44 @@ function ClubsPageContent() {
 
         const orderNumber = `ORD-${Math.floor(Math.random() * 900000) + 100000}`
         const orderId = `club-${Date.now()}`
-        const total = selectedPlan.price
+        const couponDiscount = Math.min(appliedCoupon?.discount ?? 0, selectedPlan.price)
+        const total = Math.max(selectedPlan.price - couponDiscount, 0)
         const currency = selectedPlan.currency || 'INR'
         const paymentMethod = 'all'
 
         setPendingRegistrationData({ ...registrationData })
         setPendingReferralPhone(getValidReferralPhone())
-        setPendingOrder({ orderId, orderNumber, total, currency, paymentMethod })
-        setIsPaymentModalOpen(true)
-        toast.info("Complete payment to create your account and activate membership.")
+        if (total > 0) {
+          setPendingOrder({
+            orderId,
+            orderNumber,
+            total,
+            subtotal: selectedPlan.price,
+            currency,
+            paymentMethod,
+            couponCode: appliedCoupon?.code,
+            couponDiscount,
+          })
+          setIsPaymentModalOpen(true)
+          toast.info("Complete payment to create your account and activate membership.")
+        } else {
+          const subscribeRes = await apiClient.subscribeMembershipPlan(
+            selectedPlan._id,
+            undefined,
+            getValidReferralPhone(),
+            { tshirtSize: registrationData.tshirtSize, tshirtColor: registrationData.tshirtColor },
+            appliedCoupon?.code,
+          )
+          if (!subscribeRes.success) {
+            toast.error(subscribeRes.error || "Failed to activate discounted membership")
+            return
+          }
+          toast.success("Coupon applied — membership activated!")
+          setShowRegistrationDialog(false)
+          resetRegistrationForm()
+          fetchClubs()
+          router.push("/dashboard/user/my-clubs")
+        }
       } else {
         const registerResponse = await fetch(getApiUrl(API_ENDPOINTS.users.register), {
           method: 'POST',
@@ -470,7 +614,9 @@ function ClubsPageContent() {
             const subscribeRes = await apiClient.subscribeMembershipPlan(
               selectedPlan._id,
               undefined,
-              getValidReferralPhone()
+              getValidReferralPhone(),
+              undefined,
+              appliedCoupon?.code,
             )
 
             if (subscribeRes.success) {
@@ -600,7 +746,9 @@ function ClubsPageContent() {
           razorpay_order_id: razorpayOrderId,
           razorpay_signature: razorpaySignature,
         },
-        pendingReferralPhone
+        pendingReferralPhone,
+        undefined,
+        pendingOrder?.couponCode,
       )
 
       if (subscribeRes.success) {
@@ -1667,6 +1815,62 @@ function ClubsPageContent() {
                 </div>
               )}
 
+              {selectedPlan && selectedPlan.price > 0 && (
+                <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Tag className="h-4 w-4 text-primary" />
+                    <Label htmlFor="clubs-membership-coupon" className="font-semibold">
+                      Coupon or promo code
+                    </Label>
+                  </div>
+                  {appliedCoupon ? (
+                    <div className="flex items-center justify-between gap-3 rounded-lg border border-green-200 bg-green-50 px-3 py-2">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-green-800">{appliedCoupon.name}</p>
+                        <p className="text-xs text-green-700">
+                          {appliedCoupon.code}{isAutoAppliedCoupon ? " · Auto-applied" : " · Applied"}
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={removeMembershipCoupon}
+                        aria-label="Remove coupon"
+                        className="h-8 w-8 shrink-0 text-green-800 hover:bg-green-100"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Input
+                        id="clubs-membership-coupon"
+                        value={couponCode}
+                        onChange={(event) => setCouponCode(event.target.value.toUpperCase())}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            event.preventDefault()
+                            void handleValidateMembershipCoupon()
+                          }
+                        }}
+                        placeholder="Enter coupon code"
+                        className="h-11 uppercase"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => void handleValidateMembershipCoupon()}
+                        disabled={validatingCoupon || !couponCode.trim()}
+                        className="h-11"
+                      >
+                        {validatingCoupon ? <Loader2 className="h-4 w-4 animate-spin" /> : "Apply"}
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {selectedPlan && (
                 <div className="space-y-4">
                   <div className="rounded-lg border-2 border-primary/30 bg-muted/70 p-4 shadow-sm dark:bg-muted/40">
@@ -1679,8 +1883,30 @@ function ClubsPageContent() {
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between gap-4">
                         <span className="text-muted-foreground">Price:</span>
-                        <span className="font-semibold text-primary">{formatPrice(calculateTransactionFees(selectedPlan.price, selectedClub?.platformFeePercent).finalAmount, selectedPlan.currency)}</span>
+                        <span className={cn("font-semibold text-primary", appliedCoupon && "line-through text-muted-foreground")}>
+                          {formatPrice(calculateTransactionFees(selectedPlan.price, selectedClub?.platformFeePercent).finalAmount, selectedPlan.currency)}
+                        </span>
                       </div>
+                      {appliedCoupon && (
+                        <>
+                          <div className="flex justify-between gap-4 text-green-700">
+                            <span>Coupon ({appliedCoupon.code}):</span>
+                            <span>-{formatPrice(Math.min(appliedCoupon.discount, selectedPlan.price), selectedPlan.currency)}</span>
+                          </div>
+                          <div className="flex justify-between gap-4 border-t pt-2 font-semibold">
+                            <span>Total after discount:</span>
+                            <span className="text-primary">
+                              {formatPrice(
+                                calculateTransactionFees(
+                                  Math.max(selectedPlan.price - appliedCoupon.discount, 0),
+                                  selectedClub?.platformFeePercent,
+                                ).finalAmount,
+                                selectedPlan.currency,
+                              )}
+                            </span>
+                          </div>
+                        </>
+                      )}
                       <div className="flex justify-between gap-4">
                         <span className="text-muted-foreground">Duration:</span>
                         <span className="font-medium text-foreground">{formatPlanPeriod(selectedPlan)}</span>
@@ -1727,7 +1953,9 @@ function ClubsPageContent() {
             orderId={pendingOrder.orderId}
             orderNumber={pendingOrder.orderNumber}
             total={amountToCharge}
-            subtotal={pendingOrder.total}
+            subtotal={pendingOrder.subtotal}
+            couponDiscount={pendingOrder.couponDiscount}
+            couponCode={pendingOrder.couponCode}
             currency={pendingOrder.currency}
             paymentMethod={pendingOrder.paymentMethod}
             platformFeeTotal={feeBreakdown ? feeBreakdown.platformFee + feeBreakdown.platformFeeGst : undefined}
@@ -1741,7 +1969,8 @@ function ClubsPageContent() {
                 selectedPlan?._id || "",
                 razorpayOrderId,
                 pendingReferralPhone,
-                { tshirtSize: pendingRegistrationData?.tshirtSize, tshirtColor: pendingRegistrationData?.tshirtColor }
+                { tshirtSize: pendingRegistrationData?.tshirtSize, tshirtColor: pendingRegistrationData?.tshirtColor },
+                pendingOrder.couponCode,
               )
               if (!result.success) toast.error(result.error || 'Unable to prepare membership purchase')
               return result.success

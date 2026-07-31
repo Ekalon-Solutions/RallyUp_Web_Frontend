@@ -3833,7 +3833,8 @@ class ApiClient {
     planId: string,
     payment?: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string },
     referralPhone?: string,
-    merch?: { tshirtSize?: string; tshirtColor?: string }
+    merch?: { tshirtSize?: string; tshirtColor?: string },
+    couponCode?: string
   ): Promise<ApiResponse<{
     message: string;
     data: {
@@ -3846,6 +3847,7 @@ class ApiClient {
     if (referralPhone) body.referralPhone = referralPhone;
     if (merch?.tshirtSize) body.tshirtSize = merch.tshirtSize;
     if (merch?.tshirtColor) body.tshirtColor = merch.tshirtColor;
+    if (couponCode) body.couponCode = couponCode;
     return this.request(`/membership-plans/${planId}/subscribe`, {
       method: 'POST',
       body: Object.keys(body).length > 0 ? JSON.stringify(body) : undefined,
@@ -3856,12 +3858,14 @@ class ApiClient {
     planId: string,
     razorpayOrderId: string,
     referralPhone?: string,
-    merch?: { tshirtSize?: string; tshirtColor?: string }
+    merch?: { tshirtSize?: string; tshirtColor?: string },
+    couponCode?: string
   ): Promise<ApiResponse<{ userMembership: any; status: 'pending' | 'active' }>> {
     const body: any = { razorpayOrderId }
     if (referralPhone) body.referralPhone = referralPhone
     if (merch?.tshirtSize) body.tshirtSize = merch.tshirtSize
     if (merch?.tshirtColor) body.tshirtColor = merch.tshirtColor
+    if (couponCode) body.couponCode = couponCode
     return this.request(`/membership-plans/${planId}/pending-purchase`, {
       method: 'POST',
       body: JSON.stringify(body),
@@ -5974,10 +5978,10 @@ class ApiClient {
     });
   }
 
-  async validateCoupon(code: string, eventId?: string, ticketPrice?: number, clubId?: string): Promise<ApiResponse<{ coupon: { code: string; name: string; discountType: 'flat' | 'percentage'; discountValue: number; discount: number; originalPrice: number; finalPrice: number } }>> {
+  async validateCoupon(code: string, eventId?: string, ticketPrice?: number, clubId?: string, purchaseType?: 'membership'): Promise<ApiResponse<{ coupon: { code: string; name: string; discountType: 'flat' | 'percentage'; discountValue: number; discount: number; originalPrice: number; finalPrice: number } }>> {
     return this.request('/coupons/validate', {
       method: 'POST',
-      body: JSON.stringify({ code, eventId, ticketPrice, clubId }),
+      body: JSON.stringify({ code, eventId, ticketPrice, clubId, purchaseType }),
     });
   }
 
@@ -5994,6 +5998,7 @@ class ApiClient {
     email?: string;
     cartSubtotal: number;
     eventId?: string;
+    purchaseType?: 'membership';
   }): Promise<ApiResponse<{
     coupon: {
       code: string;
