@@ -3834,7 +3834,8 @@ class ApiClient {
     payment?: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string },
     referralPhone?: string,
     merch?: { tshirtSize?: string; tshirtColor?: string },
-    couponCode?: string
+    couponCode?: string,
+    amountPaid?: number
   ): Promise<ApiResponse<{
     message: string;
     data: {
@@ -3848,6 +3849,7 @@ class ApiClient {
     if (merch?.tshirtSize) body.tshirtSize = merch.tshirtSize;
     if (merch?.tshirtColor) body.tshirtColor = merch.tshirtColor;
     if (couponCode) body.couponCode = couponCode;
+    if (amountPaid !== undefined) body.amountPaid = amountPaid;
     return this.request(`/membership-plans/${planId}/subscribe`, {
       method: 'POST',
       body: Object.keys(body).length > 0 ? JSON.stringify(body) : undefined,

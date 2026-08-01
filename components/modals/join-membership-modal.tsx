@@ -758,6 +758,7 @@ export function JoinMembershipModal({
           tshirtColor: pendingRegistrationData?.tshirtColor ?? registrationData.tshirtColor,
         },
         pendingPayment.couponCode,
+        pendingPayment.total
       )
       if (response.success) {
         const upgraded = response.data && "isUpgrade" in response.data && response.data.isUpgrade
