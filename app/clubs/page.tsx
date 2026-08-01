@@ -1594,7 +1594,7 @@ function ClubsPageContent() {
                     id="gender"
                     value={registrationData.gender}
                     onChange={(e) => setRegistrationData({ ...registrationData, gender: e.target.value })}
-                    className="w-full h-12 rounded-md border px-3"
+                    className="w-full h-12 rounded-md border border-input bg-background px-3 text-foreground"
                   >
                     <option value="male">Male</option>
                     <option value="female">Female</option>
@@ -1618,14 +1618,14 @@ function ClubsPageContent() {
                   <>
                     <div className="space-y-2">
                       <Label htmlFor="tshirtSize">Choose T-Shirt Size</Label>
-                      <select id="tshirtSize" value={registrationData.tshirtSize} onChange={(e) => setRegistrationData({ ...registrationData, tshirtSize: e.target.value })} required className="w-full h-12 rounded-md border px-3">
+                      <select id="tshirtSize" value={registrationData.tshirtSize} onChange={(e) => setRegistrationData({ ...registrationData, tshirtSize: e.target.value })} required className="w-full h-12 rounded-md border border-input bg-background px-3 text-foreground">
                         <option value="">Select size</option>
                         {TSHIRT_SIZE_OPTIONS.map((size) => <option key={size} value={size}>{size}</option>)}
                       </select>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="tshirtColor">Choose T-Shirt Colour</Label>
-                      <select id="tshirtColor" value={registrationData.tshirtColor} onChange={(e) => setRegistrationData({ ...registrationData, tshirtColor: e.target.value })} required className="w-full h-12 rounded-md border px-3">
+                      <select id="tshirtColor" value={registrationData.tshirtColor} onChange={(e) => setRegistrationData({ ...registrationData, tshirtColor: e.target.value })} required className="w-full h-12 rounded-md border border-input bg-background px-3 text-foreground">
                         <option value="">Select colour</option>
                         {TSHIRT_COLOR_OPTIONS.map((color) => <option key={color} value={color}>{color}</option>)}
                       </select>
