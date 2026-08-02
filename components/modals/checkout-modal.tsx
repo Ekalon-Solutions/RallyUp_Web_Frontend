@@ -175,6 +175,10 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
   // synchronous — a fast double-click can fire two submits before a re-render
   // disables the button.
   const submittingRef = useRef(false)
+  // A ref guard, not just the `loading` state, since state updates aren't
+  // synchronous — a fast double-click can fire two submits before a re-render
+  // disables the button.
+  const submittingRef = useRef(false)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [createdOrder, setCreatedOrder] = useState<any>(null)
   const [orderShipping, setOrderShipping] = useState<number | null>(null)
@@ -778,7 +782,6 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
     if (isAdmin) {
       toast.error("Admin accounts cannot place orders. Please log in as a member.")
       return
@@ -789,7 +792,9 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
     }
 
     submittingRef.current = true
+    submittingRef.current = true
     setLoading(true)
+
 
     try {
       const orderData = {
@@ -868,6 +873,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
     } catch (error) {
       toast.error('Failed to place order. Please try again.')
     } finally {
+      submittingRef.current = false
       submittingRef.current = false
       setLoading(false)
     }
@@ -1656,6 +1662,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                           type="button"
                           size="sm"
                           disabled={reserving}
+                          disabled={reserving}
                           onClick={async () => {
                             if (!user) {
                               toast.error('Please log in to redeem points')
@@ -1843,6 +1850,33 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
           </div>
         </form>
       </DialogContent>
+
+      {/* Member Validation Modal */}
+      {items.length > 0 && (
+        <MemberValidationModal
+          isOpen={showMemberValidation}
+          onClose={() => setShowMemberValidation(false)}
+          clubId={typeof items[0]?.club === 'string' ? items[0].club : items[0]?.club?._id || ''}
+          clubName={typeof items[0]?.club === 'object' ? items[0].club?.name : undefined}
+          onMemberFound={() => {
+            router.push('/')
+            onClose()
+          }}
+          onNonMemberContinue={() => {
+            setMemberValidated(true)
+            setShowMemberValidation(false)
+            const form = document.querySelector('form')
+            if (form) {
+              form.requestSubmit()
+            }
+          }}
+          onBecomeMember={() => {
+            const clubId = typeof items[0]?.club === 'string' ? items[0].club : items[0]?.club?._id
+            router.push(`/membership-plans?clubId=${clubId}`)
+            onClose()
+          }}
+        />
+      )}
 
       {/* Payment Simulation Modal */}
       {createdOrder && (
