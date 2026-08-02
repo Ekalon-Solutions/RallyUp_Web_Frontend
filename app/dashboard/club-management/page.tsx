@@ -227,46 +227,47 @@ export default function ClubManagementPage() {
         setCreating(false)
         return
       }
-      createForm.slug = slugValue
-      
-      if (!createForm.name || !createForm.contactEmail || !createForm.contactPhone || 
-          !createForm.superAdminEmail || !createForm.superAdminPhone) {
+      const formToSubmit = { ...createForm, slug: slugValue }
+      setCreateForm(formToSubmit)
+
+      if (!formToSubmit.name || !formToSubmit.contactEmail || !formToSubmit.contactPhone ||
+          !formToSubmit.superAdminEmail || !formToSubmit.superAdminPhone) {
         toast.error('Please fill in all required fields')
         return
       }
 
-      if (!createForm.name.trim()) {
+      if (!formToSubmit.name.trim()) {
         toast.error('Club name cannot be empty')
         return
       }
 
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-      if (!emailRegex.test(createForm.contactEmail)) {
+      if (!emailRegex.test(formToSubmit.contactEmail)) {
         toast.error('Please enter a valid contact email address')
         return
       }
-      if (!emailRegex.test(createForm.superAdminEmail)) {
+      if (!emailRegex.test(formToSubmit.superAdminEmail)) {
         toast.error('Please enter a valid super admin email address')
         return
       }
 
       const phoneRegex = /^\d{9,15}$/
-      if (!phoneRegex.test(createForm.contactPhone)) {
+      if (!phoneRegex.test(formToSubmit.contactPhone)) {
         toast.error('Contact phone number must be 9-15 digits')
         return
       }
-      if (!phoneRegex.test(createForm.superAdminPhone)) {
+      if (!phoneRegex.test(formToSubmit.superAdminPhone)) {
         toast.error('Super admin phone number must be 9-15 digits')
         return
       }
 
-      if (createForm.platformFeePercent > 100) {
+      if (formToSubmit.platformFeePercent > 100) {
         toast.error('Platform fee should be less than 100%')
         setCreating(false)
         return
       }
 
-      const response = await apiClient.createClub({ ...createForm, platformFeePercent: createForm.platformFeePercent ?? 5 })
+      const response = await apiClient.createClub({ ...formToSubmit, platformFeePercent: formToSubmit.platformFeePercent ?? 5 })
       
       if (response.success) {
         toast.success('Club created successfully!')

@@ -214,7 +214,6 @@ export default function DashboardPage() {
 
   const clubId = getUserClubId()
   const { settings: clubSettings } = useClubSettings(clubId)
-  console.log("club settings:", clubSettings)
 
   const settingsLogo = clubSettings ? ((clubSettings as any).designSettings?.logo) : undefined
   const displayLogo = settingsLogo || clubLogo

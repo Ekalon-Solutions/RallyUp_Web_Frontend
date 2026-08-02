@@ -217,7 +217,7 @@ export default function RewardPointsGrantedReportPage() {
       header: "Notes",
       accessor: (row) => (
         <span className="text-xs text-muted-foreground truncate max-w-full block" title={row.notes}>
-          {row.notes || "Ã¢â‚¬â€"}
+          {row.notes || "—"}
         </span>
       ),
       width: "w-48",
@@ -227,7 +227,7 @@ export default function RewardPointsGrantedReportPage() {
       header: "Timestamp",
       accessor: (row) => (
         <span className="font-mono text-xs">
-          {row.timestamp ? row.timestamp.replace("T", " ").slice(0, 19) : "Ã¢â‚¬â€"}
+          {row.timestamp ? row.timestamp.replace("T", " ").slice(0, 19) : "—"}
         </span>
       ),
       sortable: true,

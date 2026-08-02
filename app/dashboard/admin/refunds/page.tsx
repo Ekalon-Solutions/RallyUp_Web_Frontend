@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/contexts/auth-context'
 import { DashboardLayout } from '@/components/dashboard-layout'
+import { ProtectedRoute } from '@/components/protected-route'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -14,7 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { RefundDetailsModal } from '@/components/modals/refund-details-modal'
-import { getApiUrl } from '@/lib/config'
+import { apiClient } from '@/lib/api'
 import { ChevronLeft, ChevronRight, Eye, CheckCircle, BarChart3 } from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
@@ -111,23 +112,16 @@ function RefundsPageInner() {
     const loadPolicyMeta = async () => {
       setPolicyAnalyticsLoading(true)
       try {
-        const token = localStorage.getItem('token')
         const [textRes, analyticsRes] = await Promise.all([
-          fetch(getApiUrl(`/refunds/admin/policy-text?clubId=${clubId}`), {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
-          fetch(getApiUrl(`/refunds/admin/policy-analytics?clubId=${clubId}&days=30`), {
-            headers: { Authorization: `Bearer ${token}` },
-          }),
+          apiClient.getRefundPolicyText(clubId),
+          apiClient.getRefundPolicyModalAnalytics({ clubId, days: 30 }),
         ])
-        const textData = await textRes.json()
-        const analyticsData = await analyticsRes.json()
-        if (textRes.ok && textData.success) {
-          setPolicyText(textData.data?.customCancellationText || '')
-          setGrandfatherPurchasedRefunds(textData.data?.grandfatherPurchasedRefunds !== false)
+        if (textRes.success && textRes.data) {
+          setPolicyText(textRes.data.customCancellationText || '')
+          setGrandfatherPurchasedRefunds(textRes.data.grandfatherPurchasedRefunds !== false)
         }
-        if (analyticsRes.ok && analyticsData.success) {
-          setPolicyAnalytics(analyticsData.data)
+        if (analyticsRes.success && analyticsRes.data) {
+          setPolicyAnalytics(analyticsRes.data)
         }
       } catch {
       } finally {
@@ -145,20 +139,12 @@ function RefundsPageInner() {
     let cancelled = false
     const fetchRecalc = async () => {
       try {
-        const token = localStorage.getItem('token')
-        const res = await fetch(
-          getApiUrl(
-            `/refunds/admin/${selectedRefund._id}/recalculate${clubId ? `?clubId=${encodeURIComponent(clubId)}` : ''}`
-          ),
-          {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-        const data = await res.json()
-        if (!cancelled && res.ok && data.success && data.data?.differs) {
+        const res = await apiClient.getRefundRecalculate(selectedRefund._id, clubId ?? undefined)
+        if (!cancelled && res.success && res.data?.differs) {
           setRecalculated({
-            recalculatedRefund: data.data.recalculatedRefund,
-            percentage: data.data.percentage,
-            differs: data.data.differs
+            recalculatedRefund: res.data.recalculatedRefund,
+            percentage: res.data.percentage,
+            differs: res.data.differs
           })
         } else if (!cancelled) {
           setRecalculated(null)
@@ -177,18 +163,12 @@ function RefundsPageInner() {
     setGrandfatherPurchasedRefunds(enabled)
     try {
       setGrandfatherSaving(true)
-      const token = localStorage.getItem('token')
-      const res = await fetch(getApiUrl('/refunds/admin/refund-grandfathering'), {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ clubId, grandfatherPurchasedRefunds: enabled }),
-      })
-      const data = await res.json()
-      if (res.ok && data.success) {
+      const res = await apiClient.updateRefundGrandfathering(clubId, enabled)
+      if (res.success) {
         sonnerToast.success('Refund grandfathering preference saved')
       } else {
         setGrandfatherPurchasedRefunds(previous)
-        sonnerToast.error(data.message || 'Failed to update grandfathering setting')
+        sonnerToast.error(res.message || res.error || 'Failed to update grandfathering setting')
       }
     } catch {
       setGrandfatherPurchasedRefunds(previous)
@@ -202,17 +182,11 @@ function RefundsPageInner() {
     if (!clubId) return
     try {
       setPolicyTextSaving(true)
-      const token = localStorage.getItem('token')
-      const res = await fetch(getApiUrl('/refunds/admin/policy-text'), {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ clubId, customCancellationText: policyText }),
-      })
-      const data = await res.json()
-      if (res.ok && data.success) {
+      const res = await apiClient.updateRefundPolicyText(clubId, policyText)
+      if (res.success) {
         sonnerToast.success('Cancellation policy text saved')
       } else {
-        sonnerToast.error(data.message || 'Failed to save policy text')
+        sonnerToast.error(res.message || res.error || 'Failed to save policy text')
       }
     } catch {
       sonnerToast.error('Failed to save policy text')
@@ -224,31 +198,20 @@ function RefundsPageInner() {
   const fetchRefunds = async () => {
     try {
       setLoading(true)
-      const token = localStorage.getItem('token')
-      const searchParams = new URLSearchParams({
-        page: String(page),
-        limit: '20',
+      const res = await apiClient.listRefundsAdmin({
+        page,
+        limit: 20,
         status: statusFilter,
+        ...(clubId ? { clubId } : {}),
       })
-      if (clubId) searchParams.set('clubId', clubId)
-      const response = await fetch(
-        getApiUrl(`/refunds/admin?${searchParams.toString()}`),
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        }
-      )
 
-      const data = await response.json()
-
-      if (response.ok && data.success) {
-        setRefunds(data.data.refunds)
-        setTotalPages(data.data.pagination.totalPages)
+      if (res.success && res.data) {
+        setRefunds(res.data.refunds)
+        setTotalPages(res.data.pagination.totalPages)
       } else {
         toast({
           title: 'Error',
-          description: data.message || 'Failed to fetch refunds',
+          description: res.message || res.error || 'Failed to fetch refunds',
           variant: 'destructive'
         })
       }
@@ -266,22 +229,9 @@ function RefundsPageInner() {
 
   const handleMarkProcessed = async (refundId: string, adminNotes: string) => {
     try {
-      const token = localStorage.getItem('token')
-      const response = await fetch(
-        getApiUrl(`/refunds/admin/${refundId}/processed`),
-        {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({ adminNotes, ...(clubId ? { clubId } : {}) })
-        }
-      )
+      const res = await apiClient.markRefundProcessed(refundId, adminNotes, clubId ?? undefined)
 
-      const data = await response.json()
-
-      if (response.ok && data.success) {
+      if (res.success) {
         toast({
           title: 'Success',
           description: 'Refund marked as processed'
@@ -292,7 +242,7 @@ function RefundsPageInner() {
       } else {
         toast({
           title: 'Error',
-          description: data.message || 'Failed to process refund',
+          description: res.message || res.error || 'Failed to process refund',
           variant: 'destructive'
         })
       }
@@ -602,8 +552,10 @@ function RefundsPageInner() {
 
 export default function RefundsPage() {
   return (
-    <Suspense>
-      <RefundsPageInner />
-    </Suspense>
+    <ProtectedRoute requireAdmin>
+      <Suspense>
+        <RefundsPageInner />
+      </Suspense>
+    </ProtectedRoute>
   )
 }

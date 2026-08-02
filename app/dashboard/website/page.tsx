@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from "react"
 import { DashboardLayout } from "@/components/dashboard-layout"
+import { ProtectedRoute } from "@/components/protected-route"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -248,28 +249,33 @@ export default function WebsitePage() {
 
   if (loading) {
     return (
-      <DashboardLayout>
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        </div>
-      </DashboardLayout>
+      <ProtectedRoute requireAdmin>
+        <DashboardLayout>
+          <div className="flex items-center justify-center h-64">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          </div>
+        </DashboardLayout>
+      </ProtectedRoute>
     )
   }
 
   if (!isFeatureEnabled(clubFeatureConfig, 'website')) {
     return (
-      <DashboardLayout>
-        <LockedFeaturePage
-          featureKey="website"
-          featureLabel="Website Builder"
-          clubId={clubId ?? ""}
-          currentTier={clubFeatureConfig?.billing_tier}
-        />
-      </DashboardLayout>
+      <ProtectedRoute requireAdmin>
+        <DashboardLayout>
+          <LockedFeaturePage
+            featureKey="website"
+            featureLabel="Website Builder"
+            clubId={clubId ?? ""}
+            currentTier={clubFeatureConfig?.billing_tier}
+          />
+        </DashboardLayout>
+      </ProtectedRoute>
     )
   }
 
   return (
+    <ProtectedRoute requireAdmin>
     <DashboardLayout>
       <div className="relative max-w-6xl mx-auto space-y-10 py-8 px-4 md:px-0">
         {clubId && (
@@ -530,5 +536,6 @@ export default function WebsitePage() {
         </div>
       </div>
     </DashboardLayout>
+    </ProtectedRoute>
   )
 }

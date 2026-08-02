@@ -5,6 +5,24 @@ import { CLUB_FEATURE_DISABLED_EVENT, type ClubFeatureKey } from './clubFeatures
 
 const API_BASE_URL = getApiUrl('');
 
+/** Dispatched on any 401 response from an authenticated request, so listeners can force-logout. */
+export const SESSION_EXPIRED_EVENT = 'rallyup:session-expired';
+
+// Endpoints where a 401 is an expected outcome, not a sign the session expired:
+// pre-auth OTP/login calls, the account-switch call itself, and the profile
+// endpoints checkAuth() probes in a discovery loop (trying user/admin/system-owner
+// profiles in turn, expecting most of them to 401).
+const SESSION_EXPIRY_EXEMPT_ENDPOINTS = [
+  '/otp/send',
+  '/otp/verify',
+  '/otp/verify-email-otp',
+  '/otp/resend',
+  '/role-switch/switch',
+  '/users/profile',
+  '/admin/profile',
+  '/system-owner/profile',
+];
+
 export interface ApiResponse<T = any> {
   success: boolean;
   data?: T;
@@ -1200,6 +1218,15 @@ class ApiClient {
               },
             })
           );
+        }
+
+        if (
+          typeof window !== 'undefined' &&
+          response.status === 401 &&
+          token &&
+          !SESSION_EXPIRY_EXEMPT_ENDPOINTS.some((exempt) => endpoint.startsWith(exempt))
+        ) {
+          window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT));
         }
 
         return {
@@ -5983,8 +6010,8 @@ class ApiClient {
     return this.put(`/club-settings/${clubId}/sports`, data);
   }
 
-  async refreshLeagueTables(): Promise<ApiResponse<any>> {
-    return this.post(`/sports/refresh-league-tables`, {});
+  async refreshLeagueTables(clubId?: string): Promise<ApiResponse<any>> {
+    return this.post(`/sports/refresh-league-tables`, clubId ? { clubId } : {});
   }
 
   async getLeagueTable(leagueId: string): Promise<ApiResponse<any>> {
@@ -6193,7 +6220,9 @@ class ApiClient {
       itemsPerPage: number;
     };
   }>> {
-    return this.get('/refunds/admin', { params });
+    const res = await this.get<any>('/refunds/admin', { params });
+    if (res.success && res.data) return { ...res, data: res.data.data ?? res.data };
+    return res;
   }
 
   async getRefundRecalculate(refundId: string, clubId?: string): Promise<ApiResponse<{
@@ -6204,7 +6233,9 @@ class ApiClient {
     differs: boolean;
   }>> {
     const qs = clubId ? `?clubId=${encodeURIComponent(clubId)}` : '';
-    return this.get(`/refunds/admin/${refundId}/recalculate${qs}`);
+    const res = await this.get<any>(`/refunds/admin/${refundId}/recalculate${qs}`);
+    if (res.success && res.data) return { ...res, data: res.data.data ?? res.data };
+    return res;
   }
 
   async markRefundProcessed(refundId: string, adminNotes?: string, clubId?: string): Promise<ApiResponse<any>> {
@@ -6212,6 +6243,23 @@ class ApiClient {
       method: 'PATCH',
       body: JSON.stringify({ adminNotes, ...(clubId ? { clubId } : {}) }),
     });
+  }
+
+  async getRefundPolicyText(clubId: string): Promise<ApiResponse<{
+    customCancellationText?: string;
+    grandfatherPurchasedRefunds?: boolean;
+  }>> {
+    const res = await this.get<any>('/refunds/admin/policy-text', { params: { clubId } });
+    if (res.success && res.data) return { ...res, data: res.data.data ?? res.data };
+    return res;
+  }
+
+  async updateRefundPolicyText(clubId: string, customCancellationText: string): Promise<ApiResponse<any>> {
+    return this.put('/refunds/admin/policy-text', { clubId, customCancellationText });
+  }
+
+  async updateRefundGrandfathering(clubId: string, grandfatherPurchasedRefunds: boolean): Promise<ApiResponse<any>> {
+    return this.put('/refunds/admin/refund-grandfathering', { clubId, grandfatherPurchasedRefunds });
   }
 
   async getEventRefundPolicy(eventId: string): Promise<ApiResponse<{
@@ -6261,7 +6309,9 @@ class ApiClient {
     bySource: Array<{ source: string; count: number }>;
     dailyOpens: Array<{ date: string; count: number }>;
   }>> {
-    return this.get('/refunds/admin/policy-analytics', { params });
+    const res = await this.get<any>('/refunds/admin/policy-analytics', { params });
+    if (res.success && res.data) return { ...res, data: res.data.data ?? res.data };
+    return res;
   }
 
   async getClubStats(clubId: string): Promise<ApiResponse<{

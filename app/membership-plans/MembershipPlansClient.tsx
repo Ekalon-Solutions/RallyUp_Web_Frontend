@@ -61,6 +61,8 @@ export default function MembershipPlansClient({ clubId }: { clubId: string }) {
         const clubs = (resp.success ? (resp.data as any)?.clubs : []) as PublicClubWithPlans[]
         const found = clubs.find((c) => c?._id === clubId) || null
         setClub(found)
+      } catch {
+        setClub(null)
       } finally {
         setLoading(false)
       }

@@ -174,6 +174,10 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
     ? directCheckoutItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
     : cartTotalPrice
   const [loading, setLoading] = useState(false)
+  // A ref guard, not just the `loading` state, since state updates aren't
+  // synchronous — a fast double-click can fire two submits before a re-render
+  // disables the button.
+  const submittingRef = useRef(false)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [createdOrder, setCreatedOrder] = useState<any>(null)
   const [orderShipping, setOrderShipping] = useState<number | null>(null)
@@ -779,13 +783,15 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
+    if (submittingRef.current) return
     if (!validateForm()) {
       return
     }
 
+    submittingRef.current = true
     setLoading(true)
-    
+
     try {
       const orderData = {
         customer: {
@@ -863,6 +869,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
     } catch (error) {
       toast.error('Failed to place order. Please try again.')
     } finally {
+      submittingRef.current = false
       setLoading(false)
     }
   }
@@ -1645,6 +1652,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                         <Button
                           type="button"
                           size="sm"
+                          disabled={reserving}
                           onClick={async () => {
                             if (!user) {
                               toast.error('Please log in to redeem points')
@@ -1841,7 +1849,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
           clubId={typeof items[0]?.club === 'string' ? items[0].club : items[0]?.club?._id || ''}
           clubName={typeof items[0]?.club === 'object' ? items[0].club?.name : undefined}
           onMemberFound={() => {
-            router.push('/login')
+            router.push('/')
             onClose()
           }}
           onNonMemberContinue={() => {

@@ -42,9 +42,8 @@ import {
   Eye
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import config from '@/lib/config';
 import { triggerBlobDownload, formatDisplayDate } from '@/lib/utils';
-import { Volunteer } from '@/lib/api';
+import { apiClient, Volunteer } from '@/lib/api';
 
 interface AdminVolunteerListProps {
   clubId: string;
@@ -73,22 +72,10 @@ export default function AdminVolunteerList({ clubId, currentUser }: AdminVolunte
   const fetchVolunteers = async () => {
     try {
       setLoading(true);
-      const queryParams = new URLSearchParams();
-      if (clubId) queryParams.append('club', clubId);
+      const response = await apiClient.getVolunteers(clubId ? { club: clubId } : undefined);
 
-      const response = await fetch(
-        `${config.apiBaseUrl}/volunteer/volunteers?${queryParams.toString()}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${currentUser?.token || localStorage.getItem('token')}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        setVolunteers(data);
+      if (response.success && response.data) {
+        setVolunteers(response.data);
       } else {
         throw new Error('Failed to fetch volunteers');
       }

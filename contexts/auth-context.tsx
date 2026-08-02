@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { apiClient, User, Admin, SystemOwner } from '../lib/api';
+import { apiClient, User, Admin, SystemOwner, SESSION_EXPIRED_EVENT } from '../lib/api';
 import { buildAccessibleClubs, reconcileActiveClubId } from '../lib/clubContext';
 import { clearAllFeatureCaches } from '../lib/featureCacheStore';
 import {
@@ -432,6 +432,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setActiveClubIdState(null);
     window.location.href = '/';
   };
+
+  useEffect(() => {
+    const onSessionExpired = () => logout();
+    window.addEventListener(SESSION_EXPIRED_EVENT, onSessionExpired);
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, onSessionExpired);
+  }, []);
 
   const updateProfile = async (data: any): Promise<{ success: boolean; error?: string }> => {
     try {

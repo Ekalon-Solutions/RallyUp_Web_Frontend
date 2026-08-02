@@ -49,7 +49,6 @@ export default function LeagueTableWidget({ leagueId, highlightTeamId, highlight
       setLoading(true);
       setError(null);
       const resp = await apiClient.getLeagueTable(leagueId);
-      console.log("llt resp:", resp)
       if (resp.success && resp.data?.data?.standings) {
         setStandings(resp.data.data.standings);
       } else {

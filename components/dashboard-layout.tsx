@@ -585,7 +585,7 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
   const pathname = usePathname()
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const { user, logout, isAdmin, isVendor, activeClubId, setActiveClubId, switchRole } = useAuth()
+  const { user, logout, isAdmin, isVendor, activeClubId, setActiveClubId, switchRole, isLoading: authLoading } = useAuth()
   const [availableRoles, setAvailableRoles] = useState<{ accountType: 'user' | 'admin' | 'system_owner'; accountId: string; role: string; name: string; clubIds?: string[] }[]>([])
 
   useEffect(() => {
@@ -606,6 +606,7 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
     const result = await switchRole(accountType, accountId)
     if (result.success) {
       router.push('/dashboard')
+      router.refresh()
     }
   }
 
@@ -707,6 +708,15 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
   const isAdminRole = user?.role === 'admin' || user?.role === 'super_admin'
   const isVendorRole = isVendor || user?.role === 'vendor'
   const isAuthenticated = Boolean(user)
+
+  // Shared dashboard shell has no auth check of its own — enforcement was
+  // 100% delegated to each page opting into <ProtectedRoute>. Pages that
+  // don't wrap themselves rendered the full chrome for logged-out visitors.
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      router.replace('/login')
+    }
+  }, [authLoading, isAuthenticated, router])
 
   useEffect(() => {
     if (!isVendorRole || !pathname) return
@@ -904,6 +914,14 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
   const lockedPageLabel = currentPageFeatureKey
     ? (clubFeatureFlags(clubFeatures).find((f) => f.key === currentPageFeatureKey)?.label ?? currentPageFeatureKey)
     : null
+
+  if (authLoading || !isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      </div>
+    )
+  }
 
   return (
     <DashboardChromeContext.Provider value={true}>
