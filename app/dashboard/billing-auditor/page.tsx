@@ -239,9 +239,10 @@ export default function BillingAuditorPage() {
   }, [showResolved])
 
   useEffect(() => {
+    if (authLoading || user?.role !== "system_owner") return
     const t = setTimeout(load, 200)
     return () => clearTimeout(t)
-  }, [load])
+  }, [load, authLoading, user?.role])
 
   // ── Client-side filtering ──────────────────────────────────────────────
 

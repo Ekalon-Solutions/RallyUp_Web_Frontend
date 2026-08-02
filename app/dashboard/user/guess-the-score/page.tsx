@@ -624,26 +624,17 @@ export default function GuessTheScorePage() {
   // Socket: join club GTS room and listen for live score pushes from the server
   useEffect(() => {
     if (!prefs?.hasAcceptedConsent || !clubId || !socket || !isConnected) {
-      console.log("[GTS] Socket not ready or consent missing — skipping room join", { isConnected, clubId, hasConsent: prefs?.hasAcceptedConsent })
       return
     }
 
-    console.log(`[GTS] Joining club GTS room: gts:${clubId}`)
     socket.emit("join-gts-club", clubId)
 
     const handleFixturesUpdated = (data: { fixtures: GTSFixture[] }) => {
-      const live = data.fixtures.filter(f =>
-        f.strStatus !== "Not Started" && f.strStatus !== "" &&
-        f.strStatus !== "Match Finished" && f.strStatus !== "FT" &&
-        f.strStatus !== "AET" && f.strStatus !== "PEN"
-      )
-      console.log(`[GTS] gts:fixtures-updated — ${data.fixtures.length} fixtures, ${live.length} live`, live.map(f => `${f.strHomeTeam} vs ${f.strAwayTeam} (${f.strStatus} ${f.intHomeScore ?? "?"}–${f.intAwayScore ?? "?"})`))
       setFixtures(data.fixtures)
     }
     socket.on("gts:fixtures-updated", handleFixturesUpdated)
 
     return () => {
-      console.log(`[GTS] Leaving club GTS room: gts:${clubId}`)
       socket.emit("leave-gts-club", clubId)
       socket.off("gts:fixtures-updated", handleFixturesUpdated)
     }
@@ -657,7 +648,6 @@ export default function GuessTheScorePage() {
       result: GTSPrediction["result"]
       pointsEarned: number
     }) => {
-      console.log(`[GTS] gts:prediction-result — fixtureId: ${data.fixtureId}, result: ${data.result}, points: ${data.pointsEarned}`)
       setPredictions((prev) =>
         prev.map((p) =>
           p.fixtureId === data.fixtureId

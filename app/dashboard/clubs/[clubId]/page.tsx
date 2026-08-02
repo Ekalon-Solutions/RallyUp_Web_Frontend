@@ -10,6 +10,7 @@ import { ArrowLeft, Users, Calendar, TrendingUp, Award, MapPin, Phone, Mail, Glo
 import { apiClient } from '@/lib/api'
 import { useAuth } from '@/contexts/auth-context'
 import { formatDisplayDate } from '@/lib/utils'
+import { ProtectedRoute } from '@/components/protected-route'
 
 interface ClubDetails {
   _id: string
@@ -28,7 +29,7 @@ interface ClubDetails {
   updatedAt: string
 }
 
-export default function ClubDetailsPage() {
+function ClubDetailsPageInner() {
   const params = useParams()
   const router = useRouter()
   const { user } = useAuth()
@@ -347,5 +348,13 @@ export default function ClubDetailsPage() {
         </TabsContent>
       </Tabs>
     </div>
+  )
+}
+
+export default function ClubDetailsPage() {
+  return (
+    <ProtectedRoute requireAdmin>
+      <ClubDetailsPageInner />
+    </ProtectedRoute>
   )
 }

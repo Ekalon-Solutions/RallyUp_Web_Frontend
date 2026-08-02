@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react"
 import { DashboardLayout } from "@/components/dashboard-layout"
+import { ProtectedRoute } from "@/components/protected-route"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -77,6 +78,7 @@ export default function RevenueReconciliationPage() {
   const grandCount = data.reduce((sum, g) => sum + g.ticketCount, 0)
 
   return (
+    <ProtectedRoute requireAdmin>
     <DashboardLayout>
       <div className="space-y-6 max-w-5xl mx-auto pb-10">
         <div className="flex items-center gap-4 flex-wrap">
@@ -215,5 +217,6 @@ export default function RevenueReconciliationPage() {
         )}
       </div>
     </DashboardLayout>
+    </ProtectedRoute>
   )
 }

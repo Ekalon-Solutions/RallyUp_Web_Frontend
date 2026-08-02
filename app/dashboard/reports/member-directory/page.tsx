@@ -131,7 +131,8 @@ export default function MemberDirectoryReportPage() {
 
       const res = await apiClient.getMemberDirectoryReport(queryParams)
       if (res.success && res.data) {
-        setData(res.data.data)
+        const rawRows = Array.isArray(res.data.data) ? res.data.data : []
+        setData(rawRows)
         if (res.data.meta?.pagination) {
           setPagination(res.data.meta.pagination)
         }

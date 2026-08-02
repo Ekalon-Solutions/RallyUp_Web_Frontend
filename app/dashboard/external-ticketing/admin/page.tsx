@@ -508,9 +508,13 @@ export default function AdminExternalTicketsPage() {
                                   value={r.status}
                                   onValueChange={async (newStatus) => {
                                     try {
-                                      await apiClient.updateExternalTicketRequestStatus(r._id, newStatus as any)
-                                      toast.success('Status updated')
-                                      fetchRequests()
+                                      const resp = await apiClient.updateExternalTicketRequestStatus(r._id, newStatus as any)
+                                      if (resp.success) {
+                                        toast.success('Status updated')
+                                        fetchRequests()
+                                      } else {
+                                        toast.error(resp.error || resp.message || 'Failed to update status')
+                                      }
                                     } catch (error) {
                                       toast.error('Failed to update status')
                                     }

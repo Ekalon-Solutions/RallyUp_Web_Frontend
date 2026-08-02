@@ -159,8 +159,6 @@ const PUBLIC_BYPASS_PATHS = new Set([
   '/faqs',
   '/refund',
   '/child-safety',
-  '/login',
-  '/register',
   '/splash',
   '/clubs',
   '/merchandise',

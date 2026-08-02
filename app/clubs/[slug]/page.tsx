@@ -354,6 +354,7 @@ export default function PublicClubPage() {
         }
       }
     } catch (error) {
+      toast.error("Some club content failed to load. Please refresh the page.")
     } finally {
       setLoading(false)
     }

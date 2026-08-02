@@ -145,7 +145,10 @@ export default function BillingSettingsPage() {
     }
   }, [])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    if (authLoading || user?.role !== "system_owner") return
+    load()
+  }, [load, authLoading, user?.role])
 
   // ── Save helpers ──────────────────────────────────────────────────────
 

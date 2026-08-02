@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { apiClient } from '@/lib/api';
+import { ProtectedRoute } from '@/components/protected-route';
 import { 
   Activity, 
   Users, 
@@ -221,13 +222,16 @@ export default function SessionsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <RefreshCw className="h-8 w-8 animate-spin" />
-      </div>
+      <ProtectedRoute requireSystemOwner>
+        <div className="flex items-center justify-center h-64">
+          <RefreshCw className="h-8 w-8 animate-spin" />
+        </div>
+      </ProtectedRoute>
     );
   }
 
   return (
+    <ProtectedRoute requireSystemOwner>
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
@@ -604,5 +608,6 @@ export default function SessionsPage() {
         </div>
       )}
     </div>
+    </ProtectedRoute>
   );
 }

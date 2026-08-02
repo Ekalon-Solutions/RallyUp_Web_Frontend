@@ -198,7 +198,7 @@ export default function EventDetailPage() {
             // platformFeePercent. Preserve them when hydrating with event detail
             // data so public checkout always uses the club's configured fee.
             const loaded = fullRes.success && fullRes.data
-              ? { ...found, ...fullRes.data }
+              ? { ...found, ...fullRes.data, platformFeePercent: found.platformFeePercent ?? (fullRes.data as Event).platformFeePercent }
               : found
             setEvent(normalizeEventVenues(loaded))
           }

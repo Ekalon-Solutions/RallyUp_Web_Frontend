@@ -205,7 +205,7 @@ function AcceptInviteContent() {
           )}
 
           <p className="text-xs text-center text-muted-foreground">
-            <Link href="/login" className="underline">
+            <Link href="/" className="underline">
               Sign in
             </Link>{" "}
             if you already have a session.

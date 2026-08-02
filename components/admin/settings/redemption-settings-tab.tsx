@@ -42,13 +42,26 @@ export default function RedemptionSettingsTab() {
 
   const handleSave = async (confirmFlag = false) => {
     try {
+      const points = Number(form.points)
+      const currencyAmount = Number(form.currencyAmount)
+      if (!Number.isFinite(points) || !Number.isFinite(currencyAmount)) {
+        toast.error('Points and currency amount must be valid numbers')
+        return
+      }
       const payload: any = {
-        points: Number(form.points),
-        currencyAmount: Number(form.currencyAmount),
+        points,
+        currencyAmount,
         currency: form.currency,
         expiryPolicy: form.expiryPolicy
       }
-      if (form.expiryPolicy === 'months') payload.expiryMonths = Number(form.expiryMonths)
+      if (form.expiryPolicy === 'months') {
+        const expiryMonths = Number(form.expiryMonths)
+        if (!Number.isFinite(expiryMonths)) {
+          toast.error('Expiry months must be a valid number')
+          return
+        }
+        payload.expiryMonths = expiryMonths
+      }
       if (form.expiryPolicy === 'annual_date') payload.expiryMonthDay = form.expiryMonthDay
       if (form.expiryPolicy === 'custom_date' && form.expiryCustomEndDate) {
         const dt = new Date(form.expiryCustomEndDate)

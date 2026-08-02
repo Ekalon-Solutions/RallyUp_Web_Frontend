@@ -226,25 +226,16 @@ export default function SystemOwnerLoginPage() {
                   </div>
                 )}
 
-                <Link href="/login?tab=system-owner-login" className="block">
+                <Link href="/" className="block">
                   <Button
                     type="button"
                     variant="outline"
                     className="w-full border-slate-700 bg-slate-800 text-white hover:bg-slate-700"
                   >
                     <ArrowLeft className="mr-2 w-4 h-4" />
-                    Main login (System tab)
+                    Back to home
                   </Button>
                 </Link>
-
-                <div className="text-center">
-                  <Link
-                    href="/login?tab=system-owner-register"
-                    className="text-sm text-slate-300 hover:text-white transition-colors"
-                  >
-                    Don&apos;t have a system owner account? Register
-                  </Link>
-                </div>
               </CardContent>
             </Card>
           </div>

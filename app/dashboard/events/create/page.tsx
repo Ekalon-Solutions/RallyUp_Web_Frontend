@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useRef, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { DashboardLayout } from "@/components/dashboard-layout"
+import { ProtectedRoute } from "@/components/protected-route"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -365,7 +366,10 @@ function CreateEventForm() {
   }
 
   const enableMultiTicketMatrix = () => {
-    set("multiTicketEnabled", true)
+    // maxAttendees is a single-venue-only cap; multi-ticket mode derives its
+    // capacity from the venue x tier matrix instead. Leaving it set here let
+    // a stale cap silently ride along in the submit payload after switching.
+    setForm((prev) => ({ ...prev, multiTicketEnabled: true, maxAttendees: "" }))
     setVenues((prev) => {
       if (prev.length > 0) return prev
       return ensureVenuesForMulti()
@@ -1455,14 +1459,16 @@ function CreateEventFormRoute() {
 
 export default function CreateEventPage() {
   return (
-    <Suspense fallback={
-      <DashboardLayout>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-        </div>
-      </DashboardLayout>
-    }>
-      <CreateEventFormRoute />
-    </Suspense>
+    <ProtectedRoute requireAdmin>
+      <Suspense fallback={
+        <DashboardLayout>
+          <div className="flex items-center justify-center min-h-[400px]">
+            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+          </div>
+        </DashboardLayout>
+      }>
+        <CreateEventFormRoute />
+      </Suspense>
+    </ProtectedRoute>
   )
 }

@@ -29,7 +29,7 @@ export default function ClubBillingTiersPage() {
 
   if (loading || authLoading) {
     return (
-      <ProtectedRoute requiredRole="admin">
+      <ProtectedRoute requireSystemOwner>
         <DashboardLayout>
           <div className="flex items-center justify-center p-8">
             <Loader2 className="h-8 w-8 animate-spin" />
@@ -46,7 +46,7 @@ export default function ClubBillingTiersPage() {
   };
 
   return (
-    <ProtectedRoute requiredRole="admin">
+    <ProtectedRoute requireSystemOwner>
       <DashboardLayout>
         <div className="space-y-6 p-6">
           {/* Header */}

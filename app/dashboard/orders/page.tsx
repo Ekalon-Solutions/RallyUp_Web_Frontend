@@ -237,6 +237,9 @@ export default function OrdersPage() {
   const [statusNotes, setStatusNotes] = useState('')
   const [showRefundConfirmDialog, setShowRefundConfirmDialog] = useState(false)
   const [orderToRefund, setOrderToRefund] = useState<string | null>(null)
+  const [showCancelConfirmDialog, setShowCancelConfirmDialog] = useState(false)
+  const [orderToCancel, setOrderToCancel] = useState<string | null>(null)
+  const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null)
   const [selectedRegistration, setSelectedRegistration] = useState<any | null>(null)
   const [selectedRegistrationMeta, setSelectedRegistrationMeta] = useState<any | null>(null)
   const [showRegistrationModal, setShowRegistrationModal] = useState(false)
@@ -252,7 +255,7 @@ export default function OrdersPage() {
   const [pendingCancelReg, setPendingCancelReg] = useState<any | null>(null)
   const [cancellingAttendeeId, setCancellingAttendeeId] = useState<string | null>(null)
 
-  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin'
+  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'system_owner'
 
   // Load only the active tab's current page. Runs on mount and whenever the
   // club, tab, page, or a filter changes — so a first load fires a single
@@ -518,6 +521,8 @@ export default function OrdersPage() {
   }
 
   const handleCancelOrder = async (orderId: string) => {
+    if (cancellingOrderId) return
+    setCancellingOrderId(orderId)
     try {
       const response = await apiClient.patch(`/orders/admin/${orderId}/cancel`, {
         reason: 'Cancelled by admin'
@@ -542,6 +547,8 @@ export default function OrdersPage() {
         description: "Failed to cancel order",
         variant: "destructive",
       })
+    } finally {
+      setCancellingOrderId(null)
     }
   }
 
@@ -1235,7 +1242,10 @@ export default function OrdersPage() {
                                   )}
                                   {order.status !== 'cancelled' && order.status !== 'completed' && (
                                     <DropdownMenuItem
-                                      onClick={() => handleCancelOrder(order._id)}
+                                      onClick={() => {
+                                        setOrderToCancel(order._id)
+                                        setShowCancelConfirmDialog(true)
+                                      }}
                                       className="text-red-600"
                                     >
                                       <XCircle className="mr-2 h-4 w-4" />
@@ -2229,6 +2239,45 @@ export default function OrdersPage() {
                 }}
               >
                 Mark as Refunded
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Cancel Order Confirmation Dialog */}
+        <Dialog open={showCancelConfirmDialog} onOpenChange={(open) => {
+          setShowCancelConfirmDialog(open)
+          if (!open) setOrderToCancel(null)
+        }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Cancel Order</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to cancel this order? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowCancelConfirmDialog(false)
+                  setOrderToCancel(null)
+                }}
+              >
+                Keep Order
+              </Button>
+              <Button
+                className="text-red-600"
+                disabled={!!cancellingOrderId}
+                onClick={async () => {
+                  if (orderToCancel) {
+                    await handleCancelOrder(orderToCancel)
+                    setShowCancelConfirmDialog(false)
+                    setOrderToCancel(null)
+                  }
+                }}
+              >
+                Cancel Order
               </Button>
             </DialogFooter>
           </DialogContent>

@@ -110,15 +110,17 @@ export default function FeatureMatrixPage() {
   }, [search])
 
   useEffect(() => {
+    if (authLoading || user?.role !== "system_owner") return
     const t = setTimeout(load, 300)
     return () => clearTimeout(t)
-  }, [load])
+  }, [load, authLoading, user?.role])
 
   useEffect(() => {
+    if (authLoading || user?.role !== "system_owner") return
     apiClient.getBillingAlertCount()
       .then((res) => { if (res.success && res.data) setAlertCount((res.data as any).count ?? 0) })
       .catch(() => {})
-  }, [])
+  }, [authLoading, user?.role])
 
   // ── Derived / filtered data ──────────────────────────────────────────────
 
