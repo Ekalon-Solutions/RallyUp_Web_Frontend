@@ -587,6 +587,7 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { user, logout, isAdmin, isVendor, activeClubId, setActiveClubId, switchRole, isLoading: authLoading } = useAuth()
+  const { user, logout, isAdmin, isVendor, activeClubId, setActiveClubId, switchRole, isLoading: authLoading } = useAuth()
   const [availableRoles, setAvailableRoles] = useState<{ accountType: 'user' | 'admin' | 'system_owner'; accountId: string; role: string; name: string; clubIds?: string[] }[]>([])
 
   useEffect(() => {
@@ -604,8 +605,12 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
   }, [user])
 
   const handleRoleSwitch = async (accountType: 'user' | 'admin' | 'system_owner', accountId: string) => {
-    await switchRole(accountType, accountId);
-  };
+    const result = await switchRole(accountType, accountId)
+    if (result.success) {
+      router.push('/dashboard')
+      router.refresh()
+    }
+  }
 
   const handleClubSwitch = async (clubId: string) => {
     const currentIsAdmin = user?.role === 'admin' || user?.role === 'super_admin';
@@ -696,7 +701,7 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
   // don't wrap themselves rendered the full chrome for logged-out visitors.
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      router.replace('/')
+      router.replace('/login')
     }
   }, [authLoading, isAuthenticated, router])
 
@@ -931,6 +936,14 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
   const lockedPageLabel = currentPageFeatureKey
     ? (clubFeatureFlags(clubFeatures).find((f) => f.key === currentPageFeatureKey)?.label ?? currentPageFeatureKey)
     : null
+
+  if (authLoading || !isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      </div>
+    )
+  }
 
   if (authLoading || !isAuthenticated) {
     return (
