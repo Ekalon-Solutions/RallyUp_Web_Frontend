@@ -55,12 +55,12 @@ export default function BrowseMembershipPlansPage() {
       setReferralName(null)
       return
     }
-    if (digits.length < 10) {
+    if (digits.length < 8) {
       setReferralStatus("idle")
       setReferralName(null)
       return
     }
-    if (digits.length !== 10) {
+    if (digits.length !== 8) {
       setReferralStatus("idle")
       setReferralName(null)
       return
@@ -536,17 +536,17 @@ export default function BrowseMembershipPlansPage() {
                       <Input
                         id="referralPhone"
                         type="tel"
-                        placeholder="Enter 10-digit mobile number"
+                        placeholder="Enter 8-digit mobile number"
                         value={referralPhone}
-                        onChange={(e) => setReferralPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                        onChange={(e) => setReferralPhone(e.target.value.replace(/\D/g, "").slice(0, 8))}
                         className={
                           referralStatus === "found" ? "border-green-500 pr-9" :
                           referralStatus === "self" || referralStatus === "not-found" || referralStatus === "not-member" ? "border-amber-400 pr-9" :
                           "pr-9"
                         }
-                        maxLength={10}
+                        maxLength={8}
                         inputMode="numeric"
-                        pattern="[0-9]{10}"
+                        pattern="[0-9]{8}"
                       />
                       <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
                         {referralStatus === "checking" && <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />}

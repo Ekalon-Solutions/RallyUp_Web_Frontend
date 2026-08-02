@@ -234,7 +234,7 @@ function ClubsPageContent() {
 
   useEffect(() => {
     const digits = referralPhone.replace(/\D/g, "")
-    if (digits.length !== 10 || !selectedClub?._id) {
+    if (digits.length !== 8 || !selectedClub?._id) {
       setReferralStatus("idle")
       setReferralName(null)
       return
@@ -379,7 +379,7 @@ function ClubsPageContent() {
   const getValidReferralPhone = (): string | undefined => {
     if (referralStatus !== "found") return undefined
     const digits = referralPhone.replace(/\D/g, "")
-    return digits.length === 10 ? digits : undefined
+    return digits.length === 8 ? digits : undefined
   }
 
   const resetRegistrationForm = () => {
@@ -1768,15 +1768,15 @@ function ClubsPageContent() {
                     <Input
                       id="referralPhone"
                       type="tel"
-                      placeholder="10-digit mobile number of referring member"
+                      placeholder="8-digit mobile number of referring member"
                       value={referralPhone}
-                      onChange={(e) => setReferralPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                      onChange={(e) => setReferralPhone(e.target.value.replace(/\D/g, "").slice(0, 8))}
                       className={cn(
                         "h-12 pr-10",
                         referralStatus === "found" && "border-green-500",
                         (referralStatus === "not-found" || referralStatus === "not-member" || referralStatus === "self") && "border-amber-400"
                       )}
-                      maxLength={10}
+                      maxLength={8}
                       inputMode="numeric"
                     />
                     <div className="absolute right-3 top-1/2 -translate-y-1/2">

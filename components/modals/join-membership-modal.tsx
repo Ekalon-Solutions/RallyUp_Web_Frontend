@@ -294,7 +294,7 @@ export function JoinMembershipModal({
 
   useEffect(() => {
     const digits = referralPhone.replace(/\D/g, "")
-    if (digits.length !== 10) {
+    if (digits.length !== 8) {
       setReferralStatus("idle")
       setReferralName(null)
       return
@@ -824,15 +824,15 @@ export function JoinMembershipModal({
         <Input
           id="join-referralPhone"
           type="tel"
-          placeholder="10-digit mobile number of referring member"
+          placeholder="8-digit mobile number of referring member"
           value={referralPhone}
-          onChange={(e) => setReferralPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+          onChange={(e) => setReferralPhone(e.target.value.replace(/\D/g, "").slice(0, 8))}
           className={cn(
             "h-12 pr-10 rounded-xl border-secondary bg-white text-black placeholder:text-slate-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary",
             referralStatus === "found" && "border-green-500",
             (referralStatus === "not-found" || referralStatus === "not-member" || referralStatus === "self") && "border-amber-400"
           )}
-          maxLength={10}
+          maxLength={8}
           inputMode="numeric"
         />
         <div className="absolute right-3 top-1/2 -translate-y-1/2">
