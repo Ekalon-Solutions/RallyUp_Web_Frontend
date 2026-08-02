@@ -507,7 +507,7 @@ export function JoinMembershipModal({
 
   const validatePhoneNumber = (phone: string): string => {
     if (!phone) return "Phone number is required"
-    if (!/^\d{9,15}$/.test(phone)) return "Phone number must be 9-15 digits"
+    if (!/^\d{7,15}$/.test(phone)) return "Phone number must be 7-15 digits"
     return ""
   }
 
@@ -1152,7 +1152,7 @@ export function JoinMembershipModal({
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="phoneNumber" className="text-secondary text-[10px] font-bold tracking-widest uppercase">Phone Number <span className="text-primary ml-0.5">*</span></Label>
-                      <Input id="phoneNumber" type="tel" value={registrationData.phoneNumber} onChange={(e) => setRegistrationData({ ...registrationData, phoneNumber: e.target.value })} required className="h-12 rounded-xl border-secondary bg-white text-black placeholder:text-slate-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary" />
+                      <Input id="phoneNumber" type="tel" inputMode="numeric" minLength={7} maxLength={15} pattern="\d{7,15}" value={registrationData.phoneNumber} onChange={(e) => setRegistrationData({ ...registrationData, phoneNumber: e.target.value.replace(/\D/g, "").slice(0, 15) })} required className="h-12 rounded-xl border-secondary bg-white text-black placeholder:text-slate-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary" />
                       {registrationErrors.phoneNumber && <p className="text-destructive text-sm">{registrationErrors.phoneNumber}</p>}
                     </div>
                   </div>
