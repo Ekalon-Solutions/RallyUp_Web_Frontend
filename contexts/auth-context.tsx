@@ -273,6 +273,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const getRoleRank = (role: string): number => {
+    if (role === 'system_owner') return 1;
+    if (role === 'super_admin') return 2;
+    if (role === 'admin') return 3;
+    if (role === 'vendor') return 4;
+    return 5;
+  };
+
   const login = async (email: string, phoneNumber: string, countryCode: string, isAdmin = false, isSystemOwner = false): Promise<{ success: boolean; error?: string }> => {
     try {
       const loginData: any = {};
@@ -287,26 +295,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return { success: false, error: 'Please provide either email or phone number' };
       }
 
-      let response;
+      let response: any = null;
+      let effectiveIsSystemOwner = isSystemOwner;
+      let effectiveIsAdmin = isAdmin;
+
       if (isSystemOwner) {
         response = await apiClient.systemOwnerLogin(loginData);
       } else if (isAdmin) {
         response = await apiClient.adminLogin(loginData);
       } else {
-        response = await apiClient.userLogin(loginData);
+        // Unified login discovery — try system_owner -> admin -> user
+        try {
+          response = await apiClient.systemOwnerLogin(loginData);
+          if (response?.success && response?.data) {
+            effectiveIsSystemOwner = true;
+          }
+        } catch (_) {}
+
+        if (!response?.success || !response?.data) {
+          try {
+            response = await apiClient.adminLogin(loginData);
+            if (response?.success && response?.data) {
+              effectiveIsAdmin = true;
+            }
+          } catch (_) {}
+        }
+
+        if (!response?.success || !response?.data) {
+          response = await apiClient.userLogin(loginData);
+        }
       }
 
-      if (response.success && response.data) {
+      if (response && response.success && response.data) {
         localStorage.setItem('token', (response.data as any).token);
         setAuthSessionCookie();
         let userData: any;
 
-        if (isSystemOwner) {
+        if (effectiveIsSystemOwner) {
           userData = (response.data as any).systemOwner || response.data;
           localStorage.setItem('userType', 'system_owner');
-        } else if (isAdmin) {
+        } else if (effectiveIsAdmin) {
           userData = (response.data as any).admin || response.data;
-          localStorage.setItem('userType', userData.role);
+          localStorage.setItem('userType', userData.role || 'admin');
         } else {
           userData = (response.data as any).user || response.data;
           localStorage.setItem('userType', 'member');
@@ -314,16 +344,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         setUser(userData);
         clearAllFeatureCaches();
-        const hydrated = await hydrateUserProfile({
-          isAdmin,
-          isSystemOwner,
+        let hydrated = await hydrateUserProfile({
+          isAdmin: effectiveIsAdmin,
+          isSystemOwner: effectiveIsSystemOwner,
           fallbackUserData: userData
         });
         setUser(hydrated);
+
+        // Attempt highest-role account switch if higher role is linked
+        try {
+          const rolesRes = await apiClient.getAvailableRoles();
+          if (rolesRes.success && rolesRes.data?.accounts && rolesRes.data.accounts.length > 0) {
+            const accounts = [...rolesRes.data.accounts];
+            accounts.sort((a: any, b: any) => getRoleRank(a.role) - getRoleRank(b.role));
+            const highestAccount = accounts[0];
+            const currentRole = (hydrated as any)?.role || localStorage.getItem('userType') || 'member';
+
+            if (getRoleRank(highestAccount.role) < getRoleRank(currentRole)) {
+              console.log(`Auto-switching login to highest role: ${highestAccount.role} (${highestAccount.accountId})`);
+              const switchRes = await switchRole(highestAccount.accountType, highestAccount.accountId);
+              if (switchRes.success) {
+                return { success: true };
+              }
+            }
+          }
+        } catch (_) {}
+
         return { success: true };
       } else {
-        const errorMessage = response.error || response.message ||
-          (response.errorDetails?.type === 'network_error'
+        const errorMessage = response?.error || response?.message ||
+          (response?.errorDetails?.type === 'network_error'
             ? 'Connection failed. Please check your internet connection or try again later.'
             : 'Login failed. Please check your credentials and try again.');
         return { success: false, error: errorMessage };
