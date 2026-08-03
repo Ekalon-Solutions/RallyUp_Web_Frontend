@@ -78,10 +78,10 @@ export function ReportShell({
       </Link>
 
       {/* ── Header ─────────────────────────────────────────────────────── */}
-      <div className="flex items-start justify-between gap-4">
-        <div className="space-y-1">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
+        <div className="space-y-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+            <h1 className="text-xl sm:text-2xl font-semibold tracking-tight break-words">{title}</h1>
             {category && (
               <Badge variant="outline" className={cn("text-xs font-medium border-0", badgeColour)}>
                 {category}
@@ -95,7 +95,7 @@ export function ReportShell({
 
         {/* Export button(s) */}
         {actions && (
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex flex-wrap items-center gap-2 shrink-0 w-full sm:w-auto">
             {actions}
           </div>
         )}

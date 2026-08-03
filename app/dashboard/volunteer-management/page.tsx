@@ -112,7 +112,7 @@ function OpportunityForm({ onSubmit, onCancel, initialData, mode }: OpportunityF
         </div>
       )}
       
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <Label htmlFor="title">Title *</Label>
           <Input
@@ -147,7 +147,7 @@ function OpportunityForm({ onSubmit, onCancel, initialData, mode }: OpportunityF
         />
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <Label htmlFor="startTime">Start Time *</Label>
           <Input
@@ -170,7 +170,7 @@ function OpportunityForm({ onSubmit, onCancel, initialData, mode }: OpportunityF
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <Label htmlFor="volunteersNeeded">Volunteers Needed *</Label>
           <Input
@@ -523,7 +523,7 @@ export default function VolunteerManagementPage() {
             className="max-w-sm"
           />
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-full sm:w-[180px]">
               <SelectValue placeholder="Filter by status" />
             </SelectTrigger>
             <SelectContent>

@@ -362,7 +362,7 @@ function AttendanceLandingPageInner() {
   return (
     <ProtectedRoute requireAdmin>
       <DashboardLayout>
-        <div className="p-6 min-h-screen flex items-center justify-center">
+        <div className="min-h-[50vh] flex items-center justify-center">
           <div className="w-full">
             <h1 className="text-2xl font-bold mb-6 text-center">Event Attendance</h1>
             {renderContent()}

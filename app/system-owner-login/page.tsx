@@ -90,7 +90,7 @@ export default function SystemOwnerLoginPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <div className="space-y-2">
                     <Label htmlFor="system-owner-login-country-code" className="text-white font-medium">
                       Country Code
@@ -105,7 +105,7 @@ export default function SystemOwnerLoginPage() {
                       }
                     />
                   </div>
-                  <div className="col-span-2 space-y-2">
+                  <div className="sm:col-span-2 space-y-2">
                     <Label htmlFor="system-owner-login-phone" className="text-white font-medium">
                       Phone Number
                     </Label>

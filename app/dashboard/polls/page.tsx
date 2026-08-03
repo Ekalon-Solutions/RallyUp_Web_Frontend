@@ -205,7 +205,7 @@ export default function PollsManagementPage() {
     return (
       <ProtectedRoute>
         <DashboardLayout>
-          <div className="container mx-auto p-6">
+          <div className="space-y-6">
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
@@ -239,7 +239,7 @@ export default function PollsManagementPage() {
         {clubId && (
           <FeatureUnavailableOverlay featureKey="polls" featureLabel="Polls" clubId={clubId} />
         )}
-        <div className="container mx-auto p-6">
+        <div className="space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold">Polls Management</h1>

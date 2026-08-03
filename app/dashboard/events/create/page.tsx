@@ -660,7 +660,7 @@ function CreateEventForm() {
               <ArrowLeft className="w-4 h-4 mr-2" />
             </Button>
           </Link>
-          <h1 className="text-3xl font-bold">{isEditMode ? "Edit Event" : isDuplicateMode ? "Duplicate Event" : "Create Event"}</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold">{isEditMode ? "Edit Event" : isDuplicateMode ? "Duplicate Event" : "Create Event"}</h1>
         </div>
 
         {isDuplicateMode && (
@@ -757,7 +757,7 @@ function CreateEventForm() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label>Category</Label>
                   <Select value={form.category} onValueChange={(v) => set("category", v)}>
@@ -782,7 +782,7 @@ function CreateEventForm() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="startTime">Event Start *</Label>
                   <Input id="startTime" type="datetime-local" value={form.startTime} onChange={(e) => set("startTime", e.target.value)} required />
@@ -1002,7 +1002,7 @@ function CreateEventForm() {
               </div>
 
               {!form.multiTicketEnabled && (
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="ticketPrice">Ticket Price</Label>
                   <Input
@@ -1106,7 +1106,7 @@ function CreateEventForm() {
               <CardTitle>Booking Window</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="grid gap-2">
                   <Label htmlFor="bookingStartTime">Booking Start *</Label>
                   <Input id="bookingStartTime" type="datetime-local" value={form.bookingStartTime} onChange={(e) => set("bookingStartTime", e.target.value)} required />
@@ -1165,7 +1165,7 @@ function CreateEventForm() {
               </div>
 
               {form.waitlistEnabled && (
-                <div className={cn("grid grid-cols-2 gap-4 pl-4", nestedBorder)}>
+                <div className={cn("grid grid-cols-1 sm:grid-cols-2 gap-4 pl-4", nestedBorder)}>
                   <div className="grid gap-2">
                     <Label>Waitlist Size (% of capacity)</Label>
                     <Input
@@ -1217,7 +1217,7 @@ function CreateEventForm() {
 
               {form.earlyBirdEnabled && (
                 <div className={cn("space-y-4 pl-4", nestedBorder)}>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="grid gap-2">
                       <Label>Discount Type</Label>
                       <Select value={form.earlyBirdType} onValueChange={(v) => set("earlyBirdType", v)}>
@@ -1243,7 +1243,7 @@ function CreateEventForm() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="grid gap-2">
                       <Label htmlFor="earlyBirdStartTime">Discount Starts</Label>
                       <Input

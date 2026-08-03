@@ -789,10 +789,10 @@ export default function GuessTheScorePage() {
           />
         )}
 
-        <div className="p-4 md:p-6 space-y-4 max-w-8xl mx-auto">
+        <div className="space-y-4 max-w-8xl mx-auto">
 
           {/* ── Page header ──────────────────────────────────────────────── */}
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h1 className="text-xl font-bold flex items-center gap-2">
                 <Trophy className="w-5 h-5 text-primary" />
@@ -831,7 +831,7 @@ export default function GuessTheScorePage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="px-4 pb-4">
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="rounded-lg bg-muted/50 p-3 text-center">
                         <p className="text-2xl font-bold">
                           {userRank != null ? `#${userRank}` : "—"}
@@ -847,7 +847,7 @@ export default function GuessTheScorePage() {
                     </div>
 
                     {/* Scoring legend — this season's point values */}
-                    <div className="grid grid-cols-4 gap-1.5 mt-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-1.5 mt-3">
                       {(() => {
                         const sc = prefs.scoring ?? DEFAULT_SCORING
                         return [

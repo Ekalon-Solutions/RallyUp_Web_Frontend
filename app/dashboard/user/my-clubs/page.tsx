@@ -196,9 +196,9 @@ export default function MyClubsPage() {
       <DashboardLayout>
         <div className="space-y-6">
           {/* Header */}
-          <div className="flex justify-between items-start">
+          <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
             <div className="space-y-2">
-              <h1 className="text-3xl font-bold">My Clubs</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold">My Clubs</h1>
               <p className="text-lg text-muted-foreground">
                 Manage your club memberships and view details
               </p>
@@ -282,7 +282,7 @@ export default function MyClubsPage() {
                       
                       <CardContent className="space-y-4">
                         {/* Club Info */}
-                        <div className="grid grid-cols-2 gap-3 text-sm">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                           <div className="flex items-center gap-2">
                             <Badge variant="outline" className={getStatusClassName(clubStatus)}>{clubStatus}</Badge>
                           </div>

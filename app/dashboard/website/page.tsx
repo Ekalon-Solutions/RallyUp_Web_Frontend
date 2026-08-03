@@ -283,7 +283,7 @@ export default function WebsitePage() {
         )}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 pb-6 border-b">
           <div className="space-y-2">
-            <h1 className="text-4xl font-extrabold tracking-tight">Club Website</h1>
+            <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight">Club Website</h1>
             <p className="text-muted-foreground text-lg">Configure your hosted website for supporters group</p>
           </div>
           <div className="flex flex-wrap items-center gap-4">

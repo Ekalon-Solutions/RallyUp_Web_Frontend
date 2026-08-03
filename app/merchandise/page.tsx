@@ -239,15 +239,15 @@ export default function MerchandisePage() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="text-center space-y-4 flex-1">
-            <h1 className="text-4xl font-bold">Club Merchandise</h1>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+          <div className="text-center sm:text-left space-y-2 sm:space-y-4 flex-1 min-w-0">
+            <h1 className="text-2xl sm:text-4xl font-bold">Club Merchandise</h1>
+            <p className="text-sm sm:text-xl text-muted-foreground max-w-2xl mx-auto sm:mx-0">
               Support your club with official merchandise. From apparel to collectibles, 
               find everything you need to show your team spirit.
             </p>
           </div>
-          <div className="ml-4">
+          <div className="flex justify-center sm:justify-end sm:ml-4 shrink-0">
             <CartIcon onClick={() => setIsCartModalOpen(true)} />
           </div>
         </div>

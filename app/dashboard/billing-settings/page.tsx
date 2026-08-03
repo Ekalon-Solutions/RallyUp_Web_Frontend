@@ -231,7 +231,7 @@ export default function BillingSettingsPage() {
   return (
     <ProtectedRoute>
       <DashboardLayout>
-        <div className="p-6 space-y-5 max-w-4xl mx-auto">
+        <div className="space-y-5 max-w-4xl mx-auto">
 
           {/* ── Header ──────────────────────────────────────────────── */}
           <div className="flex items-start justify-between gap-4 flex-wrap">

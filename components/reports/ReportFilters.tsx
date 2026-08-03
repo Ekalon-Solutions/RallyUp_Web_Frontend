@@ -143,40 +143,40 @@ export function ReportFilters({
   }
 
   return (
-    <div className="flex flex-wrap items-end gap-4 text-sm">
+    <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-end gap-3 sm:gap-4 text-sm">
       {/* Date Range Filters (Immediate refresh on selection) */}
       {showDateRange && (
-        <>
-          <div className="space-y-1.5">
+        <div className="grid grid-cols-2 gap-3 sm:contents">
+          <div className="space-y-1.5 min-w-0">
             <Label className="text-xs text-muted-foreground">From Date</Label>
             <Input
               type="date"
               value={filters.startDate || ""}
               onChange={(e) => handleDateChange("startDate", e.target.value)}
-              className="w-38"
+              className="w-full sm:w-38"
             />
           </div>
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 min-w-0">
             <Label className="text-xs text-muted-foreground">To Date</Label>
             <Input
               type="date"
               value={filters.endDate || ""}
               onChange={(e) => handleDateChange("endDate", e.target.value)}
-              className="w-38"
+              className="w-full sm:w-38"
             />
           </div>
-        </>
+        </div>
       )}
 
       {/* Status Filter */}
       {statusOptions && statusOptions.length > 0 && (
-        <div className="space-y-1.5">
+        <div className="space-y-1.5 w-full sm:w-auto min-w-0">
           <Label className="text-xs text-muted-foreground">{statusLabel}</Label>
           <Select
             value={filters.status || "all"}
             onValueChange={handleStatusChange}
           >
-            <SelectTrigger className="w-44">
+            <SelectTrigger className="w-full sm:w-44">
               <SelectValue placeholder={`All ${statusLabel}`} />
             </SelectTrigger>
             <SelectContent>
@@ -193,7 +193,7 @@ export function ReportFilters({
 
       {/* Search Input (Debounced auto-search + immediate Enter search) */}
       {showSearch && (
-        <div className="space-y-1.5 flex-1 min-w-[200px]">
+        <div className="space-y-1.5 flex-1 min-w-0 sm:min-w-[200px] w-full">
           <Label className="text-xs text-muted-foreground">Search</Label>
           <div className="relative">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -203,7 +203,7 @@ export function ReportFilters({
               value={searchValue}
               onChange={(e) => setSearchValue(e.target.value)}
               onKeyDown={handleSearchKeyDown}
-              className="pl-9"
+              className="pl-9 w-full"
             />
           </div>
         </div>
@@ -213,8 +213,8 @@ export function ReportFilters({
       {children}
 
       {/* Actions */}
-      <div className="flex items-center gap-2 ml-auto">
-        <Button type="button" variant="ghost" size="sm" onClick={handleReset}>
+      <div className="flex items-center gap-2 sm:ml-auto w-full sm:w-auto">
+        <Button type="button" variant="ghost" size="sm" onClick={handleReset} className="flex-1 sm:flex-none">
           <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
           Reset
         </Button>

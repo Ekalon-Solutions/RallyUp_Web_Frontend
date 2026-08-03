@@ -434,7 +434,7 @@ export default function AdminAuditLogReportPage() {
                     }))
                   }
                 >
-                  <SelectTrigger className="w-44">
+                  <SelectTrigger className="w-full sm:w-44">
                     <SelectValue placeholder="All Actions" />
                   </SelectTrigger>
                   <SelectContent>

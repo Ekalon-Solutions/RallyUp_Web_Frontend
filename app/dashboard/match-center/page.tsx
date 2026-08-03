@@ -98,9 +98,9 @@ export default function MatchCenterPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold">Match Center</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold">Match Center</h1>
             <p className="text-muted-foreground">Manage fixtures, away days, and match-related activities</p>
           </div>
           <Button>

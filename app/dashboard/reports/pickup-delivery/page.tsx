@@ -362,7 +362,7 @@ export default function PickupDeliveryReportPage() {
                     }))
                   }
                 >
-                  <SelectTrigger className="w-44">
+                  <SelectTrigger className="w-full sm:w-44">
                     <SelectValue placeholder="All Couriers" />
                   </SelectTrigger>
                   <SelectContent>

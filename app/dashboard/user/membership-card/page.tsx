@@ -125,7 +125,7 @@ export default function UserMembershipCardPage() {
     return (
       <ProtectedRoute>
         <DashboardLayout>
-          <div className="p-6 space-y-6">
+          <div className="space-y-6">
             <div className="flex justify-center items-center h-64">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             </div>
@@ -139,7 +139,7 @@ export default function UserMembershipCardPage() {
     return (
       <ProtectedRoute>
         <DashboardLayout>
-          <div className="p-6 space-y-6">
+          <div className="space-y-6">
             <div className="flex justify-center items-center h-64">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             </div>
@@ -153,7 +153,7 @@ export default function UserMembershipCardPage() {
     return (
       <ProtectedRoute>
         <DashboardLayout>
-          <div className="p-6 space-y-6">
+          <div className="space-y-6">
             <div className="text-center text-red-500 py-8">
               <CreditCard className="w-12 h-12 mx-auto mb-4 opacity-50" />
               <p className="text-lg font-medium">{error}</p>
@@ -171,7 +171,7 @@ export default function UserMembershipCardPage() {
     return (
       <ProtectedRoute>
         <DashboardLayout>
-          <div className="p-6 space-y-6">
+          <div className="space-y-6">
             <div className="text-center text-muted-foreground py-8">
               <CreditCard className="w-12 h-12 mx-auto mb-4 opacity-50" />
               <p className="text-lg font-medium">No Club Selected</p>
@@ -221,7 +221,7 @@ export default function UserMembershipCardPage() {
     return (
       <ProtectedRoute>
         <DashboardLayout>
-          <div className="p-6 space-y-6">
+          <div className="space-y-6">
             <div className="text-center text-muted-foreground py-8">
               <CreditCard className="w-12 h-12 mx-auto mb-4 opacity-50" />
               <p className="text-lg font-medium">No Membership Cards Found</p>
@@ -243,10 +243,10 @@ export default function UserMembershipCardPage() {
   return (
     <ProtectedRoute>
       <DashboardLayout>
-        <div className="p-6 space-y-6">
-          <div className="flex justify-between items-center">
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-foreground">My Membership Card</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold text-foreground">My Membership Card</h1>
               <p className="text-muted-foreground">View and manage your digital membership card</p>
             </div>
           </div>

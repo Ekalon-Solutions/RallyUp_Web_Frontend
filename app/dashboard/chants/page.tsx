@@ -417,12 +417,12 @@ export default function ChantsManagementPage() {
           {clubId && (
             <FeatureUnavailableOverlay featureKey="chants" featureLabel="Chants" clubId={clubId} />
           )}
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold">Club Chants</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold">Club Chants</h1>
               <p className="text-muted-foreground">Manage club chants and traditions</p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2 w-full sm:w-auto">
               <Button onClick={() => setShowCreateModal(true)}>
                 <Plus className="w-4 h-4 mr-2" />
                 Add Chant
@@ -752,7 +752,7 @@ export default function ChantsManagementPage() {
                         YouTube watch URLs will be automatically converted to embed format.
                       </p>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="iframeWidth">Width</Label>
                         <Input
@@ -891,7 +891,7 @@ export default function ChantsManagementPage() {
                         YouTube watch URLs will be automatically converted to embed format.
                       </p>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="edit-iframeWidth">Width</Label>
                         <Input

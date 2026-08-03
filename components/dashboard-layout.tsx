@@ -278,9 +278,9 @@ function DashboardSidebar({
     )
 
   return (
-    <div className={cn("flex flex-col h-full bg-card", mobile ? "w-full" : "w-72")}>
-      <Link href="/" className="flex items-center gap-2 h-16 p-2 border-b hover:opacity-90 transition-opacity">
-        <div className="relative w-10 h-10 overflow-hidden rounded-xl bg-white shadow-md border-2 ring-2 ring-primary/5">
+    <div className={cn("flex flex-col h-full min-h-0 bg-card", mobile ? "w-full max-w-full" : "w-72")}>
+      <Link href="/" className="flex items-center gap-2 h-14 sm:h-16 p-2 border-b hover:opacity-90 transition-opacity shrink-0">
+        <div className="relative w-9 h-9 sm:w-10 sm:h-10 overflow-hidden rounded-xl bg-white shadow-md border-2 ring-2 ring-primary/5 shrink-0">
           <Image
             src="/WingmanPro Logo (White BG).svg"
             alt="Wingman Pro logo"
@@ -289,13 +289,13 @@ function DashboardSidebar({
             className="object-contain"
           />
         </div>
-        <div className="flex flex-col">
-          <span className="text-xl font-black leading-none">Wingman Pro</span>
+        <div className="flex flex-col min-w-0">
+          <span className="text-lg sm:text-xl font-black leading-none truncate">Wingman Pro</span>
           <span className="text-[10px] font-bold text-primary uppercase tracking-[0.2em] mt-1">Platform</span>
         </div>
       </Link>
 
-      <nav className="flex-1 p-6 space-y-1.5 overflow-y-auto custom-scrollbar">
+      <nav className="flex-1 p-3 sm:p-6 space-y-1.5 overflow-y-auto overscroll-y-contain custom-scrollbar min-h-0">
         {/* ── Active / enabled nav items ─────────────────────── */}
         {navigation.map((item) => (
           <Link
@@ -361,8 +361,8 @@ function DashboardSidebar({
         )}
       </nav>
 
-      <div className="p-6 border-t bg-muted/20">
-        <div className="space-y-4">
+      <div className="p-3 sm:p-6 border-t bg-muted/20 shrink-0 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        <div className="space-y-3 sm:space-y-4">
           {(() => {
             const matchedClub = activeClubId
               ? sidebarClubs.find((c) => c._id === activeClubId)
@@ -557,7 +557,7 @@ function ThemeToggle() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm">
+        <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0">
           <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
           <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
           <span className="sr-only">Toggle theme</span>
@@ -943,8 +943,9 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
 
   return (
     <DashboardChromeContext.Provider value={true}>
-    <div className="flex h-screen bg-background overflow-hidden">
-      <div className="hidden lg:flex lg:flex-col lg:w-72 lg:border-r bg-muted/5">
+    {/* h-dvh keeps the shell inside the visible mobile viewport (avoids iOS 100vh jump) */}
+    <div className="flex h-dvh max-h-dvh bg-background overflow-hidden w-full max-w-[100vw]">
+      <div className="hidden lg:flex lg:flex-col lg:w-72 lg:shrink-0 lg:border-r bg-muted/5 min-h-0">
         <DashboardSidebar
           navigation={activeNav}
           addOnNavigation={addOnNav}
@@ -962,7 +963,11 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
       </div>
 
       <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-        <SheetContent side="left" className="p-0 w-72">
+        <SheetContent
+          side="left"
+          hideCloseButton
+          className="p-0 w-[min(18rem,85vw)] max-w-[85vw] gap-0 border-r"
+        >
           <SheetTitle className="sr-only">Navigation menu</SheetTitle>
           <DashboardSidebar
             mobile
@@ -983,16 +988,16 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
         </SheetContent>
       </Sheet>
 
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="flex items-center justify-between p-4 border-b lg:px-8 h-16 bg-background/80 backdrop-blur-md sticky top-0 z-40">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" className="lg:hidden h-10 w-10" onClick={() => setSidebarOpen(true)}>
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0 min-h-0 w-full">
+        <header className="flex items-center justify-between gap-2 px-3 sm:px-4 border-b lg:px-8 min-h-14 sm:min-h-16 py-2 bg-background/80 backdrop-blur-md sticky top-0 z-40 shrink-0 w-full" style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top))' }}>
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
+            <Button variant="ghost" size="icon" className="lg:hidden h-10 w-10 shrink-0" onClick={() => setSidebarOpen(true)}>
               <Menu className="w-6 h-6" />
               <span className="sr-only">Open sidebar</span>
             </Button>
 
-            <Link href="/" className="flex items-center gap-2 lg:hidden hover:opacity-90 transition-opacity">
-              <div className="relative w-8 h-8 overflow-hidden rounded-lg bg-white shadow-sm border">
+            <Link href="/" className="flex items-center gap-2 lg:hidden hover:opacity-90 transition-opacity min-w-0">
+              <div className="relative w-8 h-8 overflow-hidden rounded-lg bg-white shadow-sm border shrink-0">
                 <Image
                   src="/WingmanPro Logo (White BG).svg"
                   alt="Wingman Pro logo"
@@ -1001,29 +1006,30 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
                   className="object-contain"
                 />
               </div>
-              <span className="font-bold text-lg tracking-tight">Wingman Pro</span>
+              <span className="font-bold text-base sm:text-lg tracking-tight truncate">Wingman Pro</span>
             </Link>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1 sm:gap-3 shrink-0">
             <div className="hidden sm:flex items-center gap-2 mr-2 px-3 py-1.5 rounded-full bg-muted/50 border text-xs font-bold text-muted-foreground uppercase tracking-wider">
               {formatRoleLabel(getEffectiveRole(user, clubId))}
             </div>
             <NotificationCenterModal />
             <ThemeToggle />
-            <Button variant="outline" size="sm" onClick={logout} className="h-9 px-4 font-bold border-2">
-              <LogOut className="w-4 h-4 mr-2" />
-              Logout
+            <Button variant="outline" size="sm" onClick={logout} className="h-9 px-2.5 sm:px-4 font-bold border-2 shrink-0">
+              <LogOut className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Logout</span>
+              <span className="sr-only sm:hidden">Logout</span>
             </Button>
           </div>
         </header>
 
-        <main className="flex-1 overflow-auto bg-muted/5 relative">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden bg-muted/5 relative min-w-0 min-h-0 overscroll-y-contain pb-[env(safe-area-inset-bottom)]">
           {/* ClubFeaturesProvider gives all children a single shared config
               so the entire UI updates atomically on CONFIG_SYNC */}
           <ClubFeaturesProvider clubId={isAdminRole ? clubId : undefined}>
             <div className={cn(
-              "container mx-auto p-6 md:p-8 lg:p-10 max-w-[1600px] relative min-h-full transition-all duration-300",
+              "mx-auto px-3 py-3 sm:px-6 sm:py-6 md:px-8 md:py-8 lg:px-10 lg:py-10 max-w-[1600px] relative min-h-full transition-all duration-300 w-full min-w-0 box-border",
               isExpiredMemberForActiveClub && !isExemptFromExpiredOverlay(pathname) && "pointer-events-none select-none filter blur-md opacity-35"
             )}>
               {isAdminRole && storageAlertStatus?.alertLevel && !storageBannerDismissed && (

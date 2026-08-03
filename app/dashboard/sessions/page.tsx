@@ -233,14 +233,14 @@ export default function SessionsPage() {
   return (
     <ProtectedRoute requireSystemOwner>
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Session Management</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Session Management</h1>
           <p className="text-muted-foreground">
             Monitor and manage user sessions for security
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
           <Button onClick={handleCleanupExpired} variant="outline">
             <RefreshCw className="h-4 w-4 mr-2" />
             Cleanup Expired
@@ -350,7 +350,7 @@ export default function SessionsPage() {
           />
         </div>
         <Select value={userTypeFilter} onValueChange={setUserTypeFilter}>
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="w-full sm:w-40">
             <SelectValue placeholder="User Type" />
           </SelectTrigger>
           <SelectContent>
@@ -361,7 +361,7 @@ export default function SessionsPage() {
           </SelectContent>
         </Select>
         <Select value={deviceTypeFilter} onValueChange={setDeviceTypeFilter}>
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="w-full sm:w-40">
             <SelectValue placeholder="Device Type" />
           </SelectTrigger>
           <SelectContent>

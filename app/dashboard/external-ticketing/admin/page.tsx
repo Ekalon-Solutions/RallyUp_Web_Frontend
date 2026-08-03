@@ -253,14 +253,14 @@ export default function AdminExternalTicketsPage() {
     <ProtectedRoute requireAdmin={true}>
       <DashboardLayout>
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h1 className="text-2xl font-bold">External Ticket Requests - Admin</h1>
               <p className="text-sm text-muted-foreground mt-1">
                 Manage all ticket applications with filters and bulk actions
               </p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2 w-full sm:w-auto">
               <Button 
                 variant="outline" 
                 onClick={() => handleExport('csv')} 
@@ -370,19 +370,19 @@ export default function AdminExternalTicketsPage() {
           {selectedIds.size > 0 && (
             <Card className="bg-blue-50 border-blue-200">
               <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-blue-900">
                       {selectedIds.size} request(s) selected
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-blue-700">Change status to:</span>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
+                    <span className="text-sm text-blue-700 shrink-0">Change status to:</span>
                     <Select 
                       onValueChange={handleBulkStatusUpdate}
                       disabled={bulkUpdating}
                     >
-                      <SelectTrigger className="w-[200px]">
+                      <SelectTrigger className="w-full sm:w-[200px]">
                         <SelectValue placeholder="Select status" />
                       </SelectTrigger>
                       <SelectContent>
@@ -398,6 +398,7 @@ export default function AdminExternalTicketsPage() {
                       size="sm"
                       onClick={() => setSelectedIds(new Set())}
                       disabled={bulkUpdating}
+                      className="w-full sm:w-auto"
                     >
                       Clear Selection
                     </Button>
@@ -520,7 +521,7 @@ export default function AdminExternalTicketsPage() {
                                     }
                                   }}
                                 >
-                                  <SelectTrigger className="w-[150px]">
+                                  <SelectTrigger className="w-full sm:w-[150px]">
                                     <SelectValue />
                                   </SelectTrigger>
                                   <SelectContent>

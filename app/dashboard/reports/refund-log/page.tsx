@@ -433,7 +433,7 @@ export default function RefundLogReportPage() {
                     }))
                   }
                 >
-                  <SelectTrigger className="w-44">
+                  <SelectTrigger className="w-full sm:w-44">
                     <SelectValue placeholder="All Events" />
                   </SelectTrigger>
                   <SelectContent>
