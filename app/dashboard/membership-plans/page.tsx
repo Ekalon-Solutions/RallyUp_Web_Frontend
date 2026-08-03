@@ -614,7 +614,7 @@ export default function MembershipPlansPage() {
                     Create Plan
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="flex flex-col top-[4vh] translate-y-0 sm:top-[50%] sm:translate-y-[-50%] w-[calc(100vw-2rem)] max-w-3xl lg:max-w-4xl max-h-[min(90dvh,90vh)] p-0 gap-0 overflow-hidden">
+                <DialogContent className="flex flex-col top-[4vh] translate-y-0 sm:top-[50%] sm:translate-y-[-50%] w-[calc(100vw-2rem)] max-w-3xl lg:max-w-4xl max-h-[min(90dvh,90vh)] p-0 sm:p-0 gap-0 overflow-hidden">
                   <DialogHeader className="shrink-0 px-6 pt-6 pb-2 pr-10">
                     <DialogTitle>Create New Membership Plan</DialogTitle>
                     <DialogDescription>
@@ -780,7 +780,7 @@ export default function MembershipPlansPage() {
                 </DialogContent>
               </Dialog>
               <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-                <DialogContent className="flex flex-col top-[4vh] translate-y-0 sm:top-[50%] sm:translate-y-[-50%] w-[calc(100vw-2rem)] max-w-3xl lg:max-w-4xl max-h-[min(90dvh,90vh)] p-0 gap-0 overflow-hidden">
+                <DialogContent className="flex flex-col top-[4vh] translate-y-0 sm:top-[50%] sm:translate-y-[-50%] w-[calc(100vw-2rem)] max-w-3xl lg:max-w-4xl max-h-[min(90dvh,90vh)] p-0 sm:p-0 gap-0 overflow-hidden">
                   <DialogHeader className="shrink-0 px-6 pt-6 pb-2 pr-10">
                     <DialogTitle>Edit Membership Plan</DialogTitle>
                     <DialogDescription>

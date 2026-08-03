@@ -1516,7 +1516,7 @@ function ClubsPageContent() {
       </Dialog>
 
       <Dialog open={showRegistrationDialog} onOpenChange={setShowRegistrationDialog}>
-        <DialogContent className="flex max-h-[90vh] max-w-full flex-col overflow-hidden p-0 sm:max-w-2xl">
+        <DialogContent className="flex max-h-[90vh] max-w-full flex-col overflow-hidden p-0 sm:p-0 sm:max-w-2xl">
           <DialogHeader className="shrink-0 px-6 pt-6">
             <DialogTitle className="flex items-center gap-2">
               <div className="bg-primary rounded-lg p-2">

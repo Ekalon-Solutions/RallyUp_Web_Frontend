@@ -101,7 +101,7 @@ export function RefundPolicyModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-w-lg gap-0 p-0 overflow-hidden border-primary/10"
+        className="max-w-lg gap-0 p-0 sm:p-0 overflow-hidden border-primary/10"
         onInteractOutside={(e) => {
           if (isCheckoutFlow) e.preventDefault()
         }}
