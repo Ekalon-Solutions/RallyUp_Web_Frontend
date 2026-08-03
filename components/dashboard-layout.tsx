@@ -47,6 +47,7 @@ import {
   ScanLine,
   FileBarChart,
   AlertTriangle,
+  AlertTriangle,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -607,8 +608,13 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
   const handleRoleSwitch = async (accountType: 'user' | 'admin' | 'system_owner', accountId: string) => {
     const result = await switchRole(accountType, accountId)
     if (result.success) {
-      router.push('/dashboard')
-      router.refresh()
+      if (accountType === 'user') {
+        window.location.href = '/dashboard/user'
+      } else if (accountType === 'system_owner') {
+        window.location.href = '/dashboard/club-management'
+      } else {
+        window.location.href = '/dashboard'
+      }
     }
   }
 
@@ -632,7 +638,17 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
       availableRoles.find((r) => r.accountType === 'user' && r.clubIds?.includes(clubId));
 
     if (targetAccount) {
-      await switchRole(targetAccount.accountType, targetAccount.accountId, clubId);
+      const result = await switchRole(targetAccount.accountType, targetAccount.accountId)
+      if (result.success) {
+        setActiveClubId(clubId)
+        if (targetAccount.accountType === 'user') {
+          window.location.href = '/dashboard/user'
+        } else if (targetAccount.accountType === 'system_owner') {
+          window.location.href = '/dashboard/club-management'
+        } else {
+          window.location.href = '/dashboard'
+        }
+      }
     } else {
       setActiveClubId(clubId);
       router.refresh();
@@ -731,6 +747,41 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
     isRegularUserRole ? clubId ?? null : null,
     { asMember: true }
   )
+
+  const isExpiredMemberForActiveClub = useMemo(() => {
+    if (!user || user.role === 'system_owner' || user.role === 'admin' || user.role === 'super_admin' || user.role === 'vendor') {
+      return false
+    }
+    if (!clubId) return false
+    const memberships = Array.isArray((user as any).memberships) ? (user as any).memberships : []
+    const clubMemberships = memberships.filter((m: any) => {
+      if (!m) return false
+      const id = typeof m.club_id === 'string' ? m.club_id : m.club_id?._id
+      return String(id) === String(clubId)
+    })
+    if (clubMemberships.length === 0) return false
+
+    const hasActiveUnexpired = clubMemberships.some((m: any) => {
+      if (m.status === 'cancelled') return false
+      const isExpiredDate = Boolean(m.end_date && new Date(m.end_date) <= new Date())
+      if (m.end_date && !isExpiredDate) return true
+      if (m.status === 'active' && !isExpiredDate) return true
+      return false
+    })
+
+    return !hasActiveUnexpired
+  }, [user, clubId])
+
+  const isExemptFromExpiredOverlay = (path: string) => {
+    if (!path) return false
+    // Browse plans page
+    if (path === '/dashboard/user/browse-plans') return true
+    // Feed pages
+    if (path === '/dashboard/user' || path.startsWith('/dashboard/user/feed') || path.startsWith('/dashboard/feed')) return true
+    // Profile pages & user settings
+    if (path.startsWith('/dashboard/user/profile') || path.startsWith('/dashboard/profile') || path.startsWith('/dashboard/user-settings')) return true
+    return false
+  }
 
   const isExpiredMemberForActiveClub = useMemo(() => {
     if (!user || user.role === 'system_owner' || user.role === 'admin' || user.role === 'super_admin' || user.role === 'vendor') {
@@ -1036,7 +1087,7 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto overflow-x-hidden bg-muted/5 relative min-w-0 min-h-0 overscroll-y-contain pb-[env(safe-area-inset-bottom)]">
+        <main className="flex-1 overflow-auto bg-muted/5 relative">
           {/* ClubFeaturesProvider gives all children a single shared config
               so the entire UI updates atomically on CONFIG_SYNC */}
           <ClubFeaturesProvider clubId={isAdminRole ? clubId : undefined}>
@@ -1065,6 +1116,35 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
                 children
               )}
             </div>
+            {isExpiredMemberForActiveClub && !isExemptFromExpiredOverlay(pathname) && (
+              <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-background/50 backdrop-blur-md">
+                <div className="max-w-md w-full bg-card border border-border shadow-2xl rounded-2xl p-6 md:p-8 text-center space-y-6 animate-in fade-in zoom-in-95 duration-200">
+                  <div className="mx-auto w-16 h-16 rounded-full bg-destructive/10 text-destructive flex items-center justify-center border border-destructive/20 shadow-inner">
+                    <AlertTriangle className="w-8 h-8" />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <h2 className="text-2xl font-bold tracking-tight text-foreground">
+                      Membership Plan Expired
+                    </h2>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Your membership plan for this club has expired. Please buy a membership plan for this club to proceed and restore full access to club features.
+                    </p>
+                  </div>
+
+                  <div className="pt-2">
+                    <Button
+                      size="lg"
+                      onClick={() => router.push('/dashboard/user/browse-plans')}
+                      className="w-full font-semibold shadow-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-all"
+                    >
+                      <CreditCard className="w-5 h-5 mr-2" />
+                      Buy Membership Plan
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
             {isExpiredMemberForActiveClub && !isExemptFromExpiredOverlay(pathname) && (
               <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-background/50 backdrop-blur-md">
                 <div className="max-w-md w-full bg-card border border-border shadow-2xl rounded-2xl p-6 md:p-8 text-center space-y-6 animate-in fade-in zoom-in-95 duration-200">

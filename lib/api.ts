@@ -3968,8 +3968,7 @@ class ApiClient {
     payment?: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string },
     referralPhone?: string,
     merch?: { tshirtSize?: string; tshirtColor?: string },
-    couponCode?: string,
-    amountPaid?: number
+    couponCode?: string
   ): Promise<ApiResponse<{
     message: string;
     data: {
@@ -3983,7 +3982,6 @@ class ApiClient {
     if (merch?.tshirtSize) body.tshirtSize = merch.tshirtSize;
     if (merch?.tshirtColor) body.tshirtColor = merch.tshirtColor;
     if (couponCode) body.couponCode = couponCode;
-    if (amountPaid !== undefined) body.amountPaid = amountPaid;
     return this.request(`/membership-plans/${planId}/subscribe`, {
       method: 'POST',
       body: Object.keys(body).length > 0 ? JSON.stringify(body) : undefined,
@@ -3994,14 +3992,20 @@ class ApiClient {
     planId: string,
     razorpayOrderId: string,
     referralPhone?: string,
-    merch?: { tshirtSize?: string; tshirtColor?: string },
+    merchOrCoupon?: { tshirtSize?: string; tshirtColor?: string } | string,
     couponCode?: string
   ): Promise<ApiResponse<{ userMembership: any; status: 'pending' | 'active' }>> {
     const body: any = { razorpayOrderId }
     if (referralPhone) body.referralPhone = referralPhone
-    if (merch?.tshirtSize) body.tshirtSize = merch.tshirtSize
-    if (merch?.tshirtColor) body.tshirtColor = merch.tshirtColor
-    if (couponCode) body.couponCode = couponCode
+    if (typeof merchOrCoupon === 'object' && merchOrCoupon !== null) {
+      if (merchOrCoupon.tshirtSize) body.tshirtSize = merchOrCoupon.tshirtSize
+      if (merchOrCoupon.tshirtColor) body.tshirtColor = merchOrCoupon.tshirtColor
+      if (couponCode) body.couponCode = couponCode
+    } else if (typeof merchOrCoupon === 'string') {
+      body.couponCode = merchOrCoupon
+    } else if (couponCode) {
+      body.couponCode = couponCode
+    }
     return this.request(`/membership-plans/${planId}/pending-purchase`, {
       method: 'POST',
       body: JSON.stringify(body),
@@ -6142,7 +6146,7 @@ class ApiClient {
     clubId: string;
     phone?: string;
     email?: string;
-    cartSubtotal: number;
+    cartSubtotal?: number;
     eventId?: string;
     purchaseType?: 'membership';
   }): Promise<ApiResponse<{
