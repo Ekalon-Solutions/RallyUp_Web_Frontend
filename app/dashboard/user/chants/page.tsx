@@ -354,7 +354,7 @@ export default function MemberChantsPage() {
                     <div className="flex items-center justify-between text-sm text-muted-foreground pt-2 border-t">
                       <div className="flex items-center gap-1">
                         <User className="w-4 h-4" />
-                        <span className="truncate">{chant.createdBy.name}</span>
+                        <span className="truncate">{chant.createdBy?.name ?? 'Unknown'}</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <Calendar className="w-4 h-4" />
