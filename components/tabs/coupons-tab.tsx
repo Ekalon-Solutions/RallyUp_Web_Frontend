@@ -26,7 +26,7 @@ interface Coupon {
   currentUsage: number
   startTime: string
   endTime: string
-  eligibility: 'all' | 'members-only' | 'new-users' | 'specific-events'
+  eligibility: 'all' | 'members-only' | 'new-users' | 'specific-events' | 'membership-renewal'
   applicableEvents?: string[]
   minPurchaseAmount?: number
   isActive: boolean
@@ -203,6 +203,7 @@ export function CouponsTab({ clubId }: CouponsTabProps) {
       'all': { label: 'All Users', color: 'bg-purple-100 text-purple-800' },
       'members-only': { label: 'Members Only', color: 'bg-blue-100 text-blue-800' },
       'new-users': { label: 'New Users', color: 'bg-green-100 text-green-800' },
+      'membership-renewal': { label: 'Membership Renewal', color: 'bg-indigo-100 text-indigo-800' },
       'specific-events': { label: 'Specific Events', color: 'bg-orange-100 text-orange-800' }
     }
     return badges[eligibility] || badges['all']
@@ -320,9 +321,9 @@ export function CouponsTab({ clubId }: CouponsTabProps) {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="all">All Users</SelectItem>
                 <SelectItem value="members-only">Members Only</SelectItem>
                 <SelectItem value="new-users">New Users</SelectItem>
+                <SelectItem value="membership-renewal">Membership Renewal</SelectItem>
                 <SelectItem value="specific-events">Specific Events</SelectItem>
               </SelectContent>
             </Select>

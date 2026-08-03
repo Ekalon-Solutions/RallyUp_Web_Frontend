@@ -281,14 +281,14 @@ export default function UserLeaderboardPage() {
                                                                     </AvatarFallback>
                                                                 </Avatar>
                                                                 <div>
-                                                                    <p className="font-medium">
+                                                                    <div className="font-medium flex items-center">
                                                                         {entry.name || 'Anonymous User'}
                                                                         {isUser && (
                                                                             <Badge variant="outline" className="ml-2 text-xs">
                                                                                 You
                                                                             </Badge>
                                                                         )}
-                                                                    </p>
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         </TableCell>

@@ -108,8 +108,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const memberships = Array.isArray(u?.memberships) ? u.memberships : [];
-    const activeMembership = memberships.find((m: any) => m?.status === 'active');
-    const clubId = activeMembership?.club_id?._id || activeMembership?.club_id;
+    const relevantMembership = memberships.find((m: any) => m?.status === 'active') || memberships.find((m: any) => m?.status === 'expired');
+    const clubId = relevantMembership?.club_id?._id || relevantMembership?.club_id;
     return clubId || null;
   };
 

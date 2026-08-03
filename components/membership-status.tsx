@@ -20,29 +20,38 @@ function getActiveClubMembershipForUser(user: any, activeClubId: string | null) 
 
   const memberships: any[] = Array.isArray(user.memberships) ? user.memberships : []
 
-  const isRelevant = (m: any) => m && m.club_id && (m.status === 'active' || m.status === 'expired')
+  const isRelevant = (m: any) => m && (m.club_id || m.club) && m.status !== 'cancelled'
 
   if (activeClubId) {
-    // Prefer the membership for the explicitly selected club
-    const match = memberships.find(m => {
+    const clubMemberships = memberships.filter(m => {
       if (!isRelevant(m)) return false
-      const clubId = typeof m.club_id === 'string' ? m.club_id : m.club_id._id
-      return clubId === activeClubId
+      const clubId = typeof m.club_id === 'string' ? m.club_id : (m.club_id?._id || (typeof m.club === 'string' ? m.club : m.club?._id))
+      return String(clubId) === String(activeClubId)
     })
-    if (match) return match
+
+    if (clubMemberships.length > 0) {
+      const activeUnexpiredMatch = clubMemberships.find(m => {
+        const isExpiredDate = Boolean(m.end_date && new Date(m.end_date) <= new Date())
+        return !isExpiredDate
+      })
+      return activeUnexpiredMatch || clubMemberships[0]
+    }
   }
 
-  // Fallback: return the most recent membership (e.g. right after signup before
-  // activeClubId has been persisted to localStorage). Backend sorts by start_date desc.
-  return memberships.find(isRelevant) || null
+  const activeMatch = memberships.find(m => isRelevant(m) && (!m.end_date || new Date(m.end_date) > new Date()))
+  return activeMatch || memberships.find(isRelevant) || null
 }
 
 /** Trusts the actual end_date over the stored `status` field, which only updates on save/cron. */
 function isMembershipExpired(membership: any): boolean {
-  return Boolean(membership?.end_date && new Date(membership.end_date) < new Date())
+  if (!membership) return true
+  if (membership.status === 'cancelled') return true
+  if (membership.end_date && new Date(membership.end_date) > new Date()) return false
+  if (membership.status === 'active' && (!membership.end_date || new Date(membership.end_date) > new Date())) return false
+  return Boolean(membership.status === 'expired' || (membership.end_date && new Date(membership.end_date) <= new Date()))
 }
 
-export function MembershipStatus() {
+export function MembershipStatus({ showMembershipCardButton = true }: { showMembershipCardButton?: boolean } = {}) {
   const { user, activeClubId, checkAuth } = useAuth()
   const [leaving, setLeaving] = useState(false)
 
@@ -63,15 +72,15 @@ export function MembershipStatus() {
 
     try {
       setLeaving(true)
-      const response = await apiClient.leaveClub()
+      const response = await apiClient.leaveClub(userClub._id)
       if (response.success) {
         toast.success('Successfully left the club')
         await checkAuth()
       } else {
-        toast.error(response.error || 'Failed to leave club')
+        toast.error(response.error || response.message || 'Failed to leave club')
       }
-    } catch (error) {
-      toast.error('An error occurred while leaving the club')
+    } catch (error: any) {
+      toast.error(error?.message || 'An error occurred while leaving the club')
     } finally {
       setLeaving(false)
     }
@@ -226,17 +235,32 @@ export function MembershipStatus() {
 
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-3 pt-2 border-t border-border/50">
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex-1 sm:flex-none"
-            asChild
-          >
-            <a href="/dashboard/user/membership-card">
-              <CreditCard className="w-4 h-4 mr-2" />
-              View Membership Card
-            </a>
-          </Button>
+          {isExpired && (
+            <Button
+              variant="default"
+              size="sm"
+              className="flex-1 sm:flex-none font-semibold shadow bg-primary text-primary-foreground hover:bg-primary/90"
+              asChild
+            >
+              <a href="/dashboard/user/browse-plans">
+                <CreditCard className="w-4 h-4 mr-2" />
+                Buy Membership Plan
+              </a>
+            </Button>
+          )}
+          {!isExpired && showMembershipCardButton && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1 sm:flex-none"
+              asChild
+            >
+              <a href="/dashboard/user/membership-card">
+                <CreditCard className="w-4 h-4 mr-2" />
+                View Membership Card
+              </a>
+            </Button>
+          )}
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button

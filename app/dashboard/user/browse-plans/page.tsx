@@ -15,7 +15,7 @@ import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
 import { useAuth } from "@/contexts/auth-context"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
-import { PaymentSimulationModal } from "@/components/modals/payment-simulation-modal"
+import { JoinMembershipModal } from "@/components/modals/join-membership-modal"
 import { computeMembershipPlanCharge } from "@/lib/transactionFees"
 
 export default function BrowseMembershipPlansPage() {
@@ -23,20 +23,8 @@ export default function BrowseMembershipPlansPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [isAssigning, setIsAssigning] = useState<string | null>(null)
   const [currentMembership, setCurrentMembership] = useState<any>(null)
-  const [pendingPayment, setPendingPayment] = useState<{
-    planId: string
-    planName: string
-    orderId: string
-    orderNumber: string
-    total: number
-    subtotal?: number
-    platformFeeTotal?: number
-    razorpayFeeTotal?: number
-    currency: string
-    paymentMethod: string
-    isUpgrade?: boolean
-    referralPhone?: string
-  } | null>(null)
+  const [joinModalOpen, setJoinModalOpen] = useState(false)
+  const [selectedPlanId, setSelectedPlanId] = useState<string | undefined>(undefined)
   const { user, checkAuth } = useAuth()
   const clubId = useRequiredClubId()
 
@@ -45,8 +33,64 @@ export default function BrowseMembershipPlansPage() {
   const [referralName, setReferralName] = useState<string | null>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  const [couponCode, setCouponCode] = useState("")
+  const [appliedCoupon, setAppliedCoupon] = useState<any>(null)
+  const [validatingCoupon, setValidatingCoupon] = useState(false)
+  const [isAutoAppliedCoupon, setIsAutoAppliedCoupon] = useState(false)
+  const [autoCouponRemoved, setAutoCouponRemoved] = useState(false)
+
+  const handleValidateCoupon = async () => {
+    if (!couponCode.trim() || !clubId) return
+    try {
+      setValidatingCoupon(true)
+      const res = await apiClient.validateCoupon(couponCode.trim().toUpperCase(), {
+        clubId,
+        purchaseType: 'membership',
+      })
+      if (res.success && res.data?.coupon) {
+        setAppliedCoupon(res.data.coupon)
+        setIsAutoAppliedCoupon(false)
+        toast.success("Coupon applied successfully!")
+      } else {
+        setAppliedCoupon(null)
+        toast.error(res.error || res.message || "Invalid coupon code")
+      }
+    } catch (err: any) {
+      setAppliedCoupon(null)
+      toast.error(err?.message || "Failed to validate coupon")
+    } finally {
+      setValidatingCoupon(false)
+    }
+  }
+
+  const removeCoupon = () => {
+    setCouponCode("")
+    setAppliedCoupon(null)
+    setAutoCouponRemoved(true)
+    setIsAutoAppliedCoupon(false)
+  }
+
   useEffect(() => {
-  }, [])
+    if (!clubId || autoCouponRemoved || appliedCoupon) return
+    const timer = setTimeout(async () => {
+      try {
+        const res = await apiClient.getHighestEligibleAutoCoupon({
+          clubId,
+          phone: user?.phoneNumber || undefined,
+          email: user?.email || undefined,
+          purchaseType: 'membership',
+        })
+        if (res.success && res.data?.coupon) {
+          setAppliedCoupon(res.data.coupon)
+          setCouponCode(res.data.coupon.code)
+          setIsAutoAppliedCoupon(true)
+        }
+      } catch {
+        // Auto-apply is best effort
+      }
+    }, 0)
+    return () => clearTimeout(timer)
+  }, [clubId, user?.phoneNumber, user?.email, autoCouponRemoved, appliedCoupon])
 
   useEffect(() => {
     const digits = referralPhone.replace(/\D/g, "")
@@ -160,7 +204,6 @@ export default function BrowseMembershipPlansPage() {
       toast.error("Please log in to select a plan")
       return
     }
-    const planId = plan._id
     const salesState = getPlanSalesState(plan)
     if (!salesState.isOpen) {
       if (salesState.closed && currentMembership && isMembershipExpired()) {
@@ -173,103 +216,8 @@ export default function BrowseMembershipPlansPage() {
       return
     }
 
-    if (plan.price > 0) {
-      const orderId = `membership-${planId}-${user._id}-${Date.now()}`
-      const orderNumber = `ORD-${Math.floor(Math.random() * 900000) + 100000}`
-      const currency = plan.currency || "INR"
-      const { isUpgrade, ...feeBreakdown } = getPlanCharge(plan)
-      const validReferral = referralStatus === "found" ? referralPhone.replace(/\D/g, "") : undefined
-      setPendingPayment({
-        planId,
-        planName: plan.name,
-        orderId,
-        orderNumber,
-        total: feeBreakdown.finalAmount,
-        subtotal: feeBreakdown.baseAmount,
-        platformFeeTotal: feeBreakdown.platformFee + feeBreakdown.platformFeeGst,
-        razorpayFeeTotal: feeBreakdown.razorpayFee + feeBreakdown.razorpayFeeGst,
-        currency,
-        paymentMethod: "all",
-        isUpgrade,
-        referralPhone: validReferral,
-      })
-      return
-    }
-
-    const validReferralFree = referralStatus === "found" ? referralPhone.replace(/\D/g, "") : undefined
-    try {
-      setIsAssigning(planId)
-      const response = await apiClient.subscribeMembershipPlan(planId, undefined, validReferralFree)
-      if (response.success) {
-        const message = response.data && "isUpgrade" in response.data && response.data.isUpgrade
-          ? "Membership plan upgraded successfully!"
-          : "Membership plan selected successfully!"
-        toast.success(message)
-        await checkAuth()
-        if (clubId) {
-          await loadPlans(clubId)
-          await loadCurrentMembership(clubId)
-        }
-      } else {
-        toast.error(response.error || "Failed to select membership plan")
-      }
-    } catch (error) {
-      toast.error("Failed to select membership plan")
-    } finally {
-      setIsAssigning(null)
-    }
-  }
-
-  const handlePaymentSuccess = async (
-    orderId: string,
-    paymentId: string,
-    razorpayOrderId: string,
-    razorpaySignature: string
-  ) => {
-    if (!pendingPayment) return
-    const { planId, referralPhone: pendingReferral } = pendingPayment
-    try {
-      setIsAssigning(planId)
-      const response = await apiClient.subscribeMembershipPlan(
-        planId,
-        { razorpay_payment_id: paymentId, razorpay_order_id: razorpayOrderId, razorpay_signature: razorpaySignature },
-        pendingReferral
-      )
-      if (response.success) {
-        const message =
-          response.data && "isUpgrade" in response.data && response.data.isUpgrade
-            ? "Payment successful — membership upgraded!"
-            : "Payment successful — membership activated!"
-        toast.success(message)
-        setPendingPayment(null)
-        await checkAuth()
-        if (clubId) {
-          await loadPlans(clubId)
-          await loadCurrentMembership(clubId)
-        }
-      } else {
-        toast.error(response.error || "Failed to activate membership after payment")
-      }
-    } catch (error) {
-      toast.error("Failed to activate membership after payment")
-    } finally {
-      setIsAssigning(null)
-      setPendingPayment(null)
-    }
-  }
-
-  const handlePaymentFailure = (
-    _orderId: string,
-    _paymentId: string,
-    razorpayOrderId: string,
-    _razorpaySignature: string,
-    _error?: any
-  ) => {
-    if (pendingPayment && razorpayOrderId) {
-      void apiClient.cancelPendingMembershipPurchase(pendingPayment.planId, razorpayOrderId).catch(() => undefined)
-    }
-    toast.error("Payment failed or was cancelled. Please try again.")
-    setPendingPayment(null)
+    setSelectedPlanId(plan._id)
+    setJoinModalOpen(true)
   }
 
   const formatPrice = (price: number, currency: string) => {
@@ -586,6 +534,61 @@ export default function BrowseMembershipPlansPage() {
             </Card>
           )}
 
+          {/* Coupon field */}
+          {clubId && (
+            <Card>
+              <CardContent className="pt-5 pb-5">
+                <div className="flex flex-col sm:flex-row sm:items-end gap-3">
+                  <div className="flex-1 space-y-1.5">
+                    <div className="flex items-center gap-1.5">
+                      <Label htmlFor="membershipCoupon" className="text-sm font-medium">
+                        Coupon or Promo Code
+                      </Label>
+                      <span className="text-xs text-muted-foreground">(Optional)</span>
+                    </div>
+                    {appliedCoupon ? (
+                      <div className="flex items-center justify-between p-2.5 rounded-lg bg-green-500/10 border border-green-500/30">
+                        <div className="truncate">
+                          <p className="text-sm font-semibold text-green-700 dark:text-green-300">{appliedCoupon.name || appliedCoupon.code}</p>
+                          <p className="text-xs text-green-600 dark:text-green-400">
+                            {appliedCoupon.code}{isAutoAppliedCoupon ? " · Auto-applied" : " · Applied"} · {appliedCoupon.discountType === 'flat' ? `₹${appliedCoupon.discountValue} Off` : `${appliedCoupon.discountValue}% Off`}
+                          </p>
+                        </div>
+                        <Button type="button" variant="ghost" size="sm" onClick={removeCoupon} className="h-8 px-2 text-red-600 hover:text-red-700 hover:bg-red-100">
+                          Remove
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <Input
+                          id="membershipCoupon"
+                          type="text"
+                          placeholder="Enter coupon code (e.g. RENEWAL50)"
+                          value={couponCode}
+                          onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault()
+                              void handleValidateCoupon()
+                            }
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => void handleValidateCoupon()}
+                          disabled={validatingCoupon || !couponCode.trim()}
+                        >
+                          {validatingCoupon ? <Loader2 className="w-4 h-4 animate-spin" /> : "Apply"}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {clubId && plans.length === 0 && !isLoading ? (
             <Card>
               <CardContent className="pt-6">
@@ -707,36 +710,15 @@ export default function BrowseMembershipPlansPage() {
             </div>
           ) : null}
 
-          {pendingPayment && (
-            <PaymentSimulationModal
-              isOpen={!!pendingPayment}
-              onClose={() => setPendingPayment(null)}
-              onPaymentSuccess={handlePaymentSuccess}
-              onPaymentFailure={handlePaymentFailure}
-              orderId={pendingPayment.orderId}
-              orderNumber={pendingPayment.orderNumber}
-              total={pendingPayment.total}
-              subtotal={pendingPayment.subtotal}
-              platformFeeTotal={pendingPayment.platformFeeTotal}
-              razorpayFeeTotal={pendingPayment.razorpayFeeTotal}
-              currency={pendingPayment.currency}
-              paymentMethod={pendingPayment.paymentMethod}
-              dialogTitle={pendingPayment.isUpgrade ? "Pay upgrade difference" : "Pay for membership"}
-              dialogDescription={
-                pendingPayment.isUpgrade
-                  ? `Pay the difference for ${pendingPayment.planName} (incl. GST & fees)`
-                  : `Complete payment for ${pendingPayment.planName}`
-              }
-              payButtonLabel="Pay & activate"
-              onRazorpayOrderCreated={async (razorpayOrderId) => {
-                const result = await apiClient.createPendingMembershipPurchase(
-                  pendingPayment.planId,
-                  razorpayOrderId,
-                  pendingPayment.referralPhone
-                )
-                if (!result.success) toast.error(result.error || "Unable to prepare membership purchase")
-                return result.success
-              }}
+          {joinModalOpen && clubId && (
+            <JoinMembershipModal
+              open={joinModalOpen}
+              onOpenChange={setJoinModalOpen}
+              clubId={clubId}
+              plans={plans as any}
+              initialPlanId={selectedPlanId}
+              mode={currentMembership ? "upgrade" : "subscribe"}
+              isDashboard={true}
             />
           )}
         </div>

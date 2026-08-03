@@ -14,7 +14,7 @@ import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
 import { isUserRegisteredForEvent as isUserRegisteredOnEvent, getUserRegistrationStatus, extractCancellableAttendeesFromApiResponse } from "@/lib/event-registration"
 import { formatLocalDate } from "@/lib/timezone"
-import { Calendar, MapPin, Clock, Users, Newspaper, Tag, User as UserIcon, Eye, CreditCard, Crown, Star, Shield, Infinity as InfinityIcon, Trash } from "lucide-react"
+import { Calendar, MapPin, Clock, Users, Newspaper, Tag, User as UserIcon, Eye, CreditCard, Crown, Star, Shield, Infinity as InfinityIcon, Trash, AlertTriangle } from "lucide-react"
 import EventDetailsModal from '@/components/modals/event-details-modal'
 import { VenueTierCartModal } from "@/components/modals/venue-tier-cart-modal"
 import { RefundConfirmationModal } from "@/components/modals/refund-confirmation-modal"
@@ -248,6 +248,27 @@ export default function UserDashboardPage() {
       ) || null
     )
   }, [clubId, user])
+
+  const isExpiredMember = useMemo(() => {
+    if (!user || !clubId) return false
+    const memberships = Array.isArray((user as any).memberships) ? (user as any).memberships : []
+    const clubMemberships = memberships.filter((m: any) => {
+      if (!m) return false
+      const id = typeof m.club_id === 'string' ? m.club_id : m.club_id?._id
+      return String(id) === String(clubId)
+    })
+    if (clubMemberships.length === 0) return false
+
+    const hasActiveUnexpired = clubMemberships.some((m: any) => {
+      if (m.status === 'cancelled') return false
+      const isExpiredDate = Boolean(m.end_date && new Date(m.end_date) <= new Date())
+      if (m.end_date && !isExpiredDate) return true
+      if (m.status === 'active' && !isExpiredDate) return true
+      return false
+    })
+
+    return !hasActiveUnexpired
+  }, [user, clubId])
 
   const userClub = (activeMembership as any)?.club_id || (activeMembership as any)?.club || null
 
@@ -860,75 +881,104 @@ export default function UserDashboardPage() {
             <p className="text-muted-foreground">Stay updated with the latest events and news from your supporter group</p>
           </div>
 
-          {/* User Stats */}
-          <div className="grid gap-4 md:grid-cols-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Upcoming Events</CardTitle>
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {(events || []).filter(e => !isEventPast(e)).length}
+          {isExpiredMember && (
+            <Card className="border-amber-500/30 bg-amber-500/10">
+              <CardContent className="p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <h3 className="font-semibold text-base sm:text-lg flex items-center gap-2 text-amber-800 dark:text-amber-300">
+                    <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
+                    Membership Plan Expired
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Your membership plan for this club has expired. Buy a plan to restore full access to club features, events, and news.
+                  </p>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Events you can attend
-                </p>
+                <Button
+                  size="default"
+                  onClick={() => window.location.href = '/dashboard/user/browse-plans'}
+                  className="font-semibold shadow shrink-0 bg-primary text-primary-foreground hover:bg-primary/90"
+                >
+                  <CreditCard className="w-4 h-4 mr-2" />
+                  Buy Membership Plan
+                </Button>
               </CardContent>
             </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Latest News</CardTitle>
-                <Newspaper className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{(news || []).length}</div>
-                <p className="text-xs text-muted-foreground">
-                  Published articles
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Redeemable Points</CardTitle>
-                <Star className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {totalPoints !== null ? totalPoints : '—'}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {totalPoints !== null && onePointValue > 0 ? `${totalPoints} Points worth ${process.env.NEXT_PUBLIC_CURRENCY_SYMBOL || '₹'}${Number(totalPoints * onePointValue).toLocaleString()}` : 'Conversion not configured'}
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Membership Status</CardTitle>
-                <UserIcon className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">
-                  {activeMembership ? (
-                    <div className="flex items-center gap-2">
-                      {getPlanIcon(activeMembership.membership_level_id?.name || "")}
-                      <span className="text-lg">{activeMembership.membership_level_id?.name || ""}</span>
-                    </div>
-                  ) : (
-                    "No Active"
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {activeMembership ? 'Active Membership' : 'No active membership'}
-                </p>
-              </CardContent>
-            </Card>
-          </div>
+          )}
+
+          {/* User Stats - Only show for active non-expired members */}
+          {!isExpiredMember && (
+            <div className="grid gap-4 md:grid-cols-4">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Upcoming Events</CardTitle>
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {(events || []).filter(e => !isEventPast(e)).length}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Events you can attend
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Latest News</CardTitle>
+                  <Newspaper className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{(news || []).length}</div>
+                  <p className="text-xs text-muted-foreground">
+                    Published articles
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total Redeemable Points</CardTitle>
+                  <Star className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {totalPoints !== null ? totalPoints : '—'}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {totalPoints !== null && onePointValue > 0 ? `${totalPoints} Points worth ${process.env.NEXT_PUBLIC_CURRENCY_SYMBOL || '₹'}${Number(totalPoints * onePointValue).toLocaleString()}` : 'Conversion not configured'}
+                  </p>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Membership Status</CardTitle>
+                  <UserIcon className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {activeMembership ? (
+                      <div className="flex items-center gap-2">
+                        {getPlanIcon(activeMembership.membership_level_id?.name || "")}
+                        <span className="text-lg">{activeMembership.membership_level_id?.name || ""}</span>
+                      </div>
+                    ) : (
+                      "No Active"
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {activeMembership ? 'Active Membership' : 'No active membership'}
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
           {/* Club Membership Status */}
-          <MembershipStatus />
+          <MembershipStatus showMembershipCardButton={!isExpiredMember} />
 
-          {/* Upcoming Matches */}
+          {/* Remaining Feed Sections - Only show for non-expired members */}
+          {!isExpiredMember && (
+            <>
+              {/* Upcoming Matches */}
           <div className="w-full rounded-[2.5rem] overflow-hidden border-2 shadow-xl bg-card p-4">
             <FixturesCards clubId={clubId ?? undefined} />
           </div>
@@ -1327,6 +1377,8 @@ export default function UserDashboardPage() {
           {userClub && isSectionVisible('polls') && (
             <PollsWidget limit={3} showCreateButton={false} />
           )}
+        </>
+      )}
         </div>
 
         {/* Read More News Modal */}
