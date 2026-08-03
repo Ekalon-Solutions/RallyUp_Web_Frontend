@@ -55,7 +55,7 @@ export default function ElevateAdminPage() {
             {/* Page header */}
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="space-y-2">
-                <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-2">
                   <Shield className="h-8 w-8 text-primary" />
                   Team &amp; Access
                 </h1>

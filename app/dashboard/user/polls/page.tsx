@@ -103,7 +103,7 @@ export default function UserPollsPage() {
     return (
       <ProtectedRoute>
         <DashboardLayout>
-          <div className="container mx-auto p-6">
+          <div className="space-y-6">
             <div className="text-center py-12">
               <BarChart3 className="w-12 h-12 mx-auto mb-4 opacity-50 text-muted-foreground" />
               <h3 className="text-lg font-semibold mb-2">No Club Selected</h3>
@@ -120,7 +120,7 @@ export default function UserPollsPage() {
     return (
       <ProtectedRoute>
         <DashboardLayout>
-          <div className="container mx-auto p-6">
+          <div className="space-y-6">
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
@@ -136,9 +136,9 @@ export default function UserPollsPage() {
   return (
     <ProtectedRoute>
       <DashboardLayout>
-        <div className="container mx-auto p-6">
+        <div className="space-y-6">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2">Club Polls</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold mb-2">Club Polls</h1>
         <p className="text-muted-foreground">Participate in polls and share your feedback with the club</p>
       </div>
 

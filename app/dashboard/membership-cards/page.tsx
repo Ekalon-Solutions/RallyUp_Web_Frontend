@@ -824,7 +824,7 @@ function MembershipCardsPage() {
     return (
       <ProtectedRoute requireAdmin>
         <DashboardLayout>
-          <div className="p-6 space-y-6">
+          <div className="space-y-6">
             <div className="flex justify-center items-center h-64">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             </div>
@@ -837,7 +837,7 @@ function MembershipCardsPage() {
   return (
     <ProtectedRoute requireAdmin>
       <DashboardLayout>
-        <div className="p-6 space-y-6">
+        <div className="space-y-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Membership Cards</h1>
@@ -1410,7 +1410,7 @@ function MembershipCardsPage() {
 export default function MembershipCardsPageWrapper() {
   return (
     <Suspense fallback={
-      <div className="p-6 flex justify-center items-center h-64">
+      <div className="flex justify-center items-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
       </div>
     }>

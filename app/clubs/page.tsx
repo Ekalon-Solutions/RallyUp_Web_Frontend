@@ -1227,7 +1227,7 @@ function ClubsPageContent() {
               </DialogHeader>
 
               <Tabs defaultValue="plans" className="w-full">
-                <TabsList className="grid w-full grid-cols-3 h-auto">
+                <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 h-auto">
                   <TabsTrigger className="whitespace-normal" value="plans">Membership Plans</TabsTrigger>
                   <TabsTrigger value="info">Club Info</TabsTrigger>
                   <TabsTrigger value="features">Features</TabsTrigger>

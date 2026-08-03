@@ -23,9 +23,9 @@ export default function VolunteerManagementPage() {
   const clubId = useSelectedClubId() ?? undefined;
 
   return (
-    <div className="container mx-auto p-6 max-w-7xl">
+    <div className="space-y-6 max-w-7xl">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Volunteer Management</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold mb-2">Volunteer Management</h1>
         <p className="text-gray-600">
           Manage your volunteer status and view all volunteers
         </p>

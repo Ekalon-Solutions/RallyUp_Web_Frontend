@@ -395,7 +395,7 @@ export default function UserProfilePage() {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <div className="flex items-center gap-3 mb-1">
-                <h1 className="text-3xl font-bold tracking-tight">My Profile</h1>
+                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">My Profile</h1>
                 {showSystemAdminProfile && (
                   <Badge variant="secondary" className="text-xs font-semibold uppercase tracking-wider">
                     {user.role?.replace("_", " ")}
@@ -427,7 +427,7 @@ export default function UserProfilePage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-center gap-4 mb-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
                     {uploadingPhoto ? (
                       // Skeleton loader while the Image Scaling Engine optimizes the
                       // card photo in the background (square crop + WebP conversion).
@@ -465,7 +465,7 @@ export default function UserProfilePage() {
                   </div>
                   {isEditing ? (
                     <form onSubmit={handleProfileUpdate} className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <Label htmlFor="name">Full Name</Label>
                           <Input
@@ -486,7 +486,7 @@ export default function UserProfilePage() {
                           />
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <Label htmlFor="phone">Phone Number</Label>
                           <Input
@@ -508,7 +508,7 @@ export default function UserProfilePage() {
                       </div>
                       {isMember(user?.role) && (
                         <>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-2">
                               <Label htmlFor="address_line1">Address Line 1</Label>
                               <Input
@@ -528,7 +528,7 @@ export default function UserProfilePage() {
                               />
                             </div>
                           </div>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-2">
                               <Label htmlFor="city">City</Label>
                               <Input
@@ -548,7 +548,7 @@ export default function UserProfilePage() {
                               />
                             </div>
                           </div>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-2">
                               <Label htmlFor="zip_code">ZIP / Postal Code</Label>
                               <Input
@@ -586,7 +586,7 @@ export default function UserProfilePage() {
                     </form>
                   ) : (
                     <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                           <Label className="text-sm font-medium text-muted-foreground">Full Name</Label>
                           <p className="text-sm">{user.name}</p>
@@ -596,7 +596,7 @@ export default function UserProfilePage() {
                           <p className="text-sm">{user.email}</p>
                         </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                           <Label className="text-sm font-medium text-muted-foreground">Phone Number</Label>
                           <p className="text-sm">{user.countryCode} {user.phoneNumber}</p>

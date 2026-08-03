@@ -158,20 +158,14 @@ export default function ClubManagementPage() {
   const [createErrors, setCreateErrors] = useState<{ slug?: string }>({})
   const [platformFeeWarning, setPlatformFeeWarning] = useState(false)
 
-  useEffect(() => {
-    if (user?.role === 'system_owner') {
-      fetchClubs()
-    }
-  }, [user])
-
   const fetchClubs = async () => {
     try {
       setLoading(true)
+      // Load once; search + status are filtered client-side so typing stays instant
+      // and partial matches work without round-trips / full-page loading.
       const response = await apiClient.getClubs({
         page: 1,
         limit: 100,
-        search: searchTerm || undefined,
-        status: statusFilter !== 'all' ? statusFilter : undefined
       })
       
       if (response.success && response.data) {
@@ -206,7 +200,8 @@ export default function ClubManagementPage() {
     if (user?.role === 'system_owner') {
       fetchClubs()
     }
-  }, [searchTerm, statusFilter])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user])
 
   const handleCreateClub = async () => {
     try {
@@ -414,10 +409,13 @@ export default function ClubManagementPage() {
   }
 
   const filteredClubs = clubs.filter(club => {
-    const matchesSearch = club.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         club.slug?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         club.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         club.contactEmail.toLowerCase().includes(searchTerm.toLowerCase())
+    const q = searchTerm.trim().toLowerCase()
+    const matchesSearch =
+      !q ||
+      club.name?.toLowerCase().includes(q) ||
+      club.slug?.toLowerCase().includes(q) ||
+      club.description?.toLowerCase().includes(q) ||
+      club.contactEmail?.toLowerCase().includes(q)
     const matchesStatus = statusFilter === 'all' || club.status === statusFilter
     return matchesSearch && matchesStatus
   })
@@ -444,7 +442,7 @@ export default function ClubManagementPage() {
           <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
-                <h1 className="text-3xl font-bold">Club Management</h1>
+                <h1 className="text-2xl sm:text-3xl font-bold">Club Management</h1>
                 <p className="text-muted-foreground">Manage all clubs and their administrators</p>
               </div>
             </div>
@@ -478,7 +476,7 @@ export default function ClubManagementPage() {
           {/* Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h1 className="text-3xl font-bold">Club Management</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold">Club Management</h1>
               <p className="text-muted-foreground">Manage all clubs and their administrators</p>
             </div>
             <Dialog open={showCreateDialog} onOpenChange={(open) => { setShowCreateDialog(open); if (!open) setPlatformFeeWarning(false) }}>
@@ -822,7 +820,7 @@ export default function ClubManagementPage() {
               />
             </div>
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
               <SelectContent>

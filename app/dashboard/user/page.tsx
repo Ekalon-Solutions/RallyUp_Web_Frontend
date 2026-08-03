@@ -876,7 +876,7 @@ export default function UserDashboardPage() {
             </div>
           </div>
           <div>
-            <h1 className="text-3xl font-bold">Welcome, {getUserDisplayName()}!</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold">Welcome, {getUserDisplayName()}!</h1>
             <p className="text-muted-foreground">Stay updated with the latest events and news from your supporter group</p>
           </div>
 

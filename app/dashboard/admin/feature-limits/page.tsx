@@ -174,7 +174,7 @@ export default function FeatureLimitsAdminPage() {
       <DashboardLayout>
         <div className="space-y-6">
           <div>
-            <h1 className="text-3xl font-bold flex items-center gap-2">
+            <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
               <Zap className="h-8 w-8" />
               Feature Limits Management
             </h1>
@@ -201,7 +201,7 @@ export default function FeatureLimitsAdminPage() {
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="all" onValueChange={setStatusFilter} className="w-full">
-                <TabsList className="grid grid-cols-5 w-full">
+                <TabsList className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 w-full">
                   <TabsTrigger value="all">
                     All ({requests.length})
                   </TabsTrigger>

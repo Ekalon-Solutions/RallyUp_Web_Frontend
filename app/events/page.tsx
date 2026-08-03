@@ -227,7 +227,7 @@ export default function PublicEventsPage() {
       <div className="container mx-auto px-4 py-8">
         <div className="space-y-6">
           <div className="text-center space-y-2">
-            <h1 className="text-4xl font-bold">Upcoming Events</h1>
+            <h1 className="text-2xl sm:text-4xl font-bold">Upcoming Events</h1>
             <p className="text-xl text-muted-foreground">
               Join exciting events with your supporter group
             </p>

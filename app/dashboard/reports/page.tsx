@@ -417,7 +417,7 @@ export default function ReportsHubPage() {
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-black text-foreground flex items-center gap-3">
+            <h1 className="text-2xl sm:text-3xl font-black text-foreground flex items-center gap-3">
               <FileBarChart className="w-8 h-8 text-primary" />
               Reporting & Analytics
             </h1>

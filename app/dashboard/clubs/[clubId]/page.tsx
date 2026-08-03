@@ -118,7 +118,7 @@ function ClubDetailsPageInner() {
 
   if (error || !club) {
     return (
-      <div className="container mx-auto px-4 py-8">
+      <div className="space-y-6">
         <Button
           variant="ghost"
           onClick={() => router.back()}
@@ -137,7 +137,7 @@ function ClubDetailsPageInner() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-7xl">
+    <div className="space-y-6 max-w-7xl">
       {/* Back Button */}
       <Button
         variant="ghost"
@@ -170,9 +170,9 @@ function ClubDetailsPageInner() {
 
               {/* Club Info */}
               <div className="flex-1">
-                <div className="flex items-start justify-between mb-4">
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                   <div>
-                    <h1 className="text-3xl font-bold mb-2">{club.name}</h1>
+                    <h1 className="text-2xl sm:text-3xl font-bold mb-2">{club.name}</h1>
                     <Badge variant={club.status === 'active' ? 'default' : 'secondary'}>
                       {club.status}
                     </Badge>

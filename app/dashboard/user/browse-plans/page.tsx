@@ -380,7 +380,7 @@ export default function BrowseMembershipPlansPage() {
       <DashboardLayout>
         <div className="space-y-6">
           <div className="text-center space-y-2">
-            <h1 className="text-3xl font-bold">Choose Your Membership Plan</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold">Choose Your Membership Plan</h1>
             <p className="text-lg text-muted-foreground">
               Select the perfect plan that suits your needs and unlock exclusive benefits
             </p>

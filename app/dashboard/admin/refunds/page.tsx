@@ -270,9 +270,9 @@ function RefundsPageInner() {
 
   return (
     <DashboardLayout>
-      <div className="container mx-auto py-6 space-y-6">
+      <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">Refund Requests</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold">Refund Requests</h1>
           <p className="text-muted-foreground">Manage and process refund requests</p>
         </div>
 
@@ -391,7 +391,7 @@ function RefundsPageInner() {
                 <CardDescription>View and manage all refund requests</CardDescription>
               </div>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-[180px]">
+                <SelectTrigger className="w-full sm:w-[180px]">
                   <SelectValue placeholder="Filter by status" />
                 </SelectTrigger>
                 <SelectContent>
