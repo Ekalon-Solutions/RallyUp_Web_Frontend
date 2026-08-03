@@ -38,8 +38,6 @@ import { cn } from "@/lib/utils"
 import { calculateTransactionFees, PLATFORM_FEE_PERCENT, RAZORPAY_FEE_PERCENT } from "@/lib/transactionFees"
 import { PaymentSimulationModal } from "./payment-simulation-modal"
 import { toast } from "sonner"
-import { MemberValidationModal } from "./member-validation-modal"
-import { useRouter } from "next/navigation"
 
 interface CheckoutModalProps {
   isOpen: boolean
@@ -167,7 +165,6 @@ function formatEstimatedDays(estimatedDays: { min: number; max: number }, titleC
 
 export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems }: CheckoutModalProps) {
   const { user } = useAuth()
-  const router = useRouter()
   const { items: cartItems, totalPrice: cartTotalPrice, clearCart } = useCart()
   const items = directCheckoutItems || cartItems
   const totalPrice = directCheckoutItems 
@@ -189,8 +186,6 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
   const [reservationToken, setReservationToken] = useState<string | null>(null)
   const [reservedDiscount, setReservedDiscount] = useState<number>(0)
   const [reserving, setReserving] = useState(false)
-  const [showMemberValidation, setShowMemberValidation] = useState(false)
-  const [memberValidated, setMemberValidated] = useState(false)
   const [shiprocketLoading, setShiprocketLoading] = useState(false)
   const [shiprocketMessage, setShiprocketMessage] = useState<string | null>(null)
   const [serviceability, setServiceability] = useState<ServiceabilityResult | null>(null)
@@ -1844,33 +1839,6 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
           </div>
         </form>
       </DialogContent>
-
-      {/* Member Validation Modal */}
-      {items.length > 0 && (
-        <MemberValidationModal
-          isOpen={showMemberValidation}
-          onClose={() => setShowMemberValidation(false)}
-          clubId={typeof items[0]?.club === 'string' ? items[0].club : items[0]?.club?._id || ''}
-          clubName={typeof items[0]?.club === 'object' ? items[0].club?.name : undefined}
-          onMemberFound={() => {
-            router.push('/')
-            onClose()
-          }}
-          onNonMemberContinue={() => {
-            setMemberValidated(true)
-            setShowMemberValidation(false)
-            const form = document.querySelector('form')
-            if (form) {
-              form.requestSubmit()
-            }
-          }}
-          onBecomeMember={() => {
-            const clubId = typeof items[0]?.club === 'string' ? items[0].club : items[0]?.club?._id
-            router.push(`/membership-plans?clubId=${clubId}`)
-            onClose()
-          }}
-        />
-      )}
 
       {/* Payment Simulation Modal */}
       {createdOrder && (

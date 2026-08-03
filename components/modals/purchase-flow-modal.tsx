@@ -15,6 +15,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { CountryCodeSelect } from "@/components/country-code-select"
 import { Loader2, Phone, CheckCircle2, Info, MessageCircle } from "lucide-react"
 import { apiClient } from "@/lib/api"
+import { useAuth } from "@/contexts/auth-context"
 import { toast } from "sonner"
 
 const PURCHASE_INTENT_KEY = "rallyup_purchase_intent"
@@ -108,9 +109,7 @@ interface PurchaseFlowModalProps {
   clubId: string
   clubName?: string
   onContinueToPayment: () => void
-  onLogin?: (returnUrl: string) => void
   onRegister?: (returnUrl: string) => void
-  returnPath: string
   initialMobileNumber?: string
   initialCountryCode?: string
 }
@@ -121,12 +120,11 @@ export function PurchaseFlowModal({
   clubId,
   clubName,
   onContinueToPayment,
-  onLogin,
   onRegister,
-  returnPath,
   initialMobileNumber,
   initialCountryCode = "+91",
 }: PurchaseFlowModalProps) {
+  const { login } = useAuth()
   const [mobileNumber, setMobileNumber] = useState("")
   const [countryCode, setCountryCode] = useState("+91")
   const [loading, setLoading] = useState(false)
@@ -146,9 +144,13 @@ export function PurchaseFlowModal({
   const [otpVerifying, setOtpVerifying] = useState(false)
   const [resendCountdown, setResendCountdown] = useState(0)
 
+  const [memberLoginOtp, setMemberLoginOtp] = useState("")
+  const [memberLoginOtpSent, setMemberLoginOtpSent] = useState(false)
+  const [memberLoginSessionInfo, setMemberLoginSessionInfo] = useState<string | null>(null)
+  const [memberLoginOtpSending, setMemberLoginOtpSending] = useState(false)
+  const [memberLoginOtpVerifying, setMemberLoginOtpVerifying] = useState(false)
+
   const usePrefilledPhone = Boolean(initialMobileNumber?.trim()) && !allowManualEntry
-  const returnUrl =
-    returnPath + (returnPath.includes("?") ? "&" : "?") + "resumePurchase=1"
   const registerNextUrl =
     clubName && clubName.trim()
       ? `/clubs?search=${encodeURIComponent(clubName.trim())}`
@@ -163,6 +165,11 @@ export function PurchaseFlowModal({
     setOtpSending(false)
     setOtpVerifying(false)
     setResendCountdown(0)
+    setMemberLoginOtp("")
+    setMemberLoginOtpSent(false)
+    setMemberLoginSessionInfo(null)
+    setMemberLoginOtpSending(false)
+    setMemberLoginOtpVerifying(false)
   }
 
   const startResendCountdown = () => {
@@ -364,12 +371,61 @@ export function PurchaseFlowModal({
     void sendPhoneVerificationOtp()
   }, [validationResult, phoneVerified, otpSent, sendPhoneVerificationOtp])
 
-  const handleLogin = () => {
-    onClose()
-    if (onLogin) {
-      onLogin(returnUrl)
-    } else {
-      window.location.href = `/login?next=${encodeURIComponent(returnUrl)}`
+  const handleMemberLoginSendOtp = async () => {
+    const digits = mobileNumber.replace(/\D/g, "")
+    const code = countryCode.trim() || "+91"
+    setMemberLoginOtpSending(true)
+    try {
+      const res = await apiClient.sendOtp({ phoneNumber: digits, countryCode: code, role: "user" })
+      if (res.success) {
+        setMemberLoginSessionInfo(res.data?.sessionInfo ?? null)
+        setMemberLoginOtpSent(true)
+        setMemberLoginOtp("")
+        toast.success(`OTP sent to ${formatPhoneForDisplay(code, digits)}`)
+      } else {
+        toast.error(res.message || res.error || "Failed to send OTP")
+      }
+    } catch (error) {
+      console.error("Send member login OTP error:", error)
+      toast.error("Failed to send OTP. Please try again.")
+    } finally {
+      setMemberLoginOtpSending(false)
+    }
+  }
+
+  const handleMemberLoginVerifyOtp = async () => {
+    if (memberLoginOtp.length < 6) {
+      toast.error("Please enter the 6-digit code")
+      return
+    }
+    const digits = mobileNumber.replace(/\D/g, "")
+    const code = countryCode.trim() || "+91"
+    setMemberLoginOtpVerifying(true)
+    try {
+      const res = await apiClient.verifyOTP({
+        phoneNumber: digits,
+        countryCode: code,
+        otp: memberLoginOtp,
+        role: "user",
+        sessionInfo: memberLoginSessionInfo || undefined,
+      })
+      if (!res.success || !res.data?.verified) {
+        toast.error(res.message || res.error || "Invalid or expired code")
+        return
+      }
+      const loginResult = await login("", digits, code)
+      if (!loginResult.success) {
+        toast.error(loginResult.error || "Login failed after OTP verification")
+        return
+      }
+      toast.success("Signed in successfully!")
+      onClose()
+      onContinueToPayment()
+    } catch (error) {
+      console.error("Verify member login OTP error:", error)
+      toast.error("Failed to verify code. Please try again.")
+    } finally {
+      setMemberLoginOtpVerifying(false)
     }
   }
 
@@ -507,18 +563,64 @@ export function PurchaseFlowModal({
               <AlertDescription className="text-green-800">
                 <strong>Existing member</strong>
                 <br />
-                Log in to use your account or continue as guest to proceed to payment.
+                Verify your number to log in and unlock member pricing, or continue as guest.
               </AlertDescription>
             </Alert>
 
-            <div className="flex gap-2">
-              <Button onClick={handleLogin} className="flex-1">
-                Login
-              </Button>
-              <Button variant="outline" onClick={handleContinue} className="flex-1">
-                Continue as Guest
-              </Button>
-            </div>
+            {!memberLoginOtpSent ? (
+              <div className="space-y-3">
+                <Button
+                  onClick={() => void handleMemberLoginSendOtp()}
+                  disabled={memberLoginOtpSending}
+                  className="w-full"
+                >
+                  {memberLoginOtpSending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Sending OTP…
+                    </>
+                  ) : (
+                    "Send OTP to Login"
+                  )}
+                </Button>
+                <Button variant="outline" onClick={handleContinue} className="w-full">
+                  Continue as Guest
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label htmlFor="memberLoginOtp">Verification code</Label>
+                  <Input
+                    id="memberLoginOtp"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    placeholder="Enter 6-digit code"
+                    value={memberLoginOtp}
+                    maxLength={6}
+                    onChange={(e) => setMemberLoginOtp(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  />
+                </div>
+                <Button
+                  onClick={() => void handleMemberLoginVerifyOtp()}
+                  disabled={memberLoginOtpVerifying || memberLoginOtp.length < 6}
+                  className="w-full"
+                >
+                  {memberLoginOtpVerifying ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Verifying…
+                    </>
+                  ) : (
+                    "Verify & Login"
+                  )}
+                </Button>
+                <Button variant="outline" onClick={handleContinue} className="w-full">
+                  Continue as Guest
+                </Button>
+              </div>
+            )}
           </div>
         ) : !phoneVerified ? (
           <div className="space-y-4 py-4">

@@ -16,7 +16,6 @@ import { apiClient } from "@/lib/api"
 import { useAuth } from "@/contexts/auth-context"
 import { resolveCheckoutCharge, type FeeHandlingType } from "@/lib/transactionFees"
 import { PriceBreakdown } from "@/components/checkout/price-breakdown"
-import { MemberValidationModal } from "./member-validation-modal"
 import { RefundPolicyBadge } from "@/components/refund-policy-badge"
 import { RefundPolicyCheckoutLine } from "@/components/member/refund-policy-checkout-line"
 import { RefundPolicyModal } from "@/components/modals/refund-policy-modal"
@@ -76,11 +75,9 @@ interface EventCheckoutModalProps {
   onSuccess: () => void
   onFailure: () => void
   onCancellation?: () => void | Promise<void>
-  /** Skip the in-modal MemberValidationModal — use when the caller already confirmed non-member intent */
-  skipMemberValidation?: boolean
 }
 
-export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCode, waitlistToken, onSuccess, onFailure, onCancellation, skipMemberValidation }: EventCheckoutModalProps) {
+export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCode, waitlistToken, onSuccess, onFailure, onCancellation }: EventCheckoutModalProps) {
   const { user } = useAuth()
   const router = useRouter()
   const [loading, setLoading] = useState(false)
@@ -88,8 +85,6 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
   const [couponDiscount, setCouponDiscount] = useState(0)
   const [couponName, setCouponName] = useState("")
   const [scriptLoaded, setScriptLoaded] = useState(false)
-  const [showMemberValidation, setShowMemberValidation] = useState(false)
-  const [memberValidated, setMemberValidated] = useState(false)
   const [eventData, setEventData] = useState<any>(null)
   const [redeemPoints, setRedeemPoints] = useState<number | string>("")
   const [reservationToken, setReservationToken] = useState<string | null>(null)
@@ -158,7 +153,6 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
 
   useEffect(() => {
     if (isOpen) {
-      setMemberValidated(Boolean(skipMemberValidation || user))
       setLocalCouponCode("")
       setCouponApplied(false)
       setCouponDiscount(0)
@@ -169,7 +163,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
       setAttributedClubError("")
       setShowClubAlert(false)
     }
-  }, [isOpen, skipMemberValidation, user])
+  }, [isOpen])
 
   useEffect(() => {
     if (isOpen && !scriptLoaded) {
@@ -435,11 +429,6 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
         toast.error(remaining === 0 ? "This event is now full" : `Only ${remaining} seat${remaining !== 1 ? 's' : ''} remaining — please reduce attendees`)
         return
       }
-    }
-
-    if (!user && !memberValidated) {
-      setShowMemberValidation(true)
-      return
     }
 
     if (!user) {
@@ -1203,25 +1192,6 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
         />
       )}
 
-      {eventData?.clubId && (
-        <MemberValidationModal
-          isOpen={showMemberValidation}
-          onClose={() => setShowMemberValidation(false)}
-          clubId={eventData.clubId}
-          onMemberFound={() => {
-            router.push('/')
-            onClose()
-          }}
-          onNonMemberContinue={() => {
-            setMemberValidated(true)
-            setShowMemberValidation(false)
-          }}
-          onBecomeMember={() => {
-            router.push(`/membership-plans?clubId=${eventData.clubId}`)
-            onClose()
-          }}
-        />
-      )}
     </Dialog>
     </>
   )
