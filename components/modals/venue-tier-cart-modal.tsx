@@ -98,7 +98,7 @@ const normalizeCountryCode = (code: string) => {
 type GuestStep = 'identify' | 'member-found' | 'guest-or-signup' | 'otp' | 'attendees'
 
 export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailure, onCancellation, onSignup, waitlistToken }: VenueTierCartModalProps) {
-  const { user, checkAuth, login } = useAuth()
+  const { user, checkAuth, login, isAdmin } = useAuth()
   const router = useRouter()
 
   const hasAuthToken = typeof window !== "undefined" && !!localStorage.getItem("token")
@@ -858,6 +858,10 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
 
   const handlePayment = async () => {
     if (!event) return
+    if (isAdmin) {
+      toast.error("Admin accounts cannot purchase tickets. Please log in as a member.")
+      return
+    }
     if (!refundPolicy.ensureAgreed()) {
       toast.error('Review the refund policy and tap "I Agree" before continuing.')
       return
