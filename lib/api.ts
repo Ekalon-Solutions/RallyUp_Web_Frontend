@@ -626,7 +626,8 @@ export interface Chant {
   fileSize?: number;
   mimeType?: string;
   club: Club;
-  createdBy: User;
+  /** Null when the creating user/admin was deleted (populate returns null). */
+  createdBy: User | null;
   isActive: boolean;
   tags?: string[];
   fileTypeDisplay?: string;

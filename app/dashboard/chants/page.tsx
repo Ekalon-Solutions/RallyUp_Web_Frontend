@@ -615,7 +615,7 @@ export default function ChantsManagementPage() {
                       <div className="flex items-center gap-4">
                         <div className="flex items-center gap-1">
                           <User className="w-4 h-4" />
-                          {chant.createdBy.name}
+                          {chant.createdBy?.name ?? 'Unknown'}
                         </div>
                         <div className="flex items-center gap-1">
                           <Calendar className="w-4 h-4" />
