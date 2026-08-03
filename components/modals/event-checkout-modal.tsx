@@ -448,11 +448,12 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
         setGuestEmailError("Email is required")
         return
       }
-      if (!emailRegex.test(guestEmail.trim())) {
-        setGuestEmailError("Enter a valid email address")
-        return
-      }
       setGuestEmailError("")
+    }
+
+    if (!scriptLoaded || typeof window === 'undefined' || !window.Razorpay) {
+      toast.error("Payment system is loading. Please try again in a moment.")
+      return
     }
 
     setLoading(true)
@@ -524,11 +525,13 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
       const clubFeePercent = event?.platformFeePercent ?? eventData?.platformFeePercent ?? 5
       const { amountToCharge } = resolveCheckoutCharge(paymentNet, event?.feeHandlingType, clubFeePercent)
 
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+      const authHeaders: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (token) authHeaders['Authorization'] = `Bearer ${token}`
+
       const response = await fetch('/api/razorpay/create-order', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: authHeaders,
         body: JSON.stringify({
           amount: amountToCharge,
           currency: event.currency || 'INR',
@@ -538,7 +541,8 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
       })
 
       if (!response.ok) {
-        throw new Error('Failed to create payment order')
+        const errBody = await response.json().catch(() => null)
+        throw new Error(errBody?.error || errBody?.details || 'Failed to create payment order')
       }
 
       const { razorpayOrderId, amount, currency: orderCurrency } = await response.json()
@@ -624,7 +628,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
             try {
               const verifyResponse = await fetch('/api/razorpay/verify-payment', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: authHeaders,
                 body: JSON.stringify({
                   razorpay_order_id: orderId,
                   razorpay_payment_id: paymentId,

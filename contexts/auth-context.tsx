@@ -180,18 +180,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       let profileResponse = null;
 
-      if (userType === 'admin' || userType === 'vendor') {
+      if (userType === 'admin' || userType === 'super_admin' || userType === 'vendor') {
         try {
-          // console.log('Trying admin profile (from userType)...');
           const adminResponse = await apiClient.adminProfile();
           if (adminResponse.success && adminResponse.data) {
-            // console.log('Setting user from admin profile:', adminResponse.data);
             setUser(adminResponse.data);
             setIsLoading(false);
             return;
           }
         } catch (error) {
-          // console.log('Admin profile failed, falling back to discovery');
         }
       } else if (userType === 'system_owner') {
         try {
@@ -285,7 +282,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const loginData: any = {};
       if (email && email.trim()) {
-        loginData.email = email.trim();
+        loginData.email = email.trim().toLowerCase();
       } else if (phoneNumber && phoneNumber.trim()) {
         loginData.phoneNumber = phoneNumber.trim();
         if (countryCode && countryCode.trim()) {
@@ -403,19 +400,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (isSystemOwner) {
           localStorage.setItem('userType', 'system_owner');
         } else if (isAdmin) {
-          localStorage.setItem('userType', accountData.role);
+          localStorage.setItem('userType', accountData.role || 'admin');
         } else {
           localStorage.setItem('userType', 'member');
         }
 
-        setUser(accountData);
+        // Reset active club so the newly active role derives its own primary club
+        localStorage.removeItem('activeClubId');
+        if (typeof window !== 'undefined') {
+          window.sessionStorage.removeItem('selectedClubId');
+        }
+
         clearAllFeatureCaches();
-        const hydrated = await hydrateUserProfile({
-          isAdmin,
-          isSystemOwner,
-          fallbackUserData: accountData
-        });
-        setUser(hydrated);
+
+        const targetPath = isSystemOwner
+          ? '/dashboard/club-management'
+          : isAdmin
+          ? '/dashboard'
+          : '/dashboard/user';
+
+        if (typeof window !== 'undefined') {
+          window.location.href = targetPath;
+        }
+
         return { success: true };
       }
 

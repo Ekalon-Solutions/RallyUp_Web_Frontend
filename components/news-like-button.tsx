@@ -35,18 +35,15 @@ export function NewsLikeButton({
       // console.log('🔍 Checking like status for news:', newsId)
       const response = await apiClient.checkNewsLike(newsId)
       // console.log('🔍 Like status response:', response)
-      if (response.success) {
-        // console.log('🔍 Setting initial like status:', response.data.isLiked)
-        setIsLiked(response.data.isLiked)
+      if (response.success && response.data) {
+        setIsLiked(Boolean(response.data.isLiked ?? response.data.liked))
       }
     } catch (error) {
-      // console.error('❌ Failed to check like status:', error)
     }
   }, [newsId])
 
   useEffect(() => {
     if (user) {
-      // console.log('👤 User authenticated, checking like status for news:', newsId)
       checkLikeStatus()
     }
   }, [user, newsId, checkLikeStatus])
@@ -63,15 +60,14 @@ export function NewsLikeButton({
 
     setIsLoading(true)
     try {
-      // console.log('❤️ Toggling like for news:', newsId, 'current state:', isLiked)
       const response = await apiClient.toggleNewsLike(newsId)
       
-      // console.log('✅ Like toggle response:', response)
-      
-      if (response.success) {
-        // Update local state immediately
-        const newIsLiked = response.data.isLiked
-        const newLikeCount = response.data.likeCount
+      if (response.success && response.data) {
+        const newIsLiked = Boolean(response.data.isLiked ?? response.data.liked)
+        const newLikeCount = response.data.likeCount ?? response.data.likesCount ?? 0
+        
+        setIsLiked(newIsLiked)
+        setLikeCount(newLikeCount)
         
         // console.log('🔄 Updating like state:', { newIsLiked, newLikeCount })
         

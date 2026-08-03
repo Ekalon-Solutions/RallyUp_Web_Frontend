@@ -113,7 +113,7 @@ export function LoginModal({ open, onOpenChange, onSuccess }: LoginModalProps) {
       }
       setSending(true)
       try {
-        const res = await apiClient.sendOtp({ email, role })
+        const res = await apiClient.sendOtp({ email })
         if (res.success) {
           toast.success(`Code sent to ${email}`)
           setOtpSent(true)
@@ -137,8 +137,7 @@ export function LoginModal({ open, onOpenChange, onSuccess }: LoginModalProps) {
         // Use backend API for phone OTP
         const res = await apiClient.sendOtp({ 
           phoneNumber: phone, 
-          countryCode: countryCode, 
-          role 
+          countryCode: countryCode
         })
         
         if (res.success) {
@@ -170,7 +169,7 @@ export function LoginModal({ open, onOpenChange, onSuccess }: LoginModalProps) {
     try {
       let otpVerified = false;
       if (email) {
-        const res = await apiClient.verifyEmailOTP({ email, otp, role })
+        const res = await apiClient.verifyEmailOTP({ email, otp })
         if (res.success) {
           otpVerified = true;
           if ((res.data as any)?.token) {
@@ -184,7 +183,6 @@ export function LoginModal({ open, onOpenChange, onSuccess }: LoginModalProps) {
           phoneNumber: phone,
           countryCode: countryCode,
           otp: otp,
-          role: role,
           sessionInfo: window.otpSessionInfo
         })
         if (res.success) {
@@ -216,7 +214,7 @@ export function LoginModal({ open, onOpenChange, onSuccess }: LoginModalProps) {
   const handleResendOTP = async (channel?: 'whatsapp' | 'sms') => {
     if (email) {
       try {
-        const res = await apiClient.sendOtp({ email, role })
+        const res = await apiClient.sendOtp({ email })
         if (res.success) {
           toast.success(`Code resent to ${email}.`)
           startResendCountdown()
@@ -231,7 +229,6 @@ export function LoginModal({ open, onOpenChange, onSuccess }: LoginModalProps) {
         const res = await apiClient.resendOTP({ 
           phoneNumber: phone, 
           countryCode: countryCode, 
-          role: role,
           channel
         })
         if (res.success) {

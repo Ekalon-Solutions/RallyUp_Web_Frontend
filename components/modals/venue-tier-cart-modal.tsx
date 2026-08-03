@@ -30,6 +30,7 @@ import { getJointScreeningClubNames } from "@/lib/joint-screening-clubs"
 import { canShowPointsRedemption, validatePointsRedemptionInput } from "@/lib/points-redemption"
 import { getBookingWindowClosedLabel, hasVenueTierMatrix, isBookingWindowOpen, isEventPaid } from "@/lib/event-display-price"
 import { formatPhoneForDisplay } from "@/components/modals/purchase-flow-modal"
+import { slugify } from "@/lib/utils"
 
 declare global {
   interface Window { Razorpay: any }
@@ -1354,7 +1355,10 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
           }
           let available = Math.max(0, (tier.allocation ?? 0) - (tier.sold ?? 0))
           if (attributedClub && tier.clubAllocations?.length) {
-            const ca = tier.clubAllocations.find((ca) => ca.clubName === attributedClub)
+            const ca = tier.clubAllocations.find((c) =>
+              c.clubName?.trim().toLowerCase() === attributedClub.trim().toLowerCase() ||
+              slugify(c.clubName || "") === slugify(attributedClub || "")
+            )
             available = ca ? Math.max(0, (ca.allocation ?? 0) - (ca.sold ?? 0)) : 0
           }
           if (item.quantity > available) {
@@ -1569,7 +1573,10 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
 
           let available = Math.max(0, (tier.allocation ?? 0) - (tier.sold ?? 0))
           if (attributedClub && tier.clubAllocations?.length) {
-            const clubAllocation = tier.clubAllocations.find((ca) => ca.clubName === attributedClub)
+            const clubAllocation = tier.clubAllocations.find((ca) =>
+              ca.clubName?.trim().toLowerCase() === attributedClub.trim().toLowerCase() ||
+              slugify(ca.clubName || "") === slugify(attributedClub || "")
+            )
             available = clubAllocation ? Math.max(0, (clubAllocation.allocation ?? 0) - (clubAllocation.sold ?? 0)) : 0
           }
 
@@ -1615,9 +1622,13 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
         return
       }
 
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+      const authHeaders: Record<string, string> = { "Content-Type": "application/json" }
+      if (token) authHeaders["Authorization"] = `Bearer ${token}`
+
       const orderRes = await fetch("/api/razorpay/create-order", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: authHeaders,
         body: JSON.stringify({
           amount: amountToCharge,
           currency: event.currency ?? "INR",
@@ -1625,7 +1636,10 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
           orderNumber: `EVT-MTX-${Date.now()}`,
         }),
       })
-      if (!orderRes.ok) throw new Error("Failed to create payment order")
+      if (!orderRes.ok) {
+        const errBody = await orderRes.json().catch(() => null)
+        throw new Error(errBody?.error || errBody?.details || "Failed to create payment order")
+      }
       const { razorpayOrderId, amount, currency: orderCurrency } = await orderRes.json()
 
       await apiClient.createPendingVenueTierBooking(event._id, {
@@ -1658,7 +1672,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
             // security boundary. See event-checkout-modal.tsx for the same pattern.
             const verifyResp = await fetch("/api/razorpay/verify-payment", {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
+              headers: authHeaders,
               body: JSON.stringify({
                 razorpay_order_id: orderId,
                 razorpay_payment_id: paymentId,

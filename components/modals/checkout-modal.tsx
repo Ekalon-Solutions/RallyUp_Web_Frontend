@@ -986,8 +986,12 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+    <Dialog open={isOpen} onOpenChange={() => { if (!showPaymentModal) onClose() }} modal={!showPaymentModal}>
+      <DialogContent
+        className="max-w-4xl max-h-[90vh] overflow-y-auto"
+        onInteractOutside={(e) => { if (showPaymentModal) e.preventDefault() }}
+        onEscapeKeyDown={(e) => { if (showPaymentModal) e.preventDefault() }}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CreditCard className="w-5 h-5" />
