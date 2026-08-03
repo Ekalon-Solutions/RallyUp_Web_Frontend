@@ -78,7 +78,7 @@ interface EventCheckoutModalProps {
 }
 
 export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCode, waitlistToken, onSuccess, onFailure, onCancellation }: EventCheckoutModalProps) {
-  const { user } = useAuth()
+  const { user, isAdmin } = useAuth()
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [razorpayOpen, setRazorpayOpen] = useState(false)
@@ -402,6 +402,10 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
   const affiliationClubOptions = getJointScreeningClubNames(jointScreening ?? undefined)
 
   const handlePayment = async () => {
+    if (isAdmin) {
+      toast.error("Admin accounts cannot purchase tickets. Please log in as a member.")
+      return
+    }
     if (!refundPolicy.ensureAgreed()) {
       toast.error('Review the refund policy and tap "I Agree" before continuing.')
       return

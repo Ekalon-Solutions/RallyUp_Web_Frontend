@@ -164,7 +164,7 @@ function formatEstimatedDays(estimatedDays: { min: number; max: number }, titleC
 }
 
 export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems }: CheckoutModalProps) {
-  const { user } = useAuth()
+  const { user, isAdmin } = useAuth()
   const { items: cartItems, totalPrice: cartTotalPrice, clearCart } = useCart()
   const items = directCheckoutItems || cartItems
   const totalPrice = directCheckoutItems 
@@ -779,6 +779,10 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    if (isAdmin) {
+      toast.error("Admin accounts cannot place orders. Please log in as a member.")
+      return
+    }
     if (submittingRef.current) return
     if (!validateForm()) {
       return

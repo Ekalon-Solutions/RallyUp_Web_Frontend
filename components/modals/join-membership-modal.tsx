@@ -157,7 +157,7 @@ export function JoinMembershipModal({
   isDashboard = false,
 }: JoinMembershipModalProps) {
   const router = useRouter()
-  const { user, checkAuth } = useAuth()
+  const { user, checkAuth, isAdmin } = useAuth()
   const [internalPlans, setInternalPlans] = useState<JoinablePlan[]>([])
   const [internalClubName, setInternalClubName] = useState<string>("")
 
@@ -840,6 +840,10 @@ export function JoinMembershipModal({
 
   const handleSubscribeOrUpgrade = async () => {
     if (!selectedPlan || !user?._id) return
+    if (isAdmin) {
+      toast.error("Admin accounts cannot purchase memberships. Please log in as a member.")
+      return
+    }
 
     const salesState = getPlanSalesState(selectedPlan)
     if (!salesState.isOpen) {
