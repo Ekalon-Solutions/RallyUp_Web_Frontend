@@ -168,18 +168,18 @@ export function LoginModal({ open, onOpenChange, onSuccess }: LoginModalProps) {
     }
     setVerifying(true)
     try {
+      let otpVerified = false;
       if (email) {
         const res = await apiClient.verifyEmailOTP({ email, otp, role })
-        if (res.success && (res.data as any)?.token) {
-          localStorage.setItem("token", (res.data as any).token)
-          localStorage.setItem("userType", tab === "user" ? "member" : (res.data as any).role || "admin")
-          toast.success("Signed in successfully!")
-          await finishLogin()
+        if (res.success) {
+          otpVerified = true;
+          if ((res.data as any)?.token) {
+            localStorage.setItem("token", (res.data as any).token)
+          }
         } else {
           toast.error(res.message || res.error || "Invalid OTP")
         }
       } else {
-        // Phone number verification using backend API
         const res = await apiClient.verifyOTP({ 
           phoneNumber: phone,
           countryCode: countryCode,
@@ -187,26 +187,23 @@ export function LoginModal({ open, onOpenChange, onSuccess }: LoginModalProps) {
           role: role,
           sessionInfo: window.otpSessionInfo
         })
-        
         if (res.success) {
-          // Handle successful verification based on response
+          otpVerified = true;
           if (res.data?.token) {
             localStorage.setItem("token", res.data.token)
-            localStorage.setItem("userType", tab === "user" ? "member" : res.data.userData?.role || "admin")
-            toast.success("Signed in successfully!")
-            await finishLogin()
-          } else {
-            // If no token, use existing login flow
-            const backendResult = await login(email, phone, countryCode, tab === "admin")
-            if (backendResult?.success) {
-              toast.success("Signed in successfully!")
-              await finishLogin()
-            } else {
-              toast.error(backendResult?.error || "Login failed")
-            }
           }
         } else {
           toast.error(res.message || "Invalid or expired OTP. Please try again.")
+        }
+      }
+
+      if (otpVerified) {
+        const backendResult = await login(email, phone, countryCode)
+        if (backendResult?.success) {
+          toast.success("Signed in successfully!")
+          await finishLogin()
+        } else {
+          toast.error(backendResult?.error || "Login failed")
         }
       }
     } catch {
@@ -278,7 +275,7 @@ export function LoginModal({ open, onOpenChange, onSuccess }: LoginModalProps) {
           </div>
 
           {/* Logo */}
-          <div className="flex flex-row items-center justify-center gap-2 w-full py-2">
+          <div className="flex flex-row items-center justify-center gap-2 w-full py-4">
             <div className="relative w-12 h-12 rounded-xl">
               <Image src="/Logo.svg" alt="Wingman Pro" fill className="object-contain" />
             </div>
@@ -286,43 +283,16 @@ export function LoginModal({ open, onOpenChange, onSuccess }: LoginModalProps) {
               WINGMAN <span className="text-primary">PRO</span>
             </span>
           </div>
-
-          {/* Tabs */}
-          <div className='flex flex-row items-center justify-center gap-2'>
-            <button
-              onClick={() => handleTabChange("user")}
-              className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-semibold transition-all ${tab === 'user' ? 'border-b border-primary border-b-2' : ''}`}
-            >
-              <User className="w-4 h-4" />
-              User
-            </button>
-            <button
-              onClick={() => handleTabChange("admin")}
-              className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-semibold transition-all ${tab === 'admin' ? 'border-b border-primary border-b-2' : ''}`}
-            >
-              <Shield className="w-4 h-4" />
-              Admin
-            </button>
-
-          </div>
-
         </div>
 
         {/* Body */}
         <div className="bg-white px-6 py-6 space-y-5">
           <div>
             <h2 className="text-2xl font-black text-secondary">
-              {tab === "admin" ? (
-                <>Admin, <span className="text-primary">Access!</span></>
-              ) : (
-                <>Welcome, <span className="text-primary">Champ!</span></>
-              )}
+              Welcome, <span className="text-primary">Champ!</span>
             </h2>
             <p className="text-sm text-secondary mt-1">
-              {tab === "admin" 
-                ? "Club Administrators — Sign in to power your club dashboard."
-                : "Login made easy! Enter your details and we'll send you a secure OTP."
-              }
+              Login made easy! Enter your details and we'll send you a secure OTP.
             </p>
           </div>
 

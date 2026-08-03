@@ -24,8 +24,7 @@ function NotificationPreferencesLandingPageInner() {
   }, [isAuthenticated, isLoading, router])
 
   const goToLogin = () => {
-    const next = "/dashboard/user-settings"
-    router.push(`/login?tab=user-login&next=${encodeURIComponent(next)}`)
+    router.push('/')
   }
 
   return (
