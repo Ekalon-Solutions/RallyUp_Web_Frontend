@@ -497,21 +497,6 @@ export default function EventDetailPage() {
           loadData()
         }}
         onFailure={() => {}}
-        onLogin={(guest) => {
-          if (!club._id) return
-          setShowVenueTierCartModal(false)
-          const loginReturnUrl = returnPath + (returnPath.includes("?") ? "&" : "?") + "resumePurchase=1"
-          setStoredPurchaseIntent({
-            type: "event",
-            clubId: club._id,
-            slug,
-            eventId: event._id,
-            event,
-            attendees: [{ name: guest.name, phone: `${guest.countryCode}${guest.phone}` }],
-            returnPath: loginReturnUrl,
-          })
-          router.push(`/login?next=${encodeURIComponent(loginReturnUrl)}`)
-        }}
         onSignup={(guest) => {
           if (!club._id) return
           setShowVenueTierCartModal(false)

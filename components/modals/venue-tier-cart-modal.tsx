@@ -49,7 +49,6 @@ interface VenueTierCartModalProps {
   onSuccess: () => void
   onFailure: () => void
   onCancellation?: () => void | Promise<void>
-  onLogin?: (guest: GuestIdentity) => void
   onSignup?: (guest: GuestIdentity) => void
   waitlistToken?: string | null
 }
@@ -98,7 +97,7 @@ const normalizeCountryCode = (code: string) => {
 
 type GuestStep = 'identify' | 'member-found' | 'guest-or-signup' | 'otp' | 'attendees'
 
-export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailure, onCancellation, onLogin, onSignup, waitlistToken }: VenueTierCartModalProps) {
+export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailure, onCancellation, onSignup, waitlistToken }: VenueTierCartModalProps) {
   const { user, checkAuth, login } = useAuth()
   const router = useRouter()
 
@@ -768,13 +767,6 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
     } finally {
       setIdentifyChecking(false)
     }
-  }
-
-  const handleGuestLogin = () => {
-    const digits = digitsOnly(primaryPhone)
-    const countryCode = normalizeCountryCode(primaryCountryCode)
-    onClose()
-    onLogin && onLogin({ name: primaryName.trim(), phone: digits, countryCode })
   }
 
   const handleGuestSignup = () => {
