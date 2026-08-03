@@ -16,6 +16,7 @@ import { ProtectedRoute } from "@/components/protected-route"
 import { useAuth } from "@/contexts/auth-context"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { JoinMembershipModal } from "@/components/modals/join-membership-modal"
+import { JoinMembershipModal } from "@/components/modals/join-membership-modal"
 import { computeMembershipPlanCharge } from "@/lib/transactionFees"
 
 export default function BrowseMembershipPlansPage() {
@@ -25,6 +26,8 @@ export default function BrowseMembershipPlansPage() {
   const [currentMembership, setCurrentMembership] = useState<any>(null)
   const [joinModalOpen, setJoinModalOpen] = useState(false)
   const [selectedPlanId, setSelectedPlanId] = useState<string | undefined>(undefined)
+  const [joinModalOpen, setJoinModalOpen] = useState(false)
+  const [selectedPlanId, setSelectedPlanId] = useState<string | undefined>(undefined)
   const { user, checkAuth } = useAuth()
   const clubId = useRequiredClubId()
 
@@ -32,6 +35,65 @@ export default function BrowseMembershipPlansPage() {
   const [referralStatus, setReferralStatus] = useState<"idle" | "checking" | "found" | "not-found" | "not-member" | "self">("idle")
   const [referralName, setReferralName] = useState<string | null>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const [couponCode, setCouponCode] = useState("")
+  const [appliedCoupon, setAppliedCoupon] = useState<any>(null)
+  const [validatingCoupon, setValidatingCoupon] = useState(false)
+  const [isAutoAppliedCoupon, setIsAutoAppliedCoupon] = useState(false)
+  const [autoCouponRemoved, setAutoCouponRemoved] = useState(false)
+
+  const handleValidateCoupon = async () => {
+    if (!couponCode.trim() || !clubId) return
+    try {
+      setValidatingCoupon(true)
+      const res = await apiClient.validateCoupon(couponCode.trim().toUpperCase(), {
+        clubId,
+        purchaseType: 'membership',
+      })
+      if (res.success && res.data?.coupon) {
+        setAppliedCoupon(res.data.coupon)
+        setIsAutoAppliedCoupon(false)
+        toast.success("Coupon applied successfully!")
+      } else {
+        setAppliedCoupon(null)
+        toast.error(res.error || res.message || "Invalid coupon code")
+      }
+    } catch (err: any) {
+      setAppliedCoupon(null)
+      toast.error(err?.message || "Failed to validate coupon")
+    } finally {
+      setValidatingCoupon(false)
+    }
+  }
+
+  const removeCoupon = () => {
+    setCouponCode("")
+    setAppliedCoupon(null)
+    setAutoCouponRemoved(true)
+    setIsAutoAppliedCoupon(false)
+  }
+
+  useEffect(() => {
+    if (!clubId || autoCouponRemoved || appliedCoupon) return
+    const timer = setTimeout(async () => {
+      try {
+        const res = await apiClient.getHighestEligibleAutoCoupon({
+          clubId,
+          phone: user?.phoneNumber || undefined,
+          email: user?.email || undefined,
+          purchaseType: 'membership',
+        })
+        if (res.success && res.data?.coupon) {
+          setAppliedCoupon(res.data.coupon)
+          setCouponCode(res.data.coupon.code)
+          setIsAutoAppliedCoupon(true)
+        }
+      } catch {
+        // Auto-apply is best effort
+      }
+    }, 0)
+    return () => clearTimeout(timer)
+  }, [clubId, user?.phoneNumber, user?.email, autoCouponRemoved, appliedCoupon])
 
   useEffect(() => {
     const digits = referralPhone.replace(/\D/g, "")
@@ -157,6 +219,8 @@ export default function BrowseMembershipPlansPage() {
       return
     }
 
+    setSelectedPlanId(plan._id)
+    setJoinModalOpen(true)
     setSelectedPlanId(plan._id)
     setJoinModalOpen(true)
   }
@@ -475,6 +539,61 @@ export default function BrowseMembershipPlansPage() {
             </Card>
           )}
 
+          {/* Coupon field */}
+          {clubId && (
+            <Card>
+              <CardContent className="pt-5 pb-5">
+                <div className="flex flex-col sm:flex-row sm:items-end gap-3">
+                  <div className="flex-1 space-y-1.5">
+                    <div className="flex items-center gap-1.5">
+                      <Label htmlFor="membershipCoupon" className="text-sm font-medium">
+                        Coupon or Promo Code
+                      </Label>
+                      <span className="text-xs text-muted-foreground">(Optional)</span>
+                    </div>
+                    {appliedCoupon ? (
+                      <div className="flex items-center justify-between p-2.5 rounded-lg bg-green-500/10 border border-green-500/30">
+                        <div className="truncate">
+                          <p className="text-sm font-semibold text-green-700 dark:text-green-300">{appliedCoupon.name || appliedCoupon.code}</p>
+                          <p className="text-xs text-green-600 dark:text-green-400">
+                            {appliedCoupon.code}{isAutoAppliedCoupon ? " · Auto-applied" : " · Applied"} · {appliedCoupon.discountType === 'flat' ? `₹${appliedCoupon.discountValue} Off` : `${appliedCoupon.discountValue}% Off`}
+                          </p>
+                        </div>
+                        <Button type="button" variant="ghost" size="sm" onClick={removeCoupon} className="h-8 px-2 text-red-600 hover:text-red-700 hover:bg-red-100">
+                          Remove
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex gap-2">
+                        <Input
+                          id="membershipCoupon"
+                          type="text"
+                          placeholder="Enter coupon code (e.g. RENEWAL50)"
+                          value={couponCode}
+                          onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault()
+                              void handleValidateCoupon()
+                            }
+                          }}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => void handleValidateCoupon()}
+                          disabled={validatingCoupon || !couponCode.trim()}
+                        >
+                          {validatingCoupon ? <Loader2 className="w-4 h-4 animate-spin" /> : "Apply"}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {clubId && plans.length === 0 && !isLoading ? (
             <Card>
               <CardContent className="pt-6">
@@ -596,6 +715,15 @@ export default function BrowseMembershipPlansPage() {
             </div>
           ) : null}
 
+          {joinModalOpen && clubId && (
+            <JoinMembershipModal
+              open={joinModalOpen}
+              onOpenChange={setJoinModalOpen}
+              clubId={clubId}
+              plans={plans as any}
+              initialPlanId={selectedPlanId}
+              mode={currentMembership ? "upgrade" : "subscribe"}
+              isDashboard={true}
           {joinModalOpen && clubId && (
             <JoinMembershipModal
               open={joinModalOpen}
