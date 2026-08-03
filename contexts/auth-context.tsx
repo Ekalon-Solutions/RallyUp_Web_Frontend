@@ -22,7 +22,7 @@ interface AuthContextType {
   activeClubId: string | null;
   setActiveClubId: (clubId: string | null) => void;
   login: (email: string, phoneNumber: string, countryCode: string, isAdmin?: boolean, isSystemOwner?: boolean) => Promise<{ success: boolean; error?: string }>;
-  switchRole: (accountType: 'user' | 'admin' | 'system_owner', accountId: string) => Promise<{ success: boolean; error?: string }>;
+  switchRole: (accountType: 'user' | 'admin' | 'system_owner', accountId: string, targetClubId?: string) => Promise<{ success: boolean; error?: string }>;
   register: (userData: any, isSystemOwner?: boolean) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   updateProfile: (data: any) => Promise<{ success: boolean; error?: string }>;
@@ -385,7 +385,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const switchRole = async (accountType: 'user' | 'admin' | 'system_owner', accountId: string): Promise<{ success: boolean; error?: string }> => {
+  const switchRole = async (accountType: 'user' | 'admin' | 'system_owner', accountId: string, targetClubId?: string): Promise<{ success: boolean; error?: string }> => {
     try {
       const response = await apiClient.switchAccountRole({ accountType, accountId });
 
@@ -405,8 +405,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           localStorage.setItem('userType', 'member');
         }
 
-        // Reset active club so the newly active role derives its own primary club
-        localStorage.removeItem('activeClubId');
+        // Reset active club so the newly active role derives its own primary club —
+        // unless the caller is switching specifically to reach a known club, in which
+        // case that explicit selection must survive the switch, not get wiped here.
+        if (targetClubId) {
+          localStorage.setItem('activeClubId', targetClubId);
+        } else {
+          localStorage.removeItem('activeClubId');
+        }
         if (typeof window !== 'undefined') {
           window.sessionStorage.removeItem('selectedClubId');
         }

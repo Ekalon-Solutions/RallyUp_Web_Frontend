@@ -627,8 +627,7 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
       availableRoles.find((r) => r.accountType === 'user' && r.clubIds?.includes(clubId));
 
     if (targetAccount) {
-      localStorage.setItem('activeClubId', clubId);
-      await switchRole(targetAccount.accountType, targetAccount.accountId);
+      await switchRole(targetAccount.accountType, targetAccount.accountId, clubId);
     } else {
       setActiveClubId(clubId);
       router.refresh();
