@@ -78,7 +78,7 @@ export function VolunteerQuickSignup({ onSignup, currentProfile, isSignedUp = fa
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          <div className="grid grid-cols-3 gap-4 text-center">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
             <div className="text-center">
               <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
                 <Heart className="w-6 h-6 text-blue-600" />

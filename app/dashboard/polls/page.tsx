@@ -190,7 +190,7 @@ export default function PollsManagementPage() {
     return (
       <ProtectedRoute>
         <DashboardLayout>
-          <div className="container mx-auto p-6 flex items-center justify-center min-h-[50vh]">
+          <div className="flex items-center justify-center min-h-[50vh]">
             <div className="text-center">
               <h3 className="text-lg font-semibold">Access Denied</h3>
               <p className="text-muted-foreground">You don&apos;t have permission to access this page.</p>

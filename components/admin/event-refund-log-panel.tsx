@@ -183,7 +183,7 @@ export function EventRefundLogPanel({ eventId, eventTitle }: Props = {}) {
           <Filter className="w-4 h-4 text-muted-foreground" />
           <span className="text-sm font-medium">Policy filter:</span>
           <Select value={policyFilter} onValueChange={(v) => setPolicyFilter(v as PolicyFilter)}>
-            <SelectTrigger className="w-52">
+            <SelectTrigger className="w-full sm:w-52">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

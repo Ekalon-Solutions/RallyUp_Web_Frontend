@@ -383,7 +383,7 @@ export default function WebsitePage() {
             <CardHeader className="pb-6 border-b bg-muted/20">
               <CardTitle className="text-2xl font-bold">Header, Intro & Section Breaks</CardTitle>
             </CardHeader>
-            <CardContent className="p-8 space-y-6">
+            <CardContent className="p-4 sm:p-8 space-y-6">
               <div className="grid gap-4">
                 <Label htmlFor="welcome-text" className="text-base font-bold">Welcome Message</Label>
                 <Textarea

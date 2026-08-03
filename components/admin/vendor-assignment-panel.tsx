@@ -601,7 +601,7 @@ export function VendorAssignmentPanel({ refreshSignal }: VendorAssignmentPanelPr
           </p>
           <div className="flex flex-wrap gap-2">
             <Select value={overrideEventId} onValueChange={setOverrideEventId}>
-              <SelectTrigger className="w-[220px]">
+              <SelectTrigger className="w-full sm:w-[220px]">
                 <SelectValue placeholder="Event for override" />
               </SelectTrigger>
               <SelectContent>
