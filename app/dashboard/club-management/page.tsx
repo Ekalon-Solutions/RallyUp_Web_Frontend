@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo, memo } from 'react'
+import { useState, useEffect, useMemo, useCallback, memo } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { apiClient, Club, Admin } from '@/lib/api'
 // getApiUrl removed (cron trigger moved to admin dashboard)
@@ -399,11 +399,9 @@ export default function ClubManagementPage() {
   const [createErrors, setCreateErrors] = useState<{ slug?: string }>({})
   const [platformFeeWarning, setPlatformFeeWarning] = useState(false)
 
-  const fetchClubs = async () => {
+  const fetchClubs = useCallback(async () => {
     try {
-      // Only flip the initial-load flag when we have nothing to show yet.
-      // Never blank the page shell on refresh / after create-delete.
-      setLoading((prev) => (clubs.length === 0 ? true : prev))
+      // `loading` starts true; we only clear it here so refreshes never blank the shell.
       const response = await apiClient.getClubs({
         page: 1,
         limit: 100,
@@ -432,16 +430,15 @@ export default function ClubManagementPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  // Stable role key so auth object identity changes don't re-fetch
+  // Stable role key so auth object identity changes don't re-fetch / remount UI
   const userRole = user?.role
   useEffect(() => {
     if (userRole === 'system_owner') {
       fetchClubs()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userRole])
+  }, [userRole, fetchClubs])
 
   const handleCreateClub = async () => {
     try {
@@ -633,11 +630,11 @@ export default function ClubManagementPage() {
     }
   }
 
-  const handleDeleteClub = (clubId: string, clubName: string) => {
+  const handleDeleteClub = useCallback((clubId: string, clubName: string) => {
     setSelectedClubId(clubId)
     setSelectedClubName(clubName)
     setIsDeleteDialogOpen(true)
-  }
+  }, [])
 
   const handleResendOTP = (channel?: "whatsapp" | "sms") => {
     handleSendOTP(channel)
@@ -995,203 +992,12 @@ export default function ClubManagementPage() {
             </Dialog>
           </div>
 
-          
-
-          {/* Filters */}
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-              <Input
-                placeholder="Search clubs..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-full sm:w-[180px]">
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-                <SelectItem value="suspended">Suspended</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Clubs Table */}
-          <Card>
-            <CardHeader>
-              <CardTitle>All Clubs ({filteredClubs.length})</CardTitle>
-              <CardDescription>
-                Manage clubs, view statistics, and assign administrators
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Club</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Super Admin</TableHead>
-                    <TableHead>Members</TableHead>
-                    <TableHead>Contact</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredClubs.map((club) => (
-                    <TableRow key={club._id}>
-                      <TableCell>
-                        <div className="flex items-center space-x-3">
-                          <Avatar className="w-10 h-10">
-                            <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
-                              {club.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <div className="font-medium">{club.name}</div>
-                            <div className="font-mono text-xs text-muted-foreground">{club.slug}</div>
-                            <div className="text-sm text-muted-foreground line-clamp-1">
-                              {club.description || 'No description'}
-                            </div>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={
-                          club.status === 'active' ? 'default' :
-                          club.status === 'inactive' ? 'secondary' : 'destructive'
-                        }>
-                          {club.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {club.superAdmin ? (
-                          <div>
-                            <div className="font-medium">{club.superAdmin.name}</div>
-                            <div className="text-sm text-muted-foreground">{club.superAdmin.email}</div>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">Not assigned</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {club.stats ? (
-                          <div className="text-sm">
-                            <div>{club.stats.totalMembers} total</div>
-                            <div className="text-muted-foreground">{club.stats.activeMembers} active</div>
-                          </div>
-                        ) : (
-                          <span className="text-muted-foreground">Loading...</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm">
-                          <div className="flex items-center space-x-1">
-                            <Mail className="w-3 h-3" />
-                            <span>{club.contactEmail}</span>
-                          </div>
-                          <div className="flex items-center space-x-1">
-                            <Phone className="w-3 h-3" />
-                            <span>{club.contactPhone}</span>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="text-sm">
-                          {formatDisplayDate(club.createdAt)}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem onSelect={(e) => { 
-                              e.preventDefault();
-                              (async () => {
-                                try {
-                                  const resp = await apiClient.post(`/system-owner/clubs/${club._id}/fetch-next-events`)
-                                  if (resp.success) {
-                                    toast.success('Club next events refreshed')
-                                    fetchClubs()
-                                  } else {
-                                    toast.error(resp.error || 'Failed to refresh club events')
-                                  }
-                                } catch (err) {
-                                  toast.error('Failed to refresh club events')
-                                }
-                              })()
-                            }}>
-                              <Calendar className="mr-2 h-4 w-4" />
-                              Fetch Next Events
-                            </DropdownMenuItem>
-                            <ClubStatsModal 
-                              club={club}
-                              trigger={
-                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                                  <Eye className="mr-2 h-4 w-4" />
-                                  View Details
-                                </DropdownMenuItem>
-                              }
-                            />
-                            <AdminManagementModal 
-                              clubId={club._id} 
-                              clubName={club.name}
-                              trigger={
-                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                                  <UserPlus className="mr-2 h-4 w-4" />
-                                  Manage Admins
-                                </DropdownMenuItem>
-                              }
-                            />
-                            <EditClubModal
-                              club={club}
-                              onClubUpdated={fetchClubs}
-                              trigger={
-                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                                  <Edit className="mr-2 h-4 w-4" />
-                                  Edit Club
-                                </DropdownMenuItem>
-                              }
-                            />
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem 
-                              className="text-destructive"
-                              onClick={() => handleDeleteClub(club._id, club.name)}
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Delete Club
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-              
-              {filteredClubs.length === 0 && (
-                <div className="text-center py-12">
-                  <Building2 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-muted-foreground mb-2">No clubs found</h3>
-                  <p className="text-muted-foreground">
-                    {searchTerm || statusFilter !== 'all' 
-                      ? 'Try adjusting your search or filter criteria.' 
-                      : 'Create your first club to get started.'}
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <ClubListPanel
+            clubs={clubs}
+            loading={loading}
+            onRefresh={fetchClubs}
+            onDeleteClub={handleDeleteClub}
+          />
         </div>
 
         <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
@@ -1249,7 +1055,7 @@ export default function ClubManagementPage() {
                   <Button
                     type="button"
                     onClick={() => handleSendOTP()}
-                    disabled={loading}
+                    disabled={isDeleting}
                     className="w-full"
                   >
                     Send OTP
@@ -1277,9 +1083,9 @@ export default function ClubManagementPage() {
                   type="button"
                   variant="destructive"
                   onClick={handleDeleteClubWithOTP}
-                  disabled={loading || !otp}
+                  disabled={isDeleting || !otp}
                 >
-                  {loading ? "Deleting..." : "Delete Club"}
+                  {isDeleting ? "Deleting..." : "Delete Club"}
                 </Button>
               )}
             </DialogFooter>
