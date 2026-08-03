@@ -90,7 +90,7 @@ export function UpgradeFeatureModal({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-lg p-0 overflow-hidden border-0 shadow-2xl">
+      <DialogContent className="sm:max-w-lg p-0 sm:p-0 overflow-hidden border-0 shadow-2xl">
         <div className="relative bg-gradient-to-br from-amber-500 via-orange-500 to-rose-500 p-6 pb-8 text-white overflow-hidden">
           <div className="absolute -top-6 -right-6 w-32 h-32 rounded-full bg-white/10 blur-xl" />
           <div className="absolute -bottom-4 left-8 w-24 h-24 rounded-full bg-white/5 blur-xl" />

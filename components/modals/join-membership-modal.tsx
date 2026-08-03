@@ -1264,7 +1264,7 @@ export function JoinMembershipModal({
       <Dialog open={open} onOpenChange={(o) => { if (!razorpayOpen) onOpenChange(o) }} modal={!razorpayOpen}>
         <DialogContent
           className={cn(
-            "flex max-h-[90vh] w-[92vw] max-w-[360px] sm:w-full sm:max-w-2xl flex-col overflow-hidden p-0 rounded-2xl shadow-2xl",
+            "flex max-h-[90vh] w-[92vw] max-w-[360px] sm:w-full sm:max-w-2xl flex-col overflow-hidden p-0 sm:p-0 rounded-2xl shadow-2xl",
             isDashboard
               ? "border border-border bg-background text-foreground"
               : "!rounded-2xl sm:!rounded-2xl border-0 bg-white public-theme"
