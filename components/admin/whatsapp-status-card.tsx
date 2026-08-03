@@ -161,7 +161,7 @@ export function WhatsAppStatusCard({ clubId }: Props) {
           </div>
 
           {/* Usage at a glance */}
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <div className="rounded-md border p-2 text-center">
               <div className="text-lg font-bold">{card.usage.marketing}</div>
               <div className="text-[11px] text-muted-foreground">Marketing (this month)</div>

@@ -1054,7 +1054,7 @@ export function JoinMembershipModal({
     return (
       <div className="space-y-2">
         <Label className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>T-Shirt Reference</Label>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {TSHIRT_REFERENCE_IMAGES.map((img) => (
             <a key={img.src} href={img.src} target="_blank" rel="noopener noreferrer" className={cn("block overflow-hidden rounded-xl border", isDashboard ? "border-border" : "border-secondary/30")}>
               <img src={img.src} alt={img.alt} className="h-auto w-full object-cover" />

@@ -107,7 +107,7 @@ export function LogisticsReportPanel({ clubId }: LogisticsReportPanelProps) {
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Delivery Status</Label>
               <Select value={deliveryStatus} onValueChange={setDeliveryStatus}>
-                <SelectTrigger className="w-48">
+                <SelectTrigger className="w-full sm:w-48">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -123,7 +123,7 @@ export function LogisticsReportPanel({ clubId }: LogisticsReportPanelProps) {
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Courier Partner</Label>
               <Select value={courierName} onValueChange={setCourierName}>
-                <SelectTrigger className="w-48">
+                <SelectTrigger className="w-full sm:w-48">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

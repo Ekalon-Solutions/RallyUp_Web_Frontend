@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, memo } from 'react'
 import { useAuth } from '@/contexts/auth-context'
 import { apiClient, Club, Admin } from '@/lib/api'
 // getApiUrl removed (cron trigger moved to admin dashboard)
@@ -115,10 +115,253 @@ interface CreateClubForm {
   platformFeePercent: number
 }
 
+/**
+ * Owns search/status state so typing only re-renders this panel —
+ * not the page shell, create dialog, or delete dialog.
+ */
+const ClubListPanel = memo(function ClubListPanel({
+  clubs,
+  loading,
+  onRefresh,
+  onDeleteClub,
+}: {
+  clubs: ClubWithDetails[]
+  loading: boolean
+  onRefresh: () => void
+  onDeleteClub: (clubId: string, clubName: string) => void
+}) {
+  const [searchTerm, setSearchTerm] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
+
+  const filteredClubs = useMemo(() => {
+    const q = searchTerm.trim().toLowerCase()
+    return clubs.filter((club) => {
+      const matchesSearch =
+        !q ||
+        club.name?.toLowerCase().includes(q) ||
+        club.slug?.toLowerCase().includes(q) ||
+        club.description?.toLowerCase().includes(q) ||
+        club.contactEmail?.toLowerCase().includes(q)
+      const matchesStatus = statusFilter === 'all' || club.status === statusFilter
+      return matchesSearch && matchesStatus
+    })
+  }, [clubs, searchTerm, statusFilter])
+
+  return (
+    <>
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+          <Input
+            placeholder="Search clubs..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+            autoComplete="off"
+          />
+        </div>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-full sm:w-[180px]">
+            <SelectValue placeholder="Filter by status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="inactive">Inactive</SelectItem>
+            <SelectItem value="suspended">Suspended</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>All Clubs ({filteredClubs.length})</CardTitle>
+          <CardDescription>
+            Manage clubs, view statistics, and assign administrators
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {loading && clubs.length === 0 ? (
+            <div className="space-y-3 py-4">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="h-12 bg-muted animate-pulse rounded" />
+              ))}
+            </div>
+          ) : (
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Club</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Super Admin</TableHead>
+                    <TableHead>Members</TableHead>
+                    <TableHead>Contact</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredClubs.map((club) => (
+                    <TableRow key={club._id}>
+                      <TableCell>
+                        <div className="flex items-center space-x-3">
+                          <Avatar className="w-10 h-10">
+                            <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
+                              {club.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <div className="font-medium">{club.name}</div>
+                            <div className="font-mono text-xs text-muted-foreground">{club.slug}</div>
+                            <div className="text-sm text-muted-foreground line-clamp-1">
+                              {club.description || 'No description'}
+                            </div>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={
+                          club.status === 'active' ? 'default' :
+                          club.status === 'inactive' ? 'secondary' : 'destructive'
+                        }>
+                          {club.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {club.superAdmin ? (
+                          <div>
+                            <div className="font-medium">{club.superAdmin.name}</div>
+                            <div className="text-sm text-muted-foreground">{club.superAdmin.email}</div>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">Not assigned</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {club.stats ? (
+                          <div className="text-sm">
+                            <div>{club.stats.totalMembers} total</div>
+                            <div className="text-muted-foreground">{club.stats.activeMembers} active</div>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">Loading...</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">
+                          <div className="flex items-center space-x-1">
+                            <Mail className="w-3 h-3" />
+                            <span>{club.contactEmail}</span>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <Phone className="w-3 h-3" />
+                            <span>{club.contactPhone}</span>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">
+                          {formatDisplayDate(club.createdAt)}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuItem onSelect={(e) => {
+                              e.preventDefault();
+                              (async () => {
+                                try {
+                                  const resp = await apiClient.post(`/system-owner/clubs/${club._id}/fetch-next-events`)
+                                  if (resp.success) {
+                                    toast.success('Club next events refreshed')
+                                    onRefresh()
+                                  } else {
+                                    toast.error(resp.error || 'Failed to refresh club events')
+                                  }
+                                } catch {
+                                  toast.error('Failed to refresh club events')
+                                }
+                              })()
+                            }}>
+                              <Calendar className="mr-2 h-4 w-4" />
+                              Fetch Next Events
+                            </DropdownMenuItem>
+                            <ClubStatsModal
+                              club={club}
+                              trigger={
+                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                  <Eye className="mr-2 h-4 w-4" />
+                                  View Details
+                                </DropdownMenuItem>
+                              }
+                            />
+                            <AdminManagementModal
+                              clubId={club._id}
+                              clubName={club.name}
+                              trigger={
+                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                  <UserPlus className="mr-2 h-4 w-4" />
+                                  Manage Admins
+                                </DropdownMenuItem>
+                              }
+                            />
+                            <EditClubModal
+                              club={club}
+                              onClubUpdated={onRefresh}
+                              trigger={
+                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                                  <Edit className="mr-2 h-4 w-4" />
+                                  Edit Club
+                                </DropdownMenuItem>
+                              }
+                            />
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              className="text-destructive"
+                              onClick={() => onDeleteClub(club._id, club.name)}
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete Club
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+
+              {filteredClubs.length === 0 && (
+                <div className="text-center py-12">
+                  <Building2 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-muted-foreground mb-2">No clubs found</h3>
+                  <p className="text-muted-foreground">
+                    {searchTerm || statusFilter !== 'all'
+                      ? 'Try adjusting your search or filter criteria.'
+                      : 'Create your first club to get started.'}
+                  </p>
+                </div>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+    </>
+  )
+})
+
 export default function ClubManagementPage() {
   const { user } = useAuth()
   const [clubs, setClubs] = useState<ClubWithDetails[]>([])
   const [loading, setLoading] = useState(true)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [selectedClubId, setSelectedClubId] = useState<string | null>(null)
   const [selectedClubName, setSelectedClubName] = useState<string>("")
@@ -126,8 +369,6 @@ export default function ClubManagementPage() {
   const [otp, setOtp] = useState("")
   const [sessionInfo, setSessionInfo] = useState<string | null>(null)
   const [resendCountdown, setResendCountdown] = useState(0)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [statusFilter, setStatusFilter] = useState<string>('all')
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [createForm, setCreateForm] = useState<CreateClubForm>({
     name: '',
@@ -160,26 +401,24 @@ export default function ClubManagementPage() {
 
   const fetchClubs = async () => {
     try {
-      setLoading(true)
-      // Load once; search + status are filtered client-side so typing stays instant
-      // and partial matches work without round-trips / full-page loading.
+      // Only flip the initial-load flag when we have nothing to show yet.
+      // Never blank the page shell on refresh / after create-delete.
+      setLoading((prev) => (clubs.length === 0 ? true : prev))
       const response = await apiClient.getClubs({
         page: 1,
         limit: 100,
       })
-      
+
       if (response.success && response.data) {
         const clubsWithDetails = await Promise.all(
           response.data.clubs.map(async (club: Club) => {
             try {
               const statsResponse = await apiClient.getClubStats(club._id)
-              // getAllClubs populates superAdmin/createdBy, so the populated shape is the real one here.
               return {
                 ...club,
                 stats: statsResponse.success ? statsResponse.data : undefined
               } as ClubWithDetails
-            } catch (error) {
-              // console.error('Error fetching club stats:', error)
+            } catch {
               return { ...club, stats: undefined } as ClubWithDetails
             }
           })
@@ -188,20 +427,21 @@ export default function ClubManagementPage() {
       } else {
         toast.error(response.error || 'Failed to load clubs')
       }
-    } catch (error) {
-      // console.error('Error fetching clubs:', error)
+    } catch {
       toast.error('Failed to load clubs')
     } finally {
       setLoading(false)
     }
   }
 
+  // Stable role key so auth object identity changes don't re-fetch
+  const userRole = user?.role
   useEffect(() => {
-    if (user?.role === 'system_owner') {
+    if (userRole === 'system_owner') {
       fetchClubs()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user])
+  }, [userRole])
 
   const handleCreateClub = async () => {
     try {
@@ -357,7 +597,7 @@ export default function ClubManagementPage() {
     }
 
     try {
-      setLoading(true)
+      setIsDeleting(true)
       const userData = user as any
       const verifyRes = await apiClient.verifyOTP({
         phoneNumber: userData.phoneNumber,
@@ -386,10 +626,10 @@ export default function ClubManagementPage() {
       } else {
         toast.error(response.error || 'Failed to delete club')
       }
-    } catch (error) {
+    } catch {
       toast.error("Invalid OTP. Please try again.")
     } finally {
-      setLoading(false)
+      setIsDeleting(false)
     }
   }
 
@@ -402,23 +642,6 @@ export default function ClubManagementPage() {
   const handleResendOTP = (channel?: "whatsapp" | "sms") => {
     handleSendOTP(channel)
   }
-
-  const formatAddress = (address: any) => {
-    if (!address) return 'Address not available'
-    return `${address.street}, ${address.city}, ${address.state} ${address.zipCode}, ${address.country}`
-  }
-
-  const filteredClubs = clubs.filter(club => {
-    const q = searchTerm.trim().toLowerCase()
-    const matchesSearch =
-      !q ||
-      club.name?.toLowerCase().includes(q) ||
-      club.slug?.toLowerCase().includes(q) ||
-      club.description?.toLowerCase().includes(q) ||
-      club.contactEmail?.toLowerCase().includes(q)
-    const matchesStatus = statusFilter === 'all' || club.status === statusFilter
-    return matchesSearch && matchesStatus
-  })
 
   if (user?.role !== 'system_owner') {
     return (
@@ -435,45 +658,11 @@ export default function ClubManagementPage() {
     )
   }
 
-  if (loading) {
-    return (
-      <ProtectedRoute>
-        <DashboardLayout>
-          <div className="space-y-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div>
-                <h1 className="text-2xl sm:text-3xl font-bold">Club Management</h1>
-                <p className="text-muted-foreground">Manage all clubs and their administrators</p>
-              </div>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {[...Array(6)].map((_, i) => (
-                <Card key={i} className="animate-pulse">
-                  <CardHeader>
-                    <div className="h-6 bg-muted rounded w-3/4"></div>
-                    <div className="h-4 bg-muted rounded w-1/2"></div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <div className="h-4 bg-muted rounded w-full"></div>
-                      <div className="h-4 bg-muted rounded w-2/3"></div>
-                      <div className="h-4 bg-muted rounded w-1/2"></div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </DashboardLayout>
-      </ProtectedRoute>
-    )
-  }
-
   return (
     <ProtectedRoute>
       <DashboardLayout>
         <div className="space-y-6">
-          {/* Header */}
+          {/* Header — stays mounted while searching */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold">Club Management</h1>

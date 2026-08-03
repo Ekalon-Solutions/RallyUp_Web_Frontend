@@ -132,7 +132,7 @@ export function NotificationTemplateEditor({
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-64">
-            <div className="grid grid-cols-6 gap-1">
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-1">
               {COMMON_EMOJIS.map((emoji) => (
                 <button
                   key={emoji}

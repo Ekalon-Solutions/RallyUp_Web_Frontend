@@ -254,7 +254,7 @@ export default function WhatsAppConfigPage() {
                 onValueChange={(v) => handleTierChange(v as WhatsAppMetaTier)}
                 disabled={savingTier}
               >
-                <SelectTrigger className="w-72">
+                <SelectTrigger className="w-full sm:w-72">
                   <SelectValue placeholder="Select tier" />
                 </SelectTrigger>
                 <SelectContent>
