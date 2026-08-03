@@ -46,11 +46,13 @@ import { toast } from "sonner"
 import { getApiUrl, API_ENDPOINTS } from "@/lib/config"
 import { calculateTransactionFees } from "@/lib/transactionFees"
 import { PaymentSimulationModal } from "@/components/modals/payment-simulation-modal"
+import { JoinMembershipModal } from "@/components/modals/join-membership-modal"
 import { SiteNavbar } from "@/components/site-navbar"
 import { SiteFooter } from "@/components/site-footer"
 import { cn } from "@/lib/utils"
 import { apiClient } from "@/lib/api"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { useAuth } from "@/contexts/auth-context"
 
 interface Club {
   _id: string
@@ -148,6 +150,7 @@ function ClubsPageContent() {
   const [selectedClub, setSelectedClub] = useState<Club | null>(null)
   const [selectedPlan, setSelectedPlan] = useState<MembershipPlan | null>(null)
   const [showRegistrationDialog, setShowRegistrationDialog] = useState(false)
+  const [showMembershipDialog, setShowMembershipDialog] = useState(false)
   const [showClubDetails, setShowClubDetails] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
@@ -180,6 +183,7 @@ function ClubsPageContent() {
   const [userMemberships, setUserMemberships] = useState<Record<string, string>>({})
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { isAuthenticated } = useAuth()
   const showTshirtFields = (selectedClub?.name ?? "").toLowerCase().includes(TSHIRT_FIELD_CLUB_NAME_MATCH)
 
   useEffect(() => {
@@ -227,6 +231,14 @@ function ClubsPageContent() {
     }
     completePendingJoin()
   }, [router])
+
+  // If auth hydration completes after a join click, move the user out of the
+  // guest registration form and into the authenticated membership checkout.
+  useEffect(() => {
+    if (!isAuthenticated || !showRegistrationDialog || !selectedClub || !selectedPlan) return
+    setShowRegistrationDialog(false)
+    setShowMembershipDialog(true)
+  }, [isAuthenticated, showRegistrationDialog, selectedClub, selectedPlan])
 
   useEffect(() => {
     filterClubs()
@@ -493,7 +505,11 @@ function ClubsPageContent() {
     setSelectedPlan(plan)
     resetReferralState()
     resetCouponState()
-    setShowRegistrationDialog(true)
+    if (isAuthenticated) {
+      setShowMembershipDialog(true)
+    } else {
+      setShowRegistrationDialog(true)
+    }
   }
 
   const handleViewClubDetails = (club: Club) => {
@@ -1514,6 +1530,19 @@ function ClubsPageContent() {
           )}
         </DialogContent>
       </Dialog>
+
+      {selectedClub && selectedPlan && (
+        <JoinMembershipModal
+          open={showMembershipDialog}
+          onOpenChange={setShowMembershipDialog}
+          clubId={selectedClub._id}
+          clubName={selectedClub.name}
+          platformFeePercent={selectedClub.platformFeePercent}
+          plans={(selectedClub.membershipPlans || []).filter((plan) => plan.isActive)}
+          initialPlanId={selectedPlan._id}
+          returnPath="/clubs"
+        />
+      )}
 
       <Dialog open={showRegistrationDialog} onOpenChange={setShowRegistrationDialog}>
         <DialogContent className="flex max-h-[90vh] max-w-full flex-col overflow-hidden p-0 sm:p-0 sm:max-w-2xl">
