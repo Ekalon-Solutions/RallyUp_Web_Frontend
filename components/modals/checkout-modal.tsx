@@ -1783,11 +1783,11 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                     {feeBreakdown && feeBreakdown.totalFees > 0 && (
                       <>
                         <div className="flex justify-between text-sm text-muted-foreground">
-                          <span>Platform fee ({Number.isFinite(platformFeePercent) ? platformFeePercent : PLATFORM_FEE_PERCENT}% + GST):</span>
+                          <span>Platform fee:</span>
                           <span>{formatCurrency(feeBreakdown.platformFee + feeBreakdown.platformFeeGst, currency)}</span>
                         </div>
                         <div className="flex justify-between text-sm text-muted-foreground">
-                          <span>Payment gateway fee ({RAZORPAY_FEE_PERCENT}% + GST):</span>
+                          <span>Payment gateway fee:</span>
                           <span>{formatCurrency(feeBreakdown.razorpayFee + feeBreakdown.razorpayFeeGst, currency)}</span>
                         </div>
                       </>

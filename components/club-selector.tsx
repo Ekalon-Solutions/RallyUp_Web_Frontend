@@ -58,11 +58,11 @@ export const ClubSelector: React.FC<ClubSelectorProps> = ({ onClubSelect, select
         const userMemberships = (user as any).memberships || []
         // console.log('ClubSelector: Found memberships from user object:', userMemberships)
         
-        // Filter only active memberships and ensure unique by club_id
-        const activeMemberships = userMemberships.filter((m: any) => m.status === 'active')
+        // Filter active and expired memberships and ensure unique by club_id
+        const relevantMemberships = userMemberships.filter((m: any) => m.status === 'active' || m.status === 'expired')
         
         // Remove duplicates by club_id (keep the most recent one)
-        const uniqueMemberships = activeMemberships.reduce((acc: any[], current: any) => {
+        const uniqueMemberships = relevantMemberships.reduce((acc: any[], current: any) => {
           const existing = acc.find(m => m.club_id._id === current.club_id._id)
           if (!existing) {
             acc.push(current)

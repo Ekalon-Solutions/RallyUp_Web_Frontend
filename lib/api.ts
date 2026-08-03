@@ -1220,10 +1220,17 @@ class ApiClient {
           );
         }
 
+        const isRoleAccessError =
+          data?.message === 'Admin access required' ||
+          data?.message === 'System Owner access required' ||
+          data?.message === 'Admin account is inactive' ||
+          (typeof data?.message === 'string' && data.message.includes('access required'))
+
         if (
           typeof window !== 'undefined' &&
           response.status === 401 &&
           token &&
+          !isRoleAccessError &&
           !SESSION_EXPIRY_EXEMPT_ENDPOINTS.some((exempt) => endpoint.startsWith(exempt))
         ) {
           window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT));
@@ -5128,9 +5135,10 @@ class ApiClient {
     });
   }
 
-  async leaveClub(): Promise<ApiResponse<{ message: string; user: User }>> {
+  async leaveClub(clubId?: string): Promise<ApiResponse<{ message: string; user: User }>> {
     return this.request('/users/leave-club', {
-      method: 'POST'
+      method: 'POST',
+      body: JSON.stringify({ clubId }),
     });
   }
 
@@ -6079,10 +6087,19 @@ class ApiClient {
     });
   }
 
-  async validateCoupon(code: string, eventId?: string, ticketPrice?: number, clubId?: string, purchaseType?: 'membership'): Promise<ApiResponse<{ coupon: { code: string; name: string; discountType: 'flat' | 'percentage'; discountValue: number; discount: number; originalPrice: number; finalPrice: number } }>> {
+  async validateCoupon(
+    code: string,
+    optsOrEventId?: string | { eventId?: string; ticketPrice?: number; clubId?: string; purchaseType?: 'membership'; email?: string; phone?: string },
+    ticketPrice?: number,
+    clubId?: string,
+    purchaseType?: 'membership'
+  ): Promise<ApiResponse<{ coupon: { code: string; name: string; discountType: 'flat' | 'percentage'; discountValue: number; discount: number; originalPrice: number; finalPrice: number } }>> {
+    const payload = typeof optsOrEventId === 'object' && optsOrEventId !== null
+      ? { code, ...optsOrEventId }
+      : { code, eventId: optsOrEventId, ticketPrice, clubId, purchaseType };
     return this.request('/coupons/validate', {
       method: 'POST',
-      body: JSON.stringify({ code, eventId, ticketPrice, clubId, purchaseType }),
+      body: JSON.stringify(payload),
     });
   }
 
@@ -6097,7 +6114,7 @@ class ApiClient {
     clubId: string;
     phone?: string;
     email?: string;
-    cartSubtotal: number;
+    cartSubtotal?: number;
     eventId?: string;
     purchaseType?: 'membership';
   }): Promise<ApiResponse<{

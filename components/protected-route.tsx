@@ -33,7 +33,13 @@ export function ProtectedRoute({
       }
 
       if (!allowed) {
-        router.push("/dashboard");
+        if (!isAdmin && !isSystemOwner) {
+          window.location.href = "/dashboard/user";
+        } else if (isSystemOwner) {
+          window.location.href = "/dashboard/club-management";
+        } else {
+          window.location.href = "/dashboard";
+        }
         return;
       }
     }
