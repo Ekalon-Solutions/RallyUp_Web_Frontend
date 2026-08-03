@@ -71,13 +71,19 @@ export default function BrowseMembershipPlansPage() {
   }
 
   useEffect(() => {
-    if (!clubId || autoCouponRemoved || appliedCoupon) return
+    if (!clubId || autoCouponRemoved || appliedCoupon || plans.length === 0) return
+    const positivePlanPrices = plans
+      .map((plan) => Number(plan.price))
+      .filter((price) => Number.isFinite(price) && price > 0)
+    if (positivePlanPrices.length === 0) return
+    const cartSubtotal = Math.min(...positivePlanPrices)
     const timer = setTimeout(async () => {
       try {
         const res = await apiClient.getHighestEligibleAutoCoupon({
           clubId,
           phone: user?.phoneNumber || undefined,
           email: user?.email || undefined,
+          cartSubtotal,
           purchaseType: 'membership',
         })
         if (res.success && res.data?.coupon) {
@@ -90,7 +96,7 @@ export default function BrowseMembershipPlansPage() {
       }
     }, 0)
     return () => clearTimeout(timer)
-  }, [clubId, user?.phoneNumber, user?.email, autoCouponRemoved, appliedCoupon])
+  }, [clubId, plans, user?.phoneNumber, user?.email, autoCouponRemoved, appliedCoupon])
 
   useEffect(() => {
     const digits = referralPhone.replace(/\D/g, "")

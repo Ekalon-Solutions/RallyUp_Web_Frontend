@@ -6142,7 +6142,7 @@ class ApiClient {
     clubId: string;
     phone?: string;
     email?: string;
-    cartSubtotal?: number;
+    cartSubtotal: number;
     eventId?: string;
     purchaseType?: 'membership';
   }): Promise<ApiResponse<{
