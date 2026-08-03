@@ -604,65 +604,36 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
   }, [user])
 
   const handleRoleSwitch = async (accountType: 'user' | 'admin' | 'system_owner', accountId: string) => {
-    const result = await switchRole(accountType, accountId)
-    if (result.success) {
-      if (accountType === 'user') {
-        window.location.href = '/dashboard/user'
-      } else if (accountType === 'system_owner') {
-        window.location.href = '/dashboard/club-management'
-      } else {
-        window.location.href = '/dashboard'
-      }
-    }
-  }
+    await switchRole(accountType, accountId);
+  };
 
   const handleClubSwitch = async (clubId: string) => {
-    const currentIsAdmin = user?.role === 'admin' || user?.role === 'super_admin'
+    const currentIsAdmin = user?.role === 'admin' || user?.role === 'super_admin';
 
-    // If the currently-active admin/super_admin account already administers this
-    // club, just change the active club — never switch accounts. Switching to a
-    // linked member account here is what previously downgraded a super_admin to
-    // 'member' when moving between their own clubs. The per-club effective role
-    // (see getEffectiveRole) resolves super_admin vs admin for the new club.
-    //
-    // NOTE: the current account is deliberately excluded from `availableRoles`
-    // by the backend (findLinkedAccounts), so we read the clubs the current
-    // account administers from `user.clubs` directly, not from availableRoles.
     const ownAdminClubIds: string[] = currentIsAdmin
       ? (((user as any)?.clubs ?? [])
           .map((c: any) => normalizeClubId(c))
           .filter((id: string | null): id is string => Boolean(id)))
-      : []
+      : [];
+
     if (currentIsAdmin && ownAdminClubIds.includes(clubId)) {
-      setActiveClubId(clubId)
-      router.refresh()
-      return
+      setActiveClubId(clubId);
+      router.refresh();
+      return;
     }
 
-    // Otherwise a different linked account owns this club. Prefer an admin
-    // account over a member account so we don't needlessly downgrade the role.
     const targetAccount =
       availableRoles.find((r) => r.accountType === 'admin' && r.clubIds?.includes(clubId)) ??
-      availableRoles.find((r) => r.accountType === 'user' && r.clubIds?.includes(clubId))
+      availableRoles.find((r) => r.accountType === 'user' && r.clubIds?.includes(clubId));
 
     if (targetAccount) {
-      const result = await switchRole(targetAccount.accountType, targetAccount.accountId)
-      if (result.success) {
-        setActiveClubId(clubId)
-        if (targetAccount.accountType === 'user') {
-          window.location.href = '/dashboard/user'
-        } else if (targetAccount.accountType === 'system_owner') {
-          window.location.href = '/dashboard/club-management'
-        } else {
-          window.location.href = '/dashboard'
-        }
-      }
+      localStorage.setItem('activeClubId', clubId);
+      await switchRole(targetAccount.accountType, targetAccount.accountId);
     } else {
-      // Current account already covers this club (or it's a system_owner)
-      setActiveClubId(clubId)
-      router.refresh()
+      setActiveClubId(clubId);
+      router.refresh();
     }
-  }
+  };
 
   // Prevent body scroll so only the inner <main> scrolls (avoids double scrollbar)
   useEffect(() => {

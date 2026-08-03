@@ -56,7 +56,7 @@ export function NewsComment({
   const { user } = useAuth()
   const { toast } = useToast()
 
-  const isOwner = user?._id === (typeof comment.author === 'string' ? comment.author : comment.author._id)
+  const isOwner = user?._id === (typeof comment.author === 'string' ? comment.author : comment.author?._id)
   const canEdit = isOwner && !comment.isDeleted
   const canDelete = isOwner || user?.role === 'admin' || user?.role === 'super_admin'
 
@@ -179,7 +179,7 @@ export function NewsComment({
           <div className="flex items-center gap-3">
             <Avatar className="w-8 h-8">
               <AvatarFallback>
-                {(comment.authorName || 'User').split(' ').map(n => n[0]).join('').toUpperCase()}
+                {(comment.authorName || 'User').split(' ').map((n: string) => n[0]).join('').toUpperCase()}
               </AvatarFallback>
             </Avatar>
             <div>
@@ -284,7 +284,7 @@ export function NewsComment({
         {/* Replies */}
         {comment.replies && Array.isArray(comment.replies) && comment.replies.length > 0 && (
           <div className="mt-4">
-            {comment.replies.map((reply) => (
+            {comment.replies.map((reply: any) => (
               <NewsComment
                 key={reply._id}
                 comment={reply}

@@ -220,6 +220,7 @@ export function JoinMembershipModal({
     couponDiscount?: number
   } | null>(null)
   const [pendingRegistrationData, setPendingRegistrationData] = useState<typeof registrationData | null>(null)
+  const [razorpayOpen, setRazorpayOpen] = useState(false)
 
   const isLoggedIn = Boolean(user?._id && typeof window !== "undefined" && localStorage.getItem("token"))
 
@@ -583,12 +584,21 @@ export function JoinMembershipModal({
       ? registrationSnapshot.email
       : user?.email || ""
 
+    if (!razorpayScriptLoaded || typeof window === 'undefined' || !(window as any).Razorpay) {
+      toast.error("Payment system is loading. Please try again in a moment.")
+      return
+    }
+
     setIsProcessing(true)
 
     try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+      const authHeaders: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (token) authHeaders['Authorization'] = `Bearer ${token}`
+
       const response = await fetch('/api/razorpay/create-order', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders,
         body: JSON.stringify({
           amount: feeBreakdown.finalAmount,
           currency: plan.currency || "INR",
@@ -598,7 +608,8 @@ export function JoinMembershipModal({
       })
 
       if (!response.ok) {
-        throw new Error('Failed to create payment order')
+        const errBody = await response.json().catch(() => null)
+        throw new Error(errBody?.error || errBody?.details || 'Failed to create payment order')
       }
 
       const { razorpayOrderId, amount, currency: orderCurrency } = await response.json()
@@ -636,7 +647,7 @@ export function JoinMembershipModal({
           try {
             const verifyResponse = await fetch('/api/razorpay/verify-payment', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: authHeaders,
               body: JSON.stringify({
                 razorpay_order_id: paymentResponse.razorpay_order_id,
                 razorpay_payment_id: paymentResponse.razorpay_payment_id,
@@ -647,7 +658,25 @@ export function JoinMembershipModal({
 
             if (!verifyResponse.ok) throw new Error('Payment verification failed')
 
-            toast.success(`Payment Successful! Welcome to ${clubName || 'the club'}.`)
+            const subscribeRes = await apiClient.subscribeMembershipPlan(
+              plan._id,
+              {
+                razorpay_payment_id: paymentResponse.razorpay_payment_id,
+                razorpay_order_id: paymentResponse.razorpay_order_id,
+                razorpay_signature: paymentResponse.razorpay_signature,
+              },
+              validReferral || undefined,
+              { tshirtSize: registrationData.tshirtSize, tshirtColor: registrationData.tshirtColor },
+              appliedCoupon?.code,
+            )
+
+            if (!subscribeRes.success) {
+              throw new Error(subscribeRes.error || subscribeRes.message || 'Failed to activate membership subscription')
+            }
+
+            const upgraded = subscribeRes.data && "isUpgrade" in subscribeRes.data && (subscribeRes.data as any).isUpgrade
+            toast.success(upgraded ? `Membership upgraded! Welcome to ${clubName || 'the club'}.` : `Membership activated! Welcome to ${clubName || 'the club'}.`)
+            setRazorpayOpen(false)
             onOpenChange(false)
             await checkAuth()
             const utm = typeof window !== "undefined" ? sessionStorage.getItem("utm_source") : null
@@ -657,6 +686,7 @@ export function JoinMembershipModal({
             router.push(dest)
           } catch (err: any) {
             toast.error(err.message || 'Payment verification failed')
+            setRazorpayOpen(false)
           } finally {
             setIsProcessing(false)
           }
@@ -664,6 +694,7 @@ export function JoinMembershipModal({
         modal: {
           ondismiss: function () {
             toast.info("Payment cancelled.")
+            setRazorpayOpen(false)
             setIsProcessing(false)
           },
         },
@@ -672,11 +703,14 @@ export function JoinMembershipModal({
       const rzp = new (window as any).Razorpay(options)
       rzp.on('payment.failed', function (resp: any) {
         toast.error(resp.error?.description || "Payment failed")
+        setRazorpayOpen(false)
         setIsProcessing(false)
       })
+      setRazorpayOpen(true)
       rzp.open()
     } catch (err: any) {
       toast.error(err.message || "Failed to initiate payment")
+      setRazorpayOpen(false)
       setIsProcessing(false)
     }
   }
@@ -1227,13 +1261,17 @@ export function JoinMembershipModal({
 
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className={cn(
-          "flex max-h-[90vh] w-[92vw] max-w-[360px] sm:w-full sm:max-w-2xl flex-col overflow-hidden p-0 rounded-2xl shadow-2xl",
-          isDashboard
-            ? "border border-border bg-background text-foreground"
-            : "!rounded-2xl sm:!rounded-2xl border-0 bg-white public-theme"
-        )}>
+      <Dialog open={open} onOpenChange={(o) => { if (!razorpayOpen) onOpenChange(o) }} modal={!razorpayOpen}>
+        <DialogContent
+          className={cn(
+            "flex max-h-[90vh] w-[92vw] max-w-[360px] sm:w-full sm:max-w-2xl flex-col overflow-hidden p-0 rounded-2xl shadow-2xl",
+            isDashboard
+              ? "border border-border bg-background text-foreground"
+              : "!rounded-2xl sm:!rounded-2xl border-0 bg-white public-theme"
+          )}
+          onInteractOutside={(e) => { if (razorpayOpen) e.preventDefault() }}
+          onEscapeKeyDown={(e) => { if (razorpayOpen) e.preventDefault() }}
+        >
           <DialogHeader className={cn(
             "shrink-0 px-6 py-6 relative rounded-t-2xl",
             isDashboard

@@ -492,6 +492,24 @@ export function GuestRegistrationForm({
 
               if (!verifyResponse.ok) throw new Error('Payment verification failed')
 
+              const subscribeRes = await apiClient.subscribeMembershipPlan(
+                resolvedPlan._id,
+                {
+                  razorpay_payment_id: paymentResponse.razorpay_payment_id,
+                  razorpay_order_id: paymentResponse.razorpay_order_id,
+                  razorpay_signature: paymentResponse.razorpay_signature,
+                },
+                getValidReferralPhone(),
+                {
+                  tshirtSize: registrationData.tshirtSize,
+                  tshirtColor: registrationData.tshirtColor,
+                }
+              )
+
+              if (!subscribeRes.success) {
+                throw new Error(subscribeRes.error || subscribeRes.message || 'Failed to activate membership subscription')
+              }
+
               toast.success(`Payment Successful! Welcome to ${club.name}.`)
               onOpenChange(false)
               router.refresh()

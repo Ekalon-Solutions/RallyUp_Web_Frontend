@@ -28,35 +28,13 @@ export function CommentSection({ newsId, onCommentUpdate }: CommentSectionProps)
   const { user } = useAuth()
   const { toast } = useToast()
 
-  useEffect(() => {
-    // console.log('🔄 useEffect triggered with:', { newsId, page })
-    // console.log('🔄 useEffect dependencies:', { newsId, page })
-    if (newsId) {
-      // console.log('✅ newsId exists, calling loadComments')
-      loadComments()
-    } else {
-      // console.log('❌ newsId is falsy, not calling loadComments')
-    }
-  }, [newsId, page, loadComments]) // Added loadComments to dependencies
-
   const loadComments = useCallback(async () => {
     try {
       setLoading(true)
-      // console.log('🔄 Loading comments for news:', newsId, 'page:', page)
-      // console.log('🔗 API URL would be:', `/comments/news/${newsId}?page=${page}&limit=20`)
-      
       const response = await apiClient.getComments(newsId, page, 20)
       
-      // console.log('📥 Comments API response:', response)
-      // console.log('📥 Response success:', response.success)
-      // console.log('📥 Response data:', response.data)
-      // console.log('📥 Comments array:', response.data?.comments)
-      // console.log('📥 Comments length:', response.data?.comments?.length)
-      
-      if (response.success) {
+      if (response.success && response.data) {
         const newComments = response.data.comments || []
-        // console.log('📝 Setting comments:', newComments.length, 'comments')
-        // console.log('📝 Comments content:', newComments)
         
         if (page === 1) {
           setComments(newComments)
@@ -65,11 +43,9 @@ export function CommentSection({ newsId, onCommentUpdate }: CommentSectionProps)
         }
         setHasMore(page < (response.data.pagination?.pages || 1))
       } else {
-        // If API fails, ensure we have a valid array
         if (page === 1) {
           setComments([])
         }
-        // console.error('❌ API returned success: false:', response.error)
         toast({
           title: "Error",
           description: response.error || "Failed to load comments",
@@ -125,9 +101,8 @@ export function CommentSection({ newsId, onCommentUpdate }: CommentSectionProps)
         if (onCommentUpdate) {
           // Get the current comments count after reloading
           const currentComments = await apiClient.getComments(newsId, 1, 20)
-          if (currentComments.success) {
+          if (currentComments.success && currentComments.data) {
             const newTotal = currentComments.data.comments?.length || 0
-            // console.log('📝 Updating comment count to:', newTotal)
             onCommentUpdate(newTotal)
           }
         }
@@ -177,9 +152,8 @@ export function CommentSection({ newsId, onCommentUpdate }: CommentSectionProps)
         if (onCommentUpdate) {
           // Get the current comments count after reloading
           const currentComments = await apiClient.getComments(newsId, 1, 20)
-          if (currentComments.success) {
+          if (currentComments.success && currentComments.data) {
             const newTotal = currentComments.data.comments?.length || 0
-            // console.log('📝 Updating comment count to:', newTotal)
             onCommentUpdate(newTotal)
           }
         }

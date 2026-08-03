@@ -23,6 +23,33 @@ const SESSION_EXPIRY_EXEMPT_ENDPOINTS = [
   '/system-owner/profile',
 ];
 
+export interface Comment {
+  _id: string;
+  user?: { _id: string; name: string; avatar?: string; role?: string };
+  author?: { _id: string; name: string; avatar?: string; role?: string };
+  authorName?: string;
+  authorModel?: string;
+  content: string;
+  createdAt: string;
+  updatedAt?: string;
+  likesCount?: number;
+  likes?: string[];
+  isLiked?: boolean;
+  isDeleted?: boolean;
+  isEdited?: boolean;
+  deletedAt?: string;
+  replies?: Comment[];
+  parentCommentId?: string;
+}
+
+export interface CommentResponse {
+  comments: Comment[];
+  totalComments?: number;
+  page?: number;
+  totalPages?: number;
+  pagination?: { pages?: number; total?: number; limit?: number; page?: number };
+}
+
 export interface ApiResponse<T = any> {
   success: boolean;
   data?: T;
@@ -1501,7 +1528,7 @@ class ApiClient {
     email?: string;
     phoneNumber?: string;
     countryCode?: string;
-    role: 'user' | 'admin' | 'system_owner';
+    role?: 'user' | 'admin' | 'system_owner';
     username?: string;
     recaptchaToken?: string;
   }): Promise<ApiResponse<{ userData?: any; sessionInfo?: string; deliveryChannel?: string; whatsAppUsed?: boolean }>> {
@@ -1511,7 +1538,7 @@ class ApiClient {
     });
   }
 
-  async verifyEmailOTP(params: { email: string; otp: string; role: 'user' | 'admin' | 'system_owner' }): Promise<ApiResponse<{ token: string } & (User | Admin | SystemOwner)>> {
+  async verifyEmailOTP(params: { email: string; otp: string; role?: 'user' | 'admin' | 'system_owner' }): Promise<ApiResponse<{ token: string } & (User | Admin | SystemOwner)>> {
     return this.request('/otp/verify-email-otp', {
       method: 'POST',
       body: JSON.stringify(params),
@@ -1523,7 +1550,7 @@ class ApiClient {
     countryCode?: string; 
     email?: string; 
     otp: string; 
-    role: 'user' | 'admin' | 'system_owner';
+    role?: 'user' | 'admin' | 'system_owner';
     sessionInfo?: string;
   }): Promise<ApiResponse<{
     verified: boolean;
@@ -1543,7 +1570,7 @@ class ApiClient {
     email?: string;
     phoneNumber?: string;
     countryCode?: string;
-    role: 'user' | 'admin' | 'system_owner';
+    role?: 'user' | 'admin' | 'system_owner';
     username?: string;
     recaptchaToken?: string;
     channel?: 'whatsapp' | 'sms';
@@ -7149,6 +7176,74 @@ class ApiClient {
     } catch (error: any) {
       return { success: false, error: error?.message || 'Failed to download Super Admin Audit Log report' };
     }
+  }
+
+  // Sessions Management
+  async getAllSessions(params?: any): Promise<ApiResponse> {
+    return this.get('/sessions', { params });
+  }
+
+  async getSessionStats(): Promise<ApiResponse> {
+    return this.get('/sessions/stats');
+  }
+
+  async getSuspiciousSessions(): Promise<ApiResponse> {
+    return this.get('/sessions/suspicious');
+  }
+
+  async forceLogoutSession(sessionId: string): Promise<ApiResponse> {
+    return this.request(`/sessions/${sessionId}/force-logout`, { method: 'POST' });
+  }
+
+  async forceLogoutUser(userId: string, reason?: string): Promise<ApiResponse> {
+    return this.request(`/sessions/user/${userId}/force-logout`, { method: 'POST', body: JSON.stringify({ reason }) });
+  }
+
+  async cleanupExpiredSessions(): Promise<ApiResponse> {
+    return this.request('/sessions/cleanup', { method: 'POST' });
+  }
+
+  // Comments
+  async getComments(newsId: string, page = 1, limit = 20): Promise<ApiResponse<CommentResponse>> {
+    return this.get(`/comments/news/${newsId}`, { params: { page, limit } });
+  }
+
+  async createComment(data: { newsId?: string; content: string; parentCommentId?: string; [key: string]: any }): Promise<ApiResponse> {
+    return this.request('/comments', { method: 'POST', body: JSON.stringify(data) });
+  }
+
+  async updateComment(commentId: string, content: string): Promise<ApiResponse> {
+    return this.request(`/comments/${commentId}`, { method: 'PUT', body: JSON.stringify({ content }) });
+  }
+
+  async deleteComment(commentId: string): Promise<ApiResponse> {
+    return this.request(`/comments/${commentId}`, { method: 'DELETE' });
+  }
+
+  async toggleCommentLike(commentId: string): Promise<ApiResponse> {
+    return this.request(`/comments/${commentId}/like`, { method: 'POST' });
+  }
+
+  // News Likes
+  async checkNewsLike(newsId: string): Promise<ApiResponse<{ liked: boolean; isLiked: boolean; likesCount: number; likeCount: number }>> {
+    return this.get(`/news/${newsId}/like-status`);
+  }
+
+  async toggleNewsLike(newsId: string): Promise<ApiResponse<{ liked: boolean; isLiked: boolean; likesCount: number; likeCount: number }>> {
+    return this.request(`/news/${newsId}/like`, { method: 'POST' });
+  }
+
+  // Leaderboard
+  async getLeaderboardStats(params?: any): Promise<ApiResponse> {
+    return this.get('/leaderboard/stats', { params: typeof params === 'object' ? params : { clubId: params } });
+  }
+
+  async syncLeaderboard(params?: any): Promise<ApiResponse> {
+    return this.request('/leaderboard/sync', { method: 'POST', body: JSON.stringify(typeof params === 'object' ? params : { clubId: params }) });
+  }
+
+  async createOrUpdateLeaderboard(data: any): Promise<ApiResponse> {
+    return this.request('/leaderboard', { method: 'POST', body: JSON.stringify(data) });
   }
 }
 
