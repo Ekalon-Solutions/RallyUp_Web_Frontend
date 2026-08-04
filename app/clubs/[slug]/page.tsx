@@ -408,7 +408,16 @@ export default function PublicClubPage() {
 
         if (key === "events") {
           const eventsData = Array.isArray(res.data) ? res.data : (res.data as any)?.events || []
-          setEvents((eventsData || []).filter((e: any) => !e?.memberOnly))
+          const now = new Date()
+          // Keep listed until event end (API also filters); hide only once ended
+          setEvents(
+            (eventsData || []).filter((e: any) => {
+              if (e?.memberOnly) return false
+              const end = e?.endTime ? new Date(e.endTime) : e?.startTime ? new Date(e.startTime) : null
+              if (!end || isNaN(end.getTime())) return false
+              return end >= now
+            })
+          )
         }
 
         if (key === "store") {

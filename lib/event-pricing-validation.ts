@@ -243,3 +243,42 @@ export function validatePricingLogisticsStep(params: {
     maxAttendees: params.maxAttendees,
   })
 }
+
+/** Booking window must be ordered and close by the event end (or start if no end). */
+export function validateEventSchedule(params: {
+  startTime: string
+  endTime?: string
+  bookingStartTime: string
+  bookingEndTime: string
+}): PricingValidationResult {
+  if (!params.startTime) return fail("Start time is required")
+  const eventStart = new Date(params.startTime)
+  if (isNaN(eventStart.getTime())) return fail("Invalid start time")
+
+  let eventDeadline = eventStart
+  if (params.endTime) {
+    const eventEnd = new Date(params.endTime)
+    if (isNaN(eventEnd.getTime())) return fail("Invalid end time")
+    if (eventEnd <= eventStart) return fail("End time must be after start time")
+    eventDeadline = eventEnd
+  }
+
+  if (!params.bookingStartTime) return fail("Booking start time is required")
+  if (!params.bookingEndTime) return fail("Booking end time is required")
+  const bookingStart = new Date(params.bookingStartTime)
+  const bookingEnd = new Date(params.bookingEndTime)
+  if (isNaN(bookingStart.getTime()) || isNaN(bookingEnd.getTime())) {
+    return fail("Invalid booking window dates")
+  }
+  if (bookingEnd <= bookingStart) {
+    return fail("Booking close time must be after booking open time")
+  }
+  if (bookingEnd > eventDeadline) {
+    return fail("Booking close time cannot be after the event end time (same time is allowed)")
+  }
+  if (bookingStart > eventDeadline) {
+    return fail("Booking open time cannot be after the event end time")
+  }
+
+  return { ok: true }
+}

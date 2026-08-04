@@ -36,6 +36,7 @@ import { getJointScreeningClubNames } from "@/lib/joint-screening-clubs"
 import {
   validateJointScreeningPartners,
   validatePricingLogisticsStep,
+  validateEventSchedule,
 } from "@/lib/event-pricing-validation"
 import { EventRefundToggleSection, RefundTier } from "@/components/admin/event-refund-toggle-section"
 import { EventRefundPolicyImpactDialog } from "@/components/admin/event-refund-policy-impact-dialog"
@@ -268,6 +269,14 @@ function CreateEventForm() {
     if (step === 0) {
       if (!form.title.trim()) { toast.error("Event title is required"); return false }
       if (!form.startTime) { toast.error("Start time is required"); return false }
+      if (form.endTime) {
+        const start = new Date(form.startTime)
+        const end = new Date(form.endTime)
+        if (isNaN(end.getTime()) || end <= start) {
+          toast.error("End time must be after start time")
+          return false
+        }
+      }
       if (!form.description.trim()) { toast.error("Description is required"); return false }
       const partnerCheck = validateJointScreeningPartners(
         form.jointScreeningEnabled,
@@ -305,12 +314,14 @@ function CreateEventForm() {
       return true
     }
     if (step === 2) {
-      if (!form.bookingStartTime) { toast.error("Booking start time is required"); return false }
-      if (!form.bookingEndTime) { toast.error("Booking end time is required"); return false }
-      const bookingStart = new Date(form.bookingStartTime)
-      const bookingEnd = new Date(form.bookingEndTime)
-      if (bookingEnd <= bookingStart) {
-        toast.error("Booking close time must be after booking open time")
+      const scheduleCheck = validateEventSchedule({
+        startTime: form.startTime,
+        endTime: form.endTime,
+        bookingStartTime: form.bookingStartTime,
+        bookingEndTime: form.bookingEndTime,
+      })
+      if (!scheduleCheck.ok) {
+        toast.error(scheduleCheck.message)
         return false
       }
       if (form.earlyBirdEnabled) {
