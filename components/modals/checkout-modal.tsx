@@ -29,7 +29,9 @@ import {
   ExternalLink,
   AlertTriangle,
   Pencil,
-  Plus
+  Plus,
+  CalendarDays,
+  Ticket
 } from "lucide-react"
 import { useCart, CartItem } from "@/contexts/cart-context"
 import { useAuth } from "@/contexts/auth-context"
@@ -95,6 +97,14 @@ interface ServiceabilityResult {
 }
 
 type AddressEditorMode = 'add' | 'edit' | null
+
+interface PickupEligibleEvent {
+  eventId: string
+  eventTitle: string
+  eventDate: string
+  eventVenue: string
+  ticketCount: number
+}
 
 function splitFullName(fullName: string): { firstName: string; lastName: string } {
   const parts = fullName.trim().split(/\s+/).filter(Boolean)
@@ -232,6 +242,10 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
   const [addressBookLoading, setAddressBookLoading] = useState(false)
   const [addressSaving, setAddressSaving] = useState(false)
   const [addressEditorMode, setAddressEditorMode] = useState<AddressEditorMode>(null)
+  const [deliveryMethod, setDeliveryMethod] = useState<'standard' | 'pickup'>('standard')
+  const [pickupEvent, setPickupEvent] = useState<PickupEligibleEvent | null>(null)
+  const [pickupEligibleEvents, setPickupEligibleEvents] = useState<PickupEligibleEvent[]>([])
+  const [pickupEventsLoading, setPickupEventsLoading] = useState(false)
 
   const canUseAddressBook = !!user && ['member', 'user'].includes(String((user as any).role || ''))
   const currency = items.length > 0 ? (items[0].currency || 'INR') : 'INR'
@@ -451,6 +465,9 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
       setSelectedAddressId(null)
       setAddressEditorMode(null)
       setAddressBookLoading(false)
+      setDeliveryMethod('standard')
+      setPickupEvent(null)
+      setPickupEligibleEvents([])
     }
   }, [isOpen])
 
@@ -520,6 +537,26 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
       fetchSettings()
     }
   }, [isOpen, items])
+
+  // Fetch pickup-eligible events when the modal opens (logged-in users only)
+  useEffect(() => {
+    if (!isOpen || !user) {
+      setPickupEligibleEvents([])
+      return
+    }
+    const clubId = typeof items[0]?.club === 'string' ? items[0].club : items[0]?.club?._id
+    if (!clubId) return
+
+    setPickupEventsLoading(true)
+    apiClient.get(`/events/my-pickup-eligible?clubId=${clubId}`)
+      .then((res: any) => {
+        if (res && Array.isArray(res)) setPickupEligibleEvents(res)
+        else if (res?.success && Array.isArray(res?.data)) setPickupEligibleEvents(res.data)
+        else setPickupEligibleEvents([])
+      })
+      .catch(() => setPickupEligibleEvents([]))
+      .finally(() => setPickupEventsLoading(false))
+  }, [isOpen, user, items])
   useEffect(() => {
     const fetchPoints = async () => {
       try {
@@ -620,8 +657,12 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
     })()
   }, [merchandiseSettings, subtotalAfterCoupon, orderForm.paymentMethod, shippingMethod, hasCompleteShippingAddress, orderForm.address, orderForm.city, orderForm.state, orderForm.country, orderForm.zipCode, appliedCoupon?.code, items, isOpen])
 
-  const resolvedShippingCost = shippingCost ?? estimatedShipping ?? 0
-  const displayShipping = orderShipping ?? (createdOrder ? (createdOrder.shippingCost ?? resolvedShippingCost) : resolvedShippingCost)
+  const resolvedShippingCost = deliveryMethod === 'pickup'
+    ? 0
+    : (shippingCost ?? estimatedShipping ?? 0)
+  const displayShipping = deliveryMethod === 'pickup'
+    ? 0
+    : (orderShipping ?? (createdOrder ? (createdOrder.shippingCost ?? resolvedShippingCost) : resolvedShippingCost))
   const displayTax = orderTax ?? (createdOrder ? (createdOrder.tax ?? (estimatedTax ?? taxAmount)) : (estimatedTax ?? taxAmount))
 
   const netSubtotal = Math.max(subtotalAfterCoupon - (reservedDiscount || 0), 0)
@@ -804,15 +845,6 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
           email: orderForm.email,
           phone: orderForm.phone
         },
-        shippingAddress: {
-          firstName: orderForm.firstName,
-          lastName: orderForm.lastName,
-          address: orderForm.address,
-          city: orderForm.city,
-          state: orderForm.state,
-          zipCode: orderForm.zipCode,
-          country: orderForm.country
-        },
         items: items.map(item => ({
           productId: item._id,
           quantity: item.quantity
@@ -820,8 +852,28 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
         paymentMethod: orderForm.paymentMethod,
         notes: orderForm.notes,
         ...(appliedCoupon?.code ? { couponCode: appliedCoupon.code } : {}),
-        shippingCost: resolvedShippingCost,
-        shippingMethod,
+        deliveryMethod,
+        ...(deliveryMethod === 'pickup'
+          ? {
+              shippingCost: 0,
+              pickupEventId: pickupEvent!.eventId,
+              pickupEventTitle: pickupEvent!.eventTitle,
+              pickupEventDate: pickupEvent!.eventDate,
+            }
+          : {
+              shippingCost: resolvedShippingCost,
+              shippingMethod,
+              shippingAddress: {
+                firstName: orderForm.firstName,
+                lastName: orderForm.lastName,
+                address: orderForm.address,
+                city: orderForm.city,
+                state: orderForm.state,
+                zipCode: orderForm.zipCode,
+                country: orderForm.country
+              },
+            }
+        ),
         ...(!orderForm.billingSameAsShipping
           ? {
               billingAddress: {
@@ -930,61 +982,77 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
   const orderBlocked = hasCompleteShippingAddress && shiprocketLoading
 
   const validateForm = () => {
-    const required = ['firstName', 'lastName', 'email', 'phone', 'address', 'city', 'state', 'zipCode', 'country']
-    
-    for (const field of required) {
+    // Contact info is always required
+    const contactRequired = ['firstName', 'lastName', 'email', 'phone']
+    for (const field of contactRequired) {
       if (!orderForm[field as keyof OrderForm]) {
         toast.error(`Please fill in ${field.replace(/([A-Z])/g, ' $1').toLowerCase()}`)
         return false
       }
     }
 
-    if (!/^\d{6}$/.test(orderForm.zipCode.trim())) {
-      toast.error('Please enter a valid 6-digit PIN code')
-      return false
-    }
-
-    if (!orderForm.billingSameAsShipping) {
-      const billingRequired = [
-        'billingFirstName',
-        'billingLastName',
-        'billingAddress',
-        'billingCity',
-        'billingState',
-        'billingZipCode',
-        'billingCountry',
-      ]
-      for (const field of billingRequired) {
-        if (!orderForm[field as keyof OrderForm]) {
-          toast.error(`Please fill in billing ${field.replace(/^billing/, '').replace(/([A-Z])/g, ' $1').toLowerCase()}`)
-          return false
-        }
-      }
-      if (!/^\d{6}$/.test(orderForm.billingZipCode.trim())) {
-        toast.error('Please enter a valid 6-digit billing PIN code')
-        return false
-      }
-    }
-    
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(orderForm.email)) {
       toast.error('Please enter a valid email address')
       return false
     }
 
-    if (!hasCompleteShippingAddress) {
-      toast.error('Please complete your shipping address before placing the order')
-      return false
-    }
+    if (deliveryMethod === 'pickup') {
+      if (!pickupEvent) {
+        toast.error('Please select an event for pickup')
+        return false
+      }
+    } else {
+      // Standard delivery — full address required
+      const addressRequired = ['address', 'city', 'state', 'zipCode', 'country']
+      for (const field of addressRequired) {
+        if (!orderForm[field as keyof OrderForm]) {
+          toast.error(`Please fill in ${field.replace(/([A-Z])/g, ' $1').toLowerCase()}`)
+          return false
+        }
+      }
 
-    if (deliveryUnavailable) {
-      toast.error("Sorry, we don't deliver to this area yet")
-      return false
-    }
+      if (!/^\d{6}$/.test(orderForm.zipCode.trim())) {
+        toast.error('Please enter a valid 6-digit PIN code')
+        return false
+      }
 
-    if (orderBlocked) {
-      toast.error("Please wait for the delivery check to complete")
-      return false
+      if (!orderForm.billingSameAsShipping) {
+        const billingRequired = [
+          'billingFirstName',
+          'billingLastName',
+          'billingAddress',
+          'billingCity',
+          'billingState',
+          'billingZipCode',
+          'billingCountry',
+        ]
+        for (const field of billingRequired) {
+          if (!orderForm[field as keyof OrderForm]) {
+            toast.error(`Please fill in billing ${field.replace(/^billing/, '').replace(/([A-Z])/g, ' $1').toLowerCase()}`)
+            return false
+          }
+        }
+        if (!/^\d{6}$/.test(orderForm.billingZipCode.trim())) {
+          toast.error('Please enter a valid 6-digit billing PIN code')
+          return false
+        }
+      }
+
+      if (!hasCompleteShippingAddress) {
+        toast.error('Please complete your shipping address before placing the order')
+        return false
+      }
+
+      if (deliveryUnavailable) {
+        toast.error("Sorry, we don't deliver to this area yet")
+        return false
+      }
+
+      if (orderBlocked) {
+        toast.error("Please wait for the delivery check to complete")
+        return false
+      }
     }
 
     return true
@@ -1402,6 +1470,119 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                 </CardContent>
               </Card>
 
+              {/* ── Delivery Method ─────────────────────────────────────── */}
+              {merchandiseSettings?.enableShipping && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Truck className="w-4 h-4" />
+                      Delivery Method
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {/* Standard Delivery */}
+                    <button
+                      type="button"
+                      onClick={() => { setDeliveryMethod('standard'); setPickupEvent(null) }}
+                      className={cn(
+                        "w-full border rounded-lg p-3 text-left transition-colors",
+                        deliveryMethod === 'standard'
+                          ? "border-primary ring-1 ring-primary"
+                          : "border-border hover:border-gray-300"
+                      )}
+                    >
+                      <div className="flex items-center gap-2 text-sm font-medium">
+                        <Truck className="w-4 h-4" />
+                        Standard Delivery
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">Shipped to your address via courier</p>
+                    </button>
+
+                    {/* Pickup at Next Screening */}
+                    {user ? (
+                      <button
+                        type="button"
+                        disabled={!pickupEventsLoading && pickupEligibleEvents.length === 0}
+                        onClick={() => setDeliveryMethod('pickup')}
+                        title={pickupEligibleEvents.length === 0 && !pickupEventsLoading ? 'No upcoming event tickets found' : undefined}
+                        className={cn(
+                          "w-full border rounded-lg p-3 text-left transition-colors",
+                          deliveryMethod === 'pickup'
+                            ? "border-primary ring-1 ring-primary"
+                            : pickupEligibleEvents.length === 0 && !pickupEventsLoading
+                              ? "border-border opacity-50 cursor-not-allowed"
+                              : "border-border hover:border-gray-300"
+                        )}
+                      >
+                        <div className="flex items-center gap-2 text-sm font-medium">
+                          <Ticket className="w-4 h-4" />
+                          Pickup at Next Screening
+                          <span className="text-green-600 font-semibold ml-auto">FREE</span>
+                        </div>
+                        {pickupEventsLoading ? (
+                          <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+                            <Loader2 className="w-3 h-3 animate-spin" /> Loading events...
+                          </p>
+                        ) : pickupEligibleEvents.length === 0 ? (
+                          <p className="text-xs text-muted-foreground mt-0.5">No upcoming event tickets found</p>
+                        ) : (
+                          <p className="text-xs text-muted-foreground mt-0.5">Collect your order at an event you have tickets for</p>
+                        )}
+                      </button>
+                    ) : (
+                      <div className="w-full border rounded-lg p-3 opacity-50 cursor-not-allowed border-border">
+                        <div className="flex items-center gap-2 text-sm font-medium">
+                          <Ticket className="w-4 h-4" />
+                          Pickup at Next Screening
+                          <span className="text-green-600 font-semibold ml-auto">FREE</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5">Sign in to use event pickup</p>
+                      </div>
+                    )}
+
+                    {/* Event selector shown when pickup is active */}
+                    {deliveryMethod === 'pickup' && pickupEligibleEvents.length > 0 && (
+                      <div className="mt-2 space-y-2">
+                        <p className="text-xs font-medium text-muted-foreground">Select your pickup event:</p>
+                        {pickupEligibleEvents.map(ev => (
+                          <button
+                            key={ev.eventId}
+                            type="button"
+                            onClick={() => setPickupEvent(ev)}
+                            className={cn(
+                              "w-full border rounded-lg p-3 text-left transition-colors",
+                              pickupEvent?.eventId === ev.eventId
+                                ? "border-primary ring-1 ring-primary bg-primary/5"
+                                : "border-border hover:border-gray-300"
+                            )}
+                          >
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <p className="text-sm font-medium truncate">{ev.eventTitle}</p>
+                                <div className="flex items-center gap-1.5 mt-0.5 text-xs text-muted-foreground">
+                                  <CalendarDays className="w-3 h-3 shrink-0" />
+                                  <span>{new Date(ev.eventDate).toLocaleDateString(undefined, { dateStyle: 'medium' })}</span>
+                                  {ev.eventVenue && <span>· {ev.eventVenue}</span>}
+                                </div>
+                              </div>
+                              <span className="shrink-0 text-xs text-muted-foreground whitespace-nowrap">
+                                {ev.ticketCount} ticket{ev.ticketCount !== 1 ? 's' : ''}
+                              </span>
+                            </div>
+                            {pickupEvent?.eventId === ev.eventId && (
+                              <div className="flex items-center gap-1 mt-1.5 text-xs text-primary font-medium">
+                                <CheckCircle className="w-3 h-3" /> Selected
+                              </div>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* ── Shipping Method (courier selection) ─────────────────── */}
               {merchandiseSettings?.enableShipping && hasCompleteShippingAddress && serviceability?.serviceable && !serviceability.fallback && (serviceability.cheapest || serviceability.fastest) && (
                 <Card>
                   <CardHeader>
@@ -1411,7 +1592,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className={cn("grid grid-cols-1 sm:grid-cols-2 gap-2", deliveryMethod === 'pickup' && "opacity-50 pointer-events-none")}>
                       {serviceability.cheapest && (
                         <button
                           type="button"
@@ -1772,7 +1953,9 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                     {merchandiseSettings?.enableShipping && (
                       <div className="flex justify-between">
                         <span>Shipping:</span>
-                        {!hasCompleteShippingAddress ? (
+                        {deliveryMethod === 'pickup' ? (
+                          <span className="text-green-600 font-medium">FREE (Pickup)</span>
+                        ) : !hasCompleteShippingAddress ? (
                           <span className="text-muted-foreground text-sm">Enter shipping address</span>
                         ) : shiprocketLoading && shippingCost == null ? (
                           <span className="text-muted-foreground text-sm">Calculating...</span>
@@ -1832,7 +2015,12 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                 type="submit"
                 className="w-full"
                 size="lg"
-                disabled={loading || items.length === 0 || !hasCompleteShippingAddress || orderBlocked || deliveryUnavailable}
+                disabled={
+                  loading ||
+                  items.length === 0 ||
+                  (deliveryMethod === 'standard' && (!hasCompleteShippingAddress || orderBlocked || deliveryUnavailable)) ||
+                  (deliveryMethod === 'pickup' && !pickupEvent)
+                }
               >
                 {loading ? (
                   <>
