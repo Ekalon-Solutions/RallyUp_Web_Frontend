@@ -47,7 +47,6 @@ import {
   ScanLine,
   FileBarChart,
   AlertTriangle,
-  AlertTriangle,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -588,7 +587,6 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { user, logout, isAdmin, isVendor, activeClubId, setActiveClubId, switchRole, isLoading: authLoading } = useAuth()
-  const { user, logout, isAdmin, isVendor, activeClubId, setActiveClubId, switchRole, isLoading: authLoading } = useAuth()
   const [availableRoles, setAvailableRoles] = useState<{ accountType: 'user' | 'admin' | 'system_owner'; accountId: string; role: string; name: string; clubIds?: string[] }[]>([])
 
   useEffect(() => {
@@ -747,41 +745,6 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
     isRegularUserRole ? clubId ?? null : null,
     { asMember: true }
   )
-
-  const isExpiredMemberForActiveClub = useMemo(() => {
-    if (!user || user.role === 'system_owner' || user.role === 'admin' || user.role === 'super_admin' || user.role === 'vendor') {
-      return false
-    }
-    if (!clubId) return false
-    const memberships = Array.isArray((user as any).memberships) ? (user as any).memberships : []
-    const clubMemberships = memberships.filter((m: any) => {
-      if (!m) return false
-      const id = typeof m.club_id === 'string' ? m.club_id : m.club_id?._id
-      return String(id) === String(clubId)
-    })
-    if (clubMemberships.length === 0) return false
-
-    const hasActiveUnexpired = clubMemberships.some((m: any) => {
-      if (m.status === 'cancelled') return false
-      const isExpiredDate = Boolean(m.end_date && new Date(m.end_date) <= new Date())
-      if (m.end_date && !isExpiredDate) return true
-      if (m.status === 'active' && !isExpiredDate) return true
-      return false
-    })
-
-    return !hasActiveUnexpired
-  }, [user, clubId])
-
-  const isExemptFromExpiredOverlay = (path: string) => {
-    if (!path) return false
-    // Browse plans page
-    if (path === '/dashboard/user/browse-plans') return true
-    // Feed pages
-    if (path === '/dashboard/user' || path.startsWith('/dashboard/user/feed') || path.startsWith('/dashboard/feed')) return true
-    // Profile pages & user settings
-    if (path.startsWith('/dashboard/user/profile') || path.startsWith('/dashboard/profile') || path.startsWith('/dashboard/user-settings')) return true
-    return false
-  }
 
   const isExpiredMemberForActiveClub = useMemo(() => {
     if (!user || user.role === 'system_owner' || user.role === 'admin' || user.role === 'super_admin' || user.role === 'vendor') {
