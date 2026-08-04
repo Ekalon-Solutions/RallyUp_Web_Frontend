@@ -185,10 +185,6 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
   // synchronous — a fast double-click can fire two submits before a re-render
   // disables the button.
   const submittingRef = useRef(false)
-  // A ref guard, not just the `loading` state, since state updates aren't
-  // synchronous — a fast double-click can fire two submits before a re-render
-  // disables the button.
-  const submittingRef = useRef(false)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [createdOrder, setCreatedOrder] = useState<any>(null)
   const [orderShipping, setOrderShipping] = useState<number | null>(null)
