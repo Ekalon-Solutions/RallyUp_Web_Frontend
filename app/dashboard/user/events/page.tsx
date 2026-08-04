@@ -616,14 +616,22 @@ function UserEventsPageInner() {
         toast.success('Ticket cancelled. Refund will be processed in 5-7 working days.');
         await fetchEvents();
       } else {
-        setRefundModalError((res as any).error || 'Failed to request refund');
+        const msg = (res as any).message || (res as any).error || 'Failed to request refund';
+        setRefundCancelEventId(null);
+        setRefundCancelAttendeeId(null);
+        setRefundEstimate(null);
+        toast.error(msg);
       }
     } catch {
-      setRefundModalError('Failed to request refund');
+      setRefundCancelEventId(null);
+      setRefundCancelAttendeeId(null);
+      setRefundEstimate(null);
+      toast.error('Failed to request refund');
     } finally {
       setRefundModalLoading(false);
     }
   };
+
 
   const filteredEvents = events.filter((event) => {
     const searchMatch =
