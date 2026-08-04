@@ -135,6 +135,8 @@ export default function EventsPage() {
       if (response.success) {
         toast.success("Event deleted successfully")
         fetchEvents()
+      } else if ((response as any).status === 409 || (response as any).data?.error === 'EVENT_HAS_TICKETS') {
+        toast.error("This event cannot be deleted — tickets have already been purchased for it.")
       } else {
         toast.error(response.error || "Failed to delete event")
       }
@@ -149,6 +151,9 @@ export default function EventsPage() {
       if (response.success) {
         toast.success(`Event ${!currentStatus ? "activated" : "deactivated"} successfully`)
         fetchEvents()
+      } else if (currentStatus && ((response as any).status === 409 || (response as any).data?.error === 'EVENT_HAS_TICKETS')) {
+        // currentStatus=true means we tried to deactivate
+        toast.error("This event cannot be deactivated — tickets have already been purchased for it.")
       } else {
         toast.error(response.error || "Failed to update event status")
       }
