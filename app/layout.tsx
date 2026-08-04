@@ -129,7 +129,7 @@ export default function RootLayout({
         </Script>
       </head>
 
-      <body className={`${poppins.className} ${poppins.variable} ${purplePurse.variable}`}>
+      <body className={`${poppins.className} ${poppins.variable} ${purplePurse.variable}`} suppressHydrationWarning>
         <AppUpdateWatcher />
         <Analytics />
         <AntiScrapingProtection />
