@@ -5167,10 +5167,10 @@ class ApiClient {
     });
   }
 
-  async leaveClub(clubId?: string): Promise<ApiResponse<{ message: string; user: User }>> {
+  async leaveClub(clubId?: string, membershipId?: string): Promise<ApiResponse<{ message: string; user: User }>> {
     return this.request('/users/leave-club', {
       method: 'POST',
-      body: JSON.stringify({ clubId }),
+      body: JSON.stringify({ clubId, membershipId }),
     });
   }
 

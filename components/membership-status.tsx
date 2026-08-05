@@ -73,7 +73,7 @@ export function MembershipStatus({ showMembershipCardButton = true }: { showMemb
 
     try {
       setLeaving(true)
-      const response = await apiClient.leaveClub(userClub._id)
+      const response = await apiClient.leaveClub(userClub._id, activeMembership?._id)
       if (response.success) {
         toast.success('Successfully left the club')
         if (typeof window !== 'undefined') {
