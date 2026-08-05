@@ -42,6 +42,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [activeClubId, setActiveClubIdState] = useState<string | null>(getInitialActiveClubId);
 
   useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search);
+      const urlToken = searchParams.get('token') || searchParams.get('authToken');
+      if (urlToken) {
+        localStorage.setItem('token', urlToken);
+        localStorage.setItem('userType', 'user');
+      }
+      const urlClubId = searchParams.get('clubId');
+      if (urlClubId) {
+        localStorage.setItem('activeClubId', urlClubId);
+        window.sessionStorage.setItem('selectedClubId', urlClubId);
+        setActiveClubIdState(urlClubId);
+      }
+    }
+
     const token = localStorage.getItem('token');
     const userType = localStorage.getItem('userType');
     const savedClubId = localStorage.getItem('activeClubId');

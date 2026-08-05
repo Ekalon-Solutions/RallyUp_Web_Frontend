@@ -31,6 +31,7 @@ import { calculateTransactionFees, computeMembershipPlanCharge } from "@/lib/tra
 import { useAuth } from "@/contexts/auth-context"
 import { formatDisplayDate } from "@/lib/utils"
 import { cn } from "@/lib/utils"
+import { LoginModal } from "@/components/login-modal"
 
 export interface JoinablePlan {
   _id: string
@@ -221,6 +222,7 @@ export function JoinMembershipModal({
   } | null>(null)
   const [pendingRegistrationData, setPendingRegistrationData] = useState<typeof registrationData | null>(null)
   const [razorpayOpen, setRazorpayOpen] = useState(false)
+  const [loginModalOpen, setLoginModalOpen] = useState(false)
 
   const isLoggedIn = Boolean(user?._id && typeof window !== "undefined" && localStorage.getItem("token"))
 
@@ -322,6 +324,17 @@ export function JoinMembershipModal({
       setReferralName(null)
       setPendingPayment(null)
       setPendingRegistrationData(null)
+    } else if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search)
+      const urlEmail = params.get("email")
+      const urlPhone = params.get("phone")
+      if (urlEmail || urlPhone) {
+        setRegistrationData((prev) => ({
+          ...prev,
+          email: prev.email || urlEmail || "",
+          phoneNumber: prev.phoneNumber || urlPhone || "",
+        }))
+      }
     }
   }, [open])
 
@@ -761,17 +774,8 @@ export function JoinMembershipModal({
       const checkData = await checkResponse.json()
       if (checkResponse.ok && checkData.planValid) {
         toast.info("An account with this email or phone already exists. Please log in to continue.")
-        try {
-          sessionStorage.setItem(
-            "clubs_pending_join",
-            JSON.stringify({ clubId, membershipPlanId: selectedPlan._id, returnPath: returnPath || window.location.pathname })
-          )
-        } catch (_) {}
-        const utm = typeof window !== "undefined" ? sessionStorage.getItem("utm_source") : null
-        const nextUrl = utm
-          ? `/?next=${encodeURIComponent(returnPath || window.location.pathname)}&utm_source=${encodeURIComponent(utm)}`
-          : `/?next=${encodeURIComponent(returnPath || window.location.pathname)}`
-        router.push(nextUrl)
+        setIsProcessing(false)
+        setLoginModalOpen(true)
         return
       }
 
@@ -1446,6 +1450,14 @@ export function JoinMembershipModal({
           </div>
         </DialogContent>
       </Dialog>
+      <LoginModal
+        open={loginModalOpen}
+        onOpenChange={setLoginModalOpen}
+        onSuccess={() => {
+          checkAuth()
+          setLoginModalOpen(false)
+        }}
+      />
     </>
   )
 }

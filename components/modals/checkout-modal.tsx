@@ -1094,14 +1094,68 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                 </CardContent>
               </Card>
 
-              <Card>
+              {/* ── Delivery Method ─────────────────────────────────────── */}
+              {merchandiseSettings?.enableShipping && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Truck className="w-4 h-4" />
+                      Delivery Method
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {/* Standard Delivery */}
+                    <button
+                      type="button"
+                      onClick={() => setDeliveryMethod('standard')}
+                      className={cn(
+                        "w-full border rounded-lg p-3 text-left transition-colors",
+                        deliveryMethod === 'standard'
+                          ? "border-primary ring-1 ring-primary"
+                          : "border-border hover:border-gray-300"
+                      )}
+                    >
+                      <div className="flex items-center gap-2 text-sm font-medium">
+                        <Truck className="w-4 h-4" />
+                        Standard Delivery
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">Shipped to your address via courier</p>
+                    </button>
+
+                    {/* Pickup at Next Screening */}
+                    <button
+                      type="button"
+                      onClick={() => setDeliveryMethod('pickup')}
+                      className={cn(
+                        "w-full border rounded-lg p-3 text-left transition-colors",
+                        deliveryMethod === 'pickup'
+                          ? "border-primary ring-1 ring-primary"
+                          : "border-border hover:border-gray-300"
+                      )}
+                    >
+                      <div className="flex items-center gap-2 text-sm font-medium">
+                        <Ticket className="w-4 h-4" />
+                        Pickup at Next Screening
+                        <span className="text-green-600 font-semibold ml-auto">FREE</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">Collect your order at your next event screening</p>
+                    </button>
+                  </CardContent>
+                </Card>
+              )}
+
+              <Card className={cn("transition-opacity", deliveryMethod === 'pickup' && "opacity-50 pointer-events-none select-none")}>
                 <CardHeader className="space-y-3">
                   <div className="flex items-center justify-between gap-3">
                     <CardTitle className="flex items-center gap-2">
                       <MapPin className="w-4 h-4" />
                       Shipping Address
                     </CardTitle>
-                    {canUseAddressBook && (
+                    {deliveryMethod === 'pickup' ? (
+                      <Badge variant="outline" className="text-xs font-normal text-muted-foreground">
+                        Not required for pickup
+                      </Badge>
+                    ) : canUseAddressBook && (
                       <Button
                         type="button"
                         size="sm"
@@ -1116,7 +1170,13 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {canUseAddressBook && (
+                  {deliveryMethod === 'pickup' && (
+                    <div className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
+                      Pickup at next screening selected. Shipping address is disabled and not required.
+                    </div>
+                  )}
+
+                  {canUseAddressBook && deliveryMethod !== 'pickup' && (
                     <div className="space-y-3">
                       {addressBookLoading ? (
                         <div className="flex items-center gap-2 rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
@@ -1201,7 +1261,8 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                       id="address"
                       value={orderForm.address}
                       onChange={(e) => handleInputChange('address', e.target.value)}
-                      required
+                      disabled={deliveryMethod === 'pickup'}
+                      required={deliveryMethod === 'standard'}
                     />
                   </div>
                   
@@ -1212,7 +1273,8 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                         id="city"
                         value={orderForm.city}
                         onChange={(e) => handleInputChange('city', e.target.value)}
-                        required
+                        disabled={deliveryMethod === 'pickup'}
+                        required={deliveryMethod === 'standard'}
                       />
                     </div>
                     <div>
@@ -1221,7 +1283,8 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                         id="state"
                         value={orderForm.state}
                         onChange={(e) => handleInputChange('state', e.target.value)}
-                        required
+                        disabled={deliveryMethod === 'pickup'}
+                        required={deliveryMethod === 'standard'}
                       />
                     </div>
                   </div>
@@ -1234,17 +1297,20 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                         value={orderForm.zipCode}
                         onChange={(e) => handleInputChange('zipCode', e.target.value)}
                         maxLength={6}
-                        required
+                        disabled={deliveryMethod === 'pickup'}
+                        required={deliveryMethod === 'standard'}
                       />
-                      <a
-                        href={`https://www.google.com/search?q=${encodeURIComponent(`PIN code${orderForm.address ? ` for ${orderForm.address}` : ''}${orderForm.city ? `, ${orderForm.city}` : ''}${orderForm.state ? `, ${orderForm.state}` : ''} India`)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mt-1 inline-flex items-center gap-1 text-xs text-sky-600 hover:text-sky-500 underline"
-                      >
-                        <ExternalLink className="w-3 h-3" />
-                        Don&apos;t know your PIN code? Look it up
-                      </a>
+                      {deliveryMethod !== 'pickup' && (
+                        <a
+                          href={`https://www.google.com/search?q=${encodeURIComponent(`PIN code${orderForm.address ? ` for ${orderForm.address}` : ''}${orderForm.city ? `, ${orderForm.city}` : ''}${orderForm.state ? `, ${orderForm.state}` : ''} India`)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-1 inline-flex items-center gap-1 text-xs text-sky-600 hover:text-sky-500 underline"
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                          Don&apos;t know your PIN code? Look it up
+                        </a>
+                      )}
                     </div>
                     <div>
                       <Label htmlFor="country">Country *</Label>
@@ -1252,12 +1318,13 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                         id="country"
                         value={orderForm.country}
                         onChange={(e) => handleInputChange('country', e.target.value)}
-                        required
+                        disabled={deliveryMethod === 'pickup'}
+                        required={deliveryMethod === 'standard'}
                       />
                     </div>
                   </div>
 
-                  {canUseAddressBook && addressEditorMode && (
+                  {canUseAddressBook && addressEditorMode && deliveryMethod !== 'pickup' && (
                     <div className="flex flex-wrap justify-end gap-2">
                       <Button
                         type="button"
@@ -1278,13 +1345,13 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                     </div>
                   )}
 
-                  {!hasCompleteShippingAddress && (
+                  {deliveryMethod === 'standard' && !hasCompleteShippingAddress && (
                     <p className="text-xs text-muted-foreground">
                       Enter your full shipping address to calculate delivery options and shipping cost.
                     </p>
                   )}
 
-                  {hasCompleteShippingAddress && (
+                  {deliveryMethod === 'standard' && hasCompleteShippingAddress && (
                     <div className="rounded-lg border p-3 text-sm space-y-1">
                       {shiprocketLoading && (
                         <div className="flex items-center gap-2 text-muted-foreground">
@@ -1324,7 +1391,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                     </div>
                   )}
 
-                  {items.length > 0 && shiprocketMessage && !validPincode && (
+                  {deliveryMethod === 'standard' && items.length > 0 && shiprocketMessage && !validPincode && (
                     <p className="text-xs text-muted-foreground mt-2">
                       {shiprocketMessage}
                     </p>
@@ -1433,60 +1500,8 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                 </CardContent>
               </Card>
 
-              {/* ── Delivery Method ─────────────────────────────────────── */}
-              {merchandiseSettings?.enableShipping && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Truck className="w-4 h-4" />
-                      Delivery Method
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {/* Standard Delivery */}
-                    <button
-                      type="button"
-                      onClick={() => setDeliveryMethod('standard')}
-
-                      className={cn(
-                        "w-full border rounded-lg p-3 text-left transition-colors",
-                        deliveryMethod === 'standard'
-                          ? "border-primary ring-1 ring-primary"
-                          : "border-border hover:border-gray-300"
-                      )}
-                    >
-                      <div className="flex items-center gap-2 text-sm font-medium">
-                        <Truck className="w-4 h-4" />
-                        Standard Delivery
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-0.5">Shipped to your address via courier</p>
-                    </button>
-
-                    {/* Pickup at Next Screening */}
-                    <button
-                      type="button"
-                      onClick={() => setDeliveryMethod('pickup')}
-                      className={cn(
-                        "w-full border rounded-lg p-3 text-left transition-colors",
-                        deliveryMethod === 'pickup'
-                          ? "border-primary ring-1 ring-primary"
-                          : "border-border hover:border-gray-300"
-                      )}
-                    >
-                      <div className="flex items-center gap-2 text-sm font-medium">
-                        <Ticket className="w-4 h-4" />
-                        Pickup at Next Screening
-                        <span className="text-green-600 font-semibold ml-auto">FREE</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-0.5">Collect your order at your next event screening</p>
-                    </button>
-
-                  </CardContent>
-                </Card>
-              )}
-
               {/* ── Shipping Method (courier selection) ─────────────────── */}
-              {merchandiseSettings?.enableShipping && hasCompleteShippingAddress && serviceability?.serviceable && !serviceability.fallback && (serviceability.cheapest || serviceability.fastest) && (
+              {deliveryMethod === 'standard' && merchandiseSettings?.enableShipping && hasCompleteShippingAddress && serviceability?.serviceable && !serviceability.fallback && (serviceability.cheapest || serviceability.fastest) && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -1495,7 +1510,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className={cn("grid grid-cols-1 sm:grid-cols-2 gap-2", deliveryMethod === 'pickup' && "opacity-50 pointer-events-none")}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {serviceability.cheapest && (
                         <button
                           type="button"
@@ -1745,7 +1760,6 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                         <Button
                           type="button"
                           size="sm"
-                          disabled={reserving}
                           disabled={reserving}
                           onClick={async () => {
                             if (!user) {
