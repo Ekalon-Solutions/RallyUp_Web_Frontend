@@ -34,7 +34,7 @@ function getActiveClubMembershipForUser(user: any, activeClubId: string | null) 
         const isExpiredDate = Boolean(m.end_date && new Date(m.end_date) <= new Date())
         return !isExpiredDate
       })
-      return activeUnexpiredMatch || null
+      return activeUnexpiredMatch || clubMemberships[0]
     }
   }
 
