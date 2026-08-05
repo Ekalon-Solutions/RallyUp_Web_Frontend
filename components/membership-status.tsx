@@ -34,7 +34,7 @@ function getActiveClubMembershipForUser(user: any, activeClubId: string | null) 
         const isExpiredDate = Boolean(m.end_date && new Date(m.end_date) <= new Date())
         return !isExpiredDate
       })
-      return activeUnexpiredMatch || clubMemberships[0]
+      return activeUnexpiredMatch || null
     }
   }
 
@@ -75,7 +75,7 @@ export function MembershipStatus({ showMembershipCardButton = true }: { showMemb
       setLeaving(true)
       const response = await apiClient.leaveClub(userClub._id, activeMembership?._id)
       if (response.success) {
-        toast.success('Successfully left the club')
+        toast.success(response.message || 'Successfully cancelled current membership plan')
         if (typeof window !== 'undefined') {
           localStorage.removeItem('activeClubId')
         }
