@@ -193,11 +193,12 @@ export function middleware(request: NextRequest) {
   if (
     request.cookies.get('verified')?.value === 'true' ||
     isAuthenticatedSession(request) ||
+    request.nextUrl.searchParams.has('ssoTicket') ||
     request.nextUrl.searchParams.has('token') ||
     request.nextUrl.searchParams.has('authToken')
   ) {
     const res = applySecurityHeaders(NextResponse.next(), pathname)
-    if (request.nextUrl.searchParams.has('token')) {
+    if (request.nextUrl.searchParams.has('ssoTicket') || request.nextUrl.searchParams.has('token')) {
       res.cookies.set(AUTH_SESSION_COOKIE, '1', { path: '/' })
     }
     return res

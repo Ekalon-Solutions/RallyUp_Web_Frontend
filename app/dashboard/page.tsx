@@ -31,6 +31,10 @@ export default function DashboardPage() {
   const [cronLoading, setCronLoading] = useState(false)
 
   useEffect(() => {
+    if (user?.role === 'guest') {
+      window.location.href = "/clubs"
+      return
+    }
     if (user && !isAdmin) {
       window.location.href = "/dashboard/user"
     }

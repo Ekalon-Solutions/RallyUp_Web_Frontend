@@ -42,32 +42,72 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [activeClubId, setActiveClubIdState] = useState<string | null>(getInitialActiveClubId);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const searchParams = new URLSearchParams(window.location.search);
-      const urlToken = searchParams.get('token') || searchParams.get('authToken');
-      if (urlToken) {
-        localStorage.setItem('token', urlToken);
-        localStorage.setItem('userType', 'user');
-      }
-      const urlClubId = searchParams.get('clubId');
-      if (urlClubId) {
-        localStorage.setItem('activeClubId', urlClubId);
-        window.sessionStorage.setItem('selectedClubId', urlClubId);
-        setActiveClubIdState(urlClubId);
-      }
-    }
+    let isMounted = true;
 
-    const token = localStorage.getItem('token');
-    const userType = localStorage.getItem('userType');
-    const savedClubId = localStorage.getItem('activeClubId');
-    syncAuthSessionCookieFromStorage();
-    if (savedClubId && savedClubId !== activeClubId) {
-      setActiveClubIdState(savedClubId);
+    const initAuth = async () => {
       if (typeof window !== 'undefined') {
-        window.sessionStorage.setItem('selectedClubId', savedClubId);
+        const searchParams = new URLSearchParams(window.location.search);
+        const ssoTicket = searchParams.get('ssoTicket');
+
+        if (ssoTicket) {
+          try {
+            const res = await apiClient.ssoExchange(ssoTicket);
+            if (res.success && res.data?.token) {
+              localStorage.setItem('token', res.data.token);
+              const role = res.data.user?.role;
+              const uType = role === 'admin' || role === 'vendor' ? 'admin' : role === 'system_owner' ? 'system_owner' : 'user';
+              localStorage.setItem('userType', uType);
+              syncAuthSessionCookieFromStorage();
+            }
+          } catch (err) {
+            console.error('Failed to exchange SSO ticket:', err);
+          }
+        } else {
+          const urlToken = searchParams.get('token') || searchParams.get('authToken');
+          if (urlToken) {
+            localStorage.setItem('token', urlToken);
+            localStorage.setItem('userType', 'user');
+          }
+        }
+
+        const urlClubId = searchParams.get('clubId');
+        if (urlClubId) {
+          localStorage.setItem('activeClubId', urlClubId);
+          window.sessionStorage.setItem('selectedClubId', urlClubId);
+          setActiveClubIdState(urlClubId);
+        }
+
+        // Clean sensitive query parameters from browser address bar
+        if (ssoTicket || searchParams.has('token') || searchParams.has('authToken') || searchParams.has('email') || searchParams.has('phone')) {
+          searchParams.delete('ssoTicket');
+          searchParams.delete('token');
+          searchParams.delete('authToken');
+          searchParams.delete('email');
+          searchParams.delete('phone');
+          const cleanQuery = searchParams.toString();
+          const cleanUrl = window.location.pathname + (cleanQuery ? `?${cleanQuery}` : '') + window.location.hash;
+          window.history.replaceState({}, '', cleanUrl);
+        }
       }
-    }
-    checkAuth();
+
+      const savedClubId = localStorage.getItem('activeClubId');
+      syncAuthSessionCookieFromStorage();
+      if (savedClubId && savedClubId !== activeClubId) {
+        setActiveClubIdState(savedClubId);
+        if (typeof window !== 'undefined') {
+          window.sessionStorage.setItem('selectedClubId', savedClubId);
+        }
+      }
+      if (isMounted) {
+        checkAuth();
+      }
+    };
+
+    initAuth();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -216,7 +256,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } catch (error) {
           // console.log('System owner profile failed, falling back to discovery');
         }
-      } else if (userType === 'member' || userType === 'user') {
+      } else if (userType === 'member' || userType === 'user' || userType === 'guest') {
         try {
           // console.log('Trying user profile (from userType)...');
           const userResponse = await apiClient.userProfile();
@@ -349,7 +389,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           localStorage.setItem('userType', userData.role || 'admin');
         } else {
           userData = (response.data as any).user || response.data;
-          localStorage.setItem('userType', 'member');
+          localStorage.setItem('userType', userData?.role || 'member');
         }
 
         setUser(userData);
