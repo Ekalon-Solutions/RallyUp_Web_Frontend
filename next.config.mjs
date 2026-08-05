@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  transpilePackages: ['firebase', '@firebase/app', '@firebase/auth'],
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -34,7 +35,7 @@ const nextConfig = {
         headers: [
           {
             key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=(), interest-cohort=(), browsing-topics=()',
+            value: 'camera=(self), microphone=(), geolocation=(), accelerometer=(self "https://checkout.razorpay.com" "https://api.razorpay.com"), gyroscope=(self "https://checkout.razorpay.com" "https://api.razorpay.com"), magnetometer=(self "https://checkout.razorpay.com" "https://api.razorpay.com"), interest-cohort=(), browsing-topics=()',
           },
         ],
       },

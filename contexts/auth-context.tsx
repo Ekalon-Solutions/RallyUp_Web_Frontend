@@ -142,15 +142,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const reconciled = reconcileActiveClubId(storedClubId, accessible);
         if (reconciled) {
           setActiveClubId(reconciled);
-        } else if (storedClubId) {
+        } else if (storedClubId && (isSystemOwner || isAdmin)) {
           // Preserve a previously stored selection even when accessible clubs are
           // empty (e.g. system_owner whose user profile lacks a clubs field).
           setActiveClubId(storedClubId);
         } else {
           const fallback = deriveActiveClubIdFromUser(profile);
-          if (fallback) {
-            setActiveClubId(fallback);
-          }
+          setActiveClubId(fallback);
         }
         return profile;
       }

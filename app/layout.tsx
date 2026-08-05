@@ -1,6 +1,7 @@
 import type React from "react"
 import type { Metadata } from "next"
 import { Poppins, Purple_Purse } from "next/font/google"
+// @ts-expect-error - Next.js handles global CSS imports in app router
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { ThemeColorMeta } from "@/components/theme-color-meta"

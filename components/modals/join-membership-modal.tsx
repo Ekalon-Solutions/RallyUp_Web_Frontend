@@ -392,7 +392,7 @@ export function JoinMembershipModal({
     if (!salesState.isOpen) return true
     if (mode !== "upgrade") return false
     if (isCurrentPlan(plan)) return true
-    if (currentMembership && !isMembershipExpired() && isDowngradePlan(plan)) return true
+    if (currentMembership && !isMembershipExpired() && (isDowngradePlan(plan) || !isUpgradePlan(plan))) return true
     return false
   }
 
@@ -759,8 +759,8 @@ export function JoinMembershipModal({
         } catch (_) {}
         const utm = typeof window !== "undefined" ? sessionStorage.getItem("utm_source") : null
         const nextUrl = utm
-          ? `/login?next=${encodeURIComponent(returnPath || window.location.pathname)}&utm_source=${encodeURIComponent(utm)}`
-          : `/login?next=${encodeURIComponent(returnPath || window.location.pathname)}`
+          ? `/?next=${encodeURIComponent(returnPath || window.location.pathname)}&utm_source=${encodeURIComponent(utm)}`
+          : `/?next=${encodeURIComponent(returnPath || window.location.pathname)}`
         router.push(nextUrl)
         return
       }
