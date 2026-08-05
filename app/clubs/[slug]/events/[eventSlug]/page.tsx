@@ -510,7 +510,7 @@ export default function EventDetailPage() {
             attendees: [{ name: guest.name, phone: `${guest.countryCode}${guest.phone}` }],
             returnPath: signupReturnUrl,
           })
-          router.push(`/login?tab=user-register&next=${encodeURIComponent(signupReturnUrl)}`)
+          router.push(`/?tab=user-register&next=${encodeURIComponent(signupReturnUrl)}`)
         }}
       />
       )}

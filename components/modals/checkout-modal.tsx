@@ -98,13 +98,7 @@ interface ServiceabilityResult {
 
 type AddressEditorMode = 'add' | 'edit' | null
 
-interface PickupEligibleEvent {
-  eventId: string
-  eventTitle: string
-  eventDate: string
-  eventVenue: string
-  ticketCount: number
-}
+
 
 function splitFullName(fullName: string): { firstName: string; lastName: string } {
   const parts = fullName.trim().split(/\s+/).filter(Boolean)
@@ -239,9 +233,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
   const [addressSaving, setAddressSaving] = useState(false)
   const [addressEditorMode, setAddressEditorMode] = useState<AddressEditorMode>(null)
   const [deliveryMethod, setDeliveryMethod] = useState<'standard' | 'pickup'>('standard')
-  const [pickupEvent, setPickupEvent] = useState<PickupEligibleEvent | null>(null)
-  const [pickupEligibleEvents, setPickupEligibleEvents] = useState<PickupEligibleEvent[]>([])
-  const [pickupEventsLoading, setPickupEventsLoading] = useState(false)
+
 
   const canUseAddressBook = !!user && ['member', 'user'].includes(String((user as any).role || ''))
   const currency = items.length > 0 ? (items[0].currency || 'INR') : 'INR'
@@ -462,10 +454,9 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
       setAddressEditorMode(null)
       setAddressBookLoading(false)
       setDeliveryMethod('standard')
-      setPickupEvent(null)
-      setPickupEligibleEvents([])
     }
   }, [isOpen])
+
 
   useEffect(() => {
     let cancelled = false
@@ -534,25 +525,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
     }
   }, [isOpen, items])
 
-  // Fetch pickup-eligible events when the modal opens (logged-in users only)
-  useEffect(() => {
-    if (!isOpen || !user) {
-      setPickupEligibleEvents([])
-      return
-    }
-    const clubId = typeof items[0]?.club === 'string' ? items[0].club : items[0]?.club?._id
-    if (!clubId) return
 
-    setPickupEventsLoading(true)
-    apiClient.get(`/events/my-pickup-eligible?clubId=${clubId}`)
-      .then((res: any) => {
-        if (res && Array.isArray(res)) setPickupEligibleEvents(res)
-        else if (res?.success && Array.isArray(res?.data)) setPickupEligibleEvents(res.data)
-        else setPickupEligibleEvents([])
-      })
-      .catch(() => setPickupEligibleEvents([]))
-      .finally(() => setPickupEventsLoading(false))
-  }, [isOpen, user, items])
   useEffect(() => {
     const fetchPoints = async () => {
       try {
@@ -852,11 +825,9 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
         ...(deliveryMethod === 'pickup'
           ? {
               shippingCost: 0,
-              pickupEventId: pickupEvent!.eventId,
-              pickupEventTitle: pickupEvent!.eventTitle,
-              pickupEventDate: pickupEvent!.eventDate,
             }
           : {
+
               shippingCost: resolvedShippingCost,
               shippingMethod,
               shippingAddress: {
@@ -993,13 +964,9 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
       return false
     }
 
-    if (deliveryMethod === 'pickup') {
-      if (!pickupEvent) {
-        toast.error('Please select an event for pickup')
-        return false
-      }
-    } else {
+    if (deliveryMethod === 'standard') {
       // Standard delivery — full address required
+
       const addressRequired = ['address', 'city', 'state', 'zipCode', 'country']
       for (const field of addressRequired) {
         if (!orderForm[field as keyof OrderForm]) {
@@ -1479,7 +1446,8 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                     {/* Standard Delivery */}
                     <button
                       type="button"
-                      onClick={() => { setDeliveryMethod('standard'); setPickupEvent(null) }}
+                      onClick={() => setDeliveryMethod('standard')}
+
                       className={cn(
                         "w-full border rounded-lg p-3 text-left transition-colors",
                         deliveryMethod === 'standard'
@@ -1495,85 +1463,24 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                     </button>
 
                     {/* Pickup at Next Screening */}
-                    {user ? (
-                      <button
-                        type="button"
-                        disabled={!pickupEventsLoading && pickupEligibleEvents.length === 0}
-                        onClick={() => setDeliveryMethod('pickup')}
-                        title={pickupEligibleEvents.length === 0 && !pickupEventsLoading ? 'No upcoming event tickets found' : undefined}
-                        className={cn(
-                          "w-full border rounded-lg p-3 text-left transition-colors",
-                          deliveryMethod === 'pickup'
-                            ? "border-primary ring-1 ring-primary"
-                            : pickupEligibleEvents.length === 0 && !pickupEventsLoading
-                              ? "border-border opacity-50 cursor-not-allowed"
-                              : "border-border hover:border-gray-300"
-                        )}
-                      >
-                        <div className="flex items-center gap-2 text-sm font-medium">
-                          <Ticket className="w-4 h-4" />
-                          Pickup at Next Screening
-                          <span className="text-green-600 font-semibold ml-auto">FREE</span>
-                        </div>
-                        {pickupEventsLoading ? (
-                          <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
-                            <Loader2 className="w-3 h-3 animate-spin" /> Loading events...
-                          </p>
-                        ) : pickupEligibleEvents.length === 0 ? (
-                          <p className="text-xs text-muted-foreground mt-0.5">No upcoming event tickets found</p>
-                        ) : (
-                          <p className="text-xs text-muted-foreground mt-0.5">Collect your order at an event you have tickets for</p>
-                        )}
-                      </button>
-                    ) : (
-                      <div className="w-full border rounded-lg p-3 opacity-50 cursor-not-allowed border-border">
-                        <div className="flex items-center gap-2 text-sm font-medium">
-                          <Ticket className="w-4 h-4" />
-                          Pickup at Next Screening
-                          <span className="text-green-600 font-semibold ml-auto">FREE</span>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-0.5">Sign in to use event pickup</p>
+                    <button
+                      type="button"
+                      onClick={() => setDeliveryMethod('pickup')}
+                      className={cn(
+                        "w-full border rounded-lg p-3 text-left transition-colors",
+                        deliveryMethod === 'pickup'
+                          ? "border-primary ring-1 ring-primary"
+                          : "border-border hover:border-gray-300"
+                      )}
+                    >
+                      <div className="flex items-center gap-2 text-sm font-medium">
+                        <Ticket className="w-4 h-4" />
+                        Pickup at Next Screening
+                        <span className="text-green-600 font-semibold ml-auto">FREE</span>
                       </div>
-                    )}
+                      <p className="text-xs text-muted-foreground mt-0.5">Collect your order at your next event screening</p>
+                    </button>
 
-                    {/* Event selector shown when pickup is active */}
-                    {deliveryMethod === 'pickup' && pickupEligibleEvents.length > 0 && (
-                      <div className="mt-2 space-y-2">
-                        <p className="text-xs font-medium text-muted-foreground">Select your pickup event:</p>
-                        {pickupEligibleEvents.map(ev => (
-                          <button
-                            key={ev.eventId}
-                            type="button"
-                            onClick={() => setPickupEvent(ev)}
-                            className={cn(
-                              "w-full border rounded-lg p-3 text-left transition-colors",
-                              pickupEvent?.eventId === ev.eventId
-                                ? "border-primary ring-1 ring-primary bg-primary/5"
-                                : "border-border hover:border-gray-300"
-                            )}
-                          >
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="min-w-0">
-                                <p className="text-sm font-medium truncate">{ev.eventTitle}</p>
-                                <div className="flex items-center gap-1.5 mt-0.5 text-xs text-muted-foreground">
-                                  <CalendarDays className="w-3 h-3 shrink-0" />
-                                  <span>{new Date(ev.eventDate).toLocaleDateString(undefined, { dateStyle: 'medium' })}</span>
-                                  {ev.eventVenue && <span>· {ev.eventVenue}</span>}
-                                </div>
-                              </div>
-                              <span className="shrink-0 text-xs text-muted-foreground whitespace-nowrap">
-                                {ev.ticketCount} ticket{ev.ticketCount !== 1 ? 's' : ''}
-                              </span>
-                            </div>
-                            {pickupEvent?.eventId === ev.eventId && (
-                              <div className="flex items-center gap-1 mt-1.5 text-xs text-primary font-medium">
-                                <CheckCircle className="w-3 h-3" /> Selected
-                              </div>
-                            )}
-                          </button>
-                        ))}
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
               )}
@@ -2014,9 +1921,9 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                 disabled={
                   loading ||
                   items.length === 0 ||
-                  (deliveryMethod === 'standard' && (!hasCompleteShippingAddress || orderBlocked || deliveryUnavailable)) ||
-                  (deliveryMethod === 'pickup' && !pickupEvent)
+                  (deliveryMethod === 'standard' && (!hasCompleteShippingAddress || orderBlocked || deliveryUnavailable))
                 }
+
               >
                 {loading ? (
                   <>
@@ -2035,32 +1942,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
         </form>
       </DialogContent>
 
-      {/* Member Validation Modal */}
-      {items.length > 0 && (
-        <MemberValidationModal
-          isOpen={showMemberValidation}
-          onClose={() => setShowMemberValidation(false)}
-          clubId={typeof items[0]?.club === 'string' ? items[0].club : items[0]?.club?._id || ''}
-          clubName={typeof items[0]?.club === 'object' ? items[0].club?.name : undefined}
-          onMemberFound={() => {
-            router.push('/')
-            onClose()
-          }}
-          onNonMemberContinue={() => {
-            setMemberValidated(true)
-            setShowMemberValidation(false)
-            const form = document.querySelector('form')
-            if (form) {
-              form.requestSubmit()
-            }
-          }}
-          onBecomeMember={() => {
-            const clubId = typeof items[0]?.club === 'string' ? items[0].club : items[0]?.club?._id
-            router.push(`/membership-plans?clubId=${clubId}`)
-            onClose()
-          }}
-        />
-      )}
+
 
       {/* Payment Simulation Modal */}
       {createdOrder && (

@@ -1196,25 +1196,7 @@ export function EventCheckoutModal({ isOpen, onClose, event, attendees, couponCo
         />
       )}
 
-      {eventData?.clubId && (
-        <MemberValidationModal
-          isOpen={showMemberValidation}
-          onClose={() => setShowMemberValidation(false)}
-          clubId={eventData.clubId}
-          onMemberFound={() => {
-            router.push('/')
-            onClose()
-          }}
-          onNonMemberContinue={() => {
-            setMemberValidated(true)
-            setShowMemberValidation(false)
-          }}
-          onBecomeMember={() => {
-            router.push(`/membership-plans?clubId=${eventData.clubId}`)
-            onClose()
-          }}
-        />
-      )}
+
     </Dialog>
     </>
   )

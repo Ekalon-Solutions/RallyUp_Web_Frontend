@@ -272,6 +272,12 @@ export default function MembershipPlansPage() {
         setIsCreating(false)
         return
       }
+      if (bookingEnd > end) {
+        toast.error('Booking end date cannot be after plan end date')
+        setShowCreateDialog(false)
+        setIsCreating(false)
+        return
+      }
 
       const payload: any = { ...formData, clubId: activeClubId }
       if (formData.planStartDate) payload.planStartDate = formData.planStartDate
@@ -503,6 +509,13 @@ export default function MembershipPlansPage() {
       }
       if (bookingStart && bookingEnd <= bookingStart) {
         toast.error('Booking End Date must be after Booking Start Date.')
+        setIsUpdating(false)
+        return
+      }
+      if (bookingEnd > end) {
+        toast.error('Booking end date cannot be after plan end date')
+        setShowEditDialog(false)
+        setEditingPlan(null)
         setIsUpdating(false)
         return
       }

@@ -16,7 +16,6 @@ import { ProtectedRoute } from "@/components/protected-route"
 import { useAuth } from "@/contexts/auth-context"
 import { useRequiredClubId } from "@/hooks/useRequiredClubId"
 import { JoinMembershipModal } from "@/components/modals/join-membership-modal"
-import { JoinMembershipModal } from "@/components/modals/join-membership-modal"
 import { computeMembershipPlanCharge } from "@/lib/transactionFees"
 
 export default function BrowseMembershipPlansPage() {
@@ -24,8 +23,6 @@ export default function BrowseMembershipPlansPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [isAssigning, setIsAssigning] = useState<string | null>(null)
   const [currentMembership, setCurrentMembership] = useState<any>(null)
-  const [joinModalOpen, setJoinModalOpen] = useState(false)
-  const [selectedPlanId, setSelectedPlanId] = useState<string | undefined>(undefined)
   const [joinModalOpen, setJoinModalOpen] = useState(false)
   const [selectedPlanId, setSelectedPlanId] = useState<string | undefined>(undefined)
   const { user, checkAuth } = useAuth()
@@ -221,8 +218,6 @@ export default function BrowseMembershipPlansPage() {
 
     setSelectedPlanId(plan._id)
     setJoinModalOpen(true)
-    setSelectedPlanId(plan._id)
-    setJoinModalOpen(true)
   }
 
   const formatPrice = (price: number, currency: string) => {
@@ -269,8 +264,9 @@ export default function BrowseMembershipPlansPage() {
   }
 
   const getMostPopularPlan = () => {
-    if (plans.length <= 2) return null
-    const sortedByPrice = [...plans].sort((a, b) => a.price - b.price)
+    const eligible = plans.filter((plan) => !isCurrentPlan(plan) && !isPlanDisabled(plan))
+    if (eligible.length === 0) return null
+    const sortedByPrice = [...eligible].sort((a, b) => a.price - b.price)
     return sortedByPrice[Math.floor(sortedByPrice.length / 2)]?._id
   }
 
@@ -323,9 +319,10 @@ export default function BrowseMembershipPlansPage() {
     
     const expired = isMembershipExpired()
     const isDowngrade = isDowngradePlan(plan)
+    const isUpgrade = isUpgradePlan(plan)
     
     if (currentMembership && !expired) {
-      const disabled = isDowngrade
+      const disabled = isDowngrade || !isUpgrade
       return disabled
     }
     
@@ -715,15 +712,6 @@ export default function BrowseMembershipPlansPage() {
             </div>
           ) : null}
 
-          {joinModalOpen && clubId && (
-            <JoinMembershipModal
-              open={joinModalOpen}
-              onOpenChange={setJoinModalOpen}
-              clubId={clubId}
-              plans={plans as any}
-              initialPlanId={selectedPlanId}
-              mode={currentMembership ? "upgrade" : "subscribe"}
-              isDashboard={true}
           {joinModalOpen && clubId && (
             <JoinMembershipModal
               open={joinModalOpen}

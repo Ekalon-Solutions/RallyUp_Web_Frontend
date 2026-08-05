@@ -715,7 +715,7 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
   // don't wrap themselves rendered the full chrome for logged-out visitors.
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
-      router.replace('/login')
+      router.replace('/')
     }
   }, [authLoading, isAuthenticated, router])
 
@@ -753,7 +753,7 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
     if (!clubId) return false
     const memberships = Array.isArray((user as any).memberships) ? (user as any).memberships : []
     const clubMemberships = memberships.filter((m: any) => {
-      if (!m) return false
+      if (!m || m.status === 'cancelled') return false
       const id = typeof m.club_id === 'string' ? m.club_id : m.club_id?._id
       return String(id) === String(clubId)
     })
@@ -761,9 +761,11 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
 
     const hasActiveUnexpired = clubMemberships.some((m: any) => {
       if (m.status === 'cancelled') return false
+      const isFutureStart = Boolean(m.start_date && new Date(m.start_date) > new Date())
+      if (isFutureStart) return true
       const isExpiredDate = Boolean(m.end_date && new Date(m.end_date) <= new Date())
       if (m.end_date && !isExpiredDate) return true
-      if (m.status === 'active' && !isExpiredDate) return true
+      if ((m.status === 'active' || m.status === 'pending') && !isExpiredDate) return true
       return false
     })
 

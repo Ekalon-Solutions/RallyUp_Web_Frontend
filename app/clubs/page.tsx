@@ -559,7 +559,7 @@ function ClubsPageContent() {
               JSON.stringify({ clubId: selectedClub._id, membershipPlanId: selectedPlan._id })
             )
           } catch (_) { }
-          router.push("/login?redirect=/clubs")
+          router.push("/?redirect=/clubs")
           return
         }
 
@@ -672,7 +672,7 @@ function ClubsPageContent() {
                   JSON.stringify({ clubId: selectedClub._id, membershipPlanId: selectedPlan._id })
                 )
               } catch (_) { }
-              router.push("/login?redirect=/clubs")
+              router.push("/?redirect=/clubs")
             } else {
               toast.error(checkData.message || "This membership plan is no longer available for this club.")
             }

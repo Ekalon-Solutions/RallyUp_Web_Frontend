@@ -44,15 +44,15 @@ function getActiveClubMembershipForUser(user: any, activeClubId: string | null) 
 
 /** Trusts the actual end_date over the stored `status` field, which only updates on save/cron. */
 function isMembershipExpired(membership: any): boolean {
-  if (!membership) return true
-  if (membership.status === 'cancelled') return true
+  if (!membership || membership.status === 'cancelled') return false
+  if (membership.start_date && new Date(membership.start_date) > new Date()) return false
   if (membership.end_date && new Date(membership.end_date) > new Date()) return false
   if (membership.status === 'active' && (!membership.end_date || new Date(membership.end_date) > new Date())) return false
   return Boolean(membership.status === 'expired' || (membership.end_date && new Date(membership.end_date) <= new Date()))
 }
 
 export function MembershipStatus({ showMembershipCardButton = true }: { showMembershipCardButton?: boolean } = {}) {
-  const { user, activeClubId, checkAuth } = useAuth()
+  const { user, activeClubId, setActiveClubId, checkAuth } = useAuth()
   const [leaving, setLeaving] = useState(false)
 
   // Efficiently re-select membership and club info when user or activeClubId changes
@@ -65,6 +65,7 @@ export function MembershipStatus({ showMembershipCardButton = true }: { showMemb
     }
   }, [user, activeClubId])
 
+  const isUpcoming = Boolean(activeMembership?.start_date && new Date(activeMembership.start_date) > new Date())
   const isExpired = isMembershipExpired(activeMembership)
 
   const handleLeaveClub = async () => {
@@ -75,6 +76,10 @@ export function MembershipStatus({ showMembershipCardButton = true }: { showMemb
       const response = await apiClient.leaveClub(userClub._id)
       if (response.success) {
         toast.success('Successfully left the club')
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('activeClubId')
+        }
+        setActiveClubId(null)
         await checkAuth()
       } else {
         toast.error(response.error || response.message || 'Failed to leave club')
@@ -148,6 +153,14 @@ export function MembershipStatus({ showMembershipCardButton = true }: { showMemb
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
+        {/* Upcoming Plan Notice Banner */}
+        {isUpcoming && (
+          <div className="bg-blue-500/10 border border-blue-500/20 text-blue-900 dark:text-blue-100 rounded-xl p-3.5 text-sm font-medium flex items-center gap-2.5 shadow-sm">
+            <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400 shrink-0" />
+            <span>Your membership plan will start on <strong>{formatDisplayDate(activeMembership.start_date)}</strong>.</span>
+          </div>
+        )}
+
         {/* Club Info Header */}
         <div className="flex items-start justify-between">
           <div className="space-y-2">
@@ -159,9 +172,15 @@ export function MembershipStatus({ showMembershipCardButton = true }: { showMemb
           <div className="flex flex-col items-end gap-2">
             <Badge
               variant="default"
-              className={isExpired ? "bg-red-100 text-red-800 hover:bg-red-200" : "bg-green-100 text-green-800 hover:bg-green-200"}
+              className={
+                isUpcoming
+                  ? "bg-blue-100 text-blue-800 hover:bg-blue-200"
+                  : isExpired
+                  ? "bg-red-100 text-red-800 hover:bg-red-200"
+                  : "bg-green-100 text-green-800 hover:bg-green-200"
+              }
             >
-              {isExpired ? "Membership Expired" : "Active Member"}
+              {isUpcoming ? "Upcoming Membership" : isExpired ? "Membership Expired" : "Active Member"}
             </Badge>
             {activeMembership.membership_level_id && (
               <Badge variant={getPlanBadgeVariant(activeMembership.membership_level_id.name)} className="text-xs">
