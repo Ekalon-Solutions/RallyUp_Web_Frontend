@@ -204,6 +204,12 @@ function FixturesCards({ clubId }: { clubId?: string | undefined }) {
 export default function UserDashboardPage() {
   const { user, isLoading: authLoading } = useAuth()
   const clubId = useRequiredClubId()
+
+  useEffect(() => {
+    if (user?.role === "guest") {
+      window.location.href = "/clubs"
+    }
+  }, [user])
   const [events, setEvents] = useState<Event[]>([])
   const [news, setNews] = useState<News[]>([])
   const [totalPoints, setTotalPoints] = useState<number | null>(null)

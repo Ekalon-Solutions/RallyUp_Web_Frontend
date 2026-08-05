@@ -1395,6 +1395,10 @@ class ApiClient {
     });
   }
 
+  async ssoExchange(ssoTicket: string): Promise<ApiResponse<{ token: string; user: any }>> {
+    return this.post('/users/sso-exchange', { ssoTicket });
+  }
+
   async adminProfile(): Promise<ApiResponse<Admin>> {
     return this.request('/admin/profile');
   }
@@ -3781,26 +3785,33 @@ class ApiClient {
     const endpoint = isPublic ? `/clubs/${id}/public` : `/clubs/${id}`;
 
     if (isPublic) {
-      const url = `${this.baseURL}${endpoint}`;
-      const response = await fetch(url, {
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        }
-      });
+      try {
+        const url = `${this.baseURL}${endpoint}`;
+        const response = await fetch(url, {
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
+        });
 
-      if (!response.ok) {
+        if (!response.ok) {
+          return {
+            success: false,
+            error: 'Failed to fetch club data'
+          };
+        }
+
+        const data = await response.json();
+        return {
+          success: true,
+          data: data
+        };
+      } catch (err: any) {
         return {
           success: false,
-          error: 'Failed to fetch club data'
+          error: err?.message || 'Failed to fetch club data'
         };
       }
-
-      const data = await response.json();
-      return {
-        success: true,
-        data: data
-      };
     }
 
     return this.request(endpoint);
@@ -5938,26 +5949,33 @@ class ApiClient {
     const endpoint = isPublic ? `/club-settings/${clubId}/public` : `/club-settings/${clubId}`;
 
     if (isPublic) {
-      const url = `${this.baseURL}${endpoint}`;
-      const response = await fetch(url, {
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        }
-      });
+      try {
+        const url = `${this.baseURL}${endpoint}`;
+        const response = await fetch(url, {
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
+        });
 
-      if (!response.ok) {
+        if (!response.ok) {
+          return {
+            success: false,
+            error: 'Failed to fetch club settings'
+          };
+        }
+
+        const data = await response.json();
+        return {
+          success: true,
+          data: data
+        };
+      } catch (err: any) {
         return {
           success: false,
-          error: 'Failed to fetch club settings'
+          error: err?.message || 'Failed to fetch club settings'
         };
       }
-
-      const data = await response.json();
-      return {
-        success: true,
-        data: data
-      };
     }
 
     return this.get(endpoint);
