@@ -35,7 +35,7 @@ import {
   Video,
   Settings
 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { useMessaging, useConnectionNotifications } from '@/hooks/use-messaging';
 import config from '@/lib/config';
 
@@ -106,8 +106,6 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  
-  const { toast } = useToast();
 
   // Helper function to safely get user initials
   const getUserInitials = (user: any) => {
@@ -272,19 +270,11 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
       } else {
         const errorText = await response.text();
         // // console.error('Failed to fetch members:', response.status, response.statusText, errorText);
-        toast({ 
-          title: "Error", 
-          description: `Failed to load club members: ${response.statusText}`,
-          variant: "destructive" 
-        });
+        toast.error(`Failed to load club members: ${response.statusText}`);
       }
     } catch (error) {
       // // console.error('Error fetching members:', error);
-      toast({ 
-        title: "Error", 
-        description: "Network error while loading members",
-        variant: "destructive" 
-      });
+      toast.error("Network error while loading members");
     } finally {
       setLoading(false);
     }
@@ -322,19 +312,11 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
       } else {
         const errorText = await response.text();
         // // console.error('Failed to fetch connection requests:', response.status, errorText);
-        toast({ 
-          title: "Error", 
-          description: "Failed to load connection requests",
-          variant: "destructive" 
-        });
+        toast.error("Failed to load connection requests");
       }
     } catch (error) {
       // // console.error('Error fetching connection requests:', error);
-      toast({ 
-        title: "Error", 
-        description: "Network error while loading connection requests",
-        variant: "destructive" 
-      });
+      toast.error("Network error while loading connection requests");
     }
   };
 
@@ -373,19 +355,11 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
         });
       } else {
         // // console.error('Failed to fetch connections:', response.statusText);
-        toast({ 
-          title: "Error", 
-          description: "Failed to load your connections",
-          variant: "destructive" 
-        });
+        toast.error("Failed to load your connections");
       }
     } catch (error) {
       // // console.error('Error fetching connections:', error);
-      toast({ 
-        title: "Error", 
-        description: "Network error while loading connections",
-        variant: "destructive" 
-      });
+      toast.error("Network error while loading connections");
     }
   };
 
@@ -430,10 +404,7 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
       if (response.ok) {
         const data = await response.json();
         // // console.log('Connection request successful:', data);
-        toast({
-          title: "Success",
-          description: "Connection request sent successfully",
-        });
+        toast.success("Connection request sent successfully");
         fetchConnectionRequests();
         fetchMyConnections();
       } else {
@@ -456,11 +427,11 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
           errorMessage = errorText || errorMessage;
         }
         
-        toast({
-          title: shouldRefreshData ? "Info" : "Error",
-          description: errorMessage,
-          variant: shouldRefreshData ? "default" : "destructive",
-        });
+        if (shouldRefreshData) {
+          toast.info(errorMessage);
+        } else {
+          toast.error(errorMessage);
+        }
         
         // Refresh data if connection already exists to update the UI
         if (shouldRefreshData) {
@@ -471,11 +442,7 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
     } catch (error) {
       // // console.error('Network error sending connection request:', error);
       // console.error('Error details:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Network error occurred",
-        variant: "destructive",
-      });
+      toast.error("Something went wrong. Please check your connection and try again.");
     } finally {
       setLoadingStates(prev => ({ ...prev, [`connect_${recipientId}`]: false }));
     }
@@ -504,10 +471,7 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
       if (response.ok) {
         const data = await response.json();
         // // console.log(`${action} request successful:`, data);
-        toast({
-          title: "Success",
-          description: `Connection request ${action}ed successfully`,
-        });
+        toast.success(`Connection request ${action}ed successfully`);
         
         // Refresh data after a small delay to ensure backend has updated
         setTimeout(() => {
@@ -525,20 +489,12 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
         } catch (e) {
           errorMessage = errorText || errorMessage;
         }
-        toast({
-          title: "Error",
-          description: errorMessage,
-          variant: "destructive",
-        });
+        toast.error(errorMessage);
       }
     } catch (error) {
       // // console.error(`Network error ${action}ing request:`, error);
       // console.error('Error details:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Network error occurred",
-        variant: "destructive",
-      });
+      toast.error("Something went wrong. Please check your connection and try again.");
     } finally {
       setLoadingStates(prev => ({ ...prev, [`request_${requestId}_${action}`]: false }));
     }
@@ -588,19 +544,11 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
       } else {
         const errorText = await response.text();
         // // console.error('Failed to send message:', response.status, errorText);
-        toast({
-          title: "Error",
-          description: "Failed to send message",
-          variant: "destructive",
-        });
+        toast.error("Failed to send message");
       }
     } catch (error) {
       // // console.error('Network error sending message:', error);
-      toast({
-        title: "Error",
-        description: "Network error occurred",
-        variant: "destructive",
-      });
+      toast.error("Network error occurred");
     } finally {
       setLoadingStates(prev => ({ ...prev, sendingMessage: false }));
     }
@@ -1228,8 +1176,7 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
                             className="h-10 w-10 p-0 hover:bg-gray-100"
                             onClick={() => {
                               // Add emoji picker functionality later
-                              toast({
-                                title: "Coming Soon",
+                              toast.info("Coming Soon", {
                                 description: "Emoji picker will be available in next update",
                               });
                             }}
@@ -1242,8 +1189,7 @@ export default function MemberConnections({ currentUser, clubId }: { currentUser
                             className="h-10 w-10 p-0 hover:bg-gray-100"
                             onClick={() => {
                               // Add file attachment functionality later
-                              toast({
-                                title: "Coming Soon",
+                              toast.info("Coming Soon", {
                                 description: "File sharing will be available in next update",
                               });
                             }}

@@ -19,8 +19,7 @@ import { apiClient } from '@/lib/api'
 import { ChevronLeft, ChevronRight, Eye, CheckCircle, BarChart3 } from 'lucide-react'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
-import { useToast } from '@/hooks/use-toast'
-import { toast as sonnerToast } from 'sonner'
+import { toast } from 'sonner'
 import { useRequiredClubId } from '@/hooks/useRequiredClubId'
 import { EventRefundLogPanel } from '@/components/admin/event-refund-log-panel'
 
@@ -61,7 +60,6 @@ interface RefundRequest {
 
 function RefundsPageInner() {
   const { user } = useAuth()
-  const { toast } = useToast()
   const clubId = useRequiredClubId()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -165,14 +163,14 @@ function RefundsPageInner() {
       setGrandfatherSaving(true)
       const res = await apiClient.updateRefundGrandfathering(clubId, enabled)
       if (res.success) {
-        sonnerToast.success('Refund grandfathering preference saved')
+        toast.success('Refund grandfathering preference saved')
       } else {
         setGrandfatherPurchasedRefunds(previous)
-        sonnerToast.error(res.message || res.error || 'Failed to update grandfathering setting')
+        toast.error(res.message || res.error || 'Failed to update grandfathering setting')
       }
     } catch {
       setGrandfatherPurchasedRefunds(previous)
-      sonnerToast.error('Failed to update grandfathering setting')
+      toast.error('Failed to update grandfathering setting')
     } finally {
       setGrandfatherSaving(false)
     }
@@ -184,12 +182,12 @@ function RefundsPageInner() {
       setPolicyTextSaving(true)
       const res = await apiClient.updateRefundPolicyText(clubId, policyText)
       if (res.success) {
-        sonnerToast.success('Cancellation policy text saved')
+        toast.success('Cancellation policy text saved')
       } else {
-        sonnerToast.error(res.message || res.error || 'Failed to save policy text')
+        toast.error(res.message || res.error || 'Failed to save policy text')
       }
     } catch {
-      sonnerToast.error('Failed to save policy text')
+      toast.error('Failed to save policy text')
     } finally {
       setPolicyTextSaving(false)
     }
@@ -209,19 +207,11 @@ function RefundsPageInner() {
         setRefunds(res.data.refunds)
         setTotalPages(res.data.pagination.totalPages)
       } else {
-        toast({
-          title: 'Error',
-          description: res.message || res.error || 'Failed to fetch refunds',
-          variant: 'destructive'
-        })
+        toast.error(res.message || res.error || 'Failed to fetch refunds')
       }
     } catch (err) {
       console.error('Failed to fetch refunds:', err)
-      toast({
-        title: 'Error',
-        description: 'Failed to fetch refunds',
-        variant: 'destructive'
-      })
+      toast.error('Failed to fetch refunds')
     } finally {
       setLoading(false)
     }
@@ -232,26 +222,15 @@ function RefundsPageInner() {
       const res = await apiClient.markRefundProcessed(refundId, adminNotes, clubId ?? undefined)
 
       if (res.success) {
-        toast({
-          title: 'Success',
-          description: 'Refund marked as processed'
-        })
+        toast.success('Refund marked as processed')
         fetchRefunds()
         setSelectedRefund(null)
         setRecalculated(null)
       } else {
-        toast({
-          title: 'Error',
-          description: res.message || res.error || 'Failed to process refund',
-          variant: 'destructive'
-        })
+        toast.error(res.message || res.error || 'Failed to process refund')
       }
     } catch (err) {
-      toast({
-        title: 'Error',
-        description: 'Failed to process refund',
-        variant: 'destructive'
-      })
+      toast.error('Failed to process refund')
     }
   }
 

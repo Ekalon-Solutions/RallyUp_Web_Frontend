@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { PublicMembershipCardDisplay, apiClient } from '@/lib/api';
 import { formatDisplayDate } from '@/lib/utils';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { getBaseUrl } from '@/lib/config';
 import { getLogoDimensionPx } from '@/lib/membershipCardLogo';
 import { hasCustomProfilePicture, resolveProfilePictureUrl } from '@/lib/membershipCardProfile';
@@ -302,7 +302,6 @@ export function MembershipCardPreview() {
   const [cards, setCards] = useState<PublicMembershipCardDisplay[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const { toast } = useToast()
 
   useEffect(() => {
     const fetchCards = async () => {
@@ -317,18 +316,14 @@ export function MembershipCardPreview() {
         }
       } catch (err) {
         setError('Failed to fetch membership cards')
-        toast({
-          title: "Error",
-          description: "Failed to fetch membership cards",
-          variant: "destructive",
-        })
+        toast.error("Failed to fetch membership cards")
       } finally {
         setLoading(false)
       }
     }
 
     fetchCards()
-  }, [toast])
+  }, [])
 
   if (loading) {
     return (

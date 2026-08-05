@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { useAuth } from '@/contexts/auth-context'
 import { apiClient } from '@/lib/api'
 import { Comment, CommentResponse } from '@/lib/api'
@@ -26,7 +26,6 @@ export function CommentSection({ newsId, onCommentUpdate }: CommentSectionProps)
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
   const { user } = useAuth()
-  const { toast } = useToast()
 
   const loadComments = useCallback(async () => {
     try {
@@ -46,11 +45,7 @@ export function CommentSection({ newsId, onCommentUpdate }: CommentSectionProps)
         if (page === 1) {
           setComments([])
         }
-        toast({
-          title: "Error",
-          description: response.error || "Failed to load comments",
-          variant: "destructive",
-        })
+        toast.error(response.error || "Failed to load comments")
       }
     } catch (error) {
       // console.error('❌ Error loading comments:', error)
@@ -58,23 +53,15 @@ export function CommentSection({ newsId, onCommentUpdate }: CommentSectionProps)
       if (page === 1) {
         setComments([])
       }
-      toast({
-        title: "Error",
-        description: "Failed to load comments",
-        variant: "destructive",
-      })
+      toast.error("Failed to load comments")
     } finally {
       setLoading(false)
     }
-  }, [newsId, page, toast])
+  }, [newsId, page])
 
   const handleSubmitComment = async () => {
     if (!newComment.trim()) {
-      toast({
-        title: "Error",
-        description: "Comment content cannot be empty",
-        variant: "destructive",
-      })
+      toast.error("Comment content cannot be empty")
       return
     }
 
@@ -107,24 +94,13 @@ export function CommentSection({ newsId, onCommentUpdate }: CommentSectionProps)
           }
         }
         
-        toast({
-          title: "Success",
-          description: "Comment posted successfully",
-        })
+        toast.success("Comment posted successfully")
       } else {
-        toast({
-          title: "Error",
-          description: response.error || "Failed to post comment",
-          variant: "destructive",
-        })
+        toast.error(response.error || "Failed to post comment")
       }
     } catch (error) {
       // console.error('❌ Error creating comment:', error)
-      toast({
-        title: "Error",
-        description: "Failed to post comment",
-        variant: "destructive",
-      })
+      toast.error("Failed to post comment")
     } finally {
       setSubmitting(false)
     }
@@ -158,23 +134,12 @@ export function CommentSection({ newsId, onCommentUpdate }: CommentSectionProps)
           }
         }
         
-        toast({
-          title: "Success",
-          description: "Reply posted successfully",
-        })
+        toast.success("Reply posted successfully")
       } else {
-        toast({
-          title: "Error",
-          description: response.error || "Failed to post reply",
-          variant: "destructive",
-        })
+        toast.error(response.error || "Failed to post reply")
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to post reply",
-        variant: "destructive",
-      })
+      toast.error("Failed to post reply")
     } finally {
       setSubmitting(false)
     }

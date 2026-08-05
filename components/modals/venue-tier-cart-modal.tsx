@@ -763,7 +763,7 @@ export function VenueTierCartModal({ isOpen, onClose, event, onSuccess, onFailur
       setStep(isMember ? 'member-found' : 'guest-or-signup')
     } catch (error) {
       console.error('Check event registration by phone error:', error)
-      toast.error('Something went wrong. Please try again.')
+      toast.error('Unable to verify your phone number. Please check your number and try again.')
     } finally {
       setIdentifyChecking(false)
     }

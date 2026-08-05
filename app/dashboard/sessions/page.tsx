@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { apiClient } from '@/lib/api';
 import { ProtectedRoute } from '@/components/protected-route';
 import { 
@@ -73,7 +73,6 @@ export default function SessionsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [activeTab, setActiveTab] = useState('overview');
-  const { toast } = useToast();
 
   useEffect(() => {
     fetchData();
@@ -103,11 +102,7 @@ export default function SessionsPage() {
       }
     } catch (error) {
       // // console.error('Error fetching data:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to fetch session data',
-        variant: 'destructive',
-      });
+      toast.error('Failed to fetch session data');
     } finally {
       setLoading(false);
     }
@@ -117,21 +112,14 @@ export default function SessionsPage() {
     try {
       const response = await apiClient.forceLogoutSession(sessionId);
       if (response.success) {
-        toast({
-          title: 'Success',
-          description: 'Session terminated successfully',
-        });
+        toast.success('Session terminated successfully');
         fetchData();
       } else {
         throw new Error(response.error || 'Failed to terminate session');
       }
     } catch (error) {
       // // console.error('Error terminating session:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to terminate session',
-        variant: 'destructive',
-      });
+      toast.error('Failed to terminate session');
     }
   };
 
@@ -139,21 +127,14 @@ export default function SessionsPage() {
     try {
       const response = await apiClient.forceLogoutUser(userId, userType);
       if (response.success) {
-        toast({
-          title: 'Success',
-          description: `Successfully terminated ${response.data.sessionsTerminated} sessions`,
-        });
+        toast.success(`Successfully terminated ${response.data.sessionsTerminated} sessions`);
         fetchData();
       } else {
         throw new Error(response.error || 'Failed to terminate user sessions');
       }
     } catch (error) {
       // // console.error('Error terminating user sessions:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to terminate user sessions',
-        variant: 'destructive',
-      });
+      toast.error('Failed to terminate user sessions');
     }
   };
 
@@ -161,21 +142,14 @@ export default function SessionsPage() {
     try {
       const response = await apiClient.cleanupExpiredSessions();
       if (response.success) {
-        toast({
-          title: 'Success',
-          description: `Successfully cleaned up ${response.data.cleanedCount} expired sessions`,
-        });
+        toast.success(`Successfully cleaned up ${response.data.cleanedCount} expired sessions`);
         fetchData();
       } else {
         throw new Error(response.error || 'Failed to cleanup expired sessions');
       }
     } catch (error) {
       // // console.error('Error cleaning up sessions:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to cleanup expired sessions',
-        variant: 'destructive',
-      });
+      toast.error('Failed to cleanup expired sessions');
     }
   };
 

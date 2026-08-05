@@ -169,13 +169,15 @@ export default function LogisticsPage() {
           setHealth('connected');
           setHealthReason(null);
         } else {
-          toast.error(res.data.message);
+          toast.error(res.data.message || 'Connectivity test failed. Check your Shiprocket configuration.');
           setHealth('disconnected');
           setHealthReason(res.data.message);
         }
       }
     } catch (err: any) {
-      toast.error(err?.message || 'Connectivity test failed');
+      toast.error(err?.message && !err.message.includes('TypeError') && !err.message.includes('NetworkError')
+        ? err.message
+        : 'Connectivity test failed. Please check your network connection.');
     } finally {
       setTestLoading(false);
     }

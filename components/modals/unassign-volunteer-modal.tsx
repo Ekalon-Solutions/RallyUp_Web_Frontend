@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { VolunteerOpportunity, Volunteer } from '@/lib/api';
 import { apiClient } from '@/lib/api';
 import { activeSignups } from '@/lib/volunteerSignup';
-import { useToast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 import { 
   Users, 
   Clock, 
@@ -40,7 +40,6 @@ export function UnassignVolunteerModal({
   const [assignedVolunteers, setAssignedVolunteers] = React.useState<Volunteer[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [volunteersWithoutUserData, setVolunteersWithoutUserData] = React.useState<number>(0);
-  const { toast } = useToast();
 
   const timeSlot = opportunity?.timeSlots.find(slot => slot._id === timeSlotId);
 
@@ -75,15 +74,11 @@ export function UnassignVolunteerModal({
         setAssignedVolunteers([]);
       }
     } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to fetch volunteer details',
-        variant: 'destructive',
-      });
+      toast.error('Failed to fetch volunteer details');
     } finally {
       setLoading(false);
     }
-  }, [timeSlot, opportunity?.club, toast]);
+  }, [timeSlot, opportunity?.club]);
 
   React.useEffect(() => {
     if (isOpen && timeSlot) {
@@ -103,25 +98,14 @@ export function UnassignVolunteerModal({
       });
       
       if (response.success) {
-        toast({
-          title: 'Success',
-          description: 'Volunteer unassigned successfully',
-        });
+        toast.success('Volunteer unassigned successfully');
         onVolunteerUnassigned();
         onClose();
       } else {
-        toast({
-          title: 'Error',
-          description: response.error || 'Failed to unassign volunteer',
-          variant: 'destructive',
-        });
+        toast.error(response.error || 'Failed to unassign volunteer');
       }
     } catch (error) {
-      toast({
-        title: 'Error',
-        description: 'Failed to unassign volunteer',
-        variant: 'destructive',
-      });
+      toast.error('Failed to unassign volunteer');
     } finally {
       setUnassigning(false);
     }

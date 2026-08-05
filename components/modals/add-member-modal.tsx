@@ -235,7 +235,7 @@ export function AddMemberModal({ trigger, onMemberAdded, clubId: clubIdProp }: A
         setOpen(false)
       }, 2000)
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to create member')
+      toast.error('Failed to create member. Please check the details and try again.')
     } finally {
       setIsLoading(false)
     }

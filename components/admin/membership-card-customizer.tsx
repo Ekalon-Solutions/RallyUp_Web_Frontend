@@ -11,7 +11,7 @@ import { Switch } from '@/components/ui/switch';
 import { LOGO_SIZES as LOGO_SIZE_OPTIONS, hasScalableLogo } from '@/lib/membershipCardLogo';
 import { MEMBERSHIP_CARD_PREVIEW_PROFILE_PICTURE } from '@/lib/membershipCardProfile';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { apiClient } from '@/lib/api';
 import { getApiUrl, getBaseUrl } from '@/lib/config';
 import { MembershipCard } from '@/components/membership-card';
@@ -59,7 +59,6 @@ interface MembershipCardCustomizerProps {
 }
 
 export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipCardCustomizerProps) {
-  const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [cardData, setCardData] = useState<any>(null);
@@ -239,7 +238,7 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
     };
 
     fetchCardData();
-  }, [clubId, cardId, toast]);
+  }, [clubId, cardId]);
 
   const handleStyleChange = (style: string) => {
     setSelectedStyle(style);
@@ -255,19 +254,15 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      toast({
-        title: "Invalid file",
+      toast.error("Invalid file", {
         description: "Please upload an image file",
-        variant: "destructive",
       });
       return;
     }
 
     if (file.size > 25 * 1024 * 1024) {
-      toast({
-        title: "File too large",
+      toast.error("File too large", {
         description: "Please upload an image smaller than 25MB",
-        variant: "destructive",
       });
       return;
     }
@@ -293,15 +288,10 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
       const logoUrl = data.url?.startsWith('http') ? data.url : `${getBaseUrl()}${data.url}`;
       setCustomLogo(logoUrl);
       
-      toast({
-        title: "Success",
-        description: "Logo uploaded successfully",
-      });
+      toast.success("Logo uploaded successfully");
     } catch (error) {
-      toast({
-        title: "Upload failed",
+      toast.error("Upload failed", {
         description: "Failed to upload logo",
-        variant: "destructive",
       });
     } finally {
       setUploadingLogo(false);
@@ -312,10 +302,8 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
     if (!cardData) return;
 
     if (cardData.membershipPlan._id === 'preview-plan' || cardData.card._id === 'preview-card') {
-      toast({
-        title: "Cannot Save Preview Card",
+      toast.error("Cannot Save Preview Card", {
         description: "You're viewing a preview card. Please create a membership card first or ensure the backend server has your user account.",
-        variant: "destructive",
       });
       return;
     }
@@ -341,20 +329,13 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
       );
 
       if (response.success) {
-        toast({
-          title: "Success",
-          description: "Card customization saved successfully",
-        });
+        toast.success("Card customization saved successfully");
         if (onSave) onSave();
       } else {
         throw new Error(response.error || 'Failed to save');
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to save customization",
-        variant: "destructive",
-      });
+      toast.error("Failed to save customization");
     } finally {
       setSaving(false);
     }
