@@ -296,13 +296,17 @@ function ClubsPageContent() {
       autoCouponRemoved
     ) return
 
-    const phone = `${registrationData.countryCode || "+91"}${registrationData.phoneNumber || ""}`
+    const phone = registrationData.phoneNumber
+      ? `${registrationData.countryCode || "+91"}${registrationData.phoneNumber}`
+      : user?.phoneNumber || undefined
+    const email = registrationData.email || user?.email || undefined
+
     const timer = setTimeout(async () => {
       try {
         const response = await apiClient.getHighestEligibleAutoCoupon({
           clubId: selectedClub._id,
-          phone: phone || undefined,
-          email: registrationData.email || undefined,
+          phone,
+          email,
           cartSubtotal: selectedPlan.price,
           purchaseType: "membership",
         })
@@ -339,12 +343,21 @@ function ClubsPageContent() {
     }
     setValidatingCoupon(true)
     try {
+      const rawPhone = registrationData.phoneNumber
+        ? `${registrationData.countryCode || "+91"}${registrationData.phoneNumber}`
+        : user?.phoneNumber || ""
+      const phone = rawPhone && rawPhone !== "+91" ? rawPhone : undefined
+      const email = registrationData.email || user?.email || undefined
+
       const response = await apiClient.validateCoupon(
         couponCode.trim().toUpperCase(),
-        undefined,
-        selectedPlan.price,
-        selectedClub._id,
-        "membership",
+        {
+          ticketPrice: selectedPlan.price,
+          clubId: selectedClub._id,
+          purchaseType: "membership",
+          email,
+          phone,
+        }
       )
       if (response.success && response.data?.coupon) {
         setAppliedCoupon({

@@ -440,16 +440,17 @@ export function JoinMembershipModal({
     const chargeAmount = getPlanCharge(selectedPlan).baseAmount
     if (chargeAmount <= 0) return
 
-    const phone = mode === "register"
-      ? `${registrationData.countryCode || "+91"}${registrationData.phoneNumber || ""}`
+    const rawPhone = mode === "register"
+      ? (registrationData.phoneNumber ? `${registrationData.countryCode || "+91"}${registrationData.phoneNumber}` : "")
       : user?.phoneNumber || ""
-    const email = mode === "register" ? registrationData.email : user?.email || ""
+    const phone = rawPhone && rawPhone !== "+91" ? rawPhone : undefined
+    const email = (mode === "register" ? registrationData.email : user?.email) || undefined
     const timer = setTimeout(async () => {
       try {
         const response = await apiClient.getHighestEligibleAutoCoupon({
           clubId,
-          phone: phone || undefined,
-          email: email || undefined,
+          phone,
+          email,
           cartSubtotal: chargeAmount,
           purchaseType: "membership",
         })
@@ -489,12 +490,21 @@ export function JoinMembershipModal({
     }
     setValidatingCoupon(true)
     try {
+      const rawPhone = mode === "register"
+        ? (registrationData.phoneNumber ? `${registrationData.countryCode || "+91"}${registrationData.phoneNumber}` : "")
+        : user?.phoneNumber || ""
+      const phone = rawPhone && rawPhone !== "+91" ? rawPhone : undefined
+      const email = (mode === "register" ? registrationData.email : user?.email) || undefined
+
       const response = await apiClient.validateCoupon(
         couponCode.trim().toUpperCase(),
-        undefined,
-        chargeAmount,
-        clubId,
-        "membership",
+        {
+          ticketPrice: chargeAmount,
+          clubId,
+          purchaseType: "membership",
+          email,
+          phone,
+        }
       )
       if (response.success && response.data?.coupon) {
         setAppliedCoupon({
