@@ -115,7 +115,7 @@ export default function AdminLeaderboardPage() {
       }
     } catch (error) {
       // console.error('Error updating points:', error)
-      toast.error('Error updating points')
+      toast.error('Failed to update points. Please try again.')
     } finally {
       setSavingId(null)
     }

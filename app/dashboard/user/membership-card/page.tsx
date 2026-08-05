@@ -12,7 +12,7 @@ import {
 import { MembershipCard } from "@/components/membership-card"
 import { apiClient, PublicMembershipCardDisplay } from "@/lib/api"
 import { formatDisplayDate } from "@/lib/utils"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { DashboardLayout } from "@/components/dashboard-layout"
 import { ProtectedRoute } from "@/components/protected-route"
 import { useAuth } from "@/contexts/auth-context"
@@ -27,7 +27,6 @@ export default function UserMembershipCardPage() {
   const [responseInfo, setResponseInfo] = useState<any>(null)
   const { user } = useAuth()
   const clubId = useSelectedClubId()
-  const { toast } = useToast()
 
   const getUserName = () => {
     if (user?.name) {
@@ -89,37 +88,26 @@ export default function UserMembershipCardPage() {
           
           setError(errorMessage);
           
-          toast({
-            title: "Error",
-            description: errorMessage,
-            variant: "destructive",
-          });
+          toast.error(errorMessage);
           
           if (errorDetails) {
           }
         }
         
         if (response.message) {
-          toast({
-            title: "Info",
-            description: response.message,
-          })
+          toast.info(response.message);
         }
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Failed to fetch membership cards';
+        const errorMessage = 'Failed to fetch membership cards';
         setError(errorMessage);
-        toast({
-          title: "Error",
-          description: errorMessage,
-          variant: "destructive",
-        });
+        toast.error(errorMessage);
       } finally {
         setLoading(false)
       }
     }
 
     fetchCards()
-  }, [toast, clubId])
+  }, [clubId])
 
   if (!user && loading) {
     return (
@@ -194,23 +182,12 @@ export default function UserMembershipCardPage() {
         const newCards = [response.data].filter((c: any) => !clubId || String(c?.club?._id) === String(clubId))
         setCards(newCards)
         setSelectedCard(newCards[0] || null)
-        toast({
-          title: "Success",
-          description: response.message || "Membership card created successfully!",
-        })
+        toast.success(response.message || "Membership card created successfully!")
       } else {
-        toast({
-          title: "Error",
-          description: response.error || "Failed to create membership card",
-          variant: "destructive",
-        })
+        toast.error(response.error || "Failed to create membership card")
       }
     } catch (err) {
-      toast({
-        title: "Error",
-        description: "Failed to create membership card",
-        variant: "destructive",
-      })
+      toast.error("Failed to create membership card")
     } finally {
       setLoading(false)
     }

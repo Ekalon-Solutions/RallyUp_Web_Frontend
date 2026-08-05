@@ -128,7 +128,7 @@ export default function ClubManagementModal({ isOpen, onClose, club, onClubUpdat
       }
     } catch (error) {
       // console.error("Update club error:", error)
-      toast.error("An error occurred")
+      toast.error("Failed to update club. Please try again.")
     } finally {
       setLoading(false)
     }

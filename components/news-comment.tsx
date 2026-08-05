@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { useAuth } from '@/contexts/auth-context'
 import { apiClient } from '@/lib/api'
 import { Comment as CommentType } from '@/lib/api'
@@ -54,7 +54,6 @@ export function NewsComment({
   const [likeCount, setLikeCount] = useState(comment.likes?.length || 0)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { user } = useAuth()
-  const { toast } = useToast()
 
   const isOwner = user?._id === (typeof comment.author === 'string' ? comment.author : comment.author?._id)
   const canEdit = isOwner && !comment.isDeleted
@@ -72,11 +71,7 @@ export function NewsComment({
 
   const handleSaveEdit = async () => {
     if (!editContent.trim()) {
-      toast({
-        title: "Error",
-        description: "Comment content cannot be empty",
-        variant: "destructive",
-      })
+      toast.error("Comment content cannot be empty")
       return
     }
 
@@ -87,23 +82,12 @@ export function NewsComment({
       if (response.success) {
         onCommentUpdate(comment._id, editContent.trim())
         setIsEditing(false)
-        toast({
-          title: "Success",
-          description: "Comment updated successfully",
-        })
+        toast.success("Comment updated successfully")
       } else {
-        toast({
-          title: "Error",
-          description: response.error || "Failed to update comment",
-          variant: "destructive",
-        })
+        toast.error(response.error || "Failed to update comment")
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update comment",
-        variant: "destructive",
-      })
+      toast.error("Failed to update comment")
     } finally {
       setIsSubmitting(false)
     }
@@ -118,23 +102,12 @@ export function NewsComment({
       
       if (response.success) {
         onCommentDelete(comment._id)
-        toast({
-          title: "Success",
-          description: "Comment deleted successfully",
-        })
+        toast.success("Comment deleted successfully")
       } else {
-        toast({
-          title: "Error",
-          description: response.error || "Failed to delete comment",
-          variant: "destructive",
-        })
+        toast.error(response.error || "Failed to delete comment")
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to delete comment",
-        variant: "destructive",
-      })
+      toast.error("Failed to delete comment")
     } finally {
       setIsSubmitting(false)
     }
@@ -149,11 +122,7 @@ export function NewsComment({
         setLikeCount(response.data.likeCount)
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to like comment",
-        variant: "destructive",
-      })
+      toast.error("Failed to like comment")
     }
   }
 

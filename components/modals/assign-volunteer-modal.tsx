@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Volunteer, VolunteerOpportunity } from '@/lib/api';
 import { apiClient } from '@/lib/api';
 import { activeSignups } from '@/lib/volunteerSignup';
-import { useToast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 import { 
   Users, 
   Clock, 
@@ -50,7 +50,6 @@ export function AssignVolunteerModal({
   const [selectedVolunteer, setSelectedVolunteer] = React.useState<string>('');
   const [notes, setNotes] = React.useState('');
   const [assigning, setAssigning] = React.useState(false);
-  const { toast } = useToast();
 
   const timeSlot = opportunity?.timeSlots.find(slot => slot._id === timeSlotId);
 
@@ -84,23 +83,15 @@ export function AssignVolunteerModal({
         setAvailableVolunteers(availableVolunteers);
       } else {
         // // console.log('🔍 Frontend: API error:', response.error);
-        toast({
-          title: 'Error',
-          description: response.error || 'Failed to fetch available volunteers',
-          variant: 'destructive',
-        });
+        toast.error(response.error || 'Failed to load available volunteers. Please try again.');
       }
     } catch (error) {
       // // console.error('❌ Frontend: Error fetching available volunteers:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to fetch available volunteers',
-        variant: 'destructive',
-      });
+      toast.error('Failed to load available volunteers. Please try again.');
     } finally {
       setLoading(false);
     }
-  }, [opportunity, timeSlotId, toast]);
+  }, [opportunity, timeSlotId]);
 
   React.useEffect(() => {
     if (isOpen && opportunity && timeSlotId) {
@@ -121,28 +112,17 @@ export function AssignVolunteerModal({
       });
       
       if (response.success) {
-        toast({
-          title: 'Success',
-          description: 'Volunteer assigned successfully',
-        });
+        toast.success('Volunteer assigned successfully');
         onVolunteerAssigned();
         onClose();
         setSelectedVolunteer('');
         setNotes('');
       } else {
-        toast({
-          title: 'Error',
-          description: response.error || 'Failed to assign volunteer',
-          variant: 'destructive',
-        });
+        toast.error(response.error || 'Failed to assign volunteer');
       }
     } catch (error) {
       // // console.error('Error assigning volunteer:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to assign volunteer',
-        variant: 'destructive',
-      });
+      toast.error('Failed to assign volunteer');
     } finally {
       setAssigning(false);
     }

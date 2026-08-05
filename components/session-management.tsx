@@ -6,7 +6,7 @@ import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from './ui/alert-dialog';
-import { useToast } from '../hooks/use-toast';
+import { toast } from 'sonner';
 import { apiClient } from '../lib/api';
 import { formatLocalDate } from '../lib/timezone';
 
@@ -34,7 +34,6 @@ export function SessionManagement() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const { toast } = useToast();
 
   useEffect(() => {
     fetchSessions();
@@ -47,18 +46,10 @@ export function SessionManagement() {
       if (response.success) {
         setSessions(response.data);
       } else {
-        toast({
-          title: "Error",
-          description: response.message || "Failed to fetch sessions",
-          variant: "destructive",
-        });
+        toast.error(response.message || "Failed to fetch sessions");
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to fetch sessions",
-        variant: "destructive",
-      });
+      toast.error("Failed to fetch sessions");
     } finally {
       setLoading(false);
     }
@@ -74,24 +65,13 @@ export function SessionManagement() {
     try {
       const response = await apiClient.delete(`/sessions/admin/session/${sessionId}`);
       if (response.success) {
-        toast({
-          title: "Success",
-          description: "Session successfully invalidated",
-        });
+        toast.success("Session successfully invalidated");
         await fetchSessions(); // Refresh the list
       } else {
-        toast({
-          title: "Error",
-          description: response.message || "Failed to invalidate session",
-          variant: "destructive",
-        });
+        toast.error(response.message || "Failed to invalidate session");
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to invalidate session",
-        variant: "destructive",
-      });
+      toast.error("Failed to invalidate session");
     }
   };
 
@@ -99,24 +79,13 @@ export function SessionManagement() {
     try {
       const response = await apiClient.delete<{ invalidatedCount?: number }>(`/sessions/admin/user/${userId}/${userType}`);
       if (response.success) {
-        toast({
-          title: "Success",
-          description: `Successfully invalidated ${response.data?.invalidatedCount ?? 0} sessions`,
-        });
+        toast.success(`Successfully invalidated ${response.data?.invalidatedCount ?? 0} sessions`);
         await fetchSessions(); // Refresh the list
       } else {
-        toast({
-          title: "Error",
-          description: response.message || "Failed to invalidate user sessions",
-          variant: "destructive",
-        });
+        toast.error(response.message || "Failed to invalidate user sessions");
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to invalidate user sessions",
-        variant: "destructive",
-      });
+      toast.error("Failed to invalidate user sessions");
     }
   };
 

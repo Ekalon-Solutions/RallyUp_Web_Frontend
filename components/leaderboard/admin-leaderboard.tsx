@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Trophy, Calendar, Clock, TrendingUp, RefreshCw, Plus, BarChart3 } from 'lucide-react';
 import { apiClient } from '@/lib/api';
-import { useToast } from '@/components/ui/use-toast';
+import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
@@ -43,7 +43,6 @@ export function AdminLeaderboard({ clubId }: AdminLeaderboardProps) {
     startDate: '',
     endDate: ''
   });
-  const { toast } = useToast();
 
   const fetchStats = React.useCallback(async () => {
     try {
@@ -52,23 +51,15 @@ export function AdminLeaderboard({ clubId }: AdminLeaderboardProps) {
       if (response.success) {
         setStats(response.data);
       } else {
-        toast({
-          title: 'Error',
-          description: response.error || 'Failed to fetch leaderboard stats',
-          variant: 'destructive',
-        });
+        toast.error(response.error || 'Failed to fetch leaderboard stats');
       }
     } catch (error) {
       // // console.error('Error fetching leaderboard stats:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to fetch leaderboard stats',
-        variant: 'destructive',
-      });
+      toast.error('Failed to fetch leaderboard stats');
     } finally {
       setLoading(false);
     }
-  }, [clubId, toast]);
+  }, [clubId]);
 
   React.useEffect(() => {
     fetchStats();
@@ -76,11 +67,7 @@ export function AdminLeaderboard({ clubId }: AdminLeaderboardProps) {
 
   const handleSyncLeaderboard = async () => {
     if (!stats?.currentSeason) {
-      toast({
-        title: 'Error',
-        description: 'No current season found. Please create a leaderboard first.',
-        variant: 'destructive',
-      });
+      toast.error('No current season found. Please create a leaderboard first.');
       return;
     }
 
@@ -92,25 +79,14 @@ export function AdminLeaderboard({ clubId }: AdminLeaderboardProps) {
       });
 
       if (response.success) {
-        toast({
-          title: 'Success',
-          description: `Leaderboard synced successfully! ${response.data.totalEntries} entries updated.`,
-        });
+        toast.success(`Leaderboard synced successfully! ${response.data.totalEntries} entries updated.`);
         fetchStats(); // Refresh stats
       } else {
-        toast({
-          title: 'Error',
-          description: response.error || 'Failed to sync leaderboard',
-          variant: 'destructive',
-        });
+        toast.error(response.error || 'Failed to sync leaderboard');
       }
     } catch (error) {
       // // console.error('Error syncing leaderboard:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to sync leaderboard',
-        variant: 'destructive',
-      });
+      toast.error('Failed to sync leaderboard');
     } finally {
       setSyncing(false);
     }
@@ -118,11 +94,7 @@ export function AdminLeaderboard({ clubId }: AdminLeaderboardProps) {
 
   const handleCreateLeaderboard = async () => {
     if (!createForm.season || !createForm.startDate || !createForm.endDate) {
-      toast({
-        title: 'Error',
-        description: 'Please fill in all fields',
-        variant: 'destructive',
-      });
+      toast.error('Please fill in all fields');
       return;
     }
 
@@ -135,27 +107,16 @@ export function AdminLeaderboard({ clubId }: AdminLeaderboardProps) {
       });
 
       if (response.success) {
-        toast({
-          title: 'Success',
-          description: response.data.message,
-        });
+        toast.success(response.data.message);
         setShowCreateModal(false);
         setCreateForm({ season: '', startDate: '', endDate: '' });
         fetchStats(); // Refresh stats
       } else {
-        toast({
-          title: 'Error',
-          description: response.error || 'Failed to create leaderboard',
-          variant: 'destructive',
-        });
+        toast.error(response.error || 'Failed to create leaderboard');
       }
     } catch (error) {
       // // console.error('Error creating leaderboard:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to create leaderboard',
-        variant: 'destructive',
-      });
+      toast.error('Failed to create leaderboard');
     }
   };
 

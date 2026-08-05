@@ -28,7 +28,7 @@ import {
   VolumeX,
   Globe
 } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { useSelectedClubId } from "@/hooks/useSelectedClubId"
 
 export default function MemberChantsPage() {
@@ -82,11 +82,7 @@ export default function MemberChantsPage() {
       setTotalPages(Math.ceil(allChants.length / itemsPerPage));
       
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to fetch chants",
-        variant: "destructive",
-      });
+      toast.error("Failed to fetch chants");
     } finally {
       setLoading(false);
     }

@@ -95,6 +95,7 @@ export function FeatureSelector({ clubId, currentTier = 'free', onTierChange }: 
         }
       } catch (err) {
         console.error('Failed to load club features:', err);
+        toast.error('Failed to load add-on features. Please refresh the page.');
       }
     }
 
@@ -134,7 +135,7 @@ export function FeatureSelector({ clubId, currentTier = 'free', onTierChange }: 
         }
         toast.success(`${addon.name} ${startTrial ? '(trial)' : ''} enabled`);
       } else {
-        toast.error(res.message || `Failed to enable ${addon.name}`);
+        toast.error(`Unable to enable "${addon.name}". Please try again.`);
       }
     } catch (err) {
       console.error('Error enabling add-on:', err);
@@ -159,7 +160,7 @@ export function FeatureSelector({ clubId, currentTier = 'free', onTierChange }: 
         });
         toast.success(`${addon.name} disabled`);
       } else {
-        toast.error(res.message || `Failed to disable ${addon.name}`);
+        toast.error(`Unable to disable "${addon.name}". Please try again.`);
       }
     } catch (err) {
       console.error('Error disabling add-on:', err);

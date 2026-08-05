@@ -159,7 +159,7 @@ export default function SettingsPage() {
       }
     } catch (error) {
       // console.error("Error updating profile:", error)
-      toast.error("Error updating profile")
+      toast.error("Unable to update your profile. Please try again.")
     } finally {
       setLoading(false)
     }
