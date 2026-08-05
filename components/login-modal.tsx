@@ -83,6 +83,16 @@ export function LoginModal({ open, onOpenChange, onSuccess }: LoginModalProps) {
     }
   }, [resendCountdown])
 
+  useEffect(() => {
+    if (open && typeof window !== "undefined") {
+      const searchParams = new URLSearchParams(window.location.search)
+      const urlEmail = searchParams.get("email")
+      const urlPhone = searchParams.get("phone")
+      if (urlEmail) setEmail((prev) => prev || urlEmail)
+      if (urlPhone) setPhone((prev) => prev || urlPhone)
+    }
+  }, [open])
+
   const resetForm = () => {
     setEmail("")
     setPhone("")
