@@ -26,7 +26,7 @@ interface Coupon {
   currentUsage: number
   startTime: string
   endTime: string
-  eligibility: 'all' | 'members-only' | 'new-users' | 'specific-events'
+  eligibility: 'all' | 'members-only' | 'new-users' | 'specific-events' | 'membership-renewal'
   applicableEvents?: string[]
   minPurchaseAmount?: number
   isActive: boolean
@@ -55,7 +55,7 @@ export function CreateCouponModal({ isOpen, onClose, onSuccess, editCoupon, club
     maxUsage: "",
     startTime: "",
     endTime: "",
-    eligibility: "all" as "all" | "members-only" | "new-users" | "specific-events",
+    eligibility: "all" as "all" | "members-only" | "new-users" | "specific-events" | "membership-renewal",
     minPurchaseAmount: "",
     isAutoApply: false,
   })
@@ -457,7 +457,7 @@ export function CreateCouponModal({ isOpen, onClose, onSuccess, editCoupon, club
             </Label>
             <Select
               value={formData.eligibility}
-              onValueChange={(value: "all" | "members-only" | "new-users" | "specific-events") =>
+              onValueChange={(value: "all" | "members-only" | "new-users" | "specific-events" | "membership-renewal") =>
                 setFormData({ ...formData, eligibility: value })
               }
             >
@@ -468,6 +468,7 @@ export function CreateCouponModal({ isOpen, onClose, onSuccess, editCoupon, club
                 <SelectItem value="all">All Users</SelectItem>
                 <SelectItem value="members-only">Members Only</SelectItem>
                 <SelectItem value="new-users">New Users Only</SelectItem>
+                <SelectItem value="membership-renewal">Membership Renewal</SelectItem>
                 <SelectItem value="specific-events">Specific Events</SelectItem>
               </SelectContent>
             </Select>

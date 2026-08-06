@@ -32,7 +32,7 @@ import {
   Upload,
   Globe
 } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { useRequiredClubId } from '@/hooks/useRequiredClubId';
 import { useClubFeatures } from '@/hooks/useClubFeatures';
 import { isFeatureEnabled } from '@/lib/clubFeatures';
@@ -108,19 +108,11 @@ export default function ChantsManagementPage() {
         setChants(response.data.chants);
         setTotalPages(response.data.pagination.pages);
       } else {
-        toast({
-          title: "Error",
-          description: response.error || "Failed to fetch chants",
-          variant: "destructive",
-        });
+        toast.error(response.error || "Failed to fetch chants");
       }
     } catch (error) {
       // // console.error('Error fetching chants:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch chants",
-        variant: "destructive",
-      });
+      toast.error("Failed to fetch chants");
     } finally {
       setLoading(false);
     }
@@ -150,30 +142,18 @@ export default function ChantsManagementPage() {
 
   const handleCreateChant = async () => {
     if (!clubId) {
-      toast({
-        title: "Error",
-        description: "No club found. Please ensure you are associated with a club.",
-        variant: "destructive",
-      });
+      toast.error("No club found. Please ensure you are associated with a club.");
       return;
     }
 
     // Validate iframe URL if fileType is iframe
     if (formData.fileType === 'iframe') {
       if (!formData.iframeUrl || !formData.iframeUrl.trim()) {
-        toast({
-          title: "Error",
-          description: "Please provide a valid URL for the iframe",
-          variant: "destructive",
-        });
+        toast.error("Please provide a valid URL for the iframe");
         return;
       }
       if (!validateUrl(formData.iframeUrl)) {
-        toast({
-          title: "Error",
-          description: "Please provide a valid URL (must start with http:// or https://)",
-          variant: "destructive",
-        });
+        toast.error("Please provide a valid URL (must start with http:// or https://)");
         return;
       }
     }
@@ -196,28 +176,17 @@ export default function ChantsManagementPage() {
       });
 
       if (response.success) {
-        toast({
-          title: "Success",
-          description: "Chant created successfully",
-        });
+        toast.success("Chant created successfully");
         setShowCreateModal(false);
         resetForm();
         fetchChants();
         fetchStats();
       } else {
-        toast({
-          title: "Error",
-          description: response.error || "Failed to create chant",
-          variant: "destructive",
-        });
+        toast.error(response.error || "Failed to create chant. Please try again.");
       }
     } catch (error) {
       // // console.error('Error creating chant:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create chant",
-        variant: "destructive",
-      });
+      toast.error("Failed to create chant. Please try again.");
     }
   };
 
@@ -227,19 +196,11 @@ export default function ChantsManagementPage() {
     // Validate iframe URL if fileType is iframe
     if (formData.fileType === 'iframe') {
       if (!formData.iframeUrl || !formData.iframeUrl.trim()) {
-        toast({
-          title: "Error",
-          description: "Please provide a valid URL for the iframe",
-          variant: "destructive",
-        });
+        toast.error("Please provide a valid URL for the iframe");
         return;
       }
       if (!validateUrl(formData.iframeUrl)) {
-        toast({
-          title: "Error",
-          description: "Please provide a valid URL (must start with http:// or https://)",
-          variant: "destructive",
-        });
+        toast.error("Please provide a valid URL (must start with http:// or https://)");
         return;
       }
     }
@@ -259,29 +220,18 @@ export default function ChantsManagementPage() {
       });
 
       if (response.success) {
-        toast({
-          title: "Success",
-          description: "Chant updated successfully",
-        });
+        toast.success("Chant updated successfully");
         setShowEditModal(false);
         setEditingChant(null);
         resetForm();
         fetchChants();
         fetchStats();
       } else {
-        toast({
-          title: "Error",
-          description: response.error || "Failed to update chant",
-          variant: "destructive",
-        });
+        toast.error(response.error || "Failed to save chant changes. Please try again.");
       }
     } catch (error) {
       // // console.error('Error updating chant:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update chant",
-        variant: "destructive",
-      });
+      toast.error("Failed to save chant changes. Please try again.");
     }
   };
 
@@ -291,26 +241,15 @@ export default function ChantsManagementPage() {
     try {
       const response = await apiClient.deleteChant(chantId);
       if (response.success) {
-        toast({
-          title: "Success",
-          description: "Chant deleted successfully",
-        });
+        toast.success("Chant deleted successfully");
         fetchChants();
         fetchStats();
       } else {
-        toast({
-          title: "Error",
-          description: response.error || "Failed to delete chant",
-          variant: "destructive",
-        });
+        toast.error(response.error || "Failed to delete chant. Please try again.");
       }
     } catch (error) {
       // // console.error('Error deleting chant:', error);
-      toast({
-        title: "Error",
-        description: "Failed to delete chant",
-        variant: "destructive",
-      });
+      toast.error("Failed to delete chant. Please try again.");
     }
   };
 
@@ -417,12 +356,12 @@ export default function ChantsManagementPage() {
           {clubId && (
             <FeatureUnavailableOverlay featureKey="chants" featureLabel="Chants" clubId={clubId} />
           )}
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold">Club Chants</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold">Club Chants</h1>
               <p className="text-muted-foreground">Manage club chants and traditions</p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2 w-full sm:w-auto">
               <Button onClick={() => setShowCreateModal(true)}>
                 <Plus className="w-4 h-4 mr-2" />
                 Add Chant
@@ -615,7 +554,7 @@ export default function ChantsManagementPage() {
                       <div className="flex items-center gap-4">
                         <div className="flex items-center gap-1">
                           <User className="w-4 h-4" />
-                          {chant.createdBy.name}
+                          {chant.createdBy?.name ?? 'Unknown'}
                         </div>
                         <div className="flex items-center gap-1">
                           <Calendar className="w-4 h-4" />
@@ -752,7 +691,7 @@ export default function ChantsManagementPage() {
                         YouTube watch URLs will be automatically converted to embed format.
                       </p>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="iframeWidth">Width</Label>
                         <Input
@@ -891,7 +830,7 @@ export default function ChantsManagementPage() {
                         YouTube watch URLs will be automatically converted to embed format.
                       </p>
                     </div>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <Label htmlFor="edit-iframeWidth">Width</Label>
                         <Input

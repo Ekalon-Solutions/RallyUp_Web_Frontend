@@ -31,6 +31,10 @@ export default function DashboardPage() {
   const [cronLoading, setCronLoading] = useState(false)
 
   useEffect(() => {
+    if ((user as any)?.role === 'guest') {
+      window.location.href = "/clubs"
+      return
+    }
     if (user && !isAdmin) {
       window.location.href = "/dashboard/user"
     }
@@ -214,7 +218,6 @@ export default function DashboardPage() {
 
   const clubId = getUserClubId()
   const { settings: clubSettings } = useClubSettings(clubId)
-  console.log("club settings:", clubSettings)
 
   const settingsLogo = clubSettings ? ((clubSettings as any).designSettings?.logo) : undefined
   const displayLogo = settingsLogo || clubLogo

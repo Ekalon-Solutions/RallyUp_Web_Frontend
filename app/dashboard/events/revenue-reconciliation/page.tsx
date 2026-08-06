@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react"
 import { DashboardLayout } from "@/components/dashboard-layout"
+import { ProtectedRoute } from "@/components/protected-route"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -77,6 +78,7 @@ export default function RevenueReconciliationPage() {
   const grandCount = data.reduce((sum, g) => sum + g.ticketCount, 0)
 
   return (
+    <ProtectedRoute requireAdmin>
     <DashboardLayout>
       <div className="space-y-6 max-w-5xl mx-auto pb-10">
         <div className="flex items-center gap-4 flex-wrap">
@@ -85,7 +87,7 @@ export default function RevenueReconciliationPage() {
               <ArrowLeft className="w-4 h-4 mr-2" />
             </Button>
           </Link>
-          <h1 className="text-3xl font-bold flex-1">Revenue Reconciliation</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold flex-1">Revenue Reconciliation</h1>
           <Button variant="outline" size="sm" onClick={fetch} disabled={loading}>
             <RefreshCw className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`} />
             Refresh
@@ -106,7 +108,7 @@ export default function RevenueReconciliationPage() {
           <Filter className="w-4 h-4 text-muted-foreground" />
           <span className="text-sm font-medium">Filter by club:</span>
           <Select value={filterClub} onValueChange={setFilterClub}>
-            <SelectTrigger className="w-56">
+            <SelectTrigger className="w-full sm:w-56">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -130,7 +132,7 @@ export default function RevenueReconciliationPage() {
           </Card>
         ) : (
           <>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Card>
                 <CardContent className="py-4">
                   <p className="text-sm text-muted-foreground">Total Revenue</p>
@@ -215,5 +217,6 @@ export default function RevenueReconciliationPage() {
         )}
       </div>
     </DashboardLayout>
+    </ProtectedRoute>
   )
 }

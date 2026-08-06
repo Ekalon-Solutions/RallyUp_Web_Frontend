@@ -27,17 +27,19 @@ import {
   Clock,
   Zap,
   ExternalLink,
-  AlertTriangle
+  AlertTriangle,
+  Pencil,
+  Plus,
+  CalendarDays,
+  Ticket
 } from "lucide-react"
 import { useCart, CartItem } from "@/contexts/cart-context"
 import { useAuth } from "@/contexts/auth-context"
-import { apiClient } from "@/lib/api"
+import { apiClient, type UserAddress, type UserAddressPayload } from "@/lib/api"
 import { cn } from "@/lib/utils"
 import { calculateTransactionFees, PLATFORM_FEE_PERCENT, RAZORPAY_FEE_PERCENT } from "@/lib/transactionFees"
 import { PaymentSimulationModal } from "./payment-simulation-modal"
 import { toast } from "sonner"
-import { MemberValidationModal } from "./member-validation-modal"
-import { useRouter } from "next/navigation"
 
 interface CheckoutModalProps {
   isOpen: boolean
@@ -94,6 +96,68 @@ interface ServiceabilityResult {
   message: string
 }
 
+type AddressEditorMode = 'add' | 'edit' | null
+
+
+
+function splitFullName(fullName: string): { firstName: string; lastName: string } {
+  const parts = fullName.trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return { firstName: '', lastName: '' }
+  if (parts.length === 1) return { firstName: parts[0], lastName: '' }
+  return { firstName: parts[0], lastName: parts.slice(1).join(' ') }
+}
+
+function normalizeCountryCode(value?: string | null): string {
+  const text = String(value || '').trim()
+  if (!text) return '+91'
+  return text.startsWith('+') ? text : `+${text}`
+}
+
+function cleanPhoneDigits(value: string): string {
+  return value.replace(/[^\d]/g, '')
+}
+
+function splitPhoneForAddressBook(phone: string, fallbackCountryCode?: string | null): { countryCode: string; phoneNumber: string } {
+  const countryCode = normalizeCountryCode(fallbackCountryCode)
+  const countryDigits = cleanPhoneDigits(countryCode)
+  const digits = cleanPhoneDigits(phone)
+
+  if (phone.trim().startsWith('+') && countryDigits && digits.startsWith(countryDigits)) {
+    const localNumber = digits.slice(countryDigits.length)
+    if (localNumber.length >= 9 && localNumber.length <= 15) {
+      return { countryCode, phoneNumber: localNumber }
+    }
+  }
+
+  return { countryCode, phoneNumber: digits }
+}
+
+function formatAddressPhone(address: UserAddress): string {
+  return [address.countryCode, address.phoneNumber].filter(Boolean).join(' ')
+}
+
+function addressCardLines(address: UserAddress): string[] {
+  return [
+    [address.addressLine1, address.addressLine2].filter(Boolean).join(', '),
+    [address.city, address.stateCounty, address.pinCode].filter(Boolean).join(', '),
+    address.country,
+  ].filter(Boolean)
+}
+
+function orderFormPatchFromAddress(address: UserAddress): Partial<OrderForm> {
+  const { firstName, lastName } = splitFullName(address.fullName)
+  return {
+    firstName,
+    lastName,
+    phone: formatAddressPhone(address),
+    address: [address.addressLine1, address.addressLine2].filter(Boolean).join(', '),
+    city: address.city,
+    state: address.stateCounty,
+    zipCode: address.pinCode,
+    country: address.country || 'India',
+  }
+}
+
 function formatEstimatedDays(estimatedDays: { min: number; max: number }, titleCase = false): string {
   const { min, max } = estimatedDays
   const unit = titleCase
@@ -104,14 +168,17 @@ function formatEstimatedDays(estimatedDays: { min: number; max: number }, titleC
 }
 
 export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems }: CheckoutModalProps) {
-  const { user } = useAuth()
-  const router = useRouter()
+  const { user, isAdmin } = useAuth()
   const { items: cartItems, totalPrice: cartTotalPrice, clearCart } = useCart()
   const items = directCheckoutItems || cartItems
   const totalPrice = directCheckoutItems 
     ? directCheckoutItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
     : cartTotalPrice
   const [loading, setLoading] = useState(false)
+  // A ref guard, not just the `loading` state, since state updates aren't
+  // synchronous — a fast double-click can fire two submits before a re-render
+  // disables the button.
+  const submittingRef = useRef(false)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [createdOrder, setCreatedOrder] = useState<any>(null)
   const [orderShipping, setOrderShipping] = useState<number | null>(null)
@@ -123,8 +190,6 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
   const [reservationToken, setReservationToken] = useState<string | null>(null)
   const [reservedDiscount, setReservedDiscount] = useState<number>(0)
   const [reserving, setReserving] = useState(false)
-  const [showMemberValidation, setShowMemberValidation] = useState(false)
-  const [memberValidated, setMemberValidated] = useState(false)
   const [shiprocketLoading, setShiprocketLoading] = useState(false)
   const [shiprocketMessage, setShiprocketMessage] = useState<string | null>(null)
   const [serviceability, setServiceability] = useState<ServiceabilityResult | null>(null)
@@ -162,7 +227,15 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
   const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null)
   const [isAutoApplied, setIsAutoApplied] = useState(false)
   const [autoCouponRemoved, setAutoCouponRemoved] = useState(false)
+  const [savedAddresses, setSavedAddresses] = useState<UserAddress[]>([])
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null)
+  const [addressBookLoading, setAddressBookLoading] = useState(false)
+  const [addressSaving, setAddressSaving] = useState(false)
+  const [addressEditorMode, setAddressEditorMode] = useState<AddressEditorMode>(null)
+  const [deliveryMethod, setDeliveryMethod] = useState<'standard' | 'pickup'>('standard')
 
+
+  const canUseAddressBook = !!user && ['member', 'user'].includes(String((user as any).role || ''))
   const currency = items.length > 0 ? (items[0].currency || 'INR') : 'INR'
 
   const formatCurrency = (amount: number, currencyCode: string = currency) => {
@@ -184,6 +257,122 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
       currency: currencyCode
     }).format(amount)
   }
+
+  const applyAddressToForm = useCallback((address: UserAddress) => {
+    setSelectedAddressId(address.id)
+    setOrderForm(prev => ({
+      ...prev,
+      ...orderFormPatchFromAddress(address),
+    }))
+  }, [])
+
+  const buildAddressPayload = useCallback((): UserAddressPayload => {
+    const userAny = user as any
+    const phone = splitPhoneForAddressBook(orderForm.phone, userAny?.countryCode || '+91')
+    const existingAddress =
+      addressEditorMode === 'edit' && selectedAddressId
+        ? savedAddresses.find(address => address.id === selectedAddressId)
+        : null
+    const typedAddress = orderForm.address.trim()
+    const existingJoinedAddress = existingAddress
+      ? [existingAddress.addressLine1, existingAddress.addressLine2].filter(Boolean).join(', ')
+      : ''
+    return {
+      fullName: [orderForm.firstName, orderForm.lastName].filter(Boolean).join(' ').trim(),
+      countryCode: phone.countryCode,
+      phoneNumber: phone.phoneNumber,
+      addressLine1: existingAddress && typedAddress === existingJoinedAddress
+        ? existingAddress.addressLine1
+        : typedAddress,
+      addressLine2: existingAddress && typedAddress === existingJoinedAddress
+        ? existingAddress.addressLine2 || ''
+        : '',
+      city: orderForm.city.trim(),
+      pinCode: orderForm.zipCode.trim(),
+      stateCounty: orderForm.state.trim(),
+      country: orderForm.country.trim() || 'India',
+    }
+  }, [addressEditorMode, orderForm, savedAddresses, selectedAddressId, user])
+
+  const handleSelectSavedAddress = useCallback((address: UserAddress) => {
+    applyAddressToForm(address)
+    setAddressEditorMode(null)
+    toast.success('Shipping address selected')
+  }, [applyAddressToForm])
+
+  const handleEditSavedAddress = useCallback((address: UserAddress) => {
+    applyAddressToForm(address)
+    setAddressEditorMode('edit')
+  }, [applyAddressToForm])
+
+  const handleAddNewAddress = useCallback(() => {
+    setSelectedAddressId(null)
+    setAddressEditorMode('add')
+    setOrderForm(prev => ({
+      ...prev,
+      firstName: '',
+      lastName: '',
+      phone: '',
+      address: '',
+      city: '',
+      state: '',
+      zipCode: '',
+      country: 'India',
+    }))
+  }, [])
+
+  const handleSaveAddress = useCallback(async () => {
+    if (!canUseAddressBook) {
+      toast.error('Sign in to save addresses')
+      return
+    }
+
+    const payload = buildAddressPayload()
+    if (
+      !payload.fullName ||
+      !payload.phoneNumber ||
+      !payload.addressLine1 ||
+      !payload.city ||
+      !payload.pinCode ||
+      !payload.stateCounty ||
+      !payload.country
+    ) {
+      toast.error('Complete the address form before saving')
+      return
+    }
+
+    if (payload.phoneNumber.length < 9 || payload.phoneNumber.length > 15) {
+      toast.error('Phone number must be 9-15 digits')
+      return
+    }
+
+    if (!/^\d{6}$/.test(payload.pinCode)) {
+      toast.error('Please enter a valid 6-digit PIN code')
+      return
+    }
+
+    setAddressSaving(true)
+    try {
+      const response =
+        addressEditorMode === 'edit' && selectedAddressId
+          ? await apiClient.updateUserAddress(selectedAddressId, payload)
+          : await apiClient.createUserAddress(payload)
+
+      if (!response.success || !response.data?.address) {
+        toast.error(response.error || response.message || 'Failed to save address')
+        return
+      }
+
+      setSavedAddresses(response.data.addresses)
+      applyAddressToForm(response.data.address)
+      setAddressEditorMode(null)
+      toast.success(addressEditorMode === 'edit' ? 'Address updated' : 'Address saved')
+    } catch {
+      toast.error('Failed to save address')
+    } finally {
+      setAddressSaving(false)
+    }
+  }, [addressEditorMode, applyAddressToForm, buildAddressPayload, canUseAddressBook, selectedAddressId])
 
   const triggerAutoCouponApply = useCallback(async (phoneNumber?: string, emailAddress?: string) => {
     if (autoCouponRemoved) return
@@ -261,8 +450,55 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
       setReservedDiscount(0)
       setIsAutoApplied(false)
       setAutoCouponRemoved(false)
+      setSelectedAddressId(null)
+      setAddressEditorMode(null)
+      setAddressBookLoading(false)
+      setDeliveryMethod('standard')
     }
   }, [isOpen])
+
+
+  useEffect(() => {
+    let cancelled = false
+
+    if (!isOpen || !canUseAddressBook) {
+      setSavedAddresses([])
+      setAddressBookLoading(false)
+      return () => {
+        cancelled = true
+      }
+    }
+
+    setAddressBookLoading(true)
+    apiClient.getUserAddresses()
+      .then((response) => {
+        if (cancelled) return
+        const addresses = response.success ? response.data ?? [] : []
+        setSavedAddresses(addresses)
+        setSelectedAddressId(current => {
+          if (current && addresses.some(address => address.id === current)) return current
+          return addresses[0]?.id ?? null
+        })
+
+        if (addresses[0]) {
+          setOrderForm(prev => (
+            prev.address || prev.zipCode
+              ? prev
+              : { ...prev, ...orderFormPatchFromAddress(addresses[0]) }
+          ))
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setSavedAddresses([])
+      })
+      .finally(() => {
+        if (!cancelled) setAddressBookLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [canUseAddressBook, isOpen])
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -288,6 +524,8 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
       fetchSettings()
     }
   }, [isOpen, items])
+
+
   useEffect(() => {
     const fetchPoints = async () => {
       try {
@@ -388,8 +626,12 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
     })()
   }, [merchandiseSettings, subtotalAfterCoupon, orderForm.paymentMethod, shippingMethod, hasCompleteShippingAddress, orderForm.address, orderForm.city, orderForm.state, orderForm.country, orderForm.zipCode, appliedCoupon?.code, items, isOpen])
 
-  const resolvedShippingCost = shippingCost ?? estimatedShipping ?? 0
-  const displayShipping = orderShipping ?? (createdOrder ? (createdOrder.shippingCost ?? resolvedShippingCost) : resolvedShippingCost)
+  const resolvedShippingCost = deliveryMethod === 'pickup'
+    ? 0
+    : (shippingCost ?? estimatedShipping ?? 0)
+  const displayShipping = deliveryMethod === 'pickup'
+    ? 0
+    : (orderShipping ?? (createdOrder ? (createdOrder.shippingCost ?? resolvedShippingCost) : resolvedShippingCost))
   const displayTax = orderTax ?? (createdOrder ? (createdOrder.tax ?? (estimatedTax ?? taxAmount)) : (estimatedTax ?? taxAmount))
 
   const netSubtotal = Math.max(subtotalAfterCoupon - (reservedDiscount || 0), 0)
@@ -521,20 +763,28 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
   useEffect(() => {
     if (isOpen && user) {
       const userAny = user as any
+      const primarySavedAddress = Array.isArray(userAny?.addresses)
+        ? (userAny.addresses[0] as UserAddress | undefined)
+        : undefined
+      const savedAddressPatch = primarySavedAddress ? orderFormPatchFromAddress(primarySavedAddress) : null
+      if (canUseAddressBook && primarySavedAddress) {
+        setSelectedAddressId(current => current || primarySavedAddress.id)
+      }
+
       setOrderForm(prev => ({
         ...prev,
         firstName: prev.firstName || user?.name?.split(' ')[0] || '',
         lastName: prev.lastName || user?.name?.split(' ').slice(1).join(' ') || '',
         email: prev.email || user?.email || '',
-        phone: prev.phone || userAny?.phoneNumber || '',
-        address: prev.address || userAny?.address_line1 || '',
-        city: prev.city || userAny?.city || '',
-        state: prev.state || userAny?.state_province || '',
-        zipCode: prev.zipCode || userAny?.zip_code || '',
-        country: prev.country || userAny?.country || 'India',
+        phone: prev.phone || savedAddressPatch?.phone || userAny?.phoneNumber || '',
+        address: prev.address || savedAddressPatch?.address || userAny?.address_line1 || '',
+        city: prev.city || savedAddressPatch?.city || userAny?.city || '',
+        state: prev.state || savedAddressPatch?.state || userAny?.state_province || '',
+        zipCode: prev.zipCode || savedAddressPatch?.zipCode || userAny?.zip_code || '',
+        country: prev.country || savedAddressPatch?.country || userAny?.country || 'India',
       }))
     }
-  }, [isOpen, user])
+  }, [canUseAddressBook, isOpen, user])
 
   const handleInputChange = (field: keyof OrderForm, value: string) => {
     setOrderForm(prev => ({ ...prev, [field]: value }))
@@ -542,13 +792,20 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+    if (isAdmin) {
+      toast.error("Admin accounts cannot place orders. Please log in as a member.")
+      return
+    }
+    if (submittingRef.current) return
     if (!validateForm()) {
       return
     }
 
+    submittingRef.current = true
+    submittingRef.current = true
     setLoading(true)
-    
+
+
     try {
       const orderData = {
         customer: {
@@ -557,15 +814,6 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
           email: orderForm.email,
           phone: orderForm.phone
         },
-        shippingAddress: {
-          firstName: orderForm.firstName,
-          lastName: orderForm.lastName,
-          address: orderForm.address,
-          city: orderForm.city,
-          state: orderForm.state,
-          zipCode: orderForm.zipCode,
-          country: orderForm.country
-        },
         items: items.map(item => ({
           productId: item._id,
           quantity: item.quantity
@@ -573,8 +821,26 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
         paymentMethod: orderForm.paymentMethod,
         notes: orderForm.notes,
         ...(appliedCoupon?.code ? { couponCode: appliedCoupon.code } : {}),
-        shippingCost: resolvedShippingCost,
-        shippingMethod,
+        deliveryMethod,
+        ...(deliveryMethod === 'pickup'
+          ? {
+              shippingCost: 0,
+            }
+          : {
+
+              shippingCost: resolvedShippingCost,
+              shippingMethod,
+              shippingAddress: {
+                firstName: orderForm.firstName,
+                lastName: orderForm.lastName,
+                address: orderForm.address,
+                city: orderForm.city,
+                state: orderForm.state,
+                zipCode: orderForm.zipCode,
+                country: orderForm.country
+              },
+            }
+        ),
         ...(!orderForm.billingSameAsShipping
           ? {
               billingAddress: {
@@ -626,6 +892,8 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
     } catch (error) {
       toast.error('Failed to place order. Please try again.')
     } finally {
+      submittingRef.current = false
+      submittingRef.current = false
       setLoading(false)
     }
   }
@@ -681,69 +949,85 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
   const orderBlocked = hasCompleteShippingAddress && shiprocketLoading
 
   const validateForm = () => {
-    const required = ['firstName', 'lastName', 'email', 'phone', 'address', 'city', 'state', 'zipCode', 'country']
-    
-    for (const field of required) {
+    // Contact info is always required
+    const contactRequired = ['firstName', 'lastName', 'email', 'phone']
+    for (const field of contactRequired) {
       if (!orderForm[field as keyof OrderForm]) {
         toast.error(`Please fill in ${field.replace(/([A-Z])/g, ' $1').toLowerCase()}`)
         return false
       }
     }
 
-    if (!/^\d{6}$/.test(orderForm.zipCode.trim())) {
-      toast.error('Please enter a valid 6-digit PIN code')
-      return false
-    }
-
-    if (!orderForm.billingSameAsShipping) {
-      const billingRequired = [
-        'billingFirstName',
-        'billingLastName',
-        'billingAddress',
-        'billingCity',
-        'billingState',
-        'billingZipCode',
-        'billingCountry',
-      ]
-      for (const field of billingRequired) {
-        if (!orderForm[field as keyof OrderForm]) {
-          toast.error(`Please fill in billing ${field.replace(/^billing/, '').replace(/([A-Z])/g, ' $1').toLowerCase()}`)
-          return false
-        }
-      }
-      if (!/^\d{6}$/.test(orderForm.billingZipCode.trim())) {
-        toast.error('Please enter a valid 6-digit billing PIN code')
-        return false
-      }
-    }
-    
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     if (!emailRegex.test(orderForm.email)) {
       toast.error('Please enter a valid email address')
       return false
     }
 
-    if (!hasCompleteShippingAddress) {
-      toast.error('Please complete your shipping address before placing the order')
-      return false
-    }
+    if (deliveryMethod === 'standard') {
+      // Standard delivery — full address required
 
-    if (deliveryUnavailable) {
-      toast.error("Sorry, we don't deliver to this area yet")
-      return false
-    }
+      const addressRequired = ['address', 'city', 'state', 'zipCode', 'country']
+      for (const field of addressRequired) {
+        if (!orderForm[field as keyof OrderForm]) {
+          toast.error(`Please fill in ${field.replace(/([A-Z])/g, ' $1').toLowerCase()}`)
+          return false
+        }
+      }
 
-    if (orderBlocked) {
-      toast.error("Please wait for the delivery check to complete")
-      return false
+      if (!/^\d{6}$/.test(orderForm.zipCode.trim())) {
+        toast.error('Please enter a valid 6-digit PIN code')
+        return false
+      }
+
+      if (!orderForm.billingSameAsShipping) {
+        const billingRequired = [
+          'billingFirstName',
+          'billingLastName',
+          'billingAddress',
+          'billingCity',
+          'billingState',
+          'billingZipCode',
+          'billingCountry',
+        ]
+        for (const field of billingRequired) {
+          if (!orderForm[field as keyof OrderForm]) {
+            toast.error(`Please fill in billing ${field.replace(/^billing/, '').replace(/([A-Z])/g, ' $1').toLowerCase()}`)
+            return false
+          }
+        }
+        if (!/^\d{6}$/.test(orderForm.billingZipCode.trim())) {
+          toast.error('Please enter a valid 6-digit billing PIN code')
+          return false
+        }
+      }
+
+      if (!hasCompleteShippingAddress) {
+        toast.error('Please complete your shipping address before placing the order')
+        return false
+      }
+
+      if (deliveryUnavailable) {
+        toast.error("Sorry, we don't deliver to this area yet")
+        return false
+      }
+
+      if (orderBlocked) {
+        toast.error("Please wait for the delivery check to complete")
+        return false
+      }
     }
 
     return true
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+    <Dialog open={isOpen} onOpenChange={() => { if (!showPaymentModal) onClose() }} modal={!showPaymentModal}>
+      <DialogContent
+        className="max-w-4xl max-h-[90vh] overflow-y-auto"
+        onInteractOutside={(e) => { if (showPaymentModal) e.preventDefault() }}
+        onEscapeKeyDown={(e) => { if (showPaymentModal) e.preventDefault() }}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <CreditCard className="w-5 h-5" />
@@ -810,21 +1094,175 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4" />
-                    Shipping Address
-                  </CardTitle>
+              {/* ── Delivery Method ─────────────────────────────────────── */}
+              {merchandiseSettings?.enableShipping && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Truck className="w-4 h-4" />
+                      Delivery Method
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {/* Standard Delivery */}
+                    <button
+                      type="button"
+                      onClick={() => setDeliveryMethod('standard')}
+                      className={cn(
+                        "w-full border rounded-lg p-3 text-left transition-colors",
+                        deliveryMethod === 'standard'
+                          ? "border-primary ring-1 ring-primary"
+                          : "border-border hover:border-gray-300"
+                      )}
+                    >
+                      <div className="flex items-center gap-2 text-sm font-medium">
+                        <Truck className="w-4 h-4" />
+                        Standard Delivery
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">Shipped to your address via courier</p>
+                    </button>
+
+                    {/* Pickup at Next Screening */}
+                    <button
+                      type="button"
+                      onClick={() => setDeliveryMethod('pickup')}
+                      className={cn(
+                        "w-full border rounded-lg p-3 text-left transition-colors",
+                        deliveryMethod === 'pickup'
+                          ? "border-primary ring-1 ring-primary"
+                          : "border-border hover:border-gray-300"
+                      )}
+                    >
+                      <div className="flex items-center gap-2 text-sm font-medium">
+                        <Ticket className="w-4 h-4" />
+                        Pickup at Next Screening
+                        <span className="text-green-600 font-semibold ml-auto">FREE</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">Collect your order at your next event screening</p>
+                    </button>
+                  </CardContent>
+                </Card>
+              )}
+
+              <Card className={cn("transition-opacity", deliveryMethod === 'pickup' && "opacity-50 pointer-events-none select-none")}>
+                <CardHeader className="space-y-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <CardTitle className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4" />
+                      Shipping Address
+                    </CardTitle>
+                    {deliveryMethod === 'pickup' ? (
+                      <Badge variant="outline" className="text-xs font-normal text-muted-foreground">
+                        Not required for pickup
+                      </Badge>
+                    ) : canUseAddressBook && (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={handleAddNewAddress}
+                        disabled={addressSaving}
+                      >
+                        <Plus className="w-4 h-4 mr-1" />
+                        Add New
+                      </Button>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
+                  {deliveryMethod === 'pickup' && (
+                    <div className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
+                      Pickup at next screening selected. Shipping address is disabled and not required.
+                    </div>
+                  )}
+
+                  {canUseAddressBook && deliveryMethod !== 'pickup' && (
+                    <div className="space-y-3">
+                      {addressBookLoading ? (
+                        <div className="flex items-center gap-2 rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Loading saved addresses...
+                        </div>
+                      ) : savedAddresses.length > 0 ? (
+                        <div className="grid grid-cols-1 gap-2">
+                          {savedAddresses.map((address) => {
+                            const selected = address.id === selectedAddressId
+                            return (
+                              <div
+                                key={address.id}
+                                className={cn(
+                                  "w-full rounded-lg border p-3 transition-colors",
+                                  selected
+                                    ? "border-primary bg-primary/5 ring-1 ring-primary"
+                                    : "border-border"
+                                )}
+                              >
+                                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-2">
+                                      {selected && <CheckCircle className="h-4 w-4 shrink-0 text-primary" />}
+                                      <p className="font-medium leading-none">{address.fullName}</p>
+                                    </div>
+                                    <div className="mt-2 space-y-0.5 text-xs text-muted-foreground">
+                                      {addressCardLines(address).map((line) => (
+                                        <p key={line}>{line}</p>
+                                      ))}
+                                      <p>{formatAddressPhone(address)}</p>
+                                    </div>
+                                  </div>
+                                  <div className="flex shrink-0 gap-2 self-start">
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant={selected ? "secondary" : "outline"}
+                                      className="h-8 px-2"
+                                      onClick={() => handleSelectSavedAddress(address)}
+                                      disabled={addressSaving}
+                                    >
+                                      <CheckCircle className="w-4 h-4 mr-1" />
+                                      {selected ? 'Selected' : 'Select'}
+                                    </Button>
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-8 px-2"
+                                      onClick={() => handleEditSavedAddress(address)}
+                                      disabled={addressSaving}
+                                    >
+                                      <Pencil className="w-4 h-4 mr-1" />
+                                      Edit
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      ) : (
+                        <div className="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
+                          No saved addresses yet. Add one for faster checkout next time.
+                        </div>
+                      )}
+
+                      {addressEditorMode && (
+                        <div className="rounded-lg bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
+                          {addressEditorMode === 'edit'
+                            ? 'Editing saved address. Update the fields below and save.'
+                            : 'Adding a new saved address. Fill the fields below and save.'}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <div>
                     <Label htmlFor="address">Street Address *</Label>
                     <Input
                       id="address"
                       value={orderForm.address}
                       onChange={(e) => handleInputChange('address', e.target.value)}
-                      required
+                      disabled={deliveryMethod === 'pickup'}
+                      required={deliveryMethod === 'standard'}
                     />
                   </div>
                   
@@ -835,7 +1273,8 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                         id="city"
                         value={orderForm.city}
                         onChange={(e) => handleInputChange('city', e.target.value)}
-                        required
+                        disabled={deliveryMethod === 'pickup'}
+                        required={deliveryMethod === 'standard'}
                       />
                     </div>
                     <div>
@@ -844,7 +1283,8 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                         id="state"
                         value={orderForm.state}
                         onChange={(e) => handleInputChange('state', e.target.value)}
-                        required
+                        disabled={deliveryMethod === 'pickup'}
+                        required={deliveryMethod === 'standard'}
                       />
                     </div>
                   </div>
@@ -857,17 +1297,20 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                         value={orderForm.zipCode}
                         onChange={(e) => handleInputChange('zipCode', e.target.value)}
                         maxLength={6}
-                        required
+                        disabled={deliveryMethod === 'pickup'}
+                        required={deliveryMethod === 'standard'}
                       />
-                      <a
-                        href={`https://www.google.com/search?q=${encodeURIComponent(`PIN code${orderForm.address ? ` for ${orderForm.address}` : ''}${orderForm.city ? `, ${orderForm.city}` : ''}${orderForm.state ? `, ${orderForm.state}` : ''} India`)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mt-1 inline-flex items-center gap-1 text-xs text-sky-600 hover:text-sky-500 underline"
-                      >
-                        <ExternalLink className="w-3 h-3" />
-                        Don&apos;t know your PIN code? Look it up
-                      </a>
+                      {deliveryMethod !== 'pickup' && (
+                        <a
+                          href={`https://www.google.com/search?q=${encodeURIComponent(`PIN code${orderForm.address ? ` for ${orderForm.address}` : ''}${orderForm.city ? `, ${orderForm.city}` : ''}${orderForm.state ? `, ${orderForm.state}` : ''} India`)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-1 inline-flex items-center gap-1 text-xs text-sky-600 hover:text-sky-500 underline"
+                        >
+                          <ExternalLink className="w-3 h-3" />
+                          Don&apos;t know your PIN code? Look it up
+                        </a>
+                      )}
                     </div>
                     <div>
                       <Label htmlFor="country">Country *</Label>
@@ -875,18 +1318,40 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                         id="country"
                         value={orderForm.country}
                         onChange={(e) => handleInputChange('country', e.target.value)}
-                        required
+                        disabled={deliveryMethod === 'pickup'}
+                        required={deliveryMethod === 'standard'}
                       />
                     </div>
                   </div>
 
-                  {!hasCompleteShippingAddress && (
+                  {canUseAddressBook && addressEditorMode && deliveryMethod !== 'pickup' && (
+                    <div className="flex flex-wrap justify-end gap-2">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={() => setAddressEditorMode(null)}
+                        disabled={addressSaving}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={handleSaveAddress}
+                        disabled={addressSaving}
+                      >
+                        {addressSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                        {addressEditorMode === 'edit' ? 'Update Address' : 'Save Address'}
+                      </Button>
+                    </div>
+                  )}
+
+                  {deliveryMethod === 'standard' && !hasCompleteShippingAddress && (
                     <p className="text-xs text-muted-foreground">
                       Enter your full shipping address to calculate delivery options and shipping cost.
                     </p>
                   )}
 
-                  {hasCompleteShippingAddress && (
+                  {deliveryMethod === 'standard' && hasCompleteShippingAddress && (
                     <div className="rounded-lg border p-3 text-sm space-y-1">
                       {shiprocketLoading && (
                         <div className="flex items-center gap-2 text-muted-foreground">
@@ -926,7 +1391,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                     </div>
                   )}
 
-                  {items.length > 0 && shiprocketMessage && !validPincode && (
+                  {deliveryMethod === 'standard' && items.length > 0 && shiprocketMessage && !validPincode && (
                     <p className="text-xs text-muted-foreground mt-2">
                       {shiprocketMessage}
                     </p>
@@ -1035,7 +1500,8 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                 </CardContent>
               </Card>
 
-              {merchandiseSettings?.enableShipping && hasCompleteShippingAddress && serviceability?.serviceable && !serviceability.fallback && (serviceability.cheapest || serviceability.fastest) && (
+              {/* ── Shipping Method (courier selection) ─────────────────── */}
+              {deliveryMethod === 'standard' && merchandiseSettings?.enableShipping && hasCompleteShippingAddress && serviceability?.serviceable && !serviceability.fallback && (serviceability.cheapest || serviceability.fastest) && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
@@ -1294,6 +1760,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                         <Button
                           type="button"
                           size="sm"
+                          disabled={reserving}
                           onClick={async () => {
                             if (!user) {
                               toast.error('Please log in to redeem points')
@@ -1403,7 +1870,9 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                     {merchandiseSettings?.enableShipping && (
                       <div className="flex justify-between">
                         <span>Shipping:</span>
-                        {!hasCompleteShippingAddress ? (
+                        {deliveryMethod === 'pickup' ? (
+                          <span className="text-green-600 font-medium">FREE (Pickup)</span>
+                        ) : !hasCompleteShippingAddress ? (
                           <span className="text-muted-foreground text-sm">Enter shipping address</span>
                         ) : shiprocketLoading && shippingCost == null ? (
                           <span className="text-muted-foreground text-sm">Calculating...</span>
@@ -1424,11 +1893,11 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                     {feeBreakdown && feeBreakdown.totalFees > 0 && (
                       <>
                         <div className="flex justify-between text-sm text-muted-foreground">
-                          <span>Platform fee ({Number.isFinite(platformFeePercent) ? platformFeePercent : PLATFORM_FEE_PERCENT}% + GST):</span>
+                          <span>Platform fee:</span>
                           <span>{formatCurrency(feeBreakdown.platformFee + feeBreakdown.platformFeeGst, currency)}</span>
                         </div>
                         <div className="flex justify-between text-sm text-muted-foreground">
-                          <span>Payment gateway fee ({RAZORPAY_FEE_PERCENT}% + GST):</span>
+                          <span>Payment gateway fee:</span>
                           <span>{formatCurrency(feeBreakdown.razorpayFee + feeBreakdown.razorpayFeeGst, currency)}</span>
                         </div>
                       </>
@@ -1463,7 +1932,12 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
                 type="submit"
                 className="w-full"
                 size="lg"
-                disabled={loading || items.length === 0 || !hasCompleteShippingAddress || orderBlocked || deliveryUnavailable}
+                disabled={
+                  loading ||
+                  items.length === 0 ||
+                  (deliveryMethod === 'standard' && (!hasCompleteShippingAddress || orderBlocked || deliveryUnavailable))
+                }
+
               >
                 {loading ? (
                   <>
@@ -1482,32 +1956,7 @@ export function CheckoutModal({ isOpen, onClose, onSuccess, directCheckoutItems 
         </form>
       </DialogContent>
 
-      {/* Member Validation Modal */}
-      {items.length > 0 && (
-        <MemberValidationModal
-          isOpen={showMemberValidation}
-          onClose={() => setShowMemberValidation(false)}
-          clubId={typeof items[0]?.club === 'string' ? items[0].club : items[0]?.club?._id || ''}
-          clubName={typeof items[0]?.club === 'object' ? items[0].club?.name : undefined}
-          onMemberFound={() => {
-            router.push('/login')
-            onClose()
-          }}
-          onNonMemberContinue={() => {
-            setMemberValidated(true)
-            setShowMemberValidation(false)
-            const form = document.querySelector('form')
-            if (form) {
-              form.requestSubmit()
-            }
-          }}
-          onBecomeMember={() => {
-            const clubId = typeof items[0]?.club === 'string' ? items[0].club : items[0]?.club?._id
-            router.push(`/membership-plans?clubId=${clubId}`)
-            onClose()
-          }}
-        />
-      )}
+
 
       {/* Payment Simulation Modal */}
       {createdOrder && (

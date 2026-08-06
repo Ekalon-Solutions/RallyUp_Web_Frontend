@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { apiClient, type ResendTicketResult } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { Check, Clock, MessageCircle, RefreshCw } from 'lucide-react'
@@ -43,7 +43,6 @@ export function ResendQrButton({
   className,
   onSent,
 }: ResendQrButtonProps) {
-  const { toast } = useToast()
   const [phase, setPhase] = useState<Phase>('idle')
   const [cooldown, setCooldown] = useState(0)
   const cooldownTimer = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -70,15 +69,13 @@ export function ResendQrButton({
   }, [])
 
   const showNumberMissing = useCallback(() => {
-    toast({
-      title: 'Number Missing — Update Profile',
+    toast.error('Number Missing — Update Profile', {
       description:
         mode === 'member'
           ? 'Your WhatsApp number is missing or invalid. Update your profile to receive your ticket.'
           : "This member's WhatsApp number is missing or invalid. Update their profile to resend.",
-      variant: 'destructive',
     })
-  }, [toast, mode])
+  }, [mode])
 
   const handleClick = async () => {
     if (phase !== 'idle' || cooldown > 0 || eventEnded || disabled) return
@@ -98,7 +95,7 @@ export function ResendQrButton({
           : await apiClient.resendEventTicketWhatsApp(registrationId)
     } catch {
       setPhase('idle')
-      toast({ title: 'Failed to resend', description: 'Something went wrong. Try again.', variant: 'destructive' })
+      toast.error('Unable to resend ticket. Please try again in a few moments.')
       return
     }
 
@@ -108,7 +105,7 @@ export function ResendQrButton({
     if (res.success && code === 'OK') {
       setPhase('sent')
       startCooldown(COOLDOWN_SECONDS)
-      toast({ title: 'Ticket sent!', description: res.data?.message || res.message })
+      toast.success('Ticket sent! The QR code has been resent to the registered email.')
       onSent?.()
       sentTimer.current = setTimeout(() => setPhase('idle'), SENT_DISPLAY_MS)
       return
@@ -122,23 +119,18 @@ export function ResendQrButton({
         break
       case 'RATE_LIMITED':
         startCooldown(retryAfter && retryAfter > 0 ? retryAfter : COOLDOWN_SECONDS)
-        toast({
-          title: 'Please slow down',
+        toast.warning('Please slow down', {
           description: res.data?.message || res.message || 'You can resend this ticket again shortly.',
         })
         break
       case 'EVENT_ENDED':
-        toast({
-          title: 'Event has ended',
+        toast.error('Event has ended', {
           description: res.data?.message || 'Entry passes can no longer be resent for this event.',
-          variant: 'destructive',
         })
         break
       default:
-        toast({
-          title: 'Failed to resend',
+        toast.error('Failed to resend', {
           description: res.data?.message || res.message || res.error || 'Could not send WhatsApp ticket.',
-          variant: 'destructive',
         })
     }
   }

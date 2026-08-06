@@ -128,7 +128,7 @@ export default function ClubManagementModal({ isOpen, onClose, club, onClubUpdat
       }
     } catch (error) {
       // console.error("Update club error:", error)
-      toast.error("An error occurred")
+      toast.error("Failed to update club. Please try again.")
     } finally {
       setLoading(false)
     }
@@ -244,7 +244,7 @@ export default function ClubManagementModal({ isOpen, onClose, club, onClubUpdat
         </DialogHeader>
 
         <Tabs defaultValue="overview" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 h-auto">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="details">Details</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>

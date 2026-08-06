@@ -410,11 +410,11 @@ export default function ExternalTicketingPage() {
           {clubId && (
             <FeatureUnavailableOverlay featureKey="external_ticketing" featureLabel="External Ticketing" clubId={clubId} />
           )}
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h1 className="text-2xl font-bold">External Ticket Requests</h1>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
               {isFeatureEnabled(clubFeatureConfig, 'reporting') ? (
                 <>
                   <Button variant="outline" onClick={exportRequestsCsv} disabled={exporting}>
@@ -669,12 +669,12 @@ export default function ExternalTicketingPage() {
           {selectedRequestIds.size > 0 && (
             <Card className="bg-blue-50 border-blue-200">
               <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="font-medium text-blue-900">{selectedRequestIds.size} request(s) selected</div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-blue-700">Change status to:</span>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto">
+                    <span className="text-sm text-blue-700 shrink-0">Change status to:</span>
                     <Select onValueChange={handleBulkRequestStatusUpdate} disabled={bulkUpdatingStatus}>
-                      <SelectTrigger className="w-[240px]">
+                      <SelectTrigger className="w-full sm:w-[240px]">
                         <SelectValue placeholder="Select status" />
                       </SelectTrigger>
                       <SelectContent>
@@ -685,7 +685,7 @@ export default function ExternalTicketingPage() {
                         ))}
                       </SelectContent>
                     </Select>
-                    <Button variant="ghost" size="sm" onClick={() => setSelectedRequestIds(new Set())} disabled={bulkUpdatingStatus}>
+                    <Button variant="ghost" size="sm" onClick={() => setSelectedRequestIds(new Set())} disabled={bulkUpdatingStatus} className="w-full sm:w-auto">
                       Clear Selection
                     </Button>
                   </div>
@@ -790,7 +790,7 @@ export default function ExternalTicketingPage() {
                                     setRowStatusById((prev) => ({ ...prev, [r._id]: value }))
                                   }
                                 >
-                                  <SelectTrigger className="w-[220px]">
+                                  <SelectTrigger className="w-full sm:w-[220px]">
                                     <SelectValue />
                                   </SelectTrigger>
                                   <SelectContent>

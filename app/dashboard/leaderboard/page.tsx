@@ -115,7 +115,7 @@ export default function AdminLeaderboardPage() {
       }
     } catch (error) {
       // console.error('Error updating points:', error)
-      toast.error('Error updating points')
+      toast.error('Failed to update points. Please try again.')
     } finally {
       setSavingId(null)
     }
@@ -176,7 +176,7 @@ export default function AdminLeaderboardPage() {
           )}
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
-              <h1 className="text-3xl font-bold">Leaderboard Management</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold">Leaderboard Management</h1>
               <p className="text-muted-foreground mt-1 max-w-2xl">
                 Review member rankings and adjust points awarded for event attendance. Updates are applied immediately.
               </p>

@@ -198,7 +198,7 @@ export default function EventDetailPage() {
             // platformFeePercent. Preserve them when hydrating with event detail
             // data so public checkout always uses the club's configured fee.
             const loaded = fullRes.success && fullRes.data
-              ? { ...found, ...fullRes.data }
+              ? { ...found, ...fullRes.data, platformFeePercent: found.platformFeePercent ?? (fullRes.data as Event).platformFeePercent }
               : found
             setEvent(normalizeEventVenues(loaded))
           }
@@ -497,21 +497,6 @@ export default function EventDetailPage() {
           loadData()
         }}
         onFailure={() => {}}
-        onLogin={(guest) => {
-          if (!club._id) return
-          setShowVenueTierCartModal(false)
-          const loginReturnUrl = returnPath + (returnPath.includes("?") ? "&" : "?") + "resumePurchase=1"
-          setStoredPurchaseIntent({
-            type: "event",
-            clubId: club._id,
-            slug,
-            eventId: event._id,
-            event,
-            attendees: [{ name: guest.name, phone: `${guest.countryCode}${guest.phone}` }],
-            returnPath: loginReturnUrl,
-          })
-          router.push(`/login?next=${encodeURIComponent(loginReturnUrl)}`)
-        }}
         onSignup={(guest) => {
           if (!club._id) return
           setShowVenueTierCartModal(false)
@@ -525,7 +510,7 @@ export default function EventDetailPage() {
             attendees: [{ name: guest.name, phone: `${guest.countryCode}${guest.phone}` }],
             returnPath: signupReturnUrl,
           })
-          router.push(`/login?tab=user-register&next=${encodeURIComponent(signupReturnUrl)}`)
+          router.push(`/?tab=user-register&next=${encodeURIComponent(signupReturnUrl)}`)
         }}
       />
       )}

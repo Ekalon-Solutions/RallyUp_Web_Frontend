@@ -41,7 +41,7 @@ export function buildAccessibleClubs(user: unknown): AccessibleClub[] {
           typeof m === "object" &&
           m !== null &&
           "status" in m &&
-          (m as { status: string }).status === "active",
+          (m as { status: string }).status !== "cancelled",
       )
     : []
 

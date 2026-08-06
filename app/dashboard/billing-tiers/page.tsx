@@ -81,7 +81,7 @@ export default function BillingTiersManagementPage() {
 
   if (loading || authLoading) {
     return (
-      <ProtectedRoute requiredRole="admin">
+      <ProtectedRoute requireSystemOwner>
         <DashboardLayout>
           <div className="flex items-center justify-center p-8">
             <Loader2 className="h-8 w-8 animate-spin" />
@@ -92,12 +92,12 @@ export default function BillingTiersManagementPage() {
   }
 
   return (
-    <ProtectedRoute requiredRole="admin">
+    <ProtectedRoute requireSystemOwner>
       <DashboardLayout>
         <div className="space-y-6 p-6">
           {/* Header */}
           <div>
-            <h1 className="text-3xl font-bold">Billing Tier Management</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold">Billing Tier Management</h1>
             <p className="text-gray-600 mt-1">Manage billing tiers and premium features for all clubs</p>
           </div>
 
@@ -182,7 +182,7 @@ export default function BillingTiersManagementPage() {
                           </Badge>
                         </div>
 
-                        <div className="grid grid-cols-3 gap-4 text-sm">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
                           <div>
                             <span className="text-gray-600">Monthly Bill:</span>
                             <div className="font-semibold flex items-center gap-1">

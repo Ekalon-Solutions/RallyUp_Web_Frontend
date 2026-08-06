@@ -28,7 +28,7 @@ import {
   VolumeX,
   Globe
 } from 'lucide-react';
-import { toast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { useSelectedClubId } from "@/hooks/useSelectedClubId"
 
 export default function MemberChantsPage() {
@@ -82,11 +82,7 @@ export default function MemberChantsPage() {
       setTotalPages(Math.ceil(allChants.length / itemsPerPage));
       
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to fetch chants",
-        variant: "destructive",
-      });
+      toast.error("Failed to fetch chants");
     } finally {
       setLoading(false);
     }
@@ -144,9 +140,9 @@ export default function MemberChantsPage() {
     <ProtectedRoute>
       <DashboardLayout>
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold">Club Chants</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold">Club Chants</h1>
               <p className="text-muted-foreground">Learn and participate in traditions from your club</p>
             </div>
           </div>
@@ -354,7 +350,7 @@ export default function MemberChantsPage() {
                     <div className="flex items-center justify-between text-sm text-muted-foreground pt-2 border-t">
                       <div className="flex items-center gap-1">
                         <User className="w-4 h-4" />
-                        <span className="truncate">{chant.createdBy.name}</span>
+                        <span className="truncate">{chant.createdBy?.name ?? 'Unknown'}</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <Calendar className="w-4 h-4" />

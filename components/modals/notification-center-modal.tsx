@@ -139,7 +139,7 @@ export function NotificationCenterModal() {
           )}
         </button>
       </SheetTrigger>
-      <SheetContent side="right" className="w-[420px] sm:max-w-[420px] p-0">
+      <SheetContent side="right" className="w-full max-w-[100vw] sm:w-[420px] sm:max-w-[420px] p-0">
         <div className="p-6 pb-4">
           <SheetHeader className="space-y-2">
             <div className="flex items-start justify-between gap-3">

@@ -326,7 +326,7 @@ export default function EventPassesScannedReportPage() {
                   value={filters.extras?.eventId || "all"}
                   onValueChange={(val) => setFilters((prev) => ({ ...prev, extras: { ...prev.extras, eventId: val } }))}
                 >
-                  <SelectTrigger className="w-44">
+                  <SelectTrigger className="w-full sm:w-44">
                     <SelectValue placeholder="All Events" />
                   </SelectTrigger>
                   <SelectContent>

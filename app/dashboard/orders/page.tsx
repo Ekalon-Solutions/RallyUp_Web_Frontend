@@ -17,7 +17,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import Link from 'next/link'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { useRequiredClubId } from '@/hooks/useRequiredClubId'
 import { 
   Search,
@@ -206,8 +206,7 @@ function getPaymentStatusDisplay(status: string) {
 export default function OrdersPage() {
   const { user } = useAuth()
   const clubId = useRequiredClubId()
-  const { config: clubFeatureConfig } = useClubFeatures(clubId ?? null)
-  const { toast } = useToast()
+  const { config: clubFeatureConfig } = useClubFeatures(clubId)
   const [orders, setOrders] = useState<Order[]>([])
   const [stats, setStats] = useState<OrderStats | null>(null)
   const [eventStats, setEventStats] = useState<OrderStats | null>(null)
@@ -237,6 +236,9 @@ export default function OrdersPage() {
   const [statusNotes, setStatusNotes] = useState('')
   const [showRefundConfirmDialog, setShowRefundConfirmDialog] = useState(false)
   const [orderToRefund, setOrderToRefund] = useState<string | null>(null)
+  const [showCancelConfirmDialog, setShowCancelConfirmDialog] = useState(false)
+  const [orderToCancel, setOrderToCancel] = useState<string | null>(null)
+  const [cancellingOrderId, setCancellingOrderId] = useState<string | null>(null)
   const [selectedRegistration, setSelectedRegistration] = useState<any | null>(null)
   const [selectedRegistrationMeta, setSelectedRegistrationMeta] = useState<any | null>(null)
   const [showRegistrationModal, setShowRegistrationModal] = useState(false)
@@ -252,7 +254,7 @@ export default function OrdersPage() {
   const [pendingCancelReg, setPendingCancelReg] = useState<any | null>(null)
   const [cancellingAttendeeId, setCancellingAttendeeId] = useState<string | null>(null)
 
-  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin'
+  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'system_owner'
 
   // Load only the active tab's current page. Runs on mount and whenever the
   // club, tab, page, or a filter changes — so a first load fires a single
@@ -305,20 +307,12 @@ export default function OrdersPage() {
         setOrders(response.data.data?.orders || [])
         setTotalPages(response.data.data?.pagination?.totalPages || 1)
       } else {
-        toast({
-          title: "Error",
-          description: response.message || "Failed to fetch orders",
-          variant: "destructive",
-        })
+        toast.error(response.message || "Failed to fetch orders")
         setOrders([])
         setTotalPages(1)
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to fetch orders",
-        variant: "destructive",
-      })
+      toast.error("Failed to fetch orders")
       setOrders([])
       setTotalPages(1)
     } finally {
@@ -424,12 +418,12 @@ export default function OrdersPage() {
         }
         const res = await apiClient.downloadEventRegistrationsReport(eventParams)
         if (!res.success) {
-          toast({ title: 'Error', description: res.error || 'Failed to download event report', variant: 'destructive' })
+          toast.error(res.error || 'Failed to download event report')
         } else {
-          toast({ title: 'Report downloaded', description: 'Event registrations report downloaded successfully.' })
+          toast.success('Report downloaded', { description: 'Event registrations report downloaded successfully.' })
         }
       } catch (error) {
-        toast({ title: 'Error', description: 'Failed to download event report', variant: 'destructive' })
+        toast.error('Failed to download event report')
       }
       return
     }
@@ -443,13 +437,13 @@ export default function OrdersPage() {
     try {
       const res = await apiClient.downloadOrdersReport(params);
       if (!res.success) {
-        toast({ title: 'Error', description: res.error || 'Failed to download report', variant: 'destructive' });
+        toast.error(res.error || 'Failed to download report');
       } else {
-        toast({ title: 'Report downloaded', description: 'Orders report downloaded successfully.' });
+        toast.success('Report downloaded', { description: 'Orders report downloaded successfully.' });
         await loadStats();
       }
     } catch (error) {
-      toast({ title: 'Error', description: 'Failed to download report', variant: 'destructive' });
+      toast.error('Failed to download report');
     }
   }
 
@@ -464,28 +458,17 @@ export default function OrdersPage() {
       })
 
       if (response.success) {
-        toast({
-          title: "Success",
-          description: "Order status updated successfully",
-        })
+        toast.success("Order status updated successfully")
         setShowStatusModal(false)
         setNewStatus('')
         setTrackingNumber('')
         setStatusNotes('')
         await loadOrders()
       } else {
-        toast({
-          title: "Error",
-          description: response.message || "Failed to update order status",
-          variant: "destructive",
-        })
+        toast.error(response.message || "Failed to update order status")
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update order status",
-        variant: "destructive",
-      })
+      toast.error("Failed to update order status")
     }
   }
 
@@ -494,8 +477,7 @@ export default function OrdersPage() {
     try {
       const response = await apiClient.pushOrderToShiprocket(orderId)
       if (response.success) {
-        toast({
-          title: 'Pushed to Shiprocket',
+        toast.success('Pushed to Shiprocket', {
           description: response.message || 'Order exported to logistics successfully',
         })
         // Refresh the selected order so badge updates immediately
@@ -504,44 +486,35 @@ export default function OrdersPage() {
         }
         await loadOrders()
       } else {
-        toast({
-          title: 'Push Failed',
+        toast.error('Push Failed', {
           description: response.message || 'Failed to export order to Shiprocket',
-          variant: 'destructive',
         })
       }
     } catch {
-      toast({ title: 'Error', description: 'Failed to push order to Shiprocket', variant: 'destructive' })
+      toast.error('Failed to push order to Shiprocket')
     } finally {
       setPushingToShiprocket(false)
     }
   }
 
   const handleCancelOrder = async (orderId: string) => {
+    if (cancellingOrderId) return
+    setCancellingOrderId(orderId)
     try {
       const response = await apiClient.patch(`/orders/admin/${orderId}/cancel`, {
         reason: 'Cancelled by admin'
       })
 
       if (response.success) {
-        toast({
-          title: "Success",
-          description: "Order cancelled successfully",
-        })
+        toast.success("Order cancelled successfully")
         await loadOrders()
       } else {
-        toast({
-          title: "Error",
-          description: response.message || "Failed to cancel order",
-          variant: "destructive",
-        })
+        toast.error(response.message || "Failed to cancel order")
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to cancel order",
-        variant: "destructive",
-      })
+      toast.error("Failed to cancel order")
+    } finally {
+      setCancellingOrderId(null)
     }
   }
 
@@ -552,24 +525,13 @@ export default function OrdersPage() {
       })
 
       if (response.success) {
-        toast({
-          title: "Success",
-          description: `Payment status updated to ${paymentStatus}`,
-        })
+        toast.success(`Payment status updated to ${paymentStatus}`)
         await loadOrders()
       } else {
-        toast({
-          title: "Error",
-          description: response.message || "Failed to update payment status",
-          variant: "destructive",
-        })
+        toast.error(response.message || "Failed to update payment status")
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update payment status",
-        variant: "destructive",
-      })
+      toast.error("Failed to update payment status")
     }
   }
 
@@ -615,10 +577,8 @@ export default function OrdersPage() {
 
   const openAttendeeCancelPicker = (reg: any, attendees: CancellableAttendee[]) => {
     if (attendees.length === 0) {
-      toast({
-        title: 'Cannot cancel',
+      toast.error('Cannot cancel', {
         description: 'No active tickets are available to cancel.',
-        variant: 'destructive',
       })
       return
     }
@@ -634,20 +594,16 @@ export default function OrdersPage() {
   const handleCancelEventRegistration = async (reg: any, attendeeId?: string) => {
     const registrationId = reg.registrationId || reg._id
     if (!registrationId) {
-      toast({
-        title: 'Cannot cancel',
+      toast.error('Cannot cancel', {
         description: 'Registration ID is missing for this ticket.',
-        variant: 'destructive',
       })
       return
     }
 
     const displayStatus = reg.displayStatus || reg.status || 'confirmed'
     if (displayStatus === 'cancelled') {
-      toast({
-        title: 'Cannot cancel',
+      toast.error('Cannot cancel', {
         description: 'This registration is already fully cancelled.',
-        variant: 'destructive',
       })
       return
     }
@@ -678,8 +634,7 @@ export default function OrdersPage() {
           clubId ?? undefined
         )
         if (response.success) {
-          toast({
-            title: 'Ticket cancelled',
+          toast.success('Ticket cancelled', {
             description: response.message || response.data?.message || 'Ticket cancelled successfully',
           })
           await loadEventRegistrations()
@@ -714,17 +669,13 @@ export default function OrdersPage() {
               return
             }
           }
-          toast({
-            title: 'Failed to cancel',
+          toast.error('Failed to cancel', {
             description: response.message || response.error || 'Could not cancel registration',
-            variant: 'destructive',
           })
         }
       } catch {
-        toast({
-          title: 'Failed to cancel',
+        toast.error('Failed to cancel', {
           description: 'Could not cancel registration. Please try again.',
-          variant: 'destructive',
         })
       } finally {
         setCancellingTicketId(null)
@@ -791,16 +742,15 @@ export default function OrdersPage() {
       if (res.success) {
         const sent = res.data?.whatsapp?.sentCount
         setShowRegistrationModal(false)
-        toast({
-          title: sent && sent > 1 ? `${sent} WhatsApp tickets sent` : 'QR Sent',
+        toast.success(sent && sent > 1 ? `${sent} WhatsApp tickets sent` : 'QR Sent', {
           description: res.message || `Ticket sent via WhatsApp${phone ? ` to ${phone}` : ''}`,
         })
         loadEventRegistrations()
       } else {
-        toast({ title: 'Failed to Send QR', description: res.error || res.message || 'Unknown error', variant: 'destructive' })
+        toast.error('Failed to Send QR', { description: res.error || res.message || 'Unknown error' })
       }
     } catch {
-      toast({ title: 'Error', description: 'Failed to send WhatsApp ticket', variant: 'destructive' })
+      toast.error('Failed to send WhatsApp ticket')
     } finally {
       setSendingQrFromModal(false)
     }
@@ -1235,7 +1185,10 @@ export default function OrdersPage() {
                                   )}
                                   {order.status !== 'cancelled' && order.status !== 'completed' && (
                                     <DropdownMenuItem
-                                      onClick={() => handleCancelOrder(order._id)}
+                                      onClick={() => {
+                                        setOrderToCancel(order._id)
+                                        setShowCancelConfirmDialog(true)
+                                      }}
                                       className="text-red-600"
                                     >
                                       <XCircle className="mr-2 h-4 w-4" />
@@ -2229,6 +2182,45 @@ export default function OrdersPage() {
                 }}
               >
                 Mark as Refunded
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Cancel Order Confirmation Dialog */}
+        <Dialog open={showCancelConfirmDialog} onOpenChange={(open) => {
+          setShowCancelConfirmDialog(open)
+          if (!open) setOrderToCancel(null)
+        }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Cancel Order</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to cancel this order? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowCancelConfirmDialog(false)
+                  setOrderToCancel(null)
+                }}
+              >
+                Keep Order
+              </Button>
+              <Button
+                className="text-red-600"
+                disabled={!!cancellingOrderId}
+                onClick={async () => {
+                  if (orderToCancel) {
+                    await handleCancelOrder(orderToCancel)
+                    setShowCancelConfirmDialog(false)
+                    setOrderToCancel(null)
+                  }
+                }}
+              >
+                Cancel Order
               </Button>
             </DialogFooter>
           </DialogContent>

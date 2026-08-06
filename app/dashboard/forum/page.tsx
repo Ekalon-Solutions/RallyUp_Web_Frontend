@@ -146,16 +146,16 @@ export default function ForumPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold">Inter Club Forum Management</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold">Inter Club Forum Management</h1>
             <p className="text-muted-foreground">Manage discussions, moderation, and community interactions</p>
           </div>
           <CreateTopicModal />
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="topics">Topics</TabsTrigger>
             <TabsTrigger value="moderation">Moderation</TabsTrigger>

@@ -6,7 +6,7 @@ import { AlertCircle } from 'lucide-react'
 import { RefundConfirmationModal } from './modals/refund-confirmation-modal'
 import { AttendeeTicketSelectModal, CancellableAttendee } from './modals/attendee-ticket-select-modal'
 import { getApiUrl } from '@/lib/config'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 
 interface RefundButtonProps {
   sourceType: 'event_ticket' | 'store_order'
@@ -35,7 +35,6 @@ interface RefundEstimate {
 }
 
 export function RefundButton({ sourceType, eventId, orderId, onRefundRequested }: RefundButtonProps) {
-  const { toast } = useToast()
   const [estimate, setEstimate] = useState<RefundEstimate | null>(null)
   const [selectedAttendeeId, setSelectedAttendeeId] = useState<string | null>(null)
   const [attendeeSelectOpen, setAttendeeSelectOpen] = useState(false)
@@ -118,7 +117,7 @@ export function RefundButton({ sourceType, eventId, orderId, onRefundRequested }
         const msg = sourceType === 'event_ticket'
           ? 'Ticket cancelled : Refund will be processed in 5-7 working days excluding the platform fees, payment gateway fees and taxes. Please refer to the refund policy for more details.'
           : 'Order cancelled : Refund will be processed in 5-7 working days excluding the platform fees, payment gateway fees and taxes. Please refer to the refund policy for more details.'
-        toast({ title: sourceType === 'event_ticket' ? 'Ticket cancelled' : 'Order cancelled', description: msg })
+        toast.success(sourceType === 'event_ticket' ? 'Ticket cancelled' : 'Order cancelled', { description: msg })
       } else {
         const msg =
           data.code === 'REFUND_POLICY_RESTRICTED'
@@ -126,7 +125,7 @@ export function RefundButton({ sourceType, eventId, orderId, onRefundRequested }
               'This club does not allow refunds for this specific event as per their stated policy.'
             : data.message || 'Failed to request refund'
         setError(msg)
-        toast({ title: 'Refund not available', description: msg, variant: 'destructive' })
+        toast.error('Refund not available', { description: msg })
       }
     } catch (err: any) {
       setError('Failed to request refund')

@@ -767,7 +767,7 @@ export default function GalleryManagementPage() {
             <FeatureUnavailableOverlay featureKey="gallery" featureLabel="Gallery" clubId={clubId} />
           )}
           <div>
-            <h1 className="text-3xl font-bold">Gallery Management</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold">Gallery Management</h1>
             <p className="text-muted-foreground">Create albums, upload media, manage cover image and storage</p>
             {maxAlbums !== null && <UsageMeter current={albums.length} max={maxAlbums} label="Albums used" className="mt-2 max-w-xs" />}
           </div>
@@ -780,7 +780,7 @@ export default function GalleryManagementPage() {
                   <div className="h-9 bg-muted rounded w-32" />
                 </div>
                 <div className="h-2 bg-muted rounded-full" />
-                <div className="grid grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                   {[...Array(3)].map((_, i) => <div key={i} className="h-10 bg-muted rounded" />)}
                 </div>
               </div>
@@ -844,7 +844,7 @@ export default function GalleryManagementPage() {
                       />
                     </div>
                   </div>
-                  <div className="grid grid-cols-3 gap-4 pt-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 pt-1">
                     {[
                       { label: "Used", value: storage ? `${storage.usage.usedGb} GB` : "—" },
                       { label: "Available", value: storage ? `${storage.usage.availableGb} GB` : "—" },
@@ -964,7 +964,7 @@ export default function GalleryManagementPage() {
                       <p className="text-xs font-medium">
                         Uploaded in &ldquo;{selectedAlbum.name}&rdquo; ({getAlbumMediaItems(selectedAlbum).length})
                       </p>
-                      <div className="grid grid-cols-4 gap-1.5 max-h-56 overflow-y-auto rounded-lg border p-2">
+                      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-1.5 max-h-56 overflow-y-auto rounded-lg border p-2">
                         {getAlbumMediaItems(selectedAlbum).map((m) => renderMediaThumb(selectedAlbum._id, m, true))}
                       </div>
                       <p className="text-[11px] text-muted-foreground">
@@ -1031,7 +1031,7 @@ export default function GalleryManagementPage() {
                         </div>
 
                         {selectedAlbum?._id === album._id && albumMedia.length > 0 && (
-                          <div className="grid grid-cols-4 gap-1.5 max-h-52 overflow-y-auto rounded-lg border p-1.5">
+                          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-1.5 max-h-52 overflow-y-auto rounded-lg border p-1.5">
                             {albumMedia.map((m) => renderMediaThumb(album._id, m, true))}
                           </div>
                         )}
@@ -1068,7 +1068,7 @@ export default function GalleryManagementPage() {
             </DialogHeader>
 
             <div className="space-y-5 py-2">
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {([50, 100, 300] as StorageGb[]).map((gb) => (
                   <button
                     key={gb}
@@ -1090,7 +1090,7 @@ export default function GalleryManagementPage() {
 
               <div className="space-y-2">
                 <p className="text-sm font-medium">Billing cycle</p>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
                   {(["monthly", "quarterly", "annual"] as BillingCycle[]).map((cycle) => {
                     const isSelected = selectedBillingCycle === cycle
                     return (

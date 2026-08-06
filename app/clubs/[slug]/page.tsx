@@ -220,7 +220,6 @@ export default function PublicClubPage() {
   const [eventForRegistration, setEventForRegistration] = useState<Event | null>(null)
   const [showPurchaseFlowModal, setShowPurchaseFlowModal] = useState(false)
   const [showEventCheckoutModal, setShowEventCheckoutModal] = useState(false)
-  const [eventCheckoutAsGuest, setEventCheckoutAsGuest] = useState(false)
   const [showVenueTierCartModal, setShowVenueTierCartModal] = useState(false)
   const [purchaseFlowReason, setPurchaseFlowReason] = useState<"event" | "merchandise" | null>(null)
   const [merchandiseForQuickBuy, setMerchandiseForQuickBuy] = useState<any | null>(null)
@@ -354,6 +353,7 @@ export default function PublicClubPage() {
         }
       }
     } catch (error) {
+      toast.error("Some club content failed to load. Please refresh the page.")
     } finally {
       setLoading(false)
     }
@@ -1297,14 +1297,12 @@ export default function PublicClubPage() {
           }}
           clubId={club._id}
           clubName={club.name}
-          returnPath={`/clubs/${slug}`}
           onContinueToPayment={() => {
             setShowPurchaseFlowModal(false)
             if (purchaseFlowReason === "event" && eventForRegistration) {
               if (hasVenueTierMatrix(eventForRegistration)) {
                 setShowVenueTierCartModal(true)
               } else {
-                setEventCheckoutAsGuest(true)
                 setShowEventCheckoutModal(true)
               }
             } else if (purchaseFlowReason === "merchandise" && merchandiseForQuickBuy) {
@@ -1328,43 +1326,6 @@ export default function PublicClubPage() {
               setMerchandiseForQuickBuy(null)
             }
             setPurchaseFlowReason(null)
-          }}
-          onLogin={(returnUrl) => {
-            if (purchaseFlowReason === "event" && eventForRegistration) {
-              setStoredPurchaseIntent({
-                type: "event",
-                clubId: club._id,
-                slug,
-                eventId: eventForRegistration._id,
-                event: eventForRegistration,
-                attendees: [],
-                returnPath: returnUrl,
-              })
-            } else if (purchaseFlowReason === "merchandise" && merchandiseForQuickBuy) {
-              const item = merchandiseForQuickBuy
-              setStoredPurchaseIntent({
-                type: "merchandise",
-                clubId: club._id,
-                slug,
-                item: {
-                  _id: item._id,
-                  name: item.name,
-                  price: item.price,
-                  currency: item.currency || "INR",
-                  quantity: 1,
-                  featuredImage: item.featuredImage,
-                  stockQuantity: item.stockQuantity,
-                  tags: item.tags,
-                  club: item.club || {
-                    _id: club._id,
-                    name: club.name,
-                    platformFeePercent: club.platformFeePercent,
-                  },
-                },
-                returnPath: returnUrl,
-              })
-            }
-            router.push(`/login?next=${encodeURIComponent(returnUrl)}`)
           }}
           onRegister={(registerNextUrl) => {
             if (purchaseFlowReason === "event" && eventForRegistration) {
@@ -1445,10 +1406,8 @@ export default function PublicClubPage() {
         isOpen={showEventCheckoutModal}
         onClose={() => {
           setShowEventCheckoutModal(false)
-          setEventCheckoutAsGuest(false)
           setEventForRegistration(null)
         }}
-        skipMemberValidation={eventCheckoutAsGuest}
         event={
           eventForRegistration
             ? {

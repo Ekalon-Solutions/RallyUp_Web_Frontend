@@ -13,14 +13,14 @@ function resolveCurrentEnv(): AppEnv {
   return 'development';
 }
 
-const getApiBaseUrl = (fallback: string = 'http://localhost:5000/api') => {
+const getApiBaseUrl = (fallback: string = 'http://localhost:5050/api') => {
   if (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_API_URL) {
     return process.env.NEXT_PUBLIC_API_URL;
   }
   return fallback;
 };
 
-const getWsBaseUrl = (fallback: string = 'ws://localhost:5000') => {
+const getWsBaseUrl = (fallback: string = 'ws://localhost:5050') => {
   if (typeof process !== 'undefined' && process.env.NEXT_PUBLIC_WS_URL) {
     return process.env.NEXT_PUBLIC_WS_URL;
   }

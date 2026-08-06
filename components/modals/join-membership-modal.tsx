@@ -31,6 +31,7 @@ import { calculateTransactionFees, computeMembershipPlanCharge } from "@/lib/tra
 import { useAuth } from "@/contexts/auth-context"
 import { formatDisplayDate } from "@/lib/utils"
 import { cn } from "@/lib/utils"
+import { LoginModal } from "@/components/login-modal"
 
 export interface JoinablePlan {
   _id: string
@@ -53,12 +54,15 @@ interface JoinMembershipModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   clubId: string
-  clubName: string
+  clubName?: string
   platformFeePercent?: number
-  plans: JoinablePlan[]
+  plans?: JoinablePlan[]
   primaryColor?: string
   returnPath?: string
   initialPlanId?: string
+  mode?: "register" | "subscribe" | "upgrade"
+  selectedPlanId?: string
+  isDashboard?: boolean
 }
 
 type ReferralStatus = "idle" | "checking" | "found" | "not-found" | "not-member" | "self"
@@ -144,17 +148,46 @@ export function JoinMembershipModal({
   open,
   onOpenChange,
   clubId,
-  clubName,
+  clubName: propClubName = "",
   platformFeePercent,
-  plans,
+  plans: propPlans = [],
   primaryColor = "#3b82f6",
   returnPath,
   initialPlanId,
+  selectedPlanId: propSelectedPlanId,
+  isDashboard = false,
 }: JoinMembershipModalProps) {
   const router = useRouter()
-  const { user, checkAuth } = useAuth()
+  const { user, checkAuth, isAdmin } = useAuth()
+  const [internalPlans, setInternalPlans] = useState<JoinablePlan[]>([])
+  const [internalClubName, setInternalClubName] = useState<string>("")
+
+  useEffect(() => {
+    if (!open || !clubId) return
+    if (propPlans && propPlans.length > 0) return
+
+    apiClient.getMembershipPlans(clubId).then((res: any) => {
+      if (res.success && res.data) {
+        const list = Array.isArray(res.data) ? res.data : (res.data as any).data || []
+        setInternalPlans(list.filter((p: any) => p.isActive))
+      }
+    })
+
+    if (!propClubName) {
+      apiClient.getClubById(clubId, true).then((res: any) => {
+        if (res.success && res.data) {
+          setInternalClubName(res.data.name || "")
+        }
+      })
+    }
+  }, [open, clubId, propPlans, propClubName])
+
+  const plans = propPlans && propPlans.length > 0 ? propPlans : internalPlans
+  const clubName = propClubName || internalClubName || "Club"
+  const effectiveInitialPlanId = propSelectedPlanId || initialPlanId
+
   const showTshirtFields = clubName.toLowerCase().includes(TSHIRT_FIELD_CLUB_NAME_MATCH)
-  const [selectedPlanId, setSelectedPlanId] = useState<string>(plans[0]?._id ?? "")
+  const [selectedPlanId, setSelectedPlanId] = useState<string>(effectiveInitialPlanId || plans[0]?._id || "")
   const [isProcessing, setIsProcessing] = useState(false)
   const [registrationData, setRegistrationData] = useState({ ...EMPTY_REGISTRATION })
   const [registrationErrors, setRegistrationErrors] = useState({ phoneNumber: "" })
@@ -188,6 +221,8 @@ export function JoinMembershipModal({
     couponDiscount?: number
   } | null>(null)
   const [pendingRegistrationData, setPendingRegistrationData] = useState<typeof registrationData | null>(null)
+  const [razorpayOpen, setRazorpayOpen] = useState(false)
+  const [loginModalOpen, setLoginModalOpen] = useState(false)
 
   const isLoggedIn = Boolean(user?._id && typeof window !== "undefined" && localStorage.getItem("token"))
 
@@ -256,10 +291,10 @@ export function JoinMembershipModal({
         return plan.price > currentPrice
       })
       const preferredId =
-        initialPlanId &&
-        upgradeCandidates.some((p) => p._id === initialPlanId) &&
-        String(initialPlanId) !== currentPlanId
-          ? initialPlanId
+        effectiveInitialPlanId &&
+        upgradeCandidates.some((p) => p._id === effectiveInitialPlanId) &&
+        String(effectiveInitialPlanId) !== currentPlanId
+          ? effectiveInitialPlanId
           : upgradeCandidates[0]?._id
       if (preferredId) {
         setSelectedPlanId(preferredId)
@@ -271,14 +306,14 @@ export function JoinMembershipModal({
       }
       return
     }
-    if (initialPlanId && plans.some((p) => p._id === initialPlanId)) {
-      setSelectedPlanId(initialPlanId)
+    if (effectiveInitialPlanId && plans.some((p) => p._id === effectiveInitialPlanId)) {
+      setSelectedPlanId(effectiveInitialPlanId)
       return
     }
     if (plans.length > 0 && !plans.some((p) => p._id === selectedPlanId)) {
       setSelectedPlanId(plans[0]._id)
     }
-  }, [open, plans, initialPlanId, mode, currentPlanId, currentPlanDetails?.price])
+  }, [open, plans, effectiveInitialPlanId, mode, currentPlanId, currentPlanDetails?.price])
 
   useEffect(() => {
     if (!open) {
@@ -289,6 +324,17 @@ export function JoinMembershipModal({
       setReferralName(null)
       setPendingPayment(null)
       setPendingRegistrationData(null)
+    } else if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search)
+      const urlEmail = params.get("email")
+      const urlPhone = params.get("phone")
+      if (urlEmail || urlPhone) {
+        setRegistrationData((prev) => ({
+          ...prev,
+          email: prev.email || urlEmail || "",
+          phoneNumber: prev.phoneNumber || urlPhone || "",
+        }))
+      }
     }
   }, [open])
 
@@ -359,7 +405,7 @@ export function JoinMembershipModal({
     if (!salesState.isOpen) return true
     if (mode !== "upgrade") return false
     if (isCurrentPlan(plan)) return true
-    if (currentMembership && !isMembershipExpired() && isDowngradePlan(plan)) return true
+    if (currentMembership && !isMembershipExpired() && (isDowngradePlan(plan) || !isUpgradePlan(plan))) return true
     return false
   }
 
@@ -407,16 +453,17 @@ export function JoinMembershipModal({
     const chargeAmount = getPlanCharge(selectedPlan).baseAmount
     if (chargeAmount <= 0) return
 
-    const phone = mode === "register"
-      ? `${registrationData.countryCode || "+91"}${registrationData.phoneNumber || ""}`
+    const rawPhone = mode === "register"
+      ? (registrationData.phoneNumber ? `${registrationData.countryCode || "+91"}${registrationData.phoneNumber}` : "")
       : user?.phoneNumber || ""
-    const email = mode === "register" ? registrationData.email : user?.email || ""
+    const phone = rawPhone && rawPhone !== "+91" ? rawPhone : undefined
+    const email = (mode === "register" ? registrationData.email : user?.email) || undefined
     const timer = setTimeout(async () => {
       try {
         const response = await apiClient.getHighestEligibleAutoCoupon({
           clubId,
-          phone: phone || undefined,
-          email: email || undefined,
+          phone,
+          email,
           cartSubtotal: chargeAmount,
           purchaseType: "membership",
         })
@@ -456,12 +503,21 @@ export function JoinMembershipModal({
     }
     setValidatingCoupon(true)
     try {
+      const rawPhone = mode === "register"
+        ? (registrationData.phoneNumber ? `${registrationData.countryCode || "+91"}${registrationData.phoneNumber}` : "")
+        : user?.phoneNumber || ""
+      const phone = rawPhone && rawPhone !== "+91" ? rawPhone : undefined
+      const email = (mode === "register" ? registrationData.email : user?.email) || undefined
+
       const response = await apiClient.validateCoupon(
         couponCode.trim().toUpperCase(),
-        undefined,
-        chargeAmount,
-        clubId,
-        "membership",
+        {
+          ticketPrice: chargeAmount,
+          clubId,
+          purchaseType: "membership",
+          email,
+          phone,
+        }
       )
       if (response.success && response.data?.coupon) {
         setAppliedCoupon({
@@ -511,7 +567,21 @@ export function JoinMembershipModal({
     return ""
   }
 
-  const startPayment = (opts: {
+  const [razorpayScriptLoaded, setRazorpayScriptLoaded] = useState(false)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const script = document.createElement('script')
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+    script.async = true
+    script.onload = () => setRazorpayScriptLoaded(true)
+    document.body.appendChild(script)
+    return () => {
+      try { document.body.removeChild(script) } catch (_) {}
+    }
+  }, [])
+
+  const startPayment = async (opts: {
     plan: JoinablePlan
     baseAmount: number
     isUpgrade?: boolean
@@ -530,10 +600,6 @@ export function JoinMembershipModal({
       : `membership-${plan._id}-${user?._id ?? "guest"}-${Date.now()}`
     const orderNumber = `ORD-${Math.floor(Math.random() * 900000) + 100000}`
 
-    if (isRegistration && registrationSnapshot) {
-      setPendingRegistrationData({ ...registrationSnapshot })
-    }
-
     const prefillPhone = isRegistration && registrationSnapshot 
       ? `${registrationSnapshot.countryCode || "+91"}${registrationSnapshot.phoneNumber}`
       : user?.phoneNumber || ""
@@ -541,26 +607,135 @@ export function JoinMembershipModal({
       ? registrationSnapshot.email
       : user?.email || ""
 
-    setPendingPayment({
-      planId: plan._id,
-      planName: plan.name,
-      orderId,
-      orderNumber,
-      total: feeBreakdown.finalAmount,
-      subtotal: baseAmount,
-      platformFeeTotal: feeBreakdown.platformFee + feeBreakdown.platformFeeGst,
-      platformFeePercent: Number.isFinite(resolvedPlatformFeePercent) ? resolvedPlatformFeePercent : undefined,
-      razorpayFeeTotal: feeBreakdown.razorpayFee + feeBreakdown.razorpayFeeGst,
-      currency: plan.currency || "INR",
-      paymentMethod: "all",
-      referralPhone: validReferral,
-      isUpgrade,
-      isRegistration,
-      prefillPhone,
-      prefillEmail,
-      couponCode: appliedCoupon?.code,
-      couponDiscount,
-    })
+    if (!razorpayScriptLoaded || typeof window === 'undefined' || !(window as any).Razorpay) {
+      toast.error("Payment system is loading. Please try again in a moment.")
+      return
+    }
+
+    setIsProcessing(true)
+
+    try {
+      const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null
+      const authHeaders: Record<string, string> = { 'Content-Type': 'application/json' }
+      if (token) authHeaders['Authorization'] = `Bearer ${token}`
+
+      const response = await fetch('/api/razorpay/create-order', {
+        method: 'POST',
+        headers: authHeaders,
+        body: JSON.stringify({
+          amount: feeBreakdown.finalAmount,
+          currency: plan.currency || "INR",
+          orderId,
+          orderNumber,
+        }),
+      })
+
+      if (!response.ok) {
+        const errBody = await response.json().catch(() => null)
+        throw new Error(errBody?.error || errBody?.details || 'Failed to create payment order')
+      }
+
+      const { razorpayOrderId, amount, currency: orderCurrency } = await response.json()
+
+      const pendingRes = await apiClient.createPendingMembershipPurchase(
+        plan._id,
+        razorpayOrderId,
+        validReferral,
+        { tshirtSize: registrationData.tshirtSize, tshirtColor: registrationData.tshirtColor },
+        appliedCoupon?.code,
+      )
+
+      if (!pendingRes.success) {
+        toast.error(pendingRes.error || "Unable to prepare membership purchase")
+        setIsProcessing(false)
+        return
+      }
+
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        amount: amount,
+        currency: orderCurrency || "INR",
+        name: clubName || 'RallyUp',
+        description: isUpgrade ? `Pay upgrade difference for ${plan.name}` : `Payment for ${plan.name}`,
+        order_id: razorpayOrderId,
+        prefill: {
+          name: registrationSnapshot ? `${registrationSnapshot.first_name} ${registrationSnapshot.last_name}` : user?.name || '',
+          email: prefillEmail,
+          contact: prefillPhone,
+        },
+        method: {
+          netbanking: true, card: true, wallet: true, upi: true, paylater: true, cardless_emi: true, emi: true, bank_transfer: true,
+        },
+        handler: async function (paymentResponse: any) {
+          try {
+            const verifyResponse = await fetch('/api/razorpay/verify-payment', {
+              method: 'POST',
+              headers: authHeaders,
+              body: JSON.stringify({
+                razorpay_order_id: paymentResponse.razorpay_order_id,
+                razorpay_payment_id: paymentResponse.razorpay_payment_id,
+                razorpay_signature: paymentResponse.razorpay_signature,
+                orderId: orderId,
+              }),
+            })
+
+            if (!verifyResponse.ok) throw new Error('Payment verification failed')
+
+            const subscribeRes = await apiClient.subscribeMembershipPlan(
+              plan._id,
+              {
+                razorpay_payment_id: paymentResponse.razorpay_payment_id,
+                razorpay_order_id: paymentResponse.razorpay_order_id,
+                razorpay_signature: paymentResponse.razorpay_signature,
+              },
+              validReferral || undefined,
+              { tshirtSize: registrationData.tshirtSize, tshirtColor: registrationData.tshirtColor },
+              appliedCoupon?.code,
+            )
+
+            if (!subscribeRes.success) {
+              throw new Error(subscribeRes.error || subscribeRes.message || 'Failed to activate membership subscription')
+            }
+
+            const upgraded = subscribeRes.data && "isUpgrade" in subscribeRes.data && (subscribeRes.data as any).isUpgrade
+            toast.success(upgraded ? `Membership upgraded! Welcome to ${clubName || 'the club'}.` : `Membership activated! Welcome to ${clubName || 'the club'}.`)
+            setRazorpayOpen(false)
+            onOpenChange(false)
+            await checkAuth()
+            const utm = typeof window !== "undefined" ? sessionStorage.getItem("utm_source") : null
+            const dest = utm
+              ? `/dashboard/user/my-clubs?utm_source=${encodeURIComponent(utm)}`
+              : "/dashboard/user/my-clubs"
+            router.push(dest)
+          } catch (err: any) {
+            toast.error(err.message || 'Payment verification failed')
+            setRazorpayOpen(false)
+          } finally {
+            setIsProcessing(false)
+          }
+        },
+        modal: {
+          ondismiss: function () {
+            toast.info("Payment cancelled.")
+            setRazorpayOpen(false)
+            setIsProcessing(false)
+          },
+        },
+      }
+
+      const rzp = new (window as any).Razorpay(options)
+      rzp.on('payment.failed', function (resp: any) {
+        toast.error(resp.error?.description || "Payment failed")
+        setRazorpayOpen(false)
+        setIsProcessing(false)
+      })
+      setRazorpayOpen(true)
+      rzp.open()
+    } catch (err: any) {
+      toast.error(err.message || "Failed to initiate payment")
+      setRazorpayOpen(false)
+      setIsProcessing(false)
+    }
   }
 
   const handleRegistration = async (e: React.FormEvent) => {
@@ -599,17 +774,8 @@ export function JoinMembershipModal({
       const checkData = await checkResponse.json()
       if (checkResponse.ok && checkData.planValid) {
         toast.info("An account with this email or phone already exists. Please log in to continue.")
-        try {
-          sessionStorage.setItem(
-            "clubs_pending_join",
-            JSON.stringify({ clubId, membershipPlanId: selectedPlan._id, returnPath: returnPath || window.location.pathname })
-          )
-        } catch (_) {}
-        const utm = typeof window !== "undefined" ? sessionStorage.getItem("utm_source") : null
-        const nextUrl = utm
-          ? `/login?next=${encodeURIComponent(returnPath || window.location.pathname)}&utm_source=${encodeURIComponent(utm)}`
-          : `/login?next=${encodeURIComponent(returnPath || window.location.pathname)}`
-        router.push(nextUrl)
+        setIsProcessing(false)
+        setLoginModalOpen(true)
         return
       }
 
@@ -688,6 +854,10 @@ export function JoinMembershipModal({
 
   const handleSubscribeOrUpgrade = async () => {
     if (!selectedPlan || !user?._id) return
+    if (isAdmin) {
+      toast.error("Admin accounts cannot purchase memberships. Please log in as a member.")
+      return
+    }
 
     const salesState = getPlanSalesState(selectedPlan)
     if (!salesState.isOpen) {
@@ -757,8 +927,7 @@ export function JoinMembershipModal({
           tshirtSize: pendingRegistrationData?.tshirtSize ?? registrationData.tshirtSize,
           tshirtColor: pendingRegistrationData?.tshirtColor ?? registrationData.tshirtColor,
         },
-        pendingPayment.couponCode,
-        pendingPayment.total
+        pendingPayment.couponCode
       )
       if (response.success) {
         const upgraded = response.data && "isUpgrade" in response.data && response.data.isUpgrade
@@ -803,22 +972,28 @@ export function JoinMembershipModal({
     const selectedPlan = plans.find(p => p._id === selectedPlanId)
     if (!selectedPlan?.referralReward?.enabled) return null
     return (
-    <div className="rounded-xl border border-secondary/20 bg-slate-50/50 p-4 space-y-2 text-slate-800">
+    <div className={cn(
+      "rounded-xl border p-4 space-y-2",
+      isDashboard ? "border-border bg-card text-card-foreground shadow-sm" : "border-secondary/20 bg-slate-50/50 text-slate-800"
+    )}>
       <div className="flex items-center gap-1.5">
-        <Label htmlFor="join-referralPhone" className="text-secondary text-[10px] font-bold tracking-widest uppercase">
+        <Label htmlFor="join-referralPhone" className={cn(
+          "text-[10px] font-bold tracking-widest uppercase",
+          isDashboard ? "text-muted-foreground" : "text-secondary"
+        )}>
           Referral Mobile Number
         </Label>
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Info className="h-3.5 w-3.5 text-secondary cursor-help" />
+              <Info className={cn("h-3.5 w-3.5 cursor-help", isDashboard ? "text-muted-foreground" : "text-secondary")} />
             </TooltipTrigger>
             <TooltipContent className="max-w-xs bg-secondary text-white border-none rounded-xl">
               Enter the registered mobile number of the member who referred you to earn them points!
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
-        <span className="text-xs text-slate-500">(Optional)</span>
+        <span className={cn("text-xs", isDashboard ? "text-muted-foreground" : "text-slate-500")}>(Optional)</span>
       </div>
       <div className="relative">
         <Input
@@ -828,7 +1003,8 @@ export function JoinMembershipModal({
           value={referralPhone}
           onChange={(e) => setReferralPhone(e.target.value.replace(/\D/g, "").slice(0, 8))}
           className={cn(
-            "h-12 pr-10 rounded-xl border-secondary bg-white text-black placeholder:text-slate-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary",
+            "h-12 pr-10 rounded-xl focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary",
+            isDashboard ? "border-input bg-background text-foreground placeholder:text-muted-foreground" : "border-secondary bg-white text-black placeholder:text-slate-400",
             referralStatus === "found" && "border-green-500",
             (referralStatus === "not-found" || referralStatus === "not-member" || referralStatus === "self") && "border-amber-400"
           )}
@@ -836,7 +1012,7 @@ export function JoinMembershipModal({
           inputMode="numeric"
         />
         <div className="absolute right-3 top-1/2 -translate-y-1/2">
-          {referralStatus === "checking" && <Loader2 className="h-4 w-4 animate-spin text-slate-500" />}
+          {referralStatus === "checking" && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
           {referralStatus === "found" && <UserCheck className="h-4 w-4 text-green-600" />}
           {(referralStatus === "not-found" || referralStatus === "not-member" || referralStatus === "self") && (
             <AlertTriangle className="h-4 w-4 text-amber-500" />
@@ -869,8 +1045,8 @@ export function JoinMembershipModal({
     return (
       <>
         <div className="space-y-2">
-          <Label htmlFor="tshirtSize" className="text-secondary text-[10px] font-bold tracking-widest uppercase">Choose T-Shirt Size:</Label>
-          <select id="tshirtSize" value={registrationData.tshirtSize} onChange={(e) => setRegistrationData({ ...registrationData, tshirtSize: e.target.value })} className="w-full h-12 rounded-xl border border-secondary px-3 bg-white text-black focus:outline-none focus:border-primary">
+          <Label htmlFor="tshirtSize" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>Choose T-Shirt Size:</Label>
+          <select id="tshirtSize" value={registrationData.tshirtSize} onChange={(e) => setRegistrationData({ ...registrationData, tshirtSize: e.target.value })} className={cn("w-full h-12 rounded-xl border px-3 focus:outline-none focus:border-primary", isDashboard ? "border-input bg-background text-foreground" : "border-secondary bg-white text-black")}>
             <option value="">Select size</option>
             {TSHIRT_SIZE_OPTIONS.map((size) => (
               <option key={size} value={size}>{size}</option>
@@ -878,8 +1054,8 @@ export function JoinMembershipModal({
           </select>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="tshirtColor" className="text-secondary text-[10px] font-bold tracking-widest uppercase">Choose T-Shirt Colour:</Label>
-          <select id="tshirtColor" value={registrationData.tshirtColor} onChange={(e) => setRegistrationData({ ...registrationData, tshirtColor: e.target.value })} className="w-full h-12 rounded-xl border border-secondary px-3 bg-white text-black focus:outline-none focus:border-primary">
+          <Label htmlFor="tshirtColor" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>Choose T-Shirt Colour:</Label>
+          <select id="tshirtColor" value={registrationData.tshirtColor} onChange={(e) => setRegistrationData({ ...registrationData, tshirtColor: e.target.value })} className={cn("w-full h-12 rounded-xl border px-3 focus:outline-none focus:border-primary", isDashboard ? "border-input bg-background text-foreground" : "border-secondary bg-white text-black")}>
             <option value="">Select colour</option>
             {TSHIRT_COLOR_OPTIONS.map((color) => (
               <option key={color} value={color}>{color}</option>
@@ -894,12 +1070,12 @@ export function JoinMembershipModal({
     if (!showTshirtFields) return null
     return (
       <div className="space-y-2">
-        <Label className="text-secondary text-[10px] font-bold tracking-widest uppercase">T-Shirt Reference</Label>
-        <div className="grid grid-cols-3 gap-3">
+        <Label className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>T-Shirt Reference</Label>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {TSHIRT_REFERENCE_IMAGES.map((img) => (
-            <a key={img.src} href={img.src} target="_blank" rel="noopener noreferrer" className="block overflow-hidden rounded-xl border border-secondary/30">
+            <a key={img.src} href={img.src} target="_blank" rel="noopener noreferrer" className={cn("block overflow-hidden rounded-xl border", isDashboard ? "border-border" : "border-secondary/30")}>
               <img src={img.src} alt={img.alt} className="h-auto w-full object-cover" />
-              <span className="block px-2 py-1 text-center text-xs text-slate-500">{img.alt}</span>
+              <span className={cn("block px-2 py-1 text-center text-xs", isDashboard ? "text-muted-foreground" : "text-slate-500")}>{img.alt}</span>
             </a>
           ))}
         </div>
@@ -910,26 +1086,26 @@ export function JoinMembershipModal({
   const renderCurrentMembershipBanner = () => {
     if (mode !== "upgrade" || !currentMembership || !currentPlanDetails) return null
     return (
-      <div className="shrink-0 px-6 pb-4 pt-4 bg-white">
-        <Card className="border-green-200 bg-green-50 text-green-900 rounded-xl">
+      <div className={cn("shrink-0 px-6 pb-4 pt-4", isDashboard ? "bg-background" : "bg-white")}>
+        <Card className={cn("rounded-xl", isDashboard ? "border-green-500/30 bg-green-500/10 text-foreground" : "border-green-200 bg-green-50 text-green-900")}>
           <CardContent className="pt-4 pb-4 space-y-2">
             <div className="flex items-center gap-2 text-sm">
               <Check className="w-4 h-4 text-green-600 shrink-0" />
-              <span className="font-semibold text-green-900">
+              <span className="font-semibold">
                 Current Plan: {currentPlanDetails.name} — {formatPrice(currentPlanDetails.price, currentPlanDetails.currency)}
               </span>
             </div>
             {getMembershipStartDate(currentMembership) && (
-              <p className="text-xs text-green-800 ml-6">
+              <p className="text-xs opacity-90 ml-6">
                 Member since {formatDisplayDate(getMembershipStartDate(currentMembership))}
               </p>
             )}
             {getMembershipEndDate(currentMembership) ? (
-              <p className="text-xs text-green-800 ml-6">
+              <p className="text-xs opacity-90 ml-6">
                 Active until {formatDisplayDate(getMembershipEndDate(currentMembership))}. Choose a higher-tier plan below to upgrade.
               </p>
             ) : (
-              <p className="text-xs text-green-800 ml-6">
+              <p className="text-xs opacity-90 ml-6">
                 Active (lifetime). Choose a higher-tier plan below to upgrade.
               </p>
             )}
@@ -945,19 +1121,19 @@ export function JoinMembershipModal({
 
     return (
     <div className="space-y-2">
-      <Label htmlFor="membership-plan" className="text-secondary text-[10px] font-bold tracking-widest uppercase">
+      <Label htmlFor="membership-plan" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>
         {mode === "upgrade" ? "Upgrade To" : "Membership Plan"}
       </Label>
       {mode === "upgrade" && selectablePlans.length === 0 ? (
-        <p className="text-sm text-slate-500 rounded-xl border border-dashed border-secondary/30 p-4 text-center">
+        <p className={cn("text-sm rounded-xl border border-dashed p-4 text-center", isDashboard ? "border-border text-muted-foreground" : "border-secondary/30 text-slate-500")}>
           No higher-tier plans are available right now. You are already on the best available plan.
         </p>
       ) : (
       <Select value={selectedPlanId} onValueChange={setSelectedPlanId}>
-        <SelectTrigger id="membership-plan" className="border-secondary rounded-xl bg-white text-black focus:ring-0 focus:ring-offset-0 focus:border-primary focus-visible:ring-0 focus-visible:ring-offset-0">
+        <SelectTrigger id="membership-plan" className={cn("rounded-xl focus:ring-0 focus:ring-offset-0 focus:border-primary focus-visible:ring-0 focus-visible:ring-offset-0", isDashboard ? "border-input bg-background text-foreground" : "border-secondary bg-white text-black")}>
           <SelectValue placeholder="Select a plan" />
         </SelectTrigger>
-        <SelectContent className="bg-white text-black border-secondary">
+        <SelectContent className={cn(isDashboard ? "bg-popover text-popover-foreground border-border" : "bg-white text-black border-secondary")}>
           {selectablePlans.map((plan) => {
             const disabled = isPlanDisabled(plan)
             const salesState = getPlanSalesState(plan)
@@ -979,33 +1155,36 @@ export function JoinMembershipModal({
     const originalCharge = getPlanCharge(selectedPlan)
     const discountedCharge = getDiscountedPlanCharge(selectedPlan)
     return (
-      <div className="rounded-xl border border-secondary/20 bg-slate-50/50 p-4 shadow-sm space-y-2 text-slate-800">
-        <h4 className="flex items-center gap-2 text-sm font-semibold text-secondary">
+      <div className={cn(
+        "rounded-xl border p-4 shadow-sm space-y-2",
+        isDashboard ? "border-border bg-card text-card-foreground" : "border-secondary/20 bg-slate-50/50 text-slate-800"
+      )}>
+        <h4 className={cn("flex items-center gap-2 text-sm font-semibold", isDashboard ? "text-foreground" : "text-secondary")}>
           <Award className="h-4 w-4 shrink-0 text-primary" />
           Selected Plan: <span className="text-primary">{selectedPlan.name}</span>
         </h4>
         <div className="space-y-1 text-sm">
           <div className="flex justify-between gap-4">
-            <span className="text-slate-500">{getPlanCharge(selectedPlan).isUpgrade ? "Upgrade price:" : "Price:"}</span>
-            <span className={cn("font-semibold text-primary", appliedCoupon && "line-through text-slate-400")}>
+            <span className={isDashboard ? "text-muted-foreground" : "text-slate-500"}>{getPlanCharge(selectedPlan).isUpgrade ? "Upgrade price:" : "Price:"}</span>
+            <span className={cn("font-semibold text-primary", appliedCoupon && (isDashboard ? "line-through text-muted-foreground" : "line-through text-slate-400"))}>
               {formatPrice(originalCharge.finalAmount, selectedPlan.currency)}
             </span>
           </div>
           {appliedCoupon && (
             <>
-              <div className="flex justify-between gap-4 text-green-700">
+              <div className="flex justify-between gap-4 text-green-600">
                 <span>Coupon ({appliedCoupon.code}):</span>
                 <span>-{formatPrice(discountedCharge.couponDiscount, selectedPlan.currency)}</span>
               </div>
-              <div className="flex justify-between gap-4 border-t border-slate-200 pt-1 font-semibold">
+              <div className={cn("flex justify-between gap-4 border-t pt-1 font-semibold", isDashboard ? "border-border" : "border-slate-200")}>
                 <span>Total after discount:</span>
                 <span className="text-primary">{formatPrice(discountedCharge.finalAmount, selectedPlan.currency)}</span>
               </div>
             </>
           )}
           <div className="flex justify-between gap-4">
-            <span className="text-slate-500">Duration:</span>
-            <span className="font-medium text-slate-700">{formatPlanPeriod(selectedPlan)}</span>
+            <span className={isDashboard ? "text-muted-foreground" : "text-slate-500"}>Duration:</span>
+            <span className={cn("font-medium", isDashboard ? "text-foreground" : "text-slate-700")}>{formatPlanPeriod(selectedPlan)}</span>
           </div>
         </div>
       </div>
@@ -1015,22 +1194,25 @@ export function JoinMembershipModal({
   const renderCouponField = () => {
     if (!selectedPlan || getPlanCharge(selectedPlan).baseAmount <= 0) return null
     return (
-      <div className="rounded-xl border border-secondary/20 bg-slate-50/50 p-4 space-y-3 text-slate-800">
+      <div className={cn(
+        "rounded-xl border p-4 space-y-3",
+        isDashboard ? "border-border bg-card text-card-foreground" : "border-secondary/20 bg-slate-50/50 text-slate-800"
+      )}>
         <div className="flex items-center gap-2">
           <Tag className="h-4 w-4 text-primary" />
-          <Label htmlFor="membership-coupon" className="text-secondary text-[10px] font-bold tracking-widest uppercase">
+          <Label htmlFor="membership-coupon" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>
             Coupon or promo code
           </Label>
         </div>
         {appliedCoupon ? (
-          <div className="flex items-center justify-between gap-3 rounded-lg border border-green-200 bg-green-50 px-3 py-2">
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-green-500/30 bg-green-500/10 px-3 py-2">
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-green-800">{appliedCoupon.name}</p>
-              <p className="text-xs text-green-700">
+              <p className="truncate text-sm font-semibold text-green-600">{appliedCoupon.name}</p>
+              <p className="text-xs text-green-600/80">
                 {appliedCoupon.code}{isAutoAppliedCoupon ? " · Auto-applied" : " · Applied"}
               </p>
             </div>
-            <Button type="button" variant="ghost" size="icon" onClick={removeCoupon} aria-label="Remove coupon" className="h-8 w-8 shrink-0 text-green-800 hover:bg-green-100">
+            <Button type="button" variant="ghost" size="icon" onClick={removeCoupon} aria-label="Remove coupon" className="h-8 w-8 shrink-0 text-green-600 hover:bg-green-500/20">
               <X className="h-4 w-4" />
             </Button>
           </div>
@@ -1047,13 +1229,21 @@ export function JoinMembershipModal({
                 }
               }}
               placeholder="Enter coupon code"
-              className="h-10 rounded-lg border-secondary bg-white text-black uppercase"
+              className={cn(
+                "h-10 rounded-lg uppercase",
+                isDashboard ? "border-input bg-background text-foreground placeholder:text-muted-foreground" : "border-secondary bg-white text-black"
+              )}
             />
             <Button
               type="button"
               onClick={() => void handleValidateCoupon()}
               disabled={validatingCoupon || !couponCode.trim()}
-              className="h-10 rounded-lg bg-primary px-5 font-bold text-white transition-all duration-300 hover:bg-[#FF7E4A] hover:shadow-[0_8px_20px_#FF5C1A6B] active:scale-95 disabled:bg-primary/50 disabled:text-white"
+              className={cn(
+                "h-10 rounded-lg px-5 font-bold transition-all duration-300",
+                isDashboard
+                  ? "bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                  : "bg-primary text-white hover:bg-[#FF7E4A] hover:shadow-[0_8px_20px_#FF5C1A6B] active:scale-95 disabled:bg-primary/50 disabled:text-white"
+              )}
             >
               {validatingCoupon ? <Loader2 className="h-4 w-4 animate-spin" /> : "Apply"}
             </Button>
@@ -1088,16 +1278,33 @@ export function JoinMembershipModal({
 
   return (
     <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="flex max-h-[90vh] w-[92vw] max-w-[360px] sm:w-full sm:max-w-2xl flex-col overflow-hidden p-0 !rounded-2xl sm:!rounded-2xl border-0 shadow-2xl bg-white public-theme">
-          <DialogHeader className="shrink-0 px-6 py-6 bg-secondary text-white relative rounded-t-2xl">
-            <DialogTitle className="flex items-center gap-2 text-white font-black text-2xl">
-              <div className="rounded-lg p-2 bg-white/10">
-                <Users className="w-5 h-5 text-white" />
+      <Dialog open={open} onOpenChange={(o) => { if (!razorpayOpen) onOpenChange(o) }} modal={!razorpayOpen}>
+        <DialogContent
+          className={cn(
+            "flex max-h-[90vh] w-[92vw] max-w-[360px] sm:w-full sm:max-w-2xl flex-col overflow-hidden p-0 sm:p-0 rounded-2xl shadow-2xl",
+            isDashboard
+              ? "border border-border bg-background text-foreground"
+              : "!rounded-2xl sm:!rounded-2xl border-0 bg-white public-theme"
+          )}
+          onInteractOutside={(e) => { if (razorpayOpen) e.preventDefault() }}
+          onEscapeKeyDown={(e) => { if (razorpayOpen) e.preventDefault() }}
+        >
+          <DialogHeader className={cn(
+            "shrink-0 px-6 py-6 relative rounded-t-2xl",
+            isDashboard
+              ? "bg-card border-b border-border text-card-foreground"
+              : "bg-secondary text-white"
+          )}>
+            <DialogTitle className={cn(
+              "flex items-center gap-2 text-2xl font-bold",
+              isDashboard ? "text-foreground" : "text-white font-black"
+            )}>
+              <div className={cn("rounded-lg p-2", isDashboard ? "bg-primary/10 text-primary" : "bg-white/10 text-white")}>
+                <Users className="w-5 h-5" />
               </div>
               {dialogTitle}
             </DialogTitle>
-            <DialogDescription className="text-white/80 text-sm mt-1">
+            <DialogDescription className={cn("text-sm mt-1", isDashboard ? "text-muted-foreground" : "text-white/80")}>
               {mode === "register" ? (
                 selectedPlan.price > 0
                   ? "Fill your details, then complete payment to create your account and activate membership."
@@ -1112,77 +1319,80 @@ export function JoinMembershipModal({
 
           {renderCurrentMembershipBanner()}
 
-          <div className="flex-1 overflow-y-auto px-6 pb-6 pt-6 bg-white space-y-5 text-slate-800">
+          <div className={cn(
+            "flex-1 overflow-y-auto px-6 pb-6 pt-6 space-y-5",
+            isDashboard ? "bg-background text-foreground" : "bg-white text-slate-800"
+          )}>
             {mode === "register" ? (
               <form onSubmit={handleRegistration} className="space-y-4">
                 {renderPlanSelector()}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="username" className="text-secondary text-[10px] font-bold tracking-widest uppercase">Username</Label>
-                    <Input id="username" value={registrationData.username} onChange={(e) => setRegistrationData({ ...registrationData, username: e.target.value })} className="h-12 rounded-xl border-secondary bg-white text-black placeholder:text-slate-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary" />
+                    <Label htmlFor="username" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>Username</Label>
+                    <Input id="username" value={registrationData.username} onChange={(e) => setRegistrationData({ ...registrationData, username: e.target.value })} className={cn("h-12 rounded-xl focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary", isDashboard ? "border-input bg-background text-foreground placeholder:text-muted-foreground" : "border-secondary bg-white text-black placeholder:text-slate-400")} />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="first_name" className="text-secondary text-[10px] font-bold tracking-widest uppercase">First Name <span className="text-primary ml-0.5">*</span></Label>
-                    <Input id="first_name" value={registrationData.first_name} onChange={(e) => setRegistrationData({ ...registrationData, first_name: e.target.value })} required className="h-12 rounded-xl border-secondary bg-white text-black placeholder:text-slate-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary" />
+                    <Label htmlFor="first_name" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>First Name <span className="text-primary ml-0.5">*</span></Label>
+                    <Input id="first_name" value={registrationData.first_name} onChange={(e) => setRegistrationData({ ...registrationData, first_name: e.target.value })} required className={cn("h-12 rounded-xl focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary", isDashboard ? "border-input bg-background text-foreground placeholder:text-muted-foreground" : "border-secondary bg-white text-black placeholder:text-slate-400")} />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="last_name" className="text-secondary text-[10px] font-bold tracking-widest uppercase">Last Name <span className="text-primary ml-0.5">*</span></Label>
-                    <Input id="last_name" value={registrationData.last_name} onChange={(e) => setRegistrationData({ ...registrationData, last_name: e.target.value })} required className="h-12 rounded-xl border-secondary bg-white text-black placeholder:text-slate-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary" />
+                    <Label htmlFor="last_name" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>Last Name <span className="text-primary ml-0.5">*</span></Label>
+                    <Input id="last_name" value={registrationData.last_name} onChange={(e) => setRegistrationData({ ...registrationData, last_name: e.target.value })} required className={cn("h-12 rounded-xl focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary", isDashboard ? "border-input bg-background text-foreground placeholder:text-muted-foreground" : "border-secondary bg-white text-black placeholder:text-slate-400")} />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="date_of_birth" className="text-secondary text-[10px] font-bold tracking-widest uppercase">Date of Birth <span className="text-primary ml-0.5">*</span></Label>
-                    <Input id="date_of_birth" type="date" value={registrationData.date_of_birth} onChange={(e) => setRegistrationData({ ...registrationData, date_of_birth: e.target.value })} required className="h-12 rounded-xl border-secondary bg-white text-black placeholder:text-slate-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary" />
+                    <Label htmlFor="date_of_birth" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>Date of Birth <span className="text-primary ml-0.5">*</span></Label>
+                    <Input id="date_of_birth" type="date" value={registrationData.date_of_birth} onChange={(e) => setRegistrationData({ ...registrationData, date_of_birth: e.target.value })} required className={cn("h-12 rounded-xl focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary", isDashboard ? "border-input bg-background text-foreground placeholder:text-muted-foreground" : "border-secondary bg-white text-black placeholder:text-slate-400")} />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="gender" className="text-secondary text-[10px] font-bold tracking-widest uppercase">Gender <span className="text-primary ml-0.5">*</span></Label>
-                    <select id="gender" value={registrationData.gender} onChange={(e) => setRegistrationData({ ...registrationData, gender: e.target.value })} required className="w-full h-12 rounded-xl border border-secondary px-3 bg-white text-black focus:outline-none focus:border-primary">
+                    <Label htmlFor="gender" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>Gender <span className="text-primary ml-0.5">*</span></Label>
+                    <select id="gender" value={registrationData.gender} onChange={(e) => setRegistrationData({ ...registrationData, gender: e.target.value })} required className={cn("w-full h-12 rounded-xl border px-3 focus:outline-none focus:border-primary", isDashboard ? "border-input bg-background text-foreground" : "border-secondary bg-white text-black")}>
                       <option value="male">Male</option>
                       <option value="female">Female</option>
                       <option value="non-binary">Non-binary</option>
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="email" className="text-secondary text-[10px] font-bold tracking-widest uppercase">Email Address <span className="text-primary ml-0.5">*</span></Label>
-                    <Input id="email" type="email" value={registrationData.email} onChange={(e) => setRegistrationData({ ...registrationData, email: e.target.value })} required className="h-12 rounded-xl border-secondary bg-white text-black placeholder:text-slate-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary" />
+                    <Label htmlFor="email" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>Email Address <span className="text-primary ml-0.5">*</span></Label>
+                    <Input id="email" type="email" value={registrationData.email} onChange={(e) => setRegistrationData({ ...registrationData, email: e.target.value })} required className={cn("h-12 rounded-xl focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary", isDashboard ? "border-input bg-background text-foreground placeholder:text-muted-foreground" : "border-secondary bg-white text-black placeholder:text-slate-400")} />
                   </div>
                   <div className="sm:col-span-2 grid grid-cols-[7rem_1fr] gap-3">
                     <div className="space-y-2">
-                      <Label htmlFor="countryCode" className="text-secondary text-[10px] font-bold tracking-widest uppercase">Country Code <span className="text-primary ml-0.5">*</span></Label>
-                      <CountryCodeSelect id="countryCode" value={registrationData.countryCode} onValueChange={(value) => setRegistrationData({ ...registrationData, countryCode: value })} className="h-12 rounded-xl border-secondary bg-white text-black focus:ring-0 focus:ring-offset-0 focus:border-primary" />
+                      <Label htmlFor="countryCode" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>Country Code <span className="text-primary ml-0.5">*</span></Label>
+                      <CountryCodeSelect id="countryCode" value={registrationData.countryCode} onValueChange={(value) => setRegistrationData({ ...registrationData, countryCode: value })} className={cn("h-12 rounded-xl focus:ring-0 focus:ring-offset-0 focus:border-primary", isDashboard ? "border-input bg-background text-foreground" : "border-secondary bg-white text-black")} />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="phoneNumber" className="text-secondary text-[10px] font-bold tracking-widest uppercase">Phone Number <span className="text-primary ml-0.5">*</span></Label>
-                      <Input id="phoneNumber" type="tel" inputMode="numeric" minLength={7} maxLength={15} pattern="\d{7,15}" value={registrationData.phoneNumber} onChange={(e) => setRegistrationData({ ...registrationData, phoneNumber: e.target.value.replace(/\D/g, "").slice(0, 15) })} required className="h-12 rounded-xl border-secondary bg-white text-black placeholder:text-slate-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary" />
+                      <Label htmlFor="phoneNumber" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>Phone Number <span className="text-primary ml-0.5">*</span></Label>
+                      <Input id="phoneNumber" type="tel" inputMode="numeric" minLength={7} maxLength={15} pattern="\d{7,15}" value={registrationData.phoneNumber} onChange={(e) => setRegistrationData({ ...registrationData, phoneNumber: e.target.value.replace(/\D/g, "").slice(0, 15) })} required className={cn("h-12 rounded-xl focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary", isDashboard ? "border-input bg-background text-foreground placeholder:text-muted-foreground" : "border-secondary bg-white text-black placeholder:text-slate-400")} />
                       {registrationErrors.phoneNumber && <p className="text-destructive text-sm">{registrationErrors.phoneNumber}</p>}
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="address_line1" className="text-secondary text-[10px] font-bold tracking-widest uppercase">Address Line 1 <span className="text-primary ml-0.5">*</span></Label>
-                    <Input id="address_line1" value={registrationData.address_line1} onChange={(e) => setRegistrationData({ ...registrationData, address_line1: e.target.value })} required className="h-12 rounded-xl border-secondary bg-white text-black placeholder:text-slate-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary" />
+                    <Label htmlFor="address_line1" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>Address Line 1 <span className="text-primary ml-0.5">*</span></Label>
+                    <Input id="address_line1" value={registrationData.address_line1} onChange={(e) => setRegistrationData({ ...registrationData, address_line1: e.target.value })} required className={cn("h-12 rounded-xl focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary", isDashboard ? "border-input bg-background text-foreground placeholder:text-muted-foreground" : "border-secondary bg-white text-black placeholder:text-slate-400")} />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="address_line2" className="text-secondary text-[10px] font-bold tracking-widest uppercase">Address Line 2</Label>
-                    <Input id="address_line2" value={registrationData.address_line2} onChange={(e) => setRegistrationData({ ...registrationData, address_line2: e.target.value })} className="h-12 rounded-xl border-secondary bg-white text-black placeholder:text-slate-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary" />
+                    <Label htmlFor="address_line2" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>Address Line 2</Label>
+                    <Input id="address_line2" value={registrationData.address_line2} onChange={(e) => setRegistrationData({ ...registrationData, address_line2: e.target.value })} className={cn("h-12 rounded-xl focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary", isDashboard ? "border-input bg-background text-foreground placeholder:text-muted-foreground" : "border-secondary bg-white text-black placeholder:text-slate-400")} />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="city" className="text-secondary text-[10px] font-bold tracking-widest uppercase">City <span className="text-primary ml-0.5">*</span></Label>
-                    <Input id="city" value={registrationData.city} onChange={(e) => setRegistrationData({ ...registrationData, city: e.target.value })} required className="h-12 rounded-xl border-secondary bg-white text-black placeholder:text-slate-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary" />
+                    <Label htmlFor="city" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>City <span className="text-primary ml-0.5">*</span></Label>
+                    <Input id="city" value={registrationData.city} onChange={(e) => setRegistrationData({ ...registrationData, city: e.target.value })} required className={cn("h-12 rounded-xl focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary", isDashboard ? "border-input bg-background text-foreground placeholder:text-muted-foreground" : "border-secondary bg-white text-black placeholder:text-slate-400")} />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="state_province" className="text-secondary text-[10px] font-bold tracking-widest uppercase">State / Province <span className="text-primary ml-0.5">*</span></Label>
-                    <Input id="state_province" value={registrationData.state_province} onChange={(e) => setRegistrationData({ ...registrationData, state_province: e.target.value })} required className="h-12 rounded-xl border-secondary bg-white text-black placeholder:text-slate-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary" />
+                    <Label htmlFor="state_province" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>State / Province <span className="text-primary ml-0.5">*</span></Label>
+                    <Input id="state_province" value={registrationData.state_province} onChange={(e) => setRegistrationData({ ...registrationData, state_province: e.target.value })} required className={cn("h-12 rounded-xl focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary", isDashboard ? "border-input bg-background text-foreground placeholder:text-muted-foreground" : "border-secondary bg-white text-black placeholder:text-slate-400")} />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="zip_code" className="text-secondary text-[10px] font-bold tracking-widest uppercase">ZIP / Postal Code <span className="text-primary ml-0.5">*</span></Label>
-                    <Input id="zip_code" value={registrationData.zip_code} onChange={(e) => setRegistrationData({ ...registrationData, zip_code: e.target.value })} required className="h-12 rounded-xl border-secondary bg-white text-black placeholder:text-slate-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary" />
+                    <Label htmlFor="zip_code" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>ZIP / Postal Code <span className="text-primary ml-0.5">*</span></Label>
+                    <Input id="zip_code" value={registrationData.zip_code} onChange={(e) => setRegistrationData({ ...registrationData, zip_code: e.target.value })} required className={cn("h-12 rounded-xl focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary", isDashboard ? "border-input bg-background text-foreground placeholder:text-muted-foreground" : "border-secondary bg-white text-black placeholder:text-slate-400")} />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="country" className="text-secondary text-[10px] font-bold tracking-widest uppercase">Country <span className="text-primary ml-0.5">*</span></Label>
-                    <Input id="country" value={registrationData.country} onChange={(e) => setRegistrationData({ ...registrationData, country: e.target.value })} required className="h-12 rounded-xl border-secondary bg-white text-black placeholder:text-slate-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary" />
+                    <Label htmlFor="country" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>Country <span className="text-primary ml-0.5">*</span></Label>
+                    <Input id="country" value={registrationData.country} onChange={(e) => setRegistrationData({ ...registrationData, country: e.target.value })} required className={cn("h-12 rounded-xl focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary", isDashboard ? "border-input bg-background text-foreground placeholder:text-muted-foreground" : "border-secondary bg-white text-black placeholder:text-slate-400")} />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="id_proof_type" className="text-secondary text-[10px] font-bold tracking-widest uppercase">ID Proof Type</Label>
-                    <select id="id_proof_type" value={registrationData.id_proof_type} onChange={(e) => setRegistrationData({ ...registrationData, id_proof_type: e.target.value })} className="w-full h-12 rounded-xl border border-secondary px-3 bg-white text-black focus:outline-none focus:border-primary">
+                    <Label htmlFor="id_proof_type" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>ID Proof Type</Label>
+                    <select id="id_proof_type" value={registrationData.id_proof_type} onChange={(e) => setRegistrationData({ ...registrationData, id_proof_type: e.target.value })} className={cn("w-full h-12 rounded-xl border px-3 focus:outline-none focus:border-primary", isDashboard ? "border-input bg-background text-foreground" : "border-secondary bg-white text-black")}>
                       <option value="Aadhar">Aadhar</option>
                       <option value="Voter ID">Voter ID</option>
                       <option value="Passport">Passport</option>
@@ -1191,8 +1401,8 @@ export function JoinMembershipModal({
                     </select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="id_proof_number" className="text-secondary text-[10px] font-bold tracking-widest uppercase">ID Proof Number</Label>
-                    <Input id="id_proof_number" value={registrationData.id_proof_number} onChange={(e) => setRegistrationData({ ...registrationData, id_proof_number: e.target.value })} className="h-12 rounded-xl border-secondary bg-white text-black placeholder:text-slate-400 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary" />
+                    <Label htmlFor="id_proof_number" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>ID Proof Number</Label>
+                    <Input id="id_proof_number" value={registrationData.id_proof_number} onChange={(e) => setRegistrationData({ ...registrationData, id_proof_number: e.target.value })} className={cn("h-12 rounded-xl focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary", isDashboard ? "border-input bg-background text-foreground placeholder:text-muted-foreground" : "border-secondary bg-white text-black placeholder:text-slate-400")} />
                   </div>
                   {renderTshirtFields()}
                 </div>
@@ -1200,7 +1410,7 @@ export function JoinMembershipModal({
                 {selectedPlan?.referralReward?.enabled && renderReferralField()}
                 {renderCouponField()}
                 {renderPlanSummary()}
-                <Button type="submit" disabled={isProcessing} className="w-full h-12 font-bold bg-primary hover:bg-[#FF7E4A] hover:shadow-[0_8px_20px_#FF5C1A6B] text-white rounded-xl transition-all duration-300 active:scale-95 mt-4">
+                <Button type="submit" disabled={isProcessing} className={cn("w-full h-12 font-bold rounded-xl transition-all duration-300 active:scale-95 mt-4", isDashboard ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-md" : "bg-primary text-white hover:bg-[#FF7E4A] hover:shadow-[0_8px_20px_#FF5C1A6B]")}>
                   {isProcessing ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Processing...</> : getActionLabel()}
                 </Button>
               </form>
@@ -1215,7 +1425,12 @@ export function JoinMembershipModal({
                 {renderTshirtGallery()}
                 {selectedPlan?.referralReward?.enabled && renderReferralField()}
                 <Button
-                  className="w-full h-12 font-bold bg-primary hover:bg-[#FF7E4A] hover:shadow-[0_8px_20px_#FF5C1A6B] text-white rounded-xl transition-all duration-300 active:scale-95"
+                  className={cn(
+                    "w-full h-12 font-bold rounded-xl transition-all duration-300 active:scale-95",
+                    isDashboard
+                      ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-md"
+                      : "bg-primary hover:bg-[#FF7E4A] hover:shadow-[0_8px_20px_#FF5C1A6B] text-white"
+                  )}
                   onClick={handleSubscribeOrUpgrade}
                   disabled={actionDisabled}
                 >
@@ -1234,51 +1449,14 @@ export function JoinMembershipModal({
           </div>
         </DialogContent>
       </Dialog>
-
-      {pendingPayment && (
-        <PaymentSimulationModal
-          isOpen={!!pendingPayment}
-          onClose={() => {
-            setPendingPayment(null)
-            setPendingRegistrationData(null)
-          }}
-          onPaymentSuccess={handlePaymentSuccess}
-          onPaymentFailure={handlePaymentFailure}
-          orderId={pendingPayment.orderId}
-          orderNumber={pendingPayment.orderNumber}
-          total={pendingPayment.total}
-          subtotal={pendingPayment.subtotal}
-          platformFeeTotal={pendingPayment.platformFeeTotal}
-          platformFeePercent={pendingPayment.platformFeePercent}
-          razorpayFeeTotal={pendingPayment.razorpayFeeTotal}
-          couponDiscount={pendingPayment.couponDiscount}
-          couponCode={pendingPayment.couponCode}
-          currency={pendingPayment.currency}
-          paymentMethod={pendingPayment.paymentMethod}
-          dialogTitle={pendingPayment.isUpgrade ? "Pay upgrade difference" : "Pay for membership"}
-          dialogDescription={
-            pendingPayment.isUpgrade
-              ? `Pay the difference for ${pendingPayment.planName} (incl. GST & fees)`
-              : pendingPayment.isRegistration
-                ? "You're registered. Complete payment to activate your membership."
-                : `Complete payment for ${pendingPayment.planName}`
-          }
-          payButtonLabel="Pay & activate"
-          prefillPhone={pendingPayment.prefillPhone}
-          prefillEmail={pendingPayment.prefillEmail}
-          onRazorpayOrderCreated={async (razorpayOrderId) => {
-            const result = await apiClient.createPendingMembershipPurchase(
-              pendingPayment.planId,
-              razorpayOrderId,
-              pendingPayment.referralPhone,
-              { tshirtSize: registrationData.tshirtSize, tshirtColor: registrationData.tshirtColor },
-              pendingPayment.couponCode,
-            )
-            if (!result.success) toast.error(result.error || "Unable to prepare membership purchase")
-            return result.success
-          }}
-        />
-      )}
+      <LoginModal
+        open={loginModalOpen}
+        onOpenChange={setLoginModalOpen}
+        onSuccess={() => {
+          checkAuth()
+          setLoginModalOpen(false)
+        }}
+      />
     </>
   )
 }

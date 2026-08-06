@@ -55,9 +55,9 @@ export function SiteNavbar({ brandName = "Wingman Pro" }: SiteNavbarProps) {
     <>
       <LoginModal open={loginOpen} onOpenChange={setLoginOpen} />
       <header className="sticky top-0 z-50 bg-background border-b border-slate-200/60 dark:border-white/10 shadow-sm">
-        <div className="mx-auto max-w-8xl px-6 sm:px-8 lg:px-12 xl:px-16 py-4 flex items-center justify-between h-14 lg:h-20">
-          <Link href="/" className="flex items-center gap-3.5 group">
-            <div className="relative w-12 h-12">
+        <div className="mx-auto max-w-8xl px-4 sm:px-8 lg:px-12 xl:px-16 py-3 sm:py-4 flex items-center justify-between h-14 lg:h-20 gap-2">
+          <Link href="/" className="flex items-center gap-2 sm:gap-3.5 group min-w-0">
+            <div className="relative w-10 h-10 sm:w-12 sm:h-12 shrink-0">
               <Image
                 src="/Logo.svg"
                 alt="Wingman Pro logo"
@@ -67,7 +67,7 @@ export function SiteNavbar({ brandName = "Wingman Pro" }: SiteNavbarProps) {
               />
             </div>
 
-            <div className="flex flex-row text-md lg:text-xl gap-1 font-bold uppercase">
+            <div className="flex flex-row text-sm sm:text-md lg:text-xl gap-1 font-bold uppercase truncate">
               <span className="text-white">Wingman</span>
               <span className="text-primary">Pro</span>
             </div>

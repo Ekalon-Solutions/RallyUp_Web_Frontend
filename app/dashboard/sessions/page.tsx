@@ -8,8 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { useToast } from '@/hooks/use-toast';
+import { toast } from 'sonner';
 import { apiClient } from '@/lib/api';
+import { ProtectedRoute } from '@/components/protected-route';
 import { 
   Activity, 
   Users, 
@@ -72,7 +73,6 @@ export default function SessionsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [activeTab, setActiveTab] = useState('overview');
-  const { toast } = useToast();
 
   useEffect(() => {
     fetchData();
@@ -102,11 +102,7 @@ export default function SessionsPage() {
       }
     } catch (error) {
       // // console.error('Error fetching data:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to fetch session data',
-        variant: 'destructive',
-      });
+      toast.error('Failed to fetch session data');
     } finally {
       setLoading(false);
     }
@@ -116,21 +112,14 @@ export default function SessionsPage() {
     try {
       const response = await apiClient.forceLogoutSession(sessionId);
       if (response.success) {
-        toast({
-          title: 'Success',
-          description: 'Session terminated successfully',
-        });
+        toast.success('Session terminated successfully');
         fetchData();
       } else {
         throw new Error(response.error || 'Failed to terminate session');
       }
     } catch (error) {
       // // console.error('Error terminating session:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to terminate session',
-        variant: 'destructive',
-      });
+      toast.error('Failed to terminate session');
     }
   };
 
@@ -138,21 +127,14 @@ export default function SessionsPage() {
     try {
       const response = await apiClient.forceLogoutUser(userId, userType);
       if (response.success) {
-        toast({
-          title: 'Success',
-          description: `Successfully terminated ${response.data.sessionsTerminated} sessions`,
-        });
+        toast.success(`Successfully terminated ${response.data.sessionsTerminated} sessions`);
         fetchData();
       } else {
         throw new Error(response.error || 'Failed to terminate user sessions');
       }
     } catch (error) {
       // // console.error('Error terminating user sessions:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to terminate user sessions',
-        variant: 'destructive',
-      });
+      toast.error('Failed to terminate user sessions');
     }
   };
 
@@ -160,21 +142,14 @@ export default function SessionsPage() {
     try {
       const response = await apiClient.cleanupExpiredSessions();
       if (response.success) {
-        toast({
-          title: 'Success',
-          description: `Successfully cleaned up ${response.data.cleanedCount} expired sessions`,
-        });
+        toast.success(`Successfully cleaned up ${response.data.cleanedCount} expired sessions`);
         fetchData();
       } else {
         throw new Error(response.error || 'Failed to cleanup expired sessions');
       }
     } catch (error) {
       // // console.error('Error cleaning up sessions:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to cleanup expired sessions',
-        variant: 'destructive',
-      });
+      toast.error('Failed to cleanup expired sessions');
     }
   };
 
@@ -221,22 +196,25 @@ export default function SessionsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <RefreshCw className="h-8 w-8 animate-spin" />
-      </div>
+      <ProtectedRoute requireSystemOwner>
+        <div className="flex items-center justify-center h-64">
+          <RefreshCw className="h-8 w-8 animate-spin" />
+        </div>
+      </ProtectedRoute>
     );
   }
 
   return (
+    <ProtectedRoute requireSystemOwner>
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Session Management</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Session Management</h1>
           <p className="text-muted-foreground">
             Monitor and manage user sessions for security
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2 w-full sm:w-auto">
           <Button onClick={handleCleanupExpired} variant="outline">
             <RefreshCw className="h-4 w-4 mr-2" />
             Cleanup Expired
@@ -346,7 +324,7 @@ export default function SessionsPage() {
           />
         </div>
         <Select value={userTypeFilter} onValueChange={setUserTypeFilter}>
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="w-full sm:w-40">
             <SelectValue placeholder="User Type" />
           </SelectTrigger>
           <SelectContent>
@@ -357,7 +335,7 @@ export default function SessionsPage() {
           </SelectContent>
         </Select>
         <Select value={deviceTypeFilter} onValueChange={setDeviceTypeFilter}>
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="w-full sm:w-40">
             <SelectValue placeholder="Device Type" />
           </SelectTrigger>
           <SelectContent>
@@ -604,5 +582,6 @@ export default function SessionsPage() {
         </div>
       )}
     </div>
+    </ProtectedRoute>
   );
 }

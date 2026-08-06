@@ -110,6 +110,8 @@ export function CreatePollModal({ isOpen, onClose, onSuccess, editPoll }: Create
         toast.error("You must be associated with a club to create polls")
       } else if (error.message?.includes("Network")) {
         toast.error("Network error. Please check your connection and try again.")
+      } else if (error.message?.includes("Cannot modify poll options")) {
+        toast.error("Poll options cannot be edited after votes have been cast")
       } else if (error.message?.includes("validation") || error.message?.includes("required")) {
         toast.error("Please check your poll details and try again")
       } else if (error.message?.includes("options")) {

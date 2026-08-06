@@ -170,7 +170,7 @@ export default function InventoryReportPage() {
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">Stock Status</Label>
               <Select value={filters.extras?.stockStatus || "all"} onValueChange={(val) => setFilters((prev) => ({ ...prev, extras: { ...prev.extras, stockStatus: val } }))}>
-                <SelectTrigger className="w-40"><SelectValue placeholder="All Stock" /></SelectTrigger>
+                <SelectTrigger className="w-full sm:w-40"><SelectValue placeholder="All Stock" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Stock</SelectItem>
                   <SelectItem value="available">Available</SelectItem>

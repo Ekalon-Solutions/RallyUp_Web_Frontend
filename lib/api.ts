@@ -5,6 +5,51 @@ import { CLUB_FEATURE_DISABLED_EVENT, type ClubFeatureKey } from './clubFeatures
 
 const API_BASE_URL = getApiUrl('');
 
+/** Dispatched on any 401 response from an authenticated request, so listeners can force-logout. */
+export const SESSION_EXPIRED_EVENT = 'rallyup:session-expired';
+
+// Endpoints where a 401 is an expected outcome, not a sign the session expired:
+// pre-auth OTP/login calls, the account-switch call itself, and the profile
+// endpoints checkAuth() probes in a discovery loop (trying user/admin/system-owner
+// profiles in turn, expecting most of them to 401).
+const SESSION_EXPIRY_EXEMPT_ENDPOINTS = [
+  '/otp/send',
+  '/otp/verify',
+  '/otp/verify-email-otp',
+  '/otp/resend',
+  '/role-switch/switch',
+  '/users/profile',
+  '/admin/profile',
+  '/system-owner/profile',
+];
+
+export interface Comment {
+  _id: string;
+  user?: { _id: string; name: string; avatar?: string; role?: string };
+  author?: { _id: string; name: string; avatar?: string; role?: string };
+  authorName?: string;
+  authorModel?: string;
+  content: string;
+  createdAt: string;
+  updatedAt?: string;
+  likesCount?: number;
+  likes?: string[];
+  isLiked?: boolean;
+  isDeleted?: boolean;
+  isEdited?: boolean;
+  deletedAt?: string;
+  replies?: Comment[];
+  parentCommentId?: string;
+}
+
+export interface CommentResponse {
+  comments: Comment[];
+  totalComments?: number;
+  page?: number;
+  totalPages?: number;
+  pagination?: { pages?: number; total?: number; limit?: number; page?: number };
+}
+
 export interface ApiResponse<T = any> {
   success: boolean;
   data?: T;
@@ -276,6 +321,28 @@ export type ResendTicketResult = ApiResponse<{
   whatsapp?: ResendTicketWhatsAppInfo;
 }>;
 
+export interface UserAddress {
+  id: string;
+  fullName: string;
+  countryCode: string;
+  phoneNumber: string;
+  addressLine1: string;
+  addressLine2?: string;
+  city: string;
+  pinCode: string;
+  stateCounty: string;
+  country: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export type UserAddressPayload = Omit<UserAddress, 'id' | 'createdAt' | 'updatedAt'>;
+
+export interface UserAddressMutationResult {
+  address: UserAddress;
+  addresses: UserAddress[];
+}
+
 export interface User {
   _id: string;
   name: string;
@@ -284,6 +351,15 @@ export interface User {
   countryCode: string;
   isPhoneVerified: boolean;
   role: 'member';
+  first_name?: string;
+  last_name?: string;
+  address_line1?: string;
+  address_line2?: string;
+  city?: string;
+  state_province?: string;
+  zip_code?: string;
+  country?: string;
+  addresses?: UserAddress[];
   club?: Club;
   membershipPlan?: string;
   membershipExpiry?: string;
@@ -550,7 +626,8 @@ export interface Chant {
   fileSize?: number;
   mimeType?: string;
   club: Club;
-  createdBy: User;
+  /** Null when the creating user/admin was deleted (populate returns null). */
+  createdBy: User | null;
   isActive: boolean;
   tags?: string[];
   fileTypeDisplay?: string;
@@ -1171,6 +1248,22 @@ class ApiClient {
           );
         }
 
+        const isRoleAccessError =
+          data?.message === 'Admin access required' ||
+          data?.message === 'System Owner access required' ||
+          data?.message === 'Admin account is inactive' ||
+          (typeof data?.message === 'string' && data.message.includes('access required'))
+
+        if (
+          typeof window !== 'undefined' &&
+          response.status === 401 &&
+          token &&
+          !isRoleAccessError &&
+          !SESSION_EXPIRY_EXEMPT_ENDPOINTS.some((exempt) => endpoint.startsWith(exempt))
+        ) {
+          window.dispatchEvent(new CustomEvent(SESSION_EXPIRED_EVENT));
+        }
+
         return {
           success: false,
           error: errorMessage,
@@ -1300,6 +1393,10 @@ class ApiClient {
       method: 'POST',
       body: JSON.stringify(data),
     });
+  }
+
+  async ssoExchange(ssoTicket: string): Promise<ApiResponse<{ token: string; user: any }>> {
+    return this.post('/users/sso-exchange', { ssoTicket });
   }
 
   async adminProfile(): Promise<ApiResponse<Admin>> {
@@ -1436,7 +1533,7 @@ class ApiClient {
     email?: string;
     phoneNumber?: string;
     countryCode?: string;
-    role: 'user' | 'admin' | 'system_owner';
+    role?: 'user' | 'admin' | 'system_owner';
     username?: string;
     recaptchaToken?: string;
   }): Promise<ApiResponse<{ userData?: any; sessionInfo?: string; deliveryChannel?: string; whatsAppUsed?: boolean }>> {
@@ -1446,7 +1543,7 @@ class ApiClient {
     });
   }
 
-  async verifyEmailOTP(params: { email: string; otp: string; role: 'user' | 'admin' | 'system_owner' }): Promise<ApiResponse<{ token: string } & (User | Admin | SystemOwner)>> {
+  async verifyEmailOTP(params: { email: string; otp: string; role?: 'user' | 'admin' | 'system_owner' }): Promise<ApiResponse<{ token: string } & (User | Admin | SystemOwner)>> {
     return this.request('/otp/verify-email-otp', {
       method: 'POST',
       body: JSON.stringify(params),
@@ -1458,7 +1555,7 @@ class ApiClient {
     countryCode?: string; 
     email?: string; 
     otp: string; 
-    role: 'user' | 'admin' | 'system_owner';
+    role?: 'user' | 'admin' | 'system_owner';
     sessionInfo?: string;
   }): Promise<ApiResponse<{
     verified: boolean;
@@ -1478,7 +1575,7 @@ class ApiClient {
     email?: string;
     phoneNumber?: string;
     countryCode?: string;
-    role: 'user' | 'admin' | 'system_owner';
+    role?: 'user' | 'admin' | 'system_owner';
     username?: string;
     recaptchaToken?: string;
     channel?: 'whatsapp' | 'sms';
@@ -1680,6 +1777,47 @@ class ApiClient {
 
   async userProfile(): Promise<ApiResponse<User>> {
     return this.request('/users/profile');
+  }
+
+  async getUserAddresses(): Promise<ApiResponse<UserAddress[]>> {
+    const response = await this.get('/users/addresses');
+    if (!response.success) return response as ApiResponse<UserAddress[]>;
+
+    const body = response.data as any;
+    const addresses = body?.data?.addresses ?? body?.addresses ?? [];
+    return {
+      ...response,
+      data: Array.isArray(addresses) ? addresses : [],
+    };
+  }
+
+  async createUserAddress(payload: UserAddressPayload): Promise<ApiResponse<UserAddressMutationResult>> {
+    const response = await this.post('/users/addresses', payload);
+    if (!response.success) return response as ApiResponse<UserAddressMutationResult>;
+
+    const body = ((response.data as any)?.data ?? response.data) as Partial<UserAddressMutationResult> | undefined;
+    return {
+      ...response,
+      data: body?.address && Array.isArray(body?.addresses)
+        ? { address: body.address, addresses: body.addresses }
+        : undefined,
+    };
+  }
+
+  async updateUserAddress(
+    addressId: string,
+    payload: UserAddressPayload
+  ): Promise<ApiResponse<UserAddressMutationResult>> {
+    const response = await this.put(`/users/addresses/${addressId}`, payload);
+    if (!response.success) return response as ApiResponse<UserAddressMutationResult>;
+
+    const body = ((response.data as any)?.data ?? response.data) as Partial<UserAddressMutationResult> | undefined;
+    return {
+      ...response,
+      data: body?.address && Array.isArray(body?.addresses)
+        ? { address: body.address, addresses: body.addresses }
+        : undefined,
+    };
   }
 
   async updateUserProfile(data: {
@@ -3647,26 +3785,33 @@ class ApiClient {
     const endpoint = isPublic ? `/clubs/${id}/public` : `/clubs/${id}`;
 
     if (isPublic) {
-      const url = `${this.baseURL}${endpoint}`;
-      const response = await fetch(url, {
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        }
-      });
+      try {
+        const url = `${this.baseURL}${endpoint}`;
+        const response = await fetch(url, {
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
+        });
 
-      if (!response.ok) {
+        if (!response.ok) {
+          return {
+            success: false,
+            error: 'Failed to fetch club data'
+          };
+        }
+
+        const data = await response.json();
+        return {
+          success: true,
+          data: data
+        };
+      } catch (err: any) {
         return {
           success: false,
-          error: 'Failed to fetch club data'
+          error: err?.message || 'Failed to fetch club data'
         };
       }
-
-      const data = await response.json();
-      return {
-        success: true,
-        data: data
-      };
     }
 
     return this.request(endpoint);
@@ -3834,8 +3979,7 @@ class ApiClient {
     payment?: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string },
     referralPhone?: string,
     merch?: { tshirtSize?: string; tshirtColor?: string },
-    couponCode?: string,
-    amountPaid?: number
+    couponCode?: string
   ): Promise<ApiResponse<{
     message: string;
     data: {
@@ -3849,7 +3993,6 @@ class ApiClient {
     if (merch?.tshirtSize) body.tshirtSize = merch.tshirtSize;
     if (merch?.tshirtColor) body.tshirtColor = merch.tshirtColor;
     if (couponCode) body.couponCode = couponCode;
-    if (amountPaid !== undefined) body.amountPaid = amountPaid;
     return this.request(`/membership-plans/${planId}/subscribe`, {
       method: 'POST',
       body: Object.keys(body).length > 0 ? JSON.stringify(body) : undefined,
@@ -3860,14 +4003,20 @@ class ApiClient {
     planId: string,
     razorpayOrderId: string,
     referralPhone?: string,
-    merch?: { tshirtSize?: string; tshirtColor?: string },
+    merchOrCoupon?: { tshirtSize?: string; tshirtColor?: string } | string,
     couponCode?: string
   ): Promise<ApiResponse<{ userMembership: any; status: 'pending' | 'active' }>> {
     const body: any = { razorpayOrderId }
     if (referralPhone) body.referralPhone = referralPhone
-    if (merch?.tshirtSize) body.tshirtSize = merch.tshirtSize
-    if (merch?.tshirtColor) body.tshirtColor = merch.tshirtColor
-    if (couponCode) body.couponCode = couponCode
+    if (typeof merchOrCoupon === 'object' && merchOrCoupon !== null) {
+      if (merchOrCoupon.tshirtSize) body.tshirtSize = merchOrCoupon.tshirtSize
+      if (merchOrCoupon.tshirtColor) body.tshirtColor = merchOrCoupon.tshirtColor
+      if (couponCode) body.couponCode = couponCode
+    } else if (typeof merchOrCoupon === 'string') {
+      body.couponCode = merchOrCoupon
+    } else if (couponCode) {
+      body.couponCode = couponCode
+    }
     return this.request(`/membership-plans/${planId}/pending-purchase`, {
       method: 'POST',
       body: JSON.stringify(body),
@@ -5029,9 +5178,10 @@ class ApiClient {
     });
   }
 
-  async leaveClub(): Promise<ApiResponse<{ message: string; user: User }>> {
+  async leaveClub(clubId?: string, membershipId?: string): Promise<ApiResponse<{ message: string; user: User }>> {
     return this.request('/users/leave-club', {
-      method: 'POST'
+      method: 'POST',
+      body: JSON.stringify({ clubId, membershipId }),
     });
   }
 
@@ -5799,26 +5949,33 @@ class ApiClient {
     const endpoint = isPublic ? `/club-settings/${clubId}/public` : `/club-settings/${clubId}`;
 
     if (isPublic) {
-      const url = `${this.baseURL}${endpoint}`;
-      const response = await fetch(url, {
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
-        }
-      });
+      try {
+        const url = `${this.baseURL}${endpoint}`;
+        const response = await fetch(url, {
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          }
+        });
 
-      if (!response.ok) {
+        if (!response.ok) {
+          return {
+            success: false,
+            error: 'Failed to fetch club settings'
+          };
+        }
+
+        const data = await response.json();
+        return {
+          success: true,
+          data: data
+        };
+      } catch (err: any) {
         return {
           success: false,
-          error: 'Failed to fetch club settings'
+          error: err?.message || 'Failed to fetch club settings'
         };
       }
-
-      const data = await response.json();
-      return {
-        success: true,
-        data: data
-      };
     }
 
     return this.get(endpoint);
@@ -5911,8 +6068,8 @@ class ApiClient {
     return this.put(`/club-settings/${clubId}/sports`, data);
   }
 
-  async refreshLeagueTables(): Promise<ApiResponse<any>> {
-    return this.post(`/sports/refresh-league-tables`, {});
+  async refreshLeagueTables(clubId?: string): Promise<ApiResponse<any>> {
+    return this.post(`/sports/refresh-league-tables`, clubId ? { clubId } : {});
   }
 
   async getLeagueTable(leagueId: string): Promise<ApiResponse<any>> {
@@ -5980,10 +6137,19 @@ class ApiClient {
     });
   }
 
-  async validateCoupon(code: string, eventId?: string, ticketPrice?: number, clubId?: string, purchaseType?: 'membership'): Promise<ApiResponse<{ coupon: { code: string; name: string; discountType: 'flat' | 'percentage'; discountValue: number; discount: number; originalPrice: number; finalPrice: number } }>> {
+  async validateCoupon(
+    code: string,
+    optsOrEventId?: string | { eventId?: string; ticketPrice?: number; clubId?: string; purchaseType?: 'membership'; email?: string; phone?: string },
+    ticketPrice?: number,
+    clubId?: string,
+    purchaseType?: 'membership'
+  ): Promise<ApiResponse<{ coupon: { code: string; name: string; discountType: 'flat' | 'percentage'; discountValue: number; discount: number; originalPrice: number; finalPrice: number } }>> {
+    const payload = typeof optsOrEventId === 'object' && optsOrEventId !== null
+      ? { code, ...optsOrEventId }
+      : { code, eventId: optsOrEventId, ticketPrice, clubId, purchaseType };
     return this.request('/coupons/validate', {
       method: 'POST',
-      body: JSON.stringify({ code, eventId, ticketPrice, clubId, purchaseType }),
+      body: JSON.stringify(payload),
     });
   }
 
@@ -5998,7 +6164,7 @@ class ApiClient {
     clubId: string;
     phone?: string;
     email?: string;
-    cartSubtotal: number;
+    cartSubtotal?: number;
     eventId?: string;
     purchaseType?: 'membership';
   }): Promise<ApiResponse<{
@@ -6121,7 +6287,9 @@ class ApiClient {
       itemsPerPage: number;
     };
   }>> {
-    return this.get('/refunds/admin', { params });
+    const res = await this.get<any>('/refunds/admin', { params });
+    if (res.success && res.data) return { ...res, data: res.data.data ?? res.data };
+    return res;
   }
 
   async getRefundRecalculate(refundId: string, clubId?: string): Promise<ApiResponse<{
@@ -6132,7 +6300,9 @@ class ApiClient {
     differs: boolean;
   }>> {
     const qs = clubId ? `?clubId=${encodeURIComponent(clubId)}` : '';
-    return this.get(`/refunds/admin/${refundId}/recalculate${qs}`);
+    const res = await this.get<any>(`/refunds/admin/${refundId}/recalculate${qs}`);
+    if (res.success && res.data) return { ...res, data: res.data.data ?? res.data };
+    return res;
   }
 
   async markRefundProcessed(refundId: string, adminNotes?: string, clubId?: string): Promise<ApiResponse<any>> {
@@ -6140,6 +6310,23 @@ class ApiClient {
       method: 'PATCH',
       body: JSON.stringify({ adminNotes, ...(clubId ? { clubId } : {}) }),
     });
+  }
+
+  async getRefundPolicyText(clubId: string): Promise<ApiResponse<{
+    customCancellationText?: string;
+    grandfatherPurchasedRefunds?: boolean;
+  }>> {
+    const res = await this.get<any>('/refunds/admin/policy-text', { params: { clubId } });
+    if (res.success && res.data) return { ...res, data: res.data.data ?? res.data };
+    return res;
+  }
+
+  async updateRefundPolicyText(clubId: string, customCancellationText: string): Promise<ApiResponse<any>> {
+    return this.put('/refunds/admin/policy-text', { clubId, customCancellationText });
+  }
+
+  async updateRefundGrandfathering(clubId: string, grandfatherPurchasedRefunds: boolean): Promise<ApiResponse<any>> {
+    return this.put('/refunds/admin/refund-grandfathering', { clubId, grandfatherPurchasedRefunds });
   }
 
   async getEventRefundPolicy(eventId: string): Promise<ApiResponse<{
@@ -6189,7 +6376,9 @@ class ApiClient {
     bySource: Array<{ source: string; count: number }>;
     dailyOpens: Array<{ date: string; count: number }>;
   }>> {
-    return this.get('/refunds/admin/policy-analytics', { params });
+    const res = await this.get<any>('/refunds/admin/policy-analytics', { params });
+    if (res.success && res.data) return { ...res, data: res.data.data ?? res.data };
+    return res;
   }
 
   async getClubStats(clubId: string): Promise<ApiResponse<{
@@ -7010,6 +7199,74 @@ class ApiClient {
     } catch (error: any) {
       return { success: false, error: error?.message || 'Failed to download Super Admin Audit Log report' };
     }
+  }
+
+  // Sessions Management
+  async getAllSessions(params?: any): Promise<ApiResponse> {
+    return this.get('/sessions', { params });
+  }
+
+  async getSessionStats(): Promise<ApiResponse> {
+    return this.get('/sessions/stats');
+  }
+
+  async getSuspiciousSessions(): Promise<ApiResponse> {
+    return this.get('/sessions/suspicious');
+  }
+
+  async forceLogoutSession(sessionId: string): Promise<ApiResponse> {
+    return this.request(`/sessions/${sessionId}/force-logout`, { method: 'POST' });
+  }
+
+  async forceLogoutUser(userId: string, reason?: string): Promise<ApiResponse> {
+    return this.request(`/sessions/user/${userId}/force-logout`, { method: 'POST', body: JSON.stringify({ reason }) });
+  }
+
+  async cleanupExpiredSessions(): Promise<ApiResponse> {
+    return this.request('/sessions/cleanup', { method: 'POST' });
+  }
+
+  // Comments
+  async getComments(newsId: string, page = 1, limit = 20): Promise<ApiResponse<CommentResponse>> {
+    return this.get(`/comments/news/${newsId}`, { params: { page, limit } });
+  }
+
+  async createComment(data: { newsId?: string; content: string; parentCommentId?: string; [key: string]: any }): Promise<ApiResponse> {
+    return this.request('/comments', { method: 'POST', body: JSON.stringify(data) });
+  }
+
+  async updateComment(commentId: string, content: string): Promise<ApiResponse> {
+    return this.request(`/comments/${commentId}`, { method: 'PUT', body: JSON.stringify({ content }) });
+  }
+
+  async deleteComment(commentId: string): Promise<ApiResponse> {
+    return this.request(`/comments/${commentId}`, { method: 'DELETE' });
+  }
+
+  async toggleCommentLike(commentId: string): Promise<ApiResponse> {
+    return this.request(`/comments/${commentId}/like`, { method: 'POST' });
+  }
+
+  // News Likes
+  async checkNewsLike(newsId: string): Promise<ApiResponse<{ liked: boolean; isLiked: boolean; likesCount: number; likeCount: number }>> {
+    return this.get(`/news/${newsId}/like-status`);
+  }
+
+  async toggleNewsLike(newsId: string): Promise<ApiResponse<{ liked: boolean; isLiked: boolean; likesCount: number; likeCount: number }>> {
+    return this.request(`/news/${newsId}/like`, { method: 'POST' });
+  }
+
+  // Leaderboard
+  async getLeaderboardStats(params?: any): Promise<ApiResponse> {
+    return this.get('/leaderboard/stats', { params: typeof params === 'object' ? params : { clubId: params } });
+  }
+
+  async syncLeaderboard(params?: any): Promise<ApiResponse> {
+    return this.request('/leaderboard/sync', { method: 'POST', body: JSON.stringify(typeof params === 'object' ? params : { clubId: params }) });
+  }
+
+  async createOrUpdateLeaderboard(data: any): Promise<ApiResponse> {
+    return this.request('/leaderboard', { method: 'POST', body: JSON.stringify(data) });
   }
 }
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useCallback, useState } from 'react';
 import { useSocket } from '@/contexts/socket-context';
-import { useToast } from './use-toast';
+import { toast } from 'sonner';
 
 interface Message {
   _id: string;
@@ -48,7 +48,6 @@ export const useMessaging = ({
   onMessagesRead,
 }: UseMessagingProps) => {
   const { socket, isConnected } = useSocket();
-  const { toast } = useToast();
   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
   const [isTyping, setIsTyping] = useState(false);
 
@@ -155,7 +154,6 @@ export const useMessaging = ({
 
 export const useConnectionNotifications = (currentUserId: string) => {
   const { socket } = useSocket();
-  const { toast } = useToast();
   const [notifications, setNotifications] = useState<any[]>([]);
 
   useEffect(() => {
@@ -164,8 +162,7 @@ export const useConnectionNotifications = (currentUserId: string) => {
     const handleConnectionRequest = (requestData: any) => {
       const requesterName = `${requestData.requester.first_name} ${requestData.requester.last_name}`;
       
-      toast({
-        title: "New Connection Request",
+      toast.info("New Connection Request", {
         description: `${requesterName} wants to connect with you`,
       });
 
@@ -181,11 +178,15 @@ export const useConnectionNotifications = (currentUserId: string) => {
       const recipientName = `${responseData.recipient.first_name} ${responseData.recipient.last_name}`;
       const status = responseData.status;
       
-      toast({
-        title: "Connection Request Response",
-        description: `${recipientName} ${status} your connection request`,
-        variant: status === 'accepted' ? 'default' : 'destructive',
-      });
+      if (status === 'accepted') {
+        toast.success("Connection Request Response", {
+          description: `${recipientName} ${status} your connection request`,
+        });
+      } else {
+        toast.error("Connection Request Response", {
+          description: `${recipientName} ${status} your connection request`,
+        });
+      }
 
       setNotifications(prev => [...prev, {
         id: responseData._id,
@@ -202,7 +203,7 @@ export const useConnectionNotifications = (currentUserId: string) => {
       socket.off('new-connection-request', handleConnectionRequest);
       socket.off('connection-response', handleConnectionResponse);
     };
-  }, [socket, toast]);
+  }, [socket]);
 
   const clearNotification = useCallback((notificationId: string) => {
     setNotifications(prev => prev.filter(n => n.id !== notificationId));

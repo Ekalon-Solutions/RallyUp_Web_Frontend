@@ -1,9 +1,9 @@
 "use client"
 
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { ProtectedRoute } from '@/components/protected-route'
 import { DashboardLayout } from '@/components/dashboard-layout'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -32,8 +32,10 @@ function pickPreferredCameraId(devices: MediaDeviceInfo[]): string | undefined {
 
 type ScannerState = 'idle' | 'starting' | 'scanning' | 'error'
 
-export default function ScannerPage() {
+function ScannerPageInner() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const eventId = searchParams.get('eventId')
   const videoRef = useRef<HTMLVideoElement>(null)
   const readerRef = useRef<BrowserQRCodeReader | null>(null)
   const controlsRef = useRef<IScannerControls | null>(null)
@@ -44,10 +46,10 @@ export default function ScannerPage() {
   const [manualInput, setManualInput] = useState<string>('')
 
   const navigateToAttendance = useCallback((registrationId: string, attendeeId: string) => {
-    router.push(
-      `/dashboard/events/attendance?registrationId=${encodeURIComponent(registrationId)}&attendeeId=${encodeURIComponent(attendeeId)}`
-    )
-  }, [router])
+    const params = new URLSearchParams({ registrationId, attendeeId })
+    if (eventId) params.set('eventId', eventId)
+    router.push(`/dashboard/events/attendance?${params.toString()}`)
+  }, [router, eventId])
 
   const stopScanner = useCallback(() => {
     controlsRef.current?.stop()
@@ -143,7 +145,7 @@ export default function ScannerPage() {
   return (
     <ProtectedRoute requireAdmin>
       <DashboardLayout>
-        <div className="p-6 max-w-lg mx-auto space-y-6">
+        <div className="max-w-lg mx-auto space-y-6">
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
               <ScanLine className="w-6 h-6" />
@@ -152,6 +154,12 @@ export default function ScannerPage() {
             <p className="text-muted-foreground text-sm mt-1">
               Scan an attendee&apos;s event QR code to confirm their ticket before marking attendance.
             </p>
+            {!eventId && (
+              <p className="text-sm text-amber-600 flex items-center gap-1 mt-2">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" /> No event selected — open this scanner from an
+                event&apos;s page so tickets for other events can be rejected.
+              </p>
+            )}
           </div>
 
           <Card>
@@ -247,5 +255,13 @@ export default function ScannerPage() {
         </div>
       </DashboardLayout>
     </ProtectedRoute>
+  )
+}
+
+export default function ScannerPage() {
+  return (
+    <Suspense fallback={null}>
+      <ScannerPageInner />
+    </Suspense>
   )
 }

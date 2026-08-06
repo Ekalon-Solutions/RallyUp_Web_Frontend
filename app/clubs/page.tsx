@@ -46,11 +46,13 @@ import { toast } from "sonner"
 import { getApiUrl, API_ENDPOINTS } from "@/lib/config"
 import { calculateTransactionFees } from "@/lib/transactionFees"
 import { PaymentSimulationModal } from "@/components/modals/payment-simulation-modal"
+import { JoinMembershipModal } from "@/components/modals/join-membership-modal"
 import { SiteNavbar } from "@/components/site-navbar"
 import { SiteFooter } from "@/components/site-footer"
 import { cn } from "@/lib/utils"
 import { apiClient } from "@/lib/api"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { useAuth } from "@/contexts/auth-context"
 
 interface Club {
   _id: string
@@ -148,6 +150,7 @@ function ClubsPageContent() {
   const [selectedClub, setSelectedClub] = useState<Club | null>(null)
   const [selectedPlan, setSelectedPlan] = useState<MembershipPlan | null>(null)
   const [showRegistrationDialog, setShowRegistrationDialog] = useState(false)
+  const [showMembershipDialog, setShowMembershipDialog] = useState(false)
   const [showClubDetails, setShowClubDetails] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
@@ -180,6 +183,7 @@ function ClubsPageContent() {
   const [userMemberships, setUserMemberships] = useState<Record<string, string>>({})
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { user, isAuthenticated } = useAuth()
   const showTshirtFields = (selectedClub?.name ?? "").toLowerCase().includes(TSHIRT_FIELD_CLUB_NAME_MATCH)
 
   useEffect(() => {
@@ -227,6 +231,14 @@ function ClubsPageContent() {
     }
     completePendingJoin()
   }, [router])
+
+  // If auth hydration completes after a join click, move the user out of the
+  // guest registration form and into the authenticated membership checkout.
+  useEffect(() => {
+    if (!isAuthenticated || !showRegistrationDialog || !selectedClub || !selectedPlan) return
+    setShowRegistrationDialog(false)
+    setShowMembershipDialog(true)
+  }, [isAuthenticated, showRegistrationDialog, selectedClub, selectedPlan])
 
   useEffect(() => {
     filterClubs()
@@ -284,13 +296,17 @@ function ClubsPageContent() {
       autoCouponRemoved
     ) return
 
-    const phone = `${registrationData.countryCode || "+91"}${registrationData.phoneNumber || ""}`
+    const phone = registrationData.phoneNumber
+      ? `${registrationData.countryCode || "+91"}${registrationData.phoneNumber}`
+      : user?.phoneNumber || undefined
+    const email = registrationData.email || user?.email || undefined
+
     const timer = setTimeout(async () => {
       try {
         const response = await apiClient.getHighestEligibleAutoCoupon({
           clubId: selectedClub._id,
-          phone: phone || undefined,
-          email: registrationData.email || undefined,
+          phone,
+          email,
           cartSubtotal: selectedPlan.price,
           purchaseType: "membership",
         })
@@ -327,12 +343,21 @@ function ClubsPageContent() {
     }
     setValidatingCoupon(true)
     try {
+      const rawPhone = registrationData.phoneNumber
+        ? `${registrationData.countryCode || "+91"}${registrationData.phoneNumber}`
+        : user?.phoneNumber || ""
+      const phone = rawPhone && rawPhone !== "+91" ? rawPhone : undefined
+      const email = registrationData.email || user?.email || undefined
+
       const response = await apiClient.validateCoupon(
         couponCode.trim().toUpperCase(),
-        undefined,
-        selectedPlan.price,
-        selectedClub._id,
-        "membership",
+        {
+          ticketPrice: selectedPlan.price,
+          clubId: selectedClub._id,
+          purchaseType: "membership",
+          email,
+          phone,
+        }
       )
       if (response.success && response.data?.coupon) {
         setAppliedCoupon({
@@ -493,7 +518,11 @@ function ClubsPageContent() {
     setSelectedPlan(plan)
     resetReferralState()
     resetCouponState()
-    setShowRegistrationDialog(true)
+    if (isAuthenticated) {
+      setShowMembershipDialog(true)
+    } else {
+      setShowRegistrationDialog(true)
+    }
   }
 
   const handleViewClubDetails = (club: Club) => {
@@ -543,7 +572,7 @@ function ClubsPageContent() {
               JSON.stringify({ clubId: selectedClub._id, membershipPlanId: selectedPlan._id })
             )
           } catch (_) { }
-          router.push("/login?redirect=/clubs")
+          router.push("/?redirect=/clubs")
           return
         }
 
@@ -656,7 +685,7 @@ function ClubsPageContent() {
                   JSON.stringify({ clubId: selectedClub._id, membershipPlanId: selectedPlan._id })
                 )
               } catch (_) { }
-              router.push("/login?redirect=/clubs")
+              router.push("/?redirect=/clubs")
             } else {
               toast.error(checkData.message || "This membership plan is no longer available for this club.")
             }
@@ -1227,7 +1256,7 @@ function ClubsPageContent() {
               </DialogHeader>
 
               <Tabs defaultValue="plans" className="w-full">
-                <TabsList className="grid w-full grid-cols-3 h-auto">
+                <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 h-auto">
                   <TabsTrigger className="whitespace-normal" value="plans">Membership Plans</TabsTrigger>
                   <TabsTrigger value="info">Club Info</TabsTrigger>
                   <TabsTrigger value="features">Features</TabsTrigger>
@@ -1515,8 +1544,21 @@ function ClubsPageContent() {
         </DialogContent>
       </Dialog>
 
+      {selectedClub && selectedPlan && (
+        <JoinMembershipModal
+          open={showMembershipDialog}
+          onOpenChange={setShowMembershipDialog}
+          clubId={selectedClub._id}
+          clubName={selectedClub.name}
+          platformFeePercent={selectedClub.platformFeePercent}
+          plans={(selectedClub.membershipPlans || []).filter((plan) => plan.isActive)}
+          initialPlanId={selectedPlan._id}
+          returnPath="/clubs"
+        />
+      )}
+
       <Dialog open={showRegistrationDialog} onOpenChange={setShowRegistrationDialog}>
-        <DialogContent className="flex max-h-[90vh] max-w-full flex-col overflow-hidden p-0 sm:max-w-2xl">
+        <DialogContent className="flex max-h-[90vh] max-w-full flex-col overflow-hidden p-0 sm:p-0 sm:max-w-2xl">
           <DialogHeader className="shrink-0 px-6 pt-6">
             <DialogTitle className="flex items-center gap-2">
               <div className="bg-primary rounded-lg p-2">

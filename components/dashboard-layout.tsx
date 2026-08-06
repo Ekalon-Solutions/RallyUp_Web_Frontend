@@ -46,6 +46,7 @@ import {
   Truck,
   ScanLine,
   FileBarChart,
+  AlertTriangle,
 } from "lucide-react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -277,9 +278,9 @@ function DashboardSidebar({
     )
 
   return (
-    <div className={cn("flex flex-col h-full bg-card", mobile ? "w-full" : "w-72")}>
-      <Link href="/" className="flex items-center gap-2 h-16 p-2 border-b hover:opacity-90 transition-opacity">
-        <div className="relative w-10 h-10 overflow-hidden rounded-xl bg-white shadow-md border-2 ring-2 ring-primary/5">
+    <div className={cn("flex flex-col h-full min-h-0 bg-card", mobile ? "w-full max-w-full" : "w-72")}>
+      <Link href="/" className="flex items-center gap-2 h-14 sm:h-16 p-2 border-b hover:opacity-90 transition-opacity shrink-0">
+        <div className="relative w-9 h-9 sm:w-10 sm:h-10 overflow-hidden rounded-xl bg-white shadow-md border-2 ring-2 ring-primary/5 shrink-0">
           <Image
             src="/WingmanPro Logo (White BG).svg"
             alt="Wingman Pro logo"
@@ -288,13 +289,13 @@ function DashboardSidebar({
             className="object-contain"
           />
         </div>
-        <div className="flex flex-col">
-          <span className="text-xl font-black leading-none">Wingman Pro</span>
+        <div className="flex flex-col min-w-0">
+          <span className="text-lg sm:text-xl font-black leading-none truncate">Wingman Pro</span>
           <span className="text-[10px] font-bold text-primary uppercase tracking-[0.2em] mt-1">Platform</span>
         </div>
       </Link>
 
-      <nav className="flex-1 p-6 space-y-1.5 overflow-y-auto custom-scrollbar">
+      <nav className="flex-1 p-3 sm:p-6 space-y-1.5 overflow-y-auto overscroll-y-contain custom-scrollbar min-h-0">
         {/* ── Active / enabled nav items ─────────────────────── */}
         {navigation.map((item) => (
           <Link
@@ -360,8 +361,8 @@ function DashboardSidebar({
         )}
       </nav>
 
-      <div className="p-6 border-t bg-muted/20">
-        <div className="space-y-4">
+      <div className="p-3 sm:p-6 border-t bg-muted/20 shrink-0 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        <div className="space-y-3 sm:space-y-4">
           {(() => {
             const matchedClub = activeClubId
               ? sidebarClubs.find((c) => c._id === activeClubId)
@@ -556,7 +557,7 @@ function ThemeToggle() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm">
+        <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0">
           <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
           <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
           <span className="sr-only">Toggle theme</span>
@@ -585,7 +586,7 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
   const pathname = usePathname()
   const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const { user, logout, isAdmin, isVendor, activeClubId, setActiveClubId, switchRole } = useAuth()
+  const { user, logout, isAdmin, isVendor, activeClubId, setActiveClubId, switchRole, isLoading: authLoading } = useAuth()
   const [availableRoles, setAvailableRoles] = useState<{ accountType: 'user' | 'admin' | 'system_owner'; accountId: string; role: string; name: string; clubIds?: string[] }[]>([])
 
   useEffect(() => {
@@ -605,51 +606,52 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
   const handleRoleSwitch = async (accountType: 'user' | 'admin' | 'system_owner', accountId: string) => {
     const result = await switchRole(accountType, accountId)
     if (result.success) {
-      router.push('/dashboard')
+      if (accountType === 'user') {
+        window.location.href = '/dashboard/user'
+      } else if (accountType === 'system_owner') {
+        window.location.href = '/dashboard/club-management'
+      } else {
+        window.location.href = '/dashboard'
+      }
     }
   }
 
   const handleClubSwitch = async (clubId: string) => {
-    const currentIsAdmin = user?.role === 'admin' || user?.role === 'super_admin'
+    const currentIsAdmin = user?.role === 'admin' || user?.role === 'super_admin';
 
-    // If the currently-active admin/super_admin account already administers this
-    // club, just change the active club — never switch accounts. Switching to a
-    // linked member account here is what previously downgraded a super_admin to
-    // 'member' when moving between their own clubs. The per-club effective role
-    // (see getEffectiveRole) resolves super_admin vs admin for the new club.
-    //
-    // NOTE: the current account is deliberately excluded from `availableRoles`
-    // by the backend (findLinkedAccounts), so we read the clubs the current
-    // account administers from `user.clubs` directly, not from availableRoles.
     const ownAdminClubIds: string[] = currentIsAdmin
       ? (((user as any)?.clubs ?? [])
           .map((c: any) => normalizeClubId(c))
           .filter((id: string | null): id is string => Boolean(id)))
-      : []
+      : [];
+
     if (currentIsAdmin && ownAdminClubIds.includes(clubId)) {
-      setActiveClubId(clubId)
-      router.refresh()
-      return
+      setActiveClubId(clubId);
+      router.refresh();
+      return;
     }
 
-    // Otherwise a different linked account owns this club. Prefer an admin
-    // account over a member account so we don't needlessly downgrade the role.
     const targetAccount =
       availableRoles.find((r) => r.accountType === 'admin' && r.clubIds?.includes(clubId)) ??
-      availableRoles.find((r) => r.accountType === 'user' && r.clubIds?.includes(clubId))
+      availableRoles.find((r) => r.accountType === 'user' && r.clubIds?.includes(clubId));
 
     if (targetAccount) {
       const result = await switchRole(targetAccount.accountType, targetAccount.accountId)
       if (result.success) {
         setActiveClubId(clubId)
-        router.refresh()
+        if (targetAccount.accountType === 'user') {
+          window.location.href = '/dashboard/user'
+        } else if (targetAccount.accountType === 'system_owner') {
+          window.location.href = '/dashboard/club-management'
+        } else {
+          window.location.href = '/dashboard'
+        }
       }
     } else {
-      // Current account already covers this club (or it's a system_owner)
-      setActiveClubId(clubId)
-      router.refresh()
+      setActiveClubId(clubId);
+      router.refresh();
     }
-  }
+  };
 
   // Prevent body scroll so only the inner <main> scrolls (avoids double scrollbar)
   useEffect(() => {
@@ -708,6 +710,15 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
   const isVendorRole = isVendor || user?.role === 'vendor'
   const isAuthenticated = Boolean(user)
 
+  // Shared dashboard shell has no auth check of its own — enforcement was
+  // 100% delegated to each page opting into <ProtectedRoute>. Pages that
+  // don't wrap themselves rendered the full chrome for logged-out visitors.
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      router.replace('/')
+    }
+  }, [authLoading, isAuthenticated, router])
+
   useEffect(() => {
     if (!isVendorRole || !pathname) return
     if (!isVendorAllowedPath(pathname)) {
@@ -734,6 +745,43 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
     isRegularUserRole ? clubId ?? null : null,
     { asMember: true }
   )
+
+  const isExpiredMemberForActiveClub = useMemo(() => {
+    if (!user || user.role === 'system_owner' || user.role === 'admin' || user.role === 'super_admin' || user.role === 'vendor') {
+      return false
+    }
+    if (!clubId) return false
+    const memberships = Array.isArray((user as any).memberships) ? (user as any).memberships : []
+    const clubMemberships = memberships.filter((m: any) => {
+      if (!m || m.status === 'cancelled') return false
+      const id = typeof m.club_id === 'string' ? m.club_id : m.club_id?._id
+      return String(id) === String(clubId)
+    })
+    if (clubMemberships.length === 0) return false
+
+    const hasActiveUnexpired = clubMemberships.some((m: any) => {
+      if (m.status === 'cancelled') return false
+      const isFutureStart = Boolean(m.start_date && new Date(m.start_date) > new Date())
+      if (isFutureStart) return true
+      const isExpiredDate = Boolean(m.end_date && new Date(m.end_date) <= new Date())
+      if (m.end_date && !isExpiredDate) return true
+      if ((m.status === 'active' || m.status === 'pending') && !isExpiredDate) return true
+      return false
+    })
+
+    return !hasActiveUnexpired
+  }, [user, clubId])
+
+  const isExemptFromExpiredOverlay = (path: string) => {
+    if (!path) return false
+    // Browse plans page
+    if (path === '/dashboard/user/browse-plans') return true
+    // Feed pages
+    if (path === '/dashboard/user' || path.startsWith('/dashboard/user/feed') || path.startsWith('/dashboard/feed')) return true
+    // Profile pages & user settings
+    if (path.startsWith('/dashboard/user/profile') || path.startsWith('/dashboard/profile') || path.startsWith('/dashboard/user-settings')) return true
+    return false
+  }
 
   const isNavLocked = (href: string) => {
     if (!isAdminRole || !clubFeatures) return false
@@ -905,10 +953,27 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
     ? (clubFeatureFlags(clubFeatures).find((f) => f.key === currentPageFeatureKey)?.label ?? currentPageFeatureKey)
     : null
 
+  if (authLoading || !isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      </div>
+    )
+  }
+
+  if (authLoading || !isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      </div>
+    )
+  }
+
   return (
     <DashboardChromeContext.Provider value={true}>
-    <div className="flex h-screen bg-background overflow-hidden">
-      <div className="hidden lg:flex lg:flex-col lg:w-72 lg:border-r bg-muted/5">
+    {/* h-dvh keeps the shell inside the visible mobile viewport (avoids iOS 100vh jump) */}
+    <div className="flex h-dvh max-h-dvh bg-background overflow-hidden w-full max-w-[100vw]">
+      <div className="hidden lg:flex lg:flex-col lg:w-72 lg:shrink-0 lg:border-r bg-muted/5 min-h-0">
         <DashboardSidebar
           navigation={activeNav}
           addOnNavigation={addOnNav}
@@ -926,7 +991,11 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
       </div>
 
       <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-        <SheetContent side="left" className="p-0 w-72">
+        <SheetContent
+          side="left"
+          hideCloseButton
+          className="p-0 w-[min(18rem,85vw)] max-w-[85vw] gap-0 border-r"
+        >
           <SheetTitle className="sr-only">Navigation menu</SheetTitle>
           <DashboardSidebar
             mobile
@@ -947,16 +1016,16 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
         </SheetContent>
       </Sheet>
 
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="flex items-center justify-between p-4 border-b lg:px-8 h-16 bg-background/80 backdrop-blur-md sticky top-0 z-40">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="icon" className="lg:hidden h-10 w-10" onClick={() => setSidebarOpen(true)}>
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0 min-h-0 w-full">
+        <header className="flex items-center justify-between gap-2 px-3 sm:px-4 border-b lg:px-8 min-h-14 sm:min-h-16 py-2 bg-background/80 backdrop-blur-md sticky top-0 z-40 shrink-0 w-full" style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top))' }}>
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
+            <Button variant="ghost" size="icon" className="lg:hidden h-10 w-10 shrink-0" onClick={() => setSidebarOpen(true)}>
               <Menu className="w-6 h-6" />
               <span className="sr-only">Open sidebar</span>
             </Button>
 
-            <Link href="/" className="flex items-center gap-2 lg:hidden hover:opacity-90 transition-opacity">
-              <div className="relative w-8 h-8 overflow-hidden rounded-lg bg-white shadow-sm border">
+            <Link href="/" className="flex items-center gap-2 lg:hidden hover:opacity-90 transition-opacity min-w-0">
+              <div className="relative w-8 h-8 overflow-hidden rounded-lg bg-white shadow-sm border shrink-0">
                 <Image
                   src="/WingmanPro Logo (White BG).svg"
                   alt="Wingman Pro logo"
@@ -965,28 +1034,32 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
                   className="object-contain"
                 />
               </div>
-              <span className="font-bold text-lg tracking-tight">Wingman Pro</span>
+              <span className="font-bold text-base sm:text-lg tracking-tight truncate">Wingman Pro</span>
             </Link>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1 sm:gap-3 shrink-0">
             <div className="hidden sm:flex items-center gap-2 mr-2 px-3 py-1.5 rounded-full bg-muted/50 border text-xs font-bold text-muted-foreground uppercase tracking-wider">
               {formatRoleLabel(getEffectiveRole(user, clubId))}
             </div>
             <NotificationCenterModal />
             <ThemeToggle />
-            <Button variant="outline" size="sm" onClick={logout} className="h-9 px-4 font-bold border-2">
-              <LogOut className="w-4 h-4 mr-2" />
-              Logout
+            <Button variant="outline" size="sm" onClick={logout} className="h-9 px-2.5 sm:px-4 font-bold border-2 shrink-0">
+              <LogOut className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Logout</span>
+              <span className="sr-only sm:hidden">Logout</span>
             </Button>
           </div>
         </header>
 
-        <main className="flex-1 overflow-auto bg-muted/5">
+        <main className="flex-1 overflow-auto bg-muted/5 relative">
           {/* ClubFeaturesProvider gives all children a single shared config
               so the entire UI updates atomically on CONFIG_SYNC */}
           <ClubFeaturesProvider clubId={isAdminRole ? clubId : undefined}>
-            <div className="container mx-auto p-6 md:p-8 lg:p-10 max-w-[1600px]">
+            <div className={cn(
+              "mx-auto px-3 py-3 sm:px-6 sm:py-6 md:px-8 md:py-8 lg:px-10 lg:py-10 max-w-[1600px] relative min-h-full transition-all duration-300 w-full min-w-0 box-border",
+              isExpiredMemberForActiveClub && !isExemptFromExpiredOverlay(pathname) && "pointer-events-none select-none filter blur-md opacity-35"
+            )}>
               {isAdminRole && storageAlertStatus?.alertLevel && !storageBannerDismissed && (
                 <StorageAlertBanner
                   usagePercent={storageAlertStatus.usagePercent}
@@ -1008,9 +1081,64 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
                 children
               )}
             </div>
-            {/* <div className="mt-10 pt-6 border-t flex justify-center">
-              <EkalonAttribution className="text-center" />
-            </div> */}
+            {isExpiredMemberForActiveClub && !isExemptFromExpiredOverlay(pathname) && (
+              <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-background/50 backdrop-blur-md">
+                <div className="max-w-md w-full bg-card border border-border shadow-2xl rounded-2xl p-6 md:p-8 text-center space-y-6 animate-in fade-in zoom-in-95 duration-200">
+                  <div className="mx-auto w-16 h-16 rounded-full bg-destructive/10 text-destructive flex items-center justify-center border border-destructive/20 shadow-inner">
+                    <AlertTriangle className="w-8 h-8" />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <h2 className="text-2xl font-bold tracking-tight text-foreground">
+                      Membership Plan Expired
+                    </h2>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Your membership plan for this club has expired. Please buy a membership plan for this club to proceed and restore full access to club features.
+                    </p>
+                  </div>
+
+                  <div className="pt-2">
+                    <Button
+                      size="lg"
+                      onClick={() => router.push('/dashboard/user/browse-plans')}
+                      className="w-full font-semibold shadow-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-all"
+                    >
+                      <CreditCard className="w-5 h-5 mr-2" />
+                      Buy Membership Plan
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+            {isExpiredMemberForActiveClub && !isExemptFromExpiredOverlay(pathname) && (
+              <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-background/50 backdrop-blur-md">
+                <div className="max-w-md w-full bg-card border border-border shadow-2xl rounded-2xl p-6 md:p-8 text-center space-y-6 animate-in fade-in zoom-in-95 duration-200">
+                  <div className="mx-auto w-16 h-16 rounded-full bg-destructive/10 text-destructive flex items-center justify-center border border-destructive/20 shadow-inner">
+                    <AlertTriangle className="w-8 h-8" />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <h2 className="text-2xl font-bold tracking-tight text-foreground">
+                      Membership Plan Expired
+                    </h2>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      Your membership plan for this club has expired. Please buy a membership plan for this club to proceed and restore full access to club features.
+                    </p>
+                  </div>
+
+                  <div className="pt-2">
+                    <Button
+                      size="lg"
+                      onClick={() => router.push('/dashboard/user/browse-plans')}
+                      className="w-full font-semibold shadow-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-all"
+                    >
+                      <CreditCard className="w-5 h-5 mr-2" />
+                      Buy Membership Plan
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
           </ClubFeaturesProvider>
         </main>
       </div>

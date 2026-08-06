@@ -235,7 +235,7 @@ export function AddMemberModal({ trigger, onMemberAdded, clubId: clubIdProp }: A
         setOpen(false)
       }, 2000)
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to create member')
+      toast.error('Failed to create member. Please check the details and try again.')
     } finally {
       setIsLoading(false)
     }
@@ -402,7 +402,7 @@ export function AddMemberModal({ trigger, onMemberAdded, clubId: clubIdProp }: A
         />
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="grid gap-2">
           <Label htmlFor="city">City *</Label>
           <Input

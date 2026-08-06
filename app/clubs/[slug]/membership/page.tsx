@@ -116,11 +116,11 @@ export default function ClubMembershipPlansPage() {
       const raw = sessionStorage.getItem("clubs_pending_join")
       if (raw) pending = JSON.parse(raw)
     } catch (_) {}
-    if (!pending || pending.clubId !== club._id) return
+    if (!pending || (pending.clubId !== club._id && pending.clubId !== (club as any).slug && pending.clubId !== slug)) return
     sessionStorage.removeItem("clubs_pending_join")
     setSelectedPlanId(pending.membershipPlanId)
     setShowJoinModal(true)
-  }, [club?._id])
+  }, [club?._id, slug])
 
   const activeMembership = (user as any)?.memberships?.find(
     (m: any) => (m.club_id?._id === club?._id || m.club_id === club?._id) && m.status === "active"

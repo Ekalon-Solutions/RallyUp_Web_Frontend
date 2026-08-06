@@ -249,7 +249,7 @@ export function ClubFeatureSheet({ club, labels, tooltips, onClose, onSaved }: P
         toast.error((res as any).message || "Save failed")
       }
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : "Save failed")
+      toast.error("Failed to save club feature settings. Please try again.")
     } finally {
       setSaving(false)
     }

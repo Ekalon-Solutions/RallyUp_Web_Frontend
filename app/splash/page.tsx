@@ -35,6 +35,12 @@ export default function SplashPage() {
         let memberships = userAny.memberships || []
         const isAdmin = userAny.role === 'admin' || userAny.role === 'super_admin'
         const isVendor = userAny.role === 'vendor' || userAny.isVendor
+        const isGuest = userAny.role === 'guest'
+
+        if (isGuest) {
+          router.replace('/clubs');
+          return;
+        }
 
         if (isVendor) {
           const userId = String(userAny._id || '');

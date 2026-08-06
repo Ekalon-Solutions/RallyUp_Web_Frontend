@@ -164,7 +164,7 @@ export default function WhatsAppBillingPage() {
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
-              <h1 className="text-3xl font-bold flex items-center gap-2">
+              <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
                 <Receipt className="w-7 h-7" /> WhatsApp Monthly Billing
               </h1>
               <p className="text-muted-foreground">
@@ -297,7 +297,7 @@ export default function WhatsAppBillingPage() {
                   Invoice <span className="font-mono">{noteFor.invoiceNumber}</span> · current total{" "}
                   <strong>INR {inr(noteFor.totalAmount)}</strong>
                 </p>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <Label className="text-xs">Type</Label>
                     <Select value={noteType} onValueChange={(v) => setNoteType(v as "credit" | "debit")}>

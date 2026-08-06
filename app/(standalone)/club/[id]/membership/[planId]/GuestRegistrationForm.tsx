@@ -28,13 +28,13 @@ import { getApiUrl, API_ENDPOINTS } from "@/lib/config"
 import { apiClient } from "@/lib/api"
 import { calculateTransactionFees } from "@/lib/transactionFees"
 import { PaymentSimulationModal } from "@/components/modals/payment-simulation-modal"
+import { cn } from "@/lib/utils"
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { cn } from "@/lib/utils"
 import type { CheckoutClub, CheckoutPlan } from "./CheckoutLanding"
 
 // ---------------------------------------------------------------------------
@@ -174,6 +174,41 @@ export function GuestRegistrationForm({
   const [referralPhone, setReferralPhone] = useState("")
   const [referralStatus, setReferralStatus] = useState<ReferralStatus>("idle")
   const [referralName, setReferralName] = useState<string | null>(null)
+
+  // coupon state
+  const [couponCode, setCouponCode] = useState("")
+  const [appliedCoupon, setAppliedCoupon] = useState<any>(null)
+  const [validatingCoupon, setValidatingCoupon] = useState(false)
+
+  const handleValidateCoupon = async () => {
+    if (!couponCode.trim() || !club._id) return
+    try {
+      setValidatingCoupon(true)
+      const res = await apiClient.validateCoupon(couponCode.trim().toUpperCase(), {
+        clubId: club._id,
+        purchaseType: 'membership',
+        email: registrationData.email,
+        phone: registrationData.phoneNumber,
+      })
+      if (res.success && res.data?.coupon) {
+        setAppliedCoupon(res.data.coupon)
+        toast.success("Coupon applied successfully!")
+      } else {
+        setAppliedCoupon(null)
+        toast.error(res.error || res.message || "Invalid coupon code")
+      }
+    } catch (err: any) {
+      setAppliedCoupon(null)
+      toast.error(err?.message || "Failed to validate coupon")
+    } finally {
+      setValidatingCoupon(false)
+    }
+  }
+
+  const removeCoupon = () => {
+    setCouponCode("")
+    setAppliedCoupon(null)
+  }
 
   // payment state
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false)
@@ -394,15 +429,110 @@ export function GuestRegistrationForm({
 
         const orderNumber = `ORD-${Math.floor(Math.random() * 900000) + 100000}`
         const orderId = `club-${Date.now()}`
-        const total = resolvedPlan.price
-        const currency = resolvedPlan.currency || "INR"
-        const paymentMethod = "all"
+        const feeBreakdown = calculateTransactionFees(resolvedPlan.price, club.platformFeePercent)
+        const finalPrice = feeBreakdown ? feeBreakdown.finalAmount : resolvedPlan.price
 
-        setPendingRegistrationData({ ...registrationData })
-        setPendingReferralPhone(getValidReferralPhone())
-        setPendingOrder({ orderId, orderNumber, total, currency, paymentMethod })
-        setIsPaymentModalOpen(true)
-        toast.info("Complete payment to create your account and activate membership.")
+        const response = await fetch('/api/razorpay/create-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            amount: finalPrice,
+            currency: resolvedPlan.currency || "INR",
+            orderId,
+            orderNumber,
+          }),
+        })
+
+        if (!response.ok) {
+          throw new Error('Failed to create payment order')
+        }
+
+        const { razorpayOrderId, amount, currency: orderCurrency } = await response.json()
+
+        const pendingRes = await apiClient.createPendingMembershipPurchase(
+          resolvedPlan._id,
+          razorpayOrderId,
+          getValidReferralPhone(),
+          { tshirtSize: registrationData.tshirtSize, tshirtColor: registrationData.tshirtColor },
+        )
+
+        if (!pendingRes.success) {
+          toast.error(pendingRes.error || "Unable to prepare membership purchase")
+          setIsRegistering(false)
+          return
+        }
+
+        const options = {
+          key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+          amount: amount,
+          currency: orderCurrency || "INR",
+          name: club.name || 'RallyUp',
+          description: `Payment for ${resolvedPlan.name}`,
+          order_id: razorpayOrderId,
+          prefill: {
+            name: `${registrationData.first_name} ${registrationData.last_name}`,
+            email: registrationData.email,
+            contact: `${registrationData.countryCode || "+91"}${registrationData.phoneNumber}`,
+          },
+          method: {
+            netbanking: true, card: true, wallet: true, upi: true, paylater: true, cardless_emi: true, emi: true, bank_transfer: true,
+          },
+          handler: async function (paymentResponse: any) {
+            try {
+              const verifyResponse = await fetch('/api/razorpay/verify-payment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  razorpay_order_id: paymentResponse.razorpay_order_id,
+                  razorpay_payment_id: paymentResponse.razorpay_payment_id,
+                  razorpay_signature: paymentResponse.razorpay_signature,
+                  orderId: orderId,
+                }),
+              })
+
+              if (!verifyResponse.ok) throw new Error('Payment verification failed')
+
+              const subscribeRes = await apiClient.subscribeMembershipPlan(
+                resolvedPlan._id,
+                {
+                  razorpay_payment_id: paymentResponse.razorpay_payment_id,
+                  razorpay_order_id: paymentResponse.razorpay_order_id,
+                  razorpay_signature: paymentResponse.razorpay_signature,
+                },
+                getValidReferralPhone(),
+                {
+                  tshirtSize: registrationData.tshirtSize,
+                  tshirtColor: registrationData.tshirtColor,
+                }
+              )
+
+              if (!subscribeRes.success) {
+                throw new Error(subscribeRes.error || subscribeRes.message || 'Failed to activate membership subscription')
+              }
+
+              toast.success(`Payment Successful! Welcome to ${club.name}.`)
+              onOpenChange(false)
+              router.refresh()
+            } catch (err: any) {
+              toast.error(err.message || 'Payment verification failed')
+            } finally {
+              setIsRegistering(false)
+            }
+          },
+          modal: {
+            ondismiss: function () {
+              toast.info("Payment cancelled.")
+              setIsRegistering(false)
+            },
+          },
+        }
+
+        const rzp = new (window as any).Razorpay(options)
+        rzp.on('payment.failed', function (resp: any) {
+          toast.error(resp.error?.description || "Payment failed")
+          setIsRegistering(false)
+        })
+        rzp.open()
       } else {
         // ---- Free plan: register directly ----
         const registerResponse = await fetch(
@@ -584,7 +714,7 @@ export function GuestRegistrationForm({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="flex max-h-[90vh] max-w-full flex-col overflow-hidden p-0 sm:max-w-2xl">
+        <DialogContent className="flex max-h-[90vh] max-w-full flex-col overflow-hidden p-0 sm:p-0 sm:max-w-2xl">
           <DialogHeader className="shrink-0 px-6 pt-6">
             <DialogTitle className="flex items-center gap-2">
               <div className="bg-primary rounded-lg p-2">
@@ -1017,7 +1147,7 @@ export function GuestRegistrationForm({
                   <Label className="text-sm font-medium">
                     T-Shirt Reference
                   </Label>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {TSHIRT_REFERENCE_IMAGES.map((img) => (
                       <a
                         key={img.src}
@@ -1186,63 +1316,6 @@ export function GuestRegistrationForm({
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Payment Modal */}
-      {pendingOrder &&
-        (() => {
-          const feeBreakdown =
-            pendingOrder.total > 0
-              ? calculateTransactionFees(pendingOrder.total, club.platformFeePercent)
-              : null
-          const amountToCharge = feeBreakdown
-            ? feeBreakdown.finalAmount
-            : pendingOrder.total
-          return (
-            <PaymentSimulationModal
-              isOpen={isPaymentModalOpen}
-              onClose={() => {
-                setIsPaymentModalOpen(false)
-                setPendingOrder(null)
-                setPendingRegistrationData(null)
-                setPendingReferralPhone(undefined)
-              }}
-              onPaymentSuccess={handlePaymentSuccess}
-              onPaymentFailure={handlePaymentFailure}
-              orderId={pendingOrder.orderId}
-              orderNumber={pendingOrder.orderNumber}
-              total={amountToCharge}
-              subtotal={pendingOrder.total}
-              currency={pendingOrder.currency}
-              paymentMethod={pendingOrder.paymentMethod}
-              platformFeeTotal={
-                feeBreakdown
-                  ? feeBreakdown.platformFee + feeBreakdown.platformFeeGst
-                  : undefined
-              }
-              razorpayFeeTotal={
-                feeBreakdown
-                  ? feeBreakdown.razorpayFee + feeBreakdown.razorpayFeeGst
-                  : undefined
-              }
-              dialogTitle="Pay Now — Complete Your Membership"
-              dialogDescription="You're registered. Complete payment to activate your membership."
-              payButtonLabel={`Pay ${formatPrice(
-                amountToCharge,
-                pendingOrder.currency
-              )} Now`}
-              onRazorpayOrderCreated={async (razorpayOrderId) => {
-                const result = await apiClient.createPendingMembershipPurchase(
-                  planId,
-                  razorpayOrderId,
-                  pendingReferralPhone,
-                  { tshirtSize: pendingRegistrationData?.tshirtSize, tshirtColor: pendingRegistrationData?.tshirtColor }
-                )
-                if (!result.success) toast.error(result.error || "Unable to prepare membership purchase")
-                return result.success
-              }}
-            />
-          )
-        })()}
     </>
   )
 }

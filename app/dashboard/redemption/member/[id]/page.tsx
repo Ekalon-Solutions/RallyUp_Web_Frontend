@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { DashboardLayout } from '@/components/dashboard-layout'
+import { ProtectedRoute } from '@/components/protected-route'
 import { apiClient } from '@/lib/api'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -19,14 +20,19 @@ export default function MemberRedemptionPage() {
     if (!memberId) return
     const load = async () => {
       setLoading(true)
-      const resp = await apiClient.getMemberRedemption(memberId)
-      if (resp.success && resp.data) {
-        setBatches(resp.data.batches || [])
-        setOnePointValue(resp.data.onePointValue || 0)
-      } else {
-        toast.error('Failed to load redemption data')
+      try {
+        const resp = await apiClient.getMemberRedemption(memberId)
+        if (resp.success && resp.data) {
+          setBatches(resp.data.batches || [])
+          setOnePointValue(resp.data.onePointValue || 0)
+        } else {
+          toast.error('Failed to load redemption data')
+        }
+      } catch (e: any) {
+        toast.error(e?.message || 'Failed to load redemption data')
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     }
     load()
   }, [memberId])
@@ -34,6 +40,7 @@ export default function MemberRedemptionPage() {
   const totalPoints = batches.reduce((s, b) => s + (b.points || 0), 0)
 
   return (
+    <ProtectedRoute requireAdmin>
     <DashboardLayout>
       <div className="p-6">
         <h1 className="text-2xl font-bold mb-4">Redemption</h1>
@@ -42,6 +49,10 @@ export default function MemberRedemptionPage() {
             <CardTitle>Points & Value</CardTitle>
           </CardHeader>
           <CardContent>
+            {loading ? (
+              <div className="py-8 text-center text-muted-foreground">Loading...</div>
+            ) : (
+            <>
             <div className="mb-4">Total points: <strong>{totalPoints}</strong></div>
             <div className="mb-4">Estimated value: <strong>{(totalPoints * onePointValue).toFixed(2)}</strong></div>
             <div className="overflow-x-auto">
@@ -68,9 +79,12 @@ export default function MemberRedemptionPage() {
                 </TableBody>
               </Table>
             </div>
+            </>
+            )}
           </CardContent>
         </Card>
       </div>
     </DashboardLayout>
+    </ProtectedRoute>
   )
 }

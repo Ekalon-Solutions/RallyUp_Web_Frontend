@@ -11,8 +11,12 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { apiClient } from "@/lib/api"
 import { toast } from "sonner"
+import { useAuth } from "@/contexts/auth-context"
+import { buildAccessibleClubs } from "@/lib/clubContext"
 
 export default function SportsPage() {
+  const { user } = useAuth()
+  const isSystemOwner = user?.role === "system_owner"
   const [clubs, setClubs] = useState<any[]>([])
   const [selectedClubId, setSelectedClubId] = useState<string>("")
   const [loadingClubs, setLoadingClubs] = useState(true)
@@ -25,6 +29,15 @@ export default function SportsPage() {
   const [refreshingTable, setRefreshingTable] = useState(false)
 
   useEffect(() => {
+    // System owners manage sports integrations across every club, so they get
+    // the full platform list. Everyone else is scoped to the clubs they
+    // actually administer — a plain club admin must not be able to pick, and
+    // overwrite, a different club's team integration (BUG-140).
+    if (!isSystemOwner) {
+      setClubs(buildAccessibleClubs(user))
+      setLoadingClubs(false)
+      return
+    }
     const fetchClubs = async () => {
       try {
         const resp = await apiClient.getClubs({ page: 1, limit: 200 })
@@ -39,7 +52,7 @@ export default function SportsPage() {
       }
     }
     fetchClubs()
-  }, [])
+  }, [isSystemOwner, user])
 
   useEffect(() => {
     if (selectedClubId) loadCurrentTeam(selectedClubId)
@@ -91,6 +104,9 @@ export default function SportsPage() {
 
   const handleSave = async () => {
     if (!selectedClubId) return toast.error("Select a club first")
+    if (!isSystemOwner && !clubs.some((c) => c._id === selectedClubId)) {
+      return toast.error("You don't have access to that club")
+    }
     if (!selected) return toast.error("Select a team")
     try {
       setLoading(true)
@@ -134,9 +150,10 @@ export default function SportsPage() {
   }
 
   const handleRefreshLeagueTable = async () => {
+    if (!isSystemOwner && !selectedClubId) return toast.error("Select a club first")
     try {
       setRefreshingTable(true)
-      const resp = await apiClient.refreshLeagueTables()
+      const resp = await apiClient.refreshLeagueTables(isSystemOwner ? undefined : selectedClubId)
       if (resp.success) {
         toast.success("League table refreshed successfully")
       } else {
@@ -154,7 +171,7 @@ export default function SportsPage() {
       <DashboardLayout>
         <div className="space-y-6">
           <div>
-            <h1 className="text-3xl font-bold flex items-center gap-2">
+            <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
               <Trophy className="h-8 w-8" />
               Sports
             </h1>

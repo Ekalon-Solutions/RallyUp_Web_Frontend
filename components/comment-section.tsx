@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { useToast } from '@/hooks/use-toast'
+import { toast } from 'sonner'
 import { useAuth } from '@/contexts/auth-context'
 import { apiClient } from '@/lib/api'
 import { Comment, CommentResponse } from '@/lib/api'
@@ -26,37 +26,14 @@ export function CommentSection({ newsId, onCommentUpdate }: CommentSectionProps)
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
   const { user } = useAuth()
-  const { toast } = useToast()
-
-  useEffect(() => {
-    // console.log('🔄 useEffect triggered with:', { newsId, page })
-    // console.log('🔄 useEffect dependencies:', { newsId, page })
-    if (newsId) {
-      // console.log('✅ newsId exists, calling loadComments')
-      loadComments()
-    } else {
-      // console.log('❌ newsId is falsy, not calling loadComments')
-    }
-  }, [newsId, page, loadComments]) // Added loadComments to dependencies
 
   const loadComments = useCallback(async () => {
     try {
       setLoading(true)
-      // console.log('🔄 Loading comments for news:', newsId, 'page:', page)
-      // console.log('🔗 API URL would be:', `/comments/news/${newsId}?page=${page}&limit=20`)
-      
       const response = await apiClient.getComments(newsId, page, 20)
       
-      // console.log('📥 Comments API response:', response)
-      // console.log('📥 Response success:', response.success)
-      // console.log('📥 Response data:', response.data)
-      // console.log('📥 Comments array:', response.data?.comments)
-      // console.log('📥 Comments length:', response.data?.comments?.length)
-      
-      if (response.success) {
+      if (response.success && response.data) {
         const newComments = response.data.comments || []
-        // console.log('📝 Setting comments:', newComments.length, 'comments')
-        // console.log('📝 Comments content:', newComments)
         
         if (page === 1) {
           setComments(newComments)
@@ -65,16 +42,10 @@ export function CommentSection({ newsId, onCommentUpdate }: CommentSectionProps)
         }
         setHasMore(page < (response.data.pagination?.pages || 1))
       } else {
-        // If API fails, ensure we have a valid array
         if (page === 1) {
           setComments([])
         }
-        // console.error('❌ API returned success: false:', response.error)
-        toast({
-          title: "Error",
-          description: response.error || "Failed to load comments",
-          variant: "destructive",
-        })
+        toast.error(response.error || "Failed to load comments")
       }
     } catch (error) {
       // console.error('❌ Error loading comments:', error)
@@ -82,23 +53,15 @@ export function CommentSection({ newsId, onCommentUpdate }: CommentSectionProps)
       if (page === 1) {
         setComments([])
       }
-      toast({
-        title: "Error",
-        description: "Failed to load comments",
-        variant: "destructive",
-      })
+      toast.error("Failed to load comments")
     } finally {
       setLoading(false)
     }
-  }, [newsId, page, toast])
+  }, [newsId, page])
 
   const handleSubmitComment = async () => {
     if (!newComment.trim()) {
-      toast({
-        title: "Error",
-        description: "Comment content cannot be empty",
-        variant: "destructive",
-      })
+      toast.error("Comment content cannot be empty")
       return
     }
 
@@ -125,31 +88,19 @@ export function CommentSection({ newsId, onCommentUpdate }: CommentSectionProps)
         if (onCommentUpdate) {
           // Get the current comments count after reloading
           const currentComments = await apiClient.getComments(newsId, 1, 20)
-          if (currentComments.success) {
+          if (currentComments.success && currentComments.data) {
             const newTotal = currentComments.data.comments?.length || 0
-            // console.log('📝 Updating comment count to:', newTotal)
             onCommentUpdate(newTotal)
           }
         }
         
-        toast({
-          title: "Success",
-          description: "Comment posted successfully",
-        })
+        toast.success("Comment posted successfully")
       } else {
-        toast({
-          title: "Error",
-          description: response.error || "Failed to post comment",
-          variant: "destructive",
-        })
+        toast.error(response.error || "Failed to post comment")
       }
     } catch (error) {
       // console.error('❌ Error creating comment:', error)
-      toast({
-        title: "Error",
-        description: "Failed to post comment",
-        variant: "destructive",
-      })
+      toast.error("Failed to post comment")
     } finally {
       setSubmitting(false)
     }
@@ -177,30 +128,18 @@ export function CommentSection({ newsId, onCommentUpdate }: CommentSectionProps)
         if (onCommentUpdate) {
           // Get the current comments count after reloading
           const currentComments = await apiClient.getComments(newsId, 1, 20)
-          if (currentComments.success) {
+          if (currentComments.success && currentComments.data) {
             const newTotal = currentComments.data.comments?.length || 0
-            // console.log('📝 Updating comment count to:', newTotal)
             onCommentUpdate(newTotal)
           }
         }
         
-        toast({
-          title: "Success",
-          description: "Reply posted successfully",
-        })
+        toast.success("Reply posted successfully")
       } else {
-        toast({
-          title: "Error",
-          description: response.error || "Failed to post reply",
-          variant: "destructive",
-        })
+        toast.error(response.error || "Failed to post reply")
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to post reply",
-        variant: "destructive",
-      })
+      toast.error("Failed to post reply")
     } finally {
       setSubmitting(false)
     }

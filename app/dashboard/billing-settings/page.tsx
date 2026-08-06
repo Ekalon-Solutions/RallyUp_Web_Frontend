@@ -145,7 +145,10 @@ export default function BillingSettingsPage() {
     }
   }, [])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    if (authLoading || user?.role !== "system_owner") return
+    load()
+  }, [load, authLoading, user?.role])
 
   // ── Save helpers ──────────────────────────────────────────────────────
 
@@ -228,7 +231,7 @@ export default function BillingSettingsPage() {
   return (
     <ProtectedRoute>
       <DashboardLayout>
-        <div className="p-6 space-y-5 max-w-4xl mx-auto">
+        <div className="space-y-5 max-w-4xl mx-auto">
 
           {/* ── Header ──────────────────────────────────────────────── */}
           <div className="flex items-start justify-between gap-4 flex-wrap">
