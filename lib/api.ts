@@ -982,6 +982,7 @@ export interface MembershipCard {
     showLogo: boolean;
     showUserProfile: boolean;
     customLogo?: string;
+    idPrefix?: string;
   };
 }
 
@@ -1033,6 +1034,7 @@ export interface CreateMembershipCardRequest {
     showLogo?: boolean;
     showUserProfile?: boolean;
     customLogo?: string;
+    idPrefix?: string;
   };
 }
 
@@ -1059,6 +1061,7 @@ export interface UpdateMembershipCardRequest {
     showLogo?: boolean;
     showUserProfile?: boolean;
     customLogo?: string;
+    idPrefix?: string;
   };
 }
 
@@ -4912,6 +4915,7 @@ class ApiClient {
       features_schema_version: number;
       experimental_flags: Record<string, { enabled: boolean; state: string }>;
       platformFeePercent: number;
+      maxMembers: number;
     }>;
   }>> {
     const q = search ? `?search=${encodeURIComponent(search)}` : '';
@@ -4928,6 +4932,7 @@ class ApiClient {
       billing_status?: string;
       feature_constraints?: Record<string, number>;
       platformFeePercent?: number;
+      maxMembers?: number;
       reasonCode?: string;
     }
   ): Promise<ApiResponse<unknown>> {
