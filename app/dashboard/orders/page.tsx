@@ -206,6 +206,7 @@ function getPaymentStatusDisplay(status: string) {
 export default function OrdersPage() {
   const { user } = useAuth()
   const clubId = useRequiredClubId()
+  const { config: clubFeatureConfig } = useClubFeatures(clubId)
   const [orders, setOrders] = useState<Order[]>([])
   const [stats, setStats] = useState<OrderStats | null>(null)
   const [eventStats, setEventStats] = useState<OrderStats | null>(null)

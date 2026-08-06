@@ -206,7 +206,7 @@ export default function UserDashboardPage() {
   const clubId = useRequiredClubId()
 
   useEffect(() => {
-    if (user?.role === "guest") {
+    if ((user as any)?.role === "guest") {
       window.location.href = "/clubs"
     }
   }, [user])

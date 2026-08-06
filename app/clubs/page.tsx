@@ -183,7 +183,7 @@ function ClubsPageContent() {
   const [userMemberships, setUserMemberships] = useState<Record<string, string>>({})
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { isAuthenticated } = useAuth()
+  const { user, isAuthenticated } = useAuth()
   const showTshirtFields = (selectedClub?.name ?? "").toLowerCase().includes(TSHIRT_FIELD_CLUB_NAME_MATCH)
 
   useEffect(() => {
