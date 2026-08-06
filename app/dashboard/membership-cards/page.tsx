@@ -90,6 +90,7 @@ function MembershipCardsPage() {
     secondaryColor: string;
     fontFamily: string;
     logoSize: 'small' | 'medium' | 'large';
+    idPrefix: string;
   }>({
     cardStyle: 'default',
     showLogo: true,
@@ -97,7 +98,8 @@ function MembershipCardsPage() {
     primaryColor: CARD_STYLE_COLORS['default'].primaryColor,
     secondaryColor: CARD_STYLE_COLORS['default'].secondaryColor,
     fontFamily: 'Inter',
-    logoSize: 'medium'
+    logoSize: 'medium',
+    idPrefix: 'UM'
   })
 
   const [cards, setCards] = useState<PublicMembershipCardDisplay[]>([])
@@ -123,6 +125,7 @@ function MembershipCardsPage() {
     logoSize: value?.logoSize ?? "medium",
     showLogo: value?.showLogo ?? true,
     showUserProfile: value?.showUserProfile ?? false,
+    idPrefix: value?.idPrefix ?? "UM",
     ...(value?.customLogo ? { customLogo: value.customLogo } : {}),
   })
 
@@ -321,6 +324,7 @@ function MembershipCardsPage() {
           logoSize: customization.logoSize,
           showLogo: customization.showLogo,
           showUserProfile: customization.showUserProfile,
+          idPrefix: customization.idPrefix,
           customLogo: customLogoUrl
         }
       }
@@ -559,6 +563,7 @@ function MembershipCardsPage() {
         logoSize: baseCustomization.logoSize,
         showLogo: baseCustomization.showLogo,
         showUserProfile: baseCustomization.showUserProfile,
+        idPrefix: baseCustomization.idPrefix,
         ...(baseCustomization.customLogo !== undefined && { customLogo: baseCustomization.customLogo }),
         ...(customLogoUrl !== undefined && { customLogo: customLogoUrl }),
       }
@@ -755,6 +760,20 @@ function MembershipCardsPage() {
     })
   }, [])
 
+  const handleIdPrefixChange = useCallback((value: string) => {
+    setEditingCard(prev => {
+      if (!prev) return null
+      const base = normalizeCustomization(prev.card.customization)
+      return {
+        ...prev,
+        card: {
+          ...prev.card,
+          customization: { ...base, idPrefix: value.toUpperCase().replace(/[^A-Z0-9_-]/g, '') }
+        }
+      }
+    })
+  }, [])
+
   const getPreviewProfilePicture = (showUserProfile?: boolean) =>
     showUserProfile ? MEMBERSHIP_CARD_PREVIEW_PROFILE_PICTURE : undefined
 
@@ -837,7 +856,7 @@ function MembershipCardsPage() {
                                 cardStyle={editingCard.card.cardStyle}
                                 showLogo={editingCard.card.customization?.showLogo ?? true}
                                 userName="John Doe"
-                                membershipId={editingCard.card.membershipId ?? 'MEM-XXXX'}
+                                membershipId={editingCard.card.membershipId ? editingCard.card.membershipId.replace(/^[^-]+/, editingCard.card.customization?.idPrefix || 'UM') : `${editingCard.card.customization?.idPrefix || 'UM'}-2026-123456`}
                                 profilePicture={getPreviewProfilePicture(editingCard.card.customization?.showUserProfile)}
                               />
                             </div>
@@ -1098,6 +1117,22 @@ function MembershipCardsPage() {
                 {/* Left Column - Settings */}
                 <div className="flex-shrink-0 lg:w-[380px] xl:w-[420px] space-y-4 overflow-y-auto">
                   <div>
+                    <Label htmlFor="idPrefix">Card ID Prefix</Label>
+                    <Input
+                      id="idPrefix"
+                      type="text"
+                      placeholder="UM"
+                      maxLength={10}
+                      value={normalizeCustomization(editingCard.card.customization).idPrefix}
+                      onChange={(e) => handleIdPrefixChange(e.target.value)}
+                      className="h-10 w-full font-mono uppercase"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Prefix for member IDs (e.g. {normalizeCustomization(editingCard.card.customization).idPrefix || 'UM'}-{new Date().getFullYear()}-XXXXXX)
+                    </p>
+                  </div>
+
+                  <div>
                     <Label htmlFor="status">Status</Label>
                     <Select
                       value={editingCard.card.status ?? "active"}
@@ -1335,7 +1370,7 @@ function MembershipCardsPage() {
                         cardStyle={editingCard.card.cardStyle}
                         showLogo={editingCard.card.customization?.showLogo ?? true}
                         userName="John Doe"
-                        membershipId={editingCard.card.membershipId ?? 'MEM-XXXX'}
+                        membershipId={editingCard.card.membershipId ? editingCard.card.membershipId.replace(/^[^-]+/, editingCard.card.customization?.idPrefix || 'UM') : `${editingCard.card.customization?.idPrefix || 'UM'}-2026-123456`}
                         profilePicture={getPreviewProfilePicture(editingCard.card.customization?.showUserProfile)}
                       />
                     </div>

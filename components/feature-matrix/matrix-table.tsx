@@ -32,6 +32,7 @@ export type MatrixClub = {
   features_schema_version: number
   experimental_flags: Record<string, { enabled: boolean; state: string }>
   platformFeePercent: number
+  maxMembers: number
 }
 
 // ── Layout constants ──────────────────────────────────────────────────────────

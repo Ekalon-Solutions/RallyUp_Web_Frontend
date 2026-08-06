@@ -70,6 +70,7 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
   const [logoSize, setLogoSize] = useState<'small' | 'medium' | 'large'>('medium');
   const [showLogo, setShowLogo] = useState(true);
   const [showUserProfile, setShowUserProfile] = useState(false);
+  const [idPrefix, setIdPrefix] = useState('UM');
   const [customLogo, setCustomLogo] = useState<string | null>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
 
@@ -117,6 +118,7 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
               if (custom.logoSize) setLogoSize(custom.logoSize);
               if (custom.showLogo !== undefined) setShowLogo(custom.showLogo);
               if (custom.showUserProfile !== undefined) setShowUserProfile(custom.showUserProfile);
+              if (custom.idPrefix) setIdPrefix(custom.idPrefix);
               if (custom.customLogo) {
                 const logoUrl = custom.customLogo.startsWith('http') ? custom.customLogo : `${getBaseUrl()}${custom.customLogo}`;
                 setCustomLogo(logoUrl);
@@ -318,6 +320,7 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
         logoSize,
         showLogo,
         showUserProfile,
+        idPrefix,
         customLogo: customLogo || undefined
       };
       const membershipPlanId = cardData.membershipPlan._id;
@@ -368,6 +371,7 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
         logoSize,
         showLogo,
         showUserProfile,
+        idPrefix,
         customLogo
       }
     }
@@ -416,6 +420,21 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
                 </TabsList>
 
                 <TabsContent value="style" className="space-y-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="customizerIdPrefix">Card ID Prefix</Label>
+                    <Input
+                      id="customizerIdPrefix"
+                      type="text"
+                      placeholder="UM"
+                      maxLength={10}
+                      value={idPrefix}
+                      onChange={(e) => setIdPrefix(e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, ''))}
+                      className="font-mono uppercase"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Prefix for member IDs (e.g. {idPrefix || 'UM'}-{new Date().getFullYear()}-XXXXXX)
+                    </p>
+                  </div>
                   <div className="space-y-3">
                     <Label>Card Style Preset</Label>
                     <Select value={selectedStyle} onValueChange={handleStyleChange}>
@@ -638,7 +657,7 @@ export function MembershipCardCustomizer({ cardId, clubId, onSave }: MembershipC
                       cardStyle={selectedStyle === 'custom' ? 'default' : selectedStyle as 'default' | 'premium' | 'vintage' | 'modern' | 'elite' | 'emerald'}
                       showLogo={showLogo}
                       userName="John Doe"
-                      membershipId={previewData.card.membershipId}
+                      membershipId={previewData.card.membershipId ? previewData.card.membershipId.replace(/^[^-]+/, idPrefix || 'UM') : `${idPrefix || 'UM'}-2026-123456`}
                       profilePicture={showUserProfile ? MEMBERSHIP_CARD_PREVIEW_PROFILE_PICTURE : undefined}
                     />
                   </div>

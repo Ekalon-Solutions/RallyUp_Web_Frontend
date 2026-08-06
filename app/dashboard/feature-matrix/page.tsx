@@ -97,6 +97,7 @@ export default function FeatureMatrixPage() {
             features_schema_version:  club.features_schema_version  ?? 0,
             experimental_flags:       club.experimental_flags       ?? {},
             platformFeePercent:       club.platformFeePercent       ?? 5,
+            maxMembers:               club.maxMembers               ?? 1000,
           }))
         )
         setTooltips(res.data.tooltips || {})
