@@ -208,17 +208,34 @@ export default function ClubMembershipPlansPage() {
 
   const primaryColor = settings.designSettings?.primaryColor || "#3b82f6"
 
+  const [isAppRedirect, setIsAppRedirect] = useState(false)
+  useEffect(() => {
+    if (typeof window !== "undefined" && sessionStorage.getItem("appRedirect") === "true") {
+      setIsAppRedirect(true)
+    }
+  }, [])
+
   return (
     <div className="min-h-screen bg-muted/20">
       <div className="border-b bg-background">
         <div className="container mx-auto px-6 py-5 flex items-center justify-between gap-4">
-          <button
-            onClick={() => router.push(`/clubs/${slug}`)}
-            className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to {club.name}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.push(`/clubs/${slug}`)}
+              className="flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to {club.name}
+            </button>
+            {isAppRedirect && (
+              <a
+                href="wingmanpro://sso-callback?status=cancelled"
+                className="text-xs font-semibold px-3 py-1.5 rounded-full bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20"
+              >
+                Return to Mobile App
+              </a>
+            )}
+          </div>
           {!isLoggedIn && (
             <Button variant="outline" size="sm" onClick={() => setLoginOpen(true)}>
               Member Login

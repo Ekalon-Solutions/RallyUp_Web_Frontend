@@ -1402,6 +1402,10 @@ class ApiClient {
     return this.post('/users/sso-exchange', { ssoTicket });
   }
 
+  async createSsoTicket(): Promise<ApiResponse<{ ssoTicket: string }>> {
+    return this.post('/users/sso-ticket', {});
+  }
+
   async adminProfile(): Promise<ApiResponse<Admin>> {
     return this.request('/admin/profile');
   }

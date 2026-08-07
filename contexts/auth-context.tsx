@@ -77,13 +77,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setActiveClubIdState(urlClubId);
         }
 
+        const isAppRedirectParam = searchParams.get('appRedirect') === 'true' || searchParams.has('appRedirect');
+        if (isAppRedirectParam) {
+          window.sessionStorage.setItem('appRedirect', 'true');
+        }
+
         // Clean sensitive query parameters from browser address bar
-        if (ssoTicket || searchParams.has('token') || searchParams.has('authToken') || searchParams.has('email') || searchParams.has('phone')) {
+        if (ssoTicket || searchParams.has('token') || searchParams.has('authToken') || searchParams.has('email') || searchParams.has('phone') || searchParams.has('appRedirect')) {
           searchParams.delete('ssoTicket');
           searchParams.delete('token');
           searchParams.delete('authToken');
           searchParams.delete('email');
           searchParams.delete('phone');
+          searchParams.delete('appRedirect');
           const cleanQuery = searchParams.toString();
           const cleanUrl = window.location.pathname + (cleanQuery ? `?${cleanQuery}` : '') + window.location.hash;
           window.history.replaceState({}, '', cleanUrl);

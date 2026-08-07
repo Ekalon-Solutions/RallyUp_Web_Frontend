@@ -226,6 +226,29 @@ export function JoinMembershipModal({
 
   const isLoggedIn = Boolean(user?._id && typeof window !== "undefined" && localStorage.getItem("token"))
 
+  const handlePostSubscriptionRedirect = async (targetClubId?: string) => {
+    const cid = targetClubId || clubId
+    const isAppRedirect = typeof window !== "undefined" && sessionStorage.getItem("appRedirect") === "true"
+    if (isAppRedirect) {
+      sessionStorage.removeItem("appRedirect")
+      try {
+        const ssoRes = await apiClient.createSsoTicket()
+        if (ssoRes.success && ssoRes.data?.ssoTicket) {
+          window.location.href = `wingmanpro://sso-callback?ssoTicket=${encodeURIComponent(ssoRes.data.ssoTicket)}&clubId=${encodeURIComponent(cid)}&status=success`
+          return
+        }
+      } catch (err) {
+        console.error("Failed to generate SSO ticket for app redirect:", err)
+      }
+    }
+
+    const utm = typeof window !== "undefined" ? sessionStorage.getItem("utm_source") : null
+    const dest = utm
+      ? `/dashboard/user/my-clubs?utm_source=${encodeURIComponent(utm)}`
+      : "/dashboard/user/my-clubs"
+    router.push(dest)
+  }
+
   const currentMembership = useMemo(() => {
     if (!user || !("memberships" in user) || !user.memberships) return null
     const clubMemberships = (user.memberships as any[]).filter(
@@ -702,11 +725,7 @@ export function JoinMembershipModal({
             setRazorpayOpen(false)
             onOpenChange(false)
             await checkAuth()
-            const utm = typeof window !== "undefined" ? sessionStorage.getItem("utm_source") : null
-            const dest = utm
-              ? `/dashboard/user/my-clubs?utm_source=${encodeURIComponent(utm)}`
-              : "/dashboard/user/my-clubs"
-            router.push(dest)
+            await handlePostSubscriptionRedirect(clubId)
           } catch (err: any) {
             toast.error(err.message || 'Payment verification failed')
             setRazorpayOpen(false)
@@ -811,7 +830,7 @@ export function JoinMembershipModal({
           toast.success("Coupon applied — membership activated!")
           onOpenChange(false)
           await checkAuth()
-          router.push("/dashboard/user/my-clubs")
+          await handlePostSubscriptionRedirect(clubId)
         }
         return
       }
@@ -834,11 +853,7 @@ export function JoinMembershipModal({
           toast.success("Successfully joined the club!")
           onOpenChange(false)
           await checkAuth()
-          const utm = typeof window !== "undefined" ? sessionStorage.getItem("utm_source") : null
-          const dest = utm
-            ? `/dashboard/user/my-clubs?utm_source=${encodeURIComponent(utm)}`
-            : "/dashboard/user/my-clubs"
-          router.push(dest)
+          await handlePostSubscriptionRedirect(clubId)
         } else {
           toast.error(subscribeRes.error || "Failed to join club after registration")
         }
@@ -894,11 +909,7 @@ export function JoinMembershipModal({
         toast.success(upgraded ? "Membership upgraded successfully!" : "Membership activated successfully!")
         onOpenChange(false)
         await checkAuth()
-        const utm = typeof window !== "undefined" ? sessionStorage.getItem("utm_source") : null
-        const dest = utm
-          ? `/dashboard/user/my-clubs?utm_source=${encodeURIComponent(utm)}`
-          : "/dashboard/user/my-clubs"
-        router.push(dest)
+        await handlePostSubscriptionRedirect(clubId)
       } else {
         toast.error(response.error || "Failed to activate membership")
       }
@@ -936,11 +947,7 @@ export function JoinMembershipModal({
         setPendingRegistrationData(null)
         onOpenChange(false)
         await checkAuth()
-        const utm = typeof window !== "undefined" ? sessionStorage.getItem("utm_source") : null
-        const dest = utm
-          ? `/dashboard/user/my-clubs?utm_source=${encodeURIComponent(utm)}`
-          : "/dashboard/user/my-clubs"
-        router.push(dest)
+        await handlePostSubscriptionRedirect(clubId)
       } else {
         toast.error(response.error || "Failed to activate membership after payment")
       }
