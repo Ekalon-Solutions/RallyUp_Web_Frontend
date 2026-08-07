@@ -70,6 +70,13 @@ export default function ClubMembershipPlansPage() {
   const [loginOpen, setLoginOpen] = useState(false)
   const [selectedPlanId, setSelectedPlanId] = useState<string | undefined>(undefined)
   const [showJoinModal, setShowJoinModal] = useState(false)
+  const [isAppRedirect, setIsAppRedirect] = useState(false)
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && sessionStorage.getItem("appRedirect") === "true") {
+      setIsAppRedirect(true)
+    }
+  }, [])
 
   const isLoggedIn = Boolean(
     user?._id || (typeof window !== "undefined" && localStorage.getItem("token"))
@@ -207,13 +214,6 @@ export default function ClubMembershipPlansPage() {
   }
 
   const primaryColor = settings.designSettings?.primaryColor || "#3b82f6"
-
-  const [isAppRedirect, setIsAppRedirect] = useState(false)
-  useEffect(() => {
-    if (typeof window !== "undefined" && sessionStorage.getItem("appRedirect") === "true") {
-      setIsAppRedirect(true)
-    }
-  }, [])
 
   return (
     <div className="min-h-screen bg-muted/20">
