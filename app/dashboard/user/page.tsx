@@ -317,7 +317,8 @@ export default function UserDashboardPage() {
 
       if (eventsResponse.success && eventsResponse.data) {
         const eventsData = Array.isArray(eventsResponse.data) ? eventsResponse.data : (eventsResponse.data as any).events || []
-        setEvents(eventsData)
+        const sortedEvents = [...eventsData].sort((a: any, b: any) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+        setEvents(sortedEvents)
       }
 
       try {

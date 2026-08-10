@@ -78,6 +78,7 @@ export default function PublicEventsPage() {
           filteredEvents = filteredEvents.filter(event => event.category === categoryFilter)
         }
 
+        filteredEvents.sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
         setEvents(filteredEvents)
       } else {
         toast.error("Failed to fetch events")

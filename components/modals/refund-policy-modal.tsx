@@ -206,7 +206,7 @@ export function RefundPolicyModal({
                   <FileText className="h-3.5 w-3.5" />
                   {policy.usesStandardTemplate ? STANDARD_CLUB_POLICY_LABEL : "Club terms"}
                 </p>
-                <p className="text-sm leading-relaxed text-secondary whitespace-pre-wrap">
+                <p className="text-sm leading-relaxed text-foreground whitespace-pre-wrap">
                   {policy.policyText}
                 </p>
                 {policy.usesStandardTemplate && (

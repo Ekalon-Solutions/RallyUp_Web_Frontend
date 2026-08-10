@@ -323,7 +323,8 @@ function UserEventsPageInner() {
       if (response.success && response.data) {
         const data: any = response.data;
         const eventsData = Array.isArray(data) ? data : (data?.events || []);
-        setEvents(eventsData);
+        const sortedEvents = [...eventsData].sort((a: any, b: any) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+        setEvents(sortedEvents);
         if (user) {
           await fetchUserRegistrations();
         }
