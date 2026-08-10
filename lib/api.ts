@@ -5125,6 +5125,8 @@ class ApiClient {
     countryCode?: string;
     club_id: string;
     membership_plan_id?: string;
+    user_membership_id?: string;
+    club_member_id?: string;
     username?: string;
     first_name?: string;
     last_name?: string;

@@ -64,11 +64,11 @@ export function ImportMembersModal({ trigger, onImported, clubId: clubIdProp }: 
 
   const handleDownloadSample = async () => {
     try {
-      const csvHeaders = 'Email,First Name,Last Name,Phone Number,Country Code,Username,Date of Birth,Gender,Address Line 1,City,State/Province,Zip Code,Country,ID Proof Type,ID Proof Number'
+      const csvHeaders = 'Email,First Name,Last Name,Phone Number,Country Code,Club Member ID,Username,Date of Birth,Gender,Address Line 1,City,State/Province,Zip Code,Country,ID Proof Type,ID Proof Number'
       const csvContent = `${csvHeaders}
-alice.smith@example.com,Alice,Smith,9876543210,+91,alice_smith,1990-05-12,female,12 Lotus Street,Mumbai,Maharashtra,400001,India,Aadhar,1234-5678-9012
-bob.johnson@example.com,Bob,Johnson,9123456780,+91,bob_johnson,1985-11-03,male,45 River Road,Delhi,Delhi,110001,India,Passport,P1234567
-charlie.brown@example.com,Charlie,Brown,9234567890,+91,charlie_brown,1992-08-20,male,78 Park Avenue,Bangalore,Karnataka,560001,India,Aadhar,9876-5432-1098`
+alice.smith@example.com,Alice,Smith,9876543210,+91,MEM-1001,alice_smith,1990-05-12,female,12 Lotus Street,Mumbai,Maharashtra,400001,India,Aadhar,1234-5678-9012
+bob.johnson@example.com,Bob,Johnson,9123456780,+91,MEM-1002,bob_johnson,1985-11-03,male,45 River Road,Delhi,Delhi,110001,India,Passport,P1234567
+charlie.brown@example.com,Charlie,Brown,9234567890,+91,MEM-1003,charlie_brown,1992-08-20,male,78 Park Avenue,Bangalore,Karnataka,560001,India,Aadhar,9876-5432-1098`
 
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
       triggerBlobDownload(blob, 'sample-members.csv')
@@ -160,6 +160,7 @@ charlie.brown@example.com,Charlie,Brown,9234567890,+91,charlie_brown,1992-08-20,
         
         const countryCode = (row.countryCode || row.country_code || row.countryCo || row['Country Code'] || '+91').trim()
         const normalizedCountryCode = countryCode.startsWith('+') ? countryCode : `+${countryCode}`
+        const user_membership_id = (row.user_membership_id || row.club_member_id || row.userMembershipId || row['Club Member ID'] || row['Member ID'] || '').trim()
         const username = (row.username || row.Username || email?.split('@')?.[0] || `user${Date.now()}${idx}`).trim()
         
         if (!email) {
@@ -211,14 +212,42 @@ charlie.brown@example.com,Charlie,Brown,9234567890,+91,charlie_brown,1992-08-20,
           zip_code = zip_code.substring(0, 10)
         }
 
-        let date_of_birth = (row.date_of_birth || row.date_of_bi || row['Date of Birth'] || '1990-01-01').trim()
-        if (/^\d+$/.test(date_of_birth)) {
-          const numValue = parseInt(date_of_birth, 10)
-          if (numValue > 0 && numValue < 100000) {
-            const excelEpoch = new Date(1899, 11, 30)
-            const date = new Date(excelEpoch.getTime() + numValue * 86400000)
-            date_of_birth = date.toISOString().split('T')[0]
+        const rawDob = (row.date_of_birth || row.date_of_bi || row['Date of Birth'] || '1990-01-01').trim()
+        let date_of_birth = '1990-01-01'
+        try {
+          const parts = rawDob.split(/[\/\-\.]/)
+          if (parts.length === 3) {
+            const p1 = parseInt(parts[0], 10)
+            const p2 = parseInt(parts[1], 10)
+            const p3 = parseInt(parts[2], 10)
+            if (!isNaN(p1) && !isNaN(p2) && !isNaN(p3)) {
+              if (p1 > 1000) {
+                date_of_birth = `${p1}-${String(p2).padStart(2, '0')}-${String(p3).padStart(2, '0')}`
+              } else if (p3 > 1000) {
+                if (p1 > 12 && p2 >= 1 && p2 <= 12) {
+                  date_of_birth = `${p3}-${String(p2).padStart(2, '0')}-${String(p1).padStart(2, '0')}`
+                } else if (p2 > 12 && p1 >= 1 && p1 <= 12) {
+                  date_of_birth = `${p3}-${String(p1).padStart(2, '0')}-${String(p2).padStart(2, '0')}`
+                } else if (p1 >= 1 && p1 <= 31 && p2 >= 1 && p2 <= 12) {
+                  date_of_birth = `${p3}-${String(p2).padStart(2, '0')}-${String(p1).padStart(2, '0')}`
+                }
+              }
+            }
+          } else if (/^\d+$/.test(rawDob)) {
+            const numValue = parseInt(rawDob, 10)
+            if (numValue > 0 && numValue < 100000) {
+              const excelEpoch = new Date(1899, 11, 30)
+              const date = new Date(excelEpoch.getTime() + numValue * 86400000)
+              date_of_birth = date.toISOString().split('T')[0]
+            }
+          } else {
+            const d = new Date(rawDob)
+            if (!isNaN(d.getTime())) {
+              date_of_birth = d.toISOString().split('T')[0]
+            }
           }
+        } catch (e) {
+          date_of_birth = '1990-01-01'
         }
 
         const payload: any = {
@@ -338,6 +367,7 @@ charlie.brown@example.com,Charlie,Brown,9234567890,+91,charlie_brown,1992-08-20,
             start_date: startDate,
             duration_days: plan.duration > 0 ? plan.duration * 30 : undefined,
           }
+          if (user_membership_id) membershipData.user_membership_id = user_membership_id
           if (endDate) membershipData.end_date = endDate
 
           const memResp = await fetch(getApiUrl('/user-memberships'), {
@@ -453,7 +483,7 @@ charlie.brown@example.com,Charlie,Brown,9234567890,+91,charlie_brown,1992-08-20,
               </div>
               <p className="text-sm text-muted-foreground mt-2">
                 Required CSV headers: email, first_name, last_name, phoneNumber, countryCode<br/>
-                Optional: username, date_of_birth, gender, address_line1, city, state_province, zip_code, country, id_proof_type, id_proof_number
+                Optional: Club Member ID, username, date_of_birth, gender, address_line1, city, state_province, zip_code, country, id_proof_type, id_proof_number
               </p>
             </div>
 

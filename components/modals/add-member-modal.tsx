@@ -78,6 +78,7 @@ export function AddMemberModal({ trigger, onMemberAdded, clubId: clubIdProp }: A
     country: "",
     id_proof_type: "Aadhar" as "Aadhar" | "Voter ID" | "Passport" | "Driver License" | "PAN",
     id_proof_number: "",
+    user_membership_id: "",
   })
 
   const [selectedPlan, setSelectedPlan] = useState<MembershipPlan | null>(null)
@@ -193,6 +194,7 @@ export function AddMemberModal({ trigger, onMemberAdded, clubId: clubIdProp }: A
         countryCode: userData.countryCode,
         club_id: clubId,
         membership_plan_id: selectedPlan?._id,
+        user_membership_id: userData.user_membership_id.trim() || undefined,
         username: userData.username || undefined,
         first_name: userData.first_name || undefined,
         last_name: userData.last_name || undefined,
@@ -259,6 +261,7 @@ export function AddMemberModal({ trigger, onMemberAdded, clubId: clubIdProp }: A
       country: "",
       id_proof_type: "Aadhar",
       id_proof_number: "",
+      user_membership_id: "",
     })
     setSelectedPlan(null)
     setSendWelcomeEmail(true)
@@ -274,6 +277,16 @@ export function AddMemberModal({ trigger, onMemberAdded, clubId: clubIdProp }: A
 
   const renderUserInfoStep = () => (
     <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+      <div className="grid gap-2">
+        <Label htmlFor="user_membership_id">Club Member ID (Optional)</Label>
+        <Input
+          id="user_membership_id"
+          placeholder="e.g. MEM-001 (Leave blank to auto-generate)"
+          value={userData.user_membership_id}
+          onChange={(e) => handleUserDataChange("user_membership_id", e.target.value)}
+        />
+      </div>
+
       <div className="grid grid-cols-2 gap-4">
         <div className="grid gap-2">
           <Label htmlFor="username">Username *</Label>

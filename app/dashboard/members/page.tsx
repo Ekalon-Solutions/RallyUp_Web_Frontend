@@ -78,6 +78,7 @@ interface Member {
   createdAt: string
   updatedAt: string
   // Read-only details from user table (for member details modal)
+  user_membership_id?: string
   username?: string
   date_of_birth?: string
   gender?: string
@@ -615,6 +616,7 @@ export default function MembersPage() {
         'Last Name', 
         'Phone Number', 
         'Country Code', 
+        'Club Member ID',
         'Username', 
         'Date of Birth', 
         'Gender', 
@@ -639,6 +641,7 @@ export default function MembersPage() {
           escapeCSV(lastName),
           escapeCSV(member.phoneNumber),
           escapeCSV(member.countryCode),
+          escapeCSV(member.user_membership_id),
           escapeCSV(member.username),
           escapeCSV(member.date_of_birth),
           escapeCSV(member.gender),
@@ -963,8 +966,13 @@ export default function MembersPage() {
                               </div>
                             )}
                           </div>
+                          {member.user_membership_id && (
+                            <div className="text-xs font-mono font-medium text-primary mt-1">
+                              ID: {member.user_membership_id}
+                            </div>
+                          )}
                           {member.membershipPlan && (
-                            <div className="text-xs text-muted-foreground mt-1 break-words">
+                            <div className="text-xs text-muted-foreground mt-0.5 break-words">
                               Plan: {member.membershipPlan.name} ({member.membershipPlan.price} {member.membershipPlan.currency})
                             </div>
                           )}
@@ -1340,6 +1348,12 @@ export default function MembersPage() {
                   <div className="rounded-lg border p-4 space-y-3">
                     <h4 className="font-semibold text-sm text-muted-foreground">Account & details (read-only)</h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+                      {selectedMember.user_membership_id != null && selectedMember.user_membership_id !== '' && (
+                        <div>
+                          <Label className="text-muted-foreground text-xs">Club Member ID</Label>
+                          <p className="font-medium font-mono text-primary">{selectedMember.user_membership_id}</p>
+                        </div>
+                      )}
                       {selectedMember.username != null && selectedMember.username !== '' && (
                         <div>
                           <Label className="text-muted-foreground text-xs">Username</Label>
