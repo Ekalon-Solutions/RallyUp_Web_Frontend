@@ -367,7 +367,7 @@ charlie.brown@example.com,Charlie,Brown,9234567890,+91,MEM-1003,charlie_brown,19
             start_date: startDate,
             duration_days: plan.duration > 0 ? plan.duration * 30 : undefined,
           }
-          if (user_membership_id) membershipData.user_membership_id = user_membership_id
+          if (user_membership_id) membershipData.club_member_id = user_membership_id
           if (endDate) membershipData.end_date = endDate
 
           const memResp = await fetch(getApiUrl('/user-memberships'), {

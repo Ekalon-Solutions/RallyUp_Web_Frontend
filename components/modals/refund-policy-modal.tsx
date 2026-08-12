@@ -101,7 +101,7 @@ export function RefundPolicyModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-w-lg gap-0 p-0 sm:p-0 overflow-hidden border-primary/10"
+        className="max-w-lg w-[calc(100vw-1.5rem)] max-h-[calc(100dvh-2rem)] sm:max-h-[90vh] gap-0 p-0 sm:p-0 overflow-hidden flex flex-col border-primary/10"
         onInteractOutside={(e) => {
           if (isCheckoutFlow) e.preventDefault()
         }}
@@ -109,7 +109,7 @@ export function RefundPolicyModal({
           if (isCheckoutFlow) e.preventDefault()
         }}
       >
-        <div className="bg-gradient-to-br from-[#6668A1]/10 via-background to-background px-6 pt-8 pb-6">
+        <div className="bg-gradient-to-br from-[#6668A1]/10 via-background to-background px-5 pt-6 pb-4 sm:px-6 sm:pt-8 sm:pb-6 shrink-0 relative">
           <DialogHeader className="space-y-3 text-left">
             <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-background/80 px-3 py-1 w-fit">
               <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
@@ -117,10 +117,10 @@ export function RefundPolicyModal({
                 Refund Policy
               </span>
             </div>
-            <DialogTitle className="text-2xl md:text-[1.65rem] font-bold tracking-tight leading-tight text-foreground">
+            <DialogTitle className="text-xl sm:text-2xl md:text-[1.65rem] font-bold tracking-tight leading-tight text-foreground pr-6 sm:pr-0">
               {policy?.clubName ? `${policy.clubName} — Cancellations` : "Cancellation & Refunds"}
             </DialogTitle>
-            <DialogDescription className="text-sm leading-relaxed text-muted-foreground">
+            <DialogDescription className="text-xs sm:text-sm leading-relaxed text-muted-foreground">
               {policy?.eventTitle
                 ? `Terms for "${policy.eventTitle}". Club policies apply to ticket cancellations; platform fees are governed separately.`
                 : "Review cancellation terms before you complete your purchase."}
@@ -128,7 +128,7 @@ export function RefundPolicyModal({
           </DialogHeader>
         </div>
 
-        <div className="px-6 pb-2 space-y-5 max-h-[min(52vh,420px)] overflow-y-auto">
+        <div className="px-5 sm:px-6 py-4 space-y-5 flex-1 min-h-0 overflow-y-auto">
           {loading && (
             <div className="flex justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -244,7 +244,7 @@ export function RefundPolicyModal({
           )}
         </div>
 
-        <DialogFooter className="px-6 py-5 border-t bg-muted/20 sm:justify-center">
+        <DialogFooter className="px-5 py-4 sm:px-6 sm:py-5 border-t bg-muted/20 sm:justify-center shrink-0">
           <Button
             type="button"
             className="w-full sm:w-auto min-w-[200px] h-11 text-base font-semibold tracking-tight"
