@@ -133,6 +133,7 @@ const FEED_PATH = "/dashboard/user"
 const vendorNavigation = [
   { name: "Quick Scanner", href: "/dashboard/quick-scanner", icon: ScanLine },
   { name: "Attendance Log", href: "/dashboard/vendor-reports", icon: FileBarChart },
+  { name: "My Profile", href: "/dashboard/user/profile", icon: User },
 ]
 
 const adminNavigation = [

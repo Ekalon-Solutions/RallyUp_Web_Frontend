@@ -61,6 +61,9 @@ export const SCAN_OVERLAY_MS = 1500;
 export const VENDOR_ALLOWED_DASHBOARD_PATHS = [
   '/dashboard/quick-scanner',
   '/dashboard/vendor-reports',
+  '/dashboard/user/profile',
+  '/dashboard/user-settings',
+  '/dashboard/profile',
 ] as const;
 
 export function isVendorAllowedPath(pathname: string): boolean {

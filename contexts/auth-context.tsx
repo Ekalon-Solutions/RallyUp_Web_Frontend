@@ -543,6 +543,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => {
+    const isVendorUser = user?.role === 'vendor' || (user as any)?.isVendor;
     localStorage.removeItem('token');
     localStorage.removeItem('userType');
     localStorage.removeItem('activeClubId');
@@ -550,9 +551,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.removeItem('hasSeenUserDashboardLogo');
     clearAuthSessionCookie();
     clearAllFeatureCaches();
+    try {
+      sessionStorage.removeItem('vendorScanSessionToken');
+      sessionStorage.removeItem('vendorScanSessionMeta');
+    } catch {}
     setUser(null);
     setActiveClubIdState(null);
-    window.location.href = '/';
+    window.location.href = isVendorUser ? '/vendor/login' : '/';
   };
 
   useEffect(() => {
