@@ -681,7 +681,7 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
   }, [user, sidebarClubs, activeClubId, setActiveClubId])
 
   const clubId = useMemo(() => {
-    if (!user || user.role === "system_owner") return undefined
+    if (!user || user.role === "system_owner" || user.role === "vendor" || (user as any)?.isVendor) return undefined
     const reconciled = reconcileActiveClubId(activeClubId, sidebarClubs)
     return reconciled ?? undefined
   }, [user, activeClubId, sidebarClubs])

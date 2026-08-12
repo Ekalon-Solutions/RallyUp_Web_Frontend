@@ -12,6 +12,8 @@ import { Separator } from "@/components/ui/separator"
 import { apiClient, type InAppNotification } from "@/lib/api"
 import { cn } from "@/lib/utils"
 
+import { useAuth } from "@/contexts/auth-context"
+
 type NotificationsResponse = {
   notifications: InAppNotification[]
   pagination: { page: number; limit: number; total: number; pages: number }
@@ -19,6 +21,7 @@ type NotificationsResponse = {
 
 export function NotificationCenterModal() {
   const router = useRouter()
+  const { user } = useAuth()
   const [open, setOpen] = useState(false)
 
   const [unreadCount, setUnreadCount] = useState(0)
@@ -44,14 +47,41 @@ export function NotificationCenterModal() {
       const res = await apiClient.getMyNotifications({ page: 1, limit: 30 })
       const data = (res.success ? res.data : null) as unknown as NotificationsResponse | null
       if (data?.notifications) {
-        setItems(data.notifications)
+        let list = data.notifications
+        if (user?.role === 'vendor') {
+          const ADMIN_TYPES = [
+            "event_created",
+            "system_alert",
+            "new_poll",
+            "news_published",
+            "ticketing",
+            "volunteering",
+            "event_update",
+            "refund_request",
+          ]
+          list = list.filter((n) => {
+            const type = (n.type || "").toLowerCase()
+            const title = (n.title || "").toLowerCase()
+            if (ADMIN_TYPES.some((at) => type.includes(at))) return false
+            if (
+              title.includes("event created") ||
+              title.includes("system alert") ||
+              title.includes("new poll") ||
+              title.includes("news published")
+            ) {
+              return false
+            }
+            return true
+          })
+        }
+        setItems(list)
       } else {
         setItems([])
       }
     } finally {
       setLoadingList(false)
     }
-  }, [])
+  }, [user?.role])
 
   useEffect(() => {
     fetchUnreadCount()
