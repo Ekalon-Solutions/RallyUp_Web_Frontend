@@ -97,6 +97,19 @@ const EMPTY_REGISTRATION = {
   name: "",
   tshirtSize: "",
   tshirtColor: "",
+  club_member_id: "",
+}
+
+export const isClubMemberIdMandatory = (clubName?: string) => {
+  if (!clubName) return false
+  const normalized = clubName.toLowerCase().replace(/['’]/g, "'").trim()
+  return (
+    normalized.includes("arsenal mumbai supporters' club") ||
+    normalized.includes("arsenal mumbai") ||
+    normalized.includes("demo club") ||
+    normalized.includes("democlub") ||
+    normalized === "demo"
+  )
 }
 
 // ponytail: name-based single-club check — swap for a clubId/feature-flag lookup if more clubs need this.
@@ -666,6 +679,7 @@ export function JoinMembershipModal({
         validReferral,
         { tshirtSize: registrationData.tshirtSize, tshirtColor: registrationData.tshirtColor },
         appliedCoupon?.code,
+        registrationData.club_member_id?.trim() || undefined
       )
 
       if (!pendingRes.success) {
@@ -759,7 +773,11 @@ export function JoinMembershipModal({
 
   const handleRegistration = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!selectedPlan) return
+    const isMandatoryClubMemberId = isClubMemberIdMandatory(clubName)
+    if (isMandatoryClubMemberId && !registrationData.club_member_id?.trim()) {
+      toast.error(`Club Member ID is required for ${clubName}`)
+      return
+    }
 
     const phoneError = validatePhoneNumber(registrationData.phoneNumber)
     setRegistrationErrors({ phoneNumber: phoneError })
@@ -822,6 +840,7 @@ export function JoinMembershipModal({
             validReferral,
             { tshirtSize: registrationData.tshirtSize, tshirtColor: registrationData.tshirtColor },
             appliedCoupon?.code,
+            registrationData.club_member_id?.trim() || undefined
           )
           if (!subscribeRes.success) {
             toast.error(subscribeRes.error || "Failed to activate discounted membership")
@@ -848,7 +867,7 @@ export function JoinMembershipModal({
         const subscribeRes = await apiClient.subscribeMembershipPlan(selectedPlan._id, undefined, validReferral, {
           tshirtSize: registrationData.tshirtSize,
           tshirtColor: registrationData.tshirtColor,
-        }, appliedCoupon?.code)
+        }, appliedCoupon?.code, registrationData.club_member_id?.trim() || undefined)
         if (subscribeRes.success) {
           toast.success("Successfully joined the club!")
           onOpenChange(false)
@@ -869,6 +888,11 @@ export function JoinMembershipModal({
 
   const handleSubscribeOrUpgrade = async () => {
     if (!selectedPlan || !user?._id) return
+    const isMandatoryClubMemberId = isClubMemberIdMandatory(clubName)
+    if (isMandatoryClubMemberId && !registrationData.club_member_id?.trim()) {
+      toast.error(`Club Member ID is required for ${clubName}`)
+      return
+    }
     if (isAdmin) {
       toast.error("Admin accounts cannot purchase memberships. Please log in as a member.")
       return
@@ -903,7 +927,7 @@ export function JoinMembershipModal({
       const response = await apiClient.subscribeMembershipPlan(selectedPlan._id, undefined, validReferral, {
         tshirtSize: registrationData.tshirtSize,
         tshirtColor: registrationData.tshirtColor,
-      }, appliedCoupon?.code)
+      }, appliedCoupon?.code, registrationData.club_member_id?.trim() || undefined)
       if (response.success) {
         const upgraded = response.data && "isUpgrade" in response.data && response.data.isUpgrade
         toast.success(upgraded ? "Membership upgraded successfully!" : "Membership activated successfully!")
@@ -938,7 +962,8 @@ export function JoinMembershipModal({
           tshirtSize: pendingRegistrationData?.tshirtSize ?? registrationData.tshirtSize,
           tshirtColor: pendingRegistrationData?.tshirtColor ?? registrationData.tshirtColor,
         },
-        pendingPayment.couponCode
+        pendingPayment.couponCode,
+        pendingRegistrationData?.club_member_id ?? registrationData.club_member_id
       )
       if (response.success) {
         const upgraded = response.data && "isUpgrade" in response.data && response.data.isUpgrade
@@ -1044,6 +1069,26 @@ export function JoinMembershipModal({
         <p className="text-xs font-medium text-destructive">You cannot refer yourself.</p>
       )}
     </div>
+    )
+  }
+
+  const renderClubMemberIdField = () => {
+    const isMandatory = isClubMemberIdMandatory(clubName)
+    return (
+      <div className="space-y-2 sm:col-span-2">
+        <Label htmlFor="club_member_id" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>
+          Club Member ID{isMandatory ? " *" : <span className="text-muted-foreground text-xs ml-1">(Optional)</span>}
+        </Label>
+        <Input
+          id="club_member_id"
+          type="text"
+          value={registrationData.club_member_id}
+          onChange={(e) => setRegistrationData({ ...registrationData, club_member_id: e.target.value })}
+          required={isMandatory}
+          placeholder={isMandatory ? "Required (e.g. AM-1001)" : "Optional Member ID"}
+          className={cn("h-12 rounded-xl focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary", isDashboard ? "border-input bg-background text-foreground placeholder:text-muted-foreground" : "border-secondary bg-white text-black placeholder:text-slate-400")}
+        />
+      </div>
     )
   }
 
@@ -1411,6 +1456,7 @@ export function JoinMembershipModal({
                     <Label htmlFor="id_proof_number" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>ID Proof Number</Label>
                     <Input id="id_proof_number" value={registrationData.id_proof_number} onChange={(e) => setRegistrationData({ ...registrationData, id_proof_number: e.target.value })} className={cn("h-12 rounded-xl focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary", isDashboard ? "border-input bg-background text-foreground placeholder:text-muted-foreground" : "border-secondary bg-white text-black placeholder:text-slate-400")} />
                   </div>
+                  {renderClubMemberIdField()}
                   {renderTshirtFields()}
                 </div>
                 {renderTshirtGallery()}
@@ -1424,6 +1470,7 @@ export function JoinMembershipModal({
             ) : (
               <div className="space-y-4">
                 {renderPlanSelector()}
+                {renderClubMemberIdField()}
                 {renderCouponField()}
                 {renderPlanSummary()}
                 {showTshirtFields && (

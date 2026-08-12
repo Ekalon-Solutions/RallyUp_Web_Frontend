@@ -13,14 +13,16 @@ import { getApiUrl } from '@/lib/config'
 import { apiClient } from '@/lib/api'
 import { triggerBlobDownload } from '@/lib/utils'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { isClubMemberIdMandatory } from './join-membership-modal'
 
 interface ImportMembersModalProps {
   trigger?: React.ReactNode
   onImported?: (entries?: Array<{ email: string; name: string; status: 'added' | 'updated' | 'already_member' }>) => void
   clubId?: string | null
+  clubName?: string | null
 }
 
-export function ImportMembersModal({ trigger, onImported, clubId: clubIdProp }: ImportMembersModalProps) {
+export function ImportMembersModal({ trigger, onImported, clubId: clubIdProp, clubName: clubNameProp }: ImportMembersModalProps) {
   const [open, setOpen] = useState(false)
   const { user } = useAuth()
   const [plans, setPlans] = useState<any[]>([])
@@ -35,11 +37,24 @@ export function ImportMembersModal({ trigger, onImported, clubId: clubIdProp }: 
   } | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
+  const [fetchedClubName, setFetchedClubName] = useState<string>("")
+  const resolvedClubName = clubNameProp || (user as any)?.club?.name || fetchedClubName
 
   const clubId = clubIdProp ?? (user as any)?.club?._id ?? (user as any)?.clubs?.[0]?._id ?? (user as any)?.clubs?.[0]
 
   useEffect(() => {
-    if (open && clubId) fetchPlans()
+    if (clubId) {
+      apiClient.getClubById(clubId).then((res: any) => {
+        const name = res?.data?.name || res?.name
+        if (name) setFetchedClubName(name)
+      }).catch(() => {})
+    }
+  }, [clubId])
+
+  useEffect(() => {
+    if (open && clubId) {
+      fetchPlans()
+    }
     if (!open) {
         setFile(null)
         setResults(null)
@@ -181,6 +196,13 @@ charlie.brown@example.com,Charlie,Brown,9234567890,+91,MEM-1003,charlie_brown,19
         if (!phoneNumber) {
           failCount++
           errors.push({ row: idx + 2, error: 'phoneNumber is required' })
+          continue
+        }
+
+        const isMandatory = isClubMemberIdMandatory(resolvedClubName)
+        if (isMandatory && !user_membership_id) {
+          failCount++
+          errors.push({ row: idx + 2, error: `Club Member ID is required for ${resolvedClubName || 'this club'}` })
           continue
         }
 

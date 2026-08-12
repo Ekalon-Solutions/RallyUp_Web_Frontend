@@ -79,6 +79,7 @@ interface Member {
   updatedAt: string
   // Read-only details from user table (for member details modal)
   user_membership_id?: string
+  club_member_id?: string
   username?: string
   date_of_birth?: string
   gender?: string
@@ -152,6 +153,16 @@ export default function MembersPage() {
     status: AddResultStatus
   }
   const [addResultEntries, setAddResultEntries] = useState<AddResultEntry[]>([])
+  const [currentClubName, setCurrentClubName] = useState<string>((user as any)?.club?.name || "")
+
+  useEffect(() => {
+    if (clubId) {
+      apiClient.getClubById(clubId).then((res: any) => {
+        const name = res?.data?.name || res?.name
+        if (name) setCurrentClubName(name)
+      }).catch(() => {})
+    }
+  }, [clubId])
 
   useEffect(() => {
     fetchMembers()
@@ -704,6 +715,7 @@ export default function MembersPage() {
               {canEditMembers && (
               <AddMemberModal
                 clubId={clubId}
+                clubName={currentClubName || members[0]?.club?.name}
                 trigger={
                   <Button className="w-full sm:w-auto">
                     <Plus className="w-4 h-4 mr-2" />
@@ -721,6 +733,7 @@ export default function MembersPage() {
               {/* Bulk import modal */}
               {canEditMembers && (<ImportMembersModal
                 clubId={clubId}
+                clubName={currentClubName || members[0]?.club?.name}
                 trigger={
                   <Button className="w-full sm:w-auto">
                     <Plus className="w-4 h-4 mr-2" />

@@ -46,7 +46,7 @@ import { toast } from "sonner"
 import { getApiUrl, API_ENDPOINTS } from "@/lib/config"
 import { calculateTransactionFees } from "@/lib/transactionFees"
 import { PaymentSimulationModal } from "@/components/modals/payment-simulation-modal"
-import { JoinMembershipModal } from "@/components/modals/join-membership-modal"
+import { JoinMembershipModal, isClubMemberIdMandatory } from "@/components/modals/join-membership-modal"
 import { SiteNavbar } from "@/components/site-navbar"
 import { SiteFooter } from "@/components/site-footer"
 import { cn } from "@/lib/utils"
@@ -140,7 +140,8 @@ const EMPTY_REGISTRATION = {
   id_proof_number: "",
   name: "",
   tshirtSize: "",
-  tshirtColor: ""
+  tshirtColor: "",
+  club_member_id: "",
 }
 
 function ClubsPageContent() {
@@ -542,6 +543,12 @@ function ClubsPageContent() {
   const handleRegistration = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedClub || !selectedPlan) return
+    const isMandatory = selectedClub ? isClubMemberIdMandatory(selectedClub.name) : false
+    if (isMandatory && !registrationData.club_member_id?.trim()) {
+      toast.error(`Club Member ID is required for ${selectedClub?.name}`)
+      return
+    }
+
     const phoneError = validatePhoneNumber(registrationData.phoneNumber)
     setRegistrationErrors({ phoneNumber: phoneError })
     if (phoneError) {
@@ -611,6 +618,7 @@ function ClubsPageContent() {
             getValidReferralPhone(),
             { tshirtSize: registrationData.tshirtSize, tshirtColor: registrationData.tshirtColor },
             appliedCoupon?.code,
+            registrationData.club_member_id?.trim() || undefined,
           )
           if (!subscribeRes.success) {
             toast.error(subscribeRes.error || "Failed to activate discounted membership")
@@ -646,6 +654,7 @@ function ClubsPageContent() {
               getValidReferralPhone(),
               undefined,
               appliedCoupon?.code,
+              registrationData.club_member_id?.trim() || undefined,
             )
 
             if (subscribeRes.success) {
@@ -1783,6 +1792,20 @@ function ClubsPageContent() {
                     id="id_proof_number"
                     value={registrationData.id_proof_number}
                     onChange={(e) => setRegistrationData({ ...registrationData, id_proof_number: e.target.value })}
+                    className="h-12"
+                  />
+                </div>
+
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="page_club_member_id">
+                    Club Member ID{selectedClub && isClubMemberIdMandatory(selectedClub.name) ? " *" : <span className="text-muted-foreground text-xs ml-1">(Optional)</span>}
+                  </Label>
+                  <Input
+                    id="page_club_member_id"
+                    value={registrationData.club_member_id}
+                    onChange={(e) => setRegistrationData({ ...registrationData, club_member_id: e.target.value })}
+                    placeholder={selectedClub && isClubMemberIdMandatory(selectedClub.name) ? "Required (e.g. AM-1001)" : "Optional Member ID"}
+                    required={Boolean(selectedClub && isClubMemberIdMandatory(selectedClub.name))}
                     className="h-12"
                   />
                 </div>

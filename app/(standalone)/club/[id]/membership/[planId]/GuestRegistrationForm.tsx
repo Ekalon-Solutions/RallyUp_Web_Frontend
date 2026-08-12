@@ -26,6 +26,7 @@ import {
 import { toast } from "sonner"
 import { getApiUrl, API_ENDPOINTS } from "@/lib/config"
 import { apiClient } from "@/lib/api"
+import { isClubMemberIdMandatory } from "@/components/modals/join-membership-modal"
 import { calculateTransactionFees } from "@/lib/transactionFees"
 import { PaymentSimulationModal } from "@/components/modals/payment-simulation-modal"
 import { cn } from "@/lib/utils"
@@ -110,6 +111,7 @@ const EMPTY_REGISTRATION = {
   favoriteTeamId: "",
   favoriteTeamName: "",
   favoriteTeamBadge: "",
+  club_member_id: "",
 }
 
 // ponytail: name-based single-club check — swap for a clubId/feature-flag lookup if more clubs need this.
@@ -385,6 +387,12 @@ export function GuestRegistrationForm({
   const handleRegistration = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    const isMandatory = isClubMemberIdMandatory(club.name)
+    if (isMandatory && !registrationData.club_member_id?.trim()) {
+      toast.error(`Club Member ID is required for ${club.name}`)
+      return
+    }
+
     const phoneError = validatePhoneNumber(registrationData.phoneNumber)
     setRegistrationErrors({ phoneNumber: phoneError })
     if (phoneError) {
@@ -454,6 +462,8 @@ export function GuestRegistrationForm({
           razorpayOrderId,
           getValidReferralPhone(),
           { tshirtSize: registrationData.tshirtSize, tshirtColor: registrationData.tshirtColor },
+          undefined,
+          registrationData.club_member_id?.trim() || undefined
         )
 
         if (!pendingRes.success) {
@@ -503,7 +513,9 @@ export function GuestRegistrationForm({
                 {
                   tshirtSize: registrationData.tshirtSize,
                   tshirtColor: registrationData.tshirtColor,
-                }
+                },
+                undefined,
+                registrationData.club_member_id?.trim() || undefined
               )
 
               if (!subscribeRes.success) {
@@ -557,7 +569,9 @@ export function GuestRegistrationForm({
               {
                 tshirtSize: registrationData.tshirtSize,
                 tshirtColor: registrationData.tshirtColor,
-              }
+              },
+              undefined,
+              registrationData.club_member_id?.trim() || undefined
             )
 
             if (subscribeRes.success) {
@@ -1091,6 +1105,21 @@ export function GuestRegistrationForm({
                       </option>
                     ))}
                   </select>
+                </div>
+
+                {/* Club Member ID Field */}
+                <div className="space-y-2 sm:col-span-2">
+                  <Label htmlFor="guest_club_member_id">
+                    Club Member ID{isClubMemberIdMandatory(club.name) ? " *" : <span className="text-muted-foreground text-xs ml-1">(Optional)</span>}
+                  </Label>
+                  <Input
+                    id="guest_club_member_id"
+                    value={registrationData.club_member_id}
+                    onChange={(e) => setRegistrationData({ ...registrationData, club_member_id: e.target.value })}
+                    placeholder={isClubMemberIdMandatory(club.name) ? "Required (e.g. AM-1001)" : "Optional Member ID"}
+                    required={isClubMemberIdMandatory(club.name)}
+                    className="h-12 w-full rounded-md border border-input bg-background px-3"
+                  />
                 </div>
 
                 {showTshirtFields && (

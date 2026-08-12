@@ -23,6 +23,7 @@ import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
 import { getApiUrl } from "@/lib/config"
 import { apiClient } from "@/lib/api"
+import { isClubMemberIdMandatory } from "./join-membership-modal"
 
 interface MembershipPlan {
   _id: string
@@ -52,9 +53,10 @@ interface AddMemberModalProps {
   trigger?: React.ReactNode
   onMemberAdded?: (result?: { name: string; email: string; status: AddMemberResultStatus }) => void
   clubId?: string | null
+  clubName?: string | null
 }
 
-export function AddMemberModal({ trigger, onMemberAdded, clubId: clubIdProp }: AddMemberModalProps) {
+export function AddMemberModal({ trigger, onMemberAdded, clubId: clubIdProp, clubName: clubNameProp }: AddMemberModalProps) {
   const [open, setOpen] = useState(false)
   const [step, setStep] = useState<"user-info" | "membership-selection" | "success">("user-info")
   const [isLoading, setIsLoading] = useState(false)
@@ -78,14 +80,25 @@ export function AddMemberModal({ trigger, onMemberAdded, clubId: clubIdProp }: A
     country: "",
     id_proof_type: "Aadhar" as "Aadhar" | "Voter ID" | "Passport" | "Driver License" | "PAN",
     id_proof_number: "",
-    user_membership_id: "",
+    club_member_id: "",
   })
 
   const [selectedPlan, setSelectedPlan] = useState<MembershipPlan | null>(null)
   const [sendWelcomeEmail, setSendWelcomeEmail] = useState(true)
   const [lastAddStatus, setLastAddStatus] = useState<AddMemberResultStatus>('added')
+  const [fetchedClubName, setFetchedClubName] = useState<string>("")
+  const resolvedClubName = clubNameProp || (user as any)?.club?.name || fetchedClubName
 
   const resolvedClubId = clubIdProp ?? (user as any)?.club?._id ?? (user as any)?.clubs?.[0]?._id ?? (user as any)?.clubs?.[0]
+
+  useEffect(() => {
+    if (resolvedClubId) {
+      apiClient.getClubById(resolvedClubId).then((res: any) => {
+        const name = res?.data?.name || res?.name
+        if (name) setFetchedClubName(name)
+      }).catch(() => {})
+    }
+  }, [resolvedClubId])
 
   useEffect(() => {
     if (open && resolvedClubId) {
@@ -133,6 +146,11 @@ export function AddMemberModal({ trigger, onMemberAdded, clubId: clubIdProp }: A
         toast.error(`Please fill in ${field.replace('_', ' ')}`)
         return false
       }
+    }
+    const isMandatory = isClubMemberIdMandatory(resolvedClubName)
+    if (isMandatory && !userData.club_member_id?.trim()) {
+      toast.error(`Club Member ID is required for ${resolvedClubName || "this club"}`)
+      return false
     }
     if (!/^[a-zA-Z0-9_.'-]+$/.test(userData.username)) {
       toast.error("Username can only contain letters, numbers, underscores, periods, apostrophes, and hyphens")
@@ -194,7 +212,7 @@ export function AddMemberModal({ trigger, onMemberAdded, clubId: clubIdProp }: A
         countryCode: userData.countryCode,
         club_id: clubId,
         membership_plan_id: selectedPlan?._id,
-        user_membership_id: userData.user_membership_id.trim() || undefined,
+        club_member_id: userData.club_member_id.trim() || undefined,
         username: userData.username || undefined,
         first_name: userData.first_name || undefined,
         last_name: userData.last_name || undefined,
@@ -261,7 +279,7 @@ export function AddMemberModal({ trigger, onMemberAdded, clubId: clubIdProp }: A
       country: "",
       id_proof_type: "Aadhar",
       id_proof_number: "",
-      user_membership_id: "",
+      club_member_id: "",
     })
     setSelectedPlan(null)
     setSendWelcomeEmail(true)
@@ -278,12 +296,15 @@ export function AddMemberModal({ trigger, onMemberAdded, clubId: clubIdProp }: A
   const renderUserInfoStep = () => (
     <div className="space-y-4 max-h-[60vh] overflow-y-auto">
       <div className="grid gap-2">
-        <Label htmlFor="user_membership_id">Club Member ID (Optional)</Label>
+        <Label htmlFor="club_member_id">
+          Club Member ID{isClubMemberIdMandatory(resolvedClubName) ? " *" : <span className="text-muted-foreground text-xs font-normal ml-1">(Optional)</span>}
+        </Label>
         <Input
-          id="user_membership_id"
-          placeholder="e.g. MEM-001 (Leave blank to auto-generate)"
-          value={userData.user_membership_id}
-          onChange={(e) => handleUserDataChange("user_membership_id", e.target.value)}
+          id="club_member_id"
+          placeholder={isClubMemberIdMandatory(resolvedClubName) ? "Required (e.g. AM-1001)" : "Enter Club Member ID (optional)"}
+          value={userData.club_member_id}
+          onChange={(e) => handleUserDataChange("club_member_id", e.target.value)}
+          required={isClubMemberIdMandatory(resolvedClubName)}
         />
       </div>
 

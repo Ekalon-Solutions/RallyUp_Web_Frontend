@@ -3986,7 +3986,8 @@ class ApiClient {
     payment?: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string },
     referralPhone?: string,
     merch?: { tshirtSize?: string; tshirtColor?: string },
-    couponCode?: string
+    couponCode?: string,
+    club_member_id?: string
   ): Promise<ApiResponse<{
     message: string;
     data: {
@@ -4000,6 +4001,7 @@ class ApiClient {
     if (merch?.tshirtSize) body.tshirtSize = merch.tshirtSize;
     if (merch?.tshirtColor) body.tshirtColor = merch.tshirtColor;
     if (couponCode) body.couponCode = couponCode;
+    if (club_member_id) body.club_member_id = club_member_id;
     return this.request(`/membership-plans/${planId}/subscribe`, {
       method: 'POST',
       body: Object.keys(body).length > 0 ? JSON.stringify(body) : undefined,
@@ -4011,10 +4013,12 @@ class ApiClient {
     razorpayOrderId: string,
     referralPhone?: string,
     merchOrCoupon?: { tshirtSize?: string; tshirtColor?: string } | string,
-    couponCode?: string
+    couponCode?: string,
+    club_member_id?: string
   ): Promise<ApiResponse<{ userMembership: any; status: 'pending' | 'active' }>> {
     const body: any = { razorpayOrderId }
     if (referralPhone) body.referralPhone = referralPhone
+    if (club_member_id) body.club_member_id = club_member_id
     if (typeof merchOrCoupon === 'object' && merchOrCoupon !== null) {
       if (merchOrCoupon.tshirtSize) body.tshirtSize = merchOrCoupon.tshirtSize
       if (merchOrCoupon.tshirtColor) body.tshirtColor = merchOrCoupon.tshirtColor
