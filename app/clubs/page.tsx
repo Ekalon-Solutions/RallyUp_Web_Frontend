@@ -814,6 +814,7 @@ function ClubsPageContent() {
         pendingReferralPhone,
         undefined,
         pendingOrder?.couponCode,
+        pendingRegistrationData.club_member_id?.trim() || undefined,
       )
 
       if (subscribeRes.success) {
@@ -2063,6 +2064,7 @@ function ClubsPageContent() {
                 pendingReferralPhone,
                 { tshirtSize: pendingRegistrationData?.tshirtSize, tshirtColor: pendingRegistrationData?.tshirtColor },
                 pendingOrder.couponCode,
+                pendingRegistrationData?.club_member_id?.trim() || undefined,
               )
               if (!result.success) toast.error(result.error || 'Unable to prepare membership purchase')
               return result.success

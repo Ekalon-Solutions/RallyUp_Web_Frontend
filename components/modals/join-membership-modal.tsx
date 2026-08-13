@@ -755,6 +755,7 @@ export function JoinMembershipModal({
               validReferral || undefined,
               { tshirtSize: registrationData.tshirtSize, tshirtColor: registrationData.tshirtColor },
               appliedCoupon?.code,
+              registrationSnapshot?.club_member_id?.trim() || registrationData.club_member_id?.trim() || undefined,
             )
 
             if (!subscribeRes.success) {

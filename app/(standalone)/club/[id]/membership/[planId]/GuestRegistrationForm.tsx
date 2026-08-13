@@ -699,7 +699,9 @@ export function GuestRegistrationForm({
         {
           tshirtSize: pendingRegistrationData.tshirtSize,
           tshirtColor: pendingRegistrationData.tshirtColor,
-        }
+        },
+        undefined,
+        pendingRegistrationData.club_member_id?.trim() || undefined,
       )
 
       if (subscribeRes.success) {
