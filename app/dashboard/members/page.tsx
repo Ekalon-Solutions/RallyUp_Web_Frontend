@@ -652,7 +652,7 @@ export default function MembersPage() {
           escapeCSV(lastName),
           escapeCSV(member.phoneNumber),
           escapeCSV(member.countryCode),
-          escapeCSV(member.user_membership_id),
+          escapeCSV(member.club_member_id),
           escapeCSV(member.username),
           escapeCSV(member.date_of_birth),
           escapeCSV(member.gender),
@@ -979,9 +979,9 @@ export default function MembersPage() {
                               </div>
                             )}
                           </div>
-                          {member.user_membership_id && (
+                          {member.club_member_id && (
                             <div className="text-xs font-mono font-medium text-primary mt-1">
-                              ID: {member.user_membership_id}
+                              ID: {member.club_member_id}
                             </div>
                           )}
                           {member.membershipPlan && (
@@ -1361,10 +1361,10 @@ export default function MembersPage() {
                   <div className="rounded-lg border p-4 space-y-3">
                     <h4 className="font-semibold text-sm text-muted-foreground">Account & details (read-only)</h4>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                      {selectedMember.user_membership_id != null && selectedMember.user_membership_id !== '' && (
+                      {selectedMember.club_member_id != null && selectedMember.club_member_id !== '' && (
                         <div>
                           <Label className="text-muted-foreground text-xs">Club Member ID</Label>
-                          <p className="font-medium font-mono text-primary">{selectedMember.user_membership_id}</p>
+                          <p className="font-medium font-mono text-primary">{selectedMember.club_member_id}</p>
                         </div>
                       )}
                       {selectedMember.username != null && selectedMember.username !== '' && (
