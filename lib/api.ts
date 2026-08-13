@@ -944,6 +944,13 @@ export interface Club {
     membershipPlans: string[];
   };
   status: 'active' | 'inactive' | 'suspended';
+  sports?: {
+    teamId?: string;
+    teamName?: string;
+    teamBadge?: string;
+    teamLogo?: string;
+    leagueId?: string;
+  };
   /** An id when unpopulated; the backend populates these on most club reads. */
   createdBy?: string | { _id: string; name: string; email: string };
   superAdmin?: string | Admin;

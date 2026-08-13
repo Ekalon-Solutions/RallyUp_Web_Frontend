@@ -13,7 +13,7 @@ import { getApiUrl } from '@/lib/config'
 import { apiClient } from '@/lib/api'
 import { triggerBlobDownload } from '@/lib/utils'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { isClubMemberIdMandatory } from './join-membership-modal'
+import { extractClubTeamId, isClubMemberIdMandatory } from './join-membership-modal'
 
 interface ImportMembersModalProps {
   trigger?: React.ReactNode
@@ -38,16 +38,34 @@ export function ImportMembersModal({ trigger, onImported, clubId: clubIdProp, cl
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
   const [fetchedClubName, setFetchedClubName] = useState<string>("")
+  const [clubTeamId, setClubTeamId] = useState<string>("")
   const resolvedClubName = clubNameProp || (user as any)?.club?.name || fetchedClubName
 
   const clubId = clubIdProp ?? (user as any)?.club?._id ?? (user as any)?.clubs?.[0]?._id ?? (user as any)?.clubs?.[0]
 
   useEffect(() => {
-    if (clubId) {
-      apiClient.getClubById(clubId).then((res: any) => {
-        const name = res?.data?.name || res?.name
-        if (name) setFetchedClubName(name)
-      }).catch(() => {})
+    if (!clubId) {
+      setClubTeamId("")
+      return
+    }
+    let cancelled = false
+    apiClient.getClubById(clubId).then(async (res: any) => {
+      if (cancelled) return
+      const club = res?.data?.data || res?.data || res
+      const name = club?.name || res?.data?.name || res?.name
+      if (name) setFetchedClubName(name)
+      let teamId = extractClubTeamId(club)
+      if (!teamId) {
+        const settingsRes: any = await apiClient.getClubSettings(clubId)
+        if (cancelled) return
+        teamId = extractClubTeamId(settingsRes?.data?.data || settingsRes?.data || settingsRes)
+      }
+      setClubTeamId(teamId)
+    }).catch(() => {
+      if (!cancelled) setClubTeamId("")
+    })
+    return () => {
+      cancelled = true
     }
   }, [clubId])
 
@@ -199,7 +217,7 @@ charlie.brown@example.com,Charlie,Brown,9234567890,+91,MEM-1003,charlie_brown,19
           continue
         }
 
-        const isMandatory = isClubMemberIdMandatory(row.favoriteTeamName || row.teamName || row.favorite_team, resolvedClubName)
+        const isMandatory = isClubMemberIdMandatory(clubTeamId)
         if (isMandatory && !user_membership_id) {
           failCount++
           errors.push({ row: idx + 2, error: `Club Member ID is required for ${resolvedClubName || 'this club'}` })
@@ -504,8 +522,10 @@ charlie.brown@example.com,Charlie,Brown,9234567890,+91,MEM-1003,charlie_brown,19
                 </Button>
               </div>
               <p className="text-sm text-muted-foreground mt-2">
-                Required CSV headers: email, first_name, last_name, phoneNumber, countryCode<br/>
-                Optional: Club Member ID, username, date_of_birth, gender, address_line1, city, state_province, zip_code, country, id_proof_type, id_proof_number
+                Required CSV headers: email, first_name, last_name, phoneNumber, countryCode
+                {isClubMemberIdMandatory(clubTeamId) ? ", Club Member ID" : ""}
+                <br/>
+                Optional: {isClubMemberIdMandatory(clubTeamId) ? "" : "Club Member ID, "}username, date_of_birth, gender, address_line1, city, state_province, zip_code, country, id_proof_type, id_proof_number
               </p>
             </div>
 

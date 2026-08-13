@@ -23,7 +23,7 @@ import { toast } from "sonner"
 import { useAuth } from "@/contexts/auth-context"
 import { getApiUrl } from "@/lib/config"
 import { apiClient } from "@/lib/api"
-import { isClubMemberIdMandatory } from "./join-membership-modal"
+import { extractClubTeamId, isClubMemberIdMandatory } from "./join-membership-modal"
 
 interface MembershipPlan {
   _id: string
@@ -87,16 +87,34 @@ export function AddMemberModal({ trigger, onMemberAdded, clubId: clubIdProp, clu
   const [sendWelcomeEmail, setSendWelcomeEmail] = useState(true)
   const [lastAddStatus, setLastAddStatus] = useState<AddMemberResultStatus>('added')
   const [fetchedClubName, setFetchedClubName] = useState<string>("")
+  const [clubTeamId, setClubTeamId] = useState<string>("")
   const resolvedClubName = clubNameProp || (user as any)?.club?.name || fetchedClubName
 
   const resolvedClubId = clubIdProp ?? (user as any)?.club?._id ?? (user as any)?.clubs?.[0]?._id ?? (user as any)?.clubs?.[0]
 
   useEffect(() => {
-    if (resolvedClubId) {
-      apiClient.getClubById(resolvedClubId).then((res: any) => {
-        const name = res?.data?.name || res?.name
-        if (name) setFetchedClubName(name)
-      }).catch(() => {})
+    if (!resolvedClubId) {
+      setClubTeamId("")
+      return
+    }
+    let cancelled = false
+    apiClient.getClubById(resolvedClubId).then(async (res: any) => {
+      if (cancelled) return
+      const club = res?.data?.data || res?.data || res
+      const name = club?.name || res?.data?.name || res?.name
+      if (name) setFetchedClubName(name)
+      let teamId = extractClubTeamId(club)
+      if (!teamId) {
+        const settingsRes: any = await apiClient.getClubSettings(resolvedClubId)
+        if (cancelled) return
+        teamId = extractClubTeamId(settingsRes?.data?.data || settingsRes?.data || settingsRes)
+      }
+      setClubTeamId(teamId)
+    }).catch(() => {
+      if (!cancelled) setClubTeamId("")
+    })
+    return () => {
+      cancelled = true
     }
   }, [resolvedClubId])
 
@@ -147,7 +165,7 @@ export function AddMemberModal({ trigger, onMemberAdded, clubId: clubIdProp, clu
         return false
       }
     }
-    const isMandatory = isClubMemberIdMandatory((userData as any).favoriteTeamName, resolvedClubName)
+    const isMandatory = isClubMemberIdMandatory(clubTeamId)
     if (isMandatory && !userData.club_member_id?.trim()) {
       toast.error(`Club Member ID is required for ${resolvedClubName || "this club"}`)
       return false
@@ -297,14 +315,14 @@ export function AddMemberModal({ trigger, onMemberAdded, clubId: clubIdProp, clu
     <div className="space-y-4 max-h-[60vh] overflow-y-auto">
       <div className="grid gap-2">
         <Label htmlFor="club_member_id">
-          Club Member ID{isClubMemberIdMandatory((userData as any).favoriteTeamName, resolvedClubName) ? " *" : <span className="text-muted-foreground text-xs font-normal ml-1">(Optional)</span>}
+          Club Member ID{isClubMemberIdMandatory(clubTeamId) ? " *" : <span className="text-muted-foreground text-xs font-normal ml-1">(Optional)</span>}
         </Label>
         <Input
           id="club_member_id"
-          placeholder={isClubMemberIdMandatory((userData as any).favoriteTeamName, resolvedClubName) ? "Required (e.g. AM-1001)" : "Enter Club Member ID (optional)"}
+          placeholder={isClubMemberIdMandatory(clubTeamId) ? "Required (e.g. AM-1001)" : "Enter Club Member ID (optional)"}
           value={userData.club_member_id}
           onChange={(e) => handleUserDataChange("club_member_id", e.target.value)}
-          required={isClubMemberIdMandatory((userData as any).favoriteTeamName, resolvedClubName)}
+          required={isClubMemberIdMandatory(clubTeamId)}
         />
       </div>
 

@@ -100,30 +100,21 @@ const EMPTY_REGISTRATION = {
   club_member_id: "",
 }
 
-export const isClubMemberIdMandatory = (teamName?: any, clubIdentifier?: any) => {
-  const checkStr = (val?: any) => {
-    if (!val) return false
-    let str = ""
-    if (typeof val === "string") {
-      str = val
-    } else if (typeof val === "object") {
-      str = val.name || val.slug || val.title || val.strTeam || val._id || ""
-    }
-    if (!str) return false
-    const normalized = str.toLowerCase().replace(/['’]/g, "'").trim()
-    return (
-      normalized.includes("arsenal") ||
-      normalized.includes("demo club") ||
-      normalized.includes("democlub") ||
-      normalized.includes("demo-club") ||
-      normalized.includes("demo")
-    )
-  }
+export const CLUB_MEMBER_ID_MANDATORY_TEAM_ID = "133604"
 
-  if (checkStr(teamName)) return true
-  if (checkStr(clubIdentifier)) return true
-  return false
+export function extractClubTeamId(source?: any): string {
+  if (!source) return ""
+  const teamId =
+    source.sports?.teamId ??
+    source.data?.sports?.teamId ??
+    source.data?.data?.sports?.teamId ??
+    source.teamId ??
+    ""
+  return String(teamId).trim()
 }
+
+export const isClubMemberIdMandatory = (teamId?: string | number | null) =>
+  String(teamId ?? "").trim() === CLUB_MEMBER_ID_MANDATORY_TEAM_ID
 
 // ponytail: name-based single-club check — swap for a clubId/feature-flag lookup if more clubs need this.
 // Substring match (not exact equality) survives curly quotes / spacing / suffix tweaks in the club name.
@@ -187,6 +178,7 @@ export function JoinMembershipModal({
   const { user, checkAuth, isAdmin } = useAuth()
   const [internalPlans, setInternalPlans] = useState<JoinablePlan[]>([])
   const [internalClubName, setInternalClubName] = useState<string>("")
+  const [clubTeamId, setClubTeamId] = useState<string>("")
 
   useEffect(() => {
     if (!open || !clubId) return
@@ -198,15 +190,37 @@ export function JoinMembershipModal({
         setInternalPlans(list.filter((p: any) => p.isActive))
       }
     })
+  }, [open, clubId, propPlans])
 
-    if (!propClubName) {
-      apiClient.getClubById(clubId, true).then((res: any) => {
-        if (res.success && res.data) {
-          setInternalClubName(res.data.name || "")
+  useEffect(() => {
+    if (!open || !clubId) return
+
+    let cancelled = false
+
+    const loadClubTeam = async () => {
+      try {
+        setClubTeamId("")
+        const clubRes: any = await apiClient.getClubById(clubId, true)
+        if (cancelled) return
+        const club = clubRes?.data?.data || clubRes?.data || clubRes
+        if (!propClubName && club?.name) setInternalClubName(club.name)
+        let teamId = extractClubTeamId(club)
+        if (!teamId) {
+          const settingsRes: any = await apiClient.getClubSettings(clubId, true)
+          if (cancelled) return
+          teamId = extractClubTeamId(settingsRes?.data?.data || settingsRes?.data || settingsRes)
         }
-      })
+        setClubTeamId(teamId)
+      } catch {
+        if (!cancelled) setClubTeamId("")
+      }
     }
-  }, [open, clubId, propPlans, propClubName])
+
+    loadClubTeam()
+    return () => {
+      cancelled = true
+    }
+  }, [open, clubId, propClubName])
 
   const plans = propPlans && propPlans.length > 0 ? propPlans : internalPlans
   const clubName = propClubName || internalClubName || "Club"
@@ -786,7 +800,7 @@ export function JoinMembershipModal({
 
   const handleRegistration = async (e: React.FormEvent) => {
     e.preventDefault()
-    const isMandatoryClubMemberId = isClubMemberIdMandatory((registrationData as any).favoriteTeamName, clubName)
+    const isMandatoryClubMemberId = isClubMemberIdMandatory(clubTeamId)
     if (isMandatoryClubMemberId && !registrationData.club_member_id?.trim()) {
       toast.error(`Club Member ID is required for ${clubName}`)
       return
@@ -901,7 +915,7 @@ export function JoinMembershipModal({
 
   const handleSubscribeOrUpgrade = async () => {
     if (!selectedPlan || !user?._id) return
-    const isMandatoryClubMemberId = isClubMemberIdMandatory(clubName)
+    const isMandatoryClubMemberId = isClubMemberIdMandatory(clubTeamId)
     if (isMandatoryClubMemberId && !registrationData.club_member_id?.trim()) {
       toast.error(`Club Member ID is required for ${clubName}`)
       return
@@ -1086,7 +1100,7 @@ export function JoinMembershipModal({
   }
 
   const renderClubMemberIdField = () => {
-    const isMandatory = isClubMemberIdMandatory((registrationData as any).favoriteTeamName, clubName)
+    const isMandatory = isClubMemberIdMandatory(clubTeamId)
     return (
       <div className="space-y-2 sm:col-span-2">
         <Label htmlFor="club_member_id" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>

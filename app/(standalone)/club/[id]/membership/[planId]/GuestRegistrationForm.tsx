@@ -26,7 +26,7 @@ import {
 import { toast } from "sonner"
 import { getApiUrl, API_ENDPOINTS } from "@/lib/config"
 import { apiClient } from "@/lib/api"
-import { isClubMemberIdMandatory } from "@/components/modals/join-membership-modal"
+import { extractClubTeamId, isClubMemberIdMandatory } from "@/components/modals/join-membership-modal"
 import { calculateTransactionFees } from "@/lib/transactionFees"
 import { PaymentSimulationModal } from "@/components/modals/payment-simulation-modal"
 import { cn } from "@/lib/utils"
@@ -155,6 +155,7 @@ export function GuestRegistrationForm({
     .toLowerCase()
     .includes(TSHIRT_FIELD_CLUB_NAME_MATCH)
 
+  const [clubTeamId, setClubTeamId] = useState<string>("")
   const [plan, setPlan] = useState<CheckoutPlan | undefined>(initialPlan)
   const [planLoading, setPlanLoading] = useState(false)
 
@@ -334,6 +335,30 @@ export function GuestRegistrationForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [registrationData.favoriteLeagueId])
 
+  useEffect(() => {
+    if (!open || !club._id) return
+    let cancelled = false
+    const loadClubTeam = async () => {
+      try {
+        const clubRes: any = await apiClient.getClubById(club._id, true)
+        if (cancelled) return
+        let teamId = extractClubTeamId(clubRes?.data?.data || clubRes?.data || clubRes)
+        if (!teamId) {
+          const settingsRes: any = await apiClient.getClubSettings(club._id, true)
+          if (cancelled) return
+          teamId = extractClubTeamId(settingsRes?.data?.data || settingsRes?.data || settingsRes)
+        }
+        setClubTeamId(teamId)
+      } catch {
+        if (!cancelled) setClubTeamId("")
+      }
+    }
+    loadClubTeam()
+    return () => {
+      cancelled = true
+    }
+  }, [open, club._id])
+
   const getValidReferralPhone = (): string | undefined => {
     if (referralStatus !== "found") return undefined
     const digits = referralPhone.replace(/\D/g, "")
@@ -387,7 +412,7 @@ export function GuestRegistrationForm({
   const handleRegistration = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    const isMandatory = isClubMemberIdMandatory(registrationData.favoriteTeamName, club.name)
+    const isMandatory = isClubMemberIdMandatory(clubTeamId)
     if (isMandatory && !registrationData.club_member_id?.trim()) {
       toast.error(`Club Member ID is required for ${club.name}`)
       return
@@ -1110,14 +1135,14 @@ export function GuestRegistrationForm({
                 {/* Club Member ID Field */}
                 <div className="space-y-2 sm:col-span-2">
                   <Label htmlFor="guest_club_member_id">
-                    Club Member ID{isClubMemberIdMandatory(registrationData.favoriteTeamName, club.name) ? " *" : <span className="text-muted-foreground text-xs ml-1">(Optional)</span>}
+                    Club Member ID{isClubMemberIdMandatory(clubTeamId) ? " *" : <span className="text-muted-foreground text-xs ml-1">(Optional)</span>}
                   </Label>
                   <Input
                     id="guest_club_member_id"
                     value={registrationData.club_member_id}
                     onChange={(e) => setRegistrationData({ ...registrationData, club_member_id: e.target.value })}
-                    placeholder={isClubMemberIdMandatory(registrationData.favoriteTeamName, club.name) ? "Required (e.g. AM-1001)" : "Optional Member ID"}
-                    required={isClubMemberIdMandatory(registrationData.favoriteTeamName, club.name)}
+                    placeholder={isClubMemberIdMandatory(clubTeamId) ? "Required (e.g. AM-1001)" : "Optional Member ID"}
+                    required={isClubMemberIdMandatory(clubTeamId)}
                     className="h-12 w-full rounded-md border border-input bg-background px-3"
                   />
                 </div>

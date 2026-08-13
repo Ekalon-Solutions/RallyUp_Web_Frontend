@@ -46,7 +46,7 @@ import { toast } from "sonner"
 import { getApiUrl, API_ENDPOINTS } from "@/lib/config"
 import { calculateTransactionFees } from "@/lib/transactionFees"
 import { PaymentSimulationModal } from "@/components/modals/payment-simulation-modal"
-import { JoinMembershipModal, isClubMemberIdMandatory } from "@/components/modals/join-membership-modal"
+import { JoinMembershipModal, extractClubTeamId, isClubMemberIdMandatory } from "@/components/modals/join-membership-modal"
 import { SiteNavbar } from "@/components/site-navbar"
 import { SiteFooter } from "@/components/site-footer"
 import { cn } from "@/lib/utils"
@@ -73,6 +73,10 @@ interface Club {
   }
   status: 'active' | 'inactive' | 'suspended'
   platformFeePercent?: number
+  sports?: {
+    teamId?: string
+    teamName?: string
+  }
   membershipPlans: MembershipPlan[]
   memberInfo?: {
     currentCount: number
@@ -149,6 +153,7 @@ function ClubsPageContent() {
   const [filteredClubs, setFilteredClubs] = useState<Club[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedClub, setSelectedClub] = useState<Club | null>(null)
+  const [clubTeamId, setClubTeamId] = useState<string>("")
   const [selectedPlan, setSelectedPlan] = useState<MembershipPlan | null>(null)
   const [showRegistrationDialog, setShowRegistrationDialog] = useState(false)
   const [showMembershipDialog, setShowMembershipDialog] = useState(false)
@@ -244,6 +249,28 @@ function ClubsPageContent() {
   useEffect(() => {
     filterClubs()
   }, [clubs, searchTerm, statusFilter, priceFilter])
+
+  useEffect(() => {
+    if (!selectedClub?._id) {
+      setClubTeamId("")
+      return
+    }
+    const fromClub = extractClubTeamId(selectedClub)
+    if (fromClub) {
+      setClubTeamId(fromClub)
+      return
+    }
+    let cancelled = false
+    apiClient.getClubSettings(selectedClub._id, true).then((res: any) => {
+      if (cancelled) return
+      setClubTeamId(extractClubTeamId(res?.data?.data || res?.data || res))
+    }).catch(() => {
+      if (!cancelled) setClubTeamId("")
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [selectedClub])
 
   useEffect(() => {
     const digits = referralPhone.replace(/\D/g, "")
@@ -543,7 +570,7 @@ function ClubsPageContent() {
   const handleRegistration = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedClub || !selectedPlan) return
-    const isMandatory = isClubMemberIdMandatory((registrationData as any).favoriteTeamName, selectedClub?.name)
+    const isMandatory = isClubMemberIdMandatory(clubTeamId)
     if (isMandatory && !registrationData.club_member_id?.trim()) {
       toast.error(`Club Member ID is required for ${selectedClub?.name}`)
       return
@@ -1798,14 +1825,14 @@ function ClubsPageContent() {
 
                 <div className="space-y-2 sm:col-span-2">
                   <Label htmlFor="page_club_member_id">
-                    Club Member ID{isClubMemberIdMandatory((registrationData as any).favoriteTeamName, selectedClub?.name) ? " *" : <span className="text-muted-foreground text-xs ml-1">(Optional)</span>}
+                    Club Member ID{isClubMemberIdMandatory(clubTeamId) ? " *" : <span className="text-muted-foreground text-xs ml-1">(Optional)</span>}
                   </Label>
                   <Input
                     id="page_club_member_id"
                     value={registrationData.club_member_id}
                     onChange={(e) => setRegistrationData({ ...registrationData, club_member_id: e.target.value })}
-                    placeholder={isClubMemberIdMandatory((registrationData as any).favoriteTeamName, selectedClub?.name) ? "Required (e.g. AM-1001)" : "Optional Member ID"}
-                    required={Boolean(isClubMemberIdMandatory((registrationData as any).favoriteTeamName, selectedClub?.name))}
+                    placeholder={isClubMemberIdMandatory(clubTeamId) ? "Required (e.g. AM-1001)" : "Optional Member ID"}
+                    required={isClubMemberIdMandatory(clubTeamId)}
                     className="h-12"
                   />
                 </div>
