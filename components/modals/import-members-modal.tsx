@@ -15,6 +15,24 @@ import { triggerBlobDownload } from '@/lib/utils'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { extractClubTeamId, isClubMemberIdMandatory } from './join-membership-modal'
 
+function normalizeCsvHeader(value: string): string {
+  return value.toLowerCase().replace(/^\ufeff/, '').replace(/[\s_-]+/g, '')
+}
+
+function getClubMemberIdFromRow(row: Record<string, unknown>): string {
+  const direct = row.club_member_id ?? row.user_membership_id ?? row.userMembershipId ?? row.clubMemberId
+  if (direct != null && String(direct).trim()) return String(direct).trim()
+
+  for (const [key, value] of Object.entries(row)) {
+    const normalized = normalizeCsvHeader(key)
+    if (normalized === 'clubmemberid' || normalized === 'usermembershipid' || normalized === 'memberid') {
+      const text = String(value ?? '').trim()
+      if (text) return text
+    }
+  }
+  return ''
+}
+
 interface ImportMembersModalProps {
   trigger?: React.ReactNode
   onImported?: (entries?: Array<{ email: string; name: string; status: 'added' | 'updated' | 'already_member' }>) => void
@@ -193,7 +211,7 @@ charlie.brown@example.com,Charlie,Brown,9234567890,+91,MEM-1003,charlie_brown,19
         
         const countryCode = (row.countryCode || row.country_code || row.countryCo || row['Country Code'] || '+91').trim()
         const normalizedCountryCode = countryCode.startsWith('+') ? countryCode : `+${countryCode}`
-        const user_membership_id = (row.user_membership_id || row.club_member_id || row.userMembershipId || row['Club Member ID'] || row['Member ID'] || '').trim()
+        const user_membership_id = getClubMemberIdFromRow(row)
         const username = (row.username || row.Username || email?.split('@')?.[0] || `user${Date.now()}${idx}`).trim()
         
         if (!email) {
