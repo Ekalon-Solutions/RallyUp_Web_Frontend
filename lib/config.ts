@@ -38,14 +38,14 @@ export const ENV = {
   },
   
   production: {
-    apiBaseUrl: getApiBaseUrl('https://wingmanpro.tech/api'),
+    apiBaseUrl: getApiBaseUrl('https://wingman-pro.com/api'),
     wsBaseUrl: getWsBaseUrl('wss://teplworkspace.com/rallyApi'),
     environment: 'production',
     debug: false,
   },
 
   staging: {
-    apiBaseUrl: getApiBaseUrl('https://wingmanpro.tech/api'),
+    apiBaseUrl: getApiBaseUrl('https://wingman-pro.com/api'),
     wsBaseUrl: getWsBaseUrl('wss://teplworkspace.com/rallyApi'),
     environment: 'staging',
     debug: true,

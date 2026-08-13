@@ -49,4 +49,4 @@ Disallow: /api/honeypot
 
 Crawl-delay: 10
 
-Sitemap: https://wingmanpro.tech/sitemap.xml
+Sitemap: https://wingman-pro.com/sitemap.xml

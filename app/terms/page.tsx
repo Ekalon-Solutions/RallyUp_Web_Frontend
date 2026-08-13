@@ -119,7 +119,7 @@ export default function TermsPage(): React.JSX.Element {
  </p>
  <ul className="list-disc pl-5 space-y-2">
  <li>Ankit Ameria – on behalf of RallyUp Solutions Private Limited</li>
- <li>Email: <a className="underline"href="mailto:response@wingmanpro.tech">response@wingmanpro.tech</a></li>
+ <li>Email: <a className="underline"href="mailto:response@wingman-pro.com">response@wingman-pro.com</a></li>
  <li>Contact: +91 89551 22434</li>
  </ul>
  </section>

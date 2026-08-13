@@ -241,9 +241,9 @@ export default function ChildSafetyPage(): React.JSX.Element {
  <span className="font-medium text-secondary">Email:</span>{""}
  <a
  className="text-primary hover:text-primary font-semibold underline"
- href="mailto:response@wingmanpro.tech"
+ href="mailto:response@wingman-pro.com"
  >
- response@wingmanpro.tech
+ response@wingman-pro.com
  </a>
  </li>
  </ul>

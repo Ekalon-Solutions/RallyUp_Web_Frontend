@@ -140,9 +140,9 @@ export default function RefundPage(): React.JSX.Element {
  </p>
  <ul className="list-disc pl-5 space-y-2">
  <li><strong>Primary Point of Contact:</strong> Wingman Pro Support</li>
- <li><strong>Platform Email:</strong> <a className="underline"href="mailto:support@wingmanpro.tech">support@wingmanpro.tech</a></li>
+ <li><strong>Platform Email:</strong> <a className="underline"href="mailto:support@wingman-pro.com">support@wingman-pro.com</a></li>
  <li><strong>Primary Point of Escalation:</strong> Ankit Ameria</li>
- <li><strong>Platform Escalation:</strong> <a className="underline"href="mailto:ankit@wingmanpro.tech">ankit@wingmanpro.tech</a></li>
+ <li><strong>Platform Escalation:</strong> <a className="underline"href="mailto:ankit@wingman-pro.com">ankit@wingman-pro.com</a></li>
  <li><strong>Escalation Mandate:</strong> Support Ticket Number is mandatory for any escalation.</li>
  <li><strong>Registered Office:</strong> Apna Ghar Unit no. 13 CHS L, Andheri, Mumbai- 400053, Maharashtra.</li>
  </ul>

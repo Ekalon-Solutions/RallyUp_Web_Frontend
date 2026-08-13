@@ -9,7 +9,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   } catch (error) {
     // console.error('Error generating sitemap:', error)
     
-    const baseUrl = 'https://wingmanpro.tech'
+    const baseUrl = 'https://wingman-pro.com'
     const currentDate = new Date()
     
     return [

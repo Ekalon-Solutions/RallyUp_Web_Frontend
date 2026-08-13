@@ -26,7 +26,7 @@ interface EventDetailsModalProps {
 export default function EventDetailsModal({ event, isOpen, onClose }: EventDetailsModalProps) {
   const { user } = useAuth()
   const [registration, setRegistration] = useState<any | null>(null)
-  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL as string) || "https://wingmanpro.tech";
+  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL as string) || "https://wingman-pro.com";
 
   const isRegistered = isUserRegisteredForEvent(event, user?._id)
   const isConfirmed = isRegistered

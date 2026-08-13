@@ -30,7 +30,7 @@ const purplePurse = Purple_Purse({
 })
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://wingmanpro.tech'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://wingman-pro.com'),
   title: {
     default: "Wingman Pro - Intelligent Sports Club Management Software",
     template: "%s | Wingman Pro"

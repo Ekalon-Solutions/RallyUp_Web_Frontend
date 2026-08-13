@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { dataDeletionRequestSchema } from "@/lib/data-deletion-request-schema"
 
-const SUPPORT_EMAIL = "support@wingmanpro.tech"
+const SUPPORT_EMAIL = "support@wingman-pro.com"
 
 function escapeHtml(s: string): string {
   return s
@@ -24,7 +24,7 @@ async function sendSendGrid(params: {
   const fromEmail =
     process.env.SEND_GRID_LOGIN_FROM_EMAIL?.trim() ||
     process.env.SEND_GRID_FROM_EMAIL?.trim() ||
-    "noreply@wingmanpro.tech"
+    "noreply@wingman-pro.com"
   const fromName =
     process.env.SEND_GRID_LOGIN_FROM_NAME?.trim() ||
     process.env.SEND_GRID_FROM_NAME?.trim() ||
@@ -98,13 +98,13 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           {
             error:
-              "This form cannot send email right now. Please email support@wingmanpro.tech directly with the same details.",
+              "This form cannot send email right now. Please email support@wingman-pro.com directly with the same details.",
           },
           { status: 503 }
         )
       }
       return NextResponse.json(
-        { error: "We could not deliver your request. Please try again or email support@wingmanpro.tech." },
+        { error: "We could not deliver your request. Please try again or email support@wingman-pro.com." },
         { status: 502 }
       )
     }

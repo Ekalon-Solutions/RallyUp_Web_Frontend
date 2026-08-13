@@ -5,7 +5,7 @@ export interface SitemapEntry {
   priority: number
 }
 
-const BASE_URL = 'https://wingmanpro.tech'
+const BASE_URL = 'https://wingman-pro.com'
 
 export function getStaticPages(): SitemapEntry[] {
   const currentDate = new Date()

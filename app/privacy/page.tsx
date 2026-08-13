@@ -132,8 +132,8 @@ export default function PrivacyPage(): React.JSX.Element {
                                     Data Deletion Request Form
                                 </Link>{""}
                                 or by emailing{""}
-                                <a className="underline" href="mailto:support@wingmanpro.tech">
-                                    support@wingmanpro.tech
+                                <a className="underline" href="mailto:support@wingman-pro.com">
+                                    support@wingman-pro.com
                                 </a>
                             </li>
                             <li>
@@ -346,8 +346,8 @@ export default function PrivacyPage(): React.JSX.Element {
                             RallyUp Solutions Private Limited
                             <br />
                             Email:{""}
-                            <a className="underline" href="mailto:support@wingmanpro.tech">
-                                support@wingmanpro.tech
+                            <a className="underline" href="mailto:support@wingman-pro.com">
+                                support@wingman-pro.com
                             </a>
                             <br />
                             Phone: +91 9819 889 882

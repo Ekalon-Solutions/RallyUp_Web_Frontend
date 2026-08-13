@@ -38,8 +38,8 @@ export default function DeleteAccountPage(): React.JSX.Element {
 
                     <p className="mt-8 text-sm text-secondary leading-relaxed">
                         No phone call or postal mail is required. If you need help, you can still reach us at{""}
-                        <a className="underline text-primary" href="mailto:support@wingmanpro.tech">
-                            support@wingmanpro.tech
+                        <a className="underline text-primary" href="mailto:support@wingman-pro.com">
+                            support@wingman-pro.com
                         </a>
                         .
                     </p>

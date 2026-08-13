@@ -22,7 +22,7 @@ const faqData = [
   {
     question: "Can I customize my club website?",
     answer:
-      "Yes! Visit the Club Website section to configure navigation, content sections, social media links, and publish your hosted website at wingmanpro.tech/yourclub.",
+      "Yes! Visit the Club Website section to configure navigation, content sections, social media links, and publish your hosted website at wingman-pro.com/yourclub.",
   },
   {
     question: "How do I create and manage events?",

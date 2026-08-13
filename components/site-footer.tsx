@@ -70,10 +70,10 @@ export function SiteFooter({ brandName = "Wingman Pro" }: SiteFooterProps) {
             <Link href="/help" className="hover:text-[#0D0D0D] transition-colors">Help Center</Link>
             <Link href="/contact" className="hover:text-[#0D0D0D] transition-colors">Contact Us</Link>
             <a
-              href="mailto:support@wingmanpro.tech"
+              href="mailto:support@wingman-pro.com"
               className="underline underline-offset-2 hover:text-[#0D0D0D] transition-colors"
             >
-              support@wingmanpro.tech
+              support@wingman-pro.com
             </a>
           </div>
         </div>

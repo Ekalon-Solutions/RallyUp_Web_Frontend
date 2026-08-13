@@ -60,7 +60,7 @@ export const VARIABLE_SAMPLE_DATA: Record<string, string> = {
   venue_name: 'North Stand Lounge',
   event_date: 'Sat, 14 Jun · 7:00 PM',
   ticket_id: 'TKT-48291',
-  ticket_link: 'https://wingmanpro.tech/t/abc123',
+  ticket_link: 'https://wingman-pro.com/t/abc123',
   qr_code: QR_PREVIEW_SENTINEL,
   // Club
   club_name: 'Demo Club',
