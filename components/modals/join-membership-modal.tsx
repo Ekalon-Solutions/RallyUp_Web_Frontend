@@ -100,16 +100,29 @@ const EMPTY_REGISTRATION = {
   club_member_id: "",
 }
 
-export const isClubMemberIdMandatory = (clubName?: string) => {
-  if (!clubName) return false
-  const normalized = clubName.toLowerCase().replace(/['’]/g, "'").trim()
-  return (
-    normalized.includes("arsenal mumbai supporters' club") ||
-    normalized.includes("arsenal mumbai") ||
-    normalized.includes("demo club") ||
-    normalized.includes("democlub") ||
-    normalized === "demo"
-  )
+export const isClubMemberIdMandatory = (teamName?: any, clubIdentifier?: any) => {
+  const checkStr = (val?: any) => {
+    if (!val) return false
+    let str = ""
+    if (typeof val === "string") {
+      str = val
+    } else if (typeof val === "object") {
+      str = val.name || val.slug || val.title || val.strTeam || val._id || ""
+    }
+    if (!str) return false
+    const normalized = str.toLowerCase().replace(/['’]/g, "'").trim()
+    return (
+      normalized.includes("arsenal") ||
+      normalized.includes("demo club") ||
+      normalized.includes("democlub") ||
+      normalized.includes("demo-club") ||
+      normalized.includes("demo")
+    )
+  }
+
+  if (checkStr(teamName)) return true
+  if (checkStr(clubIdentifier)) return true
+  return false
 }
 
 // ponytail: name-based single-club check — swap for a clubId/feature-flag lookup if more clubs need this.
@@ -773,7 +786,7 @@ export function JoinMembershipModal({
 
   const handleRegistration = async (e: React.FormEvent) => {
     e.preventDefault()
-    const isMandatoryClubMemberId = isClubMemberIdMandatory(clubName)
+    const isMandatoryClubMemberId = isClubMemberIdMandatory((registrationData as any).favoriteTeamName, clubName)
     if (isMandatoryClubMemberId && !registrationData.club_member_id?.trim()) {
       toast.error(`Club Member ID is required for ${clubName}`)
       return
@@ -1073,7 +1086,7 @@ export function JoinMembershipModal({
   }
 
   const renderClubMemberIdField = () => {
-    const isMandatory = isClubMemberIdMandatory(clubName)
+    const isMandatory = isClubMemberIdMandatory((registrationData as any).favoriteTeamName, clubName)
     return (
       <div className="space-y-2 sm:col-span-2">
         <Label htmlFor="club_member_id" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>

@@ -387,7 +387,7 @@ export function GuestRegistrationForm({
   const handleRegistration = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    const isMandatory = isClubMemberIdMandatory(club.name)
+    const isMandatory = isClubMemberIdMandatory(registrationData.favoriteTeamName, club.name)
     if (isMandatory && !registrationData.club_member_id?.trim()) {
       toast.error(`Club Member ID is required for ${club.name}`)
       return
@@ -1110,14 +1110,14 @@ export function GuestRegistrationForm({
                 {/* Club Member ID Field */}
                 <div className="space-y-2 sm:col-span-2">
                   <Label htmlFor="guest_club_member_id">
-                    Club Member ID{isClubMemberIdMandatory(club.name) ? " *" : <span className="text-muted-foreground text-xs ml-1">(Optional)</span>}
+                    Club Member ID{isClubMemberIdMandatory(registrationData.favoriteTeamName, club.name) ? " *" : <span className="text-muted-foreground text-xs ml-1">(Optional)</span>}
                   </Label>
                   <Input
                     id="guest_club_member_id"
                     value={registrationData.club_member_id}
                     onChange={(e) => setRegistrationData({ ...registrationData, club_member_id: e.target.value })}
-                    placeholder={isClubMemberIdMandatory(club.name) ? "Required (e.g. AM-1001)" : "Optional Member ID"}
-                    required={isClubMemberIdMandatory(club.name)}
+                    placeholder={isClubMemberIdMandatory(registrationData.favoriteTeamName, club.name) ? "Required (e.g. AM-1001)" : "Optional Member ID"}
+                    required={isClubMemberIdMandatory(registrationData.favoriteTeamName, club.name)}
                     className="h-12 w-full rounded-md border border-input bg-background px-3"
                   />
                 </div>

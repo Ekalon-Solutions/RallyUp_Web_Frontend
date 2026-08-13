@@ -147,7 +147,7 @@ export function AddMemberModal({ trigger, onMemberAdded, clubId: clubIdProp, clu
         return false
       }
     }
-    const isMandatory = isClubMemberIdMandatory(resolvedClubName)
+    const isMandatory = isClubMemberIdMandatory((userData as any).favoriteTeamName, resolvedClubName)
     if (isMandatory && !userData.club_member_id?.trim()) {
       toast.error(`Club Member ID is required for ${resolvedClubName || "this club"}`)
       return false
@@ -297,14 +297,14 @@ export function AddMemberModal({ trigger, onMemberAdded, clubId: clubIdProp, clu
     <div className="space-y-4 max-h-[60vh] overflow-y-auto">
       <div className="grid gap-2">
         <Label htmlFor="club_member_id">
-          Club Member ID{isClubMemberIdMandatory(resolvedClubName) ? " *" : <span className="text-muted-foreground text-xs font-normal ml-1">(Optional)</span>}
+          Club Member ID{isClubMemberIdMandatory((userData as any).favoriteTeamName, resolvedClubName) ? " *" : <span className="text-muted-foreground text-xs font-normal ml-1">(Optional)</span>}
         </Label>
         <Input
           id="club_member_id"
-          placeholder={isClubMemberIdMandatory(resolvedClubName) ? "Required (e.g. AM-1001)" : "Enter Club Member ID (optional)"}
+          placeholder={isClubMemberIdMandatory((userData as any).favoriteTeamName, resolvedClubName) ? "Required (e.g. AM-1001)" : "Enter Club Member ID (optional)"}
           value={userData.club_member_id}
           onChange={(e) => handleUserDataChange("club_member_id", e.target.value)}
-          required={isClubMemberIdMandatory(resolvedClubName)}
+          required={isClubMemberIdMandatory((userData as any).favoriteTeamName, resolvedClubName)}
         />
       </div>
 

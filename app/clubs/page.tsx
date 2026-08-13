@@ -543,7 +543,7 @@ function ClubsPageContent() {
   const handleRegistration = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedClub || !selectedPlan) return
-    const isMandatory = selectedClub ? isClubMemberIdMandatory(selectedClub.name) : false
+    const isMandatory = isClubMemberIdMandatory((registrationData as any).favoriteTeamName, selectedClub?.name)
     if (isMandatory && !registrationData.club_member_id?.trim()) {
       toast.error(`Club Member ID is required for ${selectedClub?.name}`)
       return
@@ -1798,14 +1798,14 @@ function ClubsPageContent() {
 
                 <div className="space-y-2 sm:col-span-2">
                   <Label htmlFor="page_club_member_id">
-                    Club Member ID{selectedClub && isClubMemberIdMandatory(selectedClub.name) ? " *" : <span className="text-muted-foreground text-xs ml-1">(Optional)</span>}
+                    Club Member ID{isClubMemberIdMandatory((registrationData as any).favoriteTeamName, selectedClub?.name) ? " *" : <span className="text-muted-foreground text-xs ml-1">(Optional)</span>}
                   </Label>
                   <Input
                     id="page_club_member_id"
                     value={registrationData.club_member_id}
                     onChange={(e) => setRegistrationData({ ...registrationData, club_member_id: e.target.value })}
-                    placeholder={selectedClub && isClubMemberIdMandatory(selectedClub.name) ? "Required (e.g. AM-1001)" : "Optional Member ID"}
-                    required={Boolean(selectedClub && isClubMemberIdMandatory(selectedClub.name))}
+                    placeholder={isClubMemberIdMandatory((registrationData as any).favoriteTeamName, selectedClub?.name) ? "Required (e.g. AM-1001)" : "Optional Member ID"}
+                    required={Boolean(isClubMemberIdMandatory((registrationData as any).favoriteTeamName, selectedClub?.name))}
                     className="h-12"
                   />
                 </div>

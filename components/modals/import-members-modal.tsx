@@ -199,7 +199,7 @@ charlie.brown@example.com,Charlie,Brown,9234567890,+91,MEM-1003,charlie_brown,19
           continue
         }
 
-        const isMandatory = isClubMemberIdMandatory(resolvedClubName)
+        const isMandatory = isClubMemberIdMandatory(row.favoriteTeamName || row.teamName || row.favorite_team, resolvedClubName)
         if (isMandatory && !user_membership_id) {
           failCount++
           errors.push({ row: idx + 2, error: `Club Member ID is required for ${resolvedClubName || 'this club'}` })
