@@ -605,7 +605,8 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
   }, [user])
 
   const handleRoleSwitch = async (accountType: 'user' | 'admin' | 'system_owner', accountId: string) => {
-    const result = await switchRole(accountType, accountId)
+    const currentClubId = activeClubId || (typeof window !== 'undefined' ? localStorage.getItem('activeClubId') : null) || undefined;
+    const result = await switchRole(accountType, accountId, currentClubId)
     if (result.success) {
       if (accountType === 'user') {
         window.location.href = '/dashboard/user'
