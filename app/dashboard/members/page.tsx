@@ -627,7 +627,7 @@ export default function MembersPage() {
         'Last Name', 
         'Phone Number', 
         'Country Code', 
-        'Membership ID',
+        'Club Membership ID',
         'Username', 
         'Date of Birth', 
         'Gender', 
@@ -1363,7 +1363,7 @@ export default function MembersPage() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                       {selectedMember.club_member_id != null && selectedMember.club_member_id !== '' && (
                         <div>
-                          <Label className="text-muted-foreground text-xs">Membership ID</Label>
+                          <Label className="text-muted-foreground text-xs">Club Membership ID</Label>
                           <p className="font-medium font-mono text-primary">{selectedMember.club_member_id}</p>
                         </div>
                       )}
