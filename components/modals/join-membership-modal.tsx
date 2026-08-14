@@ -803,7 +803,7 @@ export function JoinMembershipModal({
     e.preventDefault()
     const isMandatoryClubMemberId = isClubMemberIdMandatory(clubTeamId)
     if (isMandatoryClubMemberId && !registrationData.club_member_id?.trim()) {
-      toast.error(`Club Member ID is required for ${clubName}`)
+      toast.error(`Membership ID is required for ${clubName}`)
       return
     }
 
@@ -918,7 +918,7 @@ export function JoinMembershipModal({
     if (!selectedPlan || !user?._id) return
     const isMandatoryClubMemberId = isClubMemberIdMandatory(clubTeamId)
     if (isMandatoryClubMemberId && !registrationData.club_member_id?.trim()) {
-      toast.error(`Club Member ID is required for ${clubName}`)
+      toast.error(`Membership ID is required for ${clubName}`)
       return
     }
     if (isAdmin) {
@@ -1105,7 +1105,7 @@ export function JoinMembershipModal({
     return (
       <div className="space-y-2 sm:col-span-2">
         <Label htmlFor="club_member_id" className={cn("text-[10px] font-bold tracking-widest uppercase", isDashboard ? "text-muted-foreground" : "text-secondary")}>
-          Club Member ID{isMandatory ? " *" : <span className="text-muted-foreground text-xs ml-1">(Optional)</span>}
+          Membership ID{isMandatory ? " *" : <span className="text-muted-foreground text-xs ml-1">(Optional)</span>}
         </Label>
         <Input
           id="club_member_id"
@@ -1113,7 +1113,7 @@ export function JoinMembershipModal({
           value={registrationData.club_member_id}
           onChange={(e) => setRegistrationData({ ...registrationData, club_member_id: e.target.value })}
           required={isMandatory}
-          placeholder={isMandatory ? "Required (e.g. AM-1001)" : "Optional Member ID"}
+          placeholder={isMandatory ? "Required" : "Optional Member ID"}
           className={cn("h-12 rounded-xl focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-primary", isDashboard ? "border-input bg-background text-foreground placeholder:text-muted-foreground" : "border-secondary bg-white text-black placeholder:text-slate-400")}
         />
       </div>

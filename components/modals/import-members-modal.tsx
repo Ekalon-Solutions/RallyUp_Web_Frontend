@@ -20,12 +20,20 @@ function normalizeCsvHeader(value: string): string {
 }
 
 function getClubMemberIdFromRow(row: Record<string, unknown>): string {
-  const direct = row.club_member_id ?? row.user_membership_id ?? row.userMembershipId ?? row.clubMemberId
+  const direct =
+    row['Membership ID'] ??
+    row.membership_id ??
+    row.membershipId ??
+    row.club_member_id ??
+    row['Club Member ID'] ??
+    row.user_membership_id ??
+    row.userMembershipId ??
+    row.clubMemberId
   if (direct != null && String(direct).trim()) return String(direct).trim()
 
   for (const [key, value] of Object.entries(row)) {
     const normalized = normalizeCsvHeader(key)
-    if (normalized === 'clubmemberid' || normalized === 'usermembershipid' || normalized === 'memberid') {
+    if (normalized === 'membershipid' || normalized === 'clubmemberid' || normalized === 'usermembershipid' || normalized === 'memberid') {
       const text = String(value ?? '').trim()
       if (text) return text
     }
@@ -115,7 +123,7 @@ export function ImportMembersModal({ trigger, onImported, clubId: clubIdProp, cl
 
   const handleDownloadSample = async () => {
     try {
-      const csvHeaders = 'Email,First Name,Last Name,Phone Number,Country Code,Club Member ID,Username,Date of Birth,Gender,Address Line 1,City,State/Province,Zip Code,Country,ID Proof Type,ID Proof Number'
+      const csvHeaders = 'Email,First Name,Last Name,Phone Number,Country Code,Membership ID,Username,Date of Birth,Gender,Address Line 1,City,State/Province,Zip Code,Country,ID Proof Type,ID Proof Number'
       const csvContent = `${csvHeaders}
 alice.smith@example.com,Alice,Smith,9876543210,+91,MEM-1001,alice_smith,1990-05-12,female,12 Lotus Street,Mumbai,Maharashtra,400001,India,Aadhar,1234-5678-9012
 bob.johnson@example.com,Bob,Johnson,9123456780,+91,MEM-1002,bob_johnson,1985-11-03,male,45 River Road,Delhi,Delhi,110001,India,Passport,P1234567
@@ -238,7 +246,7 @@ charlie.brown@example.com,Charlie,Brown,9234567890,+91,MEM-1003,charlie_brown,19
         const isMandatory = isClubMemberIdMandatory(clubTeamId)
         if (isMandatory && !user_membership_id) {
           failCount++
-          errors.push({ row: idx + 2, error: `Club Member ID is required for ${resolvedClubName || 'this club'}` })
+          errors.push({ row: idx + 2, error: `Membership ID is required for ${resolvedClubName || 'this club'}` })
           continue
         }
 
@@ -541,9 +549,9 @@ charlie.brown@example.com,Charlie,Brown,9234567890,+91,MEM-1003,charlie_brown,19
               </div>
               <p className="text-sm text-muted-foreground mt-2">
                 Required CSV headers: email, first_name, last_name, phoneNumber, countryCode
-                {isClubMemberIdMandatory(clubTeamId) ? ", Club Member ID" : ""}
+                {isClubMemberIdMandatory(clubTeamId) ? ", Membership ID" : ""}
                 <br/>
-                Optional: {isClubMemberIdMandatory(clubTeamId) ? "" : "Club Member ID, "}username, date_of_birth, gender, address_line1, city, state_province, zip_code, country, id_proof_type, id_proof_number
+                Optional: {isClubMemberIdMandatory(clubTeamId) ? "" : "Membership ID, "}username, date_of_birth, gender, address_line1, city, state_province, zip_code, country, id_proof_type, id_proof_number
               </p>
             </div>
 

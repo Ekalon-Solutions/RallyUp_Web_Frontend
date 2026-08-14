@@ -572,7 +572,7 @@ function ClubsPageContent() {
     if (!selectedClub || !selectedPlan) return
     const isMandatory = isClubMemberIdMandatory(clubTeamId)
     if (isMandatory && !registrationData.club_member_id?.trim()) {
-      toast.error(`Club Member ID is required for ${selectedClub?.name}`)
+      toast.error(`Membership ID is required for ${selectedClub?.name}`)
       return
     }
 
@@ -1826,13 +1826,13 @@ function ClubsPageContent() {
 
                 <div className="space-y-2 sm:col-span-2">
                   <Label htmlFor="page_club_member_id">
-                    Club Member ID{isClubMemberIdMandatory(clubTeamId) ? " *" : <span className="text-muted-foreground text-xs ml-1">(Optional)</span>}
+                    Membership ID{isClubMemberIdMandatory(clubTeamId) ? " *" : <span className="text-muted-foreground text-xs ml-1">(Optional)</span>}
                   </Label>
                   <Input
                     id="page_club_member_id"
                     value={registrationData.club_member_id}
                     onChange={(e) => setRegistrationData({ ...registrationData, club_member_id: e.target.value })}
-                    placeholder={isClubMemberIdMandatory(clubTeamId) ? "Required (e.g. AM-1001)" : "Optional Member ID"}
+                    placeholder={isClubMemberIdMandatory(clubTeamId) ? "Required" : "Optional Member ID"}
                     required={isClubMemberIdMandatory(clubTeamId)}
                     className="h-12"
                   />

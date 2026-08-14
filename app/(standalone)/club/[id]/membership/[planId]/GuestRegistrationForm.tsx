@@ -414,7 +414,7 @@ export function GuestRegistrationForm({
 
     const isMandatory = isClubMemberIdMandatory(clubTeamId)
     if (isMandatory && !registrationData.club_member_id?.trim()) {
-      toast.error(`Club Member ID is required for ${club.name}`)
+      toast.error(`Membership ID is required for ${club.name}`)
       return
     }
 
@@ -1134,16 +1134,16 @@ export function GuestRegistrationForm({
                   </select>
                 </div>
 
-                {/* Club Member ID Field */}
+                {/* Membership ID Field */}
                 <div className="space-y-2 sm:col-span-2">
                   <Label htmlFor="guest_club_member_id">
-                    Club Member ID{isClubMemberIdMandatory(clubTeamId) ? " *" : <span className="text-muted-foreground text-xs ml-1">(Optional)</span>}
+                    Membership ID{isClubMemberIdMandatory(clubTeamId) ? " *" : <span className="text-muted-foreground text-xs ml-1">(Optional)</span>}
                   </Label>
                   <Input
                     id="guest_club_member_id"
                     value={registrationData.club_member_id}
                     onChange={(e) => setRegistrationData({ ...registrationData, club_member_id: e.target.value })}
-                    placeholder={isClubMemberIdMandatory(clubTeamId) ? "Required (e.g. AM-1001)" : "Optional Member ID"}
+                    placeholder={isClubMemberIdMandatory(clubTeamId) ? "Required" : "Optional Member ID"}
                     required={isClubMemberIdMandatory(clubTeamId)}
                     className="h-12 w-full rounded-md border border-input bg-background px-3"
                   />
