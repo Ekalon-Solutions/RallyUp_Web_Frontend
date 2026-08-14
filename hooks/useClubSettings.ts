@@ -38,6 +38,7 @@ interface ClubSettings {
 
 export function useClubSettings(clubId?: string) {
   const [settings, setSettings] = useState<ClubSettings | null>(null)
+  const [loadedForClubId, setLoadedForClubId] = useState<string | undefined>(undefined)
   const [loading, setLoading] = useState(true)
   const [cacheVersion, setCacheVersion] = useState(0)
 
@@ -56,11 +57,11 @@ export function useClubSettings(clubId?: string) {
   useEffect(() => {
     if (!clubId) {
       setSettings(null)
+      setLoadedForClubId(undefined)
       setLoading(false)
       return
     }
 
-    setSettings(null)
     setLoading(true)
 
     let cancelled = false
@@ -76,6 +77,7 @@ export function useClubSettings(clubId?: string) {
               const parsed = JSON.parse(cached)
               if (parsed && typeof parsed === "object") {
                 setSettings(parsed)
+                setLoadedForClubId(currentClubId)
                 setLoading(false)
               }
             } catch {
@@ -109,6 +111,7 @@ export function useClubSettings(clubId?: string) {
           }
 
           setSettings(normalized)
+          setLoadedForClubId(currentClubId)
 
           if (typeof window !== "undefined") {
             try {
@@ -130,10 +133,15 @@ export function useClubSettings(clubId?: string) {
     }
   }, [clubId, cacheVersion])
 
+  // Never expose club A's settings after the sidebar switches to club B —
+  // the state update in the effect above is one render too late.
+  const scopedSettings = loadedForClubId && clubId && loadedForClubId === clubId ? settings : null
+  const scopedLoading = Boolean(clubId) && (loadedForClubId !== clubId || loading)
+
   const isSectionVisible = (section: WebsiteSectionKey) => {
     const value =
-      settings?.memberSectionVisibility?.sections?.[section] ??
-      settings?.websiteSetup?.sections?.[section]
+      scopedSettings?.memberSectionVisibility?.sections?.[section] ??
+      scopedSettings?.websiteSetup?.sections?.[section]
     if (typeof value === "boolean") return value
     if (typeof value === "string") {
       const v = value.trim().toLowerCase()
@@ -145,8 +153,8 @@ export function useClubSettings(clubId?: string) {
   }
 
   return {
-    settings,
-    loading,
+    settings: scopedSettings,
+    loading: scopedLoading,
     isSectionVisible,
   }
 }

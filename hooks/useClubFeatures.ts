@@ -25,23 +25,57 @@ export function useClubFeatures(
 ) {
   const asMember = options?.asMember ?? false;
   const [config, setConfig] = useState<ResolvedClubFeatures | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(Boolean(clubId));
   const [loadFailed, setLoadFailed] = useState(false);
   const { socket, isConnected } = useSocket();
   const prevConfigRef = useRef<ResolvedClubFeatures | null>(null);
+  const clubIdRef = useRef(clubId);
+  const requestIdRef = useRef(0);
+  clubIdRef.current = clubId;
 
   const applyConfig = useCallback((next: ResolvedClubFeatures) => {
+    // Drop updates that belong to a club we already switched away from.
+    if (clubIdRef.current && String(next.clubId) !== String(clubIdRef.current)) return;
     setConfig(next);
     prevConfigRef.current = next;
   }, []);
 
-  const load = useCallback(async () => {
-    if (!clubId) {
-      setConfig(null);
-      setLoadFailed(false);
+  const loadFromCacheWithFallback = useCallback(async (id: string) => {
+    const { config: cached, expired, tampered } = await readFeatureCache(id);
+    if (clubIdRef.current && String(id) !== String(clubIdRef.current)) return;
+
+    if (tampered) {
+      console.warn('[features] Tampered cache detected for club', id, '— using locked safe state');
+      applyConfig(lockedSafeConfig(id));
       return;
     }
 
+    const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
+
+    if (cached && !expired) {
+      applyConfig(cached);
+    } else if (cached && expired && isOffline) {
+      console.warn('[features] Cache expired while offline for club', id, '— using locked safe state');
+      applyConfig(lockedSafeConfig(id));
+    } else if (cached && expired && !isOffline) {
+      applyConfig(cached);
+    } else if (isOffline) {
+      // Offline with nothing cached — lock. Online with nothing cached stays
+      // unlocked so a failed fetch cannot freeze the dashboard after a club switch.
+      applyConfig(lockedSafeConfig(id));
+    }
+  }, [applyConfig]);
+
+  const load = useCallback(async () => {
+    if (!clubId) {
+      setConfig(null);
+      prevConfigRef.current = null;
+      setLoadFailed(false);
+      setLoading(false);
+      return;
+    }
+
+    const requestId = ++requestIdRef.current;
     setLoading(true);
     setLoadFailed(false);
 
@@ -49,6 +83,8 @@ export function useClubFeatures(
       const res = asMember
         ? await apiClient.getMyClubFeaturesAsMember(clubId)
         : await apiClient.getMyClubFeatures(clubId);
+
+      if (requestId !== requestIdRef.current) return;
 
       if (res.success && res.data) {
         const normalized = normalizeResolvedClubFeatures(res.data);
@@ -61,53 +97,52 @@ export function useClubFeatures(
         await loadFromCacheWithFallback(clubId);
       }
     } catch {
+      if (requestId !== requestIdRef.current) return;
       setLoadFailed(true);
       await loadFromCacheWithFallback(clubId);
     } finally {
-      setLoading(false);
+      if (requestId === requestIdRef.current) setLoading(false);
     }
-  }, [clubId, asMember, applyConfig]);
+  }, [clubId, asMember, applyConfig, loadFromCacheWithFallback]);
 
-  const loadFromCacheWithFallback = useCallback(async (id: string) => {
-    const { config: cached, expired, tampered } = await readFeatureCache(id);
-
-    if (tampered) {
-      // Detected manual edit — fall back to fully-locked safe state
-      console.warn('[features] Tampered cache detected for club', id, '— using locked safe state');
-      applyConfig(lockedSafeConfig(id));
+  useEffect(() => {
+    if (!clubId) {
+      ++requestIdRef.current;
+      setConfig(null);
+      prevConfigRef.current = null;
+      setLoading(false);
+      setLoadFailed(false);
       return;
     }
 
-    const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
+    // Drop the previous club's flags immediately so nav/page locks cannot
+    // apply club A features to club B while the new fetch is in flight.
+    ++requestIdRef.current;
+    setConfig(null);
+    prevConfigRef.current = null;
+    setLoading(true);
+    setLoadFailed(false);
 
-    if (cached && !expired) {
-      // Fresh-enough stale cache — use it
-      applyConfig(cached);
-    } else if (cached && expired && isOffline) {
-      // Cache exists but > 24h AND device is offline — safe/locked state
-      console.warn('[features] Cache expired while offline for club', id, '— using locked safe state');
-      applyConfig(lockedSafeConfig(id));
-    } else if (cached && expired && !isOffline) {
-      // Cache stale but online — serve stale while fresh data is being fetched
-      applyConfig(cached);
-    } else {
-      // No cache at all
-      applyConfig(lockedSafeConfig(id));
-    }
-  }, [applyConfig]);
+    let cancelled = false;
+    const requestId = requestIdRef.current;
 
-  useEffect(() => {
-    // On first mount, seed from cache synchronously (async HMAC verify is fast)
-    if (!clubId) return;
-    readFeatureCache(clubId).then(({ config: cached, expired, tampered }) => {
-      if (tampered) {
-        applyConfig(lockedSafeConfig(clubId));
-      } else if (cached && !expired) {
-        applyConfig(cached);
+    const run = async () => {
+      const isOffline = typeof navigator !== 'undefined' && !navigator.onLine;
+      if (isOffline) {
+        await loadFromCacheWithFallback(clubId);
+        if (!cancelled && requestId === requestIdRef.current) setLoading(false);
+        return;
       }
-      // Then trigger a fresh network fetch (state reconciliation on every load)
-      load();
-    });
+      // Online: fetch first. Seeding from cache here re-locked pages after a
+      // club switch whenever the new club's cache was stale or fully-locked.
+      await load();
+    };
+
+    void run();
+    return () => {
+      cancelled = true;
+      ++requestIdRef.current;
+    };
   }, [clubId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Socket.io real-time config sync
@@ -160,16 +195,18 @@ export function useClubFeatures(
     };
   }, [socket, isConnected, clubId, load, applyConfig]);
 
+  const scopedConfig =
+    config && clubId && String(config.clubId) === String(clubId) ? config : null;
+
   const isEnabled = useCallback(
     (key: ClubFeatureKey): boolean => {
-      // While loading with no config yet, optimistically allow (avoids flash of locked state)
-      if (loading && !config) return true;
-      if (loadFailed && !config) return true;
-      if (!config) return true;
-      return clubFeatureFlags(config).find((f) => f.key === key)?.enabled ?? false;
+      // Wrong-club / in-flight / missing config must not lock the page.
+      if (loading || !scopedConfig) return true;
+      if (loadFailed && !scopedConfig) return true;
+      return clubFeatureFlags(scopedConfig).find((f) => f.key === key)?.enabled ?? false;
     },
-    [config, loading, loadFailed]
+    [scopedConfig, loading, loadFailed]
   );
 
-  return { config, loading, loadFailed, isEnabled, reload: load };
+  return { config: scopedConfig, loading, loadFailed, isEnabled, reload: load };
 }

@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useMemo, useEffect, createContext, useContext } from "react"
+import { useState, useMemo, useEffect, createContext, useContext, Fragment } from "react"
 import { useAuth } from "@/contexts/auth-context"
 import { buildAccessibleClubs, reconcileActiveClubId, normalizeClubId } from "@/lib/clubContext"
 import { useClubSettings } from "@/hooks/useClubSettings"
@@ -815,9 +815,11 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
     return () => navigator.serviceWorker.removeEventListener('message', onSwMessage)
   }, [isAdminRole, clubId])
 
-  // Locked page feature key — replaces children with LockedFeaturePage (no redirect)
+  // Locked page feature key — replaces children with LockedFeaturePage (no redirect).
+  // Never lock from another club's flags or while the new club's config is in flight.
   const currentPageFeatureKey: ClubFeatureKey | null = (() => {
     if (!isAdminRole || !clubId || clubFeaturesLoading || !pathname) return null
+    if (clubFeatures && String(clubFeatures.clubId) !== String(clubId)) return null
     const key = ADMIN_NAV_FEATURE_MAP[pathname] ?? null
     if (!key) return null
     return !isClubFeatureEnabled(key) ? key : null
@@ -838,8 +840,17 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
   }, [isAdminRole, clubFeatures])
 
   useEffect(() => {
+    setUpgradeModal(null)
+    setStorageBannerDismissed(false)
+    setStorageAlertStatus(null)
+    setShowSubscriptionModal(false)
+  }, [clubId])
+
+  useEffect(() => {
     if (!isAdminRole) return
+    let cancelled = false
     apiClient.getStorageAlertStatus(clubId ?? undefined).then((res) => {
+      if (cancelled) return
       if (res.success && res.data) {
         setStorageAlertStatus(res.data)
         if (res.data.showUpgradeModal) {
@@ -847,6 +858,9 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
         }
       }
     }).catch(() => {})
+    return () => {
+      cancelled = true
+    }
   }, [isAdminRole, clubId])
 
   const getNavigation = () => {
@@ -1056,8 +1070,11 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
 
         <main className="flex-1 overflow-auto bg-muted/5 relative">
           {/* ClubFeaturesProvider gives all children a single shared config
-              so the entire UI updates atomically on CONFIG_SYNC */}
-          <ClubFeaturesProvider clubId={isAdminRole ? clubId : undefined}>
+              so the entire UI updates atomically on CONFIG_SYNC.
+              key={clubId} remounts page state when the selected club changes —
+              otherwise the persistent dashboard layout keeps the previous
+              club's lists, locks, and in-memory caches. */}
+          <ClubFeaturesProvider key={clubId ?? "no-club"} clubId={isAdminRole ? clubId : undefined}>
             <div className={cn(
               "mx-auto px-3 py-3 sm:px-6 sm:py-6 md:px-8 md:py-8 lg:px-10 lg:py-10 max-w-[1600px] relative min-h-full transition-all duration-300 w-full min-w-0 box-border",
               isExpiredMemberForActiveClub && !isExemptFromExpiredOverlay(pathname) && "pointer-events-none select-none filter blur-md opacity-35"
@@ -1080,38 +1097,9 @@ function DashboardLayoutChrome({ children }: DashboardLayoutProps) {
                   currentTier={clubFeatures?.billing_tier ?? undefined}
                 />
               ) : (
-                children
+                <Fragment key={clubId ?? "no-club"}>{children}</Fragment>
               )}
             </div>
-            {isExpiredMemberForActiveClub && !isExemptFromExpiredOverlay(pathname) && (
-              <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-background/50 backdrop-blur-md">
-                <div className="max-w-md w-full bg-card border border-border shadow-2xl rounded-2xl p-6 md:p-8 text-center space-y-6 animate-in fade-in zoom-in-95 duration-200">
-                  <div className="mx-auto w-16 h-16 rounded-full bg-destructive/10 text-destructive flex items-center justify-center border border-destructive/20 shadow-inner">
-                    <AlertTriangle className="w-8 h-8" />
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <h2 className="text-2xl font-bold tracking-tight text-foreground">
-                      Membership Plan Expired
-                    </h2>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      Your membership plan for this club has expired. Please buy a membership plan for this club to proceed and restore full access to club features.
-                    </p>
-                  </div>
-
-                  <div className="pt-2">
-                    <Button
-                      size="lg"
-                      onClick={() => router.push('/dashboard/user/browse-plans')}
-                      className="w-full font-semibold shadow-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-all"
-                    >
-                      <CreditCard className="w-5 h-5 mr-2" />
-                      Buy Membership Plan
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
             {isExpiredMemberForActiveClub && !isExemptFromExpiredOverlay(pathname) && (
               <div className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-background/50 backdrop-blur-md">
                 <div className="max-w-md w-full bg-card border border-border shadow-2xl rounded-2xl p-6 md:p-8 text-center space-y-6 animate-in fade-in zoom-in-95 duration-200">
